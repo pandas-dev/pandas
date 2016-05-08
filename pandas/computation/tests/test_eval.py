@@ -50,13 +50,7 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
         try:
             return c(lhs, rhs)
         except ValueError as e:
-            try:
-                msg = e.message
-            except AttributeError:
-                msg = e
-            msg = u(msg)
-            if msg == u('negative number cannot be raised to a fractional'
-                        ' power'):
+            if str(e).startswith('negative number cannot be raised to a fractional power'):
                 return np.nan
             raise
     return c(lhs, rhs)
@@ -306,17 +300,9 @@ class TestEvalNumexprPandas(tm.TestCase):
         try:
             expected = _eval_single_bin(lhs, '**', rhs, self.engine)
         except ValueError as e:
-            msg = 'negative number cannot be raised to a fractional power'
-            try:
-                emsg = e.message
-            except AttributeError:
-                emsg = e
-
-            emsg = u(emsg)
-
-            if emsg == msg:
+            if str(e).startswith('negative number cannot be raised to a fractional power'):
                 if self.engine == 'python':
-                    raise nose.SkipTest(emsg)
+                    raise nose.SkipTest(str(e))
                 else:
                     expected = np.nan
             else:
@@ -621,7 +607,7 @@ class TestEvalNumexprPandas(tm.TestCase):
                     '-37, 37, ~37, +37]'),
             np.array([-True, True, ~True, +True,
                       -False, False, ~False, +False,
-                      -37, 37, ~37, +37]))
+                      -37, 37, ~37, +37], dtype=np.object_))
 
     def test_disallow_scalar_bool_ops(self):
         exprs = '1 or 2', '1 and 2'

@@ -134,14 +134,13 @@ class TestSeriesDtypes(TestData, tm.TestCase):
             sys.setdefaultencoding(former_encoding)
 
     def test_complexx(self):
-
         # GH4819
         # complex access for ndarray compat
-        a = np.arange(5)
+        a = np.arange(5, dtype=np.float64)
         b = Series(a + 4j * a)
-        tm.assert_almost_equal(a, b.real)
-        tm.assert_almost_equal(4 * a, b.imag)
+        tm.assert_numpy_array_equal(a, b.real)
+        tm.assert_numpy_array_equal(4 * a, b.imag)
 
         b.real = np.arange(5) + 5
-        tm.assert_almost_equal(a + 5, b.real)
-        tm.assert_almost_equal(4 * a, b.imag)
+        tm.assert_numpy_array_equal(a + 5, b.real)
+        tm.assert_numpy_array_equal(4 * a, b.imag)

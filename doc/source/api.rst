@@ -457,6 +457,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.weekofyear
    Series.dt.dayofweek
    Series.dt.weekday
+   Series.dt.weekday_name
    Series.dt.dayofyear
    Series.dt.quarter
    Series.dt.is_month_start
@@ -1476,6 +1477,7 @@ Time/Date Components
    DatetimeIndex.week
    DatetimeIndex.dayofweek
    DatetimeIndex.weekday
+   DatetimeIndex.weekday_name
    DatetimeIndex.quarter
    DatetimeIndex.tz
    DatetimeIndex.freq
@@ -1779,6 +1781,7 @@ Upsampling
    Resampler.pad
    Resampler.fillna
    Resampler.asfreq
+   Resampler.interpolate
 
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

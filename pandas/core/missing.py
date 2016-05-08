@@ -3,11 +3,12 @@ Routines for filling missing data
 """
 
 import numpy as np
+from distutils.version import LooseVersion
 
 import pandas.core.common as com
 import pandas.algos as algos
 import pandas.lib as lib
-from pandas.compat import range
+from pandas.compat import range, string_types
 
 
 def mask_missing(arr, values_to_mask):
@@ -58,13 +59,16 @@ def mask_missing(arr, values_to_mask):
 
 
 def clean_fill_method(method, allow_nearest=False):
-    if method is None:
+    # asfreq is compat for resampling
+    if method in [None, 'asfreq']:
         return None
-    method = method.lower()
-    if method == 'ffill':
-        method = 'pad'
-    if method == 'bfill':
-        method = 'backfill'
+
+    if isinstance(method, string_types):
+        method = method.lower()
+        if method == 'ffill':
+            method = 'pad'
+        elif method == 'bfill':
+            method = 'backfill'
 
     valid_methods = ['pad', 'backfill']
     expecting = 'pad (ffill) or backfill (bfill)'
@@ -82,13 +86,15 @@ def clean_interp_method(method, **kwargs):
     order = kwargs.get('order')
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial', 'krogh',
-             'piecewise_polynomial', 'pchip', 'akima', 'spline']
+             'piecewise_polynomial', 'pchip', 'akima', 'spline',
+             'from_derivatives']
     if method in ('spline', 'polynomial') and order is None:
         raise ValueError("You must specify the order of the spline or "
                          "polynomial.")
     if method not in valid:
         raise ValueError("method must be one of {0}."
                          "Got '{1}' instead.".format(valid, method))
+
     return method
 
 
@@ -188,7 +194,8 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                   'barycentric', 'krogh', 'spline', 'polynomial',
-                  'piecewise_polynomial', 'pchip', 'akima']
+                  'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima']
+
     if method in sp_methods:
         inds = np.asarray(xvalues)
         # hack for DatetimeIndex, #1646
@@ -225,7 +232,8 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     alt_methods = {
         'barycentric': interpolate.barycentric_interpolate,
         'krogh': interpolate.krogh_interpolate,
-        'piecewise_polynomial': interpolate.piecewise_polynomial_interpolate,
+        'from_derivatives': _from_derivatives,
+        'piecewise_polynomial': _from_derivatives,
     }
 
     if getattr(x, 'is_all_dates', False):
@@ -272,6 +280,60 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         method = alt_methods[method]
         new_y = method(x, y, new_x, **kwargs)
     return new_y
+
+
+def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
+    """
+    Convenience function for interpolate.BPoly.from_derivatives
+
+    Construct a piecewise polynomial in the Bernstein basis, compatible
+    with the specified values and derivatives at breakpoints.
+
+    Parameters
+    ----------
+    xi : array_like
+        sorted 1D array of x-coordinates
+    yi : array_like or list of array-likes
+        yi[i][j] is the j-th derivative known at xi[i]
+    orders : None or int or array_like of ints. Default: None.
+        Specifies the degree of local polynomials. If not None, some
+        derivatives are ignored.
+    der : int or list
+        How many derivatives to extract; None for all potentially nonzero
+        derivatives (that is a number equal to the number of points), or a
+        list of derivatives to extract. This numberincludes the function
+        value as 0th derivative.
+     extrapolate : bool, optional
+        Whether to extrapolate to ouf-of-bounds points based on first and last
+        intervals, or to return NaNs. Default: True.
+
+    See Also
+    --------
+    scipy.interpolate.BPoly.from_derivatives
+
+    Returns
+    -------
+    y : scalar or array_like
+        The result, of length R or length M or M by R,
+
+    """
+    import scipy
+    from scipy import interpolate
+
+    if LooseVersion(scipy.__version__) < '0.18.0':
+        try:
+            method = interpolate.piecewise_polynomial_interpolate
+            return method(xi, yi.reshape(-1, 1), x,
+                          orders=order, der=der)
+        except AttributeError:
+            pass
+
+    # return the method for compat with scipy version & backwards compat
+    method = interpolate.BPoly.from_derivatives
+    m = method(xi, yi.reshape(-1, 1),
+               orders=order, extrapolate=extrapolate)
+
+    return m(x)
 
 
 def _akima_interpolate(xi, yi, x, der=0, axis=0):

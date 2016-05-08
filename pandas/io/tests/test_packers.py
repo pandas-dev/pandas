@@ -1,5 +1,6 @@
 import nose
 
+import warnings
 import os
 import datetime
 import numpy as np
@@ -9,13 +10,15 @@ from distutils.version import LooseVersion
 from pandas import compat
 from pandas.compat import u
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range, period_range, Index)
+                    date_range, period_range, Index, Categorical)
 from pandas.core.common import PerformanceWarning
 from pandas.io.packers import to_msgpack, read_msgpack
 import pandas.util.testing as tm
-from pandas.util.testing import (ensure_clean, assert_index_equal,
-                                 assert_series_equal,
+from pandas.util.testing import (ensure_clean,
+                                 assert_categorical_equal,
                                  assert_frame_equal,
+                                 assert_index_equal,
+                                 assert_series_equal,
                                  patch)
 from pandas.tests.test_panel import assert_panel_equal
 
@@ -335,7 +338,7 @@ class TestSeries(TestPackers):
             'E': [0., 1, Timestamp('20100101'), 'foo', 2.],
             'F': [Timestamp('20130102', tz='US/Eastern')] * 2 +
                  [Timestamp('20130603', tz='CET')] * 3,
-            'G': [Timestamp('20130102', tz='US/Eastern')] * 5
+            'G': [Timestamp('20130102', tz='US/Eastern')] * 5,
         }
 
         self.d['float'] = Series(data['A'])
@@ -353,6 +356,29 @@ class TestSeries(TestPackers):
                 assert_series_equal(i, i_rec)
 
 
+class TestCategorical(TestPackers):
+
+    def setUp(self):
+        super(TestCategorical, self).setUp()
+
+        self.d = {}
+
+        self.d['plain_str'] = Categorical(['a', 'b', 'c', 'd', 'e'])
+        self.d['plain_str_ordered'] = Categorical(['a', 'b', 'c', 'd', 'e'],
+                                                  ordered=True)
+
+        self.d['plain_int'] = Categorical([5, 6, 7, 8])
+        self.d['plain_int_ordered'] = Categorical([5, 6, 7, 8], ordered=True)
+
+    def test_basic(self):
+
+        # run multiple times here
+        for n in range(10):
+            for s, i in self.d.items():
+                i_rec = self.encode_decode(i)
+                assert_categorical_equal(i, i_rec)
+
+
 class TestNDFrame(TestPackers):
 
     def setUp(self):
@@ -365,7 +391,9 @@ class TestNDFrame(TestPackers):
             'D': date_range('1/1/2009', periods=5),
             'E': [0., 1, Timestamp('20100101'), 'foo', 2.],
             'F': [Timestamp('20130102', tz='US/Eastern')] * 5,
-            'G': [Timestamp('20130603', tz='CET')] * 5
+            'G': [Timestamp('20130603', tz='CET')] * 5,
+            'H': Categorical(['a', 'b', 'c', 'd', 'e']),
+            'I': Categorical(['a', 'b', 'c', 'd', 'e'], ordered=True),
         }
 
         self.frame = {
@@ -492,7 +520,8 @@ class TestSparse(TestPackers):
 
     def test_sparse_panel(self):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with warnings.catch_warnings(record=True):
+
             items = ['x', 'y', 'z']
             p = Panel(dict((i, tm.makeDataFrame().ix[:2, :2]) for i in items))
             sp = p.to_sparse()

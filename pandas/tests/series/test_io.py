@@ -8,7 +8,7 @@ import pandas as pd
 
 from pandas import Series, DataFrame
 
-from pandas.compat import StringIO, u
+from pandas.compat import StringIO, u, long
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
@@ -16,7 +16,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesIO(TestData, tm.TestCase):
+class TestSeriesToCSV(TestData, tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -82,35 +82,6 @@ class TestSeriesIO(TestData, tm.TestCase):
 
         assert_series_equal(s, s2)
 
-    def test_tolist(self):
-        rs = self.ts.tolist()
-        xp = self.ts.values.tolist()
-        assert_almost_equal(rs, xp)
-
-        # datetime64
-        s = Series(self.ts.index)
-        rs = s.tolist()
-        self.assertEqual(self.ts.index[0], rs[0])
-
-    def test_to_frame(self):
-        self.ts.name = None
-        rs = self.ts.to_frame()
-        xp = pd.DataFrame(self.ts.values, index=self.ts.index)
-        assert_frame_equal(rs, xp)
-
-        self.ts.name = 'testname'
-        rs = self.ts.to_frame()
-        xp = pd.DataFrame(dict(testname=self.ts.values), index=self.ts.index)
-        assert_frame_equal(rs, xp)
-
-        rs = self.ts.to_frame(name='testdifferent')
-        xp = pd.DataFrame(
-            dict(testdifferent=self.ts.values), index=self.ts.index)
-        assert_frame_equal(rs, xp)
-
-    def test_to_dict(self):
-        self.assert_numpy_array_equal(Series(self.ts.to_dict()), self.ts)
-
     def test_to_csv_float_format(self):
 
         with ensure_clean() as filename:
@@ -136,6 +107,30 @@ class TestSeriesIO(TestData, tm.TestCase):
         s = Series([1, 2, 3])
         csv_str = s.to_csv(path=None)
         self.assertIsInstance(csv_str, str)
+
+
+class TestSeriesIO(TestData, tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_to_frame(self):
+        self.ts.name = None
+        rs = self.ts.to_frame()
+        xp = pd.DataFrame(self.ts.values, index=self.ts.index)
+        assert_frame_equal(rs, xp)
+
+        self.ts.name = 'testname'
+        rs = self.ts.to_frame()
+        xp = pd.DataFrame(dict(testname=self.ts.values), index=self.ts.index)
+        assert_frame_equal(rs, xp)
+
+        rs = self.ts.to_frame(name='testdifferent')
+        xp = pd.DataFrame(
+            dict(testdifferent=self.ts.values), index=self.ts.index)
+        assert_frame_equal(rs, xp)
+
+    def test_to_dict(self):
+        self.assert_numpy_array_equal(Series(self.ts.to_dict()), self.ts)
 
     def test_timeseries_periodindex(self):
         # GH2891
@@ -174,3 +169,39 @@ class TestSeriesIO(TestData, tm.TestCase):
         self.assertTrue(isinstance(result, SubclassedFrame))
         expected = SubclassedFrame({'X': [1, 2, 3]})
         assert_frame_equal(result, expected)
+
+
+class TestSeriesToList(TestData, tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_tolist(self):
+        rs = self.ts.tolist()
+        xp = self.ts.values.tolist()
+        assert_almost_equal(rs, xp)
+
+        # datetime64
+        s = Series(self.ts.index)
+        rs = s.tolist()
+        self.assertEqual(self.ts.index[0], rs[0])
+
+    def test_tolist_np_int(self):
+        # GH10904
+        for t in ['int8', 'int16', 'int32', 'int64']:
+            s = pd.Series([1], dtype=t)
+            self.assertIsInstance(s.tolist()[0], (int, long))
+
+    def test_tolist_np_uint(self):
+        # GH10904
+        for t in ['uint8', 'uint16']:
+            s = pd.Series([1], dtype=t)
+            self.assertIsInstance(s.tolist()[0], int)
+        for t in ['uint32', 'uint64']:
+            s = pd.Series([1], dtype=t)
+            self.assertIsInstance(s.tolist()[0], long)
+
+    def test_tolist_np_float(self):
+        # GH10904
+        for t in ['float16', 'float32', 'float64']:
+            s = pd.Series([1], dtype=t)
+            self.assertIsInstance(s.tolist()[0], float)

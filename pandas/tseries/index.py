@@ -62,6 +62,9 @@ def _field_accessor(name, field, docstring=None):
 
             result = tslib.get_start_end_field(
                 values, field, self.freqstr, month_kw)
+        elif field in ['weekday_name']:
+            result = tslib.get_date_name_field(values, field)
+            return self._maybe_mask_results(result)
         else:
             result = tslib.get_date_field(values, field)
 
@@ -209,7 +212,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                          'daysinmonth', 'date', 'time', 'microsecond',
                          'nanosecond', 'is_month_start', 'is_month_end',
                          'is_quarter_start', 'is_quarter_end', 'is_year_start',
-                         'is_year_end', 'tz', 'freq']
+                         'is_year_end', 'tz', 'freq', 'weekday_name']
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
@@ -1565,6 +1568,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         'dow',
         "The day of the week with Monday=0, Sunday=6")
     weekday = dayofweek
+
+    weekday_name = _field_accessor(
+        'weekday_name',
+        'weekday_name',
+        "The name of day in a week (ex: Friday)\n\n.. versionadded:: 0.18.1")
+
     dayofyear = _field_accessor(
         'dayofyear',
         'doy',
@@ -1803,7 +1812,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
                      mapping={True: 'infer', False: 'raise'})
-    def tz_localize(self, tz, ambiguous='raise'):
+    def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
         Localize tz-naive DatetimeIndex to given time zone (using
         pytz/dateutil), or remove timezone from tz-aware DatetimeIndex
@@ -1823,6 +1832,15 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
+        errors : 'raise', 'coerce', default 'raise'
+            - 'raise' will raise a NonExistentTimeError if a timestamp is not
+               valid in the specified timezone (e.g. due to a transition from
+               or to DST time)
+            - 'coerce' will return NaT if the timestamp can not be converted
+              into the specified timezone
+
+            .. versionadded:: 0.18.2
+
         infer_dst : boolean, default False (DEPRECATED)
             Attempt to infer fall dst-transition hours based on order
 
@@ -1845,7 +1863,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             # Convert to UTC
 
             new_dates = tslib.tz_localize_to_utc(self.asi8, tz,
-                                                 ambiguous=ambiguous)
+                                                 ambiguous=ambiguous,
+                                                 errors=errors)
         new_dates = new_dates.view(_NS_DTYPE)
         return self._shallow_copy(new_dates, tz=tz)
 
@@ -2139,9 +2158,9 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
 
 
 def _to_m8(key, tz=None):
-    '''
+    """
     Timestamp-like => dt64
-    '''
+    """
     if not isinstance(key, Timestamp):
         # this also converts strings
         key = Timestamp(key, tz=tz)

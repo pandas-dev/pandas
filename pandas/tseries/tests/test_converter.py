@@ -8,6 +8,7 @@ from pandas import Timestamp, Period
 from pandas.compat import u
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Second, Milli, Micro
+from pandas.compat.numpy import np_datetime64_compat
 
 try:
     import pandas.tseries.converter as converter
@@ -50,16 +51,16 @@ class TestDateTimeConverter(tm.TestCase):
         self.assertEqual(rs, xp)
 
         # also testing datetime64 dtype (GH8614)
-        rs = self.dtc.convert(np.datetime64('2012-01-01'), None, None)
+        rs = self.dtc.convert(np_datetime64_compat('2012-01-01'), None, None)
         self.assertEqual(rs, xp)
 
-        rs = self.dtc.convert(np.datetime64(
-            '2012-01-01 00:00:00+00:00'), None, None)
+        rs = self.dtc.convert(np_datetime64_compat(
+            '2012-01-01 00:00:00+0000'), None, None)
         self.assertEqual(rs, xp)
 
         rs = self.dtc.convert(np.array([
-            np.datetime64('2012-01-01 00:00:00+00:00'),
-            np.datetime64('2012-01-02 00:00:00+00:00')]), None, None)
+            np_datetime64_compat('2012-01-01 00:00:00+0000'),
+            np_datetime64_compat('2012-01-02 00:00:00+0000')]), None, None)
         self.assertEqual(rs[0], xp)
 
     def test_conversion_float(self):
@@ -142,16 +143,19 @@ class TestPeriodConverter(tm.TestCase):
         self.assertEqual(rs, xp)
 
         # FIXME
-        # rs = self.pc.convert(np.datetime64('2012-01-01'), None, self.axis)
+        # rs = self.pc.convert(
+        #        np_datetime64_compat('2012-01-01'), None, self.axis)
         # self.assertEqual(rs, xp)
         #
-        # rs = self.pc.convert(np.datetime64('2012-01-01 00:00:00+00:00'),
+        # rs = self.pc.convert(
+        #        np_datetime64_compat('2012-01-01 00:00:00+0000'),
         #                      None, self.axis)
         # self.assertEqual(rs, xp)
         #
         # rs = self.pc.convert(np.array([
-        #     np.datetime64('2012-01-01 00:00:00+00:00'),
-        #     np.datetime64('2012-01-02 00:00:00+00:00')]), None, self.axis)
+        #     np_datetime64_compat('2012-01-01 00:00:00+0000'),
+        #     np_datetime64_compat('2012-01-02 00:00:00+0000')]),
+        #                          None, self.axis)
         # self.assertEqual(rs[0], xp)
 
     def test_integer_passthrough(self):

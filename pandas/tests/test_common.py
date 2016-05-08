@@ -374,17 +374,17 @@ def test_downcast_conv():
     for dtype in [np.float64, object, np.int64]:
         arr = np.array([1.0, 2.0], dtype=dtype)
         result = com._possibly_downcast_to_dtype(arr, 'infer')
-        tm.assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected, check_dtype=False)
 
-    expected = np.array([1.0, 2.0, np.nan])
     for dtype in [np.float64, object]:
+        expected = np.array([1.0, 2.0, np.nan], dtype=dtype)
         arr = np.array([1.0, 2.0, np.nan], dtype=dtype)
         result = com._possibly_downcast_to_dtype(arr, 'infer')
         tm.assert_almost_equal(result, expected)
 
     # empties
-    for dtype in [np.int32, np.float64, np.float32, np.bool_, np.int64, object
-                  ]:
+    for dtype in [np.int32, np.float64, np.float32, np.bool_,
+                  np.int64, object]:
         arr = np.array([], dtype=dtype)
         result = com._possibly_downcast_to_dtype(arr, 'int64')
         tm.assert_almost_equal(result, np.array([], dtype=np.int64))
@@ -432,6 +432,14 @@ def test_array_equivalent():
             [0, np.nan], tz='US/Eastern'))
     assert not array_equivalent(
         DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
+
+
+def test_array_equivalent_str():
+    for dtype in ['O', 'S', 'U']:
+        assert array_equivalent(np.array(['A', 'B'], dtype=dtype),
+                                np.array(['A', 'B'], dtype=dtype))
+        assert not array_equivalent(np.array(['A', 'B'], dtype=dtype),
+                                    np.array(['A', 'X'], dtype=dtype))
 
 
 def test_datetimeindex_from_empty_datetime64_array():

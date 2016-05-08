@@ -136,6 +136,17 @@ class TestDataFrameEval(tm.TestCase, TestData):
         result = (1 - np.isnan(df)).iloc[0:25]
         assert_frame_equal(result, expected)
 
+    def test_query_non_str(self):
+        # GH 11485
+        df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'b']})
+
+        msg = "expr must be a string to be evaluated"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            df.query(lambda x: x.B == "b")
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            df.query(111)
+
 
 class TestDataFrameQueryWithMultiIndex(tm.TestCase):
 

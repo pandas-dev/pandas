@@ -64,6 +64,7 @@ class _NDFrameIndexer(object):
 
     def __getitem__(self, key):
         if type(key) is tuple:
+            key = tuple(com._apply_if_callable(x, self.obj) for x in key)
             try:
                 values = self.obj.get_value(*key)
                 if lib.isscalar(values):
@@ -73,6 +74,7 @@ class _NDFrameIndexer(object):
 
             return self._getitem_tuple(key)
         else:
+            key = com._apply_if_callable(key, self.obj)
             return self._getitem_axis(key, axis=0)
 
     def _get_label(self, label, axis=0):
@@ -122,6 +124,10 @@ class _NDFrameIndexer(object):
             raise IndexingError(key)
 
     def __setitem__(self, key, value):
+        if isinstance(key, tuple):
+            key = tuple(com._apply_if_callable(x, self.obj) for x in key)
+        else:
+            key = com._apply_if_callable(key, self.obj)
         indexer = self._get_setitem_indexer(key)
         self._setitem_with_indexer(indexer, value)
 
@@ -1278,6 +1284,12 @@ class _LocationIndexer(_NDFrameIndexer):
     _exception = Exception
 
     def __getitem__(self, key):
+        if isinstance(key, tuple):
+            key = tuple(com._apply_if_callable(x, self.obj) for x in key)
+        else:
+            # scalar callable may return tuple
+            key = com._apply_if_callable(key, self.obj)
+
         if type(key) is tuple:
             return self._getitem_tuple(key)
         else:
@@ -1326,6 +1338,8 @@ class _LocIndexer(_LocationIndexer):
     - A slice object with labels, e.g. ``'a':'f'`` (note that contrary
       to usual python slices, **both** the start and the stop are included!).
     - A boolean array.
+    - A ``callable`` function with one argument (the calling Series, DataFrame
+      or Panel) and that returns valid output for indexing (one of the above)
 
     ``.loc`` will raise a ``KeyError`` when the items are not found.
 
@@ -1466,6 +1480,8 @@ class _iLocIndexer(_LocationIndexer):
     - A list or array of integers, e.g. ``[4, 3, 0]``.
     - A slice object with ints, e.g. ``1:7``.
     - A boolean array.
+    - A ``callable`` function with one argument (the calling Series, DataFrame
+      or Panel) and that returns valid output for indexing (one of the above)
 
     ``.iloc`` will raise ``IndexError`` if a requested indexer is
     out-of-bounds, except *slice* indexers which allow out-of-bounds
@@ -1633,6 +1649,12 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
         return self.obj.get_value(*key, takeable=self._takeable)
 
     def __setitem__(self, key, value):
+        if isinstance(key, tuple):
+            key = tuple(com._apply_if_callable(x, self.obj) for x in key)
+        else:
+            # scalar callable may return tuple
+            key = com._apply_if_callable(key, self.obj)
+
         if not isinstance(key, tuple):
             key = self._tuplify(key)
         if len(key) != self.obj.ndim:

@@ -251,6 +251,12 @@ class SafeForSparse(object):
         self.assertEqual(self.panel._get_axis_number('major'), 1)
         self.assertEqual(self.panel._get_axis_number('minor'), 2)
 
+        with tm.assertRaisesRegexp(ValueError, "No axis named foo"):
+            self.panel._get_axis_number('foo')
+
+        with tm.assertRaisesRegexp(ValueError, "No axis named foo"):
+            self.panel.__ge__(self.panel, axis='foo')
+
     def test_get_axis_name(self):
         self.assertEqual(self.panel._get_axis_name(0), 'items')
         self.assertEqual(self.panel._get_axis_name(1), 'major_axis')
@@ -712,6 +718,14 @@ class CheckIndexing(object):
         self._check_view((item, date, NS), comp)
         self._check_view((item, NS, 'C'), comp)
         self._check_view((NS, date, 'C'), comp)
+
+    def test_getitem_callable(self):
+        p = self.panel
+        # GH 12533
+
+        assert_frame_equal(p[lambda x: 'ItemB'], p.loc['ItemB'])
+        assert_panel_equal(p[lambda x: ['ItemB', 'ItemC']],
+                           p.loc[['ItemB', 'ItemC']])
 
     def test_ix_setitem_slice_dataframe(self):
         a = Panel(items=[1, 2, 3], major_axis=[11, 22, 33],
@@ -2007,6 +2021,25 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                          minor_axis=['A', 'B'])
         result = p.round()
         self.assert_panel_equal(expected, result)
+
+    def test_numpy_round(self):
+        values = [[[-3.2, 2.2], [0, -4.8213], [3.123, 123.12],
+                   [-1566.213, 88.88], [-12, 94.5]],
+                  [[-5.82, 3.5], [6.21, -73.272], [-9.087, 23.12],
+                   [272.212, -99.99], [23, -76.5]]]
+        evalues = [[[float(np.around(i)) for i in j] for j in k]
+                   for k in values]
+        p = Panel(values, items=['Item1', 'Item2'],
+                  major_axis=pd.date_range('1/1/2000', periods=5),
+                  minor_axis=['A', 'B'])
+        expected = Panel(evalues, items=['Item1', 'Item2'],
+                         major_axis=pd.date_range('1/1/2000', periods=5),
+                         minor_axis=['A', 'B'])
+        result = np.round(p)
+        self.assert_panel_equal(expected, result)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.round, p, out=p)
 
     def test_multiindex_get(self):
         ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)],

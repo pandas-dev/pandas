@@ -1360,7 +1360,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
     def test_divide_decimal(self):
-        ''' resolves issue #9787 '''
+        """ resolves issue #9787 """
         from decimal import Decimal
 
         expected = Series([Decimal(5)])

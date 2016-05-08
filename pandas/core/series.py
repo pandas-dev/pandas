@@ -24,7 +24,7 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 _maybe_match_name, ABCSparseArray,
                                 _coerce_to_dtype, SettingWithCopyError,
                                 _maybe_box_datetimelike, ABCDataFrame,
-                                _dict_compat)
+                                _dict_compat, is_integer)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -39,9 +39,8 @@ from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
-from pandas.util.validators import validate_args
 from pandas.compat import zip, u, OrderedDict, StringIO
-
+from pandas.compat.numpy import function as nv
 
 import pandas.core.ops as ops
 import pandas.core.algorithms as algos
@@ -393,7 +392,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """
         return self._values.ravel(order=order)
 
-    def compress(self, condition, axis=0, out=None, **kwargs):
+    def compress(self, condition, *args, **kwargs):
         """
         Return selected slices of an array along given axis as a Series
 
@@ -401,6 +400,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         --------
         numpy.ndarray.compress
         """
+        nv.validate_compress(args, kwargs)
         return self[condition]
 
     def nonzero(self):
@@ -431,7 +431,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def put(self, *args, **kwargs):
         """
-        return a ndarray with the values put
+        Applies the `put` method to its `values` attribute
+        if it has one.
 
         See also
         --------
@@ -577,6 +578,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return self._get_values(slobj)
 
     def __getitem__(self, key):
+        key = com._apply_if_callable(key, self)
         try:
             result = self.index.get_value(self, key)
 
@@ -692,6 +694,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             return self._values[indexer]
 
     def __setitem__(self, key, value):
+        key = com._apply_if_callable(key, self)
+
         def setitem(key, value):
             try:
                 self._set_with_engine(key, value)
@@ -700,7 +704,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 raise
             except (KeyError, ValueError):
                 values = self._values
-                if (com.is_integer(key) and
+                if (is_integer(key) and
                         not self.index.inferred_type == 'integer'):
 
                     values[key] = value
@@ -809,14 +813,16 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def repeat(self, reps):
+    def repeat(self, reps, *args, **kwargs):
         """
-        return a new Series with the values repeated reps times
+        Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
+        for more information about the `reps` argument.
 
         See also
         --------
         numpy.ndarray.repeat
         """
+        nv.validate_repeat(args, kwargs)
         new_index = self.index.repeat(reps)
         new_values = self._values.repeat(reps)
         return self._constructor(new_values,
@@ -824,13 +830,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def reshape(self, *args, **kwargs):
         """
-        return an ndarray with the values shape
-        if the specified shape matches exactly the current shape, then
-        return self (for compat)
+        Return the values attribute of `self` with shape `args`.
+        However, if the specified shape matches exactly the current
+        shape, `self` is returned for compatibility reasons.
 
         See also
         --------
-        numpy.ndarray.take
+        numpy.ndarray.reshape
         """
         if len(args) == 1 and hasattr(args[0], '__iter__'):
             shape = args[0]
@@ -839,6 +845,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         if tuple(shape) == self.shape:
             # XXX ignoring the "order" keyword.
+            nv.validate_reshape(tuple(), kwargs)
             return self
 
         return self._values.reshape(shape, **kwargs)
@@ -1078,7 +1085,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def tolist(self):
         """ Convert Series to a nested list """
-        return list(self)
+        return list(self.asobject)
 
     def to_dict(self):
         """
@@ -1129,7 +1136,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                             fill_value=fill_value).__finalize__(self)
 
     def _set_name(self, name, inplace=False):
-        '''
+        """
         Set the Series name.
 
         Parameters
@@ -1137,7 +1144,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         name : str
         inplace : bool
             whether to modify `self` directly or return a copy
-        '''
+        """
         ser = self if inplace else self.copy()
         ser.name = name
         return ser
@@ -1213,7 +1220,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def duplicated(self, keep='first'):
         return super(Series, self).duplicated(keep=keep)
 
-    def idxmin(self, axis=None, out=None, skipna=True):
+    def idxmin(self, axis=None, skipna=True, *args, **kwargs):
         """
         Index of first occurrence of minimum of values.
 
@@ -1235,12 +1242,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         DataFrame.idxmin
         numpy.ndarray.argmin
         """
+        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
         i = nanops.nanargmin(_values_from_object(self), skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
 
-    def idxmax(self, axis=None, out=None, skipna=True):
+    def idxmax(self, axis=None, skipna=True, *args, **kwargs):
         """
         Index of first occurrence of maximum of values.
 
@@ -1262,6 +1270,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         DataFrame.idxmax
         numpy.ndarray.argmax
         """
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
         i = nanops.nanargmax(_values_from_object(self), skipna=skipna)
         if i == -1:
             return np.nan
@@ -1271,7 +1280,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     argmin = idxmin
     argmax = idxmax
 
-    def round(self, decimals=0, *args):
+    def round(self, decimals=0, *args, **kwargs):
         """
         Round each value in a Series to the given number of decimals.
 
@@ -1292,9 +1301,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         DataFrame.round
 
         """
-        validate_args(args, min_length=0, max_length=1,
-                      msg="Inplace rounding is not supported")
-
+        nv.validate_round(args, kwargs)
         result = _values_from_object(self).round(decimals)
         result = self._constructor(result, index=self.index).__finalize__(self)
 
@@ -1484,6 +1491,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     @Substitution(klass='Series', value='v')
     @Appender(base._shared_docs['searchsorted'])
     def searchsorted(self, v, side='left', sorter=None):
+        if sorter is not None:
+            sorter = com._ensure_platform_int(sorter)
         return self._values.searchsorted(Series(v)._values,
                                          side=side, sorter=sorter)
 
@@ -1949,7 +1958,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return self.sort_index(level=level, ascending=ascending,
                                sort_remaining=sort_remaining)
 
-    def swaplevel(self, i, j, copy=True):
+    def swaplevel(self, i=-2, j=-1, copy=True):
         """
         Swap levels i and j in a MultiIndex
 
@@ -1961,6 +1970,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         Returns
         -------
         swapped : Series
+
+        .. versionchanged:: 0.18.1
+
+           The indexes ``i`` and ``j`` are now optional, and default to
+           the two innermost levels of the index.
+
         """
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index,
@@ -2318,7 +2333,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             v += self.index.memory_usage(deep=deep)
         return v
 
-    def take(self, indices, axis=0, convert=True, is_copy=False):
+    def take(self, indices, axis=0, convert=True, is_copy=False, **kwargs):
         """
         return Series corresponding to requested indices
 
@@ -2335,6 +2350,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         --------
         numpy.ndarray.take
         """
+        nv.validate_take(tuple(), kwargs)
+
         # check/convert indicies here
         if convert:
             indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
@@ -2353,10 +2370,14 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Parameters
         ----------
-        values : list-like
+        values : set or list-like
             The sequence of values to test. Passing in a single string will
             raise a ``TypeError``. Instead, turn a single string into a
             ``list`` of one element.
+
+            .. versionadded:: 0.18.1
+
+            Support for values as a set
 
         Returns
         -------

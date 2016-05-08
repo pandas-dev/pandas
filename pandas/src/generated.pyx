@@ -128,7 +128,7 @@ cpdef ensure_int64(object arr):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_float64(ndarray[float64_t] index):
-    '''
+    """
     Produce a dict mapping the values of the input array to their respective
     locations.
 
@@ -136,7 +136,7 @@ cpdef map_indices_float64(ndarray[float64_t] index):
         array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
 
     Better to do this with Cython because of the enormous speed boost.
-    '''
+    """
     cdef Py_ssize_t i, length
     cdef dict result = {}
 
@@ -150,7 +150,7 @@ cpdef map_indices_float64(ndarray[float64_t] index):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_float32(ndarray[float32_t] index):
-    '''
+    """
     Produce a dict mapping the values of the input array to their respective
     locations.
 
@@ -158,7 +158,7 @@ cpdef map_indices_float32(ndarray[float32_t] index):
         array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
 
     Better to do this with Cython because of the enormous speed boost.
-    '''
+    """
     cdef Py_ssize_t i, length
     cdef dict result = {}
 
@@ -172,7 +172,7 @@ cpdef map_indices_float32(ndarray[float32_t] index):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_object(ndarray[object] index):
-    '''
+    """
     Produce a dict mapping the values of the input array to their respective
     locations.
 
@@ -180,7 +180,7 @@ cpdef map_indices_object(ndarray[object] index):
         array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
 
     Better to do this with Cython because of the enormous speed boost.
-    '''
+    """
     cdef Py_ssize_t i, length
     cdef dict result = {}
 
@@ -194,7 +194,7 @@ cpdef map_indices_object(ndarray[object] index):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_int32(ndarray[int32_t] index):
-    '''
+    """
     Produce a dict mapping the values of the input array to their respective
     locations.
 
@@ -202,7 +202,7 @@ cpdef map_indices_int32(ndarray[int32_t] index):
         array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
 
     Better to do this with Cython because of the enormous speed boost.
-    '''
+    """
     cdef Py_ssize_t i, length
     cdef dict result = {}
 
@@ -216,7 +216,7 @@ cpdef map_indices_int32(ndarray[int32_t] index):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_int64(ndarray[int64_t] index):
-    '''
+    """
     Produce a dict mapping the values of the input array to their respective
     locations.
 
@@ -224,7 +224,7 @@ cpdef map_indices_int64(ndarray[int64_t] index):
         array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
 
     Better to do this with Cython because of the enormous speed boost.
-    '''
+    """
     cdef Py_ssize_t i, length
     cdef dict result = {}
 
@@ -238,7 +238,7 @@ cpdef map_indices_int64(ndarray[int64_t] index):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_bool(ndarray[uint8_t] index):
-    '''
+    """
     Produce a dict mapping the values of the input array to their respective
     locations.
 
@@ -246,7 +246,7 @@ cpdef map_indices_bool(ndarray[uint8_t] index):
         array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
 
     Better to do this with Cython because of the enormous speed boost.
-    '''
+    """
     cdef Py_ssize_t i, length
     cdef dict result = {}
 
@@ -1821,11 +1821,11 @@ def backfill_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_float64(ndarray[float64_t] arr, bint timelike):
-    '''
+    """
     Returns
     -------
     is_monotonic_inc, is_monotonic_dec
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         float64_t prev, cur
@@ -1875,11 +1875,11 @@ def is_monotonic_float64(ndarray[float64_t] arr, bint timelike):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_float32(ndarray[float32_t] arr, bint timelike):
-    '''
+    """
     Returns
     -------
     is_monotonic_inc, is_monotonic_dec
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         float32_t prev, cur
@@ -1929,11 +1929,11 @@ def is_monotonic_float32(ndarray[float32_t] arr, bint timelike):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_object(ndarray[object] arr, bint timelike):
-    '''
+    """
     Returns
     -------
     is_monotonic_inc, is_monotonic_dec
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         object prev, cur
@@ -1983,11 +1983,11 @@ def is_monotonic_object(ndarray[object] arr, bint timelike):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_int32(ndarray[int32_t] arr, bint timelike):
-    '''
+    """
     Returns
     -------
     is_monotonic_inc, is_monotonic_dec
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         int32_t prev, cur
@@ -2037,11 +2037,11 @@ def is_monotonic_int32(ndarray[int32_t] arr, bint timelike):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_int64(ndarray[int64_t] arr, bint timelike):
-    '''
+    """
     Returns
     -------
     is_monotonic_inc, is_monotonic_dec
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         int64_t prev, cur
@@ -2091,11 +2091,11 @@ def is_monotonic_int64(ndarray[int64_t] arr, bint timelike):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_bool(ndarray[uint8_t] arr, bint timelike):
-    '''
+    """
     Returns
     -------
     is_monotonic_inc, is_monotonic_dec
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         uint8_t prev, cur
@@ -7352,9 +7352,9 @@ def group_add_float64(ndarray[float64_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float64_t, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float64_t val, count
@@ -7415,9 +7415,9 @@ def group_add_float32(ndarray[float32_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float32_t, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float32_t val, count
@@ -7479,9 +7479,9 @@ def group_prod_float64(ndarray[float64_t, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[float64_t, ndim=2] values,
                ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float64_t val, count
@@ -7537,9 +7537,9 @@ def group_prod_float32(ndarray[float32_t, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[float32_t, ndim=2] values,
                ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float32_t val, count
@@ -7804,9 +7804,9 @@ def group_ohlc_float64(ndarray[float64_t, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[float64_t, ndim=2] values,
                   ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab
         float64_t val, count
@@ -7849,9 +7849,9 @@ def group_ohlc_float32(ndarray[float32_t, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[float32_t, ndim=2] values,
                   ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab
         float32_t val, count
@@ -7895,9 +7895,9 @@ def group_last_float64(ndarray[float64_t, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[float64_t, ndim=2] values,
                ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float64_t val, count
@@ -7940,9 +7940,9 @@ def group_last_float32(ndarray[float32_t, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[float32_t, ndim=2] values,
                ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float32_t val, count
@@ -7985,9 +7985,9 @@ def group_last_int64(ndarray[int64_t, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[int64_t, ndim=2] values,
                ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         int64_t val, count
@@ -8031,9 +8031,9 @@ def group_nth_float64(ndarray[float64_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float64_t, ndim=2] values,
               ndarray[int64_t] labels, int64_t rank):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float64_t val, count
@@ -8077,9 +8077,9 @@ def group_nth_float32(ndarray[float32_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float32_t, ndim=2] values,
               ndarray[int64_t] labels, int64_t rank):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float32_t val, count
@@ -8123,9 +8123,9 @@ def group_nth_int64(ndarray[int64_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[int64_t, ndim=2] values,
               ndarray[int64_t] labels, int64_t rank):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         int64_t val, count
@@ -8170,9 +8170,9 @@ def group_min_float64(ndarray[float64_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float64_t, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float64_t val, count
@@ -8233,9 +8233,9 @@ def group_min_float32(ndarray[float32_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float32_t, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float32_t val, count
@@ -8296,9 +8296,9 @@ def group_min_int64(ndarray[int64_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[int64_t, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         int64_t val, count
@@ -8360,9 +8360,9 @@ def group_max_float64(ndarray[float64_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float64_t, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float64_t val, count
@@ -8422,9 +8422,9 @@ def group_max_float32(ndarray[float32_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float32_t, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float32_t val, count
@@ -8484,9 +8484,9 @@ def group_max_int64(ndarray[int64_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[int64_t, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         int64_t val, count
@@ -8541,14 +8541,13 @@ def group_max_int64(ndarray[int64_t, ndim=2] out,
                     out[i, j] = maxx[i, j]
 
 
-
 def group_median_float64(ndarray[float64_t, ndim=2] out,
                          ndarray[int64_t] counts,
                          ndarray[float64_t, ndim=2] values,
                          ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, ngroups, size
         ndarray[int64_t] _counts
@@ -8573,15 +8572,16 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
             out[j, i] = _median_linear(ptr, size)
             ptr += size
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cumprod_float64(float64_t[:,:] out,
                           float64_t[:,:] values,
                           int64_t[:] labels,
                           float64_t[:,:] accum):
-    '''
+    """
     Only transforms on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, size
         float64_t val
@@ -8608,9 +8608,9 @@ def group_cumsum(numeric[:,:] out,
                  numeric[:,:] values,
                  int64_t[:] labels,
                  numeric[:,:] accum):
-    '''
+    """
     Only transforms on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, size
         numeric val
@@ -8902,12 +8902,11 @@ def left_join_indexer_unique_int64(ndarray[int64_t] left,
     return indexer
 
 
-
 def left_join_indexer_float64(ndarray[float64_t] left,
-                              ndarray[float64_t] right):
-    '''
+                               ndarray[float64_t] right):
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         float64_t lval, rval
@@ -9004,12 +9003,11 @@ def left_join_indexer_float64(ndarray[float64_t] left,
 
     return result, lindexer, rindexer
 
-
 def left_join_indexer_float32(ndarray[float32_t] left,
-                              ndarray[float32_t] right):
-    '''
+                               ndarray[float32_t] right):
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         float32_t lval, rval
@@ -9106,12 +9104,11 @@ def left_join_indexer_float32(ndarray[float32_t] left,
 
     return result, lindexer, rindexer
 
-
 def left_join_indexer_object(ndarray[object] left,
-                              ndarray[object] right):
-    '''
+                               ndarray[object] right):
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         object lval, rval
@@ -9208,12 +9205,11 @@ def left_join_indexer_object(ndarray[object] left,
 
     return result, lindexer, rindexer
 
-
 def left_join_indexer_int32(ndarray[int32_t] left,
-                              ndarray[int32_t] right):
-    '''
+                               ndarray[int32_t] right):
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         int32_t lval, rval
@@ -9310,12 +9306,11 @@ def left_join_indexer_int32(ndarray[int32_t] left,
 
     return result, lindexer, rindexer
 
-
 def left_join_indexer_int64(ndarray[int64_t] left,
-                              ndarray[int64_t] right):
-    '''
+                               ndarray[int64_t] right):
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         int64_t lval, rval
@@ -10063,9 +10058,9 @@ def outer_join_indexer_int64(ndarray[int64_t] left,
 @cython.boundscheck(False)
 def inner_join_indexer_float64(ndarray[float64_t] left,
                               ndarray[float64_t] right):
-    '''
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         float64_t lval, rval
@@ -10156,9 +10151,9 @@ def inner_join_indexer_float64(ndarray[float64_t] left,
 @cython.boundscheck(False)
 def inner_join_indexer_float32(ndarray[float32_t] left,
                               ndarray[float32_t] right):
-    '''
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         float32_t lval, rval
@@ -10249,9 +10244,9 @@ def inner_join_indexer_float32(ndarray[float32_t] left,
 @cython.boundscheck(False)
 def inner_join_indexer_object(ndarray[object] left,
                               ndarray[object] right):
-    '''
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         object lval, rval
@@ -10342,9 +10337,9 @@ def inner_join_indexer_object(ndarray[object] left,
 @cython.boundscheck(False)
 def inner_join_indexer_int32(ndarray[int32_t] left,
                               ndarray[int32_t] right):
-    '''
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         int32_t lval, rval
@@ -10435,9 +10430,9 @@ def inner_join_indexer_int32(ndarray[int32_t] left,
 @cython.boundscheck(False)
 def inner_join_indexer_int64(ndarray[int64_t] left,
                               ndarray[int64_t] right):
-    '''
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         int64_t lval, rval

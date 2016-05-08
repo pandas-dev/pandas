@@ -2,7 +2,6 @@
 
 import operator
 
-import nose  # noqa
 from numpy import nan
 import numpy as np
 import pandas as pd
@@ -768,27 +767,36 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         self._check_all(_check)
 
     def test_count(self):
-        result = self.frame.count()
         dense_result = self.frame.to_dense().count()
+
+        result = self.frame.count()
         tm.assert_series_equal(result, dense_result)
 
-        result = self.frame.count(1)
-        dense_result = self.frame.to_dense().count(1)
+        result = self.frame.count(axis=None)
+        tm.assert_series_equal(result, dense_result)
+
+        result = self.frame.count(axis=0)
+        tm.assert_series_equal(result, dense_result)
+
+        result = self.frame.count(axis=1)
+        dense_result = self.frame.to_dense().count(axis=1)
 
         # win32 don't check dtype
         tm.assert_series_equal(result, dense_result, check_dtype=False)
-
-    def test_cumsum(self):
-        result = self.frame.cumsum()
-        expected = self.frame.to_dense().cumsum()
-        tm.assertIsInstance(result, SparseDataFrame)
-        tm.assert_frame_equal(result.to_dense(), expected)
 
     def _check_all(self, check_func):
         check_func(self.frame, self.orig)
         check_func(self.iframe, self.iorig)
         check_func(self.zframe, self.zorig)
         check_func(self.fill_frame, self.fill_orig)
+
+    def test_numpy_transpose(self):
+        sdf = SparseDataFrame([1, 2, 3], index=[1, 2, 3], columns=['a'])
+        result = np.transpose(np.transpose(sdf))
+        tm.assert_sp_frame_equal(result, sdf)
+
+        msg = "the 'axes' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.transpose, sdf, axes=1)
 
     def test_combine_first(self):
         df = self.frame
@@ -848,7 +856,52 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         self.assertTrue(np.isnan(nan_colname_sparse.columns[0]))
 
 
+class TestSparseDataFrameAnalytics(tm.TestCase):
+    def setUp(self):
+        self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+                     'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+                     'C': np.arange(10),
+                     'D': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
+
+        self.dates = bdate_range('1/1/2011', periods=10)
+
+        self.frame = SparseDataFrame(self.data, index=self.dates)
+
+    def test_cumsum(self):
+        expected = SparseDataFrame(self.frame.to_dense().cumsum())
+
+        result = self.frame.cumsum()
+        tm.assert_sp_frame_equal(result, expected)
+
+        result = self.frame.cumsum(axis=None)
+        tm.assert_sp_frame_equal(result, expected)
+
+        result = self.frame.cumsum(axis=0)
+        tm.assert_sp_frame_equal(result, expected)
+
+    def test_numpy_cumsum(self):
+        result = np.cumsum(self.frame)
+        expected = SparseDataFrame(self.frame.to_dense().cumsum())
+        tm.assert_sp_frame_equal(result, expected)
+
+        msg = "the 'dtype' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
+                              self.frame, dtype=np.int64)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
+                              self.frame, out=result)
+
+    def test_numpy_func_call(self):
+        # no exception should be raised even though
+        # numpy passes in 'axis=None' or `axis=-1'
+        funcs = ['sum', 'cumsum', 'var',
+                 'mean', 'prod', 'cumprod',
+                 'std', 'min', 'max']
+        for func in funcs:
+            getattr(np, func)(self.frame)
+
 if __name__ == '__main__':
-    import nose  # noqa
+    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

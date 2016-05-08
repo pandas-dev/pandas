@@ -2385,8 +2385,6 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
             sys.stdout = sys.__stdout__
 
     def test_keyword_as_column_names(self):
-        '''
-        '''
         df = DataFrame({'From': np.ones(5)})
         sql.to_sql(df, con=self.conn, name='testkeywords', index=False)
 
@@ -2751,8 +2749,6 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
             sys.stdout = sys.__stdout__
 
     def test_keyword_as_column_names(self):
-        '''
-        '''
         _skip_if_no_pymysql()
         df = DataFrame({'From': np.ones(5)})
         sql.to_sql(df, con=self.conn, name='testkeywords',

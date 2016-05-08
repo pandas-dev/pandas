@@ -4,7 +4,7 @@ from pandas import compat
 import numpy as np
 
 from pandas.tseries.tools import to_datetime, normalize_date
-from pandas.core.common import ABCSeries, ABCDatetimeIndex
+from pandas.core.common import ABCSeries, ABCDatetimeIndex, ABCPeriod
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
@@ -380,6 +380,8 @@ class DateOffset(object):
 
     def __add__(self, other):
         if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
+            return other + self
+        elif isinstance(other, ABCPeriod):
             return other + self
         try:
             return self.apply(other)
@@ -958,7 +960,7 @@ class CustomBusinessDay(BusinessDay):
         self.kwds['calendar'] = self.calendar = calendar
 
     def get_calendar(self, weekmask, holidays, calendar):
-        '''Generate busdaycalendar'''
+        """Generate busdaycalendar"""
         if isinstance(calendar, np.busdaycalendar):
             if not holidays:
                 holidays = tuple(calendar.holidays)
@@ -2422,12 +2424,12 @@ class FY5253Quarter(DateOffset):
 
 
 class Easter(DateOffset):
-    '''
+    """
     DateOffset for the Easter holiday using
     logic defined in dateutil.  Right now uses
     the revised method which is valid in years
     1583-4099.
-    '''
+    """
     _adjust_dst = True
 
     def __init__(self, n=1, **kwds):
@@ -2489,6 +2491,8 @@ class Tick(SingleConstructorOffset):
                 return type(self)(self.n + other.n)
             else:
                 return _delta_to_tick(self.delta + other.delta)
+        elif isinstance(other, ABCPeriod):
+            return other + self
         try:
             return self.apply(other)
         except ApplyTypeError:

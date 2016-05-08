@@ -1,0 +1,134 @@
+.. _whatsnew_0182:
+
+v0.18.2 (July ??, 2016)
+-----------------------
+
+This is a minor bug-fix release from 0.18.1 and includes a large number of
+bug fixes along with several new features, enhancements, and performance improvements.
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+
+.. contents:: What's new in v0.18.2
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0182.new_features:
+
+New features
+~~~~~~~~~~~~
+
+
+
+
+
+
+.. _whatsnew_0182.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behaviour remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
+
+
+
+
+.. _whatsnew_0182.api:
+
+API changes
+~~~~~~~~~~~
+
+
+- Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
+
+
+.. _whatsnew_0182.api.tolist:
+
+``Series.tolist()`` will now return Python types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``Series.tolist()`` will now return Python types in the output, mimicking NumPy ``.tolist()`` behaviour (:issue:`10904`)
+
+
+.. ipython:: python
+
+   s = pd.Series([1,2,3])
+   type(s.tolist()[0])
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [7]: type(s.tolist()[0])
+   Out[7]:
+    <class 'numpy.int64'>
+
+New Behavior:
+
+.. ipython:: python
+
+   type(s.tolist()[0])
+
+
+
+
+
+
+
+
+
+
+.. _whatsnew_0182.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0182.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+
+.. _whatsnew_0182.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved performance of sparse ``IntIndex.intersect`` (:issue:`13082`)
+- Improved performance of sparse arithmetic with ``BlockIndex`` when the number of blocks are large, though recommended to use ``IntIndex`` in such cases (:issue:`13082`)
+
+
+
+.. _whatsnew_0182.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+- Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)
+
+
+
+
+
+
+
+
+
+
+- Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
+- Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)

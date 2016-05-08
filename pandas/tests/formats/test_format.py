@@ -8,7 +8,8 @@ from distutils.version import LooseVersion
 import re
 
 from pandas.compat import (range, zip, lrange, StringIO, PY3,
-                           u, lzip, is_platform_windows)
+                           u, lzip, is_platform_windows,
+                           is_platform_32bit)
 import pandas.compat as compat
 import itertools
 from operator import methodcaller
@@ -28,7 +29,7 @@ try:
     import IPython
     if IPython.__version__ < LooseVersion('3.0.0'):
         div_style = ' style="max-width:1500px;overflow:auto;"'
-except ImportError:
+except (ImportError, AttributeError):
     pass
 
 from pandas import DataFrame, Series, Index, Timestamp, MultiIndex, date_range, NaT
@@ -44,6 +45,8 @@ from pandas.core.config import (set_option, get_option, option_context,
 from datetime import datetime
 
 import nose
+
+use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -732,18 +735,8 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_truncate_with_different_dtypes(self):
 
-        # 11594, 12045, 12211
+        # 11594, 12045
         # when truncated the dtypes of the splits can differ
-
-        # 12211
-        df = DataFrame({'date' : [pd.Timestamp('20130101').tz_localize('UTC')] + [pd.NaT]*5})
-
-        with option_context("display.max_rows", 5):
-            result = str(df)
-            self.assertTrue('2013-01-01 00:00:00+00:00' in result)
-            self.assertTrue('NaT' in result)
-            self.assertTrue('...' in result)
-            self.assertTrue('[6 rows x 1 columns]' in result)
 
         # 11594
         import datetime
@@ -760,6 +753,58 @@ class TestDataFrameFormatting(tm.TestCase):
             result = str(df)
             self.assertTrue('None' in result)
             self.assertFalse('NaN' in result)
+
+    def test_datetimelike_frame(self):
+
+        # GH 12211
+        df = DataFrame({'date' : [pd.Timestamp('20130101').tz_localize('UTC')] + [pd.NaT]*5})
+
+        with option_context("display.max_rows", 5):
+            result = str(df)
+            self.assertTrue('2013-01-01 00:00:00+00:00' in result)
+            self.assertTrue('NaT' in result)
+            self.assertTrue('...' in result)
+            self.assertTrue('[6 rows x 1 columns]' in result)
+
+        dts = [pd.Timestamp('2011-01-01', tz='US/Eastern')] * 5 + [pd.NaT] * 5
+        df = pd.DataFrame({"dt": dts,
+                           "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        with option_context('display.max_rows', 5):
+            expected = ('                          dt   x\n'
+                        '0  2011-01-01 00:00:00-05:00   1\n'
+                        '1  2011-01-01 00:00:00-05:00   2\n'
+                        '..                       ...  ..\n'
+                        '8                        NaT   9\n'
+                        '9                        NaT  10\n\n'
+                        '[10 rows x 2 columns]')
+            self.assertEqual(repr(df), expected)
+
+        dts = [pd.NaT] * 5 + [pd.Timestamp('2011-01-01', tz='US/Eastern')] * 5
+        df = pd.DataFrame({"dt": dts,
+                           "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        with option_context('display.max_rows', 5):
+            expected = ('                          dt   x\n'
+                        '0                        NaT   1\n'
+                        '1                        NaT   2\n'
+                        '..                       ...  ..\n'
+                        '8  2011-01-01 00:00:00-05:00   9\n'
+                        '9  2011-01-01 00:00:00-05:00  10\n\n'
+                        '[10 rows x 2 columns]')
+            self.assertEqual(repr(df), expected)
+
+        dts = ([pd.Timestamp('2011-01-01', tz='Asia/Tokyo')] * 5 +
+               [pd.Timestamp('2011-01-01', tz='US/Eastern')] * 5)
+        df = pd.DataFrame({"dt": dts,
+                           "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        with option_context('display.max_rows', 5):
+            expected = ('                           dt   x\n'
+                        '0   2011-01-01 00:00:00+09:00   1\n'
+                        '1   2011-01-01 00:00:00+09:00   2\n'
+                        '..                        ...  ..\n'
+                        '8   2011-01-01 00:00:00-05:00   9\n'
+                        '9   2011-01-01 00:00:00-05:00  10\n\n'
+                        '[10 rows x 2 columns]')
+            self.assertEqual(repr(df), expected)
 
     def test_to_html_with_col_space(self):
         def check_with_width(df, col_space):
@@ -3716,7 +3761,7 @@ class TestSeriesFormatting(tm.TestCase):
     def test_sparse_max_row(self):
         s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
         result = repr(s)
-        dtype = '' if is_platform_windows() else ', dtype=int32'
+        dtype = '' if use_32bit_repr else ', dtype=int32'
         exp = ("0    1.0\n1    NaN\n2    NaN\n3    3.0\n"
                "4    NaN\ndtype: float64\nBlockIndex\n"
                "Block locations: array([0, 3]{0})\n"

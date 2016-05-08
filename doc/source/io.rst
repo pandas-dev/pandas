@@ -97,6 +97,13 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
+delim_whitespace : boolean, default False
+  Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``)
+  will be used as the delimiter. Equivalent to setting ``sep='\+s'``.
+  If this option is set to True, nothing should be passed in for the
+  ``delimiter`` parameter.
+
+  .. versionadded:: 0.18.1 support for the Python parser.
 
 Column and Index Locations and Names
 ++++++++++++++++++++++++++++++++++++
@@ -1494,45 +1501,34 @@ Fallback Behavior
 
 If the JSON serializer cannot handle the container contents directly it will fallback in the following manner:
 
-- if a ``toDict`` method is defined by the unrecognised object then that
-  will be called and its returned ``dict`` will be JSON serialized.
-- if a ``default_handler`` has been passed to ``to_json`` that will
-  be called to convert the object.
-- otherwise an attempt is made to convert the object to a ``dict`` by
-  parsing its contents. However if the object is complex this will often fail
-  with an ``OverflowError``.
+- if the dtype is unsupported (e.g. ``np.complex``) then the ``default_handler``, if provided, will be called
+  for each value, otherwise an exception is raised.
 
-Your best bet when encountering ``OverflowError`` during serialization
-is to specify a ``default_handler``. For example ``timedelta`` can cause
-problems:
+- if an object is unsupported it will attempt the following:
 
-.. ipython:: python
-   :suppress:
 
-   from datetime import timedelta
-   dftd = DataFrame([timedelta(23), timedelta(seconds=5), 42])
+  * check if the object has defined a ``toDict`` method and call it.
+    A ``toDict`` method should return a ``dict`` which will then be JSON serialized.
 
-.. code-block:: ipython
+  * invoke the ``default_handler`` if one was provided.
 
-   In [141]: from datetime import timedelta
+  * convert the object to a ``dict`` by traversing its contents. However this will often fail
+    with an ``OverflowError`` or give unexpected results.
 
-   In [142]: dftd = DataFrame([timedelta(23), timedelta(seconds=5), 42])
+In general the best approach for unsupported objects or dtypes is to provide a ``default_handler``.
+For example:
 
-   In [143]: dftd.to_json()
+.. code-block:: python
 
-   ---------------------------------------------------------------------------
-   OverflowError                             Traceback (most recent call last)
-   OverflowError: Maximum recursion level reached
+  DataFrame([1.0, 2.0, complex(1.0, 2.0)]).to_json()  # raises
 
-which can be dealt with by specifying a simple ``default_handler``:
+  RuntimeError: Unhandled numpy dtype 15
+
+can be dealt with by specifying a simple ``default_handler``:
 
 .. ipython:: python
 
-   dftd.to_json(default_handler=str)
-
-   def my_handler(obj):
-      return obj.total_seconds()
-   dftd.to_json(default_handler=my_handler)
+   DataFrame([1.0, 2.0, complex(1.0, 2.0)]).to_json(default_handler=str)
 
 .. _io.json_reader:
 
@@ -2902,6 +2898,28 @@ everything in the sub-store and BELOW, so be *careful*.
    # remove all nodes under this level
    store.remove('food')
    store
+
+.. warning::
+
+    Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under the root node.
+
+    .. code-block:: python
+
+       In [8]: store.foo.bar.bah
+       AttributeError: 'HDFStore' object has no attribute 'foo'
+
+       # you can directly access the actual PyTables node but using the root node
+       In [9]: store.root.foo.bar.bah
+       Out[9]:
+       /foo/bar/bah (Group) ''
+         children := ['block0_items' (Array), 'block0_values' (Array), 'axis0' (Array), 'axis1' (Array)]
+
+    Instead, use explicit string based keys
+
+    .. ipython:: python
+
+       store['foo/bar/bah']
+
 
 .. _io.hdf5-types:
 

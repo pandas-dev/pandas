@@ -349,7 +349,7 @@ class TestPlotBase(tm.TestCase):
 
         self.assert_numpy_array_equal(
             np.round(visible_axes[0].figure.get_size_inches()),
-            np.array(figsize))
+            np.array(figsize, dtype=np.float64))
 
     def _get_axes_layout(self, axes):
         x_set = set()
@@ -663,12 +663,12 @@ class TestSeriesPlots(TestPlotBase):
             ax = _check_plot_works(d.plot)
             masked = ax.lines[0].get_ydata()
             # remove nan for comparison purpose
-            self.assert_numpy_array_equal(
-                np.delete(masked.data, 2), np.array([1, 2, 3]))
+            exp = np.array([1, 2, 3], dtype=np.float64)
+            self.assert_numpy_array_equal(np.delete(masked.data, 2), exp)
             self.assert_numpy_array_equal(
                 masked.mask, np.array([False, False, True, False]))
 
-            expected = np.array([1, 2, 0, 3])
+            expected = np.array([1, 2, 0, 3], dtype=np.float64)
             ax = _check_plot_works(d.plot, stacked=True)
             self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
             ax = _check_plot_works(d.plot.area)
@@ -1855,17 +1855,19 @@ class TestDataFramePlots(TestPlotBase):
             masked1 = ax.lines[0].get_ydata()
             masked2 = ax.lines[1].get_ydata()
             # remove nan for comparison purpose
-            self.assert_numpy_array_equal(
-                np.delete(masked1.data, 2), np.array([1, 2, 3]))
-            self.assert_numpy_array_equal(
-                np.delete(masked2.data, 1), np.array([3, 2, 1]))
+
+            exp = np.array([1, 2, 3], dtype=np.float64)
+            self.assert_numpy_array_equal(np.delete(masked1.data, 2), exp)
+
+            exp = np.array([3, 2, 1], dtype=np.float64)
+            self.assert_numpy_array_equal(np.delete(masked2.data, 1), exp)
             self.assert_numpy_array_equal(
                 masked1.mask, np.array([False, False, True, False]))
             self.assert_numpy_array_equal(
                 masked2.mask, np.array([False, True, False, False]))
 
-            expected1 = np.array([1, 2, 0, 3])
-            expected2 = np.array([3, 0, 2, 1])
+            expected1 = np.array([1, 2, 0, 3], dtype=np.float64)
+            expected2 = np.array([3, 0, 2, 1], dtype=np.float64)
 
             ax = _check_plot_works(d.plot, stacked=True)
             self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
@@ -2034,6 +2036,26 @@ class TestDataFramePlots(TestPlotBase):
                                   position=0.2)
 
     @slow
+    def test_bar_barwidth_position_int(self):
+        # GH 12979
+        df = DataFrame(randn(5, 5))
+
+        for w in [1, 1.]:
+            ax = df.plot.bar(stacked=True, width=w)
+            ticks = ax.xaxis.get_ticklocs()
+            tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4]))
+            self.assertEqual(ax.get_xlim(), (-0.75, 4.75))
+            # check left-edge of bars
+            self.assertEqual(ax.patches[0].get_x(), -0.5)
+            self.assertEqual(ax.patches[-1].get_x(), 3.5)
+
+        self._check_bar_alignment(df, kind='bar', stacked=True, width=1)
+        self._check_bar_alignment(df, kind='barh', stacked=False, width=1)
+        self._check_bar_alignment(df, kind='barh', stacked=True, width=1)
+        self._check_bar_alignment(df, kind='bar', subplots=True, width=1)
+        self._check_bar_alignment(df, kind='barh', subplots=True, width=1)
+
+    @slow
     def test_bar_bottom_left(self):
         df = DataFrame(rand(5, 5))
         ax = df.plot.bar(stacked=False, bottom=1)
@@ -2079,6 +2101,32 @@ class TestDataFramePlots(TestPlotBase):
         result = [p.get_y() for p in ax.patches]
         expected = [0.0, 0.0, 0.0, 10.0, 0.0, 20.0, 15.0, 10.0, 40.0]
         self.assertEqual(result, expected)
+
+    @slow
+    def test_bar_categorical(self):
+        # GH 13019
+        df1 = pd.DataFrame(np.random.randn(6, 5),
+                           index=pd.Index(list('ABCDEF')),
+                           columns=pd.Index(list('abcde')))
+        # categorical index must behave the same
+        df2 = pd.DataFrame(np.random.randn(6, 5),
+                           index=pd.CategoricalIndex(list('ABCDEF')),
+                           columns=pd.CategoricalIndex(list('abcde')))
+
+        for df in [df1, df2]:
+            ax = df.plot.bar()
+            ticks = ax.xaxis.get_ticklocs()
+            tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4, 5]))
+            self.assertEqual(ax.get_xlim(), (-0.5, 5.5))
+            # check left-edge of bars
+            self.assertEqual(ax.patches[0].get_x(), -0.25)
+            self.assertEqual(ax.patches[-1].get_x(), 5.15)
+
+            ax = df.plot.bar(stacked=True)
+            tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4, 5]))
+            self.assertEqual(ax.get_xlim(), (-0.5, 5.5))
+            self.assertEqual(ax.patches[0].get_x(), -0.25)
+            self.assertEqual(ax.patches[-1].get_x(), 4.75)
 
     @slow
     def test_plot_scatter(self):
@@ -2509,15 +2557,20 @@ class TestDataFramePlots(TestPlotBase):
         result_height = np.array([p.get_height() for p in patches])
         result_x = np.array([p.get_x() for p in patches])
         result_width = np.array([p.get_width() for p in patches])
+        # dtype is depending on above values, no need to check
 
         if expected_y is not None:
-            self.assert_numpy_array_equal(result_y, expected_y)
+            self.assert_numpy_array_equal(result_y, expected_y,
+                                          check_dtype=False)
         if expected_h is not None:
-            self.assert_numpy_array_equal(result_height, expected_h)
+            self.assert_numpy_array_equal(result_height, expected_h,
+                                          check_dtype=False)
         if expected_x is not None:
-            self.assert_numpy_array_equal(result_x, expected_x)
+            self.assert_numpy_array_equal(result_x, expected_x,
+                                          check_dtype=False)
         if expected_w is not None:
-            self.assert_numpy_array_equal(result_width, expected_w)
+            self.assert_numpy_array_equal(result_width, expected_w,
+                                          check_dtype=False)
 
     @slow
     def test_hist_df_coord(self):
@@ -2593,8 +2646,9 @@ class TestDataFramePlots(TestPlotBase):
                 self._check_box_coord(ax.patches[5:10],
                                       expected_x=np.array([10, 9, 8, 7, 6]),
                                       expected_w=np.array([8, 8, 8, 8, 8]))
-                self._check_box_coord(ax.patches[10:], expected_x=np.array(
-                    [18, 17, 16, 15, 14]),
+                self._check_box_coord(
+                    ax.patches[10:],
+                    expected_x=np.array([18, 17, 16, 15, 14]),
                     expected_w=np.array([6, 7, 8, 9, 10]))
 
                 axes = df.plot.hist(bins=5, stacked=True, subplots=True,

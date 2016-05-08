@@ -21,6 +21,7 @@ from pandas import (period_range, date_range, Series,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex)
 from pandas.util.testing import assert_almost_equal
+from pandas.compat.numpy import np_datetime64_compat
 
 import pandas.core.config as cf
 
@@ -250,18 +251,18 @@ class TestIndex(Base, tm.TestCase):
 
         for idx in [Index(np.array([1, 2, 3], dtype=int), dtype='category'),
                     Index([1, 2, 3], dtype='category'),
-                    Index(np.array([np.datetime64('2011-01-01'),
-                                    np.datetime64('2011-01-02')]), dtype='category'),
+                    Index(np.array([np_datetime64_compat('2011-01-01'),
+                                    np_datetime64_compat('2011-01-02')]), dtype='category'),
                     Index([datetime(2011, 1, 1), datetime(2011, 1, 2)], dtype='category')]:
             self.assertIsInstance(idx, CategoricalIndex)
 
-        for idx in [Index(np.array([np.datetime64('2011-01-01'),
-                                    np.datetime64('2011-01-02')])),
+        for idx in [Index(np.array([np_datetime64_compat('2011-01-01'),
+                                    np_datetime64_compat('2011-01-02')])),
                     Index([datetime(2011, 1, 1), datetime(2011, 1, 2)])]:
             self.assertIsInstance(idx, DatetimeIndex)
 
-        for idx in [Index(np.array([np.datetime64('2011-01-01'),
-                                    np.datetime64('2011-01-02')]), dtype=object),
+        for idx in [Index(np.array([np_datetime64_compat('2011-01-01'),
+                                    np_datetime64_compat('2011-01-02')]), dtype=object),
                     Index([datetime(2011, 1, 1),
                            datetime(2011, 1, 2)], dtype=object)]:
             self.assertNotIsInstance(idx, DatetimeIndex)
@@ -442,8 +443,8 @@ class TestIndex(Base, tm.TestCase):
 
         self.assertEqual(
             first_value,
-            x[Timestamp(np.datetime64('2013-01-01 00:00:00.000000050+0000',
-                                      'ns'))])
+            x[Timestamp(np_datetime64_compat('2013-01-01 00:00:00.000000050+0000',
+                                             'ns'))])
 
     def test_comparators(self):
         index = self.dateIndex
@@ -553,6 +554,23 @@ class TestIndex(Base, tm.TestCase):
         result = idx1.intersection(idx2)
         self.assertTrue(result.equals(expected))
 
+        # preserve names
+        first = self.strIndex[5:20]
+        second = self.strIndex[:10]
+        first.name = 'A'
+        second.name = 'A'
+        intersect = first.intersection(second)
+        self.assertEqual(intersect.name, 'A')
+
+        second.name = 'B'
+        intersect = first.intersection(second)
+        self.assertIsNone(intersect.name)
+
+        first.name = None
+        second.name = 'B'
+        intersect = first.intersection(second)
+        self.assertIsNone(intersect.name)
+
     def test_union(self):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
@@ -577,14 +595,50 @@ class TestIndex(Base, tm.TestCase):
         self.assertIs(union, first)
 
         # preserve names
-        first.name = 'A'
-        second.name = 'A'
+        first = Index(list('ab'), name='A')
+        second = Index(list('ab'), name='B')
+        union = first.union(second)
+        self.assertIsNone(union.name)
+
+        first = Index(list('ab'), name='A')
+        second = Index([], name='B')
+        union = first.union(second)
+        self.assertIsNone(union.name)
+
+        first = Index([], name='A')
+        second = Index(list('ab'), name='B')
+        union = first.union(second)
+        self.assertIsNone(union.name)
+
+        first = Index(list('ab'))
+        second = Index(list('ab'), name='B')
+        union = first.union(second)
+        self.assertEqual(union.name, 'B')
+
+        first = Index([])
+        second = Index(list('ab'), name='B')
+        union = first.union(second)
+        self.assertEqual(union.name, 'B')
+
+        first = Index(list('ab'))
+        second = Index([], name='B')
+        union = first.union(second)
+        self.assertEqual(union.name, 'B')
+
+        first = Index(list('ab'), name='A')
+        second = Index(list('ab'))
         union = first.union(second)
         self.assertEqual(union.name, 'A')
 
-        second.name = 'B'
+        first = Index(list('ab'), name='A')
+        second = Index([])
         union = first.union(second)
-        self.assertIsNone(union.name)
+        self.assertEqual(union.name, 'A')
+
+        first = Index([], name='A')
+        second = Index(list('ab'))
+        union = first.union(second)
+        self.assertEqual(union.name, 'A')
 
     def test_add(self):
 
@@ -1135,6 +1189,10 @@ class TestIndex(Base, tm.TestCase):
         idx = Index(['qux', 'baz', 'foo', 'bar'])
         result = idx.isin(values)
         expected = np.array([False, False, True, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        # set
+        result = idx.isin(set(values))
         tm.assert_numpy_array_equal(result, expected)
 
         # empty, return dtype bool

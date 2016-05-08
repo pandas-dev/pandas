@@ -400,7 +400,7 @@ class Parser(object):
             try:
                 new_data = to_datetime(new_data, errors='raise',
                                        unit=date_unit)
-            except OverflowError:
+            except ValueError:
                 continue
             except:
                 break

@@ -17,7 +17,7 @@ rpy2 / R interface
 
    In v0.16.0, the ``pandas.rpy`` interface has been **deprecated and will be
    removed in a future version**. Similar functionality can be accessed
-   through the `rpy2 <http://rpy.sourceforge.net/>`_ project.
+   through the `rpy2 <http://rpy2.readthedocs.io/>`_ project.
    See the :ref:`updating <rpy.updating>` section for a guide to port your
    code from the ``pandas.rpy`` to ``rpy2`` functions.
 

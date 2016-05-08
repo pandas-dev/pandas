@@ -248,11 +248,11 @@ _NA_VALUES = [b'-1.#IND', b'1.#QNAN', b'1.#IND', b'-1.#QNAN',
 
 
 cdef class TextReader:
-    '''
+    """
 
     # source: StringIO or file object
 
-    '''
+    """
 
     cdef:
         parser_t *parser

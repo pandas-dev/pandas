@@ -4,6 +4,7 @@ import numpy as np
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
+from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.base import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
@@ -20,6 +21,7 @@ from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
                                 _values_from_object, ABCSeries,
                                 is_integer, is_float, is_object_dtype)
 from pandas import compat
+from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, cache_readonly, Substitution
 from pandas.lib import Timedelta
 import pandas.lib as lib
@@ -594,6 +596,32 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         ordinal_delta = self._maybe_convert_timedelta(other)
         return self.shift(ordinal_delta)
 
+    def _sub_datelike(self, other):
+        if other is tslib.NaT:
+            new_data = np.empty(len(self), dtype=np.int64)
+            new_data.fill(tslib.iNaT)
+            return TimedeltaIndex(new_data, name=self.name)
+        return NotImplemented
+
+    def _sub_period(self, other):
+        if self.freq != other.freq:
+            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+
+        if other.ordinal == tslib.iNaT:
+            new_data = np.empty(len(self))
+            new_data.fill(np.nan)
+        else:
+            asi8 = self.asi8
+            new_data = asi8 - other.ordinal
+
+            if self.hasnans:
+                mask = asi8 == tslib.iNaT
+                new_data = new_data.astype(np.float64)
+                new_data[mask] = np.nan
+        # result must be Int64Index or Float64Index
+        return Index(new_data, name=self.name)
+
     def shift(self, n):
         """
         Specialized shift which produces an PeriodIndex
@@ -891,14 +919,16 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                      for x in to_concat]
         return Index(com._concat_compat(to_concat), name=name)
 
-    def repeat(self, n):
+    def repeat(self, n, *args, **kwargs):
         """
-        Return a new Index of the values repeated n times.
+        Return a new Index of the values repeated `n` times.
 
         See also
         --------
         numpy.ndarray.repeat
         """
+        nv.validate_repeat(args, kwargs)
+
         # overwrites method from DatetimeIndexOpsMixin
         return self._shallow_copy(self.values.repeat(n))
 

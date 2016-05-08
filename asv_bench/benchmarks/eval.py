@@ -3,192 +3,36 @@ import pandas as pd
 import pandas.computation.expressions as expr
 
 
-class eval_frame_add_all_threads(object):
+class eval_frame(object):
     goal_time = 0.2
 
-    def setup(self):
+    params = [['numexpr', 'python'], [1, 'all']]
+    param_names = ['engine', 'threads']
+
+    def setup(self, engine, threads):
         self.df = DataFrame(np.random.randn(20000, 100))
         self.df2 = DataFrame(np.random.randn(20000, 100))
         self.df3 = DataFrame(np.random.randn(20000, 100))
         self.df4 = DataFrame(np.random.randn(20000, 100))
 
-    def time_eval_frame_add_all_threads(self):
-        pd.eval('df + df2 + df3 + df4')
+        if threads == 1:
+            expr.set_numexpr_threads(1)
 
+    def time_add(self, engine, threads):
+        df, df2, df3, df4 = self.df, self.df2, self.df3, self.df4
+        pd.eval('df + df2 + df3 + df4', engine=engine)
 
-class eval_frame_add_one_thread(object):
-    goal_time = 0.2
+    def time_and(self, engine, threads):
+        df, df2, df3, df4 = self.df, self.df2, self.df3, self.df4
+        pd.eval('(df > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)', engine=engine)
 
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-        expr.set_numexpr_threads(1)
+    def time_chained_cmp(self, engine, threads):
+        df, df2, df3, df4 = self.df, self.df2, self.df3, self.df4
+        pd.eval('df < df2 < df3 < df4', engine=engine)
 
-    def time_eval_frame_add_one_thread(self):
-        pd.eval('df + df2 + df3 + df4')
-
-
-class eval_frame_add_python(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-
-    def time_eval_frame_add_python(self):
-        pd.eval('df + df2 + df3 + df4', engine='python')
-
-
-class eval_frame_add_python_one_thread(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-        expr.set_numexpr_threads(1)
-
-    def time_eval_frame_add_python_one_thread(self):
-        pd.eval('df + df2 + df3 + df4', engine='python')
-
-
-class eval_frame_and_all_threads(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-
-    def time_eval_frame_and_all_threads(self):
-        pd.eval('(df > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)')
-
-
-class eval_frame_and_python_one_thread(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-        expr.set_numexpr_threads(1)
-
-    def time_eval_frame_and_python_one_thread(self):
-        pd.eval('(df > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)', engine='python')
-
-
-class eval_frame_and_python(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-
-    def time_eval_frame_and_python(self):
-        pd.eval('(df > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)', engine='python')
-
-
-class eval_frame_chained_cmp_all_threads(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-
-    def time_eval_frame_chained_cmp_all_threads(self):
-        pd.eval('df < df2 < df3 < df4')
-
-
-class eval_frame_chained_cmp_python_one_thread(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-        expr.set_numexpr_threads(1)
-
-    def time_eval_frame_chained_cmp_python_one_thread(self):
-        pd.eval('df < df2 < df3 < df4', engine='python')
-
-
-class eval_frame_chained_cmp_python(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-
-    def time_eval_frame_chained_cmp_python(self):
-        pd.eval('df < df2 < df3 < df4', engine='python')
-
-
-class eval_frame_mult_all_threads(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-
-    def time_eval_frame_mult_all_threads(self):
-        pd.eval('df * df2 * df3 * df4')
-
-
-class eval_frame_mult_one_thread(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-        expr.set_numexpr_threads(1)
-
-    def time_eval_frame_mult_one_thread(self):
-        pd.eval('df * df2 * df3 * df4')
-
-
-class eval_frame_mult_python(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-
-    def time_eval_frame_mult_python(self):
-        pd.eval('df * df2 * df3 * df4', engine='python')
-
-
-class eval_frame_mult_python_one_thread(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(20000, 100))
-        self.df2 = DataFrame(np.random.randn(20000, 100))
-        self.df3 = DataFrame(np.random.randn(20000, 100))
-        self.df4 = DataFrame(np.random.randn(20000, 100))
-        expr.set_numexpr_threads(1)
-
-    def time_eval_frame_mult_python_one_thread(self):
-        pd.eval('df * df2 * df3 * df4', engine='python')
+    def time_mult(self, engine, threads):
+        df, df2, df3, df4 = self.df, self.df2, self.df3, self.df4
+        pd.eval('df * df2 * df3 * df4', engine=engine)
 
 
 class query_datetime_index(object):
@@ -203,6 +47,7 @@ class query_datetime_index(object):
         self.df = DataFrame({'a': np.random.randn(self.N), }, index=self.index)
 
     def time_query_datetime_index(self):
+        ts = self.ts
         self.df.query('index < @ts')
 
 
@@ -218,6 +63,7 @@ class query_datetime_series(object):
         self.df = DataFrame({'dates': self.s.values, })
 
     def time_query_datetime_series(self):
+        ts = self.ts
         self.df.query('dates < @ts')
 
 
@@ -236,4 +82,5 @@ class query_with_boolean_selection(object):
         self.max_val = self.df['a'].max()
 
     def time_query_with_boolean_selection(self):
+        min_val, max_val = self.min_val, self.max_val
         self.df.query('(a >= @min_val) & (a <= @max_val)')

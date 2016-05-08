@@ -548,10 +548,10 @@ cdef int64_t iINT64_MIN = <int64_t> INT64_MIN
 
 def maybe_convert_numeric(object[:] values, set na_values,
                           bint convert_empty=True, bint coerce_numeric=False):
-    '''
+    """
     Type inference function-- convert strings to numeric (potentially) and
     convert to proper dtype array
-    '''
+    """
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
@@ -628,9 +628,9 @@ def maybe_convert_numeric(object[:] values, set na_values,
 def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                           bint safe=0, bint convert_datetime=0,
                           bint convert_timedelta=0):
-    '''
+    """
     Type inference function-- convert object array to proper dtype
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
@@ -683,7 +683,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             seen_float = 1
         elif util.is_datetime64_object(val):
             if convert_datetime:
-                idatetimes[i] = convert_to_tsobject(val, None, None).value
+                idatetimes[i] = convert_to_tsobject(val, None, None, 0, 0).value
                 seen_datetime = 1
             else:
                 seen_object = 1
@@ -712,7 +712,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
             if convert_datetime:
                 seen_datetime = 1
-                idatetimes[i] = convert_to_tsobject(val, None, None).value
+                idatetimes[i] = convert_to_tsobject(val, None, None, 0, 0).value
             else:
                 seen_object = 1
                 break
@@ -1024,7 +1024,7 @@ def maybe_convert_bool(ndarray[object] arr,
 
 def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
                    bint convert=1):
-    '''
+    """
     Substitute for np.vectorize with pandas-friendly dtype inference
 
     Parameters
@@ -1035,7 +1035,7 @@ def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
     Returns
     -------
     mapped : ndarray
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         ndarray[object] result
@@ -1065,7 +1065,7 @@ def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
     return result
 
 def map_infer(ndarray arr, object f, bint convert=1):
-    '''
+    """
     Substitute for np.vectorize with pandas-friendly dtype inference
 
     Parameters
@@ -1076,7 +1076,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
     Returns
     -------
     mapped : ndarray
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         ndarray[object] result

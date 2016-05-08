@@ -43,117 +43,198 @@ def check_cases(_check_case):
     _check_case([], [], [], [], [], [])
 
 
-def test_index_make_union():
-    def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
-        xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
-        yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
-        bresult = xindex.make_union(yindex)
-        assert (isinstance(bresult, BlockIndex))
-        assert_equal(bresult.blocs, eloc)
-        assert_equal(bresult.blengths, elen)
+class TestSparseIndexUnion(tm.TestCase):
 
-        ixindex = xindex.to_int_index()
-        iyindex = yindex.to_int_index()
-        iresult = ixindex.make_union(iyindex)
-        assert (isinstance(iresult, IntIndex))
-        assert_equal(iresult.indices, bresult.to_int_index().indices)
+    def test_index_make_union(self):
+        def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
+            xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
+            yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
+            bresult = xindex.make_union(yindex)
+            assert (isinstance(bresult, BlockIndex))
+            assert_equal(bresult.blocs, eloc)
+            assert_equal(bresult.blengths, elen)
 
-    """
-    x: ----
-    y:     ----
-    r: --------
-    """
-    xloc = [0]
-    xlen = [5]
-    yloc = [5]
-    ylen = [4]
-    eloc = [0]
-    elen = [9]
-    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-    """
-    x: -----     -----
-    y:   -----          --
-    """
-    xloc = [0, 10]
-    xlen = [5, 5]
-    yloc = [2, 17]
-    ylen = [5, 2]
-    eloc = [0, 10, 17]
-    elen = [7, 5, 2]
-    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-    """
-    x: ------
-    y:    -------
-    r: ----------
-    """
-    xloc = [1]
-    xlen = [5]
-    yloc = [3]
-    ylen = [5]
-    eloc = [1]
-    elen = [7]
-    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-    """
-    x: ------  -----
-    y:    -------
-    r: -------------
-    """
-    xloc = [2, 10]
-    xlen = [4, 4]
-    yloc = [4]
-    ylen = [8]
-    eloc = [2]
-    elen = [12]
-    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-    """
-    x: ---  -----
-    y: -------
-    r: -------------
-    """
-    xloc = [0, 5]
-    xlen = [3, 5]
-    yloc = [0]
-    ylen = [7]
-    eloc = [0]
-    elen = [10]
-    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-    """
-    x: ------  -----
-    y:    -------  ---
-    r: -------------
-    """
-    xloc = [2, 10]
-    xlen = [4, 4]
-    yloc = [4, 13]
-    ylen = [8, 4]
-    eloc = [2]
-    elen = [15]
-    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-    """
-    x: ----------------------
-    y:   ----  ----   ---
-    r: ----------------------
-    """
-    xloc = [2]
-    xlen = [15]
-    yloc = [4, 9, 14]
-    ylen = [3, 2, 2]
-    eloc = [2]
-    elen = [15]
-    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-    """
-    x: ----       ---
-    y:       ---       ---
-    """
-    xloc = [0, 10]
-    xlen = [3, 3]
-    yloc = [5, 15]
-    ylen = [2, 2]
-    eloc = [0, 5, 10, 15]
-    elen = [3, 2, 3, 2]
-    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+            ixindex = xindex.to_int_index()
+            iyindex = yindex.to_int_index()
+            iresult = ixindex.make_union(iyindex)
+            assert (isinstance(iresult, IntIndex))
+            assert_equal(iresult.indices, bresult.to_int_index().indices)
 
-    # TODO: different-length index objects
+        """
+        x: ----
+        y:     ----
+        r: --------
+        """
+        xloc = [0]
+        xlen = [5]
+        yloc = [5]
+        ylen = [4]
+        eloc = [0]
+        elen = [9]
+        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+        """
+        x: -----     -----
+        y:   -----          --
+        """
+        xloc = [0, 10]
+        xlen = [5, 5]
+        yloc = [2, 17]
+        ylen = [5, 2]
+        eloc = [0, 10, 17]
+        elen = [7, 5, 2]
+        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+        """
+        x: ------
+        y:    -------
+        r: ----------
+        """
+        xloc = [1]
+        xlen = [5]
+        yloc = [3]
+        ylen = [5]
+        eloc = [1]
+        elen = [7]
+        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+        """
+        x: ------  -----
+        y:    -------
+        r: -------------
+        """
+        xloc = [2, 10]
+        xlen = [4, 4]
+        yloc = [4]
+        ylen = [8]
+        eloc = [2]
+        elen = [12]
+        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+        """
+        x: ---  -----
+        y: -------
+        r: -------------
+        """
+        xloc = [0, 5]
+        xlen = [3, 5]
+        yloc = [0]
+        ylen = [7]
+        eloc = [0]
+        elen = [10]
+        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+        """
+        x: ------  -----
+        y:    -------  ---
+        r: -------------
+        """
+        xloc = [2, 10]
+        xlen = [4, 4]
+        yloc = [4, 13]
+        ylen = [8, 4]
+        eloc = [2]
+        elen = [15]
+        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+        """
+        x: ----------------------
+        y:   ----  ----   ---
+        r: ----------------------
+        """
+        xloc = [2]
+        xlen = [15]
+        yloc = [4, 9, 14]
+        ylen = [3, 2, 2]
+        eloc = [2]
+        elen = [15]
+        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+        """
+        x: ----       ---
+        y:       ---       ---
+        """
+        xloc = [0, 10]
+        xlen = [3, 3]
+        yloc = [5, 15]
+        ylen = [2, 2]
+        eloc = [0, 5, 10, 15]
+        elen = [3, 2, 3, 2]
+        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+
+    def test_intindex_make_union(self):
+        a = IntIndex(5, np.array([0, 3, 4], dtype=np.int32))
+        b = IntIndex(5, np.array([0, 2], dtype=np.int32))
+        res = a.make_union(b)
+        exp = IntIndex(5, np.array([0, 2, 3, 4], np.int32))
+        self.assertTrue(res.equals(exp))
+
+        a = IntIndex(5, np.array([], dtype=np.int32))
+        b = IntIndex(5, np.array([0, 2], dtype=np.int32))
+        res = a.make_union(b)
+        exp = IntIndex(5, np.array([0, 2], np.int32))
+        self.assertTrue(res.equals(exp))
+
+        a = IntIndex(5, np.array([], dtype=np.int32))
+        b = IntIndex(5, np.array([], dtype=np.int32))
+        res = a.make_union(b)
+        exp = IntIndex(5, np.array([], np.int32))
+        self.assertTrue(res.equals(exp))
+
+        a = IntIndex(5, np.array([0, 1, 2, 3, 4], dtype=np.int32))
+        b = IntIndex(5, np.array([0, 1, 2, 3, 4], dtype=np.int32))
+        res = a.make_union(b)
+        exp = IntIndex(5, np.array([0, 1, 2, 3, 4], np.int32))
+        self.assertTrue(res.equals(exp))
+
+        a = IntIndex(5, np.array([0, 1], dtype=np.int32))
+        b = IntIndex(4, np.array([0, 1], dtype=np.int32))
+        with tm.assertRaises(ValueError):
+            a.make_union(b)
+
+
+class TestSparseIndexIntersect(tm.TestCase):
+
+    def test_intersect(self):
+        def _check_correct(a, b, expected):
+            result = a.intersect(b)
+            assert (result.equals(expected))
+
+        def _check_length_exc(a, longer):
+            nose.tools.assert_raises(Exception, a.intersect, longer)
+
+        def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
+            xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
+            yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
+            expected = BlockIndex(TEST_LENGTH, eloc, elen)
+            longer_index = BlockIndex(TEST_LENGTH + 1, yloc, ylen)
+
+            _check_correct(xindex, yindex, expected)
+            _check_correct(xindex.to_int_index(), yindex.to_int_index(),
+                           expected.to_int_index())
+
+            _check_length_exc(xindex, longer_index)
+            _check_length_exc(xindex.to_int_index(),
+                              longer_index.to_int_index())
+
+        if compat.is_platform_windows():
+            raise nose.SkipTest("segfaults on win-64 when all tests are run")
+        check_cases(_check_case)
+
+    def test_intersect_empty(self):
+        xindex = IntIndex(4, np.array([], dtype=np.int32))
+        yindex = IntIndex(4, np.array([2, 3], dtype=np.int32))
+        self.assertTrue(xindex.intersect(yindex).equals(xindex))
+        self.assertTrue(yindex.intersect(xindex).equals(xindex))
+
+        xindex = xindex.to_block_index()
+        yindex = yindex.to_block_index()
+        self.assertTrue(xindex.intersect(yindex).equals(xindex))
+        self.assertTrue(yindex.intersect(xindex).equals(xindex))
+
+    def test_intersect_identical(self):
+        cases = [IntIndex(5, np.array([1, 2], dtype=np.int32)),
+                 IntIndex(5, np.array([0, 2, 4], dtype=np.int32)),
+                 IntIndex(0, np.array([], dtype=np.int32)),
+                 IntIndex(5, np.array([], dtype=np.int32))]
+
+        for case in cases:
+            self.assertTrue(case.intersect(case).equals(case))
+            case = case.to_block_index()
+            self.assertTrue(case.intersect(case).equals(case))
 
 
 class TestSparseIndexCommon(tm.TestCase):
@@ -251,32 +332,6 @@ class TestSparseIndexCommon(tm.TestCase):
         # corner cases
 
 
-def test_intersect():
-    def _check_correct(a, b, expected):
-        result = a.intersect(b)
-        assert (result.equals(expected))
-
-    def _check_length_exc(a, longer):
-        nose.tools.assert_raises(Exception, a.intersect, longer)
-
-    def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
-        xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
-        yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
-        expected = BlockIndex(TEST_LENGTH, eloc, elen)
-        longer_index = BlockIndex(TEST_LENGTH + 1, yloc, ylen)
-
-        _check_correct(xindex, yindex, expected)
-        _check_correct(xindex.to_int_index(), yindex.to_int_index(),
-                       expected.to_int_index())
-
-        _check_length_exc(xindex, longer_index)
-        _check_length_exc(xindex.to_int_index(), longer_index.to_int_index())
-
-    if compat.is_platform_windows():
-        raise nose.SkipTest("segfaults on win-64 when all tests are run")
-    check_cases(_check_case)
-
-
 class TestBlockIndex(tm.TestCase):
 
     _multiprocess_can_split_ = True
@@ -314,6 +369,16 @@ class TestBlockIndex(tm.TestCase):
                                     np.array([0, 2], dtype=np.int32))
         tm.assert_numpy_array_equal(idx.blengths,
                                     np.array([1, 2], dtype=np.int32))
+
+    def test_make_block_boundary(self):
+        for i in [5, 10, 100, 101]:
+            idx = _make_index(i, np.arange(0, i, 2, dtype=np.int32),
+                              kind='block')
+
+            exp = np.arange(0, i, 2, dtype=np.int32)
+            tm.assert_numpy_array_equal(idx.blocs, exp)
+            tm.assert_numpy_array_equal(idx.blengths,
+                                        np.ones(len(exp), dtype=np.int32))
 
     def test_equals(self):
         index = BlockIndex(10, [0, 4], [2, 5])
@@ -383,6 +448,7 @@ class TestIntIndex(tm.TestCase):
         self.assertFalse(index.equals(IntIndex(10, [0, 1, 2, 3])))
 
     def test_to_block_index(self):
+
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
             yindex = BlockIndex(TEST_LENGTH, yloc, ylen)

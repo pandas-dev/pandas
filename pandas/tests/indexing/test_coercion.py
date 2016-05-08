@@ -473,6 +473,11 @@ class TestSeriesCoercion(tm.TestCase):
             # TODO_GH12747 The result must be int?
            (from_key == 'bool' and to_key in ('int64'))):
 
+            # buggy on 32-bit
+            if tm.is_platform_32bit():
+                raise nose.SkipTest("32-bit platform buggy: {0} -> {1}".format
+                                    (from_key, to_key))
+
             # Expected: do not downcast by replacement
             exp = pd.Series(self.rep[to_key], index=index,
                             name='yyy', dtype=from_key)

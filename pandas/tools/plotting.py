@@ -1,5 +1,7 @@
 # being a bit too dynamic
 # pylint: disable=E1101
+from __future__ import division
+
 import warnings
 import re
 from math import ceil
@@ -1413,7 +1415,7 @@ class MPLPlot(object):
                                     color=self.kwds.get(color_kwds))
 
     def _parse_errorbars(self, label, err):
-        '''
+        """
         Look for error keyword arguments and return the actual errorbar data
         or return the error DataFrame/dict
 
@@ -1424,7 +1426,7 @@ class MPLPlot(object):
             DataFrame/dict: error values are paired with keys matching the
                     key in the plotted DataFrame
             str: the name of the column within the plotted DataFrame
-        '''
+        """
 
         if err is None:
             return None

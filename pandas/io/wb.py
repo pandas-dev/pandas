@@ -228,8 +228,8 @@ def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
     return out,"Success"
 
 def get_countries():
-    '''Query information about countries
-    '''
+    """Query information about countries
+    """
     url = 'http://api.worldbank.org/countries/?per_page=1000&format=json'
     with urlopen(url) as response:
         data = response.read()
@@ -243,8 +243,8 @@ def get_countries():
     return data
 
 def get_indicators():
-    '''Download information about all World Bank data series
-    '''
+    """Download information about all World Bank data series
+    """
     url = 'http://api.worldbank.org/indicators?per_page=50000&format=json'
     with urlopen(url) as response:
         data = response.read()

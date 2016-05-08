@@ -7,9 +7,11 @@ import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
+from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
+from pandas.types import api as gt
 from pandas.formats.printing import pprint_thing
 
 _shared_docs = dict()
@@ -291,15 +293,15 @@ class SelectionMixin(object):
 
     @property
     def _selection_list(self):
-        if not isinstance(self._selection, (list, tuple, com.ABCSeries,
-                                            com.ABCIndex, np.ndarray)):
+        if not isinstance(self._selection, (list, tuple, gt.ABCSeries,
+                                            gt.ABCIndex, np.ndarray)):
             return [self._selection]
         return self._selection
 
     @cache_readonly
     def _selected_obj(self):
 
-        if self._selection is None or isinstance(self.obj, com.ABCSeries):
+        if self._selection is None or isinstance(self.obj, gt.ABCSeries):
             return self.obj
         else:
             return self.obj[self._selection]
@@ -311,7 +313,7 @@ class SelectionMixin(object):
     @cache_readonly
     def _obj_with_exclusions(self):
         if self._selection is not None and isinstance(self.obj,
-                                                      com.ABCDataFrame):
+                                                      gt.ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
 
         if len(self.exclusions) > 0:
@@ -323,7 +325,7 @@ class SelectionMixin(object):
         if self._selection is not None:
             raise Exception('Column(s) %s already selected' % self._selection)
 
-        if isinstance(key, (list, tuple, com.ABCSeries, com.ABCIndex,
+        if isinstance(key, (list, tuple, gt.ABCSeries, gt.ABCIndex,
                             np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
@@ -551,7 +553,7 @@ pandas.DataFrame.%(name)s
             if isinstance(result, list):
                 result = concat(result, keys=keys, axis=1)
             elif isinstance(list(compat.itervalues(result))[0],
-                            com.ABCDataFrame):
+                            gt.ABCDataFrame):
                 result = concat([result[k] for k in keys], keys=keys, axis=1)
             else:
                 from pandas import DataFrame
@@ -613,6 +615,19 @@ pandas.DataFrame.%(name)s
 
         return concat(results, keys=keys, axis=1)
 
+    def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
+        """ return a new object with the replacement attributes """
+        if obj is None:
+            obj = self._selected_obj.copy()
+        if obj_type is None:
+            obj_type = self._constructor
+        if isinstance(obj, obj_type):
+            obj = obj.obj
+        for attr in self._attributes:
+            if attr not in kwargs:
+                kwargs[attr] = getattr(self, attr)
+        return obj_type(obj, **kwargs)
+
     def _is_cython_func(self, arg):
         """ if we define an internal function for this argument, return it """
         return self._cython_table.get(arg)
@@ -623,6 +638,53 @@ pandas.DataFrame.%(name)s
         otherwise return the arg
         """
         return self._builtin_table.get(arg, arg)
+
+
+class GroupByMixin(object):
+    """ provide the groupby facilities to the mixed object """
+
+    @staticmethod
+    def _dispatch(name, *args, **kwargs):
+        """ dispatch to apply """
+        def outer(self, *args, **kwargs):
+            def f(x):
+                x = self._shallow_copy(x, groupby=self._groupby)
+                return getattr(x, name)(*args, **kwargs)
+            return self._groupby.apply(f)
+        outer.__name__ = name
+        return outer
+
+    def _gotitem(self, key, ndim, subset=None):
+        """
+        sub-classes to define
+        return a sliced object
+
+        Parameters
+        ----------
+        key : string / list of selections
+        ndim : 1,2
+            requested ndim of result
+        subset : object, default None
+            subset to act on
+        """
+
+        # create a new object to prevent aliasing
+        if subset is None:
+            subset = self.obj
+
+        # we need to make a shallow copy of ourselves
+        # with the same groupby
+        kwargs = dict([(attr, getattr(self, attr))
+                       for attr in self._attributes])
+        self = self.__class__(subset,
+                              groupby=self._groupby[key],
+                              parent=self,
+                              **kwargs)
+        self._reset_cache()
+        if subset.ndim == 2:
+            if lib.isscalar(key) and key in subset or com.is_list_like(key):
+                self._selection = key
+        return self
 
 
 class FrozenList(PandasObject, list):
@@ -737,8 +799,9 @@ class IndexOpsMixin(object):
     # ndarray compatibility
     __array_priority__ = 1000
 
-    def transpose(self):
+    def transpose(self, *args, **kwargs):
         """ return the transpose, which is by definition self """
+        nv.validate_transpose(args, kwargs)
         return self
 
     T = property(transpose, doc="return the transpose, which is by "
@@ -880,17 +943,8 @@ class IndexOpsMixin(object):
         counts : Series
         """
         from pandas.core.algorithms import value_counts
-        from pandas.tseries.api import DatetimeIndex, PeriodIndex
         result = value_counts(self, sort=sort, ascending=ascending,
                               normalize=normalize, bins=bins, dropna=dropna)
-
-        if isinstance(self, PeriodIndex):
-            # preserve freq
-            result.index = self._simple_new(result.index.values,
-                                            freq=self.freq)
-        elif isinstance(self, DatetimeIndex):
-            result.index = self._simple_new(result.index.values,
-                                            tz=getattr(self, 'tz', None))
         return result
 
     def unique(self):

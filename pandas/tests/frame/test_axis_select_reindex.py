@@ -142,6 +142,31 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_join_different_levels(self):
+        # GH 9455
+
+        # first dataframe
+        df1 = DataFrame(columns=['a', 'b'], data=[[1, 11], [0, 22]])
+
+        # second dataframe
+        columns = MultiIndex.from_tuples([('a', ''), ('c', 'c1')])
+        df2 = DataFrame(columns=columns, data=[[1, 33], [0, 44]])
+
+        # merge
+        columns = ['a', 'b', ('c', 'c1')]
+        expected = DataFrame(columns=columns, data=[[1, 11, 33], [0, 22, 44]])
+        with tm.assert_produces_warning(UserWarning):
+            result = pd.merge(df1, df2, on='a')
+        tm.assert_frame_equal(result, expected)
+
+        # join, see discussion in GH 12219
+        columns = ['a', 'b', ('a', ''), ('c', 'c1')]
+        expected = DataFrame(columns=columns,
+                             data=[[1, 11, 0, 44], [0, 22, 1, 33]])
+        with tm.assert_produces_warning(UserWarning):
+            result = df1.join(df2, on='a')
+        tm.assert_frame_equal(result, expected)
+
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
 
@@ -571,6 +596,27 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         expr = pd.DataFrame([0, 0, 1, 1] * 2, index=exp_idx)
         assert_frame_equal(expr, res1r)
         assert_frame_equal(expr, res2l)
+
+    def test_align_series_combinations(self):
+        df = pd.DataFrame({'a': [1, 3, 5],
+                           'b': [1, 3, 5]}, index=list('ACE'))
+        s = pd.Series([1, 2, 4], index=list('ABD'), name='x')
+
+        # frame + series
+        res1, res2 = df.align(s, axis=0)
+        exp1 = pd.DataFrame({'a': [1, np.nan, 3, np.nan, 5],
+                             'b': [1, np.nan, 3, np.nan, 5]},
+                            index=list('ABCDE'))
+        exp2 = pd.Series([1, 2, np.nan, 4, np.nan],
+                         index=list('ABCDE'), name='x')
+
+        tm.assert_frame_equal(res1, exp1)
+        tm.assert_series_equal(res2, exp2)
+
+        # series + frame
+        res1, res2 = s.align(df)
+        tm.assert_series_equal(res1, exp2)
+        tm.assert_frame_equal(res2, exp1)
 
     def test_filter(self):
         # items

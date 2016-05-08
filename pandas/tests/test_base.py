@@ -14,6 +14,7 @@ import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta)
 from pandas.compat import u, StringIO
+from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.base import (FrozenList, FrozenNDArray, PandasDelegate,
                               NoNewAttributesMixin)
 from pandas.tseries.base import DatetimeIndexOpsMixin
@@ -579,7 +580,8 @@ class TestIndexOps(Ops):
             expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
             tm.assert_series_equal(s.value_counts(), expected)
 
-            self.assert_numpy_array_equal(s.unique(), np.unique(s_values))
+            exp = np.unique(np.array(s_values, dtype=np.object_))
+            self.assert_numpy_array_equal(s.unique(), exp)
             self.assertEqual(s.nunique(), 4)
             # don't sort, have to sort after the fact as not sorting is
             # platform-dep
@@ -609,7 +611,8 @@ class TestIndexOps(Ops):
             exp1n = Series({0.998: 1.0})
             tm.assert_series_equal(res1n, exp1n)
 
-            self.assert_numpy_array_equal(s1.unique(), np.array([1, 2, 3]))
+            self.assert_numpy_array_equal(s1.unique(),
+                                          np.array([1, 2, 3], dtype=np.int64))
             self.assertEqual(s1.nunique(), 3)
 
             res4 = s1.value_counts(bins=4)
@@ -627,21 +630,23 @@ class TestIndexOps(Ops):
             tm.assert_series_equal(res4n, exp4n)
 
             # handle NA's properly
-            s_values = ['a', 'b', 'b', 'b', np.nan, np.nan, 'd', 'd', 'a', 'a',
-                        'b']
+            s_values = ['a', 'b', 'b', 'b', np.nan, np.nan,
+                        'd', 'd', 'a', 'a', 'b']
             s = klass(s_values)
             expected = Series([4, 3, 2], index=['b', 'a', 'd'])
             tm.assert_series_equal(s.value_counts(), expected)
 
-            self.assert_numpy_array_equal(s.unique(), np.array(
-                ['a', 'b', np.nan, 'd'], dtype='O'))
+            exp = np.array(['a', 'b', np.nan, 'd'], dtype=np.object_)
+            self.assert_numpy_array_equal(s.unique(), exp)
             self.assertEqual(s.nunique(), 3)
 
             s = klass({})
             expected = Series([], dtype=np.int64)
             tm.assert_series_equal(s.value_counts(), expected,
                                    check_index_type=False)
-            self.assert_numpy_array_equal(s.unique(), np.array([]))
+            # returned dtype differs depending on original
+            self.assert_numpy_array_equal(s.unique(), np.array([]),
+                                          check_dtype=False)
             self.assertEqual(s.nunique(), 0)
 
             # GH 3002, datetime64[ns]
@@ -663,10 +668,10 @@ class TestIndexOps(Ops):
             expected_s = Series([3, 2, 1], index=idx)
             tm.assert_series_equal(s.value_counts(), expected_s)
 
-            expected = np.array(['2010-01-01 00:00:00Z',
-                                 '2009-01-01 00:00:00Z',
-                                 '2008-09-09 00:00:00Z'],
-                                dtype='datetime64[ns]')
+            expected = np_array_datetime64_compat(['2010-01-01 00:00:00Z',
+                                                   '2009-01-01 00:00:00Z',
+                                                   '2008-09-09 00:00:00Z'],
+                                                  dtype='datetime64[ns]')
             if isinstance(s, DatetimeIndex):
                 expected = DatetimeIndex(expected)
                 self.assertTrue(s.unique().equals(expected))
@@ -989,7 +994,36 @@ class TestFloat64HashTable(tm.TestCase):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
         m = Float64HashTable()
         m.map_locations(xs)
-        self.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs)))
+        self.assert_numpy_array_equal(m.lookup(xs),
+                                      np.arange(len(xs), dtype=np.int64))
+
+
+class TestTranspose(Ops):
+    errmsg = "the 'axes' parameter is not supported"
+
+    def test_transpose(self):
+        for obj in self.objs:
+            if isinstance(obj, Index):
+                tm.assert_index_equal(obj.transpose(), obj)
+            else:
+                tm.assert_series_equal(obj.transpose(), obj)
+
+    def test_transpose_non_default_axes(self):
+        for obj in self.objs:
+            tm.assertRaisesRegexp(ValueError, self.errmsg,
+                                  obj.transpose, 1)
+            tm.assertRaisesRegexp(ValueError, self.errmsg,
+                                  obj.transpose, axes=1)
+
+    def test_numpy_transpose(self):
+        for obj in self.objs:
+            if isinstance(obj, Index):
+                tm.assert_index_equal(np.transpose(obj), obj)
+            else:
+                tm.assert_series_equal(np.transpose(obj), obj)
+
+            tm.assertRaisesRegexp(ValueError, self.errmsg,
+                                  np.transpose, obj, axes=1)
 
 
 class TestNoNewAttributesMixin(tm.TestCase):

@@ -15,6 +15,7 @@ from pandas.compat import u, range
 from pandas.core.frame import DataFrame
 import pandas.io.gbq as gbq
 import pandas.util.testing as tm
+from pandas.compat.numpy import np_datetime64_compat
 
 PROJECT_ID = None
 PRIVATE_KEY_JSON_PATH = None
@@ -289,7 +290,7 @@ class GBQUnitTests(tm.TestCase):
 
     def test_should_return_bigquery_timestamps_as_numpy_datetime(self):
         result = gbq._parse_entry('0e9', 'TIMESTAMP')
-        tm.assert_equal(result, np.datetime64('1970-01-01T00:00:00Z'))
+        tm.assert_equal(result, np_datetime64_compat('1970-01-01T00:00:00Z'))
 
     def test_should_return_bigquery_booleans_as_python_booleans(self):
         result = gbq._parse_entry('false', 'BOOLEAN')

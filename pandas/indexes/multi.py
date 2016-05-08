@@ -11,6 +11,7 @@ import pandas.index as _index
 from pandas.lib import Timestamp
 
 from pandas.compat import range, zip, lrange, lzip, map
+from pandas.compat.numpy import function as nv
 from pandas import compat
 from pandas.core.base import FrozenList
 import pandas.core.base as base
@@ -769,7 +770,7 @@ class MultiIndex(Index):
         levels = self.levels
         labels = [np.repeat(x, n_repeat) for x in self.labels]
         # Assumes that each label is divisible by n_shuffle
-        labels = [x.reshape(n_shuffle, -1).ravel('F') for x in labels]
+        labels = [x.reshape(n_shuffle, -1).ravel(order='F') for x in labels]
         names = self.names
         return MultiIndex(levels=levels, labels=labels, names=names)
 
@@ -1007,7 +1008,9 @@ class MultiIndex(Index):
                               verify_integrity=False)
 
     @Appender(_index_shared_docs['take'])
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
+    def take(self, indices, axis=0, allow_fill=True,
+             fill_value=None, **kwargs):
+        nv.validate_take(tuple(), kwargs)
         indices = com._ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.labels, indices,
                                            allow_fill=allow_fill,
@@ -1074,7 +1077,8 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
-    def repeat(self, n):
+    def repeat(self, n, *args, **kwargs):
+        nv.validate_repeat(args, kwargs)
         return MultiIndex(levels=self.levels,
                           labels=[label.view(np.ndarray).repeat(n)
                                   for label in self.labels], names=self.names,
@@ -1194,7 +1198,7 @@ class MultiIndex(Index):
             return MultiIndex(levels=new_levels, labels=new_labels,
                               names=new_names, verify_integrity=False)
 
-    def swaplevel(self, i, j):
+    def swaplevel(self, i=-2, j=-1):
         """
         Swap level i with level j. Do not change the ordering of anything
 
@@ -1206,6 +1210,12 @@ class MultiIndex(Index):
         Returns
         -------
         swapped : MultiIndex
+
+        .. versionchanged:: 0.18.1
+
+           The indexes ``i`` and ``j`` are now optional, and default to
+           the two innermost levels of the index.
+
         """
         new_levels = list(self.levels)
         new_labels = list(self.labels)
@@ -1522,7 +1532,7 @@ class MultiIndex(Index):
                                       'currently supported for MultiIndex')
 
         def _maybe_to_slice(loc):
-            '''convert integer indexer to boolean mask or slice if possible'''
+            """convert integer indexer to boolean mask or slice if possible"""
             if not isinstance(loc, np.ndarray) or loc.dtype != 'int64':
                 return loc
 

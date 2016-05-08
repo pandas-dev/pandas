@@ -363,7 +363,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         dr = date_range('2011-10-02 00:00', freq='h', periods=10,
                         tz=self.tzstr('America/Atikokan'))
 
-        expected = np.arange(10)
+        expected = np.arange(10, dtype=np.int32)
         self.assert_numpy_array_equal(dr.hour, expected)
 
     def test_with_tz(self):
@@ -532,6 +532,23 @@ class TestTimeZoneSupportPytz(tm.TestCase):
                  '11/06/2011 03:00']
         di_test = DatetimeIndex(times, tz='US/Eastern')
         self.assert_numpy_array_equal(di_test, localized)
+
+    def test_nonexistent_raise_coerce(self):
+        # See issue 13057
+        from pytz.exceptions import NonExistentTimeError
+        times = ['2015-03-08 01:00', '2015-03-08 02:00', '2015-03-08 03:00']
+        index = DatetimeIndex(times)
+        tz = 'US/Eastern'
+        self.assertRaises(NonExistentTimeError,
+                          index.tz_localize, tz=tz)
+        self.assertRaises(NonExistentTimeError,
+                          index.tz_localize, tz=tz, errors='raise')
+        result = index.tz_localize(tz=tz, errors='coerce')
+        test_times = ['2015-03-08 01:00-05:00', 'NaT',
+                      '2015-03-08 03:00-04:00']
+        expected = DatetimeIndex(test_times)\
+            .tz_localize('UTC').tz_convert('US/Eastern')
+        tm.assert_index_equal(result, expected)
 
     # test utility methods
     def test_infer_tz(self):
@@ -845,21 +862,21 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         tm._skip_if_no_dateutil()
 
     def tz(self, tz):
-        '''
+        """
         Construct a dateutil timezone.
         Use tslib.maybe_get_tz so that we get the filename on the tz right
         on windows. See #7337.
-        '''
+        """
         return tslib.maybe_get_tz('dateutil/' + tz)
 
     def tzstr(self, tz):
-        ''' Construct a timezone string from a string. Overridden in subclass
-        to parameterize tests. '''
+        """ Construct a timezone string from a string. Overridden in subclass
+        to parameterize tests. """
         return 'dateutil/' + tz
 
     def cmptz(self, tz1, tz2):
-        ''' Compare two timezones. Overridden in subclass to parameterize
-        tests. '''
+        """ Compare two timezones. Overridden in subclass to parameterize
+        tests. """
         return tz1 == tz2
 
     def localize(self, tz, x):
@@ -890,7 +907,8 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
             idx = idx.tz_localize('UTC')
             idx = idx.tz_convert('Europe/Moscow')
 
-            expected = np.repeat(np.array([3, 4, 5]), np.array([n, n, 1]))
+            expected = np.repeat(np.array([3, 4, 5], dtype=np.int32),
+                                 np.array([n, n, 1]))
             self.assert_numpy_array_equal(idx.hour, expected)
 
     def test_tslib_tz_convert_dst(self):
@@ -900,14 +918,15 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
                              tz='UTC')
             idx = idx.tz_convert('US/Eastern')
             expected = np.repeat(np.array([18, 19, 20, 21, 22, 23,
-                                           0, 1, 3, 4, 5]),
+                                           0, 1, 3, 4, 5], dtype=np.int32),
                                  np.array([n, n, n, n, n, n, n, n, n, n, 1]))
             self.assert_numpy_array_equal(idx.hour, expected)
 
             idx = date_range('2014-03-08 18:00', '2014-03-09 05:00', freq=freq,
                              tz='US/Eastern')
             idx = idx.tz_convert('UTC')
-            expected = np.repeat(np.array([23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+            expected = np.repeat(np.array([23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                          dtype=np.int32),
                                  np.array([n, n, n, n, n, n, n, n, n, n, 1]))
             self.assert_numpy_array_equal(idx.hour, expected)
 
@@ -916,7 +935,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
                              tz='UTC')
             idx = idx.tz_convert('US/Eastern')
             expected = np.repeat(np.array([19, 20, 21, 22, 23,
-                                           0, 1, 1, 2, 3, 4]),
+                                           0, 1, 1, 2, 3, 4], dtype=np.int32),
                                  np.array([n, n, n, n, n, n, n, n, n, n, 1]))
             self.assert_numpy_array_equal(idx.hour, expected)
 
@@ -924,7 +943,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
                              tz='US/Eastern')
             idx = idx.tz_convert('UTC')
             expected = np.repeat(np.array([22, 23, 0, 1, 2, 3, 4, 5, 6,
-                                           7, 8, 9, 10]),
+                                           7, 8, 9, 10], dtype=np.int32),
                                  np.array([n, n, n, n, n, n, n, n, n,
                                            n, n, n, 1]))
             self.assert_numpy_array_equal(idx.hour, expected)
@@ -934,23 +953,27 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         idx = date_range('2014-03-08 00:00', '2014-03-09 00:00', freq='D',
                          tz='UTC')
         idx = idx.tz_convert('US/Eastern')
-        self.assert_numpy_array_equal(idx.hour, np.array([19, 19]))
+        self.assert_numpy_array_equal(idx.hour,
+                                      np.array([19, 19], dtype=np.int32))
 
         idx = date_range('2014-03-08 00:00', '2014-03-09 00:00', freq='D',
                          tz='US/Eastern')
         idx = idx.tz_convert('UTC')
-        self.assert_numpy_array_equal(idx.hour, np.array([5, 5]))
+        self.assert_numpy_array_equal(idx.hour,
+                                      np.array([5, 5], dtype=np.int32))
 
         # End DST
         idx = date_range('2014-11-01 00:00', '2014-11-02 00:00', freq='D',
                          tz='UTC')
         idx = idx.tz_convert('US/Eastern')
-        self.assert_numpy_array_equal(idx.hour, np.array([20, 20]))
+        self.assert_numpy_array_equal(idx.hour,
+                                      np.array([20, 20], dtype=np.int32))
 
         idx = date_range('2014-11-01 00:00', '2014-11-02 000:00', freq='D',
                          tz='US/Eastern')
         idx = idx.tz_convert('UTC')
-        self.assert_numpy_array_equal(idx.hour, np.array([4, 4]))
+        self.assert_numpy_array_equal(idx.hour,
+                                      np.array([4, 4], dtype=np.int32))
 
 
 class TestTimeZoneCacheKey(tm.TestCase):

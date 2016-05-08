@@ -40,18 +40,86 @@ analysis / manipulation tool available in any language.
 pandas 0.18.1
 -------------
 
-**Release date:** (April ??, 2016)
+**Release date:** (May 3, 2016)
 
 This is a minor release from 0.18.0 and includes a large number of bug fixes
 along with several new features, enhancements, and performance improvements.
 
 Highlights include:
 
+- ``.groupby(...)`` has been enhanced to provide convenient syntax when working with ``.rolling(..)``, ``.expanding(..)`` and ``.resample(..)`` per group, see :ref:`here <whatsnew_0181.deferred_ops>`
+- ``pd.to_datetime()`` has gained the ability to assemble dates from a ``DataFrame``, see :ref:`here <whatsnew_0181.enhancements.assembling>`
+- Method chaining improvements, see :ref:`here <whatsnew_0181.enhancements.method_chain>`.
+- Custom business hour offset, see :ref:`here <whatsnew_0181.enhancements.custombusinesshour>`.
+- Many bug fixes in the handling of ``sparse``, see :ref:`here <whatsnew_0181.sparse>`
+- Expanded the :ref:`Tutorials section <tutorial-modern>` with a feature on modern pandas, courtesy of `@TomAugsburger <https://twitter.com/TomAugspurger>`__. (:issue:`13045`).
+
 See the :ref:`v0.18.1 Whatsnew <whatsnew_0181>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.18.1.
 
 Thanks
 ~~~~~~
+
+- Andrew Fiore-Gartland
+- Bastiaan
+- Benoît Vinot
+- Brandon Rhodes
+- DaCoEx
+- Drew Fustin
+- Ernesto Freitas
+- Filip Ter
+- Gregory Livschitz
+- Gábor Lipták
+- Hassan Kibirige
+- Iblis Lin
+- Israel Saeta Pérez
+- Jason Wolosonovich
+- Jeff Reback
+- Joe Jevnik
+- Joris Van den Bossche
+- Joshua Storck
+- Ka Wo Chen
+- Kerby Shedden
+- Kieran O'Mahony
+- Leif Walsh
+- Mahmoud Lababidi
+- Maoyuan Liu
+- Mark Roth
+- Matt Wittmann
+- MaxU
+- Maximilian Roos
+- Michael Droettboom
+- Nick Eubank
+- Nicolas Bonnotte
+- OXPHOS
+- Pauli Virtanen
+- Peter Waller
+- Pietro Battiston
+- Prabhjot Singh
+- Robin Wilson
+- Roger Thomas
+- Sebastian Bank
+- Stephen Hoover
+- Tim Hopper
+- Tom Augspurger
+- WANG Aiyong
+- Wes Turner
+- Winand
+- Xbar
+- Yan Facai
+- adneu
+- ajenkins-cargometrics
+- behzad nouri
+- chinskiy
+- gfyoung
+- jeps-journal
+- jonaslb
+- kotrfa
+- nileracecrew
+- onesandzeroes
+- rs2
+- sinhrks
+- tsdlovell
 
 pandas 0.18.0
 -------------

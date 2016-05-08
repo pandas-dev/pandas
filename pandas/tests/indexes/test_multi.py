@@ -78,6 +78,31 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertTrue((i.labels[0] >= 0).all())
         self.assertTrue((i.labels[1] >= 0).all())
 
+    def test_repeat(self):
+        reps = 2
+        numbers = [1, 2, 3]
+        names = np.array(['foo', 'bar'])
+
+        m = MultiIndex.from_product([
+            numbers, names], names=names)
+        expected = MultiIndex.from_product([
+            numbers, names.repeat(reps)], names=names)
+        tm.assert_index_equal(m.repeat(reps), expected)
+
+    def test_numpy_repeat(self):
+        reps = 2
+        numbers = [1, 2, 3]
+        names = np.array(['foo', 'bar'])
+
+        m = MultiIndex.from_product([
+            numbers, names], names=names)
+        expected = MultiIndex.from_product([
+            numbers, names.repeat(reps)], names=names)
+        tm.assert_index_equal(np.repeat(m, reps), expected)
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.repeat, m, reps, axis=1)
+
     def test_set_name_methods(self):
         # so long as these are synonyms, we don't need to test set_names
         self.assertEqual(self.index.rename, self.index.set_names)
@@ -122,8 +147,8 @@ class TestMultiIndex(Base, tm.TestCase):
             self.assertEqual(len(actual), len(expected))
             for act, exp in zip(actual, expected):
                 act = np.asarray(act)
-                exp = np.asarray(exp)
-                assert_almost_equal(act, exp)
+                exp = np.asarray(exp, dtype=np.object_)
+                tm.assert_numpy_array_equal(act, exp)
 
         # level changing [w/o mutation]
         ind2 = self.index.set_levels(new_levels)
@@ -186,8 +211,8 @@ class TestMultiIndex(Base, tm.TestCase):
             self.assertEqual(len(actual), len(expected))
             for act, exp in zip(actual, expected):
                 act = np.asarray(act)
-                exp = np.asarray(exp)
-                assert_almost_equal(act, exp)
+                exp = np.asarray(exp, dtype=np.int8)
+                tm.assert_numpy_array_equal(act, exp)
 
         # label changing [w/o mutation]
         ind2 = self.index.set_labels(new_labels)
@@ -472,7 +497,7 @@ class TestMultiIndex(Base, tm.TestCase):
                 self.index.copy().labels = [[0, 0, 0, 0], [0, 0]]
 
     def assert_multiindex_copied(self, copy, original):
-        # levels shoudl be (at least, shallow copied)
+        # levels should be (at least, shallow copied)
         assert_copy(copy.levels, original.levels)
 
         assert_almost_equal(copy.labels, original.labels)
@@ -1595,6 +1620,24 @@ class TestMultiIndex(Base, tm.TestCase):
         with tm.assertRaises(IndexError):
             idx.take(np.array([1, -5]))
 
+    def take_invalid_kwargs(self):
+        vals = [['A', 'B'],
+                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]]
+        idx = pd.MultiIndex.from_product(vals, names=['str', 'dt'])
+        indices = [1, 2]
+
+        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        tm.assertRaisesRegexp(TypeError, msg, idx.take,
+                              indices, foo=2)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, idx.take,
+                              indices, out=indices)
+
+        msg = "the 'mode' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, idx.take,
+                              indices, mode='clip')
+
     def test_join_level(self):
         def _check_how(other, how):
             join_index, lidx, ridx = other.join(self.index, how=how,
@@ -1656,8 +1699,8 @@ class TestMultiIndex(Base, tm.TestCase):
         jidx, lidx, ridx = midx.join(idx, how='inner', return_indexers=True)
         exp_idx = pd.MultiIndex.from_product(
             [np.arange(4), [1, 2]], names=['a', 'b'])
-        exp_lidx = np.array([1, 2, 5, 6, 9, 10, 13, 14])
-        exp_ridx = np.array([0, 1, 0, 1, 0, 1, 0, 1])
+        exp_lidx = np.array([1, 2, 5, 6, 9, 10, 13, 14], dtype=np.int_)
+        exp_ridx = np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64)
         self.assert_index_equal(jidx, exp_idx)
         self.assert_numpy_array_equal(lidx, exp_lidx)
         self.assert_numpy_array_equal(ridx, exp_ridx)
@@ -1670,7 +1713,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # keep MultiIndex
         jidx, lidx, ridx = midx.join(idx, how='left', return_indexers=True)
         exp_ridx = np.array([-1, 0, 1, -1, -1, 0, 1, -1, -1, 0, 1, -1, -1, 0,
-                             1, -1])
+                             1, -1], dtype=np.int64)
         self.assert_index_equal(jidx, midx)
         self.assertIsNone(lidx)
         self.assert_numpy_array_equal(ridx, exp_ridx)
@@ -1700,11 +1743,11 @@ class TestMultiIndex(Base, tm.TestCase):
         exp_index2 = self.index.join(idx, level='second', how='left')
 
         self.assertTrue(target.equals(exp_index))
-        exp_indexer = np.array([0, 2, 4])
+        exp_indexer = np.array([0, 2, 4], dtype=np.int64)
         tm.assert_numpy_array_equal(indexer, exp_indexer)
 
         self.assertTrue(target2.equals(exp_index2))
-        exp_indexer2 = np.array([0, -1, 0, -1, 0, -1])
+        exp_indexer2 = np.array([0, -1, 0, -1, 0, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(indexer2, exp_indexer2)
 
         assertRaisesRegexp(TypeError, "Fill method not supported",
@@ -2095,12 +2138,15 @@ class TestMultiIndex(Base, tm.TestCase):
         #                     c  14
 
         # partial string matching on a single index
-        df_swap = df.swaplevel(0, 1).sort_index()
-        just_a = df_swap.loc['a']
-        result = just_a.loc['2016-01-01']
-        expected = df.loc[idx[:, 'a'], :].iloc[0:2]
-        expected.index = expected.index.droplevel(1)
-        tm.assert_frame_equal(result, expected)
+        for df_swap in (df.swaplevel(),
+                        df.swaplevel(0),
+                        df.swaplevel(0, 1)):
+            df_swap = df_swap.sort_index()
+            just_a = df_swap.loc['a']
+            result = just_a.loc['2016-01-01']
+            expected = df.loc[idx[:, 'a'], :].iloc[0:2]
+            expected.index = expected.index.droplevel(1)
+            tm.assert_frame_equal(result, expected)
 
         # indexing with IndexSlice
         result = df.loc[idx['2016-01-01':'2016-02-01', :], :]

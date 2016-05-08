@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, DataFrame, isnull, notnull, bdate_range,
-                    date_range)
+                    date_range, _np_version_under1p10)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp
 from pandas.tseries.tdi import Timedelta
@@ -500,13 +500,35 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         self.assert_numpy_array_equal(result, expected)
 
+    def test_compress(self):
+        cond = [True, False, True, False, False]
+        s = Series([1, -1, 5, 8, 7],
+                   index=list('abcde'), name='foo')
+        expected = Series(s.values.compress(cond),
+                          index=list('ac'), name='foo')
+        tm.assert_series_equal(s.compress(cond), expected)
+
+    def test_numpy_compress(self):
+        cond = [True, False, True, False, False]
+        s = Series([1, -1, 5, 8, 7],
+                   index=list('abcde'), name='foo')
+        expected = Series(s.values.compress(cond),
+                          index=list('ac'), name='foo')
+        tm.assert_series_equal(np.compress(cond, s), expected)
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.compress,
+                              cond, s, axis=1)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.compress,
+                              cond, s, out=s)
+
     def test_round(self):
-        # numpy.round doesn't preserve metadata, probably a numpy bug,
-        # re: GH #314
         self.ts.index.name = "index_name"
         result = self.ts.round(2)
-        expected = Series(np.round(self.ts.values, 2), index=self.ts.index,
-                          name='ts')
+        expected = Series(np.round(self.ts.values, 2),
+                          index=self.ts.index, name='ts')
         assert_series_equal(result, expected)
         self.assertEqual(result.name, self.ts.name)
 
@@ -517,7 +539,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         expected = Series([2., 1., 0.])
         assert_series_equal(out, expected)
 
-        msg = "Inplace rounding is not supported"
+        msg = "the 'out' parameter is not supported"
         with tm.assertRaisesRegexp(ValueError, msg):
             np.round(s, decimals=0, out=s)
 
@@ -1118,6 +1140,9 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = s.isin([np.datetime64(s[1])])
         assert_series_equal(result, expected2)
 
+        result = s.isin(set(s[0:2]))
+        assert_series_equal(result, expected)
+
         # timedelta64[ns]
         s = Series(pd.to_timedelta(lrange(5), unit='d'))
         result = s.isin(s[0:2])
@@ -1198,6 +1223,17 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = s.idxmin()
         self.assertEqual(result, 1)
 
+    def test_numpy_argmin(self):
+        # argmin is aliased to idxmin
+        data = np.random.randint(0, 11, size=10)
+        result = np.argmin(Series(data))
+        self.assertEqual(result, np.argmin(data))
+
+        if not _np_version_under1p10:
+            msg = "the 'out' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, np.argmin,
+                                  Series(data), out=data)
+
     def test_idxmax(self):
         # test idxmax
         # _check_stat_op approach can not be used here because of isnull check.
@@ -1241,6 +1277,17 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertEqual(result, 3.1)
         result = s.idxmin()
         self.assertEqual(result, 1.1)
+
+    def test_numpy_argmax(self):
+        # argmax is aliased to idxmax
+        data = np.random.randint(0, 11, size=10)
+        result = np.argmax(Series(data))
+        self.assertEqual(result, np.argmax(data))
+
+        if not _np_version_under1p10:
+            msg = "the 'out' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, np.argmax,
+                                  Series(data), out=data)
 
     def test_ptp(self):
         N = 1000
@@ -1295,6 +1342,15 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                      index=s.index.values.repeat(to_rep))
         assert_series_equal(reps, exp)
 
+    def test_numpy_repeat(self):
+        s = Series(np.arange(3), name='x')
+        expected = Series(s.values.repeat(2), name='x',
+                          index=s.index.values.repeat(2))
+        assert_series_equal(np.repeat(s, 2), expected)
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.repeat, s, 2, axis=0)
+
     def test_searchsorted_numeric_dtypes_scalar(self):
         s = Series([1, 2, 90, 1000, 3e9])
         r = s.searchsorted(30)
@@ -1302,13 +1358,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         tm.assert_equal(r, e)
 
         r = s.searchsorted([30])
-        e = np.array([2])
+        e = np.array([2], dtype=np.int64)
         tm.assert_numpy_array_equal(r, e)
 
     def test_searchsorted_numeric_dtypes_vector(self):
         s = Series([1, 2, 90, 1000, 3e9])
         r = s.searchsorted([91, 2e6])
-        e = np.array([3, 4])
+        e = np.array([3, 4], dtype=np.int64)
         tm.assert_numpy_array_equal(r, e)
 
     def test_search_sorted_datetime64_scalar(self):
@@ -1322,14 +1378,14 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series(pd.date_range('20120101', periods=10, freq='2D'))
         v = [pd.Timestamp('20120102'), pd.Timestamp('20120104')]
         r = s.searchsorted(v)
-        e = np.array([1, 2])
+        e = np.array([1, 2], dtype=np.int64)
         tm.assert_numpy_array_equal(r, e)
 
     def test_searchsorted_sorter(self):
         # GH8490
         s = Series([3, 1, 2])
         r = s.searchsorted([0, 3], sorter=np.argsort(s))
-        e = np.array([0, 2])
+        e = np.array([0, 2], dtype=np.int64)
         tm.assert_numpy_array_equal(r, e)
 
     def test_is_unique(self):
@@ -1621,7 +1677,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = a.reshape(2, 2)
         expected = a.values.reshape(2, 2)
         tm.assert_numpy_array_equal(result, expected)
-        self.assertTrue(type(result) is type(expected))
+        self.assertIsInstance(result, type(expected))
 
     def test_reshape_2d_return_array(self):
         x = Series(np.random.random(201), name='x')
@@ -1634,6 +1690,26 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = x[:, None]
         expected = x.reshape((-1, 1))
         assert_almost_equal(result, expected)
+
+    def test_reshape_bad_kwarg(self):
+        a = Series([1, 2, 3, 4])
+
+        msg = "'foo' is an invalid keyword argument for this function"
+        tm.assertRaisesRegexp(TypeError, msg, a.reshape, (2, 2), foo=2)
+
+        msg = "reshape\(\) got an unexpected keyword argument 'foo'"
+        tm.assertRaisesRegexp(TypeError, msg, a.reshape, a.shape, foo=2)
+
+    def test_numpy_reshape(self):
+        a = Series([1, 2, 3, 4])
+
+        result = np.reshape(a, (2, 2))
+        expected = a.values.reshape(2, 2)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertIsInstance(result, type(expected))
+
+        result = np.reshape(a, a.shape)
+        tm.assert_series_equal(result, a)
 
     def test_unstack(self):
         from numpy import nan
@@ -1669,8 +1745,6 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         left = ts.unstack()
         right = DataFrame([[nan, 1], [2, nan]], index=[101, 102],
                           columns=[nan, 3.5])
-        print(left)
-        print(right)
         assert_frame_equal(left, right)
 
         idx = pd.MultiIndex.from_arrays([['cat', 'cat', 'cat', 'dog', 'dog'
@@ -1682,3 +1756,112 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         tpls = [('a', 1), ('a', 2), ('b', nan), ('b', 1)]
         right.index = pd.MultiIndex.from_tuples(tpls)
         assert_frame_equal(ts.unstack(level=0), right)
+
+    def test_value_counts_datetime(self):
+        # most dtypes are tested in test_base.py
+        values = [pd.Timestamp('2011-01-01 09:00'),
+                  pd.Timestamp('2011-01-01 10:00'),
+                  pd.Timestamp('2011-01-01 11:00'),
+                  pd.Timestamp('2011-01-01 09:00'),
+                  pd.Timestamp('2011-01-01 09:00'),
+                  pd.Timestamp('2011-01-01 11:00')]
+
+        exp_idx = pd.DatetimeIndex(['2011-01-01 09:00', '2011-01-01 11:00',
+                                    '2011-01-01 10:00'])
+        exp = pd.Series([3, 2, 1], index=exp_idx, name='xxx')
+
+        s = pd.Series(values, name='xxx')
+        tm.assert_series_equal(s.value_counts(), exp)
+        # check DatetimeIndex outputs the same result
+        idx = pd.DatetimeIndex(values, name='xxx')
+        tm.assert_series_equal(idx.value_counts(), exp)
+
+        # normalize
+        exp = pd.Series(np.array([3., 2., 1]) / 6.,
+                        index=exp_idx, name='xxx')
+        tm.assert_series_equal(s.value_counts(normalize=True), exp)
+        tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+
+    def test_value_counts_datetime_tz(self):
+        values = [pd.Timestamp('2011-01-01 09:00', tz='US/Eastern'),
+                  pd.Timestamp('2011-01-01 10:00', tz='US/Eastern'),
+                  pd.Timestamp('2011-01-01 11:00', tz='US/Eastern'),
+                  pd.Timestamp('2011-01-01 09:00', tz='US/Eastern'),
+                  pd.Timestamp('2011-01-01 09:00', tz='US/Eastern'),
+                  pd.Timestamp('2011-01-01 11:00', tz='US/Eastern')]
+
+        exp_idx = pd.DatetimeIndex(['2011-01-01 09:00', '2011-01-01 11:00',
+                                    '2011-01-01 10:00'], tz='US/Eastern')
+        exp = pd.Series([3, 2, 1], index=exp_idx, name='xxx')
+
+        s = pd.Series(values, name='xxx')
+        tm.assert_series_equal(s.value_counts(), exp)
+        idx = pd.DatetimeIndex(values, name='xxx')
+        tm.assert_series_equal(idx.value_counts(), exp)
+
+        exp = pd.Series(np.array([3., 2., 1]) / 6.,
+                        index=exp_idx, name='xxx')
+        tm.assert_series_equal(s.value_counts(normalize=True), exp)
+        tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+
+    def test_value_counts_period(self):
+        values = [pd.Period('2011-01', freq='M'),
+                  pd.Period('2011-02', freq='M'),
+                  pd.Period('2011-03', freq='M'),
+                  pd.Period('2011-01', freq='M'),
+                  pd.Period('2011-01', freq='M'),
+                  pd.Period('2011-03', freq='M')]
+
+        exp_idx = pd.PeriodIndex(['2011-01', '2011-03', '2011-02'], freq='M')
+        exp = pd.Series([3, 2, 1], index=exp_idx, name='xxx')
+
+        s = pd.Series(values, name='xxx')
+        tm.assert_series_equal(s.value_counts(), exp)
+        # check DatetimeIndex outputs the same result
+        idx = pd.PeriodIndex(values, name='xxx')
+        tm.assert_series_equal(idx.value_counts(), exp)
+
+        # normalize
+        exp = pd.Series(np.array([3., 2., 1]) / 6.,
+                        index=exp_idx, name='xxx')
+        tm.assert_series_equal(s.value_counts(normalize=True), exp)
+        tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+
+    def test_value_counts_categorical_ordered(self):
+        # most dtypes are tested in test_base.py
+        values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=True)
+
+        exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3],
+                                      ordered=True)
+        exp = pd.Series([3, 2, 1], index=exp_idx, name='xxx')
+
+        s = pd.Series(values, name='xxx')
+        tm.assert_series_equal(s.value_counts(), exp)
+        # check CategoricalIndex outputs the same result
+        idx = pd.CategoricalIndex(values, name='xxx')
+        tm.assert_series_equal(idx.value_counts(), exp)
+
+        # normalize
+        exp = pd.Series(np.array([3., 2., 1]) / 6.,
+                        index=exp_idx, name='xxx')
+        tm.assert_series_equal(s.value_counts(normalize=True), exp)
+        tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+
+    def test_value_counts_categorical_not_ordered(self):
+        values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=False)
+
+        exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3],
+                                      ordered=False)
+        exp = pd.Series([3, 2, 1], index=exp_idx, name='xxx')
+
+        s = pd.Series(values, name='xxx')
+        tm.assert_series_equal(s.value_counts(), exp)
+        # check CategoricalIndex outputs the same result
+        idx = pd.CategoricalIndex(values, name='xxx')
+        tm.assert_series_equal(idx.value_counts(), exp)
+
+        # normalize
+        exp = pd.Series(np.array([3., 2., 1]) / 6.,
+                        index=exp_idx, name='xxx')
+        tm.assert_series_equal(s.value_counts(normalize=True), exp)
+        tm.assert_series_equal(idx.value_counts(normalize=True), exp)

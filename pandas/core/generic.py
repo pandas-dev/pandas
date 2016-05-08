@@ -21,6 +21,7 @@ import pandas.core.missing as missing
 import pandas.core.datetools as datetools
 from pandas.formats.printing import pprint_thing
 from pandas import compat
+from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lrange, string_types,
                            isidentifier, set_function_name)
 from pandas.core.common import (isnull, notnull, is_list_like,
@@ -30,7 +31,6 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 AbstractMethodError)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
-from pandas.util.validators import validate_kwargs
 from pandas.core import config
 
 # goal is to be able to define the docs close to function, while still being
@@ -469,10 +469,7 @@ class NDFrame(PandasObject):
         if kwargs.pop('copy', None) or (len(args) and args[-1]):
             new_values = new_values.copy()
 
-        if kwargs:
-            raise TypeError('transpose() got an unexpected keyword '
-                            'argument "{0}"'.format(list(kwargs.keys())[0]))
-
+        nv.validate_transpose_for_generic(self, kwargs)
         return self._constructor(new_values, **new_axes).__finalize__(self)
 
     def swapaxes(self, axis1, axis2, copy=True):
@@ -514,15 +511,17 @@ class NDFrame(PandasObject):
 
         return result
 
-    def squeeze(self):
+    def squeeze(self, **kwargs):
         """Squeeze length 1 dimensions."""
+        nv.validate_squeeze(tuple(), kwargs)
+
         try:
             return self.iloc[tuple([0 if len(a) == 1 else slice(None)
                                     for a in self.axes])]
         except:
             return self
 
-    def swaplevel(self, i, j, axis=0):
+    def swaplevel(self, i=-2, j=-1, axis=0):
         """
         Swap levels i and j in a MultiIndex on a particular axis
 
@@ -534,6 +533,12 @@ class NDFrame(PandasObject):
         Returns
         -------
         swapped : type of caller (new object)
+
+        .. versionchanged:: 0.18.1
+
+           The indexes ``i`` and ``j`` are now optional, and default to
+           the two innermost levels of the index.
+
         """
         axis = self._get_axis_number(axis)
         result = self.copy()
@@ -1606,7 +1611,7 @@ class NDFrame(PandasObject):
         except KeyError:
             pass
 
-    def take(self, indices, axis=0, convert=True, is_copy=True):
+    def take(self, indices, axis=0, convert=True, is_copy=True, **kwargs):
         """
         Analogous to ndarray.take
 
@@ -1621,7 +1626,7 @@ class NDFrame(PandasObject):
         -------
         taken : type of caller
         """
-
+        nv.validate_take(tuple(), kwargs)
         self._consolidate_inplace()
         new_data = self._data.take(indices,
                                    axis=self._get_block_manager_axis(axis),
@@ -3439,11 +3444,7 @@ class NDFrame(PandasObject):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    limit_direction='forward', downcast=None, **kwargs):
-        """
-        Interpolate values according to different methods.
-
+    _shared_docs['interpolate'] = """
         Please note that only ``method='linear'`` is supported for
         DataFrames/Series with a MultiIndex.
 
@@ -3451,8 +3452,8 @@ class NDFrame(PandasObject):
         ----------
         method : {'linear', 'time', 'index', 'values', 'nearest', 'zero',
                   'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
-                  'polynomial', 'spline' 'piecewise_polynomial', 'pchip',
-                  'akima'}
+                  'polynomial', 'spline', 'piecewise_polynomial',
+                  'from_derivatives', 'pchip', 'akima'}
 
             * 'linear': ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
@@ -3472,9 +3473,15 @@ class NDFrame(PandasObject):
               the scipy documentation for more on their behavior
               `here <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__  # noqa
               `and here <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__  # noqa
+            * 'from_derivatives' refers to BPoly.from_derivatives which
+              replaces 'piecewise_polynomial' interpolation method in scipy 0.18
 
             .. versionadded:: 0.18.1
+
                Added support for the 'akima' method
+               Added interpolate method 'from_derivatives' which replaces
+               'piecewise_polynomial' in scipy 0.18; backwards-compatible with
+               scipy < 0.18
 
         axis : {0, 1}, default 0
             * 0: fill column-by-column
@@ -3515,6 +3522,14 @@ class NDFrame(PandasObject):
         dtype: float64
 
         """
+
+    @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
+    def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
+                    limit_direction='forward', downcast=None, **kwargs):
+        """
+        Interpolate values according to different methods.
+        """
+
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "
                                       "on Panel and Panel 4D objects.")
@@ -3594,7 +3609,7 @@ class NDFrame(PandasObject):
         """
         return notnull(self).__finalize__(self)
 
-    def clip(self, lower=None, upper=None, out=None, axis=None):
+    def clip(self, lower=None, upper=None, axis=None, *args, **kwargs):
         """
         Trim values at input threshold(s).
 
@@ -3640,8 +3655,10 @@ class NDFrame(PandasObject):
         3  0.230930  0.000000
         4  1.100000  0.570967
         """
-        if out is not None:  # pragma: no cover
-            raise Exception('out argument is not supported yet')
+        if isinstance(self, com.ABCPanel):
+            raise NotImplementedError("clip is not supported yet for panels")
+
+        axis = nv.validate_clip_with_axis(axis, args, kwargs)
 
         # GH 2747 (arguments were reversed)
         if lower is not None and upper is not None:
@@ -3705,7 +3722,7 @@ class NDFrame(PandasObject):
         return self.where(subset, threshold, axis=axis)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
-                group_keys=True, squeeze=False):
+                group_keys=True, squeeze=False, **kwargs):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns.
@@ -3757,7 +3774,8 @@ class NDFrame(PandasObject):
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
         return groupby(self, by=by, axis=axis, level=level, as_index=as_index,
-                       sort=sort, group_keys=group_keys, squeeze=squeeze)
+                       sort=sort, group_keys=group_keys, squeeze=squeeze,
+                       **kwargs)
 
     def asfreq(self, freq, method=None, how=None, normalize=False):
         """
@@ -4133,9 +4151,9 @@ class NDFrame(PandasObject):
             if isinstance(self, Series):
                 # this means other is a DataFrame, and we need to broadcast
                 # self
-                df = DataFrame(
-                    dict((c, self) for c in other.columns),
-                    **other._construct_axes_dict())
+                cons = self._constructor_expanddim
+                df = cons(dict((c, self) for c in other.columns),
+                          **other._construct_axes_dict())
                 return df._align_frame(other, join=join, axis=axis,
                                        level=level, copy=copy,
                                        fill_value=fill_value, method=method,
@@ -4143,8 +4161,9 @@ class NDFrame(PandasObject):
             elif isinstance(other, Series):
                 # this means self is a DataFrame, and we need to broadcast
                 # other
-                df = DataFrame(dict((c, other) for c in self.columns),
-                               **self._construct_axes_dict())
+                cons = other._constructor_expanddim
+                df = cons(dict((c, other) for c in self.columns),
+                          **self._construct_axes_dict())
                 return self._align_frame(df, join=join, axis=axis, level=level,
                                          copy=copy, fill_value=fill_value,
                                          method=method, limit=limit,
@@ -4173,20 +4192,27 @@ class NDFrame(PandasObject):
         ilidx, iridx = None, None
         clidx, cridx = None, None
 
+        is_series = isinstance(self, ABCSeries)
+
         if axis is None or axis == 0:
             if not self.index.equals(other.index):
                 join_index, ilidx, iridx = self.index.join(
                     other.index, how=join, level=level, return_indexers=True)
 
         if axis is None or axis == 1:
-            if not self.columns.equals(other.columns):
+            if not is_series and not self.columns.equals(other.columns):
                 join_columns, clidx, cridx = self.columns.join(
                     other.columns, how=join, level=level, return_indexers=True)
 
-        left = self._reindex_with_indexers({0: [join_index, ilidx],
-                                            1: [join_columns, clidx]},
-                                           copy=copy, fill_value=fill_value,
+        if is_series:
+            reindexers = {0: [join_index, ilidx]}
+        else:
+            reindexers = {0: [join_index, ilidx], 1: [join_columns, clidx]}
+
+        left = self._reindex_with_indexers(reindexers, copy=copy,
+                                           fill_value=fill_value,
                                            allow_dups=True)
+        # other must be always DataFrame
         right = other._reindex_with_indexers({0: [join_index, iridx],
                                               1: [join_columns, cridx]},
                                              copy=copy, fill_value=fill_value,
@@ -4201,10 +4227,8 @@ class NDFrame(PandasObject):
     def _align_series(self, other, join='outer', axis=None, level=None,
                       copy=True, fill_value=None, method=None, limit=None,
                       fill_axis=0):
-        from pandas import DataFrame
-
-        # series/series compat
-        if isinstance(self, ABCSeries) and isinstance(other, ABCSeries):
+        # series/series compat, other must always be a Series
+        if isinstance(self, ABCSeries):
             if axis:
                 raise ValueError('cannot align series to a series other than '
                                  'axis 0')
@@ -4250,7 +4274,7 @@ class NDFrame(PandasObject):
             if copy and fdata is self._data:
                 fdata = fdata.copy()
 
-            left = DataFrame(fdata)
+            left = self._constructor(fdata)
 
             if ridx is None:
                 right = other
@@ -4272,8 +4296,26 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        cond : boolean %(klass)s or array
-        other : scalar or %(klass)s
+        cond : boolean %(klass)s, array or callable
+            If cond is callable, it is computed on the %(klass)s and
+            should return boolean %(klass)s or array.
+            The callable must not change input %(klass)s
+            (though pandas doesn't check it).
+
+            .. versionadded:: 0.18.1
+
+            A callable can be used as cond.
+
+        other : scalar, %(klass)s, or callable
+            If other is callable, it is computed on the %(klass)s and
+            should return scalar or %(klass)s.
+            The callable must not change input %(klass)s
+            (though pandas doesn't check it).
+
+            .. versionadded:: 0.18.1
+
+            A callable can be used as other.
+
         inplace : boolean, default False
             Whether to perform the operation in place on the data
         axis : alignment axis if needed, default None
@@ -4292,6 +4334,9 @@ class NDFrame(PandasObject):
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True"))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
+
+        cond = com._apply_if_callable(cond, self)
+        other = com._apply_if_callable(other, self)
 
         if isinstance(cond, NDFrame):
             cond, _ = cond.align(self, join='right', broadcast_axis=1)
@@ -4450,6 +4495,9 @@ class NDFrame(PandasObject):
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False"))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
              try_cast=False, raise_on_error=True):
+
+        cond = com._apply_if_callable(cond, self)
+
         return self.where(~cond, other=other, inplace=inplace, axis=axis,
                           level=level, try_cast=try_cast,
                           raise_on_error=raise_on_error)
@@ -4585,14 +4633,15 @@ class NDFrame(PandasObject):
 
     def truncate(self, before=None, after=None, axis=None, copy=True):
         """Truncates a sorted NDFrame before and/or after some particular
-        dates.
+        index value. If the axis contains only datetime values, before/after
+        parameters are converted to datetime values.
 
         Parameters
         ----------
         before : date
-            Truncate before date
+            Truncate before index value
         after : date
-            Truncate after date
+            Truncate after index value
         axis : the truncation axis, defaults to the stat axis
         copy : boolean, default is True,
             return a copy of the truncated section
@@ -5250,7 +5299,7 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
-        validate_kwargs(name, kwargs, 'out', 'dtype')
+        nv.validate_stat_func(tuple(), kwargs)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -5270,7 +5319,7 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
     @Appender(_num_ddof_doc)
     def stat_func(self, axis=None, skipna=None, level=None, ddof=1,
                   numeric_only=None, **kwargs):
-        validate_kwargs(name, kwargs, 'out', 'dtype')
+        nv.validate_stat_ddof_func(tuple(), kwargs)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -5291,7 +5340,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
     @Appender("Return cumulative {0} over requested axis.".format(name) +
               _cnum_doc)
     def cum_func(self, axis=None, dtype=None, out=None, skipna=True, **kwargs):
-        validate_kwargs(name, kwargs, 'out', 'dtype')
+        nv.validate_cum_func(tuple(), kwargs)
         if axis is None:
             axis = self._stat_axis_number
         else:
@@ -5325,7 +5374,7 @@ def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f):
     @Appender(_bool_doc)
     def logical_func(self, axis=None, bool_only=None, skipna=None, level=None,
                      **kwargs):
-        validate_kwargs(name, kwargs, 'out', 'dtype')
+        nv.validate_logical_func(tuple(), kwargs)
         if skipna is None:
             skipna = True
         if axis is None:

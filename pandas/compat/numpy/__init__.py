@@ -1,5 +1,6 @@
 """ support numpy compatiblitiy across versions """
 
+import re
 import numpy as np
 from distutils.version import LooseVersion
 from pandas.compat import string_types, string_and_binary_types
@@ -24,11 +25,14 @@ if LooseVersion(_np_version) < '1.7.0':
                       'this pandas version'.format(_np_version))
 
 
+_tz_regex = re.compile('[+-]0000$')
+
+
 def tz_replacer(s):
     if isinstance(s, string_types):
         if s.endswith('Z'):
             s = s[:-1]
-        elif s.endswith('-0000'):
+        elif _tz_regex.search(s):
             s = s[:-5]
     return s
 

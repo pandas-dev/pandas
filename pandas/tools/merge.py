@@ -2,6 +2,8 @@
 SQL-style merge routines
 """
 
+import warnings
+
 import numpy as np
 from pandas.compat import range, lrange, lzip, zip, map, filter
 import pandas.compat as compat
@@ -194,6 +196,13 @@ class _MergeOperation(object):
             raise ValueError(
                 'can not merge DataFrame with instance of '
                 'type {0}'.format(type(right)))
+
+        # warn user when merging between different levels
+        if left.columns.nlevels != right.columns.nlevels:
+            msg = ('merging between different levels can give an unintended '
+                   'result ({0} levels on the left, {1} on the right)')
+            msg = msg.format(left.columns.nlevels, right.columns.nlevels)
+            warnings.warn(msg, UserWarning)
 
         # note this function has side effects
         (self.left_join_keys,
@@ -1030,7 +1039,8 @@ class _Concatenator(object):
             if not self.copy:
                 new_data._consolidate_inplace()
 
-            return (self.objs[0]._from_axes(new_data, self.new_axes)
+            cons = _concat._get_frame_result_type(new_data, self.objs)
+            return (cons._from_axes(new_data, self.new_axes)
                     .__finalize__(self, method='concat'))
 
     def _get_result_dim(self):
@@ -1136,6 +1146,7 @@ def _concat_indexes(indexes):
 
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None):
+
     if ((levels is None and isinstance(keys[0], tuple)) or
             (levels is not None and len(levels) > 1)):
         zipped = lzip(*keys)

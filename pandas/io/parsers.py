@@ -51,8 +51,16 @@ object with a read() method (such as a file handle or StringIO)
     file. For file URLs, a host is expected. For instance, a local file could
     be file ://localhost/path/to/table.csv
 %s
-delimiter : str, default None
+delimiter : str, default ``None``
     Alternative argument name for sep.
+delim_whitespace : boolean, default False
+    Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
+    used as the sep. Equivalent to setting ``sep='\+s'``. If this option
+    is set to True, nothing should be passed in for the ``delimiter``
+    parameter.
+
+    .. versionadded:: 0.18.1 support for the Python parser.
+
 header : int or list of ints, default 'infer'
     Row number(s) to use as the column names, and the start of the data.
     Default behavior is as if set to 0 if no ``names`` passed, otherwise
@@ -385,7 +393,20 @@ _fwf_defaults = {
 }
 
 _c_unsupported = set(['skip_footer'])
-_python_unsupported = set(_c_parser_defaults.keys())
+_python_unsupported = set([
+    'as_recarray',
+    'na_filter',
+    'compact_ints',
+    'use_unsigned',
+    'low_memory',
+    'memory_map',
+    'buffer_lines',
+    'error_bad_lines',
+    'warn_bad_lines',
+    'dtype',
+    'decimal',
+    'float_precision',
+])
 
 
 def _make_parser_function(name, sep=','):
@@ -642,8 +663,13 @@ class TextFileReader(BaseIterator):
                 value = kwds[argname]
 
                 if engine != 'c' and value != default:
-                    raise ValueError('The %r option is not supported with the'
-                                     ' %r engine' % (argname, engine))
+                    if ('python' in engine and
+                            argname not in _python_unsupported):
+                        pass
+                    else:
+                        raise ValueError(
+                            'The %r option is not supported with the'
+                            ' %r engine' % (argname, engine))
             else:
                 value = default
             options[argname] = value
@@ -686,6 +712,9 @@ class TextFileReader(BaseIterator):
                                   " different from '\s+' are"\
                                   " interpreted as regex)"
                 engine = 'python'
+        elif delim_whitespace:
+            if 'python' in engine:
+                result['delimiter'] = '\s+'
 
         if fallback_reason and engine_specified:
             raise ValueError(fallback_reason)
@@ -746,9 +775,12 @@ class TextFileReader(BaseIterator):
         # Converting values to NA
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
-        if com.is_integer(skiprows):
-            skiprows = lrange(skiprows)
-        skiprows = set() if skiprows is None else set(skiprows)
+        # handle skiprows; this is internally handled by the
+        # c-engine, so only need for python parsers
+        if engine != 'c':
+            if com.is_integer(skiprows):
+                skiprows = lrange(skiprows)
+            skiprows = set() if skiprows is None else set(skiprows)
 
         # put stuff back
         result['names'] = names

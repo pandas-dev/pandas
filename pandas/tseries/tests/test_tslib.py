@@ -11,13 +11,16 @@ from pandas.core.api import Timestamp, Series, Timedelta, Period, to_datetime
 from pandas.tslib import get_timezone
 from pandas._period import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range, DatetimeIndex
-from pandas.tseries.frequencies import get_freq
+from pandas.tseries.frequencies import (
+    get_freq,
+    US_RESO, MS_RESO, S_RESO, H_RESO, D_RESO, T_RESO
+)
 import pandas.tseries.tools as tools
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
 import pandas.compat as compat
-from pandas.compat.numpy_compat import (np_datetime64_compat,
-                                        np_array_datetime64_compat)
+from pandas.compat.numpy import (np_datetime64_compat,
+                                 np_array_datetime64_compat)
 
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 
@@ -316,6 +319,29 @@ class TestTimestamp(tm.TestCase):
                                    'tz_localize to localize'):
             Timestamp('2011-01-01').tz_convert('Asia/Tokyo')
 
+    def test_tz_localize_nonexistent(self):
+        # See issue 13057
+        from pytz.exceptions import NonExistentTimeError
+        times = ['2015-03-08 02:00', '2015-03-08 02:30',
+                 '2015-03-29 02:00', '2015-03-29 02:30']
+        timezones = ['US/Eastern', 'US/Pacific',
+                     'Europe/Paris', 'Europe/Belgrade']
+        for t, tz in zip(times, timezones):
+            ts = Timestamp(t)
+            self.assertRaises(NonExistentTimeError, ts.tz_localize,
+                              tz)
+            self.assertRaises(NonExistentTimeError, ts.tz_localize,
+                              tz, errors='raise')
+            self.assertIs(ts.tz_localize(tz, errors='coerce'),
+                          pd.NaT)
+
+    def test_tz_localize_errors_ambiguous(self):
+        # See issue 13057
+        from pytz.exceptions import AmbiguousTimeError
+        ts = pd.Timestamp('2015-11-1 01:00')
+        self.assertRaises(AmbiguousTimeError,
+                          ts.tz_localize, 'US/Pacific', errors='coerce')
+
     def test_tz_localize_roundtrip(self):
         for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
             for t in ['2014-02-01 09:00', '2014-07-08 09:00',
@@ -459,7 +485,7 @@ class TestTimestamp(tm.TestCase):
         nested_obj = {'foo': 1,
                       'bar': [{'w': {'a': Timestamp('2011-01-01')}}] * 10}
         result = pprint.pformat(nested_obj, width=50)
-        expected = r'''{'bar': [{'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+        expected = r"""{'bar': [{'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
@@ -469,7 +495,7 @@ class TestTimestamp(tm.TestCase):
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}}],
- 'foo': 1}'''
+ 'foo': 1}"""
         self.assertEqual(result, expected)
 
 
@@ -589,78 +615,101 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             self.assertRaises(ValueError, tools.parse_time_string, case)
 
     def test_parsers_dayfirst_yearfirst(self):
+        tm._skip_if_no_dateutil()
 
-        # https://github.com/dateutil/dateutil/issues/217
-        # this issue was closed
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2012-10-11 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
+
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+
+        # bug fix in 2.5.2
+        # 2.5.1 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-12-11 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-12-11 00:00:00
+
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+
+        # revert of bug in 2.5.2
+        # 2.5.1 20/12/21   [dayfirst=1, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=1, yearfirst=1] -> month must be in 1..12
+        # 2.5.3 20/12/21   [dayfirst=1, yearfirst=1] -> 2020-12-21 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+
         import dateutil
-        is_compat_version = dateutil.__version__ >= LooseVersion('2.5.2')
-        if is_compat_version:
-            dayfirst_yearfirst1 = datetime.datetime(2010, 12, 11)
-            dayfirst_yearfirst2 = datetime.datetime(2020, 12, 21)
-        else:
-            dayfirst_yearfirst1 = datetime.datetime(2010, 11, 12)
-            dayfirst_yearfirst2 = datetime.datetime(2020, 12, 21)
+        is_lt_253 = dateutil.__version__ < LooseVersion('2.5.3')
 
         # str : dayfirst, yearfirst, expected
-        cases = {'10-11-12': [(False, False, False,
+        cases = {'10-11-12': [(False, False,
                                datetime.datetime(2012, 10, 11)),
-                              (True, False, False,
+                              (True, False,
                                datetime.datetime(2012, 11, 10)),
-                              (False, True, False,
+                              (False, True,
                                datetime.datetime(2010, 11, 12)),
-                              (True, True, False, dayfirst_yearfirst1)],
-                 '20/12/21': [(False, False, False,
+                              (True, True,
+                               datetime.datetime(2010, 12, 11))],
+                 '20/12/21': [(False, False,
                                datetime.datetime(2021, 12, 20)),
-                              (True, False, False,
+                              (True, False,
                                datetime.datetime(2021, 12, 20)),
-                              (False, True, False,
+                              (False, True,
                                datetime.datetime(2020, 12, 21)),
-                              (True, True, True, dayfirst_yearfirst2)]}
+                              (True, True,
+                               datetime.datetime(2020, 12, 21))]}
 
-        tm._skip_if_no_dateutil()
         from dateutil.parser import parse
         for date_str, values in compat.iteritems(cases):
-            for dayfirst, yearfirst, is_compat, expected in values:
+            for dayfirst, yearfirst, expected in values:
 
-                f = lambda x: tools.parse_time_string(x,
-                                                      dayfirst=dayfirst,
-                                                      yearfirst=yearfirst)
-
-                # we now have an invalid parse
-                if is_compat and is_compat_version:
-                    self.assertRaises(tslib.DateParseError, f, date_str)
-
-                    def f(date_str):
-                        return to_datetime(date_str, dayfirst=dayfirst,
-                                           yearfirst=yearfirst)
-
-                    self.assertRaises(ValueError, f, date_str)
-
-                    def f(date_str):
-                        return DatetimeIndex([date_str], dayfirst=dayfirst,
-                                             yearfirst=yearfirst)[0]
-
-                    self.assertRaises(ValueError, f, date_str)
-
+                # odd comparisons across version
+                # let's just skip
+                if dayfirst and yearfirst and is_lt_253:
                     continue
-
-                result1, _, _ = f(date_str)
-
-                result2 = to_datetime(date_str, dayfirst=dayfirst,
-                                      yearfirst=yearfirst)
-
-                result3 = DatetimeIndex([date_str], dayfirst=dayfirst,
-                                        yearfirst=yearfirst)[0]
-
-                # Timestamp doesn't support dayfirst and yearfirst
-                self.assertEqual(result1, expected)
-                self.assertEqual(result2, expected)
-                self.assertEqual(result3, expected)
 
                 # compare with dateutil result
                 dateutil_result = parse(date_str, dayfirst=dayfirst,
                                         yearfirst=yearfirst)
                 self.assertEqual(dateutil_result, expected)
+
+                result1, _, _ = tools.parse_time_string(date_str,
+                                                        dayfirst=dayfirst,
+                                                        yearfirst=yearfirst)
+
+                # we don't support dayfirst/yearfirst here:
+                if not dayfirst and not yearfirst:
+                    result2 = Timestamp(date_str)
+                    self.assertEqual(result2, expected)
+
+                result3 = to_datetime(date_str, dayfirst=dayfirst,
+                                      yearfirst=yearfirst)
+
+                result4 = DatetimeIndex([date_str], dayfirst=dayfirst,
+                                        yearfirst=yearfirst)[0]
+
+                self.assertEqual(result1, expected)
+                self.assertEqual(result3, expected)
+                self.assertEqual(result4, expected)
 
     def test_parsers_timestring(self):
         tm._skip_if_no_dateutil()
@@ -707,16 +756,18 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                          expected_arr)
         self.assertEqual(tools.to_time(arg, format="%I:%M%p", errors="coerce"),
                          [None, None])
-        self.assert_numpy_array_equal(tools.to_time(arg, format="%I:%M%p",
-                                                    errors="ignore"),
-                                      np.array(arg))
-        self.assertRaises(ValueError,
-                          lambda: tools.to_time(arg, format="%I:%M%p",
-                                                errors="raise"))
+
+        res = tools.to_time(arg, format="%I:%M%p", errors="ignore")
+        self.assert_numpy_array_equal(res, np.array(arg, dtype=np.object_))
+
+        with tm.assertRaises(ValueError):
+            tools.to_time(arg, format="%I:%M%p", errors="raise")
+
         self.assert_series_equal(tools.to_time(Series(arg, name="test")),
                                  Series(expected_arr, name="test"))
+
         self.assert_numpy_array_equal(tools.to_time(np.array(arg)),
-                                      np.array(expected_arr))
+                                      np.array(expected_arr, dtype=np.object_))
 
     def test_parsers_monthfreq(self):
         cases = {'201101': datetime.datetime(2011, 1, 1, 0, 0),
@@ -1307,11 +1358,11 @@ class TestTimestampOps(tm.TestCase):
 
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
                                    'S', 'L', 'U'],
-                                  [period.D_RESO, period.D_RESO,
-                                   period.D_RESO, period.D_RESO,
-                                   period.H_RESO, period.T_RESO,
-                                   period.S_RESO, period.MS_RESO,
-                                   period.US_RESO]):
+                                  [D_RESO, D_RESO,
+                                   D_RESO, D_RESO,
+                                   H_RESO, T_RESO,
+                                   S_RESO, MS_RESO,
+                                   US_RESO]):
             for tz in [None, 'Asia/Tokyo', 'US/Eastern',
                        'dateutil/US/Eastern']:
                 idx = date_range(start='2013-04-01', periods=30, freq=freq,

@@ -19,7 +19,7 @@ if missing_dependencies:
 
 
 # numpy compat
-from pandas.compat.numpy_compat import *
+from pandas.compat.numpy import *
 
 try:
     from pandas import hashtable, tslib, lib
@@ -27,8 +27,8 @@ except ImportError as e:  # pragma: no cover
     module = str(e).lstrip('cannot import name ')  # hack but overkill to use re
     raise ImportError("C extension: {0} not built. If you want to import "
                       "pandas from the source directory, you may need to run "
-                      "'python setup.py build_ext --inplace' to build the C "
-                      "extensions first.".format(module))
+                      "'python setup.py build_ext --inplace --force' to build "
+                      "the C extensions first.".format(module))
 
 from datetime import datetime
 from pandas.info import __doc__

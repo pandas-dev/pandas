@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import numpy as np
+
 from pandas import DataFrame, Series, MultiIndex, Panel
 import pandas as pd
 import pandas.util.testing as tm
@@ -156,3 +158,55 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
                 return self.i_dont_exist
         with tm.assertRaisesRegexp(AttributeError, '.*i_dont_exist.*'):
             A().bar
+
+    def test_subclass_align(self):
+        # GH 12983
+        df1 = tm.SubclassedDataFrame({'a': [1, 3, 5],
+                                      'b': [1, 3, 5]}, index=list('ACE'))
+        df2 = tm.SubclassedDataFrame({'c': [1, 2, 4],
+                                      'd': [1, 2, 4]}, index=list('ABD'))
+
+        res1, res2 = df1.align(df2, axis=0)
+        exp1 = tm.SubclassedDataFrame({'a': [1, np.nan, 3, np.nan, 5],
+                                       'b': [1, np.nan, 3, np.nan, 5]},
+                                      index=list('ABCDE'))
+        exp2 = tm.SubclassedDataFrame({'c': [1, 2, np.nan, 4, np.nan],
+                                       'd': [1, 2, np.nan, 4, np.nan]},
+                                      index=list('ABCDE'))
+        tm.assertIsInstance(res1, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(res1, exp1)
+        tm.assertIsInstance(res2, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(res2, exp2)
+
+        res1, res2 = df1.a.align(df2.c)
+        tm.assertIsInstance(res1, tm.SubclassedSeries)
+        tm.assert_series_equal(res1, exp1.a)
+        tm.assertIsInstance(res2, tm.SubclassedSeries)
+        tm.assert_series_equal(res2, exp2.c)
+
+    def test_subclass_align_combinations(self):
+        # GH 12983
+        df = tm.SubclassedDataFrame({'a': [1, 3, 5],
+                                     'b': [1, 3, 5]}, index=list('ACE'))
+        s = tm.SubclassedSeries([1, 2, 4], index=list('ABD'), name='x')
+
+        # frame + series
+        res1, res2 = df.align(s, axis=0)
+        exp1 = pd.DataFrame({'a': [1, np.nan, 3, np.nan, 5],
+                             'b': [1, np.nan, 3, np.nan, 5]},
+                            index=list('ABCDE'))
+        # name is lost when
+        exp2 = pd.Series([1, 2, np.nan, 4, np.nan],
+                         index=list('ABCDE'), name='x')
+
+        tm.assertIsInstance(res1, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(res1, exp1)
+        tm.assertIsInstance(res2, tm.SubclassedSeries)
+        tm.assert_series_equal(res2, exp2)
+
+        # series + frame
+        res1, res2 = s.align(df)
+        tm.assertIsInstance(res1, tm.SubclassedSeries)
+        tm.assert_series_equal(res1, exp2)
+        tm.assertIsInstance(res2, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(res2, exp1)

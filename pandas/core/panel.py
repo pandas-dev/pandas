@@ -15,6 +15,7 @@ import pandas.core.missing as missing
 from pandas import compat
 from pandas import lib
 from pandas.compat import (map, zip, range, u, OrderedDict, OrderedDefaultdict)
+from pandas.compat.numpy import function as nv
 from pandas.core.categorical import Categorical
 from pandas.core.common import (PandasError, _try_sort, _default_index,
                                 _infer_dtype_from_scalar, is_list_like)
@@ -268,6 +269,8 @@ class Panel(NDFrame):
         return cls(**d)
 
     def __getitem__(self, key):
+        key = com._apply_if_callable(key, self)
+
         if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
         if not (is_list_like(key) or isinstance(key, slice)):
@@ -567,6 +570,7 @@ class Panel(NDFrame):
         return self._constructor_sliced(values, **d)
 
     def __setitem__(self, key, value):
+        key = com._apply_if_callable(key, self)
         shape = tuple(self.shape)
         if isinstance(value, self._constructor_sliced):
             value = value.reindex(
@@ -626,7 +630,7 @@ class Panel(NDFrame):
     def tail(self, n=5):
         raise NotImplementedError
 
-    def round(self, decimals=0):
+    def round(self, decimals=0, *args, **kwargs):
         """
         Round each value in Panel to a specified number of decimal places.
 
@@ -647,6 +651,8 @@ class Panel(NDFrame):
         --------
         numpy.around
         """
+        nv.validate_round(args, kwargs)
+
         if com.is_integer(decimals):
             result = np.apply_along_axis(np.round, 0, self.values)
             return self._wrap_result(result, axis=0)
@@ -1209,7 +1215,21 @@ class Panel(NDFrame):
 
     @Appender(_shared_docs['transpose'] % _shared_doc_kwargs)
     def transpose(self, *args, **kwargs):
-        return super(Panel, self).transpose(*args, **kwargs)
+        # check if a list of axes was passed in instead as a
+        # single *args element
+        if (len(args) == 1 and hasattr(args[0], '__iter__') and
+                not com.is_string_like(args[0])):
+            axes = args[0]
+        else:
+            axes = args
+
+        if 'axes' in kwargs and axes:
+            raise TypeError("transpose() got multiple values for "
+                            "keyword argument 'axes'")
+        elif not axes:
+            axes = kwargs.pop('axes', ())
+
+        return super(Panel, self).transpose(*axes, **kwargs)
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,

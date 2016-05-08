@@ -14,7 +14,7 @@ def match(needles, haystack):
 
 
 def cartesian_product(X):
-    '''
+    """
     Numpy version of itertools.product or pandas.compat.product.
     Sometimes faster (for large inputs)...
 
@@ -24,7 +24,7 @@ def cartesian_product(X):
     [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='|S1'),
     array([1, 2, 1, 2, 1, 2])]
 
-    '''
+    """
 
     lenX = np.fromiter((len(x) for x in X), dtype=int)
     cumprodX = np.cumproduct(lenX)
@@ -78,29 +78,52 @@ def to_numeric(arg, errors='raise'):
     >>> pd.to_numeric(s, errors='ignore')
     >>> pd.to_numeric(s, errors='coerce')
     """
+    is_series = False
+    is_index = False
+    is_scalar = False
 
-    index = name = None
     if isinstance(arg, pd.Series):
-        index, name = arg.index, arg.name
+        is_series = True
+        values = arg.values
+    elif isinstance(arg, pd.Index):
+        is_index = True
+        values = arg.asi8
+        if values is None:
+            values = arg.values
     elif isinstance(arg, (list, tuple)):
-        arg = np.array(arg, dtype='O')
+        values = np.array(arg, dtype='O')
+    elif np.isscalar(arg):
+        if com.is_number(arg):
+            return arg
+        is_scalar = True
+        values = np.array([arg], dtype='O')
     elif getattr(arg, 'ndim', 1) > 1:
         raise TypeError('arg must be a list, tuple, 1-d array, or Series')
-
-    conv = arg
-    arg = com._ensure_object(arg)
-
-    coerce_numeric = False if errors in ('ignore', 'raise') else True
-
-    try:
-        conv = lib.maybe_convert_numeric(arg,
-                                         set(),
-                                         coerce_numeric=coerce_numeric)
-    except:
-        if errors == 'raise':
-            raise
-
-    if index is not None:
-        return pd.Series(conv, index=index, name=name)
     else:
-        return conv
+        values = arg
+
+    if com.is_numeric_dtype(values):
+        pass
+    elif com.is_datetime_or_timedelta_dtype(values):
+        values = values.astype(np.int64)
+    else:
+        values = com._ensure_object(values)
+        coerce_numeric = False if errors in ('ignore', 'raise') else True
+
+        try:
+            values = lib.maybe_convert_numeric(values, set(),
+                                               coerce_numeric=coerce_numeric)
+        except:
+            if errors == 'raise':
+                raise
+
+    if is_series:
+        return pd.Series(values, index=arg.index, name=arg.name)
+    elif is_index:
+        # because we want to coerce to numeric if possible,
+        # do not use _shallow_copy_with_infer
+        return Index(values, name=arg.name)
+    elif is_scalar:
+        return values[0]
+    else:
+        return values

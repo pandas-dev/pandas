@@ -381,9 +381,9 @@ class TestRangeIndex(Numeric, tm.TestCase):
         eres = Int64Index([0, 2, 4, 6, 8, 10, 12, 14, 15, 16, 17, 18, 19, 20,
                            21, 22, 23, 24, 25])
         elidx = np.array([0, 1, 2, 3, 4, 5, 6, 7, -1, 8, -1, 9,
-                          -1, -1, -1, -1, -1, -1, -1], dtype=np.int64)
+                          -1, -1, -1, -1, -1, -1, -1], dtype=np.int_)
         eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 8, 7, 6,
-                          5, 4, 3, 2, 1, 0], dtype=np.int64)
+                          5, 4, 3, 2, 1, 0], dtype=np.int_)
 
         self.assertIsInstance(res, Int64Index)
         self.assertFalse(isinstance(res, RangeIndex))
@@ -445,8 +445,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, how='left',
                                           return_indexers=True)
         eres = self.index
-        eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 9, 7],
-                         dtype=np.int64)
+        eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 9, 7], dtype=np.int_)
 
         self.assertIsInstance(res, RangeIndex)
         self.assertTrue(res.equals(eres))
@@ -472,7 +471,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                                           return_indexers=True)
         eres = other
         elidx = np.array([-1, -1, -1, -1, -1, -1, -1, 9, -1, 8, -1],
-                         dtype=np.int64)
+                         dtype=np.int_)
 
         self.assertIsInstance(other, Int64Index)
         self.assertTrue(res.equals(eres))
@@ -525,9 +524,9 @@ class TestRangeIndex(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, return_indexers=True)
 
         eres = Int64Index([0, 2, 4, 4, 6, 8, 10, 12, 14, 16, 18])
-        elidx = np.array([0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.int64)
+        elidx = np.array([0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.int_)
         eridx = np.array([-1, -1, 0, 1, -1, -1, -1, -1, -1, -1, -1],
-                         dtype=np.int64)
+                         dtype=np.int_)
 
         self.assertTrue(res.equals(eres))
         self.assert_numpy_array_equal(lidx, elidx)

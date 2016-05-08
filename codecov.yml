@@ -1,0 +1,12 @@
+coverage:
+  status:
+    project:
+      default:
+        target: '82'
+    patch:
+      default:
+        target: '50'
+        branches: null
+    changes:
+      default:
+        branches: null

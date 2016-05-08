@@ -28,7 +28,7 @@ Reshaping by pivoting DataFrame objects
       ...:                 'variable' : np.asarray(frame.columns).repeat(N),
       ...:                 'date' : np.tile(np.asarray(frame.index), K)}
       ...:         columns = ['date', 'variable', 'value']
-      ...:         return DataFrame(data, columns=columns)
+      ...:         return pd.DataFrame(data, columns=columns)
       ...:
 
    In [3]: df = unpivot(tm.makeTimeDataFrame())
@@ -318,8 +318,8 @@ some very expressive and fast data manipulations.
    df.mean().unstack(0)
 
 
-Pivot tables and cross-tabulations
-----------------------------------
+Pivot tables
+------------
 
 .. _reshaping.pivot:
 
@@ -371,7 +371,7 @@ Also, you can use ``Grouper`` for ``index`` and ``columns`` keywords. For detail
 
 .. ipython:: python
 
-   pd.pivot_table(df, values='D', index=Grouper(freq='M', key='F'), columns='C')
+   pd.pivot_table(df, values='D', index=pd.Grouper(freq='M', key='F'), columns='C')
 
 You can render a nice output of the table omitting the missing values by
 calling ``to_string`` if you wish:
@@ -383,8 +383,23 @@ calling ``to_string`` if you wish:
 
 Note that ``pivot_table`` is also available as an instance method on DataFrame.
 
+.. _reshaping.pivot.margins:
+
+Adding margins
+~~~~~~~~~~~~~~
+
+If you pass ``margins=True`` to ``pivot_table``, special ``All`` columns and
+rows will be added with partial group aggregates across the categories on the
+rows and columns:
+
+.. ipython:: python
+
+   df.pivot_table(index=['A', 'B'], columns='C', margins=True, aggfunc=np.std)
+
+.. _reshaping.crosstabulations:
+
 Cross tabulations
-~~~~~~~~~~~~~~~~~
+-----------------
 
 Use the ``crosstab`` function to compute a cross-tabulation of two (or more)
 factors. By default ``crosstab`` computes a frequency table of the factors
@@ -398,10 +413,13 @@ It takes a number of arguments
   the factors
 - ``aggfunc``: function, optional, If no values array is passed, computes a
   frequency table
-- ``rownames``: sequence, default None, must match number of row arrays passed
-- ``colnames``: sequence, default None, if passed, must match number of column
+- ``rownames``: sequence, default ``None``, must match number of row arrays passed
+- ``colnames``: sequence, default ``None``, if passed, must match number of column
   arrays passed
-- ``margins``: boolean, default False, Add row/column margins (subtotals)
+- ``margins``: boolean, default ``False``, Add row/column margins (subtotals)
+- ``normalize``: boolean, {'all', 'index', 'columns'}, or {0,1}, default ``False``.
+  Normalize by dividing all values by the sum of values.
+
 
 Any Series passed will have their name attributes used unless row or column
 names for the cross-tabulation are specified
@@ -416,25 +434,58 @@ For example:
     c = np.array([dull, dull, shiny, dull, dull, shiny], dtype=object)
     pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
 
-.. _reshaping.pivot.margins:
 
-Adding margins (partial aggregates)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you pass ``margins=True`` to ``pivot_table``, special ``All`` columns and
-rows will be added with partial group aggregates across the categories on the
-rows and columns:
+If ``crosstab`` receives only two Series, it will provide a frequency table.
 
 .. ipython:: python
 
-   df.pivot_table(index=['A', 'B'], columns='C', margins=True, aggfunc=np.std)
+    df = pd.DataFrame({'A': [1, 2, 2, 2, 2], 'B': [3, 3, 4, 4, 4],
+                       'C': [1, 1, np.nan, 1, 1]})
+    df
+
+    pd.crosstab(df.A, df.B)
+
+Normalization
+~~~~~~~~~~~~~
+
+.. versionadded:: 0.18.1
+
+Frequency tables can also be normalized to show percentages rather than counts
+using the ``normalize`` argument:
+
+.. ipython:: python
+
+   pd.crosstab(df.A, df.B, normalize=True)
+
+``normalize`` can also normalize values within each row or within each column:
+
+.. ipython:: python
+
+   pd.crosstab(df.A, df.B, normalize='columns')
+
+``crosstab`` can also be passed a third Series and an aggregation function
+(``aggfunc``) that will be applied to the values of the third Series within each
+group defined by the first two Series:
+
+.. ipython:: python
+
+   pd.crosstab(df.A, df.B, values=df.C, aggfunc=np.sum)
+
+Adding Margins
+~~~~~~~~~~~~~~
+
+Finally, one can also add margins or normalize this output.
+
+.. ipython:: python
+
+   pd.crosstab(df.A, df.B, values=df.C, aggfunc=np.sum, normalize=True,
+               margins=True)
 
 .. _reshaping.tile:
+.. _reshaping.tile.cut:
 
 Tiling
 ------
-
-.. _reshaping.tile.cut:
 
 The ``cut`` function computes groupings for the values of the input array and
 is often used to transform continuous variables to discrete or categorical
@@ -443,7 +494,6 @@ variables:
 .. ipython:: python
 
    ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
-
 
    pd.cut(ages, bins=3)
 

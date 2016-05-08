@@ -23,7 +23,6 @@ import pandas.compat as compat
 import numpy as np
 from numpy.testing import (assert_array_almost_equal_nulp,
                            assert_approx_equal)
-import pytz
 from pandas import DataFrame, Series, Index, NaT, DatetimeIndex
 import pandas.util.testing as tm
 
@@ -365,14 +364,29 @@ class UltraJSONTests(TestCase):
             datetime.time(),
             datetime.time(1, 2, 3),
             datetime.time(10, 12, 15, 343243),
-            datetime.time(10, 12, 15, 343243, pytz.utc),
-            # datetime.time(10, 12, 15, 343243, dateutil.tz.gettz('UTC')),  #
-            # this segfaults! No idea why.
         ]
         for test in tests:
             output = ujson.encode(test)
             expected = '"%s"' % test.isoformat()
             self.assertEqual(expected, output)
+
+    def test_encodeTimeConversion_pytz(self):
+        # GH11473 to_json segfaults with timezone-aware datetimes
+        tm._skip_if_no_pytz()
+        import pytz
+        test = datetime.time(10, 12, 15, 343243, pytz.utc)
+        output = ujson.encode(test)
+        expected = '"%s"' % test.isoformat()
+        self.assertEqual(expected, output)
+
+    def test_encodeTimeConversion_dateutil(self):
+        # GH11473 to_json segfaults with timezone-aware datetimes
+        tm._skip_if_no_dateutil()
+        import dateutil
+        test = datetime.time(10, 12, 15, 343243, dateutil.tz.tzutc())
+        output = ujson.encode(test)
+        expected = '"%s"' % test.isoformat()
+        self.assertEqual(expected, output)
 
     def test_nat(self):
         input = NaT

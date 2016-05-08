@@ -13,6 +13,14 @@ import re
 import pandas.lib as lib
 import warnings
 import textwrap
+import codecs
+
+_cpython_optimized_encoders = (
+    "utf-8", "utf8", "latin-1", "latin1", "iso-8859-1", "mbcs", "ascii"
+)
+_cpython_optimized_decoders = _cpython_optimized_encoders + (
+    "utf-16", "utf-32"
+)
 
 _shared_docs = dict()
 
@@ -1182,7 +1190,12 @@ def str_decode(arr, encoding, errors="strict"):
     -------
     decoded : Series/Index of objects
     """
-    f = lambda x: x.decode(encoding, errors)
+    if encoding in _cpython_optimized_decoders:
+        # CPython optimized implementation
+        f = lambda x: x.decode(encoding, errors)
+    else:
+        decoder = codecs.getdecoder(encoding)
+        f = lambda x: decoder(x, errors)[0]
     return _na_map(f, arr)
 
 
@@ -1200,7 +1213,12 @@ def str_encode(arr, encoding, errors="strict"):
     -------
     encoded : Series/Index of objects
     """
-    f = lambda x: x.encode(encoding, errors)
+    if encoding in _cpython_optimized_encoders:
+        # CPython optimized implementation
+        f = lambda x: x.encode(encoding, errors)
+    else:
+        encoder = codecs.getencoder(encoding)
+        f = lambda x: encoder(x, errors)[0]
     return _na_map(f, arr)
 
 

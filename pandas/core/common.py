@@ -307,7 +307,8 @@ def array_equivalent(left, right, strict_nan=False):
         return False
 
     # Object arrays can contain None, NaN and NaT.
-    if is_object_dtype(left) or is_object_dtype(right):
+    # string dtypes must be come to this path for NumPy 1.7.1 compat
+    if is_string_dtype(left) or is_string_dtype(right):
 
         if not strict_nan:
             # pd.isnull considers NaN and None to be equivalent.
@@ -1841,6 +1842,16 @@ def _get_callable_name(obj):
     # instead of the empty string in this case to allow
     # distinguishing between no name and a name of ''
     return None
+
+
+def _apply_if_callable(maybe_callable, obj, **kwargs):
+    """
+    Evaluate possibly callable input using obj and kwargs if it is callable,
+    otherwise return as it is
+    """
+    if callable(maybe_callable):
+        return maybe_callable(obj, **kwargs)
+    return maybe_callable
 
 
 _string_dtypes = frozenset(map(_get_dtype_from_object, (compat.binary_type,

@@ -119,6 +119,18 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
         self.assertEqual(result.columns.names, ['sth', 'sth2'])
 
+    def test_getitem_callable(self):
+        # GH 12533
+        result = self.frame[lambda x: 'A']
+        tm.assert_series_equal(result, self.frame.loc[:, 'A'])
+
+        result = self.frame[lambda x: ['A', 'B']]
+        tm.assert_frame_equal(result, self.frame.loc[:, ['A', 'B']])
+
+        df = self.frame[:3]
+        result = df[lambda x: [True, False, True]]
+        tm.assert_frame_equal(result, self.frame.iloc[[0, 2], :])
+
     def test_setitem_list(self):
 
         self.frame['E'] = 'foo'
@@ -186,6 +198,14 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         np.random.shuffle(j)
         df[('joe', 'last')] = df[('jolie', 'first')].loc[i, j]
         assert_frame_equal(df[('joe', 'last')], df[('jolie', 'first')])
+
+    def test_setitem_callable(self):
+        # GH 12533
+        df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [5, 6, 7, 8]})
+        df[lambda x: 'A'] = [11, 12, 13, 14]
+
+        exp = pd.DataFrame({'A': [11, 12, 13, 14], 'B': [5, 6, 7, 8]})
+        tm.assert_frame_equal(df, exp)
 
     def test_getitem_boolean(self):
         # boolean indexing
@@ -1410,8 +1430,8 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         # already aligned
         f = self.mixed_frame.copy()
-        piece = DataFrame([[1, 2], [3, 4]], index=f.index[
-                          0:2], columns=['A', 'B'])
+        piece = DataFrame([[1., 2.], [3., 4.]],
+                          index=f.index[0:2], columns=['A', 'B'])
         key = (slice(None, 2), ['A', 'B'])
         f.ix[key] = piece
         assert_almost_equal(f.ix[0:2, ['A', 'B']].values,
@@ -1419,8 +1439,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         # rows unaligned
         f = self.mixed_frame.copy()
-        piece = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], index=list(
-            f.index[0:2]) + ['foo', 'bar'], columns=['A', 'B'])
+        piece = DataFrame([[1., 2.], [3., 4.], [5., 6.], [7., 8.]],
+                          index=list(f.index[0:2]) + ['foo', 'bar'],
+                          columns=['A', 'B'])
         key = (slice(None, 2), ['A', 'B'])
         f.ix[key] = piece
         assert_almost_equal(f.ix[0:2:, ['A', 'B']].values,
@@ -1940,6 +1961,20 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         exp = pd.Series([1, 0, 0], name='new_column')
         assert_series_equal(df['new_column'], exp)
 
+    def test_setitem_with_unaligned_tz_aware_datetime_column(self):
+        # GH 12981
+        # Assignment of unaligned offset-aware datetime series.
+        # Make sure timezone isn't lost
+        column = pd.Series(pd.date_range('2015-01-01', periods=3, tz='utc'),
+                           name='dates')
+        df = pd.DataFrame({'dates': column})
+        df['dates'] = column[[1, 0, 2]]
+        assert_series_equal(df['dates'], column)
+
+        df = pd.DataFrame({'dates': column})
+        df.loc[[0, 1, 2], 'dates'] = column[[1, 0, 2]]
+        assert_series_equal(df['dates'], column)
+
     def test_setitem_datetime_coercion(self):
         # GH 1048
         df = pd.DataFrame({'c': [pd.Timestamp('2010-10-01')] * 3})
@@ -1949,7 +1984,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df.loc[2, 'c'] = date(2005, 5, 5)
         self.assertEqual(pd.Timestamp('2005-05-05'), df.loc[2, 'c'])
 
-    def test_datetimelike_setitem_with_inference(self):
+    def test_setitem_datetimelike_with_inference(self):
         # GH 7592
         # assignment of timedeltas with NaT
 
@@ -2531,6 +2566,27 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result.where(mask, d2, inplace=True, axis='columns')
         assert_frame_equal(result, expected)
 
+    def test_where_callable(self):
+        # GH 12533
+        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        result = df.where(lambda x: x > 4, lambda x: x + 1)
+        exp = DataFrame([[2, 3, 4], [5, 5, 6], [7, 8, 9]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, df.where(df > 4, df + 1))
+
+        # return ndarray and scalar
+        result = df.where(lambda x: (x % 2 == 0).values, lambda x: 99)
+        exp = DataFrame([[99, 2, 99], [4, 99, 6], [99, 8, 99]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, df.where(df % 2 == 0, 99))
+
+        # chain
+        result = (df + 2).where(lambda x: x > 8, lambda x: x + 10)
+        exp = DataFrame([[13, 14, 15], [16, 17, 18], [9, 10, 11]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result,
+                              (df + 2).where((df + 2) > 8, (df + 2) + 10))
+
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
         cond = df > 0
@@ -2566,6 +2622,27 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         res = df.mask(DataFrame([[True, False]]))
         expec = DataFrame([[nan, 2]])
         assert_frame_equal(res, expec)
+
+    def test_mask_callable(self):
+        # GH 12533
+        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        result = df.mask(lambda x: x > 4, lambda x: x + 1)
+        exp = DataFrame([[1, 2, 3], [4, 6, 7], [8, 9, 10]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, df.mask(df > 4, df + 1))
+
+        # return ndarray and scalar
+        result = df.mask(lambda x: (x % 2 == 0).values, lambda x: 99)
+        exp = DataFrame([[1, 99, 3], [99, 5, 99], [7, 99, 9]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, df.mask(df % 2 == 0, 99))
+
+        # chain
+        result = (df + 2).mask(lambda x: x > 8, lambda x: x + 10)
+        exp = DataFrame([[3, 4, 5], [6, 7, 8], [19, 20, 21]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result,
+                              (df + 2).mask((df + 2) > 8, (df + 2) + 10))
 
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])

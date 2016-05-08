@@ -32,15 +32,15 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 
 
 cdef class SparseIndex:
-    '''
+    """
     Abstract superclass for sparse index types
-    '''
+    """
     def __init__(self):
         raise NotImplementedError
 
 
 cdef class IntIndex(SparseIndex):
-    '''
+    """
     Object for holding exact integer sparse indexing information
 
     Parameters
@@ -48,7 +48,7 @@ cdef class IntIndex(SparseIndex):
     length : integer
     indices : array-like
         Contains integers corresponding to
-    '''
+    """
     cdef readonly:
         Py_ssize_t length, npoints
         ndarray indices
@@ -68,10 +68,10 @@ cdef class IntIndex(SparseIndex):
         return output
 
     def check_integrity(self):
-        '''
+        """
         Only need be strictly ascending and nothing less than 0 or greater than
         totall ength
-        '''
+        """
         pass
 
     def equals(self, other):
@@ -98,10 +98,9 @@ cdef class IntIndex(SparseIndex):
 
     cpdef IntIndex intersect(self, SparseIndex y_):
         cdef:
-            Py_ssize_t out_length, xi, yi = 0
+            Py_ssize_t out_length, xi, yi = 0, result_indexer = 0
             int32_t xind
-            ndarray[int32_t, ndim=1] xindices, yindices
-            list new_list = []
+            ndarray[int32_t, ndim=1] xindices, yindices, new_indices
             IntIndex y
 
         # if is one already, returns self
@@ -112,6 +111,7 @@ cdef class IntIndex(SparseIndex):
 
         xindices = self.indices
         yindices = y.indices
+        new_indices = np.empty(min(len(xindices), len(yindices)), dtype=np.int32)
 
         for xi from 0 <= xi < self.npoints:
             xind = xindices[xi]
@@ -124,57 +124,26 @@ cdef class IntIndex(SparseIndex):
 
             # TODO: would a two-pass algorithm be faster?
             if yindices[yi] == xind:
-                new_list.append(xind)
+                new_indices[result_indexer] = xind
+                result_indexer += 1
 
-        return IntIndex(self.length, new_list)
+        new_indices = new_indices[:result_indexer]
+        return IntIndex(self.length, new_indices)
 
     cpdef IntIndex make_union(self, SparseIndex y_):
-        cdef:
-            Py_ssize_t out_length, i, xi, yi
-            int32_t xind
-            ndarray[int32_t, ndim=1] xindices, yindices
-            list new_list = []
-            IntIndex x, y
 
-        x = self
+        cdef:
+            ndarray[int32_t, ndim=1] new_indices
+            IntIndex y
 
         # if is one already, returns self
         y = y_.to_int_index()
 
         if self.length != y.length:
-            raise Exception('Indices must reference same underlying length')
+            raise ValueError('Indices must reference same underlying length')
 
-        xindices = self.indices
-        yindices = y.indices
-
-        xi = yi = 0
-        while True:
-            if xi == x.npoints:
-                while yi < y.npoints:
-                    new_list.append(yindices[yi])
-                    yi += 1
-                break
-            elif yi == y.npoints:
-                while xi < x.npoints:
-                    new_list.append(xindices[xi])
-                    xi += 1
-                break
-
-            xind = xindices[xi]
-            yind = yindices[yi]
-
-            if xind == yind:
-                new_list.append(xind)
-                xi += 1
-                yi += 1
-            elif xind < yind:
-                new_list.append(xind)
-                xi += 1
-            else:
-                new_list.append(yind)
-                yi += 1
-
-        return IntIndex(x.length, new_list)
+        new_indices = np.union1d(self.indices, y.indices)
+        return IntIndex(self.length, new_indices)
 
     @cython.wraparound(False)
     cpdef int lookup(self, Py_ssize_t index):
@@ -271,15 +240,19 @@ cdef class IntIndex(SparseIndex):
 
 cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     cdef:
-        Py_ssize_t i, npoints
+        Py_ssize_t init_len, i, npoints, result_indexer = 0
         int32_t block, length = 1, cur, prev
-        list locs = [], lens = []
+        ndarray[int32_t, ndim=1] locs, lens
 
     npoints = len(indices)
 
     # just handle the special empty case separately
     if npoints == 0:
-        return [], []
+        return np.array([], dtype=np.int32), np.array([], dtype=np.int32)
+
+    # block size can't be longer than npoints
+    locs = np.empty(npoints, dtype=np.int32)
+    lens = np.empty(npoints, dtype=np.int32)
 
     # TODO: two-pass algorithm faster?
     prev = block = indices[0]
@@ -287,37 +260,42 @@ cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
         cur = indices[i]
         if cur - prev > 1:
             # new block
-            locs.append(block)
-            lens.append(length)
+            locs[result_indexer] = block
+            lens[result_indexer] = length
             block = cur
             length = 1
+            result_indexer += 1
         else:
             # same block, increment length
             length += 1
 
         prev = cur
 
-    locs.append(block)
-    lens.append(length)
+    locs[result_indexer] = block
+    lens[result_indexer] = length
+    result_indexer += 1
+    locs = locs[:result_indexer]
+    lens = lens[:result_indexer]
     return locs, lens
 
 #-------------------------------------------------------------------------------
 # BlockIndex
 
 cdef class BlockIndex(SparseIndex):
-    '''
+    """
     Object for holding block-based sparse indexing information
 
     Parameters
     ----------
-    '''
+    """
     cdef readonly:
         Py_ssize_t nblocks, npoints, length
         ndarray blocs, blengths
 
     cdef:
         object __weakref__ # need to be picklable
-        int32_t* locbuf, *lenbuf
+        int32_t *locbuf
+        int32_t *lenbuf
 
     def __init__(self, length, blocs, blengths):
 
@@ -353,12 +331,12 @@ cdef class BlockIndex(SparseIndex):
         return self.length - self.npoints
 
     cpdef check_integrity(self):
-        '''
+        """
         Check:
         - Locations are in ascending order
         - No overlapping blocks
         - Blocks to not start after end of index, nor extend beyond end
-        '''
+        """
         cdef:
             Py_ssize_t i
             ndarray[int32_t, ndim=1] blocs, blengths
@@ -418,7 +396,7 @@ cdef class BlockIndex(SparseIndex):
         return IntIndex(self.length, indices)
 
     cpdef BlockIndex intersect(self, SparseIndex other):
-        '''
+        """
         Intersect two BlockIndex objects
 
         Parameters
@@ -427,15 +405,11 @@ cdef class BlockIndex(SparseIndex):
         Returns
         -------
         intersection : BlockIndex
-        '''
+        """
         cdef:
             BlockIndex y
-            ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen
-
-            list out_blocs = []
-            list out_blengths = []
-
-            Py_ssize_t xi = 0, yi = 0
+            ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen, out_bloc, out_blen
+            Py_ssize_t xi = 0, yi = 0, max_len, result_indexer = 0
             int32_t cur_loc, cur_length, diff
 
         y = other.to_block_index()
@@ -447,6 +421,11 @@ cdef class BlockIndex(SparseIndex):
         xlen = self.blengths
         yloc = y.blocs
         ylen = y.blengths
+
+        # block may be split, but can't exceed original len / 2 + 1
+        max_len = int(min(self.length, y.length) / 2) + 1
+        out_bloc = np.empty(max_len, dtype=np.int32)
+        out_blen = np.empty(max_len, dtype=np.int32)
 
         while True:
             # we are done (or possibly never began)
@@ -490,13 +469,17 @@ cdef class BlockIndex(SparseIndex):
                     cur_length = ylen[yi]
                     yi += 1
 
-            out_blocs.append(cur_loc)
-            out_blengths.append(cur_length)
+            out_bloc[result_indexer] = cur_loc
+            out_blen[result_indexer] = cur_length
+            result_indexer += 1
 
-        return BlockIndex(self.length, out_blocs, out_blengths)
+        out_bloc = out_bloc[:result_indexer]
+        out_blen = out_blen[:result_indexer]
+
+        return BlockIndex(self.length, out_bloc, out_blen)
 
     cpdef BlockIndex make_union(self, SparseIndex y):
-        '''
+        """
         Combine together two BlockIndex objects, accepting indices if contained
         in one or the other
 
@@ -511,7 +494,7 @@ cdef class BlockIndex(SparseIndex):
         Returns
         -------
         union : BlockIndex
-        '''
+        """
         return BlockUnion(self, y.to_block_index()).result
 
     cpdef int lookup(self, Py_ssize_t index):
@@ -603,10 +586,10 @@ cdef class BlockIndex(SparseIndex):
 
 
 cdef class BlockMerge(object):
-    '''
+    """
     Object-oriented approach makes sharing state between recursive functions a
     lot easier and reduces code duplication
-    '''
+    """
     cdef:
         BlockIndex x, y, result
         ndarray xstart, xlen, xend, ystart, ylen, yend
@@ -645,27 +628,31 @@ cdef class BlockMerge(object):
             self.yi = xi
 
 cdef class BlockIntersection(BlockMerge):
-    '''
+    """
     not done yet
-    '''
+    """
     pass
 
 cdef class BlockUnion(BlockMerge):
-    '''
+    """
     Object-oriented approach makes sharing state between recursive functions a
     lot easier and reduces code duplication
-    '''
+    """
 
     cdef _make_merged_blocks(self):
         cdef:
-            ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
+            ndarray[int32_t, ndim=1] xstart, xend, ystart, yend, out_bloc, out_blen
             int32_t nstart, nend, diff
-            list out_blocs = [], out_blengths = []
+            Py_ssize_t max_len, result_indexer = 0
 
         xstart = self.xstart
         xend = self.xend
         ystart = self.ystart
         yend = self.yend
+
+        max_len = int(min(self.x.length, self.y.length) / 2) + 1
+        out_bloc = np.empty(max_len, dtype=np.int32)
+        out_blen = np.empty(max_len, dtype=np.int32)
 
         while True:
             # we are done (or possibly never began)
@@ -690,18 +677,22 @@ cdef class BlockUnion(BlockMerge):
                     nstart = ystart[self.yi]
                     nend = self._find_next_block_end(1)
 
-            out_blocs.append(nstart)
-            out_blengths.append(nend - nstart)
+            out_bloc[result_indexer] = nstart
+            out_blen[result_indexer] = nend - nstart
+            result_indexer += 1
 
-        return BlockIndex(self.x.length, out_blocs, out_blengths)
+        out_bloc = out_bloc[:result_indexer]
+        out_blen = out_blen[:result_indexer]
+
+        return BlockIndex(self.x.length, out_bloc, out_blen)
 
     cdef int32_t _find_next_block_end(self, bint mode) except -1:
-        '''
+        """
         Wow, this got complicated in a hurry
 
         mode 0: block started in index x
         mode 1: block started in index y
-        '''
+        """
         cdef:
             ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
             int32_t xi, yi, xnblocks, ynblocks, nend
@@ -781,9 +772,9 @@ cdef inline tuple sparse_combine(ndarray x, SparseIndex xindex, float64_t xfill,
 cdef inline tuple block_op(ndarray x_, BlockIndex xindex, float64_t xfill,
                            ndarray y_, BlockIndex yindex, float64_t yfill,
                            double_func op):
-    '''
+    """
     Binary operator on BlockIndex objects with fill values
-    '''
+    """
 
     cdef:
         BlockIndex out_index
@@ -985,6 +976,12 @@ cdef inline float64_t __lt(float64_t a, float64_t b):
 cdef inline float64_t __gt(float64_t a, float64_t b):
     return a > b
 
+cdef inline float64_t __le(float64_t a, float64_t b):
+    return a <= b
+
+cdef inline float64_t __ge(float64_t a, float64_t b):
+    return a >= b
+
 cdef inline float64_t __mod(float64_t a, float64_t b):
     if b == 0:
         return NaN
@@ -1040,33 +1037,62 @@ sparse_rtruediv = sparse_rdiv
 cpdef sparse_floordiv(ndarray x, SparseIndex xindex, float64_t xfill,
                       ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __floordiv)
+                          y, yindex, yfill, __floordiv)
 
 cpdef sparse_rfloordiv(ndarray x, SparseIndex xindex, float64_t xfill,
                        ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __rfloordiv)
+                          y, yindex, yfill, __rfloordiv)
 
 cpdef sparse_mod(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __mod)
+                          y, yindex, yfill, __mod)
 
 cpdef sparse_rmod(ndarray x, SparseIndex xindex, float64_t xfill,
                   ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __rmod)
+                          y, yindex, yfill, __rmod)
 
 cpdef sparse_pow(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __pow)
+                          y, yindex, yfill, __pow)
 
 cpdef sparse_rpow(ndarray x, SparseIndex xindex, float64_t xfill,
                   ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __rpow)
+                          y, yindex, yfill, __rpow)
 
+cpdef sparse_eq(ndarray x, SparseIndex xindex, float64_t xfill,
+                  ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __eq)
+
+cpdef sparse_ne(ndarray x, SparseIndex xindex, float64_t xfill,
+                  ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __ne)
+
+cpdef sparse_lt(ndarray x, SparseIndex xindex, float64_t xfill,
+                  ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __lt)
+
+cpdef sparse_gt(ndarray x, SparseIndex xindex, float64_t xfill,
+                  ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __gt)
+
+cpdef sparse_le(ndarray x, SparseIndex xindex, float64_t xfill,
+                ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __le)
+
+cpdef sparse_ge(ndarray x, SparseIndex xindex, float64_t xfill,
+                ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __ge)
 
 #-------------------------------------------------------------------------------
 # Indexing operations
@@ -1103,10 +1129,10 @@ def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
 
 
 # cdef class SparseCruncher(object):
-#     '''
+#     """
 #     Class to acquire float pointer for convenient operations on sparse data
 #     structures
-#     '''
+#     """
 #     cdef:
 #         SparseIndex index
 #         float64_t* buf
