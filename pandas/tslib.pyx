@@ -214,6 +214,171 @@ cdef inline bint _is_fixed_offset(object tz):
             return 0
     return 1
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def get_date_field(ndarray[int64_t] dtindex, object field):
+    """
+    Given a int64-based datetime index, extract the year, month, etc.,
+    field and return an array of these values.
+    """
+    cdef:
+        _TSObject ts
+        Py_ssize_t i, count = 0
+        ndarray[int32_t] out
+        ndarray[int32_t, ndim=2] _month_offset
+        int isleap, isleap_prev
+        pandas_datetimestruct dts
+        int mo_off, doy, dow, woy
+
+    _month_offset = np.array(
+        [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
+         [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 ]],
+         dtype=np.int32 )
+
+    count = len(dtindex)
+    out = np.empty(count, dtype='i4')
+
+    if field == 'Y':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = dts.year
+        return out
+
+    elif field == 'M':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = dts.month
+        return out
+
+    elif field == 'D':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = dts.day
+        return out
+
+    elif field == 'h':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = dts.hour
+        return out
+
+    elif field == 'm':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = dts.min
+        return out
+
+    elif field == 's':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = dts.sec
+        return out
+
+    elif field == 'us':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = dts.us
+        return out
+
+    elif field == 'ns':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = dts.ps / 1000
+        return out
+    elif field == 'doy':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                isleap = is_leapyear(dts.year)
+                out[i] = _month_offset[isleap, dts.month-1] + dts.day
+        return out
+
+    elif field == 'dow':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = dayofweek(dts.year, dts.month, dts.day)
+        return out
+
+    elif field == 'woy':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                isleap = is_leapyear(dts.year)
+                isleap_prev = is_leapyear(dts.year - 1)
+                mo_off = _month_offset[isleap, dts.month - 1]
+                doy = mo_off + dts.day
+                dow = dayofweek(dts.year, dts.month, dts.day)
+
+                #estimate
+                woy = (doy - 1) - dow + 3
+                if woy >= 0:
+                    woy = woy / 7 + 1
+
+                # verify
+                if woy < 0:
+                    if (woy > -2) or (woy == -2 and isleap_prev):
+                        woy = 53
+                    else:
+                        woy = 52
+                elif woy == 53:
+                    if 31 - dts.day + dow < 3:
+                        woy = 1
+
+                out[i] = woy
+        return out
+
+    elif field == 'q':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = dts.month
+                out[i] = ((out[i] - 1) / 3) + 1
+        return out
+
+    elif field == 'dim':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+                out[i] = days_in_month(dts)
+        return out
+
+    raise ValueError("Field %s not supported" % field)
+
 
 _zero_time = datetime_time(0, 0)
 
@@ -310,6 +475,9 @@ class Timestamp(_Timestamp):
         ts_base.value = ts.value
         ts_base.offset = offset
         ts_base.nanosecond = ts.dts.ps / 1000
+
+        # force offset check
+        ts_base.isoformat()
 
         return ts_base
 
@@ -4195,172 +4363,6 @@ def get_time_micros(ndarray[int64_t] dtindex):
                                  60 * dts.min + dts.sec) + dts.us
 
     return micros
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def get_date_field(ndarray[int64_t] dtindex, object field):
-    """
-    Given a int64-based datetime index, extract the year, month, etc.,
-    field and return an array of these values.
-    """
-    cdef:
-        _TSObject ts
-        Py_ssize_t i, count = 0
-        ndarray[int32_t] out
-        ndarray[int32_t, ndim=2] _month_offset
-        int isleap, isleap_prev
-        pandas_datetimestruct dts
-        int mo_off, doy, dow, woy
-
-    _month_offset = np.array(
-        [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
-         [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 ]],
-         dtype=np.int32 )
-
-    count = len(dtindex)
-    out = np.empty(count, dtype='i4')
-
-    if field == 'Y':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = dts.year
-        return out
-
-    elif field == 'M':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = dts.month
-        return out
-
-    elif field == 'D':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = dts.day
-        return out
-
-    elif field == 'h':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = dts.hour
-        return out
-
-    elif field == 'm':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = dts.min
-        return out
-
-    elif field == 's':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = dts.sec
-        return out
-
-    elif field == 'us':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = dts.us
-        return out
-
-    elif field == 'ns':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = dts.ps / 1000
-        return out
-    elif field == 'doy':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                isleap = is_leapyear(dts.year)
-                out[i] = _month_offset[isleap, dts.month-1] + dts.day
-        return out
-
-    elif field == 'dow':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = dayofweek(dts.year, dts.month, dts.day)
-        return out
-
-    elif field == 'woy':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                isleap = is_leapyear(dts.year)
-                isleap_prev = is_leapyear(dts.year - 1)
-                mo_off = _month_offset[isleap, dts.month - 1]
-                doy = mo_off + dts.day
-                dow = dayofweek(dts.year, dts.month, dts.day)
-
-                #estimate
-                woy = (doy - 1) - dow + 3
-                if woy >= 0:
-                    woy = woy / 7 + 1
-
-                # verify
-                if woy < 0:
-                    if (woy > -2) or (woy == -2 and isleap_prev):
-                        woy = 53
-                    else:
-                        woy = 52
-                elif woy == 53:
-                    if 31 - dts.day + dow < 3:
-                        woy = 1
-
-                out[i] = woy
-        return out
-
-    elif field == 'q':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = dts.month
-                out[i] = ((out[i] - 1) / 3) + 1
-        return out
-
-    elif field == 'dim':
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
-
-                pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                out[i] = days_in_month(dts)
-        return out
-
-    raise ValueError("Field %s not supported" % field)
 
 
 @cython.wraparound(False)

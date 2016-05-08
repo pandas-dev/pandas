@@ -4291,6 +4291,10 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(result, expected)
         self.assertIsInstance(result, Timestamp)
 
+    def test_invalid_offset(self):
+        # GH 11630
+        self.assertRaises(ValueError, lambda: pd.Timestamp(2015, 11, 12))
+
     def test_roundtrip(self):
 
         # test value to string and back conversions
