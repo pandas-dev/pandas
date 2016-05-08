@@ -133,6 +133,19 @@ class TestSeriesDtypes(TestData, tm.TestCase):
             reload(sys)  # noqa
             sys.setdefaultencoding(former_encoding)
 
+    def test_astype_inplace(self):
+        s = Series(np.random.randn(5), name='foo')
+
+        for dtype in ['float32', 'float64', 'int64', 'int32']:
+            astyped = s.astype(dtype, inplace=False)
+            self.assertEqual(astyped.dtype, dtype)
+            self.assertEqual(astyped.name, s.name)
+
+        for dtype in ['float32', 'float64', 'int64', 'int32']:
+            s.astype(dtype, inplace=True)
+            self.assertEqual(s.dtype, dtype)
+            self.assertEqual(s.name, 'foo')
+
     def test_complexx(self):
         # GH4819
         # complex access for ndarray compat
