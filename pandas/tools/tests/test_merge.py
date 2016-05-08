@@ -12,6 +12,7 @@ import pandas as pd
 from pandas.compat import range, lrange, lzip, StringIO
 from pandas import compat
 from pandas.tseries.index import DatetimeIndex
+from pandas.types.dtypes import DatetimeTZDtype
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas import Categorical, Timestamp
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
@@ -2521,6 +2522,120 @@ class TestConcatenate(tm.TestCase):
 
         result = concat([df, df])
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_NaT_dataframes_all_NaT_axis_0(self):
+        # GH 12396
+        expect = pd.DataFrame([pd.NaT, pd.NaT, pd.NaT], index=[0, 1, 0])
+
+        # non-timezone aware
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]])
+        second = pd.DataFrame([[pd.NaT]])
+
+        result = pd.concat([first, second], axis=0)
+        assert_frame_equal(result, expect)
+
+        # one side timezone-aware
+        dtype = DatetimeTZDtype('ns', tz='UTC')
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]], dtype=dtype)
+
+        result = pd.concat([first, second], axis=0)
+        # upcasts for mixed case
+        assert_frame_equal(result, expect, check_dtype=False)
+        self.assertEqual(result.dtypes[0], dtype)
+
+        # both sides timezone-aware
+        second = pd.DataFrame([[pd.NaT]], dtype=dtype)
+
+        result = pd.concat([first, second], axis=0)
+        # upcasts to tz-aware
+        assert_frame_equal(result, expect, check_dtype=False)
+        self.assertEqual(result.dtypes[0], dtype)
+
+    def test_concat_NaT_dataframes_all_NaT_axis_1(self):
+        # GH 12396
+        expect = pd.DataFrame([[pd.NaT, pd.NaT], [pd.NaT, pd.NaT]],
+                              columns=[0, 0])
+
+        # non-timezone aware
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]])
+        second = pd.DataFrame([[pd.NaT]])
+
+        result = pd.concat([first, second], axis=1)
+        assert_frame_equal(result, expect)
+
+        # one side timezone-aware
+        dtype = DatetimeTZDtype('ns', tz='UTC')
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]], dtype=dtype)
+
+        # upcasts result to tz-aware
+        assert_frame_equal(result, expect, check_dtype=False)
+        result = pd.concat([first, second], axis=1)
+        self.assertEqual(result.dtypes.iloc[0], dtype)
+        self.assertEqual(result.dtypes.iloc[0], first.dtypes[0])
+        self.assertEqual(result.dtypes.iloc[1], second.dtypes[0])
+
+        # both sides timezone-aware
+        second = pd.DataFrame([[pd.NaT]], dtype=dtype)
+
+        result = pd.concat([first, second], axis=1)
+        assert_frame_equal(result, expect, check_dtype=False)
+        # upcasts to tz-aware
+        self.assertEqual(result.dtypes.iloc[0], dtype)
+        self.assertEqual(result.dtypes.iloc[0], first.dtypes[0])
+        self.assertEqual(result.dtypes.iloc[1], second.dtypes[0])
+
+    def test_concat_NaT_dataframes_mixed_timestamps_and_NaT(self):
+        # GH 12396
+
+        # non-timezone aware
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]])
+        second = pd.DataFrame([[pd.Timestamp('2015/01/01')],
+                               [pd.Timestamp('2016/01/01')]])
+
+        expect = pd.DataFrame([pd.NaT, pd.NaT, second.iloc[0, 0],
+                               second.iloc[1, 0]], index=[0, 1, 0, 1])
+
+        result = pd.concat([first, second], axis=0)
+        assert_frame_equal(result, expect)
+        self.assertEqual(result.dtypes.iloc[0], first.dtypes[0])
+
+        # one side timezone-aware
+        dtype = DatetimeTZDtype('ns', tz='UTC')
+        second = second.apply(lambda x: x.astype(dtype))
+
+        result = pd.concat([first, second], axis=0)
+        assert_frame_equal(result, expect, check_dtype=False)
+        # upcasts
+        self.assertEqual(result.dtypes.iloc[0], dtype)
+        self.assertEqual(result.dtypes.iloc[0], second.dtypes[0])
+
+    def test_concat_NaT_series_dataframe_all_NaT(self):
+        # GH 12396
+
+        # non-timezone aware
+        first = pd.Series([pd.NaT, pd.NaT])
+        second = pd.DataFrame([[pd.Timestamp('2015/01/01')],
+                               [pd.Timestamp('2016/01/01')]])
+
+        expect = pd.DataFrame([pd.NaT, pd.NaT, second.iloc[0, 0],
+                               second.iloc[1, 0]], index=[0, 1, 0, 1])
+
+        result = pd.concat([first, second])
+        assert_frame_equal(result, expect)
+
+        # one side timezone-aware
+        dtype = DatetimeTZDtype('ns', tz='UTC')
+        second = second.apply(lambda x: x.astype(dtype))
+
+        result = pd.concat([first, second])
+
+        expect = expect.apply(lambda x: x.astype(dtype))
+        assert_frame_equal(result, expect, check_dtype=True)
+
+        # both sides timezone-aware
+        first = first.astype(dtype)
+        result = pd.concat([first, second])
+        assert_frame_equal(result, expect, check_dtype=True)
 
     def test_concat_keys_and_levels(self):
         df = DataFrame(np.random.randn(1, 3))

@@ -4911,6 +4911,12 @@ class JoinUnit(object):
                     pass
                 elif getattr(self.block, 'is_sparse', False):
                     pass
+                elif com.is_extension_type(empty_dtype) and \
+                        com.is_datetimetz(empty_dtype):
+                    num_elements = np.prod(self.shape)
+                    # handle timezone-aware all NaT cases
+                    return DatetimeIndex([fill_value] * num_elements,
+                                         dtype=empty_dtype)
                 else:
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
