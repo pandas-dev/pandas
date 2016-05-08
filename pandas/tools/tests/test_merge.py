@@ -2622,12 +2622,12 @@ class TestConcatenate(tm.TestCase):
         result = pd.concat([first, second])
 
         expect = expect.apply(lambda x: x.astype(dtype))
-        assert_frame_equal(result, expect, check_dtype=True)
+        assert_frame_equal(result, expect)
 
         # both sides timezone-aware
         first = first.astype(dtype)
         result = pd.concat([first, second])
-        assert_frame_equal(result, expect, check_dtype=True)
+        assert_frame_equal(result, expect)
 
     def test_concat_keys_and_levels(self):
         df = DataFrame(np.random.randn(1, 3))
