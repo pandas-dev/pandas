@@ -1231,6 +1231,18 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         expected = Series(np.dtype('float64'), index=self.panel.items)
         assert_series_equal(result, expected)
 
+    def test_astype(self):
+        # GH7271
+        data = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+        panel = Panel(data, ['a', 'b'], ['c', 'd'], ['e', 'f'])
+
+        str_data = np.array([[['1', '2'], ['3', '4']],
+                             [['5', '6'], ['7', '8']]])
+        expected = Panel(str_data, ['a', 'b'], ['c', 'd'], ['e', 'f'])
+        assert_panel_equal(panel.astype(str), expected)
+
+        self.assertRaises(NotImplementedError, panel.astype, {0: str})
+
     def test_apply(self):
         # GH1148
 
