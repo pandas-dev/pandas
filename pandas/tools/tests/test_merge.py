@@ -2540,25 +2540,24 @@ class TestConcatenate(tm.TestCase):
 
         result = pd.concat([first, second], axis=0)
         # upcasts for mixed case
-        assert_frame_equal(result, expect, check_dtype=False)
-        self.assertEqual(result.dtypes[0], dtype)
+        expect = expect.apply(lambda x: x.astype(dtype))
+        assert_frame_equal(result, expect)
 
         # both sides timezone-aware
         second = pd.DataFrame([[pd.NaT]], dtype=dtype)
 
-        result = pd.concat([first, second], axis=0)
         # upcasts to tz-aware
-        assert_frame_equal(result, expect, check_dtype=False)
-        self.assertEqual(result.dtypes[0], dtype)
+        result = pd.concat([first, second], axis=0)
+        assert_frame_equal(result, expect)
 
     def test_concat_NaT_dataframes_all_NaT_axis_1(self):
         # GH 12396
         expect = pd.DataFrame([[pd.NaT, pd.NaT], [pd.NaT, pd.NaT]],
-                              columns=[0, 0])
+                              columns=[0, 1])
 
         # non-timezone aware
         first = pd.DataFrame([[pd.NaT], [pd.NaT]])
-        second = pd.DataFrame([[pd.NaT]])
+        second = pd.DataFrame([[pd.NaT]], columns=[1])
 
         result = pd.concat([first, second], axis=1)
         assert_frame_equal(result, expect)
@@ -2568,21 +2567,17 @@ class TestConcatenate(tm.TestCase):
         first = pd.DataFrame([[pd.NaT], [pd.NaT]], dtype=dtype)
 
         # upcasts result to tz-aware
-        assert_frame_equal(result, expect, check_dtype=False)
+        expect.loc[:, 0] = expect.loc[:, 0].astype(dtype)
         result = pd.concat([first, second], axis=1)
-        self.assertEqual(result.dtypes.iloc[0], dtype)
-        self.assertEqual(result.dtypes.iloc[0], first.dtypes[0])
-        self.assertEqual(result.dtypes.iloc[1], second.dtypes[0])
+        assert_frame_equal(result, expect)
 
         # both sides timezone-aware
-        second = pd.DataFrame([[pd.NaT]], dtype=dtype)
+        second = pd.DataFrame([[pd.NaT]], dtype=dtype, columns=[1])
 
-        result = pd.concat([first, second], axis=1)
-        assert_frame_equal(result, expect, check_dtype=False)
         # upcasts to tz-aware
-        self.assertEqual(result.dtypes.iloc[0], dtype)
-        self.assertEqual(result.dtypes.iloc[0], first.dtypes[0])
-        self.assertEqual(result.dtypes.iloc[1], second.dtypes[0])
+        expect = expect.apply(lambda x: x.astype(dtype))
+        result = pd.concat([first, second], axis=1)
+        assert_frame_equal(result, expect)
 
     def test_concat_NaT_dataframes_mixed_timestamps_and_NaT(self):
         # GH 12396
@@ -2597,17 +2592,14 @@ class TestConcatenate(tm.TestCase):
 
         result = pd.concat([first, second], axis=0)
         assert_frame_equal(result, expect)
-        self.assertEqual(result.dtypes.iloc[0], first.dtypes[0])
 
         # one side timezone-aware
         dtype = DatetimeTZDtype('ns', tz='UTC')
         second = second.apply(lambda x: x.astype(dtype))
 
         result = pd.concat([first, second], axis=0)
-        assert_frame_equal(result, expect, check_dtype=False)
-        # upcasts
-        self.assertEqual(result.dtypes.iloc[0], dtype)
-        self.assertEqual(result.dtypes.iloc[0], second.dtypes[0])
+        expect = expect.apply(lambda x: x.astype(dtype))
+        assert_frame_equal(result, expect)
 
     def test_concat_NaT_series_dataframe_all_NaT(self):
         # GH 12396
