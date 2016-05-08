@@ -1,4 +1,4 @@
-sudo: required
+sudo: false
 language: python
 
 env:
@@ -36,6 +36,11 @@ matrix:
       - LOCALE_OVERRIDE="zh_CN.GB18030"
       - FULL_DEPS=true
       - JOB_TAG=_LOCALE
+      addons:
+        apt:
+          packages:
+          - language-pack-zh
+
     - python: 2.7
       env:
       - JOB_NAME: "27_nslow"
@@ -89,6 +94,10 @@ matrix:
       - LOCALE_OVERRIDE="it_IT.UTF-8"
       - INSTALL_TEST=true
       - JOB_TAG=_COMPAT
+      addons:
+        apt:
+          packages:
+          - language-pack-it
     - python: 2.7
       env:
       - JOB_NAME: "doc_build"
@@ -129,6 +138,10 @@ matrix:
         - LOCALE_OVERRIDE="it_IT.UTF-8"
         - INSTALL_TEST=true
         - JOB_TAG=_COMPAT
+        addons:
+        apt:
+          packages:
+          - language-pack-it
       - python: 2.7
         env:
         - JOB_NAME: "doc_build"
