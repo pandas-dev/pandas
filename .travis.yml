@@ -39,7 +39,7 @@ matrix:
       addons:
         apt:
           packages:
-          - language-pack-zh
+          - language-pack-zh-chan
 
     - python: 2.7
       env:
