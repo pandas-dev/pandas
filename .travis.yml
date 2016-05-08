@@ -33,7 +33,8 @@ matrix:
       env:
       - JOB_NAME: "27_slow_nnet_LOCALE"
       - NOSE_ARGS="slow and not network and not disabled"
-      - LOCALE_OVERRIDE="zh_CN.GB18030"
+#      - LOCALE_OVERRIDE="zh_CN.GB18030"
+      - LOCALE_OVERRIDE="zh_CN.UTF-8"
       - FULL_DEPS=true
       - JOB_TAG=_LOCALE
       addons:
