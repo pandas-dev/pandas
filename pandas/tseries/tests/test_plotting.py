@@ -76,6 +76,13 @@ class TestTSPlot(tm.TestCase):
         df = DataFrame(np.random.randn(len(idx), 3), index=idx)
         _check_plot_works(df.plot)
 
+    def test_is_error_nozeroindex(self):
+        # GH11858
+        i = np.array([1, 2, 3])
+        a = DataFrame(i, index=i)
+        _check_plot_works(a.plot, xerr=a)
+        _check_plot_works(a.plot, yerr=a)
+
     def test_nonnumeric_exclude(self):
         import matplotlib.pyplot as plt
 
