@@ -33,7 +33,6 @@ matrix:
       env:
       - JOB_NAME: "27_slow_nnet_LOCALE"
       - NOSE_ARGS="slow and not network and not disabled"
-#      - LOCALE_OVERRIDE="zh_CN.GB18030"
       - LOCALE_OVERRIDE="zh_CN.UTF-8"
       - FULL_DEPS=true
       - JOB_TAG=_LOCALE
@@ -41,7 +40,6 @@ matrix:
         apt:
           packages:
           - language-pack-zh-hans
-
     - python: 2.7
       env:
       - JOB_NAME: "27_nslow"
@@ -49,12 +47,20 @@ matrix:
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
       - LINT=true
+      addons:
+        apt:
+          packages:
+          - python-gtk2
     - python: 3.4
       env:
       - JOB_NAME: "34_nslow"
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
+      addons:
+        apt:
+          packages:
+          - xsel
     - python: 3.5
       env:
       - JOB_NAME: "35_nslow"
@@ -62,6 +68,10 @@ matrix:
       - FULL_DEPS=true
       - CLIPBOARD=xsel
       - COVERAGE=true
+      addons:
+        apt:
+          packages:
+          - xsel
     - python: 2.7
       env:
       - JOB_NAME: "27_slow"
@@ -75,6 +85,10 @@ matrix:
       - NOSE_ARGS="slow and not network and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
+      addons:
+        apt:
+          packages:
+          - xsel
     - python: 2.7
       env:
       - JOB_NAME: "27_build_test_conda"
@@ -88,6 +102,11 @@ matrix:
       - JOB_TAG=_NUMPY_DEV
       - NOSE_ARGS="not slow and not network and not disabled"
       - PANDAS_TESTING_MODE="deprecate"
+      addons:
+        apt:
+          packages:
+          - libatlas-base-dev
+          - gfortran
     - python: 2.7
       env:
       - JOB_NAME: "27_nslow_nnet_COMPAT"
@@ -119,6 +138,10 @@ matrix:
         - NOSE_ARGS="slow and not network and not disabled"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
+        addons:
+        apt:
+          packages:
+          - xsel
       - python: 2.7
         env:
         - JOB_NAME: "27_build_test_conda"
@@ -132,6 +155,11 @@ matrix:
         - JOB_TAG=_NUMPY_DEV
         - NOSE_ARGS="not slow and not network and not disabled"
         - PANDAS_TESTING_MODE="deprecate"
+        addons:
+        apt:
+          packages:
+          - libatlas-base-dev
+          - gfortran
       - python: 2.7
         env:
         - JOB_NAME: "27_nslow_nnet_COMPAT"

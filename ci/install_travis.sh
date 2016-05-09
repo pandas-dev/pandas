@@ -50,20 +50,21 @@ echo "home_dir: [$home_dir]"
 #
 #fi
 
+# Not going to work in containers
 # install gui for clipboard testing
-if [ -n "$CLIPBOARD_GUI" ]; then
-    echo "Using CLIPBOARD_GUI: $CLIPBOARD_GUI"
-    [ -n "$python_major_version" ] && py="py"
-    python_cb_gui_pkg=python${python_major_version}-${py}${CLIPBOARD_GUI}
-    time sudo apt-get $APT_ARGS install $python_cb_gui_pkg
-fi
+#if [ -n "$CLIPBOARD_GUI" ]; then
+#    echo "Using CLIPBOARD_GUI: $CLIPBOARD_GUI"
+#    [ -n "$python_major_version" ] && py="py"
+#    python_cb_gui_pkg=python${python_major_version}-${py}${CLIPBOARD_GUI}
+#    time sudo apt-get $APT_ARGS install $python_cb_gui_pkg
+#fi
 
-
+# Not going to work in containers
 # install a clipboard if $CLIPBOARD is not empty
-if [ -n "$CLIPBOARD" ]; then
-    echo "Using clipboard: $CLIPBOARD"
-    time sudo apt-get $APT_ARGS install $CLIPBOARD
-fi
+#if [ -n "$CLIPBOARD" ]; then
+#    echo "Using clipboard: $CLIPBOARD"
+#    time sudo apt-get $APT_ARGS install $CLIPBOARD
+#fi
 
 python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 [ "$python_major_version" == "2" ] && python_major_version=""
