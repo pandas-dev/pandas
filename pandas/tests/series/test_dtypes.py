@@ -133,15 +133,31 @@ class TestSeriesDtypes(TestData, tm.TestCase):
             reload(sys)  # noqa
             sys.setdefaultencoding(former_encoding)
 
+    def test_astype_dict(self):
+        s = Series(range(0, 10, 2), name='abc')
+
+        result = s.astype({'abc': str})
+        expected = Series(['0', '2', '4', '6', '8'], name='abc')
+        assert_series_equal(result, expected)
+
+        result = s.astype({'abc': 'float64'})
+        expected = Series([0.0, 2.0, 4.0, 6.0, 8.0], dtype='float64',
+                          name='abc')
+        assert_series_equal(result, expected)
+
+        self.assertRaises(KeyError, s.astype, {'abc': str, 'def': str})
+        self.assertRaises(KeyError, s.astype, {0: str})
+
     def test_astype_inplace(self):
         s = Series(np.random.randn(5), name='foo')
+        dtypes = ['float32', 'float64', 'int64', 'int32']
 
-        for dtype in ['float32', 'float64', 'int64', 'int32']:
-            astyped = s.astype(dtype, inplace=False)
-            self.assertEqual(astyped.dtype, dtype)
-            self.assertEqual(astyped.name, s.name)
+        for dtype in dtypes:
+            result = s.astype(dtype, inplace=False)
+            self.assertEqual(result.dtype, dtype)
+            self.assertEqual(result.name, s.name)
 
-        for dtype in ['float32', 'float64', 'int64', 'int32']:
+        for dtype in dtypes:
             s.astype(dtype, inplace=True)
             self.assertEqual(s.dtype, dtype)
             self.assertEqual(s.name, 'foo')
