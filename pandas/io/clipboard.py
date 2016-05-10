@@ -1,5 +1,5 @@
 """ io on the clipboard """
-from pandas import compat, get_option, option_context, DataFrame
+from pandas import compat, get_option, option_context, DataFrame, Series
 from pandas.compat import StringIO
 
 
@@ -51,7 +51,7 @@ def read_clipboard(**kwargs):  # pragma: no cover
     return read_table(StringIO(text), **kwargs)
 
 
-def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
+def to_clipboard(obj, excel=True, **kwargs):  # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
     The clipboard can be then pasted into Excel for example.
@@ -60,12 +60,11 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
     ----------
     obj : the object to write to the clipboard
     excel : boolean, defaults to True
-            if True, use the provided separator, writing in a csv
-            format for allowing easy pasting into excel.
+            if True, use '\\t' separator and os.linesep line terminator by
+            default, write to csv format to allow easy pasting into excel.
             if False, write a string representation of the object
             to the clipboard
-    sep : optional, defaults to tab
-    other keywords are passed to to_csv
+    other keywords are passed to to_csv or DataFrame.to_string
 
     Notes
     -----
@@ -75,21 +74,22 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
       - OS X:
     """
     from pandas.util.clipboard import clipboard_set
-    if excel is None:
-        excel = True
 
-    if excel:
-        try:
-            if sep is None:
-                sep = '\t'
-            buf = StringIO()
-            obj.to_csv(buf, sep=sep, **kwargs)
-            clipboard_set(buf.getvalue())
-            return
-        except:
-            pass
-
-    if isinstance(obj, DataFrame):
+    # COMPAT: allow None for `excel` and `sep`
+    if excel in (True, None) and isinstance(obj, (DataFrame, Series)):
+        if 'sep' not in kwargs or not kwargs['sep']:
+            kwargs['sep'] = '\t'
+        if 'line_terminator' not in kwargs:
+            import os
+            kwargs['line_terminator'] = os.linesep
+        buf = StringIO()
+        obj.to_csv(buf, **kwargs)
+        objstr = buf.getvalue()
+    elif isinstance(obj, DataFrame):
+        if 'sep' in kwargs:
+            if kwargs['sep']:
+                raise ValueError("sep kw is unsupported with excel=False")
+            del kwargs['sep']  # sep is \t
         # str(df) has various unhelpful defaults, like truncation
         with option_context('display.max_colwidth', 999999):
             objstr = obj.to_string(**kwargs)

@@ -1211,7 +1211,7 @@ class NDFrame(PandasObject):
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path)
 
-    def to_clipboard(self, excel=None, sep=None, **kwargs):
+    def to_clipboard(self, excel=True, **kwargs):
         """
         Attempt to write text representation of object to the system clipboard
         This can be pasted into Excel, for example.
@@ -1219,12 +1219,11 @@ class NDFrame(PandasObject):
         Parameters
         ----------
         excel : boolean, defaults to True
-                if True, use the provided separator, writing in a csv
-                format for allowing easy pasting into excel.
+                if True, use '\\t' separator and os.linesep line terminator by
+                default, write to csv format to allow easy pasting into excel.
                 if False, write a string representation of the object
                 to the clipboard
-        sep : optional, defaults to tab
-        other keywords are passed to to_csv
+        other keywords are passed to to_csv or DataFrame.to_string
 
         Notes
         -----
@@ -1234,7 +1233,7 @@ class NDFrame(PandasObject):
           - OS X: none
         """
         from pandas.io import clipboard
-        clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
+        clipboard.to_clipboard(self, excel=excel, **kwargs)
 
     def to_xarray(self):
         """

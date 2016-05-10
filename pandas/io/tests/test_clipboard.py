@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+
 import numpy as np
 from numpy.random import randint
 
@@ -79,6 +81,14 @@ class TestClipboard(tm.TestCase):
     def test_round_trip_frame(self):
         for dt in self.data_types:
             self.check_round_trip_frame(dt)
+
+    def test_linesep(self):
+        pd.DataFrame().to_clipboard()
+        ret = pandas.util.clipboard.clipboard_get()
+        assert ret == '""'+os.linesep, "Wrong line separator"
+        pd.Series([0]).to_clipboard(line_terminator="\t")
+        ret = pandas.util.clipboard.clipboard_get()
+        assert ret == "0\t0\t", "Wrong line separator"
 
     def test_read_clipboard_infer_excel(self):
         from textwrap import dedent

@@ -2552,7 +2552,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def to_csv(self, path=None, index=True, sep=",", na_rep='',
                float_format=None, header=False, index_label=None,
-               mode='w', encoding=None, date_format=None, decimal='.'):
+               mode='w', encoding=None, date_format=None, decimal='.',
+               line_terminator='\n'):
         """
         Write Series to a comma-separated values (csv) file
 
@@ -2584,6 +2585,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         decimal: string, default '.'
             Character recognized as decimal separator. E.g. use ',' for
             European data
+        line_terminator : string, default '\\n'
+            The newline character or character sequence to use in the output file
         """
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
@@ -2592,7 +2595,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                            float_format=float_format, header=header,
                            index_label=index_label, mode=mode,
                            encoding=encoding, date_format=date_format,
-                           decimal=decimal)
+                           decimal=decimal, line_terminator=line_terminator)
         if path is None:
             return result
 
