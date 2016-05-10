@@ -1,4 +1,5 @@
 # pylint: disable=W0231,E1101
+import collections
 import warnings
 import operator
 import weakref
@@ -2980,26 +2981,54 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        dtype : numpy.dtype or Python type
+        dtype : numpy.dtype or Python type (to cast entire DataFrame to the
+            same type). Alternatively, {col: dtype, ...}, where col is a column
+            label and dtype is a numpy.dtype or Python type (to cast one or
+            more of the DataFrame's columns to column-specific types).
         copy : deprecated; use inplace instead
         inplace : boolean, default False
             Modify the NDFrame in place (do not create a new object)
         raise_on_error : raise on invalid input
-        kwargs : keyword arguments to pass on to the constructor
+        kwargs : keyword arguments to pass on to the constructor if
+            inplace=False
 
         Returns
         -------
-        casted : type of caller
+        casted : type of caller (if inplace=False) or None (if inplace=True)
         """
+        if isinstance(dtype, collections.Mapping):
+            if self.ndim == 1:  # i.e. Series
+                if len(dtype) > 1 or list(dtype.keys())[0] != self.name:
+                    if raise_on_error:
+                        raise KeyError('Only the Series name can be used for '
+                                       'the key in Series dtype mappings.')
+                    return
+                for key, value in dtype.items():
+                    return self.astype(value, copy, inplace, raise_on_error,
+                                       **kwargs)
+
+            if inplace:
+                for col, typ in dtype.items():
+                    self[col].astype(typ, inplace=True,
+                                     raise_on_error=raise_on_error)
+                return
+            from pandas.tools.merge import concat
+            casted_cols = [self[col].astype(typ, copy=copy)
+                           for col, typ in dtype.items()]
+            other_col_labels = self.columns.difference(dtype.keys())
+            other_cols = [self[col].copy() if copy else self[col]
+                          for col in other_col_labels]
+            new_df = concat(casted_cols + other_cols, axis=1)
+            return new_df.reindex(columns=self.columns, copy=False)
+
+        # else, only a single dtype is given
+        new_data = self._data.astype(dtype=dtype, copy=not inplace,
+                                     raise_on_error=raise_on_error, **kwargs)
         if inplace:
-            new_data = self._data.astype(dtype=dtype, copy=False,
-                                         raise_on_error=raise_on_error,
-                                         **kwargs)
             self._update_inplace(new_data)
             return
-        mgr = self._data.astype(dtype=dtype, copy=copy,
-                                raise_on_error=raise_on_error, **kwargs)
-        return self._constructor(mgr).__finalize__(self)
+        else:
+            return self._constructor(new_data).__finalize__(self)
 
     def copy(self, deep=True):
         """

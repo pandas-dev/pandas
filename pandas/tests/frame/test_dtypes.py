@@ -408,16 +408,14 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         original = df.copy(deep=True)
 
         # change type of a subset of columns
+        result = df.astype({'b': 'str', 'd': 'float32'})
         expected = DataFrame({
             'a': a,
             'b': Series(['0', '1', '2', '3', '4']),
             'c': c,
             'd': Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype='float32')})
-        astyped = df.astype({'b': 'str', 'd': 'float32'})
-        assert_frame_equal(astyped, expected)
+        assert_frame_equal(result, expected)
         assert_frame_equal(df, original)
-        self.assertEqual(astyped.b.dtype, 'object')
-        self.assertEqual(astyped.d.dtype, 'float32')
 
         # change all columns
         assert_frame_equal(df.astype({'a': str, 'b': str, 'c': str, 'd': str}),
@@ -438,21 +436,22 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
         # using inplace=True, the df should be changed
         output = df.astype({'b': 'str', 'd': 'float32'}, inplace=True)
+        expected = DataFrame({
+            'a': a,
+            'b': Series(['0', '1', '2', '3', '4']),
+            'c': c,
+            'd': Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype='float32')})
         self.assertEqual(output, None)
         assert_frame_equal(df, expected)
-        df.astype({'b': np.float32, 'c': 'float32', 'd': np.float32},
+
+        df.astype({'b': np.float32, 'c': 'float32', 'd': np.float64},
                   inplace=True)
-        self.assertEqual(df.a.dtype, original.a.dtype)
-        self.assertEqual(df.b.dtype, 'float32')
-        self.assertEqual(df.c.dtype, 'float32')
-        self.assertEqual(df.d.dtype, 'float32')
-        self.assertEqual(df.b[0], 0.0)
-        df.astype({'b': str, 'c': 'float64', 'd': np.float64}, inplace=True)
-        self.assertEqual(df.a.dtype, original.a.dtype)
-        self.assertEqual(df.b.dtype, 'object')
-        self.assertEqual(df.c.dtype, 'float64')
-        self.assertEqual(df.d.dtype, 'float64')
-        self.assertEqual(df.b[0], '0.0')
+        expected = DataFrame({
+            'a': a,
+            'b': Series([0.0, 1.0, 2.0, 3.0, 4.0], dtype='float32'),
+            'c': Series([0.0, 0.2, 0.4, 0.6, 0.8], dtype='float32'),
+            'd': Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype='float64')})
+        assert_frame_equal(df, expected)
 
     def test_astype_inplace(self):
         # GH7271
