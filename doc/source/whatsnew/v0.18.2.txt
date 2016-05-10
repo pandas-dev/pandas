@@ -32,7 +32,7 @@ Other enhancements
 - The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behaviour remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
 
 
-
+- Force ``offset`` validation during ``Timestamp`` construction (:issue:`13114`)
 
 .. _whatsnew_0182.api:
 
