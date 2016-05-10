@@ -506,11 +506,10 @@ class TestMerge(tm.TestCase):
         expected = merge(df_partially_merged, df3, on=['a', 'b'], how='outer')
 
         result = result.reset_index()
-
-        # result['a'] = result['a'].astype(np.float64)
-        # result['b'] = result['b'].astype(np.float64)
-
-        assert_frame_equal(result, expected.ix[:, result.columns])
+        expected = expected[result.columns]
+        expected['a'] = expected.a.astype('int64')
+        expected['b'] = expected.b.astype('int64')
+        assert_frame_equal(result, expected)
 
         df1 = DataFrame({"a": [1, 1, 1], "b": [1, 1, 1], "c": [10, 20, 30]})
         df2 = DataFrame({"a": [1, 1, 1], "b": [1, 1, 2], "d": [100, 200, 300]})
@@ -674,14 +673,35 @@ class TestMerge(tm.TestCase):
                            'rvalue': lrange(6)})
 
         joined = merge(left, right, on='key', how='outer')
-        expected = DataFrame({'key': [1, 1, 1, 1, 2, 2, 3, 4, 5.],
+        expected = DataFrame({'key': [1, 1, 1, 1, 2, 2, 3, 4, 5],
                               'value': np.array([0, 0, 1, 1, 2, 3, 4,
                                                  np.nan, np.nan]),
                               'rvalue': np.array([0, 1, 0, 1, 2, 2, 3, 4, 5])},
                              columns=['value', 'key', 'rvalue'])
-        assert_frame_equal(joined, expected, check_dtype=False)
+        assert_frame_equal(joined, expected)
 
-        self.assertTrue(joined._data.is_consolidated())
+    def test_merge_join_key_dtype_cast(self):
+        # #8596
+
+        df1 = DataFrame({'key': [1], 'v1': [10]})
+        df2 = DataFrame({'key': [2], 'v1': [20]})
+        df = merge(df1, df2, how='outer')
+        self.assertEqual(df['key'].dtype, 'int64')
+
+        df1 = DataFrame({'key': [True], 'v1': [1]})
+        df2 = DataFrame({'key': [False], 'v1': [0]})
+        df = merge(df1, df2, how='outer')
+
+        # GH13169
+        # this really should be bool
+        self.assertEqual(df['key'].dtype, 'object')
+
+        df1 = DataFrame({'val': [1]})
+        df2 = DataFrame({'val': [2]})
+        lkey = np.array([1])
+        rkey = np.array([2])
+        df = merge(df1, df2, left_on=lkey, right_on=rkey, how='outer')
+        self.assertEqual(df['key_0'].dtype, 'int64')
 
     def test_handle_join_key_pass_array(self):
         left = DataFrame({'key': [1, 1, 2, 2, 3],
@@ -814,20 +834,32 @@ class TestMerge(tm.TestCase):
         # result will have object dtype
         exp_in.index = exp_in.index.astype(object)
 
-        for kwarg in [dict(left_index=True, right_index=True),
-                      dict(left_index=True, right_on='x'),
-                      dict(left_on='a', right_index=True),
-                      dict(left_on='a', right_on='x')]:
-
+        def check1(exp, kwarg):
             result = pd.merge(left, right, how='inner', **kwarg)
-            tm.assert_frame_equal(result, exp_in)
+            tm.assert_frame_equal(result, exp)
             result = pd.merge(left, right, how='left', **kwarg)
-            tm.assert_frame_equal(result, exp_in)
+            tm.assert_frame_equal(result, exp)
 
+        def check2(exp, kwarg):
             result = pd.merge(left, right, how='right', **kwarg)
-            tm.assert_frame_equal(result, exp_out)
+            tm.assert_frame_equal(result, exp)
             result = pd.merge(left, right, how='outer', **kwarg)
-            tm.assert_frame_equal(result, exp_out)
+            tm.assert_frame_equal(result, exp)
+
+        for kwarg in [dict(left_index=True, right_index=True),
+                      dict(left_index=True, right_on='x')]:
+            check1(exp_in, kwarg)
+            check2(exp_out, kwarg)
+
+        kwarg = dict(left_on='a', right_index=True)
+        check1(exp_in, kwarg)
+        exp_out['a'] = [0, 1, 2]
+        check2(exp_out, kwarg)
+
+        kwarg = dict(left_on='a', right_on='x')
+        check1(exp_in, kwarg)
+        exp_out['a'] = np.array([np.nan] * 3, dtype=object)
+        check2(exp_out, kwarg)
 
     def test_merge_left_notempty_right_empty(self):
         # GH 10824
@@ -846,20 +878,24 @@ class TestMerge(tm.TestCase):
         # result will have object dtype
         exp_in.index = exp_in.index.astype(object)
 
-        for kwarg in [dict(left_index=True, right_index=True),
-                      dict(left_index=True, right_on='x'),
-                      dict(left_on='a', right_index=True),
-                      dict(left_on='a', right_on='x')]:
-
+        def check1(exp, kwarg):
             result = pd.merge(left, right, how='inner', **kwarg)
-            tm.assert_frame_equal(result, exp_in)
+            tm.assert_frame_equal(result, exp)
             result = pd.merge(left, right, how='right', **kwarg)
-            tm.assert_frame_equal(result, exp_in)
+            tm.assert_frame_equal(result, exp)
 
+        def check2(exp, kwarg):
             result = pd.merge(left, right, how='left', **kwarg)
-            tm.assert_frame_equal(result, exp_out)
+            tm.assert_frame_equal(result, exp)
             result = pd.merge(left, right, how='outer', **kwarg)
-            tm.assert_frame_equal(result, exp_out)
+            tm.assert_frame_equal(result, exp)
+
+            for kwarg in [dict(left_index=True, right_index=True),
+                          dict(left_index=True, right_on='x'),
+                          dict(left_on='a', right_index=True),
+                          dict(left_on='a', right_on='x')]:
+                check1(exp_in, kwarg)
+                check2(exp_out, kwarg)
 
     def test_merge_nosort(self):
         # #2098, anything to do?
@@ -1033,7 +1069,6 @@ class TestMerge(tm.TestCase):
         df2.columns = ['key1', 'foo', 'foo']
         self.assertRaises(ValueError, merge, df, df2)
 
-<<<<<<< HEAD
     def test_merge_on_datetime64tz(self):
 
         # GH11405
@@ -1062,7 +1097,7 @@ class TestMerge(tm.TestCase):
                                           tz='US/Eastern')) + [pd.NaT],
             'value_y': [pd.NaT] + list(pd.date_range('20151011', periods=2,
                                                      tz='US/Eastern')),
-            'key': [1., 2, 3]})
+            'key': [1, 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
         self.assertEqual(result['value_x'].dtype, 'datetime64[ns, US/Eastern]')
@@ -1094,7 +1129,7 @@ class TestMerge(tm.TestCase):
         exp_y = pd.period_range('20151011', periods=2, freq='D')
         expected = DataFrame({'value_x': list(exp_x) + [pd.NaT],
                               'value_y': [pd.NaT] + list(exp_y),
-                              'key': [1., 2, 3]})
+                              'key': [1, 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
         self.assertEqual(result['value_x'].dtype, 'object')
@@ -1336,7 +1371,7 @@ class TestMerge(tm.TestCase):
             'col_conflict_x': [1, 2, np.nan, np.nan, np.nan, np.nan],
             'col_left': ['a', 'b', np.nan, np.nan, np.nan, np.nan],
             'col_conflict_y': [np.nan, 1, 2, 3, 4, 5],
-            'col_right': [np.nan, 2, 2, 2, 2, 2]}, dtype='float64')
+            'col_right': [np.nan, 2, 2, 2, 2, 2]})
         df_result['_merge'] = Categorical(
             ['left_only', 'both', 'right_only',
              'right_only', 'right_only', 'right_only'],
@@ -1415,7 +1450,7 @@ class TestMerge(tm.TestCase):
 
         df4 = DataFrame({'col1': [1, 1, 3], 'col2': ['b', 'x', 'y']})
 
-        hand_coded_result = DataFrame({'col1': [0, 1, 1, 3.0],
+        hand_coded_result = DataFrame({'col1': [0, 1, 1, 3],
                                        'col2': ['a', 'b', 'x', 'y']})
         hand_coded_result['_merge'] = Categorical(
             ['left_only', 'both', 'right_only', 'right_only'],
@@ -1427,27 +1462,6 @@ class TestMerge(tm.TestCase):
         test5 = df3.merge(df4, on=['col1', 'col2'],
                           how='outer', indicator=True)
         assert_frame_equal(test5, hand_coded_result)
-=======
-    def test_merge_join_key_dtype_cast(self):
-        # #8596
-
-        df1 = DataFrame({'key': [1], 'v1': [10]})
-        df2 = DataFrame({'key': [2], 'v1': [20]})
-        df = merge(df1, df2, how='outer')
-        self.assertEqual(df['key'].dtype, 'int64')
-
-        df1 = DataFrame({'key': [True], 'v1': [1]})
-        df2 = DataFrame({'key': [False],'v1': [0]})
-        df = merge(df1, df2, how='outer')
-        self.assertEqual(df['key'].dtype, 'bool')
-
-        df1 = DataFrame({'val': [1]})
-        df2 = DataFrame({'val': [2]})
-        lkey = np.array([1])
-        rkey = np.array([2])
-        df = merge(df1, df2, left_on=lkey, right_on=rkey, how='outer')
-        self.assertEqual(df['key_0'].dtype, 'int64')
->>>>>>> e79b978... Preserve dtype in merge keys when possible
 
 
 def _check_merge(x, y):

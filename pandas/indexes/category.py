@@ -307,6 +307,29 @@ class CategoricalIndex(Index, base.PandasDelegate):
         """ always allow reindexing """
         pass
 
+    def where(self, cond, other=None):
+        """
+        .. versionadded:: 0.18.2
+
+        Return an Index of same shape as self and whose corresponding
+        entries are from self where cond is True and otherwise are from
+        other.
+
+        Parameters
+        ----------
+        cond : boolean same length as self
+        other : scalar, or array-like
+        """
+        if other is None:
+            other = self._na_value
+        values = np.where(cond, self.values, other)
+
+        from pandas.core.categorical import Categorical
+        cat = Categorical(values,
+                          categories=self.categories,
+                          ordered=self.ordered)
+        return self._shallow_copy(cat, **self._get_attributes_dict())
+
     def reindex(self, target, method=None, level=None, limit=None,
                 tolerance=None):
         """
