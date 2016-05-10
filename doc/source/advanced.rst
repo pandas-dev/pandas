@@ -528,6 +528,13 @@ return a copy of the data rather than a view:
    jim joe
    1   z    0.64094
 
+Furthermore if you try to index something that is not fully lexsorted, this can raise:
+
+.. code-block:: ipython
+
+    In [5]: dfm.loc[(0,'y'):(1, 'z')]
+    KeyError: 'Key length (2) was greater than MultiIndex lexsort depth (1)'
+
 The ``is_lexsorted()`` method on an ``Index`` show if the index is sorted, and the ``lexsort_depth`` property returns the sort depth:
 
 .. ipython:: python
@@ -541,6 +548,12 @@ The ``is_lexsorted()`` method on an ``Index`` show if the index is sorted, and t
    dfm
    dfm.index.is_lexsorted()
    dfm.index.lexsort_depth
+
+And now selection works as expected.
+
+.. ipython:: python
+
+   dfm.loc[(0,'y'):(1, 'z')]
 
 Take Methods
 ------------
