@@ -4885,11 +4885,12 @@ class NDFrame(PandasObject):
             percentiles = np.hstack([lh, 0.5, uh])
 
         def pretty_name(x):
+            decimal_place = str(x)[::-1].find('.')-2
             x *= 100
             if x == int(x):
                 return '%.0f%%' % x
             else:
-                return '%.1f%%' % x
+                return '%.*f%%' % (decimal_place, x)
 
         def describe_numeric_1d(series, percentiles):
             stat_index = (['count', 'mean', 'std', 'min'] +
