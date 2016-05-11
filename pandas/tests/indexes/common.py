@@ -157,10 +157,13 @@ class Base(object):
     def test_repr_max_seq_item_setting(self):
         # GH10182
         idx = self.create_index()
-        idx = idx.repeat(50)
-        with pd.option_context("display.max_seq_items", None):
-            repr(idx)
-            self.assertFalse('...' in str(idx))
+
+        # format tested sep
+        if not isinstance(idx, MultiIndex):
+            idx = idx.repeat(50)
+            with pd.option_context("display.max_seq_items", None):
+                repr(idx)
+                self.assertFalse('...' in str(idx))
 
     def test_wrong_number_names(self):
         def testit(ind):

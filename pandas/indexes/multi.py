@@ -412,11 +412,63 @@ class MultiIndex(Index):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
+        # extension space (includes levels/labels)
+        space3 = "\n%s" % (' ' * (len(self.__class__.__name__) + 3 + 6))
+        space4 = "\n%s" % (' ' * (len(self.__class__.__name__) + 4 + 6))
+
+        level_seq_items = get_option('display.max_seq_items') or 100
+        label_seq_items = max(level_seq_items // 2, 10)
+
+        def fd(l, max_seq_items=None, display_width=None, justify=True):
+            # call ._format_data with specified paramaters
+
+            return l._format_data(max_seq_items=max_seq_items,
+                                  display_width=display_width,
+                                  justify=justify)
+
+        # let's see what our best display width for levels / labels are
+        max_levels = max([len(fd(l, max_seq_items=level_seq_items))
+                          for l in self._levels])
+        max_labels = max([len(fd(Index(l), max_seq_items=label_seq_items))
+                          for l in self._labels])
+        display_width = max(max_levels, max_labels)
+        min_display_width = get_option('display.width') or 80
+        if display_width < min_display_width:
+            display_width = min_display_width
+
+        def strip(line):
+            # strip final whitespace + newline
+            line = line.rstrip('\n ')
+
+            # strip header space on each line
+            # replacing with space3 (and nothing for first)
+            lines = [l.lstrip() for l in line.split('\n')]
+            if len(lines) == 1:
+                return line
+            return lines[0] + space4 + space4.join(lines[1:])
+
+        # levels
+        levels = []
+        for l in self._levels:
+            formatted = fd(l,
+                           max_seq_items=level_seq_items,
+                           display_width=display_width)
+            levels.append(strip(formatted))
+        levels = '[' + (space3.join(levels))[:-1] + ']'
+
+        # labels
+        labels = []
+        for l in self._labels:
+            formatted = fd(Index(l),
+                           max_seq_items=label_seq_items,
+                           display_width=display_width)
+            labels.append(strip(formatted))
+        labels = '[' + (space3.join(labels))[:-1] + ']'
+
         attrs = [
-            ('levels', ibase.default_pprint(self._levels,
-                                            max_seq_items=False)),
-            ('labels', ibase.default_pprint(self._labels,
-                                            max_seq_items=False))]
+            ('levels', levels),
+            ('labels', labels),
+        ]
         if not all(name is None for name in self.names):
             attrs.append(('names', ibase.default_pprint(self.names)))
         if self.sortorder is not None:

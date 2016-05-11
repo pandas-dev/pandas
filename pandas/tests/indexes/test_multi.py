@@ -11,6 +11,7 @@ from pandas import (date_range, MultiIndex, Index, CategoricalIndex,
 from pandas.core.common import PerformanceWarning
 from pandas.indexes.base import InvalidIndexError
 from pandas.compat import range, lrange, u, PY3, long, lzip
+import pandas.core.config as cf
 
 import numpy as np
 
@@ -1888,48 +1889,72 @@ class TestMultiIndex(Base, tm.TestCase):
                                      names=['first', 'second'])
         str(mi)
 
-        if PY3:
-            tm.assert_index_equal(eval(repr(mi)), mi, exact=True)
-        else:
-            result = eval(repr(mi))
-            # string coerces to unicode
-            tm.assert_index_equal(result, mi, exact=False)
-            self.assertEqual(
-                mi.get_level_values('first').inferred_type, 'string')
-            self.assertEqual(
-                result.get_level_values('first').inferred_type, 'unicode')
+        with cf.option_context('display.max_seq_items', 100,
+                               'display.width', 10000):
+            if PY3:
+                tm.assert_index_equal(eval(repr(mi)), mi, exact=True)
+            else:
+                result = eval(repr(mi))
+                # string coerces to unicode
+                tm.assert_index_equal(result, mi, exact=False)
+                self.assertEqual(
+                    mi.get_level_values('first').inferred_type, 'string')
+                self.assertEqual(
+                    result.get_level_values('first').inferred_type, 'unicode')
 
-        mi_u = MultiIndex.from_product(
-            [list(u'ab'), range(3)], names=['first', 'second'])
-        result = eval(repr(mi_u))
-        tm.assert_index_equal(result, mi_u, exact=True)
+            mi_u = MultiIndex.from_product(
+                [list(u'ab'), range(3)], names=['first', 'second'])
+            result = eval(repr(mi_u))
+            tm.assert_index_equal(result, mi_u, exact=True)
 
-        # formatting
-        if PY3:
-            str(mi)
-        else:
-            compat.text_type(mi)
+        # show display
+        mi = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
+                                        ('B', 3), ('B', 4)])
+        with cf.option_context('display.max_seq_items', 10,
+                               'display.width', 80):
+
+            # short
+            if PY3:
+                expected = u"""MultiIndex(levels=[['A', 'B'],\n                   [1, 2, 3, 4]],\n           labels=[[0, 0, 1, 1],\n                   [0, 1, 2, 3]])"""  # noqa
+                self.assertEqual(repr(mi), expected)
+            else:
+                expected = u"""MultiIndex(levels=[[u'A', u'B'],\n                   [1, 2, 3, 4]],\n           labels=[[0, 0, 1, 1],\n                   [0, 1, 2, 3]])"""  # noqa
+                self.assertEqual(unicode(mi), expected)
+
+    def test_repr_long_format(self):
 
         # long format
         mi = MultiIndex.from_product([list('abcdefg'), range(10)],
                                      names=['first', 'second'])
-        result = str(mi)
 
-        if PY3:
-            tm.assert_index_equal(eval(repr(mi)), mi, exact=True)
-        else:
-            result = eval(repr(mi))
-            # string coerces to unicode
-            tm.assert_index_equal(result, mi, exact=False)
-            self.assertEqual(
-                mi.get_level_values('first').inferred_type, 'string')
-            self.assertEqual(
-                result.get_level_values('first').inferred_type, 'unicode')
+        with cf.option_context('display.max_seq_items', 10,
+                               'display.width', 80):
 
-        mi = MultiIndex.from_product(
-            [list(u'abcdefg'), range(10)], names=['first', 'second'])
-        result = eval(repr(mi_u))
-        tm.assert_index_equal(result, mi_u, exact=True)
+            # short
+            if PY3:
+                expected = u"""MultiIndex(levels=[['a', 'b', 'c', 'd', 'e', 'f', 'g'],\n                   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],\n           labels=[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n                    ...\n                    6, 6, 6, 6, 6, 6, 6, 6, 6, 6],\n                   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,\n                    ...\n                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],\n           names=['first', 'second'])"""  # noqa
+                self.assertEqual(repr(mi), expected)
+            else:
+                expected = u"""MultiIndex(levels=[[u'a', u'b', u'c', u'd', u'e', u'f', u'g'],\n                   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],\n           labels=[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n                    ...\n                    6, 6, 6, 6, 6, 6, 6, 6, 6, 6],\n                   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,\n                    ...\n                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],\n           names=[u'first', u'second'])"""  # noqa
+                self.assertEqual(unicode(mi), expected)
+
+        mi = MultiIndex.from_product([list('abcdefg'),
+                                      range(10),
+                                      pd.date_range('20130101', periods=10)],
+                                     names=['first', 'second', 'third'])
+
+        with cf.option_context('display.max_seq_items', 10,
+                               'display.width', 80):
+
+            # short
+            if PY3:
+                expected = u"""MultiIndex(levels=[[a', b', c', d', e', f', g'],\n                   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],\n                   ['2013-01-01', '2013-01-02', '2013-01-03', '2013-01-04', '2013-01-05', '2013-01-06', '2013-01-07', '2013-01-08', '2013-01-09', '2013-01-10']],\n           labels=[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n                    ...\n                    6, 6, 6, 6, 6, 6, 6, 6, 6, 6],\n                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n                    ...\n                    9, 9, 9, 9, 9, 9, 9, 9, 9, 9],\n                   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,\n                    ...\n                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],\n           names=[first', second', third'])"""  # noqa
+
+                self.assertEqual(repr(mi), expected)
+            else:
+                expected = u"""MultiIndex(levels=[[u'a', u'b', u'c', u'd', u'e', u'f', u'g'],\n                   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],\n                   ['2013-01-01', '2013-01-02', '2013-01-03', '2013-01-04', '2013-01-05', '2013-01-06', '2013-01-07', '2013-01-08', '2013-01-09', '2013-01-10']],\n           labels=[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n                    ...\n                    6, 6, 6, 6, 6, 6, 6, 6, 6, 6],\n                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n                    ...\n                    9, 9, 9, 9, 9, 9, 9, 9, 9, 9],\n                   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,\n                    ...\n                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],\n           names=[u'first', u'second', u'third'])"""  # noqa
+
+                self.assertEqual(unicode(mi), expected)
 
     def test_str(self):
         # tested elsewhere
