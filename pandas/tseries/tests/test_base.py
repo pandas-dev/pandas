@@ -347,7 +347,6 @@ Freq: D"""
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6],
                                  [exp1, exp2, exp3, exp4, exp5, exp6]):
             result = idx.summary()
-            print((expected, result))
             self.assertEqual(result, expected)
 
     def test_resolution(self):
