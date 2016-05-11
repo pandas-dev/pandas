@@ -204,6 +204,39 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(Timestamp(*pos_args).to_pydatetime(),
                          datetime.datetime(*pos_args))
 
+    def test_constructor_keyword(self):
+        # GH 10758
+        with tm.assertRaises(TypeError):
+            Timestamp(year=2000, month=1)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=0, day=1)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=13, day=1)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=1, day=0)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=1, day=32)
+
+        ts = Timestamp(year=2000, month=1, day=2)
+
+        actual = ts.to_pydatetime()
+        expected = datetime.datetime(year=2000, month=1, day=2)
+        self.assertEqual(actual, expected)
+        self.assertEqual(type(actual), type(expected))
+
+        pos_args = [2000, 1, 2, 3, 4, 5, 999999]
+        kw_args = {
+                'year': 2000,
+                'month': 1,
+                'day': 2,
+                'hour': 3,
+                'minute': 4,
+                'second': 5,
+                'microsecond': 999999,
+                }
+        self.assertEqual(Timestamp(**kw_args).to_pydatetime(),
+                         datetime.datetime(**kw_args))
+
     def test_conversion(self):
         # GH 9255
         ts = Timestamp('2000-01-01')

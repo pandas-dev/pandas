@@ -225,8 +225,12 @@ class Timestamp(_Timestamp):
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
 
-    Parameters
-    ----------
+    There are essentially three calling conventions for the constructor. The
+    first, legacy form accepts four parameters. They can be passed by
+    position or keyword.
+
+    Legacy Parameters
+    -----------------
     ts_input : datetime-like, str, int, float
         Value to be converted to Timestamp
     offset : str, DateOffset
@@ -235,6 +239,20 @@ class Timestamp(_Timestamp):
         Time zone for time which Timestamp will have.
     unit : string
         numpy unit used for conversion, if ts_input is int or float
+
+    The other two forms copy the parameters from datetime.datetime. They can
+    be passed by either position or keyword, but not both mixed together.
+
+    datetime.datetime Parameters
+    ------------------------------
+    year : int
+    month : int
+    day : int
+    hour : int [optional]
+    minute : int [optional]
+    second : int [optional]
+    microsecond : int [optional]
+    tzinfo : datetime.tzinfo [optional]
     """
 
     @classmethod
@@ -319,7 +337,7 @@ class Timestamp(_Timestamp):
             return Timestamp(datetime(year, month, day, hour or 0,
                 minute or 0, second or 0, microsecond or 0, tzinfo),
                 tz=tzinfo)
-        if is_integer_object(offset):
+        elif is_integer_object(offset):
             # User passed positional arguments:
             #   Timestamp(year, month, day[, hour[, minute[, second[, microsecond[, tzinfo]]]]])
             return Timestamp(datetime(ts_input, offset, tz, unit or 0,
