@@ -326,6 +326,16 @@ class TestMove(tm.TestCase):
         self.assertEqual(bytearray(as_stolen_buf), b'test')
 
 
+def test_numpy_errstate_is_default():
+    # The defaults since numpy 1.6.0
+    expected = {'over': 'warn', 'divide': 'warn', 'invalid': 'warn',
+                'under': 'ignore'}
+    import numpy as np
+    from pandas.compat import numpy  # noqa
+    # The errstate should be unchanged after that import.
+    tm.assert_equal(np.geterr(), expected)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
