@@ -192,12 +192,6 @@ class TestTimestamp(tm.TestCase):
             Timestamp(2000, 1, 0)
         with tm.assertRaises(ValueError):
             Timestamp(2000, 1, 32)
-        with tm.assertRaises(TypeError):
-            Timestamp(2000, 1, 1, None)
-        with tm.assertRaises(TypeError):
-            Timestamp(2000, 1, 1, None, None)
-        with tm.assertRaises(TypeError):
-            Timestamp(2000, 1, 1, None, None, None)
 
         ts = Timestamp(2000, 1, 2)
 

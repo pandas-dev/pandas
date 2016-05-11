@@ -216,7 +216,6 @@ cdef inline bint _is_fixed_offset(object tz):
 
 
 _zero_time = datetime_time(0, 0)
-_no_unit = object()
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
@@ -290,34 +289,41 @@ class Timestamp(_Timestamp):
         return cls(datetime.combine(date, time))
 
     def __new__(cls,
-            object ts_input, object offset=None, tz=None, unit=_no_unit,
-            minute=0, second=0, microsecond=0, tzinfo=None):
+            object ts_input=None, object offset=None, tz=None, unit=None,
+            year=None, month=None, day=None,
+            hour=None, minute=None, second=None, microsecond=None,
+            tzinfo=None):
         # The parameter list folds together legacy parameter names (the first
-        # four) and positional parameter names from pydatetime (starting with
-        # `minute`).
+        # four) and positional and keyword parameter names from pydatetime.
         #
-        # When using the pydatetime form, the first three parameters are
-        # required, but the fourth (called `unit` but standing in for `hour`)
-        # is optional. However, when using the legacy form, only the first
-        # parameter is required and the fourth parameter defaults to `None`.
-        # We use a special non-`None` constant to distinguish when callers
-        # pass `None` as the fourth pydatetime parameter.
+        # There are three calling forms:
+        # - In the legacy form, the first parameter, ts_input, is required
+        # and may be datetime-like, str, int, or float. The second parameter,
+        # offset, is optional and may be str or DateOffset.
+        # - ints in the first, second, and third arguments indicate
+        # pydatetime positional arguments. Only the first 8 arguments
+        # (standing in for year, month, day, hour, minute, second,
+        # microsecond, tzinfo) may be non-None. As a shortcut, we just check
+        # that the second argument is an int.
+        # - Nones for the first four (legacy) arguments indicate pydatetime
+        # keyword arguments. year, month, and day are required. As a
+        # shortcut, we just check that the first argument is None.
+        #
+        # Mixing pydatetime positional and keyword arguments is forbidden!
 
         cdef _TSObject ts
         cdef _Timestamp ts_base
 
-        if offset is not None and is_integer_object(offset):
+        if ts_input is None:
+            # User passed keyword arguments.
+            return Timestamp(datetime(year, month, day, hour or 0,
+                minute or 0, second or 0, microsecond or 0, tzinfo),
+                tz=tzinfo)
+        if is_integer_object(offset):
             # User passed positional arguments:
             #   Timestamp(year, month, day[, hour[, minute[, second[, microsecond[, tzinfo]]]]])
-            # When using the positional form, the first three parameters are
-            # required. Assign defaults to the rest.
-            if unit is _no_unit:
-                unit = 0
-            # Forward positional arguments to datetime constructor.
-            return Timestamp(datetime(ts_input, offset, tz, unit, minute, second, microsecond, tzinfo),
-                             tz=tzinfo)
-        elif unit is _no_unit:
-            unit = None
+            return Timestamp(datetime(ts_input, offset, tz, unit or 0,
+                year or 0, month or 0, day or 0, hour), tz=hour)
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0)
 
