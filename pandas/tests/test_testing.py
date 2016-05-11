@@ -65,9 +65,8 @@ class TestAssertAlmostEqual(tm.TestCase):
         self._assert_almost_equal_both({'a': 1, 'b': 2}, {'a': 1, 'b': 2})
 
         self._assert_not_almost_equal_both({'a': 1, 'b': 2}, {'a': 1, 'b': 3})
-        self._assert_not_almost_equal_both(
-            {'a': 1, 'b': 2}, {'a': 1, 'b': 2, 'c': 3}
-        )
+        self._assert_not_almost_equal_both({'a': 1, 'b': 2},
+                                           {'a': 1, 'b': 2, 'c': 3})
         self._assert_not_almost_equal_both({'a': 1}, 1)
         self._assert_not_almost_equal_both({'a': 1}, 'abc')
         self._assert_not_almost_equal_both({'a': 1}, [1, ])
@@ -215,11 +214,11 @@ numpy array values are different \\(66\\.66667 %\\)
 \\[right\\]: \\[1\\.0, nan, 3\\.0\\]"""
 
         with assertRaisesRegexp(AssertionError, expected):
-            assert_numpy_array_equal(
-                np.array([np.nan, 2, 3]), np.array([1, np.nan, 3]))
+            assert_numpy_array_equal(np.array([np.nan, 2, 3]),
+                                     np.array([1, np.nan, 3]))
         with assertRaisesRegexp(AssertionError, expected):
-            assert_almost_equal(
-                np.array([np.nan, 2, 3]), np.array([1, np.nan, 3]))
+            assert_almost_equal(np.array([np.nan, 2, 3]),
+                                np.array([1, np.nan, 3]))
 
         expected = """numpy array are different
 
@@ -339,8 +338,8 @@ Index levels are different
            labels=\\[\\[0, 0, 1, 1\\], \\[0, 1, 2, 3\\]\\]\\)"""
 
         idx1 = pd.Index([1, 2, 3])
-        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2), ('B', 3), ('B', 4
-                                                                         )])
+        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
+                                          ('B', 3), ('B', 4)])
         with assertRaisesRegexp(AssertionError, expected):
             assert_index_equal(idx1, idx2, exact=False)
 
@@ -350,10 +349,10 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Int64Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
-        idx1 = pd.MultiIndex.from_tuples([('A', 2), ('A', 2), ('B', 3), ('B', 4
-                                                                         )])
-        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2), ('B', 3), ('B', 4
-                                                                         )])
+        idx1 = pd.MultiIndex.from_tuples([('A', 2), ('A', 2),
+                                          ('B', 3), ('B', 4)])
+        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
+                                          ('B', 3), ('B', 4)])
         with assertRaisesRegexp(AssertionError, expected):
             assert_index_equal(idx1, idx2)
         with assertRaisesRegexp(AssertionError, expected):
@@ -434,10 +433,10 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Int64Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
-        idx1 = pd.MultiIndex.from_tuples([('A', 2), ('A', 2), ('B', 3), ('B', 4
-                                                                         )])
-        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2), ('B', 3), ('B', 4
-                                                                         )])
+        idx1 = pd.MultiIndex.from_tuples([('A', 2), ('A', 2),
+                                          ('B', 3), ('B', 4)])
+        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
+                                          ('B', 3), ('B', 4)])
         with assertRaisesRegexp(AssertionError, expected):
             assert_index_equal(idx1, idx2)
         with assertRaisesRegexp(AssertionError, expected):
@@ -672,6 +671,45 @@ class TestIsInstance(tm.TestCase):
         expected = "Input must not be type "
         with assertRaisesRegexp(AssertionError, expected):
             tm.assertNotIsInstance(pd.Series([1]), pd.Series)
+
+
+class TestAssertCategoricalEqual(unittest.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_categorical_equal_message(self):
+
+        expected = """Categorical\\.categories are different
+
+Categorical\\.categories values are different \\(25\\.0 %\\)
+\\[left\\]:  Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)
+\\[right\\]: Int64Index\\(\\[1, 2, 3, 5\\], dtype='int64'\\)"""
+
+        a = pd.Categorical([1, 2, 3, 4])
+        b = pd.Categorical([1, 2, 3, 5])
+        with assertRaisesRegexp(AssertionError, expected):
+            tm.assert_categorical_equal(a, b)
+
+        expected = """Categorical\\.codes are different
+
+Categorical\\.codes values are different \\(50\\.0 %\\)
+\\[left\\]:  \\[0, 1, 3, 2\\]
+\\[right\\]: \\[0, 1, 2, 3\\]"""
+
+        a = pd.Categorical([1, 2, 4, 3], categories=[1, 2, 3, 4])
+        b = pd.Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4])
+        with assertRaisesRegexp(AssertionError, expected):
+            tm.assert_categorical_equal(a, b)
+
+        expected = """Categorical are different
+
+Attribute "ordered" are different
+\\[left\\]:  False
+\\[right\\]: True"""
+
+        a = pd.Categorical([1, 2, 3, 4], ordered=False)
+        b = pd.Categorical([1, 2, 3, 4], ordered=True)
+        with assertRaisesRegexp(AssertionError, expected):
+            tm.assert_categorical_equal(a, b)
 
 
 class TestRNGContext(unittest.TestCase):
