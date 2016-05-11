@@ -4151,6 +4151,68 @@ class TestSeriesPeriod(tm.TestCase):
         result = df.values.squeeze()
         self.assertTrue((result[:, 0] == expected.values).all())
 
+    def test_ops_series_timedelta(self):
+        # GH 13043
+        s = pd.Series([pd.Period('2015-01-01', freq='D'),
+                       pd.Period('2015-01-02', freq='D')], name='xxx')
+        self.assertEqual(s.dtype, object)
+
+        exp = pd.Series([pd.Period('2015-01-02', freq='D'),
+                         pd.Period('2015-01-03', freq='D')], name='xxx')
+        tm.assert_series_equal(s + pd.Timedelta('1 days'), exp)
+        tm.assert_series_equal(pd.Timedelta('1 days') + s, exp)
+
+        tm.assert_series_equal(s + pd.tseries.offsets.Day(), exp)
+        tm.assert_series_equal(pd.tseries.offsets.Day() + s, exp)
+
+    def test_ops_series_period(self):
+        # GH 13043
+        s = pd.Series([pd.Period('2015-01-01', freq='D'),
+                       pd.Period('2015-01-02', freq='D')], name='xxx')
+        self.assertEqual(s.dtype, object)
+
+        p = pd.Period('2015-01-10', freq='D')
+        # dtype will be object because of original dtype
+        exp = pd.Series([9, 8], name='xxx', dtype=object)
+        tm.assert_series_equal(p - s, exp)
+        tm.assert_series_equal(s - p, -exp)
+
+        s2 = pd.Series([pd.Period('2015-01-05', freq='D'),
+                        pd.Period('2015-01-04', freq='D')], name='xxx')
+        self.assertEqual(s2.dtype, object)
+
+        exp = pd.Series([4, 2], name='xxx', dtype=object)
+        tm.assert_series_equal(s2 - s, exp)
+        tm.assert_series_equal(s - s2, -exp)
+
+    def test_ops_frame_period(self):
+        # GH 13043
+        df = pd.DataFrame({'A': [pd.Period('2015-01', freq='M'),
+                                 pd.Period('2015-02', freq='M')],
+                           'B': [pd.Period('2014-01', freq='M'),
+                                 pd.Period('2014-02', freq='M')]})
+        self.assertEqual(df['A'].dtype, object)
+        self.assertEqual(df['B'].dtype, object)
+
+        p = pd.Period('2015-03', freq='M')
+        # dtype will be object because of original dtype
+        exp = pd.DataFrame({'A': np.array([2, 1], dtype=object),
+                            'B': np.array([14, 13], dtype=object)})
+        tm.assert_frame_equal(p - df, exp)
+        tm.assert_frame_equal(df - p, -exp)
+
+        df2 = pd.DataFrame({'A': [pd.Period('2015-05', freq='M'),
+                                  pd.Period('2015-06', freq='M')],
+                            'B': [pd.Period('2015-05', freq='M'),
+                                  pd.Period('2015-06', freq='M')]})
+        self.assertEqual(df2['A'].dtype, object)
+        self.assertEqual(df2['B'].dtype, object)
+
+        exp = pd.DataFrame({'A': np.array([4, 4], dtype=object),
+                            'B': np.array([16, 16], dtype=object)})
+        tm.assert_frame_equal(df2 - df, exp)
+        tm.assert_frame_equal(df - df2, -exp)
+
 
 if __name__ == '__main__':
     import nose
