@@ -903,18 +903,17 @@ def assertNotIsInstance(obj, cls, msg=''):
         raise AssertionError(err_msg.format(msg, cls))
 
 
-def assert_categorical_equal(res, exp):
-    assertIsInstance(res, pd.Categorical, '[Categorical] ')
-    assertIsInstance(exp, pd.Categorical, '[Categorical] ')
+def assert_categorical_equal(left, right, check_dtype=True,
+                             obj='Categorical'):
+    assertIsInstance(left, pd.Categorical, '[Categorical] ')
+    assertIsInstance(right, pd.Categorical, '[Categorical] ')
 
-    assert_index_equal(res.categories, exp.categories)
+    assert_index_equal(left.categories, right.categories,
+                       obj='{0}.categories'.format(obj))
+    assert_numpy_array_equal(left.codes, right.codes, check_dtype=check_dtype,
+                             obj='{0}.codes'.format(obj))
 
-    if not array_equivalent(res.codes, exp.codes):
-        raise AssertionError(
-            'codes not equivalent: {0} vs {1}.'.format(res.codes, exp.codes))
-
-    if res.ordered != exp.ordered:
-        raise AssertionError("ordered not the same")
+    assert_attr_equal('ordered', left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right):
