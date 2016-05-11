@@ -3087,11 +3087,11 @@ $1$,$2$
 
     def test_to_csv_escapechar(self):
         df = DataFrame({'col': ['a"a', '"bb"']})
-        expected = """\
+        expected = '''\
 "","col"
 "0","a\\"a"
 "1","\\"bb\\""
-"""
+'''
 
         with tm.ensure_clean('test.csv') as path:  # QUOTE_ALL
             df.to_csv(path, quoting=1, doublequote=False, escapechar='\\')
@@ -3925,6 +3925,21 @@ class TestEngFormatter(tm.TestCase):
         result = formatter(0)
         self.assertEqual(result, u(' 0.000'))
 
+    def test_nan(self):
+        # Issue #11981
+
+        formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
+        result = formatter(np.nan)
+        self.assertEqual(result, u('NaN'))
+
+        df = pd.DataFrame({'a':[1.5, 10.3, 20.5],
+                           'b':[50.3, 60.67, 70.12],
+                           'c':[100.2, 101.33, 120.33]})
+        pt = df.pivot_table(values='a', index='b', columns='c')
+        fmt.set_eng_float_format(accuracy=1)
+        result = pt.to_string()
+        self.assertTrue('NaN' in result)
+        self.reset_display_options()
 
 def _three_digit_exp():
     return '%.4g' % 1.7e8 == '1.7e+008'
