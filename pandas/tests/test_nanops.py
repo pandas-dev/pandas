@@ -58,12 +58,14 @@ class TestnanopsDataFrame(tm.TestCase):
                     'O'), self.arr_utf.astype('O'), self.arr_date.astype('O'),
             self.arr_tdelta.astype('O')])
 
-        self.arr_nan_nanj = self.arr_nan + self.arr_nan * 1j
-        self.arr_complex_nan = np.vstack([self.arr_complex, self.arr_nan_nanj])
+        with np.errstate(invalid='ignore'):
+            self.arr_nan_nanj = self.arr_nan + self.arr_nan * 1j
+            self.arr_complex_nan = np.vstack([self.arr_complex,
+                                              self.arr_nan_nanj])
 
-        self.arr_nan_infj = self.arr_inf * 1j
-        self.arr_complex_nan_infj = np.vstack([self.arr_complex,
-                                               self.arr_nan_infj])
+            self.arr_nan_infj = self.arr_inf * 1j
+            self.arr_complex_nan_infj = np.vstack([self.arr_complex,
+                                                   self.arr_nan_infj])
 
         self.arr_float_2d = self.arr_float[:, :, 0]
         self.arr_float1_2d = self.arr_float1[:, :, 0]
