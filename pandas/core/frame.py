@@ -3813,7 +3813,8 @@ class DataFrame(NDFrame):
             this = self[col].values
             that = other[col].values
             if filter_func is not None:
-                mask = ~filter_func(this) | isnull(that)
+                with np.errstate(all='ignore'):
+                    mask = ~filter_func(this) | isnull(that)
             else:
                 if raise_conflict:
                     mask_this = notnull(that)
@@ -4108,7 +4109,8 @@ class DataFrame(NDFrame):
             return self._apply_empty_result(func, axis, reduce, *args, **kwds)
 
         if isinstance(f, np.ufunc):
-            results = f(self.values)
+            with np.errstate(all='ignore'):
+                results = f(self.values)
             return self._constructor(data=results, index=self.index,
                                      columns=self.columns, copy=False)
         else:
@@ -4934,7 +4936,8 @@ class DataFrame(NDFrame):
                                             "type %s not implemented." %
                                             filter_type)
                     raise_with_traceback(e)
-                result = f(data.values)
+                with np.errstate(all='ignore'):
+                    result = f(data.values)
                 labels = data._get_agg_axis(axis)
         else:
             if numeric_only:

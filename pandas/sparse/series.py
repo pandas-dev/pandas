@@ -57,7 +57,8 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
         elif isinstance(other, DataFrame):
             return NotImplemented
         elif is_scalar(other):
-            new_values = op(self.values, other)
+            with np.errstate(all='ignore'):
+                new_values = op(self.values, other)
             return self._constructor(new_values,
                                      index=self.index,
                                      name=self.name)

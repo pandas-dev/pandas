@@ -55,9 +55,11 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
                                     dtype=dtype)
             return _sparse_array_op(self, other, op, name)
         elif is_scalar(other):
-            fill = op(_get_fill(self), np.asarray(other))
-            return _wrap_result(name, op(self.sp_values, other),
-                                self.sp_index, fill)
+            with np.errstate(all='ignore'):
+                fill = op(_get_fill(self), np.asarray(other))
+                result = op(self.sp_values, other)
+
+            return _wrap_result(name, result, self.sp_index, fill)
         else:  # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
 
@@ -101,17 +103,19 @@ def _sparse_array_op(left, right, op, name, series=False):
     result_dtype = None
 
     if left.sp_index.ngaps == 0 or right.sp_index.ngaps == 0:
-        result = op(left.get_values(), right.get_values())
+        with np.seterr(all='ignore'):
+            result = op(left.get_values(), right.get_values())
+            fill = op(_get_fill(left), _get_fill(right))
 
         if left.sp_index.ngaps == 0:
             index = left.sp_index
         else:
             index = right.sp_index
-        fill = op(_get_fill(left), _get_fill(right))
     elif left.sp_index.equals(right.sp_index):
-        result = op(left.sp_values, right.sp_values)
+        with np.seterr(all='ignore'):
+            result = op(left.sp_values, right.sp_values)
+            fill = op(_get_fill(left), _get_fill(right))
         index = left.sp_index
-        fill = op(_get_fill(left), _get_fill(right))
     else:
         if name[0] == 'r':
             left, right = right, left
@@ -129,9 +133,10 @@ def _sparse_array_op(left, right, op, name, series=False):
             right_sp_values = right.sp_values
 
         sparse_op = getattr(splib, opname)
-        result, index, fill = sparse_op(left_sp_values, left.sp_index,
-                                        left.fill_value, right_sp_values,
-                                        right.sp_index, right.fill_value)
+        with np.seterr(all='ignore'):
+            result, index, fill = sparse_op(left_sp_values, left.sp_index,
+                                            left.fill_value, right_sp_values,
+                                            right.sp_index, right.fill_value)
 
     if result_dtype is None:
         result_dtype = result.dtype

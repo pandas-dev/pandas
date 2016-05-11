@@ -2099,9 +2099,10 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # this is pretty arbitrary for now
         # large values: more that 8 characters including decimal symbol
         # and first digit, hence > 1e6
-        has_large_values = (abs_vals > 1e6).any()
-        has_small_values = ((abs_vals < 10**(-self.digits)) &
-                            (abs_vals > 0)).any()
+        with np.errstate(invalid='ignore'):
+            has_large_values = (abs_vals > 1e6).any()
+            has_small_values = ((abs_vals < 10**(-self.digits)) &
+                                (abs_vals > 0)).any()
 
         if has_small_values or (too_long and has_large_values):
             float_format = '%% .%de' % self.digits

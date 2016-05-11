@@ -3303,9 +3303,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
                 if is_object_dtype(self) and self.nlevels == 1:
                     # don't pass MultiIndex
-                    result = _comp_method_OBJECT_ARRAY(op, self.values, other)
+                    with np.errstate(all='ignore'):
+                        result = _comp_method_OBJECT_ARRAY(op, self.values, other)
                 else:
-                    result = op(self.values, np.asarray(other))
+                    with np.errstate(all='ignore'):
+                        result = op(self.values, np.asarray(other))
 
                 # technically we could support bool dtyped Index
                 # for now just return the indexing array directly
@@ -3450,7 +3452,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
                 attrs = self._get_attributes_dict()
                 attrs = self._maybe_update_attributes(attrs)
-                return Index(op(values, other), **attrs)
+                with np.errstate(all='ignore'):
+                    result = op(values, other)
+                return Index(result, **attrs)
 
             return _evaluate_numeric_binop
 
