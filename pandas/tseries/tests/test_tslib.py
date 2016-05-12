@@ -195,12 +195,12 @@ class TestTimestamp(tm.TestCase):
 
         # GH 11630
         self.assertEqual(
-                repr(Timestamp(2015, 11, 12)),
-                repr(Timestamp('20151112')))
+            repr(Timestamp(2015, 11, 12)),
+            repr(Timestamp('20151112')))
 
         self.assertEqual(
-                repr(Timestamp(2015, 11, 12, 1, 2, 3, 999999)),
-                repr(Timestamp('2015-11-12 01:02:03.999999')))
+            repr(Timestamp(2015, 11, 12, 1, 2, 3, 999999)),
+            repr(Timestamp('2015-11-12 01:02:03.999999')))
 
     def test_constructor_keyword(self):
         # GH 10758
@@ -216,13 +216,13 @@ class TestTimestamp(tm.TestCase):
             Timestamp(year=2000, month=1, day=32)
 
         self.assertEqual(
-                repr(Timestamp(year=2015, month=11, day=12)),
-                repr(Timestamp('20151112')))
+            repr(Timestamp(year=2015, month=11, day=12)),
+            repr(Timestamp('20151112')))
 
         self.assertEqual(
-                repr(Timestamp(year=2015, month=11, day=12,
-                    hour=1, minute=2, second=3, microsecond=999999)),
-                repr(Timestamp('2015-11-12 01:02:03.999999')))
+            repr(Timestamp(year=2015, month=11, day=12,
+                           hour=1, minute=2, second=3, microsecond=999999)),
+            repr(Timestamp('2015-11-12 01:02:03.999999')))
 
     def test_conversion(self):
         # GH 9255
