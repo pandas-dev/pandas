@@ -143,7 +143,4 @@ Bug Fixes
 
 
 
-
-
-
-
+- Bug in ``AutoDataFormatter``, restore second scaled formatting and readd musecond scaled formatting (:issue:`13131`)
