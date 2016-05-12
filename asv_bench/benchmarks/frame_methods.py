@@ -423,7 +423,7 @@ class frame_get_dtype_counts(object):
     goal_time = 0.2
 
     def setup(self):
-        self.df = pandas.DataFrame(np.random.randn(10, 10000))
+        self.df = DataFrame(np.random.randn(10, 10000))
 
     def time_frame_get_dtype_counts(self):
         self.df.get_dtype_counts()
@@ -985,3 +985,14 @@ class series_string_vector_slice(object):
 
     def time_series_string_vector_slice(self):
         self.s.str[:5]
+
+
+class frame_quantile_axis1(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(1000, 3),
+                            columns=list('ABC'))
+
+    def time_frame_quantile_axis1(self):
+        self.df.quantile([0.1, 0.5], axis=1)

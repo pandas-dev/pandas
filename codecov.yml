@@ -9,4 +9,5 @@ coverage:
         branches: null
     changes:
       default:
-        branches: null
+        branches:
+          - master

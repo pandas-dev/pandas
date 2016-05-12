@@ -97,6 +97,9 @@ Performance Improvements
 
 - Improved performance of sparse ``IntIndex.intersect`` (:issue:`13082`)
 - Improved performance of sparse arithmetic with ``BlockIndex`` when the number of blocks are large, though recommended to use ``IntIndex`` in such cases (:issue:`13082`)
+- increased performance of ``DataFrame.quantile()`` as it now operates per-block (:issue:`11623`)
+
+
 
 
 
@@ -110,6 +113,7 @@ Bug Fixes
 
 
 
+- Regression in ``Series.quantile`` with nans (also shows up in ``.median()`` and ``.describe()``); furthermore now names the ``Series`` with the quantile (:issue:`13098`, :issue:`13146`)
 
 
 
@@ -135,15 +139,3 @@ Bug Fixes
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
-
-
-
-
-
-
-
-
-
-
-
-

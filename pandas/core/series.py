@@ -57,8 +57,6 @@ import pandas.index as _index
 
 from pandas.core.config import get_option
 
-from pandas import _np_version_under1p9
-
 __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
@@ -1349,21 +1347,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         self._check_percentile(q)
 
-        if _np_version_under1p9:
-            if interpolation != 'linear':
-                raise ValueError("Interpolation methods other than linear "
-                                 "are not supported in numpy < 1.9.")
+        result = self._data.quantile(qs=q, interpolation=interpolation)
 
-        kwargs = dict()
-        if not _np_version_under1p9:
-            kwargs.update({'interpolation': interpolation})
-
-        result = self._data.quantile(qs=q, **kwargs)
-
-        if com.is_list_like(result):
-            # explicitly use Float64Index to coerce empty result to float dtype
-            index = Float64Index(q)
-            return self._constructor(result, index=index, name=self.name)
+        if com.is_list_like(q):
+            return self._constructor(result,
+                                     index=Float64Index(q),
+                                     name=self.name)
         else:
             # scalar
             return result

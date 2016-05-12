@@ -28,9 +28,12 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
 
         q = self.tsframe.quantile(0.1, axis=0)
         self.assertEqual(q['A'], percentile(self.tsframe['A'], 10))
+        tm.assert_index_equal(q.index, self.tsframe.columns)
+
         q = self.tsframe.quantile(0.9, axis=1)
-        q = self.intframe.quantile(0.1)
-        self.assertEqual(q['A'], percentile(self.intframe['A'], 10))
+        self.assertEqual(q['2000-01-17'],
+                         percentile(self.tsframe.loc['2000-01-17'], 90))
+        tm.assert_index_equal(q.index, self.tsframe.index)
 
         # test degenerate case
         q = DataFrame({'x': [], 'y': []}).quantile(0.1, axis=0)
@@ -39,13 +42,13 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         # non-numeric exclusion
         df = DataFrame({'col1': ['A', 'A', 'B', 'B'], 'col2': [1, 2, 3, 4]})
         rs = df.quantile(0.5)
-        xp = df.median()
+        xp = df.median().rename(0.5)
         assert_series_equal(rs, xp)
 
         # axis
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
         result = df.quantile(.5, axis=1)
-        expected = Series([1.5, 2.5, 3.5], index=[1, 2, 3])
+        expected = Series([1.5, 2.5, 3.5], index=[1, 2, 3], name=0.5)
         assert_series_equal(result, expected)
 
         result = df.quantile([.5, .75], axis=1)
@@ -59,8 +62,24 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         df = DataFrame([[1, 2, 3],
                         ['a', 'b', 4]])
         result = df.quantile(.5, axis=1)
-        expected = Series([3., 4.], index=[0, 1])
+        expected = Series([3., 4.], index=[0, 1], name=0.5)
         assert_series_equal(result, expected)
+
+    def test_quantile_axis_mixed(self):
+
+        # mixed on axis=1
+        df = DataFrame({"A": [1, 2, 3],
+                        "B": [2., 3., 4.],
+                        "C": pd.date_range('20130101', periods=3),
+                        "D": ['foo', 'bar', 'baz']})
+        result = df.quantile(.5, axis=1)
+        expected = Series([1.5, 2.5, 3.5], name=0.5)
+        assert_series_equal(result, expected)
+
+        # must raise
+        def f():
+            df.quantile(.5, axis=1, numeric_only=False)
+        self.assertRaises(TypeError, f)
 
     def test_quantile_axis_parameter(self):
         # GH 9543/9544
@@ -69,7 +88,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
 
         result = df.quantile(.5, axis=0)
 
-        expected = Series([2., 3.], index=["A", "B"])
+        expected = Series([2., 3.], index=["A", "B"], name=0.5)
         assert_series_equal(result, expected)
 
         expected = df.quantile(.5, axis="index")
@@ -77,7 +96,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
 
         result = df.quantile(.5, axis=1)
 
-        expected = Series([1.5, 2.5, 3.5], index=[1, 2, 3])
+        expected = Series([1.5, 2.5, 3.5], index=[1, 2, 3], name=0.5)
         assert_series_equal(result, expected)
 
         result = df.quantile(.5, axis="columns")
@@ -107,22 +126,23 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         # interpolation method other than default linear
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
         result = df.quantile(.5, axis=1, interpolation='nearest')
-        expected = Series([1, 2, 3], index=[1, 2, 3])
+        expected = Series([1, 2, 3], index=[1, 2, 3], name=0.5)
         assert_series_equal(result, expected)
+
         # cross-check interpolation=nearest results in original dtype
         exp = np.percentile(np.array([[1, 2, 3], [2, 3, 4]]), .5,
                             axis=0, interpolation='nearest')
-        expected = Series(exp, index=[1, 2, 3], dtype='int64')
+        expected = Series(exp, index=[1, 2, 3], name=0.5, dtype='int64')
         assert_series_equal(result, expected)
 
         # float
         df = DataFrame({"A": [1., 2., 3.], "B": [2., 3., 4.]}, index=[1, 2, 3])
         result = df.quantile(.5, axis=1, interpolation='nearest')
-        expected = Series([1., 2., 3.], index=[1, 2, 3])
+        expected = Series([1., 2., 3.], index=[1, 2, 3], name=0.5)
         assert_series_equal(result, expected)
         exp = np.percentile(np.array([[1., 2., 3.], [2., 3., 4.]]), .5,
                             axis=0, interpolation='nearest')
-        expected = Series(exp, index=[1, 2, 3], dtype='float64')
+        expected = Series(exp, index=[1, 2, 3], name=0.5, dtype='float64')
         assert_series_equal(result, expected)
 
         # axis
@@ -217,7 +237,8 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         # datetime
         result = df.quantile(.5, numeric_only=False)
         expected = Series([Timestamp('2010-07-02 12:00:00'), 2.5],
-                          index=['a', 'b'])
+                          index=['a', 'b'],
+                          name=0.5)
         assert_series_equal(result, expected)
 
         # datetime w/ multi
@@ -231,7 +252,8 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         result = df[['a', 'c']].quantile(.5, axis=1, numeric_only=False)
         expected = Series([Timestamp('2010-07-02 12:00:00'),
                            Timestamp('2011-07-02 12:00:00')],
-                          index=[0, 1])
+                          index=[0, 1],
+                          name=0.5)
         assert_series_equal(result, expected)
 
         result = df[['a', 'c']].quantile([.5], axis=1, numeric_only=False)
@@ -256,12 +278,13 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
                         'C': [pd.Timedelta('1 days'),
                               pd.Timedelta('2 days'),
                               pd.Timedelta('3 days')]})
+
         res = df.quantile(0.5, numeric_only=False)
-        # when squeezed, result.name is explicitly reset
+
         exp = pd.Series([pd.Timestamp('2011-01-02'),
                          pd.Timestamp('2011-01-02', tz='US/Eastern'),
                          pd.Timedelta('2 days')],
-                        name=None, index=['A', 'B', 'C'])
+                        name=0.5, index=['A', 'B', 'C'])
         tm.assert_series_equal(res, exp)
 
         res = df.quantile([0.5], numeric_only=False)
@@ -305,7 +328,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
                          pd.Timestamp('2011-01-02', tz='US/Eastern'),
                          pd.Timedelta('2 days'),
                          pd.Timedelta('2 days')],
-                        name=None, index=list('AaBbCc'))
+                        name=0.5, index=list('AaBbCc'))
         tm.assert_series_equal(res, exp)
 
         res = df.quantile([0.5], numeric_only=False)
