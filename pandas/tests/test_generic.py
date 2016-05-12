@@ -415,6 +415,14 @@ class Generic(object):
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)),
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)))
 
+            os1, os2 = [], []
+            for _ in range(2):
+                np.random.seed(test)
+                os1.append(o.sample(n=4))
+                os2.append(o.sample(frac=0.7))
+            self._compare(*os1)
+            self._compare(*os2)
+
         # Check for error when random_state argument invalid.
         with tm.assertRaises(ValueError):
             o.sample(random_state='astring!')
