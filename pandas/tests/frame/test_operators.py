@@ -929,6 +929,15 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         test_comp(operator.ge)
         test_comp(operator.le)
 
+    def test_comparison_protected_from_errstate(self):
+        missing_df = tm.makeDataFrame()
+        missing_df.iloc[0]['A'] = np.nan
+        with np.errstate(invalid='ignore'):
+            expected = missing_df.values < 0
+        with np.errstate(invalid='raise'):
+            result = (missing_df < 0).values
+        self.assert_numpy_array_equal(result, expected)
+
     def test_string_comparison(self):
         df = DataFrame([{"a": 1, "b": "foo"}, {"a": 2, "b": "bar"}])
         mask_a = df.a > 1
