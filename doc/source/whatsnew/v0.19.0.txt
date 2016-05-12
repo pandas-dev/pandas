@@ -910,5 +910,11 @@ Bug Fixes
 - Bug in ``Index.union`` returns an incorrect result with a named empty index (:issue:`13432`)
 - Bugs in ``Index.difference`` and ``DataFrame.join`` raise in Python3 when using mixed-integer indexes (:issue:`13432`, :issue:`12814`)
 - Bug in ``.to_excel()`` when DataFrame contains a MultiIndex which contains a label with a NaN value (:issue:`13511`)
+
+- Bug in ``agg()`` function on groupby dataframe changes dtype of ``datetime64[ns]`` column to ``float64`` (:issue:`12821`)
+
+- Bug in operations on ``NaT`` returning ``float`` instead of ``datetime64[ns]`` (:issue:`12941`)
+
 - Bug in ``pd.read_csv`` in Python 2.x with non-UTF8 encoded, multi-character separated data (:issue:`3404`)
+
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
