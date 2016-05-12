@@ -226,10 +226,10 @@ class Timestamp(_Timestamp):
     oriented data structures in pandas.
 
     There are essentially three calling conventions for the constructor. The
-    first, legacy form accepts four parameters. They can be passed by
-    position or keyword.
+    primary form accepts four parameters. They can be passed by position or
+    keyword.
 
-    Legacy Parameters
+    Parameters
     -----------------
     ts_input : datetime-like, str, int, float
         Value to be converted to Timestamp
@@ -243,8 +243,11 @@ class Timestamp(_Timestamp):
     The other two forms copy the parameters from datetime.datetime. They can
     be passed by either position or keyword, but not both mixed together.
 
-    datetime.datetime Parameters
+    :func:`datetime.datetime` Parameters
     ------------------------------
+
+    .. versionadded:: 0.18.2
+
     year : int
     month : int
     day : int

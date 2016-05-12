@@ -193,16 +193,14 @@ class TestTimestamp(tm.TestCase):
         with tm.assertRaises(ValueError):
             Timestamp(2000, 1, 32)
 
-        ts = Timestamp(2000, 1, 2)
+        # GH 11630
+        self.assertEqual(
+                repr(Timestamp(2015, 11, 12)),
+                repr(Timestamp('20151112')))
 
-        actual = ts.to_pydatetime()
-        expected = datetime.datetime(2000, 1, 2)
-        self.assertEqual(actual, expected)
-        self.assertEqual(type(actual), type(expected))
-
-        pos_args = [2000, 1, 2, 3, 4, 5, 999999]
-        self.assertEqual(Timestamp(*pos_args).to_pydatetime(),
-                         datetime.datetime(*pos_args))
+        self.assertEqual(
+                repr(Timestamp(2015, 11, 12, 1, 2, 3, 999999)),
+                repr(Timestamp('2015-11-12 01:02:03.999999')))
 
     def test_constructor_keyword(self):
         # GH 10758
@@ -217,25 +215,14 @@ class TestTimestamp(tm.TestCase):
         with tm.assertRaises(ValueError):
             Timestamp(year=2000, month=1, day=32)
 
-        ts = Timestamp(year=2000, month=1, day=2)
+        self.assertEqual(
+                repr(Timestamp(year=2015, month=11, day=12)),
+                repr(Timestamp('20151112')))
 
-        actual = ts.to_pydatetime()
-        expected = datetime.datetime(year=2000, month=1, day=2)
-        self.assertEqual(actual, expected)
-        self.assertEqual(type(actual), type(expected))
-
-        pos_args = [2000, 1, 2, 3, 4, 5, 999999]
-        kw_args = {
-                'year': 2000,
-                'month': 1,
-                'day': 2,
-                'hour': 3,
-                'minute': 4,
-                'second': 5,
-                'microsecond': 999999,
-                }
-        self.assertEqual(Timestamp(**kw_args).to_pydatetime(),
-                         datetime.datetime(**kw_args))
+        self.assertEqual(
+                repr(Timestamp(year=2015, month=11, day=12,
+                    hour=1, minute=2, second=3, microsecond=999999)),
+                repr(Timestamp('2015-11-12 01:02:03.999999')))
 
     def test_conversion(self):
         # GH 9255
