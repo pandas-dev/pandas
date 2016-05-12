@@ -108,6 +108,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 - Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)
+- ``pd.crosstab`` now respects filtered ``Categorical`` objects (:issue:`12298`)
 
 
 

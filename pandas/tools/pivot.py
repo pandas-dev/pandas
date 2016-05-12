@@ -439,8 +439,15 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     crosstab : DataFrame
     """
 
-    index = com._maybe_make_list(index)
-    columns = com._maybe_make_list(columns)
+    def _make_list(arr):
+        # see gh-12298
+        if com.is_categorical(arr):
+            arr = Series(list(arr), name=arr.name)
+
+        return com._maybe_make_list(arr)
+
+    index = _make_list(index)
+    columns = _make_list(columns)
 
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')
