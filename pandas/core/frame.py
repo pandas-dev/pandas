@@ -4989,31 +4989,27 @@ class DataFrame(NDFrame):
         0.5  2.5  55.0
         """
         self._check_percentile(q)
-        if not com.is_list_like(q):
-            q = [q]
-            squeeze = True
-        else:
-            squeeze = False
 
         data = self._get_numeric_data() if numeric_only else self
         axis = self._get_axis_number(axis)
+        is_transposed = axis == 1
 
-        def _quantile(series):
-            res = series.quantile(q, interpolation=interpolation)
-            return series.name, res
-
-        if axis == 1:
+        if is_transposed:
             data = data.T
 
-        # unable to use DataFrame.apply, becasuse data may be empty
-        result = dict(_quantile(s) for (_, s) in data.iteritems())
-        result = self._constructor(result, columns=data.columns)
-        if squeeze:
-            if result.shape == (1, 1):
-                result = result.T.iloc[:, 0]  # don't want scalar
-            else:
-                result = result.T.squeeze()
-            result.name = None  # For groupby, so it can set an index name
+        result = data._data.quantile(qs=q,
+                                     axis=1,
+                                     interpolation=interpolation,
+                                     transposed=is_transposed)
+
+        if result.ndim == 2:
+            result = self._constructor(result)
+        else:
+            result = self._constructor_sliced(result, name=q)
+
+        if is_transposed:
+            result = result.T
+
         return result
 
     def to_timestamp(self, freq=None, how='start', axis=0, copy=True):

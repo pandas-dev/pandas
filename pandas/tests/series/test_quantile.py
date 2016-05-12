@@ -126,6 +126,14 @@ class TestSeriesQuantile(TestData, tm.TestCase):
                                                        interpolation='higher')
 
     def test_quantile_nan(self):
+
+        # GH 13098
+        s = pd.Series([1, 2, 3, 4, np.nan])
+        result = s.quantile(0.5)
+        expected = 2.5
+        self.assertEqual(result, expected)
+
+        # all nan/empty
         cases = [Series([]), Series([np.nan, np.nan])]
 
         for s in cases:
