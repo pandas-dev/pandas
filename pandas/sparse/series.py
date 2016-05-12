@@ -5,14 +5,13 @@ with float64 data
 
 # pylint: disable=E1101,E1103,W0231
 
-from numpy import nan, ndarray
 import numpy as np
 import warnings
 import operator
 
 from pandas.compat.numpy import function as nv
 from pandas.core.common import isnull, _values_from_object, _maybe_match_name
-from pandas.core.index import Index, _ensure_index
+from pandas.core.index import Index, _ensure_index, InvalidIndexError
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.internals import SingleBlockManager
@@ -135,7 +134,7 @@ class SparseSeries(Series):
                 if is_sparse_array:
                     fill_value = data.fill_value
                 else:
-                    fill_value = nan
+                    fill_value = np.nan
 
             if is_sparse_array:
                 if isinstance(data, SparseSeries) and index is None:
@@ -393,8 +392,10 @@ class SparseSeries(Series):
 
     def __getitem__(self, key):
         try:
-            return self._get_val_at(self.index.get_loc(key))
+            return self.index.get_value(self, key)
 
+        except InvalidIndexError:
+            pass
         except KeyError:
             if isinstance(key, (int, np.integer)):
                 return self._get_val_at(key)
@@ -406,13 +407,12 @@ class SparseSeries(Series):
             # Could not hash item, must be array-like?
             pass
 
-        # is there a case where this would NOT be an ndarray?
-        # need to find an example, I took out the case for now
-
         key = _values_from_object(key)
-        dataSlice = self.values[key]
-        new_index = Index(self.index.view(ndarray)[key])
-        return self._constructor(dataSlice, index=new_index).__finalize__(self)
+        if self.index.nlevels > 1 and isinstance(key, tuple):
+            # to handle MultiIndex labels
+            key = self.index.get_loc(key)
+        return self._constructor(self.values[key],
+                                 index=self.index[key]).__finalize__(self)
 
     def _get_values(self, indexer):
         try:

@@ -10,9 +10,13 @@ class TestSparseSeriesIndexing(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
+    def setUp(self):
+        self.orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
+        self.sparse = self.orig.to_sparse()
+
     def test_getitem(self):
-        orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
-        sparse = orig.to_sparse()
+        orig = self.orig
+        sparse = self.sparse
 
         self.assertEqual(sparse[0], 1)
         self.assertTrue(np.isnan(sparse[1]))
@@ -33,8 +37,9 @@ class TestSparseSeriesIndexing(tm.TestCase):
         tm.assert_sp_series_equal(result, exp)
 
     def test_getitem_slice(self):
-        orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
-        sparse = orig.to_sparse()
+        orig = self.orig
+        sparse = self.sparse
+
         tm.assert_sp_series_equal(sparse[:2], orig[:2].to_sparse())
         tm.assert_sp_series_equal(sparse[4:2], orig[4:2].to_sparse())
         tm.assert_sp_series_equal(sparse[::2], orig[::2].to_sparse())
@@ -84,8 +89,8 @@ class TestSparseSeriesIndexing(tm.TestCase):
                                   orig[-5:].to_sparse(fill_value=0))
 
     def test_loc(self):
-        orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
-        sparse = orig.to_sparse()
+        orig = self.orig
+        sparse = self.sparse
 
         self.assertEqual(sparse.loc[0], 1)
         self.assertTrue(np.isnan(sparse.loc[1]))
@@ -154,9 +159,16 @@ class TestSparseSeriesIndexing(tm.TestCase):
         tm.assert_sp_series_equal(result, exp)
 
     def test_loc_slice(self):
-        orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
-        sparse = orig.to_sparse()
+        orig = self.orig
+        sparse = self.sparse
         tm.assert_sp_series_equal(sparse.loc[2:], orig.loc[2:].to_sparse())
+
+    def test_loc_slice_index_fill_value(self):
+        orig = pd.Series([1, np.nan, 0, 3, 0], index=list('ABCDE'))
+        sparse = orig.to_sparse(fill_value=0)
+
+        tm.assert_sp_series_equal(sparse.loc['C':],
+                                  orig.loc['C':].to_sparse(fill_value=0))
 
     def test_loc_slice_fill_value(self):
         orig = pd.Series([1, np.nan, 0, 3, 0])
@@ -165,8 +177,8 @@ class TestSparseSeriesIndexing(tm.TestCase):
                                   orig.loc[2:].to_sparse(fill_value=0))
 
     def test_iloc(self):
-        orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
-        sparse = orig.to_sparse()
+        orig = self.orig
+        sparse = self.sparse
 
         self.assertEqual(sparse.iloc[3], 3)
         self.assertTrue(np.isnan(sparse.iloc[2]))
@@ -234,8 +246,9 @@ class TestSparseSeriesIndexing(tm.TestCase):
         self.assertEqual(sparse.at['e'], orig.at['e'])
 
     def test_iat(self):
-        orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
-        sparse = orig.to_sparse()
+        orig = self.orig
+        sparse = self.sparse
+
         self.assertEqual(sparse.iat[0], orig.iat[0])
         self.assertTrue(np.isnan(sparse.iat[1]))
         self.assertTrue(np.isnan(sparse.iat[2]))
@@ -354,6 +367,111 @@ class TestSparseSeriesIndexing(tm.TestCase):
         res = sparse.reindex(['A', 'E', 'C', 'D'])
         exp = orig.reindex(['A', 'E', 'C', 'D']).to_sparse(fill_value=0)
         tm.assert_sp_series_equal(res, exp)
+
+
+class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
+
+    _multiprocess_can_split_ = True
+
+    def setUp(self):
+        # Mi with duplicated values
+        idx = pd.MultiIndex.from_tuples([('A', 0), ('A', 1), ('B', 0),
+                                         ('C', 0), ('C', 1)])
+        self.orig = pd.Series([1, np.nan, np.nan, 3, np.nan], index=idx)
+        self.sparse = self.orig.to_sparse()
+
+    def test_getitem_multi(self):
+        orig = self.orig
+        sparse = self.sparse
+
+        self.assertEqual(sparse[0], orig[0])
+        self.assertTrue(np.isnan(sparse[1]))
+        self.assertEqual(sparse[3], orig[3])
+
+        tm.assert_sp_series_equal(sparse['A'], orig['A'].to_sparse())
+        tm.assert_sp_series_equal(sparse['B'], orig['B'].to_sparse())
+
+        result = sparse[[1, 3, 4]]
+        exp = orig[[1, 3, 4]].to_sparse()
+        tm.assert_sp_series_equal(result, exp)
+
+        # dense array
+        result = sparse[orig % 2 == 1]
+        exp = orig[orig % 2 == 1].to_sparse()
+        tm.assert_sp_series_equal(result, exp)
+
+        # sparse array (actuary it coerces to normal Series)
+        result = sparse[sparse % 2 == 1]
+        exp = orig[orig % 2 == 1].to_sparse()
+        tm.assert_sp_series_equal(result, exp)
+
+    def test_getitem_multi_tuple(self):
+        orig = self.orig
+        sparse = self.sparse
+
+        self.assertEqual(sparse['C', 0], orig['C', 0])
+        self.assertTrue(np.isnan(sparse['A', 1]))
+        self.assertTrue(np.isnan(sparse['B', 0]))
+
+    def test_getitems_slice_multi(self):
+        orig = self.orig
+        sparse = self.sparse
+
+        tm.assert_sp_series_equal(sparse[2:], orig[2:].to_sparse())
+        tm.assert_sp_series_equal(sparse.loc['B':], orig.loc['B':].to_sparse())
+        tm.assert_sp_series_equal(sparse.loc['C':], orig.loc['C':].to_sparse())
+
+        tm.assert_sp_series_equal(sparse.loc['A':'B'],
+                                  orig.loc['A':'B'].to_sparse())
+        tm.assert_sp_series_equal(sparse.loc[:'B'], orig.loc[:'B'].to_sparse())
+
+    def test_loc(self):
+        # need to be override to use different label
+        orig = self.orig
+        sparse = self.sparse
+
+        tm.assert_sp_series_equal(sparse.loc['A'],
+                                  orig.loc['A'].to_sparse())
+        tm.assert_sp_series_equal(sparse.loc['B'],
+                                  orig.loc['B'].to_sparse())
+
+        result = sparse.loc[[1, 3, 4]]
+        exp = orig.loc[[1, 3, 4]].to_sparse()
+        tm.assert_sp_series_equal(result, exp)
+
+        # exceeds the bounds
+        result = sparse.loc[[1, 3, 4, 5]]
+        exp = orig.loc[[1, 3, 4, 5]].to_sparse()
+        tm.assert_sp_series_equal(result, exp)
+
+        # dense array
+        result = sparse.loc[orig % 2 == 1]
+        exp = orig.loc[orig % 2 == 1].to_sparse()
+        tm.assert_sp_series_equal(result, exp)
+
+        # sparse array (actuary it coerces to normal Series)
+        result = sparse.loc[sparse % 2 == 1]
+        exp = orig.loc[orig % 2 == 1].to_sparse()
+        tm.assert_sp_series_equal(result, exp)
+
+    def test_loc_multi_tuple(self):
+        orig = self.orig
+        sparse = self.sparse
+
+        self.assertEqual(sparse.loc['C', 0], orig.loc['C', 0])
+        self.assertTrue(np.isnan(sparse.loc['A', 1]))
+        self.assertTrue(np.isnan(sparse.loc['B', 0]))
+
+    def test_loc_slice(self):
+        orig = self.orig
+        sparse = self.sparse
+        tm.assert_sp_series_equal(sparse.loc['A':], orig.loc['A':].to_sparse())
+        tm.assert_sp_series_equal(sparse.loc['B':], orig.loc['B':].to_sparse())
+        tm.assert_sp_series_equal(sparse.loc['C':], orig.loc['C':].to_sparse())
+
+        tm.assert_sp_series_equal(sparse.loc['A':'B'],
+                                  orig.loc['A':'B'].to_sparse())
+        tm.assert_sp_series_equal(sparse.loc[:'B'], orig.loc[:'B'].to_sparse())
 
 
 class TestSparseDataFrameIndexing(tm.TestCase):
