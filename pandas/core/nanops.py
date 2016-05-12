@@ -582,7 +582,8 @@ def nankurt(values, axis=None, skipna=True):
         if denom == 0:
             return 0
 
-    result = numer / denom - adj
+    with np.errstate(invalid='ignore', divide='ignore'):
+        result = numer / denom - adj
 
     dtype = values.dtype
     if is_float_dtype(dtype):

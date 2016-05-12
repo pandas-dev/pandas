@@ -709,7 +709,8 @@ class Base(object):
                     # raise TypeError or ValueError (PeriodIndex)
                     # PeriodIndex behavior should be changed in future version
                     with tm.assertRaises(Exception):
-                        func(idx)
+                        with np.errstate(all='ignore'):
+                            func(idx)
                 elif isinstance(idx, (Float64Index, Int64Index)):
                     # coerces to float (e.g. np.sin)
                     with np.errstate(all='ignore'):
@@ -723,7 +724,8 @@ class Base(object):
                         continue
                     else:
                         with tm.assertRaises(Exception):
-                            func(idx)
+                            with np.errstate(all='ignore'):
+                                func(idx)
 
             for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
                 if isinstance(idx, pd.tseries.base.DatetimeIndexOpsMixin):
