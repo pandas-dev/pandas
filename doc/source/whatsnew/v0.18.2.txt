@@ -33,7 +33,6 @@ Other enhancements
 
 
 
-
 .. _whatsnew_0182.api:
 
 API changes
@@ -108,6 +107,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 - Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)
+- Bug when passing a not-default-indexed ``Series`` as ``xerr`` or ``yerr`` in ``.plot()`` (:issue:`11858`)
 
 
 
