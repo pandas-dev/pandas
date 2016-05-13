@@ -5339,7 +5339,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
                   axis_descr=axis_descr)
     @Appender("Return cumulative {0} over requested axis.".format(name) +
               _cnum_doc)
-    def cum_func(self, axis=None, dtype=None, out=None, skipna=True, **kwargs):
+    def cum_func(self, axis=None, skipna=True, **kwargs):
         nv.validate_cum_func(tuple(), kwargs)
         if axis is None:
             axis = self._stat_axis_number
