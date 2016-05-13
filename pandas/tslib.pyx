@@ -216,6 +216,7 @@ cdef inline bint _is_fixed_offset(object tz):
 
 
 _zero_time = datetime_time(0, 0)
+_no_input = object()
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
@@ -230,7 +231,7 @@ class Timestamp(_Timestamp):
     keyword.
 
     Parameters
-    -----------------
+    ----------
     ts_input : datetime-like, str, int, float
         Value to be converted to Timestamp
     offset : str, DateOffset
@@ -240,7 +241,7 @@ class Timestamp(_Timestamp):
     unit : string
         numpy unit used for conversion, if ts_input is int or float
 
-    The other two forms copy the parameters from datetime.datetime. They can
+    The other two forms mimic the parameters from datetime.datetime. They can
     be passed by either position or keyword, but not both mixed together.
 
     :func:`datetime.datetime` Parameters
@@ -310,7 +311,7 @@ class Timestamp(_Timestamp):
         return cls(datetime.combine(date, time))
 
     def __new__(cls,
-            object ts_input=None, object offset=None, tz=None, unit=None,
+            object ts_input=_no_input, object offset=None, tz=None, unit=None,
             year=None, month=None, day=None,
             hour=None, minute=None, second=None, microsecond=None,
             tzinfo=None):
@@ -328,14 +329,14 @@ class Timestamp(_Timestamp):
         # that the second argument is an int.
         # - Nones for the first four (legacy) arguments indicate pydatetime
         # keyword arguments. year, month, and day are required. As a
-        # shortcut, we just check that the first argument is None.
+        # shortcut, we just check that the first argument was not passed.
         #
         # Mixing pydatetime positional and keyword arguments is forbidden!
 
         cdef _TSObject ts
         cdef _Timestamp ts_base
 
-        if ts_input is None:
+        if ts_input is _no_input:
             # User passed keyword arguments.
             return Timestamp(datetime(year, month, day, hour or 0,
                 minute or 0, second or 0, microsecond or 0, tzinfo),
