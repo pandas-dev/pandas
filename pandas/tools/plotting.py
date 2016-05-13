@@ -1331,6 +1331,10 @@ class MPLPlot(object):
             x = x._mpl_repr()
 
         if is_errorbar:
+            if 'xerr' in kwds:
+                kwds['xerr'] = np.array(kwds.get('xerr'))
+            if 'yerr' in kwds:
+                kwds['yerr'] = np.array(kwds.get('yerr'))
             return ax.errorbar(x, y, **kwds)
         else:
             # prevent style kwarg from going to errorbar, where it is
