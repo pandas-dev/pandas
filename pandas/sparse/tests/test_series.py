@@ -1019,6 +1019,15 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         check = check.dropna().to_sparse()
         tm.assert_sp_series_equal(ss, check)
 
+    def test_from_coo_long_repr(self):
+        # GH 13114
+        # test it doesn't raise error. Formatting is tested in test_format
+        tm._skip_if_no_scipy()
+        import scipy.sparse
+
+        sparse = SparseSeries.from_coo(scipy.sparse.rand(350, 18))
+        repr(sparse)
+
     def _run_test(self, ss, kwargs, check):
         results = ss.to_coo(**kwargs)
         self._check_results_to_coo(results, check)

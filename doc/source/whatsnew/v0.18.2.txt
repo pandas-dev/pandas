@@ -106,6 +106,9 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing may raise ``IndexError`` (:issue:`13144`)
+- Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing result may have normal ``Index`` (:issue:`13144`)
 - Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)
 - Bug when passing a not-default-indexed ``Series`` as ``xerr`` or ``yerr`` in ``.plot()`` (:issue:`11858`)
 
