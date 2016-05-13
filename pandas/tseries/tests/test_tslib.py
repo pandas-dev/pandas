@@ -202,6 +202,8 @@ class TestTimestamp(tm.TestCase):
             repr(Timestamp(2015, 11, 12, 1, 2, 3, 999999)),
             repr(Timestamp('2015-11-12 01:02:03.999999')))
 
+        self.assertIs(Timestamp(None), pd.NaT)
+
     def test_constructor_keyword(self):
         # GH 10758
         with tm.assertRaises(TypeError):

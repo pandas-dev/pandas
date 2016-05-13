@@ -214,7 +214,6 @@ cdef inline bint _is_fixed_offset(object tz):
             return 0
     return 1
 
-
 _zero_time = datetime_time(0, 0)
 _no_input = object()
 
@@ -241,22 +240,22 @@ class Timestamp(_Timestamp):
     unit : string
         numpy unit used for conversion, if ts_input is int or float
 
-    The other two forms mimic the parameters from datetime.datetime. They can
-    be passed by either position or keyword, but not both mixed together.
+    The other two forms mimic the parameters from ``datetime.datetime``. They
+    can be passed by either position or keyword, but not both mixed together.
 
     :func:`datetime.datetime` Parameters
-    ------------------------------
+    ------------------------------------
 
     .. versionadded:: 0.18.2
 
     year : int
     month : int
     day : int
-    hour : int [optional]
-    minute : int [optional]
-    second : int [optional]
-    microsecond : int [optional]
-    tzinfo : datetime.tzinfo [optional]
+    hour : int, optional, default is 0
+    minute : int, optional, default is 0
+    second : int, optional, default is 0
+    microsecond : int, optional, default is 0
+    tzinfo : datetime.tzinfo, optional, default is None
     """
 
     @classmethod
@@ -319,17 +318,20 @@ class Timestamp(_Timestamp):
         # four) and positional and keyword parameter names from pydatetime.
         #
         # There are three calling forms:
+        #
         # - In the legacy form, the first parameter, ts_input, is required
-        # and may be datetime-like, str, int, or float. The second parameter,
-        # offset, is optional and may be str or DateOffset.
+        #   and may be datetime-like, str, int, or float. The second
+        #   parameter, offset, is optional and may be str or DateOffset.
+        #
         # - ints in the first, second, and third arguments indicate
-        # pydatetime positional arguments. Only the first 8 arguments
-        # (standing in for year, month, day, hour, minute, second,
-        # microsecond, tzinfo) may be non-None. As a shortcut, we just check
-        # that the second argument is an int.
+        #   pydatetime positional arguments. Only the first 8 arguments
+        #   (standing in for year, month, day, hour, minute, second,
+        #   microsecond, tzinfo) may be non-None. As a shortcut, we just
+        #   check that the second argument is an int.
+        #
         # - Nones for the first four (legacy) arguments indicate pydatetime
-        # keyword arguments. year, month, and day are required. As a
-        # shortcut, we just check that the first argument was not passed.
+        #   keyword arguments. year, month, and day are required. As a
+        #   shortcut, we just check that the first argument was not passed.
         #
         # Mixing pydatetime positional and keyword arguments is forbidden!
 
