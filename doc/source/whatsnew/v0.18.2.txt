@@ -30,7 +30,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behaviour remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
-
+- Correct ``KeyError`` from matplotlib when processing ``Series`` ``xerr``/``yerr`` (:issue:`13114`)
 
 
 .. _whatsnew_0182.api:
