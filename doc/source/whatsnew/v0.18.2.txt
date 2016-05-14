@@ -120,6 +120,7 @@ Bug Fixes
 
 
 - Bug in ``.groupby(..).resample(..)`` when the same object is called multiple times (:issue:`13174`)
+- Bug in ``.to_records()`` when index name is unicode string (:issue: `13172`)
 
 
 - Regression in ``Series.quantile`` with nans (also shows up in ``.median()`` and ``.describe()``); furthermore now names the ``Series`` with the quantile (:issue:`13098`, :issue:`13146`)
