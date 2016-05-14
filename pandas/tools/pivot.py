@@ -410,7 +410,11 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     Notes
     -----
     Any Series passed will have their name attributes used unless row or column
-    names for the cross-tabulation are specified
+    names for the cross-tabulation are specified.
+
+    Any input passed containing Categorical data will have **all** of its
+    categories included in the cross-tabulation, even if the actual data does
+    not contain any instances of a particular category.
 
     In the event that there aren't overlapping indexes an empty DataFrame will
     be returned.
@@ -433,6 +437,16 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     a
     bar  1     2      1     0
     foo  2     2      1     2
+
+    >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+    >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
+    >>> crosstab(foo, bar)  # 'c' and 'f' are not represented in the data,
+                            # but they still will be counted in the output
+    col_0  d  e  f
+    row_0
+    a      1  0  0
+    b      0  1  0
+    c      0  0  0
 
     Returns
     -------
