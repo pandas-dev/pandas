@@ -612,7 +612,8 @@ def _expand_elements(body):
 
 
 def _data_to_frame(data, header, index_col, skiprows,
-                   parse_dates, tupleize_cols, thousands):
+                   parse_dates, tupleize_cols, thousands,
+                   decimal):
     head, body, foot = data
 
     if head:
@@ -630,7 +631,7 @@ def _data_to_frame(data, header, index_col, skiprows,
     tp = TextParser(body, header=header, index_col=index_col,
                     skiprows=_get_skiprows(skiprows),
                     parse_dates=parse_dates, tupleize_cols=tupleize_cols,
-                    thousands=thousands)
+                    thousands=thousands, decimal=decimal)
     df = tp.read()
     return df
 
@@ -716,7 +717,8 @@ def _validate_flavor(flavor):
 
 
 def _parse(flavor, io, match, header, index_col, skiprows,
-           parse_dates, tupleize_cols, thousands, attrs, encoding):
+           parse_dates, tupleize_cols, thousands, attrs, encoding,
+           decimal):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
@@ -744,7 +746,9 @@ def _parse(flavor, io, match, header, index_col, skiprows,
                                       skiprows=skiprows,
                                       parse_dates=parse_dates,
                                       tupleize_cols=tupleize_cols,
-                                      thousands=thousands))
+                                      thousands=thousands,
+                                      decimal=decimal
+                                      ))
         except EmptyDataError:  # empty table
             continue
     return ret
@@ -752,7 +756,8 @@ def _parse(flavor, io, match, header, index_col, skiprows,
 
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
-              tupleize_cols=False, thousands=',', encoding=None):
+              tupleize_cols=False, thousands=',', encoding=None,
+              decimal=b'.'):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -828,6 +833,10 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         underlying parser library (e.g., the parser library will try to use
         the encoding provided by the document).
 
+    decimal : str, default '.'
+        Character to recognize as decimal point (e.g. use ',' for European
+        data).
+
     Returns
     -------
     dfs : list of DataFrames
@@ -871,4 +880,5 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
                          'data (you passed a negative value)')
     _validate_header_arg(header)
     return _parse(flavor, io, match, header, index_col, skiprows,
-                  parse_dates, tupleize_cols, thousands, attrs, encoding)
+                  parse_dates, tupleize_cols, thousands, attrs, encoding,
+                  decimal)
