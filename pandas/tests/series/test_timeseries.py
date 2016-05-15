@@ -347,7 +347,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
 
         N = 50
         # testing with timezone, GH #2785
-        rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
+        rng = date_range('1/1/1990', periods=N, freq='H', tz='America/New_York')
         ts = Series(np.random.randn(N), index=rng)
 
         # also test Timestamp tz handling, GH #2789
@@ -368,8 +368,8 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         assert_series_equal(result, ts)
 
         result = ts.copy()
-        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = 0
-        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = ts[4]
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('America/Chicago'))] = 0
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('America/Chicago'))] = ts[4]
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_periodindex(self):
