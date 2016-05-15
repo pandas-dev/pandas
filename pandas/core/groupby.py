@@ -2776,18 +2776,9 @@ class SeriesGroupBy(GroupBy):
             func = getattr(self, func)
 
         ids, _, ngroup = self.grouper.group_info
-        mask = ids != -1
 
-        out = func().values[ids]
-        if not mask.all():
-            out = np.where(mask, out, np.nan)
-
-        obs = np.zeros(ngroup, dtype='bool')
-        obs[ids[mask]] = True
-        if not obs.all():
-            out = self._try_cast(out, self._selected_obj)
-
-        return Series(out, index=self.obj.index)
+        out = algos.take_1d(func().values, ids)
+        return Series(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):  # noqa
         """
@@ -3465,19 +3456,13 @@ class NDFrameGroupBy(GroupBy):
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
-        results = np.empty_like(obj.values, result.values.dtype)
-        for (name, group), (i, row) in zip(self, result.iterrows()):
-            indexer = self._get_index(name)
-            if len(indexer) > 0:
-                results[indexer] = np.tile(row.values, len(
-                    indexer)).reshape(len(indexer), -1)
+        # Fast transform
+        ids, _, ngroup = self.grouper.group_info
+        out = {}
+        for col in result:
+            out[col] = algos.take_nd(result[col].values, ids)
 
-        counts = self.size().fillna(0).values
-        if any(counts == 0):
-            results = self._try_cast(results, obj[result.columns])
-
-        return (DataFrame(results, columns=result.columns, index=obj.index)
-                ._convert(datetime=True))
+        return DataFrame(out, columns=result.columns, index=obj.index)
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, compat.string_types):

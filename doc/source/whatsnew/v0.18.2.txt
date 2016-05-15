@@ -104,7 +104,7 @@ Performance Improvements
 - increased performance of ``DataFrame.quantile()`` as it now operates per-block (:issue:`11623`)
 
 
-
+- Improved performance of ``DataFrameGroupBy.transform`` (:issue:`12737`)
 
 
 .. _whatsnew_0182.bug_fixes:
@@ -123,7 +123,7 @@ Bug Fixes
 
 - Regression in ``Series.quantile`` with nans (also shows up in ``.median()`` and ``.describe()``); furthermore now names the ``Series`` with the quantile (:issue:`13098`, :issue:`13146`)
 
-
+- Bug in ``SeriesGroupBy.transform`` with datetime values and missing groups (:issue:`13191`)
 
 - Bug in ``Series.str.extractall()`` with ``str`` index raises ``ValueError``  (:issue:`13156`)
 
