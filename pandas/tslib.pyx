@@ -2082,6 +2082,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                                                  unit))
                         elif is_ignore:
                             raise AssertionError
+                        iresult[i] = NPY_NAT
                     except:
                         if is_raise:
                             raise OutOfBoundsDatetime("cannot convert input {0}"
@@ -2149,7 +2150,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         ndarray[int64_t] iresult
         ndarray[object] oresult
         pandas_datetimestruct dts
-        bint utc_convert = bool(utc), seen_integer=0, seen_datetime=0
+        bint utc_convert = bool(utc), seen_integer=0, seen_string=0, seen_datetime=0
         bint is_raise=errors=='raise', is_ignore=errors=='ignore', is_coerce=errors=='coerce'
         _TSObject _ts
         int out_local=0, out_tzoffset=0
@@ -2215,25 +2216,32 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                             continue
                         raise
 
-            # if we are coercing, dont' allow integers
-            elif is_integer_object(val) and not is_coerce:
-                if val == NPY_NAT:
-                    iresult[i] = NPY_NAT
-                else:
-                    iresult[i] = val
-                    seen_integer=1
-            elif is_float_object(val) and not is_coerce:
+            # these must be ns unit by-definition
+            elif is_integer_object(val) or is_float_object(val):
+
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
-                else:
-                    iresult[i] = <int64_t>val
+                elif is_raise or is_ignore:
+                    iresult[i] = val
                     seen_integer=1
+                else:
+                    # coerce
+                    # we now need to parse this as if unit='ns'
+                    # we can ONLY accept integers at this point
+                    # if we have previously (or in future accept
+                    # datetimes/strings, then we must coerce)
+                    seen_integer = 1
+                    try:
+                        iresult[i] = cast_from_unit(val, 'ns')
+                    except:
+                        iresult[i] = NPY_NAT
             else:
                 try:
                     if len(val) == 0 or val in _nat_strings:
                         iresult[i] = NPY_NAT
                         continue
 
+                    seen_string=1
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
                     value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
                     if out_local == 1:
@@ -2276,11 +2284,20 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         continue
                     raise
 
-        # don't allow mixed integers and datetime like
-        # higher levels can catch and is_coerce to object, for
-        # example
-        if seen_integer and seen_datetime:
-            raise ValueError("mixed datetimes and integers in passed array")
+        if  seen_datetime and seen_integer:
+            # we have mixed datetimes & integers
+
+            if is_coerce:
+                # coerce all of the integers/floats to NaT, preserve
+                # the datetimes and other convertibles
+                for i in range(n):
+                    val = values[i]
+                    if is_integer_object(val) or is_float_object(val):
+                        result[i] = NPY_NAT
+            elif is_raise:
+                raise ValueError("mixed datetimes and integers in passed array")
+            else:
+                raise TypeError
 
         return result
     except OutOfBoundsDatetime:

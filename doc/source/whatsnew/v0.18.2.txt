@@ -76,13 +76,26 @@ New Behavior:
    type(s.tolist()[0])
 
 
+.. _whatsnew_0182.api.to_datetime_coerce:
 
+``.to_datetime()`` when coercing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+A bug is fixed in ``.to_datetime()`` when passing integers or floats, and no ``unit`` and ``errors='coerce'`` (:issue:`13180`).
+Previously if ``.to_datetime()`` encountered mixed integers/floats and strings, but no datetimes with ``errors='coerce'`` it would convert all to ``NaT``.
 
+Previous Behavior:
 
+.. code-block:: ipython
 
+   In [2]: pd.to_datetime([1, 'foo'], errors='coerce')
+   Out[2]: DatetimeIndex(['NaT', 'NaT'], dtype='datetime64[ns]', freq=None)
 
+This will now convert integers/floats with the default unit of ``ns``.
 
+.. ipython:: python
+
+   pd.to_datetime([1, 'foo'], errors='coerce')
 
 .. _whatsnew_0182.api.other:
 
@@ -132,7 +145,6 @@ Bug Fixes
 
 
 - Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
-
 
 
 
