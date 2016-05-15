@@ -55,7 +55,7 @@ delimiter : str, default ``None``
     Alternative argument name for sep.
 delim_whitespace : boolean, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
-    used as the sep. Equivalent to setting ``sep='\+s'``. If this option
+    used as the sep. Equivalent to setting ``sep='\s+'``. If this option
     is set to True, nothing should be passed in for the ``delimiter``
     parameter.
 

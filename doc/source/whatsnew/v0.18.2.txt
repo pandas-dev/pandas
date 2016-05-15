@@ -31,8 +31,14 @@ Other enhancements
 
 - The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behaviour remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
 
-- Support decimal option in PythonParser
+- ``Index`` now supports ``.str.extractall()`` which returns ``DataFrame``, see :ref:`Extract all matches in each subject (extractall) <text.extractall>` (:issue:`10008`, :issue:`13156`)
 
+  .. ipython:: python
+
+     idx = pd.Index(["a1a2", "b1", "c1"])
+     idx.str.extractall("[ab](?P<digit>\d)")
+
+- Support decimal option in PythonParser
 
 .. _whatsnew_0182.api:
 
@@ -97,6 +103,9 @@ Performance Improvements
 
 - Improved performance of sparse ``IntIndex.intersect`` (:issue:`13082`)
 - Improved performance of sparse arithmetic with ``BlockIndex`` when the number of blocks are large, though recommended to use ``IntIndex`` in such cases (:issue:`13082`)
+- increased performance of ``DataFrame.quantile()`` as it now operates per-block (:issue:`11623`)
+
+
 
 
 
@@ -104,15 +113,21 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing may raise ``IndexError`` (:issue:`13144`)
+- Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing result may have normal ``Index`` (:issue:`13144`)
 - Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)
+- Bug when passing a not-default-indexed ``Series`` as ``xerr`` or ``yerr`` in ``.plot()`` (:issue:`11858`)
+
+
+- Bug in ``.groupby(..).resample(..)`` when the same object is called multiple times (:issue:`13174`)
+
+
+- Regression in ``Series.quantile`` with nans (also shows up in ``.median()`` and ``.describe()``); furthermore now names the ``Series`` with the quantile (:issue:`13098`, :issue:`13146`)
 
 
 
-
-
-
-
-
+- Bug in ``Series.str.extractall()`` with ``str`` index raises ``ValueError``  (:issue:`13156`)
 
 
 - Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
@@ -121,14 +136,17 @@ Bug Fixes
 
 
 
+- Bug in ``MultiIndex`` slicing where extra elements were returned when level is non-unique (:issue:`12896`)
 
 
 
 
 
 
+- Bug in ``Series`` arithmetic raises ``TypeError`` if it contains datetime-like as ``object`` dtype (:issue:`13043`)
 
 
 
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
+- Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)

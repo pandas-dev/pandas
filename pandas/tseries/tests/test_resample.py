@@ -2519,6 +2519,25 @@ class TestResamplerGrouper(tm.TestCase):
         result = g.resample('2s').mean().B
         assert_series_equal(result, expected)
 
+    def test_getitem_multiple(self):
+
+        # GH 13174
+        # multiple calls after selection causing an issue with aliasing
+        data = [{'id': 1, 'buyer': 'A'}, {'id': 2, 'buyer': 'B'}]
+        df = pd.DataFrame(data, index=pd.date_range('2016-01-01', periods=2))
+        r = df.groupby('id').resample('1D')
+        result = r['buyer'].count()
+        expected = pd.Series([1, 1],
+                             index=pd.MultiIndex.from_tuples(
+                                 [(1, pd.Timestamp('2016-01-01')),
+                                  (2, pd.Timestamp('2016-01-02'))],
+                                 names=['id', None]),
+                             name='buyer')
+        assert_series_equal(result, expected)
+
+        result = r['buyer'].count()
+        assert_series_equal(result, expected)
+
     def test_methods(self):
         g = self.frame.groupby('A')
         r = g.resample('2s')

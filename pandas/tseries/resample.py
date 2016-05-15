@@ -1,6 +1,7 @@
 from datetime import timedelta
 import numpy as np
 import warnings
+import copy
 
 import pandas as pd
 from pandas.core.base import AbstractMethodError, GroupByMixin
@@ -592,7 +593,7 @@ class _GroupByMixin(GroupByMixin):
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
-        self.groupby = parent.groupby
+        self.groupby = copy.copy(parent.groupby)
 
     def _apply(self, f, **kwargs):
         """

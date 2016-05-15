@@ -3087,11 +3087,11 @@ $1$,$2$
 
     def test_to_csv_escapechar(self):
         df = DataFrame({'col': ['a"a', '"bb"']})
-        expected = """\
+        expected = '''\
 "","col"
 "0","a\\"a"
 "1","\\"bb\\""
-"""
+'''
 
         with tm.ensure_clean('test.csv') as path:  # QUOTE_ALL
             df.to_csv(path, quoting=1, doublequote=False, escapechar='\\')
@@ -3758,25 +3758,6 @@ class TestSeriesFormatting(tm.TestCase):
         exp = '0    0\n    ..\n9    9'
         self.assertEqual(res, exp)
 
-    def test_sparse_max_row(self):
-        s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
-        result = repr(s)
-        dtype = '' if use_32bit_repr else ', dtype=int32'
-        exp = ("0    1.0\n1    NaN\n2    NaN\n3    3.0\n"
-               "4    NaN\ndtype: float64\nBlockIndex\n"
-               "Block locations: array([0, 3]{0})\n"
-               "Block lengths: array([1, 1]{0})".format(dtype))
-        self.assertEqual(result, exp)
-
-        with option_context("display.max_rows", 3):
-            # GH 10560
-            result = repr(s)
-            exp = ("0    1.0\n    ... \n4    NaN\n"
-                   "dtype: float64\nBlockIndex\n"
-                   "Block locations: array([0, 3]{0})\n"
-                   "Block lengths: array([1, 1]{0})".format(dtype))
-            self.assertEqual(result, exp)
-
 
 class TestEngFormatter(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -3925,6 +3906,21 @@ class TestEngFormatter(tm.TestCase):
         result = formatter(0)
         self.assertEqual(result, u(' 0.000'))
 
+    def test_nan(self):
+        # Issue #11981
+
+        formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
+        result = formatter(np.nan)
+        self.assertEqual(result, u('NaN'))
+
+        df = pd.DataFrame({'a':[1.5, 10.3, 20.5],
+                           'b':[50.3, 60.67, 70.12],
+                           'c':[100.2, 101.33, 120.33]})
+        pt = df.pivot_table(values='a', index='b', columns='c')
+        fmt.set_eng_float_format(accuracy=1)
+        result = pt.to_string()
+        self.assertTrue('NaN' in result)
+        self.reset_display_options()
 
 def _three_digit_exp():
     return '%.4g' % 1.7e8 == '1.7e+008'

@@ -3826,24 +3826,24 @@ class AppendableTable(LegacyTable):
         nrows = self.nrows_expected
 
         # if dropna==True, then drop ALL nan rows
+        masks = []
         if dropna:
 
-            masks = []
             for a in self.values_axes:
 
                 # figure the mask: only do if we can successfully process this
                 # column, otherwise ignore the mask
                 mask = com.isnull(a.data).all(axis=0)
-                masks.append(mask.astype('u1', copy=False))
+                if isinstance(mask, np.ndarray):
+                    masks.append(mask.astype('u1', copy=False))
 
-            # consolidate masks
+        # consolidate masks
+        if len(masks):
             mask = masks[0]
             for m in masks[1:]:
                 mask = mask & m
             mask = mask.ravel()
-
         else:
-
             mask = None
 
         # broadcast the indexes if needed

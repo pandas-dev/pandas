@@ -642,6 +642,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         bint seen_float = 0
         bint seen_complex = 0
         bint seen_datetime = 0
+        bint seen_datetimetz = 0
         bint seen_timedelta = 0
         bint seen_int = 0
         bint seen_bool = 0
@@ -675,6 +676,15 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         if val is None:
             seen_null = 1
             floats[i] = complexes[i] = fnan
+        elif val is NaT:
+            if convert_datetime:
+                idatetimes[i] = iNaT
+                seen_datetime = 1
+            if convert_timedelta:
+                itimedeltas[i] = iNaT
+                seen_timedelta = 1
+            if not (convert_datetime or convert_timedelta):
+                seen_object = 1
         elif util.is_bool_object(val):
             seen_bool = 1
             bools[i] = val
@@ -710,9 +720,15 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             complexes[i] = val
             seen_complex = 1
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
+
+            # if we have an tz's attached then return the objects
             if convert_datetime:
-                seen_datetime = 1
-                idatetimes[i] = convert_to_tsobject(val, None, None, 0, 0).value
+                if getattr(val, 'tzinfo', None) is not None:
+                    seen_datetimetz = 1
+                    break
+                else:
+                    seen_datetime = 1
+                    idatetimes[i] = convert_to_tsobject(val, None, None, 0, 0).value
             else:
                 seen_object = 1
                 break
@@ -730,6 +746,13 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             break
 
     seen_numeric = seen_complex or seen_float or seen_int
+
+    # we try to coerce datetime w/tz but must all have the same tz
+    if seen_datetimetz:
+        if len(set([ getattr(val, 'tz', None) for val in objects ])) == 1:
+            from pandas import DatetimeIndex
+            return DatetimeIndex(objects)
+        seen_object = 1
 
     if not seen_object:
 
