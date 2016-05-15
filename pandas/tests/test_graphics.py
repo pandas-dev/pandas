@@ -450,8 +450,9 @@ class TestPlotBase(tm.TestCase):
                     self.assertIsInstance(value.lines, dict)
                 elif return_type == 'dict':
                     line = value['medians'][0]
+                    axes = line.axes if self.mpl_ge_1_5_0 else line.get_axes()
                     if check_ax_title:
-                        self.assertEqual(line.get_axes().get_title(), key)
+                        self.assertEqual(axes.get_title(), key)
                 else:
                     raise AssertionError
 
@@ -910,7 +911,7 @@ class TestSeriesPlots(TestPlotBase):
         subplot(122)
         y.hist()
         fig = gcf()
-        axes = fig.get_axes()
+        axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
         self.assertEqual(len(axes), 2)
 
     @slow

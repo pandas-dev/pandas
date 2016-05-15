@@ -150,7 +150,7 @@ class TestSeriesPlots(TestPlotBase):
         subplot(122)
         y.hist()
         fig = gcf()
-        axes = fig.get_axes()
+        axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
         self.assertEqual(len(axes), 2)
 
     @slow
@@ -242,11 +242,13 @@ class TestDataFramePlots(TestPlotBase):
         # passed ax should be used:
         fig, ax = self.plt.subplots()
         axes = df.boxplot('Col1', by='X', ax=ax)
-        self.assertIs(ax.get_axes(), axes)
+        ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
+        self.assertIs(ax_axes, axes)
 
         fig, ax = self.plt.subplots()
         axes = df.groupby('Y').boxplot(ax=ax, return_type='axes')
-        self.assertIs(ax.get_axes(), axes['A'])
+        ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
+        self.assertIs(ax_axes, axes['A'])
 
         # Multiple columns with an ax argument should use same figure
         fig, ax = self.plt.subplots()
