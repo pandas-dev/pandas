@@ -38,7 +38,7 @@ Other enhancements
      idx = pd.Index(["a1a2", "b1", "c1"])
      idx.str.extractall("[ab](?P<digit>\d)")
 
-- Support decimal option in PythonParser
+- Support decimal option in PythonParser (:issue:`12933`)
 
 .. _whatsnew_0182.api:
 
