@@ -2776,8 +2776,11 @@ class SeriesGroupBy(GroupBy):
             func = getattr(self, func)
 
         ids, _, ngroup = self.grouper.group_info
-
+        counts = self.size().fillna(0).values
+        cast = (counts == 0).any()
         out = algos.take_1d(func().values, ids)
+        if cast:
+            out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):  # noqa
@@ -3456,11 +3459,21 @@ class NDFrameGroupBy(GroupBy):
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
-        # Fast transform
+        # Fast transform path for aggregations
+
+        # if there were groups with no observations (Categorical only?)
+        # try casting data to original dtype
+        counts = self.size().fillna(0).values
+        cast = (counts == 0).any()
+
+        # by column (could be by block?) reshape aggregated data to
+        # size of original frame by repeating obvservations with take
         ids, _, ngroup = self.grouper.group_info
         out = {}
         for col in result:
             out[col] = algos.take_nd(result[col].values, ids)
+            if cast:
+                out[col] = self._try_cast(out[col], obj[col])
 
         return DataFrame(out, columns=result.columns, index=obj.index)
 
