@@ -1642,6 +1642,12 @@ class PythonParser(ParserBase):
         if len(self.decimal) != 1:
             raise ValueError('Only length-1 decimal markers supported')
 
+        if self.thousands is None:
+            self.nonnum = re.compile('[^-^0-9^%s]+' % self.decimal)
+        else:
+            self.nonnum = re.compile('[^-^0-9^%s^%s]+' % (self.thousands,
+                                                          self.decimal))
+
     def _set_no_thousands_columns(self):
         # Create a set of column ids that are not to be stripped of thousands
         # operators.
@@ -2053,13 +2059,12 @@ class PythonParser(ParserBase):
     def _check_thousands(self, lines):
         if self.thousands is None:
             return lines
-        nonnum = re.compile('[^-^0-9^%s^%s]+' % (self.thousands, self.decimal))
+
         return self._search_replace_num_columns(lines=lines,
                                                 search=self.thousands,
-                                                replace='',
-                                                nonnum=nonnum)
+                                                replace='')
 
-    def _search_replace_num_columns(self, lines, search, replace, nonnum):
+    def _search_replace_num_columns(self, lines, search, replace):
         ret = []
         for l in lines:
             rl = []
@@ -2068,7 +2073,7 @@ class PythonParser(ParserBase):
                     search not in x or
                     (self._no_thousands_columns and
                      i in self._no_thousands_columns) or
-                        nonnum.search(x.strip())):
+                        self.nonnum.search(x.strip())):
                     rl.append(x)
                 else:
                     rl.append(x.replace(search, replace))
@@ -2076,18 +2081,12 @@ class PythonParser(ParserBase):
         return ret
 
     def _check_decimal(self, lines):
-        if self.decimal == b'.':
+        if self.decimal == _parser_defaults['decimal']:
             return lines
 
-        if self.thousands is None:
-            nonnum = re.compile('[^-^0-9^%s]+' % self.decimal)
-        else:
-            nonnum = re.compile('[^-^0-9^%s^%s]+' % (self.thousands,
-                                                     self.decimal))
         return self._search_replace_num_columns(lines=lines,
                                                 search=self.decimal,
-                                                replace='.',
-                                                nonnum=nonnum)
+                                                replace='.')
 
     def _clear_buffer(self):
         self.buf = []
