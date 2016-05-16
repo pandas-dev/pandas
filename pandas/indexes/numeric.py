@@ -164,12 +164,8 @@ class Int64Index(NumericIndex):
         if self.is_(other):
             return True
 
-        try:
-            return com.array_equivalent(com._values_from_object(self),
-                                        com._values_from_object(other))
-        except TypeError:
-            # e.g. fails in numpy 1.6 with DatetimeIndex #1681
-            return False
+        return com.array_equivalent(com._values_from_object(self),
+                                    com._values_from_object(other))
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
@@ -325,8 +321,7 @@ class Float64Index(NumericIndex):
                 return False
             left, right = self._values, other._values
             return ((left == right) | (self._isnan & other._isnan)).all()
-        except TypeError:
-            # e.g. fails in numpy 1.6 with DatetimeIndex #1681
+        except (TypeError, ValueError):
             return False
 
     def __contains__(self, other):
