@@ -41,8 +41,7 @@ bar2,12,13,14,15
 1|2,334|5
 10|13|10.
 """
-        # C parser: supports only length-1 decimals
-        # Python parser: 'decimal' not supported yet
+        # Parsers support only length-1 decimals
         self.assertRaises(ValueError, self.read_csv,
                           StringIO(data), decimal='')
 
