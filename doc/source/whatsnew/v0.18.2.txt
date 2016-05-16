@@ -32,6 +32,7 @@ Other enhancements
 - The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behaviour remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
 
 - ``Index`` now supports ``.str.extractall()`` which returns ``DataFrame``, see :ref:`Extract all matches in each subject (extractall) <text.extractall>` (:issue:`10008`, :issue:`13156`)
+- ``.to_hdf/read_hdf()`` now accept path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path (:issue:`11773`)
 
   .. ipython:: python
 
