@@ -179,4 +179,4 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a')\
             .to_records()
         expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
