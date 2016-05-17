@@ -3950,24 +3950,30 @@ class TestComparisons(tm.TestCase):
 
             exp = np.array([False, True, False, False])
             self.assert_numpy_array_equal(base == p, exp)
+            self.assert_numpy_array_equal(p == base, exp)
 
             exp = np.array([True, False, True, True])
             self.assert_numpy_array_equal(base != p, exp)
+            self.assert_numpy_array_equal(p != base, exp)
 
             exp = np.array([False, False, True, True])
             self.assert_numpy_array_equal(base > p, exp)
+            self.assert_numpy_array_equal(p < base, exp)
 
             exp = np.array([True, False, False, False])
             self.assert_numpy_array_equal(base < p, exp)
+            self.assert_numpy_array_equal(p > base, exp)
 
             exp = np.array([False, True, True, True])
             self.assert_numpy_array_equal(base >= p, exp)
+            self.assert_numpy_array_equal(p <= base, exp)
 
             exp = np.array([True, True, False, False])
             self.assert_numpy_array_equal(base <= p, exp)
+            self.assert_numpy_array_equal(p >= base, exp)
 
-            idx = PeriodIndex(
-                ['2011-02', '2011-01', '2011-03', '2011-05'], freq=freq)
+            idx = PeriodIndex(['2011-02', '2011-01', '2011-03',
+                               '2011-05'], freq=freq)
 
             exp = np.array([False, False, True, False])
             self.assert_numpy_array_equal(base == idx, exp)
@@ -3992,6 +3998,9 @@ class TestComparisons(tm.TestCase):
             with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 base <= Period('2011', freq='A')
 
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                Period('2011', freq='A') >= base
+
             with tm.assertRaisesRegexp(ValueError, msg):
                 idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='A')
                 base <= idx
@@ -4000,6 +4009,9 @@ class TestComparisons(tm.TestCase):
             msg = "Input has different freq=4M from PeriodIndex"
             with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 base <= Period('2011', freq='4M')
+
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                Period('2011', freq='4M') >= base
 
             with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='4M')
@@ -4013,17 +4025,23 @@ class TestComparisons(tm.TestCase):
             result = idx1 > Period('2011-02', freq=freq)
             exp = np.array([False, False, False, True])
             self.assert_numpy_array_equal(result, exp)
+            result = Period('2011-02', freq=freq) < idx1
+            self.assert_numpy_array_equal(result, exp)
 
             result = idx1 == Period('NaT', freq=freq)
             exp = np.array([False, False, False, False])
+            self.assert_numpy_array_equal(result, exp)
+            result = Period('NaT', freq=freq) == idx1
             self.assert_numpy_array_equal(result, exp)
 
             result = idx1 != Period('NaT', freq=freq)
             exp = np.array([True, True, True, True])
             self.assert_numpy_array_equal(result, exp)
+            result = Period('NaT', freq=freq) != idx1
+            self.assert_numpy_array_equal(result, exp)
 
-            idx2 = PeriodIndex(
-                ['2011-02', '2011-01', '2011-04', 'NaT'], freq=freq)
+            idx2 = PeriodIndex(['2011-02', '2011-01', '2011-04',
+                                'NaT'], freq=freq)
             result = idx1 < idx2
             exp = np.array([True, False, False, False])
             self.assert_numpy_array_equal(result, exp)
@@ -4044,11 +4062,12 @@ class TestComparisons(tm.TestCase):
             exp = np.array([False, False, True, False])
             self.assert_numpy_array_equal(result, exp)
 
-            diff = PeriodIndex(
-                ['2011-02', '2011-01', '2011-04', 'NaT'], freq='4M')
+            diff = PeriodIndex(['2011-02', '2011-01', '2011-04',
+                                'NaT'], freq='4M')
             msg = "Input has different freq=4M from PeriodIndex"
             with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 idx1 > diff
+
             with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 idx1 == diff
 
@@ -4184,6 +4203,106 @@ class TestSeriesPeriod(tm.TestCase):
         exp = pd.Series([4, 2], name='xxx', dtype=object)
         tm.assert_series_equal(s2 - s, exp)
         tm.assert_series_equal(s - s2, -exp)
+
+    def test_comp_series_period_scalar(self):
+        # GH 13200
+        for freq in ['M', '2M', '3M']:
+            base = Series([Period(x, freq=freq) for x in
+                           ['2011-01', '2011-02', '2011-03', '2011-04']])
+            p = Period('2011-02', freq=freq)
+
+            exp = pd.Series([False, True, False, False])
+            tm.assert_series_equal(base == p, exp)
+            tm.assert_series_equal(p == base, exp)
+
+            exp = pd.Series([True, False, True, True])
+            tm.assert_series_equal(base != p, exp)
+            tm.assert_series_equal(p != base, exp)
+
+            exp = pd.Series([False, False, True, True])
+            tm.assert_series_equal(base > p, exp)
+            tm.assert_series_equal(p < base, exp)
+
+            exp = pd.Series([True, False, False, False])
+            tm.assert_series_equal(base < p, exp)
+            tm.assert_series_equal(p > base, exp)
+
+            exp = pd.Series([False, True, True, True])
+            tm.assert_series_equal(base >= p, exp)
+            tm.assert_series_equal(p <= base, exp)
+
+            exp = pd.Series([True, True, False, False])
+            tm.assert_series_equal(base <= p, exp)
+            tm.assert_series_equal(p >= base, exp)
+
+            # different base freq
+            msg = "Input has different freq=A-DEC from Period"
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                base <= Period('2011', freq='A')
+
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                Period('2011', freq='A') >= base
+
+    def test_comp_series_period_series(self):
+        # GH 13200
+        for freq in ['M', '2M', '3M']:
+            base = Series([Period(x, freq=freq) for x in
+                           ['2011-01', '2011-02', '2011-03', '2011-04']])
+
+            s = Series([Period(x, freq=freq) for x in
+                        ['2011-02', '2011-01', '2011-03', '2011-05']])
+
+            exp = Series([False, False, True, False])
+            tm.assert_series_equal(base == s, exp)
+
+            exp = Series([True, True, False, True])
+            tm.assert_series_equal(base != s, exp)
+
+            exp = Series([False, True, False, False])
+            tm.assert_series_equal(base > s, exp)
+
+            exp = Series([True, False, False, True])
+            tm.assert_series_equal(base < s, exp)
+
+            exp = Series([False, True, True, False])
+            tm.assert_series_equal(base >= s, exp)
+
+            exp = Series([True, False, True, True])
+            tm.assert_series_equal(base <= s, exp)
+
+            s2 = Series([Period(x, freq='A') for x in
+                         ['2011', '2011', '2011', '2011']])
+
+            # different base freq
+            msg = "Input has different freq=A-DEC from Period"
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                base <= s2
+
+    def test_comp_series_period_object(self):
+        # GH 13200
+        base = Series([Period('2011', freq='A'), Period('2011-02', freq='M'),
+                       Period('2013', freq='A'), Period('2011-04', freq='M')])
+
+        s = Series([Period('2012', freq='A'), Period('2011-01', freq='M'),
+                    Period('2013', freq='A'), Period('2011-05', freq='M')])
+
+        exp = Series([False, False, True, False])
+        tm.assert_series_equal(base == s, exp)
+
+        exp = Series([True, True, False, True])
+        tm.assert_series_equal(base != s, exp)
+
+        exp = Series([False, True, False, False])
+        tm.assert_series_equal(base > s, exp)
+
+        exp = Series([True, False, False, True])
+        tm.assert_series_equal(base < s, exp)
+
+        exp = Series([False, True, True, False])
+        tm.assert_series_equal(base >= s, exp)
+
+        exp = Series([True, False, True, True])
+        tm.assert_series_equal(base <= s, exp)
 
     def test_ops_frame_period(self):
         # GH 13043
