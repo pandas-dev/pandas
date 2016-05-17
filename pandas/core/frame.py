@@ -1062,7 +1062,7 @@ class DataFrame(NDFrame):
                         count += 1
             elif index_names[0] is None:
                 index_names = ['index']
-            names = index_names + lmap(str, self.columns)
+            names = lmap(str, index_names) + lmap(str, self.columns)
         else:
             arrays = [self[c].get_values() for c in self.columns]
             names = lmap(str, self.columns)
