@@ -4147,6 +4147,9 @@ class NDFrame(PandasObject):
         from pandas import DataFrame, Series
         method = missing.clean_fill_method(method)
 
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, Series):
                 # this means other is a DataFrame, and we need to broadcast
@@ -4171,8 +4174,6 @@ class NDFrame(PandasObject):
                                          method=method, limit=limit,
                                          fill_axis=fill_axis)
 
-        if axis is not None:
-            axis = self._get_axis_number(axis)
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,
                                      copy=copy, fill_value=fill_value,
