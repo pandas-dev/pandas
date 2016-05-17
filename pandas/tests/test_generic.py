@@ -1874,6 +1874,52 @@ class TestNDFrame(tm.TestCase):
         with tm.assertRaises(ValueError):
             result = wp.pipe((f, 'y'), x=1, y=1)
 
+    def test_align_joins(self):
+        df = DataFrame(np.array([[1., 2.], [3., 4.]]), columns=list('AB'))
+        ts = Series([5., 6., 7.])
+        check = df.align(ts, join='outer', axis=0, broadcast_axis=1)
+        df1 = DataFrame(check[0])
+        df2 = DataFrame(check[1])
+        expected1 = DataFrame(np.array([[1., 2.], [3., 4.],
+                                        [pd.np.nan, pd.np.nan]]),
+                              columns=list('AB'))
+        expected2 = DataFrame(np.array([[5., 5.], [6., 6.], [7., 7.]]),
+                              columns=list('AB'))
+        assert_frame_equal(df1, expected1)
+        assert_frame_equal(df2, expected2)
+
+        check = df.align(ts, join='inner', axis=0, broadcast_axis=1)
+        df1 = DataFrame(check[0])
+        df2 = DataFrame(check[1])
+        expected1 = DataFrame(np.array([[1., 2.], [3., 4.]]),
+                              columns=list('AB'))
+        expected2 = DataFrame(np.array([[5., 5.], [6., 6.]]),
+                              columns=list('AB'))
+        assert_frame_equal(df1, expected1)
+        assert_frame_equal(df2, expected2)
+
+        check = df.align(ts, join='left', axis=0, broadcast_axis=1)
+        df1 = DataFrame(check[0])
+        df2 = DataFrame(check[1])
+        expected1 = DataFrame(np.array([[1., 2.], [3., 4.]]),
+                              columns=list('AB'))
+        expected2 = DataFrame(np.array([[5., 5.], [6., 6.]]),
+                              columns=list('AB'))
+        assert_frame_equal(df1, expected1)
+        assert_frame_equal(df2, expected2)
+
+        check = df.align(ts, join='right', axis=0, broadcast_axis=1)
+        df1 = DataFrame(check[0])
+        df2 = DataFrame(check[1])
+        expected1 = DataFrame(np.array([[1., 2.], [3., 4.],
+                                        [pd.np.nan, pd.np.nan]]),
+                              columns=list('AB'))
+        expected2 = DataFrame(np.array([[5., 5.], [6., 6.], [7., 7.]]),
+                              columns=list('AB'))
+        assert_frame_equal(df1, expected1)
+        assert_frame_equal(df2, expected2)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
