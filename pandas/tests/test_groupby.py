@@ -4508,7 +4508,7 @@ class TestGroupBy(tm.TestCase):
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
-    def test_aaa_groupby_with_small_elem(self):
+    def test_groupby_with_small_elem(self):
         # GH 8542
         # length=2
         df = pd.DataFrame({'event': ['start', 'start'],
@@ -5972,7 +5972,7 @@ class TestGroupBy(tm.TestCase):
                 exc.args += ('operation: %s' % op, )
                 raise
 
-    def test_aa_cython_group_transform_algos(self):
+    def test_cython_group_transform_algos(self):
         # GH 4095
         dtypes = [np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint32,
                   np.uint64, np.float32, np.float64]
