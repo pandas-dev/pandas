@@ -1078,6 +1078,12 @@ class TestGroupBy(tm.TestCase):
         expected = expected[['f', 'i']]
         assert_frame_equal(result, expected)
 
+        # dup columns
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['g', 'a', 'a'])
+        result = df.groupby('g').transform('first')
+        expected = df.drop('g', axis=1)
+        assert_frame_equal(result, expected)
+
     def test_transform_broadcast(self):
         grouped = self.ts.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)

@@ -2776,8 +2776,7 @@ class SeriesGroupBy(GroupBy):
             func = getattr(self, func)
 
         ids, _, ngroup = self.grouper.group_info
-        counts = self.size().fillna(0).values
-        cast = (counts == 0).any()
+        cast = self.size().isnull().any()
         out = algos.take_1d(func().values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
@@ -3459,23 +3458,28 @@ class NDFrameGroupBy(GroupBy):
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
-        # Fast transform path for aggregations
+        return self._transform_fast(result, obj)
 
+    def _transform_fast(self, result, obj):
+        """
+        Fast transform path for aggregations
+        """
         # if there were groups with no observations (Categorical only?)
         # try casting data to original dtype
-        counts = self.size().fillna(0).values
-        cast = (counts == 0).any()
+        cast = self.size().isnull().any()
 
-        # by column (could be by block?) reshape aggregated data to
-        # size of original frame by repeating obvservations with take
+        # for each col, reshape to to size of original frame
+        # by take operation
         ids, _, ngroup = self.grouper.group_info
-        out = {}
-        for col in result:
-            out[col] = algos.take_nd(result[col].values, ids)
+        output = []
+        for i, _ in enumerate(result.columns):
+            res = algos.take_1d(result.iloc[:, i].values, ids)
             if cast:
-                out[col] = self._try_cast(out[col], obj[col])
+                res = self._try_cast(res, obj.iloc[:, i])
+            output.append(res)
 
-        return DataFrame(out, columns=result.columns, index=obj.index)
+        return DataFrame._from_arrays(output, columns=result.columns,
+                                      index=obj.index)
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, compat.string_types):
