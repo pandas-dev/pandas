@@ -42,8 +42,9 @@ bar2,12,13,14,15
 10|13|10.
 """
         # Parsers support only length-1 decimals
-        self.assertRaises(ValueError, self.read_csv,
-                          StringIO(data), decimal='')
+        msg = 'Only length-1 decimal markers supported'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(data), decimal='')
 
     def test_read_csv(self):
         if not compat.PY3:
