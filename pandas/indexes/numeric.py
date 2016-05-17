@@ -4,7 +4,7 @@ import pandas.algos as _algos
 import pandas.index as _index
 
 from pandas import compat
-from pandas.indexes.base import Index, InvalidIndexError
+from pandas.indexes.base import Index, InvalidIndexError, _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.core.common as com
 from pandas.core.common import (is_dtype_equal, isnull, pandas_dtype,
@@ -238,12 +238,17 @@ class Float64Index(NumericIndex):
     def inferred_type(self):
         return 'floating'
 
-    def astype(self, dtype):
+    @Appender(_index_shared_docs['astype'])
+    def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
-        if is_float_dtype(dtype) or is_integer_dtype(dtype):
-            values = self._values.astype(dtype)
+        if is_float_dtype(dtype):
+            values = self._values.astype(dtype, copy=copy)
+        elif is_integer_dtype(dtype):
+            if self.hasnans:
+                raise ValueError('cannot convert float NaN to integer')
+            values = self._values.astype(dtype, copy=copy)
         elif is_object_dtype(dtype):
-            values = self._values
+            values = self._values.astype('object', copy=copy)
         else:
             raise TypeError('Setting %s dtype to anything other than '
                             'float64 or object is not supported' %

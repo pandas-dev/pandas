@@ -6,16 +6,17 @@ from datetime import time, datetime
 from datetime import timedelta
 import numpy as np
 from pandas.core.base import _shared_docs
-from pandas.core.common import (_NS_DTYPE, _INT64_DTYPE,
-                                _values_from_object, _maybe_box,
-                                is_object_dtype, is_datetime64_dtype,
-                                is_datetimetz, is_dtype_equal,
-                                ABCSeries, is_integer, is_float,
-                                DatetimeTZDtype, PerformanceWarning)
+from pandas.core.common import (_INT64_DTYPE, _NS_DTYPE, _maybe_box,
+                                _values_from_object, ABCSeries,
+                                DatetimeTZDtype, PerformanceWarning,
+                                is_datetimetz, is_datetime64_dtype,
+                                is_datetime64_ns_dtype, is_dtype_equal,
+                                is_float, is_integer, is_integer_dtype,
+                                is_object_dtype, is_string_dtype)
 
 from pandas.core.index import Index, Int64Index, Float64Index
+from pandas.indexes.base import _index_shared_docs
 import pandas.compat as compat
-from pandas.compat import u
 from pandas.tseries.frequencies import (
     to_offset, get_period_alias,
     Resolution)
@@ -814,8 +815,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                           "or DatetimeIndex", PerformanceWarning)
             return self.astype('O') + offset
 
-    def _format_native_types(self, na_rep=u('NaT'),
-                             date_format=None, **kwargs):
+    def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.formats.format import _get_format_datetime64_from_values
         format = _get_format_datetime64_from_values(self, date_format)
 
@@ -827,19 +827,24 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def to_datetime(self, dayfirst=False):
         return self.copy()
 
-    def astype(self, dtype):
+    @Appender(_index_shared_docs['astype'])
+    def astype(self, dtype, copy=True):
         dtype = np.dtype(dtype)
 
-        if dtype == np.object_:
+        if is_object_dtype(dtype):
             return self.asobject
-        elif dtype == _INT64_DTYPE:
-            return self.asi8.copy()
-        elif dtype == _NS_DTYPE and self.tz is not None:
-            return self.tz_convert('UTC').tz_localize(None)
-        elif dtype == str:
+        elif is_integer_dtype(dtype):
+            return Index(self.values.astype('i8', copy=copy), name=self.name,
+                         dtype='i8')
+        elif is_datetime64_ns_dtype(dtype):
+            if self.tz is not None:
+                return self.tz_convert('UTC').tz_localize(None)
+            elif copy is True:
+                return self.copy()
+            return self
+        elif is_string_dtype(dtype):
             return Index(self.format(), name=self.name, dtype=object)
-        else:  # pragma: no cover
-            raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
+        raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
 
     def _get_time_micros(self):
         utc = _utc()
