@@ -172,3 +172,11 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         df.index.names = ['A', None]
         rs = df.to_records()
         self.assertIn('level_0', rs.dtype.fields)
+
+    def test_to_records_with_unicode_index(self):
+        # GH13172
+        # unicode_literals conflict with to_records
+        result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a')\
+            .to_records()
+        expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
+        tm.assert_numpy_array_equal(result, expected)
