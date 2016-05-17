@@ -4153,7 +4153,8 @@ class NDFrame(PandasObject):
                 # self
                 cons = self._constructor_expanddim
                 df = cons(dict((c, self) for c in other.columns),
-                          **other._construct_axes_dict())
+                          **self._construct_axes_dict(
+                          **other._construct_axes_dict(axes=['columns'])))
                 return df._align_frame(other, join=join, axis=axis,
                                        level=level, copy=copy,
                                        fill_value=fill_value, method=method,
@@ -4163,7 +4164,8 @@ class NDFrame(PandasObject):
                 # other
                 cons = other._constructor_expanddim
                 df = cons(dict((c, other) for c in self.columns),
-                          **self._construct_axes_dict())
+                          **other._construct_axes_dict(
+                          **self._construct_axes_dict(axes=['columns'])))
                 return self._align_frame(df, join=join, axis=axis, level=level,
                                          copy=copy, fill_value=fill_value,
                                          method=method, limit=limit,
