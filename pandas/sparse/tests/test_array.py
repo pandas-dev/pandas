@@ -46,6 +46,17 @@ class TestSparseArray(tm.TestCase):
         self.assertEqual(arr.dtype, np.int64)
         self.assertEqual(arr.fill_value, 0)
 
+    def test_constructor_object_dtype(self):
+        # GH 11856
+        arr = SparseArray(['A', 'A', np.nan, 'B'], dtype=np.object)
+        self.assertEqual(arr.dtype, np.object)
+        self.assertTrue(np.isnan(arr.fill_value))
+
+        arr = SparseArray(['A', 'A', np.nan, 'B'], dtype=np.object,
+                          fill_value='A')
+        self.assertEqual(arr.dtype, np.object)
+        self.assertEqual(arr.fill_value, 'A')
+
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         tm.assert_sp_array_equal(arr, SparseArray([np.nan, 1, 2, np.nan]))
