@@ -1310,6 +1310,7 @@ Attributes
    Index.base
    Index.T
    Index.memory_usage
+   Index.empty
 
 Modifying and Computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

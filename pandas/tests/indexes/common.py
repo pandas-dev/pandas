@@ -721,3 +721,18 @@ class Base(object):
                 expected[1] = True
                 self.assert_numpy_array_equal(idx._isnan, expected)
                 self.assertTrue(idx.hasnans)
+
+    def test_is_index_empty(self):
+        """ GH 13207 Bug Fix """
+        idx = pd.Index([])
+        result = idx.empty
+        self.assertEqual(result, True)
+
+        idx = pd.Index(['A', 'B'])
+        result = idx.empty
+        self.assertEqual(result, False)
+
+        idx = pd.Index([np.nan])
+        result = idx.empty
+        self.assertEqual(result, False)
+
