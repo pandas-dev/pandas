@@ -2,6 +2,7 @@ import nose
 
 from pandas import DataFrame
 import numpy as np
+import json
 
 import pandas.util.testing as tm
 
@@ -163,6 +164,20 @@ class TestJSONNormalize(tm.TestCase):
         expected['state'] = np.array(['Florida', 'Ohio']).repeat([3, 2])
 
         tm.assert_frame_equal(result, expected)
+
+    def test_non_ascii_key(self):
+        testjson = '[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' \
+                   '{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+
+        testdata = {
+            u'sub.A': [1, 3],
+            u'sub.B': [2, 4],
+            "\xc3\x9cnic\xc3\xb8de".decode('utf8'): [0, 1]
+        }
+        testdf = DataFrame(testdata)
+
+        df = json_normalize(json.loads(testjson))
+        tm.assert_frame_equal(df, testdf)
 
 
 class TestNestedToRecord(tm.TestCase):
