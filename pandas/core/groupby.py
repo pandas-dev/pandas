@@ -2776,18 +2776,11 @@ class SeriesGroupBy(GroupBy):
             func = getattr(self, func)
 
         ids, _, ngroup = self.grouper.group_info
-        mask = ids != -1
-
-        out = func().values[ids]
-        if not mask.all():
-            out = np.where(mask, out, np.nan)
-
-        obs = np.zeros(ngroup, dtype='bool')
-        obs[ids[mask]] = True
-        if not obs.all():
-            out = self._try_cast(out, self._selected_obj)
-
-        return Series(out, index=self.obj.index)
+        cast = (self.size().fillna(0) > 0).any()
+        out = algos.take_1d(func().values, ids)
+        if cast:
+            out = self._try_cast(out, self.obj)
+        return Series(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):  # noqa
         """
@@ -3465,19 +3458,28 @@ class NDFrameGroupBy(GroupBy):
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
-        results = np.empty_like(obj.values, result.values.dtype)
-        for (name, group), (i, row) in zip(self, result.iterrows()):
-            indexer = self._get_index(name)
-            if len(indexer) > 0:
-                results[indexer] = np.tile(row.values, len(
-                    indexer)).reshape(len(indexer), -1)
+        return self._transform_fast(result, obj)
 
-        counts = self.size().fillna(0).values
-        if any(counts == 0):
-            results = self._try_cast(results, obj[result.columns])
+    def _transform_fast(self, result, obj):
+        """
+        Fast transform path for aggregations
+        """
+        # if there were groups with no observations (Categorical only?)
+        # try casting data to original dtype
+        cast = (self.size().fillna(0) > 0).any()
 
-        return (DataFrame(results, columns=result.columns, index=obj.index)
-                ._convert(datetime=True))
+        # for each col, reshape to to size of original frame
+        # by take operation
+        ids, _, ngroup = self.grouper.group_info
+        output = []
+        for i, _ in enumerate(result.columns):
+            res = algos.take_1d(result.iloc[:, i].values, ids)
+            if cast:
+                res = self._try_cast(res, obj.iloc[:, i])
+            output.append(res)
+
+        return DataFrame._from_arrays(output, columns=result.columns,
+                                      index=obj.index)
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, compat.string_types):

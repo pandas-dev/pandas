@@ -1051,12 +1051,38 @@ class TestGroupBy(tm.TestCase):
 
         values = np.repeat(grp.mean().values,
                            com._ensure_platform_int(grp.count().values))
-        expected = pd.Series(values, index=df.index)
+        expected = pd.Series(values, index=df.index, name='val')
         result = grp.transform(np.mean)
         assert_series_equal(result, expected)
 
         result = grp.transform('mean')
         assert_series_equal(result, expected)
+
+        # GH 12737
+        df = pd.DataFrame({'grouping': [0, 1, 1, 3], 'f': [1.1, 2.1, 3.1, 4.5],
+                           'd': pd.date_range('2014-1-1', '2014-1-4'),
+                           'i': [1, 2, 3, 4]},
+                          columns=['grouping', 'f', 'i', 'd'])
+        result = df.groupby('grouping').transform('first')
+
+        dates = [pd.Timestamp('2014-1-1'), pd.Timestamp('2014-1-2'),
+                 pd.Timestamp('2014-1-2'), pd.Timestamp('2014-1-4')]
+        expected = pd.DataFrame({'f': [1.1, 2.1, 2.1, 4.5],
+                                 'd': dates,
+                                 'i': [1, 2, 2, 4]},
+                                columns=['f', 'i', 'd'])
+        assert_frame_equal(result, expected)
+
+        # selection
+        result = df.groupby('grouping')[['f', 'i']].transform('first')
+        expected = expected[['f', 'i']]
+        assert_frame_equal(result, expected)
+
+        # dup columns
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['g', 'a', 'a'])
+        result = df.groupby('g').transform('first')
+        expected = df.drop('g', axis=1)
+        assert_frame_equal(result, expected)
 
     def test_transform_broadcast(self):
         grouped = self.ts.groupby(lambda x: x.month)
@@ -1189,6 +1215,16 @@ class TestGroupBy(tm.TestCase):
 
         result = self.df.groupby('A')['C'].transform('mean')
         expected = self.df.groupby('A')['C'].transform(np.mean)
+        assert_series_equal(result, expected)
+
+    def test_series_fast_transform_date(self):
+        # GH 13191
+        df = pd.DataFrame({'grouping': [np.nan, 1, 1, 3],
+                           'd': pd.date_range('2014-1-1', '2014-1-4')})
+        result = df.groupby('grouping')['d'].transform('first')
+        dates = [pd.NaT, pd.Timestamp('2014-1-2'), pd.Timestamp('2014-1-2'),
+                 pd.Timestamp('2014-1-4')]
+        expected = pd.Series(dates, name='d')
         assert_series_equal(result, expected)
 
     def test_transform_length(self):
@@ -4406,7 +4442,7 @@ class TestGroupBy(tm.TestCase):
 
         df = DataFrame({"A": range(2), "B": [pd.Timestamp('2000-01-1')] * 2})
         result = df.groupby("A")["B"].transform(min)
-        expected = Series([pd.Timestamp('2000-01-1')] * 2)
+        expected = Series([pd.Timestamp('2000-01-1')] * 2, name='B')
         assert_series_equal(result, expected)
 
     def test_groupby_categorical_unequal_len(self):

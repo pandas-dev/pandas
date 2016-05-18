@@ -3025,8 +3025,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         c = pd.cut(df.a, bins=[0, 10, 20, 30, 40])
 
         result = df.a.groupby(c).transform(sum)
-        tm.assert_series_equal(result, df['a'], check_names=False)
-        self.assertTrue(result.name is None)
+        tm.assert_series_equal(result, df['a'])
 
         tm.assert_series_equal(
             df.a.groupby(c).transform(lambda xs: np.sum(xs)), df['a'])
@@ -3043,8 +3042,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         c = pd.cut(df.a, bins=[-10, 0, 10, 20, 30, 40])
 
         result = df.a.groupby(c).transform(sum)
-        tm.assert_series_equal(result, df['a'], check_names=False)
-        self.assertTrue(result.name is None)
+        tm.assert_series_equal(result, df['a'])
 
         tm.assert_series_equal(
             df.a.groupby(c).transform(lambda xs: np.sum(xs)), df['a'])
