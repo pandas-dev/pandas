@@ -4147,13 +4147,17 @@ class NDFrame(PandasObject):
         from pandas import DataFrame, Series
         method = missing.clean_fill_method(method)
 
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, Series):
                 # this means other is a DataFrame, and we need to broadcast
                 # self
                 cons = self._constructor_expanddim
                 df = cons(dict((c, self) for c in other.columns),
-                          **other._construct_axes_dict())
+                          **self._construct_axes_dict(
+                          **other._construct_axes_dict(axes=['columns'])))
                 return df._align_frame(other, join=join, axis=axis,
                                        level=level, copy=copy,
                                        fill_value=fill_value, method=method,
@@ -4163,14 +4167,13 @@ class NDFrame(PandasObject):
                 # other
                 cons = other._constructor_expanddim
                 df = cons(dict((c, other) for c in self.columns),
-                          **self._construct_axes_dict())
+                          **other._construct_axes_dict(
+                          **self._construct_axes_dict(axes=['columns'])))
                 return self._align_frame(df, join=join, axis=axis, level=level,
                                          copy=copy, fill_value=fill_value,
                                          method=method, limit=limit,
                                          fill_axis=fill_axis)
 
-        if axis is not None:
-            axis = self._get_axis_number(axis)
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,
                                      copy=copy, fill_value=fill_value,
