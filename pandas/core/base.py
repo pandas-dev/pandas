@@ -868,6 +868,11 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
+    def empty(self):
+        """ return True if the underlying data is empty """
+        return (self.size == 0)
+
+    @property
     def _values(self):
         """ the internal implementation """
         return self.values
