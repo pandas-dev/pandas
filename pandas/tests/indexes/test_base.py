@@ -1615,6 +1615,15 @@ Index([u'あ', u'いい', u'ううう'], dtype='object')"""
 
                 self.assertEqual(coerce(idx), expected)
 
+    def test_is_index_empty(self):
+        ''' GH 13207 Bug Fix '''
+        idx = pd.Index([])
+        result = idx.empty
+        self.assertEqual(result, True)
+
+        idx = pd.Index(['A', 'B'])
+        result = idx.empty
+        self.assertEqual(result, False)
 
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index
