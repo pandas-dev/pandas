@@ -812,8 +812,9 @@ class TestDatetimeParsingWrappers(tm.TestCase):
         self.assert_series_equal(tools.to_time(Series(arg, name="test")),
                                  Series(expected_arr, name="test"))
 
-        self.assert_numpy_array_equal(tools.to_time(np.array(arg)),
-                                      np.array(expected_arr, dtype=np.object_))
+        res = tools.to_time(np.array(arg))
+        self.assertIsInstance(res, list)
+        self.assert_equal(res, expected_arr)
 
     def test_parsers_monthfreq(self):
         cases = {'201101': datetime.datetime(2011, 1, 1, 0, 0),

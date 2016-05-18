@@ -62,7 +62,7 @@ class TestDatetimeIndexOps(Ops):
         self.assertTrue(isinstance(result, Index))
 
         self.assertEqual(result.dtype, object)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -76,7 +76,7 @@ class TestDatetimeIndexOps(Ops):
         result = idx.asobject
         self.assertTrue(isinstance(result, Index))
         self.assertEqual(result.dtype, object)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -89,7 +89,7 @@ class TestDatetimeIndexOps(Ops):
         result = idx.asobject
         self.assertTrue(isinstance(result, Index))
         self.assertEqual(result.dtype, object)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -726,7 +726,7 @@ class TestTimedeltaIndexOps(Ops):
         self.assertTrue(isinstance(result, Index))
 
         self.assertEqual(result.dtype, object)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -738,7 +738,7 @@ class TestTimedeltaIndexOps(Ops):
         result = idx.asobject
         self.assertTrue(isinstance(result, Index))
         self.assertEqual(result.dtype, object)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -1489,7 +1489,7 @@ class TestPeriodIndexOps(Ops):
         result = idx.asobject
         self.assertTrue(isinstance(result, Index))
         self.assertEqual(result.dtype, object)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 

@@ -37,9 +37,10 @@ foo,bar
 NA,baz
 NaN,nan
 """
-        expected = [['foo', 'bar'], [nan, 'baz'], [nan, nan]]
+        expected = np.array([['foo', 'bar'], [nan, 'baz'], [nan, nan]],
+                            dtype=np.object_)
         df = self.read_csv(StringIO(data))
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
     def test_non_string_na_values(self):
         # see gh-3611, na_values that are not a string are an issue
@@ -126,20 +127,20 @@ ignore,this,row
 -1.#IND,5,baz
 7,8,NaN
 """
-        expected = [[1., nan, 3],
-                    [nan, 5, nan],
-                    [7, 8, nan]]
+        expected = np.array([[1., nan, 3],
+                             [nan, 5, nan],
+                             [7, 8, nan]])
 
         df = self.read_csv(StringIO(data), na_values=['baz'], skiprows=[1])
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
         df2 = self.read_table(StringIO(data), sep=',', na_values=['baz'],
                               skiprows=[1])
-        tm.assert_almost_equal(df2.values, expected)
+        tm.assert_numpy_array_equal(df2.values, expected)
 
         df3 = self.read_table(StringIO(data), sep=',', na_values='baz',
                               skiprows=[1])
-        tm.assert_almost_equal(df3.values, expected)
+        tm.assert_numpy_array_equal(df3.values, expected)
 
     def test_bool_na_values(self):
         data = """A,B,C

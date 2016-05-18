@@ -929,7 +929,7 @@ class TestNanskewFixedValues(tm.TestCase):
         samples = np.vstack([self.samples,
                              np.nan * np.ones(len(self.samples))])
         skew = nanops.nanskew(samples, axis=1)
-        tm.assert_almost_equal(skew, [self.actual_skew, np.nan])
+        tm.assert_almost_equal(skew, np.array([self.actual_skew, np.nan]))
 
     def test_nans(self):
         samples = np.hstack([self.samples, np.nan])
@@ -979,7 +979,7 @@ class TestNankurtFixedValues(tm.TestCase):
         samples = np.vstack([self.samples,
                              np.nan * np.ones(len(self.samples))])
         kurt = nanops.nankurt(samples, axis=1)
-        tm.assert_almost_equal(kurt, [self.actual_kurt, np.nan])
+        tm.assert_almost_equal(kurt, np.array([self.actual_kurt, np.nan]))
 
     def test_nans(self):
         samples = np.hstack([self.samples, np.nan])

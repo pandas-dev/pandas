@@ -200,8 +200,10 @@ class TestMerge(tm.TestCase):
         source = self.source
 
         merged = target.join(source, on='C')
-        self.assert_numpy_array_equal(merged['MergedA'], target['A'])
-        self.assert_numpy_array_equal(merged['MergedD'], target['D'])
+        self.assert_series_equal(merged['MergedA'], target['A'],
+                                 check_names=False)
+        self.assert_series_equal(merged['MergedD'], target['D'],
+                                 check_names=False)
 
         # join with duplicates (fix regression from DataFrame/Matrix merge)
         df = DataFrame({'key': ['a', 'a', 'b', 'b', 'c']})
@@ -286,7 +288,7 @@ class TestMerge(tm.TestCase):
 
         merged2 = self.target.join(self.source.reindex([]), on='C',
                                    how='inner')
-        self.assertTrue(merged2.columns.equals(merged.columns))
+        self.assert_index_equal(merged2.columns, merged.columns)
         self.assertEqual(len(merged2), 0)
 
     def test_join_on_inner(self):
@@ -297,9 +299,11 @@ class TestMerge(tm.TestCase):
 
         expected = df.join(df2, on='key')
         expected = expected[expected['value'].notnull()]
-        self.assert_numpy_array_equal(joined['key'], expected['key'])
-        self.assert_numpy_array_equal(joined['value'], expected['value'])
-        self.assertTrue(joined.index.equals(expected.index))
+        self.assert_series_equal(joined['key'], expected['key'],
+                                 check_dtype=False)
+        self.assert_series_equal(joined['value'], expected['value'],
+                                 check_dtype=False)
+        self.assert_index_equal(joined.index, expected.index)
 
     def test_join_on_singlekey_list(self):
         df = DataFrame({'key': ['a', 'a', 'b', 'b', 'c']})
@@ -662,7 +666,7 @@ class TestMerge(tm.TestCase):
 
         # smoke test
         joined = left.join(right, on='key', sort=False)
-        self.assert_numpy_array_equal(joined.index, lrange(4))
+        self.assert_index_equal(joined.index, pd.Index(lrange(4)))
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
@@ -722,15 +726,16 @@ class TestMerge(tm.TestCase):
         rkey = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on=lkey, right_on=rkey, how='outer')
-        self.assert_numpy_array_equal(merged['key_0'],
-                                      np.array([1, 1, 1, 1, 2, 2, 3, 4, 5]))
+        self.assert_series_equal(merged['key_0'],
+                                 Series([1, 1, 1, 1, 2, 2, 3, 4, 5],
+                                        name='key_0'))
 
         left = DataFrame({'value': lrange(3)})
         right = DataFrame({'rvalue': lrange(6)})
 
-        key = np.array([0, 1, 1, 2, 2, 3])
+        key = np.array([0, 1, 1, 2, 2, 3], dtype=np.int64)
         merged = merge(left, right, left_index=True, right_on=key, how='outer')
-        self.assert_numpy_array_equal(merged['key_0'], key)
+        self.assert_series_equal(merged['key_0'], Series(key, name='key_0'))
 
     def test_mixed_type_join_with_suffix(self):
         # GH #916

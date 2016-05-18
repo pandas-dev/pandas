@@ -102,14 +102,14 @@ class TestFactorize(tm.TestCase):
 
         exp = np.array([0, 0, -1, 1, 2, 3], dtype=np.int_)
         self.assert_numpy_array_equal(labels, exp)
-        exp = np.array(['A', 'B', 3.14, np.inf], dtype=object)
-        self.assert_numpy_array_equal(uniques, exp)
+        exp = pd.Index(['A', 'B', 3.14, np.inf])
+        tm.assert_index_equal(uniques, exp)
 
         labels, uniques = algos.factorize(x, sort=True)
         exp = np.array([2, 2, -1, 3, 0, 1], dtype=np.int_)
         self.assert_numpy_array_equal(labels, exp)
-        exp = np.array([3.14, np.inf, 'A', 'B'], dtype=object)
-        self.assert_numpy_array_equal(uniques, exp)
+        exp = pd.Index([3.14, np.inf, 'A', 'B'])
+        tm.assert_index_equal(uniques, exp)
 
     def test_datelike(self):
 
@@ -121,14 +121,14 @@ class TestFactorize(tm.TestCase):
 
         exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.int_)
         self.assert_numpy_array_equal(labels, exp)
-        exp = np.array([v1.value, v2.value], dtype='M8[ns]')
-        self.assert_numpy_array_equal(uniques, exp)
+        exp = pd.DatetimeIndex([v1, v2])
+        self.assert_index_equal(uniques, exp)
 
         labels, uniques = algos.factorize(x, sort=True)
         exp = np.array([1, 1, 1, 0, 0, 1], dtype=np.int_)
         self.assert_numpy_array_equal(labels, exp)
-        exp = np.array([v2.value, v1.value], dtype='M8[ns]')
-        self.assert_numpy_array_equal(uniques, exp)
+        exp = pd.DatetimeIndex([v2, v1])
+        self.assert_index_equal(uniques, exp)
 
         # period
         v1 = pd.Period('201302', freq='M')
@@ -139,12 +139,12 @@ class TestFactorize(tm.TestCase):
         labels, uniques = algos.factorize(x)
         exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.int_)
         self.assert_numpy_array_equal(labels, exp)
-        self.assert_numpy_array_equal(uniques, pd.PeriodIndex([v1, v2]))
+        self.assert_index_equal(uniques, pd.PeriodIndex([v1, v2]))
 
         labels, uniques = algos.factorize(x, sort=True)
         exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.int_)
         self.assert_numpy_array_equal(labels, exp)
-        self.assert_numpy_array_equal(uniques, pd.PeriodIndex([v1, v2]))
+        self.assert_index_equal(uniques, pd.PeriodIndex([v1, v2]))
 
         # GH 5986
         v1 = pd.to_timedelta('1 day 1 min')
@@ -153,12 +153,12 @@ class TestFactorize(tm.TestCase):
         labels, uniques = algos.factorize(x)
         exp = np.array([0, 1, 0, 0, 1, 1, 0], dtype=np.int_)
         self.assert_numpy_array_equal(labels, exp)
-        self.assert_numpy_array_equal(uniques, pd.to_timedelta([v1, v2]))
+        self.assert_index_equal(uniques, pd.to_timedelta([v1, v2]))
 
         labels, uniques = algos.factorize(x, sort=True)
         exp = np.array([1, 0, 1, 1, 0, 0, 1], dtype=np.int_)
         self.assert_numpy_array_equal(labels, exp)
-        self.assert_numpy_array_equal(uniques, pd.to_timedelta([v2, v1]))
+        self.assert_index_equal(uniques, pd.to_timedelta([v2, v1]))
 
     def test_factorize_nan(self):
         # nan should map to na_sentinel, not reverse_indexer[na_sentinel]
