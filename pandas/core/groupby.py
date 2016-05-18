@@ -2776,7 +2776,7 @@ class SeriesGroupBy(GroupBy):
             func = getattr(self, func)
 
         ids, _, ngroup = self.grouper.group_info
-        cast = self.size().isnull().any()
+        cast = (self.size().fillna(0) > 0).any()
         out = algos.take_1d(func().values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
@@ -3466,7 +3466,7 @@ class NDFrameGroupBy(GroupBy):
         """
         # if there were groups with no observations (Categorical only?)
         # try casting data to original dtype
-        cast = self.size().isnull().any()
+        cast = (self.size().fillna(0) > 0).any()
 
         # for each col, reshape to to size of original frame
         # by take operation
