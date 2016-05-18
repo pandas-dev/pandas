@@ -141,6 +141,7 @@ API changes
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
 - An ``UnsupportedFunctionCall`` error is now raised if NumPy ufuncs like ``np.mean`` are called on groupby or resample objects (:issue:`12811`)
 - Calls to ``.sample()`` will respect the random seed set via ``numpy.random.seed(n)`` (:issue:`13161`)
+- ``Styler.apply`` is now more strict about the outputs your function must return. For ``axis=0`` or ``axis=1``, the output shape must be identical. For ``axis=None``, the output must be a DataFrame with identical columns and index labels. (:issue:`13222`)
 
 .. _whatsnew_0182.api.tolist:
 
