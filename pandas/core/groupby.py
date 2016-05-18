@@ -37,7 +37,7 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                is_datetime_or_timedelta_dtype, is_bool,
                                is_bool_dtype, AbstractMethodError,
                                _maybe_fill)
-from pandas.core.config import option_context
+from pandas.core.config import option_context, is_callable
 import pandas.lib as lib
 from pandas.lib import Timestamp
 import pandas.tslib as tslib
@@ -643,9 +643,20 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         func = self._is_builtin_func(func)
 
-        @wraps(func)
-        def f(g):
-            return func(g, *args, **kwargs)
+        # this is needed so we don't try and wrap strings. If we could
+        # resolve functions to their callable functions prior, this
+        # wouldn't be needed
+        if args or kwargs:
+            if is_callable(func):
+
+                @wraps(func)
+                def f(g):
+                    return func(g, *args, **kwargs)
+            else:
+                raise ValueError('func must be a callable if args or '
+                                 'kwargs are supplied')
+        else:
+            f = func
 
         # ignore SettingWithCopy here in case the user mutates
         with option_context('mode.chained_assignment', None):
@@ -2675,7 +2686,7 @@ class SeriesGroupBy(GroupBy):
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             # GH #6265
-            return Series([], name=self.name)
+            return Series([], name=self.name, index=keys)
 
         def _get_index():
             if self.grouper.nkeys > 1:
@@ -3222,8 +3233,7 @@ class NDFrameGroupBy(GroupBy):
         from pandas.core.index import _all_indexes_same
 
         if len(keys) == 0:
-            # XXX
-            return DataFrame({})
+            return DataFrame(index=keys)
 
         key_names = self.grouper.names
 
@@ -3646,17 +3656,12 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def _wrap_generic_output(self, result, obj):
         result_index = self.grouper.levels[0]
 
-        if result:
-            if self.axis == 0:
-                result = DataFrame(result, index=obj.columns,
-                                   columns=result_index).T
-            else:
-                result = DataFrame(result, index=obj.index,
-                                   columns=result_index)
+        if self.axis == 0:
+            return DataFrame(result, index=obj.columns,
+                             columns=result_index).T
         else:
-            result = DataFrame(result)
-
-        return result
+            return DataFrame(result, index=obj.index,
+                             columns=result_index)
 
     def _get_data_to_aggregate(self):
         obj = self._obj_with_exclusions
