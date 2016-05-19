@@ -735,4 +735,3 @@ class Base(object):
         idx = pd.Index([np.nan])
         result = idx.empty
         self.assertEqual(result, False)
-
