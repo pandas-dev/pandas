@@ -882,12 +882,13 @@ def _validate_usecols_arg(usecols):
     or strings (column by name). Raises a ValueError
     if that is not the case.
     """
+    msg = ("The elements of 'usecols' must "
+           "either be all strings, all unicode, or all integers")
+
     if usecols is not None:
         usecols_dtype = lib.infer_dtype(usecols)
-        if usecols_dtype not in ('integer', 'string'):
-            raise ValueError(("The elements of 'usecols' "
-                              "must either be all strings "
-                              "or all integers"))
+        if usecols_dtype not in ('integer', 'string', 'unicode'):
+            raise ValueError(msg)
 
     return usecols
 

@@ -6,6 +6,7 @@ for all of the parsers defined in parsers.py
 """
 
 from datetime import datetime
+import nose
 
 import pandas.util.testing as tm
 
@@ -22,9 +23,8 @@ class UsecolsTests(object):
         1000,2000,3000
         4000,5000,6000
         """
-        msg = ("The elements of \'usecols\' "
-               "must either be all strings "
-               "or all integers")
+        msg = ("The elements of 'usecols' must "
+               "either be all strings, all unicode, or all integers")
         usecols = [0, 'b', 2]
 
         with tm.assertRaisesRegexp(ValueError, msg):
@@ -253,4 +253,104 @@ a,b,c
         df = self.read_csv(StringIO(s), names=names,
                            usecols=[3, 0, 2],
                            parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+    def test_usecols_with_unicode_strings(self):
+        # see gh-13219
+
+        s = '''AAA,BBB,CCC,DDD
+        0.056674973,8,True,a
+        2.613230982,2,False,b
+        3.568935038,7,False,a
+        '''
+
+        data = {
+            'AAA': {
+                0: 0.056674972999999997,
+                1: 2.6132309819999997,
+                2: 3.5689350380000002
+            },
+            'BBB': {0: 8, 1: 2, 2: 7}
+        }
+        expected = DataFrame(data)
+
+        df = self.read_csv(StringIO(s), usecols=[u'AAA', u'BBB'])
+        tm.assert_frame_equal(df, expected)
+
+    def test_usecols_with_single_byte_unicode_strings(self):
+        # see gh-13219
+
+        s = '''A,B,C,D
+        0.056674973,8,True,a
+        2.613230982,2,False,b
+        3.568935038,7,False,a
+        '''
+
+        data = {
+            'A': {
+                0: 0.056674972999999997,
+                1: 2.6132309819999997,
+                2: 3.5689350380000002
+            },
+            'B': {0: 8, 1: 2, 2: 7}
+        }
+        expected = DataFrame(data)
+
+        df = self.read_csv(StringIO(s), usecols=[u'A', u'B'])
+        tm.assert_frame_equal(df, expected)
+
+    def test_usecols_with_mixed_encoding_strings(self):
+        s = '''AAA,BBB,CCC,DDD
+        0.056674973,8,True,a
+        2.613230982,2,False,b
+        3.568935038,7,False,a
+        '''
+
+        msg = ("The elements of 'usecols' must "
+               "either be all strings, all unicode, or all integers")
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(s), usecols=[u'AAA', b'BBB'])
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(s), usecols=[b'AAA', u'BBB'])
+
+    def test_usecols_with_multibyte_characters(self):
+        s = '''あああ,いい,ううう,ええええ
+        0.056674973,8,True,a
+        2.613230982,2,False,b
+        3.568935038,7,False,a
+        '''
+        data = {
+            'あああ': {
+                0: 0.056674972999999997,
+                1: 2.6132309819999997,
+                2: 3.5689350380000002
+            },
+            'いい': {0: 8, 1: 2, 2: 7}
+        }
+        expected = DataFrame(data)
+
+        df = self.read_csv(StringIO(s), usecols=['あああ', 'いい'])
+        tm.assert_frame_equal(df, expected)
+
+    def test_usecols_with_multibyte_unicode_characters(self):
+        raise nose.SkipTest('TODO: see gh-13253')
+
+        s = '''あああ,いい,ううう,ええええ
+        0.056674973,8,True,a
+        2.613230982,2,False,b
+        3.568935038,7,False,a
+        '''
+        data = {
+            'あああ': {
+                0: 0.056674972999999997,
+                1: 2.6132309819999997,
+                2: 3.5689350380000002
+            },
+            'いい': {0: 8, 1: 2, 2: 7}
+        }
+        expected = DataFrame(data)
+
+        df = self.read_csv(StringIO(s), usecols=[u'あああ', u'いい'])
         tm.assert_frame_equal(df, expected)
