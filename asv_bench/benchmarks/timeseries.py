@@ -1155,3 +1155,63 @@ class timeseries_year_incr(object):
 
     def time_timeseries_year_incr(self):
         (self.date + self.year)
+
+
+class timeseries_semi_month_offset(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 100000
+        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
+        # date is not on an offset which will be slowest case
+        self.date = dt.datetime(2011, 1, 2)
+        self.semi_month_end = pd.offsets.SemiMonthEnd()
+        self.semi_month_begin = pd.offsets.SemiMonthBegin()
+
+    def time_semi_month_end_apply(self):
+        self.semi_month_end.apply(self.date)
+
+    def time_semi_month_end_incr(self):
+        self.date + self.semi_month_end
+
+    def time_semi_month_end_incr_n(self):
+        self.date + 10 * self.semi_month_end
+
+    def time_semi_month_end_decr(self):
+        self.date - self.semi_month_end
+
+    def time_semi_month_end_decr_n(self):
+        self.date - 10 * self.semi_month_end
+
+    def time_semi_month_end_apply_index(self):
+        self.semi_month_end.apply_index(self.rng)
+
+    def time_semi_month_end_incr_rng(self):
+        self.rng + self.semi_month_end
+
+    def time_semi_month_end_decr_rng(self):
+        self.rng - self.semi_month_end
+
+    def time_semi_month_begin_apply(self):
+        self.semi_month_begin.apply(self.date)
+
+    def time_semi_month_begin_incr(self):
+        self.date + self.semi_month_begin
+
+    def time_semi_month_begin_incr_n(self):
+        self.date + 10 * self.semi_month_begin
+
+    def time_semi_month_begin_decr(self):
+        self.date - self.semi_month_begin
+
+    def time_semi_month_begin_decr_n(self):
+        self.date - 10 * self.semi_month_begin
+
+    def time_semi_month_begin_apply_index(self):
+        self.semi_month_begin.apply_index(self.rng)
+
+    def time_semi_month_begin_incr_rng(self):
+        self.rng + self.semi_month_begin
+
+    def time_semi_month_begin_decr_rng(self):
+        self.rng - self.semi_month_begin
