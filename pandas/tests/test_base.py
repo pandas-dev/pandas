@@ -147,6 +147,27 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
 
 class TestPandasDelegate(tm.TestCase):
 
+    class Delegator(object):
+        _properties = ['foo']
+        _methods = ['bar']
+
+        def _set_foo(self, value):
+            self.foo = value
+
+        def _get_foo(self):
+            return self.foo
+
+        foo = property(_get_foo, _set_foo, doc="foo property")
+
+        def bar(self, *args, **kwargs):
+            """ a test bar method """
+            pass
+
+    class Delegate(PandasDelegate):
+
+        def __init__(self, obj):
+            self.obj = obj
+
     def setUp(self):
         pass
 
@@ -154,35 +175,18 @@ class TestPandasDelegate(tm.TestCase):
         # these show that in order for the delegation to work
         # the _delegate_* methods need to be overriden to not raise a TypeError
 
-        class Delegator(object):
-            _properties = ['foo']
-            _methods = ['bar']
+        self.Delegate._add_delegate_accessors(
+            delegate=self.Delegator,
+            accessors=self.Delegator._properties,
+            typ='property'
+        )
+        self.Delegate._add_delegate_accessors(
+            delegate=self.Delegator,
+            accessors=self.Delegator._methods,
+            typ='method'
+        )
 
-            def _set_foo(self, value):
-                self.foo = value
-
-            def _get_foo(self):
-                return self.foo
-
-            foo = property(_get_foo, _set_foo, doc="foo property")
-
-            def bar(self, *args, **kwargs):
-                """ a test bar method """
-                pass
-
-        class Delegate(PandasDelegate):
-
-            def __init__(self, obj):
-                self.obj = obj
-
-        Delegate._add_delegate_accessors(delegate=Delegator,
-                                         accessors=Delegator._properties,
-                                         typ='property')
-        Delegate._add_delegate_accessors(delegate=Delegator,
-                                         accessors=Delegator._methods,
-                                         typ='method')
-
-        delegate = Delegate(Delegator())
+        delegate = self.Delegate(self.Delegator())
 
         def f():
             delegate.foo
@@ -198,6 +202,12 @@ class TestPandasDelegate(tm.TestCase):
             delegate.foo()
 
         self.assertRaises(TypeError, f)
+
+    def test_memory_usage(self):
+        # Delegate does not implement memory_usage.
+        # Check that we fall back to in-built `__sizeof__`
+        delegate = self.Delegate(self.Delegator())
+        sys.getsizeof(delegate)
 
 
 class Ops(tm.TestCase):
