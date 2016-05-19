@@ -127,7 +127,7 @@ class PandasObject(StringMixin):
 
         # no memory_usage attribute, so fall back to
         # object's 'sizeof'
-        return super(self, PandasObject).__sizeof__()
+        return super(PandasObject, self).__sizeof__()
 
 
 class NoNewAttributesMixin(object):
