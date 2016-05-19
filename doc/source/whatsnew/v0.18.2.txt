@@ -113,6 +113,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``io.json.json_normalize()``, where non-ascii keys raised an exception (:issue:`13213`)
 - Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing may raise ``IndexError`` (:issue:`13144`)
 - Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing result may have normal ``Index`` (:issue:`13144`)
 - Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)

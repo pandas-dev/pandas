@@ -614,10 +614,12 @@ def nested_to_record(ds, prefix="", level=0):
         new_d = copy.deepcopy(d)
         for k, v in d.items():
             # each key gets renamed with prefix
+            if not isinstance(k, compat.string_types):
+                k = str(k)
             if level == 0:
-                newkey = str(k)
+                newkey = k
             else:
-                newkey = prefix + '.' + str(k)
+                newkey = prefix + '.' + k
 
             # only dicts gets recurse-flattend
             # only at level>1 do we rename the rest of the keys
