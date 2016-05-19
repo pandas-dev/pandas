@@ -5,6 +5,7 @@ import numpy as np
 import json
 
 import pandas.util.testing as tm
+import pandas.compat
 
 from pandas.io.json import json_normalize, nested_to_record
 
@@ -166,13 +167,17 @@ class TestJSONNormalize(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
     def test_non_ascii_key(self):
-        testjson = '[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' \
-                   '{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+        if pandas.compat.PY3:
+            testjson = (b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' + \
+                       b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]').decode('utf8')
+        else:
+            testjson = '[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' \
+                        '{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
 
         testdata = {
             u'sub.A': [1, 3],
             u'sub.B': [2, 4],
-            "\xc3\x9cnic\xc3\xb8de".decode('utf8'): [0, 1]
+            b"\xc3\x9cnic\xc3\xb8de".decode('utf8'): [0, 1]
         }
         testdf = DataFrame(testdata)
 
