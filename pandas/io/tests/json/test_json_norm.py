@@ -168,11 +168,13 @@ class TestJSONNormalize(tm.TestCase):
 
     def test_non_ascii_key(self):
         if pandas.compat.PY3:
-            testjson = (b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' + \
-                       b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]').decode('utf8')
+            testjson = (
+                b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' +
+                b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+            ).decode('utf8')
         else:
-            testjson = '[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' \
-                        '{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+            testjson = ('[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},'
+                        '{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]')
 
         testdata = {
             u'sub.A': [1, 3],
