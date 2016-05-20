@@ -41,6 +41,10 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 
+class UnsupportedFunctionCall(ValueError):
+    pass
+
+
 class AbstractMethodError(NotImplementedError):
     """Raise this error instead of NotImplementedError for abstract methods
     while keeping compatibility with Python 2 and Python 3.

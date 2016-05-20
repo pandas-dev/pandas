@@ -11,6 +11,7 @@ from pandas.compat import(
     callable, map
 )
 from pandas import compat
+from pandas.compat.numpy import function as nv
 from pandas.compat.numpy import _np_version_under1p8
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
@@ -954,12 +955,13 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def mean(self):
+    def mean(self, *args, **kwargs):
         """
         Compute mean of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
+        nv.validate_groupby_func('mean', args, kwargs)
         try:
             return self._cython_agg_general('mean')
         except GroupByError:
@@ -993,7 +995,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def std(self, ddof=1):
+    def std(self, ddof=1, *args, **kwargs):
         """
         Compute standard deviation of groups, excluding missing values
 
@@ -1005,12 +1007,13 @@ class GroupBy(_GroupBy):
             degrees of freedom
         """
 
-        # todo, implement at cython level?
+        # TODO: implement at Cython level?
+        nv.validate_groupby_func('std', args, kwargs)
         return np.sqrt(self.var(ddof=ddof))
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def var(self, ddof=1):
+    def var(self, ddof=1, *args, **kwargs):
         """
         Compute variance of groups, excluding missing values
 
@@ -1021,7 +1024,7 @@ class GroupBy(_GroupBy):
         ddof : integer, default 1
             degrees of freedom
         """
-
+        nv.validate_groupby_func('var', args, kwargs)
         if ddof == 1:
             return self._cython_agg_general('var')
         else:
@@ -1317,8 +1320,9 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def cumprod(self, axis=0):
+    def cumprod(self, axis=0, *args, **kwargs):
         """Cumulative product for each group"""
+        nv.validate_groupby_func('cumprod', args, kwargs)
         if axis != 0:
             return self.apply(lambda x: x.cumprod(axis=axis))
 
@@ -1326,8 +1330,9 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def cumsum(self, axis=0):
+    def cumsum(self, axis=0, *args, **kwargs):
         """Cumulative sum for each group"""
+        nv.validate_groupby_func('cumsum', args, kwargs)
         if axis != 0:
             return self.apply(lambda x: x.cumprod(axis=axis))
 

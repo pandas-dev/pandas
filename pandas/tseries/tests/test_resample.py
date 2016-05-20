@@ -13,7 +13,8 @@ from pandas import (Series, DataFrame, Panel, Index, isnull,
                     notnull, Timestamp)
 from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.core.base import SpecificationError
-from pandas.core.common import ABCSeries, ABCDataFrame
+from pandas.core.common import (ABCSeries, ABCDataFrame,
+                                UnsupportedFunctionCall)
 from pandas.core.groupby import DataError
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.index import date_range
@@ -745,6 +746,22 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
                 exc.args += ('how=%s' % arg,)
                 raise
+
+    def test_numpy_compat(self):
+        # see gh-12811
+        s = Series([1, 2, 3, 4, 5], index=date_range(
+            '20130101', periods=5, freq='s'))
+        r = s.resample('2s')
+
+        msg = "numpy operations are not valid with resample"
+
+        for func in ('min', 'max', 'sum', 'prod',
+                     'mean', 'var', 'std'):
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(r, func),
+                                  func, 1, 2, 3)
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(r, func), axis=1)
 
     def test_resample_how_callables(self):
         # GH 7929

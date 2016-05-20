@@ -18,6 +18,7 @@ from pandas.core.base import (PandasObject, SelectionMixin,
 import pandas.core.common as com
 import pandas.algos as algos
 from pandas import compat
+from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Substitution, Appender
 from textwrap import dedent
 
@@ -435,13 +436,15 @@ class Window(_Window):
     @Substitution(name='window')
     @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
-    def sum(self, **kwargs):
+    def sum(self, *args, **kwargs):
+        nv.validate_window_func('sum', args, kwargs)
         return self._apply_window(mean=False, **kwargs)
 
     @Substitution(name='window')
     @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
-    def mean(self, **kwargs):
+    def mean(self, *args, **kwargs):
+        nv.validate_window_func('mean', args, kwargs)
         return self._apply_window(mean=True, **kwargs)
 
 
@@ -620,7 +623,8 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply(f, func, args=args, kwargs=kwargs,
                            center=False)
 
-    def sum(self, **kwargs):
+    def sum(self, *args, **kwargs):
+        nv.validate_window_func('sum', args, kwargs)
         return self._apply('roll_sum', 'sum', **kwargs)
 
     _shared_docs['max'] = dedent("""
@@ -631,7 +635,8 @@ class _Rolling_and_Expanding(_Rolling):
     how : string, default 'max' (DEPRECATED)
         Method for down- or re-sampling""")
 
-    def max(self, how=None, **kwargs):
+    def max(self, how=None, *args, **kwargs):
+        nv.validate_window_func('max', args, kwargs)
         if self.freq is not None and how is None:
             how = 'max'
         return self._apply('roll_max', 'max', how=how, **kwargs)
@@ -644,12 +649,14 @@ class _Rolling_and_Expanding(_Rolling):
     how : string, default 'min' (DEPRECATED)
         Method for down- or re-sampling""")
 
-    def min(self, how=None, **kwargs):
+    def min(self, how=None, *args, **kwargs):
+        nv.validate_window_func('min', args, kwargs)
         if self.freq is not None and how is None:
             how = 'min'
         return self._apply('roll_min', 'min', how=how, **kwargs)
 
-    def mean(self, **kwargs):
+    def mean(self, *args, **kwargs):
+        nv.validate_window_func('mean', args, kwargs)
         return self._apply('roll_mean', 'mean', **kwargs)
 
     _shared_docs['median'] = dedent("""
@@ -674,7 +681,8 @@ class _Rolling_and_Expanding(_Rolling):
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.""")
 
-    def std(self, ddof=1, **kwargs):
+    def std(self, ddof=1, *args, **kwargs):
+        nv.validate_window_func('std', args, kwargs)
         window = self._get_window()
 
         def f(arg, *args, **kwargs):
@@ -693,7 +701,8 @@ class _Rolling_and_Expanding(_Rolling):
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.""")
 
-    def var(self, ddof=1, **kwargs):
+    def var(self, ddof=1, *args, **kwargs):
+        nv.validate_window_func('var', args, kwargs)
         return self._apply('roll_var', 'var',
                            check_minp=_require_min_periods(1), ddof=ddof,
                            **kwargs)
@@ -865,26 +874,30 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
-    def sum(self, **kwargs):
-        return super(Rolling, self).sum(**kwargs)
+    def sum(self, *args, **kwargs):
+        nv.validate_rolling_func('sum', args, kwargs)
+        return super(Rolling, self).sum(*args, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['max'])
-    def max(self, **kwargs):
-        return super(Rolling, self).max(**kwargs)
+    def max(self, *args, **kwargs):
+        nv.validate_rolling_func('max', args, kwargs)
+        return super(Rolling, self).max(*args, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['min'])
-    def min(self, **kwargs):
-        return super(Rolling, self).min(**kwargs)
+    def min(self, *args, **kwargs):
+        nv.validate_rolling_func('min', args, kwargs)
+        return super(Rolling, self).min(*args, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
-    def mean(self, **kwargs):
-        return super(Rolling, self).mean(**kwargs)
+    def mean(self, *args, **kwargs):
+        nv.validate_rolling_func('mean', args, kwargs)
+        return super(Rolling, self).mean(*args, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
@@ -895,13 +908,15 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['std'])
-    def std(self, ddof=1, **kwargs):
+    def std(self, ddof=1, *args, **kwargs):
+        nv.validate_rolling_func('std', args, kwargs)
         return super(Rolling, self).std(ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['var'])
-    def var(self, ddof=1, **kwargs):
+    def var(self, ddof=1, *args, **kwargs):
+        nv.validate_rolling_func('var', args, kwargs)
         return super(Rolling, self).var(ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
@@ -1023,26 +1038,30 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
-    def sum(self, **kwargs):
-        return super(Expanding, self).sum(**kwargs)
+    def sum(self, *args, **kwargs):
+        nv.validate_expanding_func('sum', args, kwargs)
+        return super(Expanding, self).sum(*args, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['max'])
-    def max(self, **kwargs):
-        return super(Expanding, self).max(**kwargs)
+    def max(self, *args, **kwargs):
+        nv.validate_expanding_func('max', args, kwargs)
+        return super(Expanding, self).max(*args, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['min'])
-    def min(self, **kwargs):
-        return super(Expanding, self).min(**kwargs)
+    def min(self, *args, **kwargs):
+        nv.validate_expanding_func('min', args, kwargs)
+        return super(Expanding, self).min(*args, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
-    def mean(self, **kwargs):
-        return super(Expanding, self).mean(**kwargs)
+    def mean(self, *args, **kwargs):
+        nv.validate_expanding_func('mean', args, kwargs)
+        return super(Expanding, self).mean(*args, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
@@ -1053,13 +1072,15 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['std'])
-    def std(self, ddof=1, **kwargs):
+    def std(self, ddof=1, *args, **kwargs):
+        nv.validate_expanding_func('std', args, kwargs)
         return super(Expanding, self).std(ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['var'])
-    def var(self, ddof=1, **kwargs):
+    def var(self, ddof=1, *args, **kwargs):
+        nv.validate_expanding_func('var', args, kwargs)
         return super(Expanding, self).var(ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
@@ -1273,15 +1294,17 @@ class EWM(_Rolling):
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
-    def mean(self, **kwargs):
+    def mean(self, *args, **kwargs):
         """exponential weighted moving average"""
+        nv.validate_window_func('mean', args, kwargs)
         return self._apply('ewma', **kwargs)
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
     @Appender(_bias_template)
-    def std(self, bias=False, **kwargs):
+    def std(self, bias=False, *args, **kwargs):
         """exponential weighted moving stddev"""
+        nv.validate_window_func('std', args, kwargs)
         return _zsqrt(self.var(bias=bias, **kwargs))
 
     vol = std
@@ -1289,8 +1312,9 @@ class EWM(_Rolling):
     @Substitution(name='ewm')
     @Appender(_doc_template)
     @Appender(_bias_template)
-    def var(self, bias=False, **kwargs):
+    def var(self, bias=False, *args, **kwargs):
         """exponential weighted moving variance"""
+        nv.validate_window_func('var', args, kwargs)
 
         def f(arg):
             return algos.ewmcov(arg, arg, self.com, int(self.adjust),

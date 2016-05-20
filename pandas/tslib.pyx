@@ -330,7 +330,7 @@ class Timestamp(_Timestamp):
             result = result.tz_localize(self.tz)
         return result
 
-    def round(self, freq):
+    def round(self, freq, *args, **kwargs):
         """
         Round the Timestamp to the specified resolution
 
@@ -346,6 +346,8 @@ class Timestamp(_Timestamp):
         ------
         ValueError if the freq cannot be converted
         """
+        from pandas.compat.numpy.function import validate_round
+        validate_round(args, kwargs)
         return self._round(freq, np.round)
 
     def floor(self, freq):

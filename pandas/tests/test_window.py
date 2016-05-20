@@ -20,6 +20,7 @@ import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow
 from pandas.core.base import SpecificationError
+from pandas.core.common import UnsupportedFunctionCall
 import pandas.util.testing as tm
 from pandas.compat import range, zip, PY3
 
@@ -296,6 +297,18 @@ class TestWindow(Base):
                 with self.assertRaises(ValueError):
                     c(win_type=wt, window=2)
 
+    def test_numpy_compat(self):
+        # see gh-12811
+        w = rwindow.Window(Series([2, 4, 6]), window=[0, 2])
+
+        msg = "numpy operations are not valid with window objects"
+
+        for func in ('sum', 'mean'):
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(w, func), 1, 2, 3)
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(w, func), dtype=np.float64)
+
 
 class TestRolling(Base):
 
@@ -323,6 +336,18 @@ class TestRolling(Base):
                 with self.assertRaises(ValueError):
                     c(window=2, min_periods=1, center=w)
 
+    def test_numpy_compat(self):
+        # see gh-12811
+        r = rwindow.Rolling(Series([2, 4, 6]), window=2)
+
+        msg = "numpy operations are not valid with window objects"
+
+        for func in ('std', 'mean', 'sum', 'max', 'min', 'var'):
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(r, func), 1, 2, 3)
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(r, func), dtype=np.float64)
+
 
 class TestExpanding(Base):
 
@@ -346,6 +371,74 @@ class TestExpanding(Base):
                     c(min_periods=w)
                 with self.assertRaises(ValueError):
                     c(min_periods=1, center=w)
+
+    def test_numpy_compat(self):
+        # see gh-12811
+        e = rwindow.Expanding(Series([2, 4, 6]), window=2)
+
+        msg = "numpy operations are not valid with window objects"
+
+        for func in ('std', 'mean', 'sum', 'max', 'min', 'var'):
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(e, func), 1, 2, 3)
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(e, func), dtype=np.float64)
+
+
+class TestEWM(Base):
+
+    def setUp(self):
+        self._create_data()
+
+    def test_constructor(self):
+        for o in [self.series, self.frame]:
+            c = o.ewm
+
+            # valid
+            c(com=0.5)
+            c(span=1.5)
+            c(alpha=0.5)
+            c(halflife=0.75)
+            c(com=0.5, span=None)
+            c(alpha=0.5, com=None)
+            c(halflife=0.75, alpha=None)
+
+            # not valid: mutually exclusive
+            with self.assertRaises(ValueError):
+                c(com=0.5, alpha=0.5)
+            with self.assertRaises(ValueError):
+                c(span=1.5, halflife=0.75)
+            with self.assertRaises(ValueError):
+                c(alpha=0.5, span=1.5)
+
+            # not valid: com < 0
+            with self.assertRaises(ValueError):
+                c(com=-0.5)
+
+            # not valid: span < 1
+            with self.assertRaises(ValueError):
+                c(span=0.5)
+
+            # not valid: halflife <= 0
+            with self.assertRaises(ValueError):
+                c(halflife=0)
+
+            # not valid: alpha <= 0 or alpha > 1
+            for alpha in (-0.5, 1.5):
+                with self.assertRaises(ValueError):
+                    c(alpha=alpha)
+
+    def test_numpy_compat(self):
+        # see gh-12811
+        e = rwindow.EWM(Series([2, 4, 6]), alpha=0.5)
+
+        msg = "numpy operations are not valid with window objects"
+
+        for func in ('std', 'mean', 'var'):
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(e, func), 1, 2, 3)
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(e, func), dtype=np.float64)
 
 
 class TestDeprecations(Base):
