@@ -807,8 +807,9 @@ class _GroupBy(PandasObject, SelectionMixin):
             # reset the identities of the components
             # of the values to prevent aliasing
             for v in values:
-                ax = v._get_axis(self.axis)
-                ax._reset_identity()
+                if v is not None:
+                    ax = v._get_axis(self.axis)
+                    ax._reset_identity()
             return values
 
         if not not_indexed_same:
@@ -3226,7 +3227,21 @@ class NDFrameGroupBy(GroupBy):
 
         key_names = self.grouper.names
 
-        if isinstance(values[0], DataFrame):
+        # GH12824.
+        def first_non_None_value(values):
+            try:
+                v = next(v for v in values if v is not None)
+            except StopIteration:
+                return None
+            return v
+
+        v = first_non_None_value(values)
+
+        if v is None:
+            # GH9684. If all values are None, then this will throw an error.
+            # We'd prefer it return an empty dataframe.
+            return DataFrame()
+        elif isinstance(v, DataFrame):
             return self._concat_objects(keys, values,
                                         not_indexed_same=not_indexed_same)
         elif self.grouper.groupings is not None:
@@ -3253,21 +3268,15 @@ class NDFrameGroupBy(GroupBy):
                     key_index = None
 
             # make Nones an empty object
-            if com._count_not_none(*values) != len(values):
-                try:
-                    v = next(v for v in values if v is not None)
-                except StopIteration:
-                    # If all values are None, then this will throw an error.
-                    # We'd prefer it return an empty dataframe.
-                    return DataFrame()
-                if v is None:
-                    return DataFrame()
-                elif isinstance(v, NDFrame):
-                    values = [
-                        x if x is not None else
-                        v._constructor(**v._construct_axes_dict())
-                        for x in values
-                    ]
+            v = first_non_None_value(values)
+            if v is None:
+                return DataFrame()
+            elif isinstance(v, NDFrame):
+                values = [
+                    x if x is not None else
+                    v._constructor(**v._construct_axes_dict())
+                    for x in values
+                ]
 
             v = values[0]
 
