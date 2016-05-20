@@ -1838,3 +1838,26 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         result2 = s.ix['foo']
         self.assertEqual(result.name, s.name)
         self.assertEqual(result2.name, s.name)
+
+    def test_align_broadcast_axis_series(self):
+        # GH 13194
+        # Series.align(DataFrame) tests, 'outer' join
+        df = DataFrame(np.array([[1., 2.], [3., 4.]]), columns=list('AB'))
+        ts = Series([5., 6., 7.])
+        result = ts.align(df, join='outer', axis=0, broadcast_axis=1)
+        expected1 = DataFrame(np.array([[5., 5.], [6., 6.], [7., 7.]]),
+                              columns=list('AB'))
+        expected2 = DataFrame(np.array([[1., 2.], [3., 4.],
+                                        [pd.np.nan, pd.np.nan]]),
+                              columns=list('AB'))
+        self.assertTrue(result[0].equals(expected1))
+        self.assertTrue(result[1].equals(expected2))
+
+        # Series.align(DataFrame) tests, 'inner' join
+        result = ts.align(df, join='inner', axis=0, broadcast_axis=1)
+        expected1 = DataFrame(np.array([[5., 5.], [6., 6.]]),
+                              columns=list('AB'))
+        expected2 = DataFrame(np.array([[1., 2.], [3., 4.]]),
+                              columns=list('AB'))
+        self.assertTrue(result[0].equals(expected1))
+        self.assertTrue(result[1].equals(expected2))

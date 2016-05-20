@@ -149,4 +149,4 @@ Bug Fixes
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
-- Fixed the bug in ``DataFrame.align()`` which was giving wrong output when supplied with the ``join`` argument. Earlier, upon supplying value of join argument as any of the four('outer', 'inner', 'left', 'right' ), align() was giving erraneous output. Align with broadcast_axis specified was using 'inner' join consistently irrespective of the value of 'join' provided when aligning dataframe and series on other axis. The problem was identified to be in pandas/core/generic.py and has been subsequently fixed. (:issue:`13194`) 
+- Fixed the bug in ``DataFrame.align()`` which was giving wrong output when supplied with broadcast_axis. (:issue:`13194`) 

@@ -924,22 +924,3 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
                               columns=list('AB'))
         assert_frame_equal(result[0], expected1)
         assert_frame_equal(result[1], expected2)
-
-        # Series.align(DataFrame) tests, 'outer' join
-        result = ts.align(df, join='outer', axis=0, broadcast_axis=1)
-        expected1 = DataFrame(np.array([[5., 5.], [6., 6.], [7., 7.]]),
-                              columns=list('AB'))
-        expected2 = DataFrame(np.array([[1., 2.], [3., 4.],
-                                        [pd.np.nan, pd.np.nan]]),
-                              columns=list('AB'))
-        assert_frame_equal(result[0], expected1)
-        assert_frame_equal(result[1], expected2)
-
-        # Series.align(DataFrame) tests, 'inner' join
-        result = ts.align(df, join='inner', axis=0, broadcast_axis=1)
-        expected1 = DataFrame(np.array([[5., 5.], [6., 6.]]),
-                              columns=list('AB'))
-        expected2 = DataFrame(np.array([[1., 2.], [3., 4.]]),
-                              columns=list('AB'))
-        assert_frame_equal(result[0], expected1)
-        assert_frame_equal(result[1], expected2)
