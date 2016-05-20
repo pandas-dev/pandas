@@ -214,8 +214,8 @@ cdef inline bint _is_fixed_offset(object tz):
             return 0
     return 1
 
-
 _zero_time = datetime_time(0, 0)
+_no_input = object()
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
@@ -224,6 +224,10 @@ class Timestamp(_Timestamp):
     and is interchangable with it in most cases. It's the type used
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
+
+    There are essentially three calling conventions for the constructor. The
+    primary form accepts four parameters. They can be passed by position or
+    keyword.
 
     Parameters
     ----------
@@ -235,6 +239,23 @@ class Timestamp(_Timestamp):
         Time zone for time which Timestamp will have.
     unit : string
         numpy unit used for conversion, if ts_input is int or float
+
+    The other two forms mimic the parameters from ``datetime.datetime``. They
+    can be passed by either position or keyword, but not both mixed together.
+
+    :func:`datetime.datetime` Parameters
+    ------------------------------------
+
+    .. versionadded:: 0.18.2
+
+    year : int
+    month : int
+    day : int
+    hour : int, optional, default is 0
+    minute : int, optional, default is 0
+    second : int, optional, default is 0
+    microsecond : int, optional, default is 0
+    tzinfo : datetime.tzinfo, optional, default is None
     """
 
     @classmethod
@@ -288,9 +309,45 @@ class Timestamp(_Timestamp):
     def combine(cls, date, time):
         return cls(datetime.combine(date, time))
 
-    def __new__(cls, object ts_input, object offset=None, tz=None, unit=None):
+    def __new__(cls,
+            object ts_input=_no_input, object offset=None, tz=None, unit=None,
+            year=None, month=None, day=None,
+            hour=None, minute=None, second=None, microsecond=None,
+            tzinfo=None):
+        # The parameter list folds together legacy parameter names (the first
+        # four) and positional and keyword parameter names from pydatetime.
+        #
+        # There are three calling forms:
+        #
+        # - In the legacy form, the first parameter, ts_input, is required
+        #   and may be datetime-like, str, int, or float. The second
+        #   parameter, offset, is optional and may be str or DateOffset.
+        #
+        # - ints in the first, second, and third arguments indicate
+        #   pydatetime positional arguments. Only the first 8 arguments
+        #   (standing in for year, month, day, hour, minute, second,
+        #   microsecond, tzinfo) may be non-None. As a shortcut, we just
+        #   check that the second argument is an int.
+        #
+        # - Nones for the first four (legacy) arguments indicate pydatetime
+        #   keyword arguments. year, month, and day are required. As a
+        #   shortcut, we just check that the first argument was not passed.
+        #
+        # Mixing pydatetime positional and keyword arguments is forbidden!
+
         cdef _TSObject ts
         cdef _Timestamp ts_base
+
+        if ts_input is _no_input:
+            # User passed keyword arguments.
+            return Timestamp(datetime(year, month, day, hour or 0,
+                minute or 0, second or 0, microsecond or 0, tzinfo),
+                tz=tzinfo)
+        elif is_integer_object(offset):
+            # User passed positional arguments:
+            #   Timestamp(year, month, day[, hour[, minute[, second[, microsecond[, tzinfo]]]]])
+            return Timestamp(datetime(ts_input, offset, tz, unit or 0,
+                year or 0, month or 0, day or 0, hour), tz=hour)
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0)
 
