@@ -34,38 +34,6 @@ python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 home_dir=$(pwd)
 echo "home_dir: [$home_dir]"
 
-# Not going to work in containers
-#if [ -n "$LOCALE_OVERRIDE" ]; then
-#    # make sure the locale is available
-#    # probably useless, since you would need to relogin
-#    time sudo locale-gen "$LOCALE_OVERRIDE"
-#
-#    # Need to enable for locale testing. The location of the locale file(s) is
-#    # distro specific. For example, on Arch Linux all of the locales are in a
-#    # commented file--/etc/locale.gen--that must be commented in to be used
-#    # whereas Ubuntu looks in /var/lib/locales/supported.d/* and generates locales
-#    # based on what's in the files in that folder
-#    time echo 'it_CH.UTF-8 UTF-8' | sudo tee -a /var/lib/locales/supported.d/it
-#    time sudo locale-gen
-#
-#fi
-
-# Not going to work in containers
-# install gui for clipboard testing
-#if [ -n "$CLIPBOARD_GUI" ]; then
-#    echo "Using CLIPBOARD_GUI: $CLIPBOARD_GUI"
-#    [ -n "$python_major_version" ] && py="py"
-#    python_cb_gui_pkg=python${python_major_version}-${py}${CLIPBOARD_GUI}
-#    time sudo apt-get $APT_ARGS install $python_cb_gui_pkg
-#fi
-
-# Not going to work in containers
-# install a clipboard if $CLIPBOARD is not empty
-#if [ -n "$CLIPBOARD" ]; then
-#    echo "Using clipboard: $CLIPBOARD"
-#    time sudo apt-get $APT_ARGS install $CLIPBOARD
-#fi
-
 python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 [ "$python_major_version" == "2" ] && python_major_version=""
 
