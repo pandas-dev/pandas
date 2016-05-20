@@ -46,7 +46,8 @@ API changes
 
 
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
-
+- Compat with ``np.round`` and timestamps (:issue:`12811`)
+- An ``UnsupportedFunctionCall`` error is now raised if numpy ufuncs like ``np.mean`` are called on groupby or resample objects (:issue:`12811`)
 
 .. _whatsnew_0182.api.tolist:
 

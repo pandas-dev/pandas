@@ -1290,6 +1290,34 @@ class TestTslib(tm.TestCase):
                     years=years, months=months) for x in s])
                 tm.assert_index_equal(actual, expected)
 
+    def test_round(self):
+        # see gh-12811
+        stamp = Timestamp('2000-01-05 05:09:15.13')
+
+        def _check_round(freq, expected):
+            result = stamp.round(freq=freq)
+            npResult = np.round(stamp, freq)
+            self.assertEqual(result, expected)
+            self.assertEqual(npResult, expected)
+
+        for freq, expected in [
+            ('D', Timestamp('2000-01-05 00:00:00')),
+            ('H', Timestamp('2000-01-05 05:00:00')),
+            ('S', Timestamp('2000-01-05 05:09:15'))
+        ]:
+            _check_round(freq, expected)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.round,
+                              stamp, 'D', out=[])
+
+        # 'freq' is a required parameter, so we cannot
+        # assign a default should the user accidentally
+        # assign a 'decimals' input instead
+        msg = "Could not evaluate"
+        tm.assertRaisesRegexp(ValueError, msg, np.round,
+                              stamp, 2)
+
 
 class TestTimestampOps(tm.TestCase):
     def test_timestamp_and_datetime(self):
