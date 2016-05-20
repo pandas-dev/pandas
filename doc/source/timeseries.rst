@@ -98,6 +98,7 @@ time.
 
    pd.Timestamp(datetime(2012, 5, 1))
    pd.Timestamp('2012-05-01')
+   pd.Timestamp(2012, 5, 1)
 
 However, in many cases it is more natural to associate things like change
 variables with a time span instead. The span represented by ``Period`` can be
