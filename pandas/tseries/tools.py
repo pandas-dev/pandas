@@ -221,7 +221,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If True, require an exact format match.
         - If False, allow the format to match anywhere in the target string.
 
-    unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
+    unit : string, default 'ns'
+        unit of the arg (D,s,ms,us,ns) denote the unit in epoch
         (e.g. a unix timestamp), which is an integer/float number.
     infer_datetime_format : boolean, default False
         If True and no `format` is given, attempt to infer the format of the
