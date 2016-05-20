@@ -72,12 +72,14 @@ matrix:
         apt:
           packages:
           - xsel
+#    In allow_failures
     - python: 2.7
       env:
       - JOB_NAME: "27_slow"
       - JOB_TAG=_SLOW
       - NOSE_ARGS="slow and not network and not disabled"
       - FULL_DEPS=true
+#    In allow_failures
     - python: 3.4
       env:
       - JOB_NAME: "34_slow"
@@ -89,6 +91,7 @@ matrix:
         apt:
           packages:
           - xsel
+#    In allow_failures
     - python: 2.7
       env:
       - JOB_NAME: "27_build_test_conda"
@@ -96,6 +99,7 @@ matrix:
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - BUILD_TEST=true
+#    In allow_failures
     - python: 3.5
       env:
       - JOB_NAME: "35_numpy_dev"
@@ -107,6 +111,7 @@ matrix:
           packages:
           - libatlas-base-dev
           - gfortran
+#    In allow_failures
     - python: 2.7
       env:
       - JOB_NAME: "27_nslow_nnet_COMPAT"
@@ -118,6 +123,7 @@ matrix:
         apt:
           packages:
           - language-pack-it
+#    In allow_failures
     - python: 2.7
       env:
       - JOB_NAME: "doc_build"
@@ -139,9 +145,9 @@ matrix:
         - FULL_DEPS=true
         - CLIPBOARD=xsel
         addons:
-        apt:
-          packages:
-          - xsel
+          apt:
+            packages:
+            - xsel
       - python: 2.7
         env:
         - JOB_NAME: "27_build_test_conda"
@@ -156,10 +162,10 @@ matrix:
         - NOSE_ARGS="not slow and not network and not disabled"
         - PANDAS_TESTING_MODE="deprecate"
         addons:
-        apt:
-          packages:
-          - libatlas-base-dev
-          - gfortran
+          apt:
+            packages:
+            - libatlas-base-dev
+            - gfortran
       - python: 2.7
         env:
         - JOB_NAME: "27_nslow_nnet_COMPAT"
@@ -168,9 +174,9 @@ matrix:
         - INSTALL_TEST=true
         - JOB_TAG=_COMPAT
         addons:
-        apt:
-          packages:
-          - language-pack-it
+          apt:
+            packages:
+            - language-pack-it
       - python: 2.7
         env:
         - JOB_NAME: "doc_build"
