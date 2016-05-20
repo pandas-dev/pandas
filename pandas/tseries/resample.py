@@ -1,6 +1,7 @@
 from datetime import timedelta
 import numpy as np
 import warnings
+import copy
 
 import pandas as pd
 from pandas.core.base import AbstractMethodError, GroupByMixin
@@ -15,7 +16,9 @@ from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
 import pandas.core.common as com
 import pandas.core.algorithms as algos
+
 import pandas.compat as compat
+from pandas.compat.numpy import function as nv
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
@@ -479,7 +482,7 @@ class Resampler(_GroupBy):
         """
         return self._upsample('asfreq')
 
-    def std(self, ddof=1):
+    def std(self, ddof=1, *args, **kwargs):
         """
         Compute standard deviation of groups, excluding missing values
 
@@ -488,9 +491,10 @@ class Resampler(_GroupBy):
         ddof : integer, default 1
         degrees of freedom
         """
+        nv.validate_resampler_func('std', args, kwargs)
         return self._downsample('std', ddof=ddof)
 
-    def var(self, ddof=1):
+    def var(self, ddof=1, *args, **kwargs):
         """
         Compute variance of groups, excluding missing values
 
@@ -499,6 +503,7 @@ class Resampler(_GroupBy):
         ddof : integer, default 1
         degrees of freedom
         """
+        nv.validate_resampler_func('var', args, kwargs)
         return self._downsample('var', ddof=ddof)
 Resampler._deprecated_valids += dir(Resampler)
 
@@ -506,7 +511,8 @@ Resampler._deprecated_valids += dir(Resampler)
 for method in ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
                'median', 'prod', 'ohlc']:
 
-    def f(self, _method=method):
+    def f(self, _method=method, *args, **kwargs):
+        nv.validate_resampler_func(_method, args, kwargs)
         return self._downsample(_method)
     f.__doc__ = getattr(GroupBy, method).__doc__
     setattr(Resampler, method, f)
@@ -592,7 +598,7 @@ class _GroupByMixin(GroupByMixin):
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
-        self.groupby = parent.groupby
+        self.groupby = copy.copy(parent.groupby)
 
     def _apply(self, f, **kwargs):
         """

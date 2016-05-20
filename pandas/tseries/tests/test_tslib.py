@@ -180,6 +180,52 @@ class TestTimestamp(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, 'Cannot convert Period'):
             Timestamp(Period('1000-01-01'))
 
+    def test_constructor_positional(self):
+        # GH 10758
+        with tm.assertRaises(TypeError):
+            Timestamp(2000, 1)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 0, 1)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 13, 1)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 1, 0)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 1, 32)
+
+        # GH 11630
+        self.assertEqual(
+            repr(Timestamp(2015, 11, 12)),
+            repr(Timestamp('20151112')))
+
+        self.assertEqual(
+            repr(Timestamp(2015, 11, 12, 1, 2, 3, 999999)),
+            repr(Timestamp('2015-11-12 01:02:03.999999')))
+
+        self.assertIs(Timestamp(None), pd.NaT)
+
+    def test_constructor_keyword(self):
+        # GH 10758
+        with tm.assertRaises(TypeError):
+            Timestamp(year=2000, month=1)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=0, day=1)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=13, day=1)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=1, day=0)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=1, day=32)
+
+        self.assertEqual(
+            repr(Timestamp(year=2015, month=11, day=12)),
+            repr(Timestamp('20151112')))
+
+        self.assertEqual(
+            repr(Timestamp(year=2015, month=11, day=12,
+                           hour=1, minute=2, second=3, microsecond=999999)),
+            repr(Timestamp('2015-11-12 01:02:03.999999')))
+
     def test_conversion(self):
         # GH 9255
         ts = Timestamp('2000-01-01')
@@ -1289,6 +1335,34 @@ class TestTslib(tm.TestCase):
                 expected = DatetimeIndex([x + offsets.DateOffset(
                     years=years, months=months) for x in s])
                 tm.assert_index_equal(actual, expected)
+
+    def test_round(self):
+        # see gh-12811
+        stamp = Timestamp('2000-01-05 05:09:15.13')
+
+        def _check_round(freq, expected):
+            result = stamp.round(freq=freq)
+            npResult = np.round(stamp, freq)
+            self.assertEqual(result, expected)
+            self.assertEqual(npResult, expected)
+
+        for freq, expected in [
+            ('D', Timestamp('2000-01-05 00:00:00')),
+            ('H', Timestamp('2000-01-05 05:00:00')),
+            ('S', Timestamp('2000-01-05 05:09:15'))
+        ]:
+            _check_round(freq, expected)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.round,
+                              stamp, 'D', out=[])
+
+        # 'freq' is a required parameter, so we cannot
+        # assign a default should the user accidentally
+        # assign a 'decimals' input instead
+        msg = "Could not evaluate"
+        tm.assertRaisesRegexp(ValueError, msg, np.round,
+                              stamp, 2)
 
 
 class TestTimestampOps(tm.TestCase):

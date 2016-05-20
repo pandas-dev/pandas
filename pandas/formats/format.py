@@ -2590,6 +2590,9 @@ class EngFormatter(object):
         import math
         dnum = decimal.Decimal(str(num))
 
+        if decimal.Decimal.is_nan(dnum):
+            return 'NaN'
+
         sign = 1
 
         if dnum < 0:  # pragma: no cover

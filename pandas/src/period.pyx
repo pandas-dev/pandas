@@ -772,6 +772,9 @@ cdef class Period(object):
             if self.ordinal == tslib.iNaT or other.ordinal == tslib.iNaT:
                 return _nat_scalar_rules[op]
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
+        # index/series like
+        elif hasattr(other, '_typ'):
+            return NotImplemented
         else:
             if op == Py_EQ:
                 return NotImplemented

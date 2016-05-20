@@ -13,7 +13,8 @@ from pandas import (Series, DataFrame, Panel, Index, isnull,
                     notnull, Timestamp)
 from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.core.base import SpecificationError
-from pandas.core.common import ABCSeries, ABCDataFrame
+from pandas.core.common import (ABCSeries, ABCDataFrame,
+                                UnsupportedFunctionCall)
 from pandas.core.groupby import DataError
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.index import date_range
@@ -745,6 +746,22 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
                 exc.args += ('how=%s' % arg,)
                 raise
+
+    def test_numpy_compat(self):
+        # see gh-12811
+        s = Series([1, 2, 3, 4, 5], index=date_range(
+            '20130101', periods=5, freq='s'))
+        r = s.resample('2s')
+
+        msg = "numpy operations are not valid with resample"
+
+        for func in ('min', 'max', 'sum', 'prod',
+                     'mean', 'var', 'std'):
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(r, func),
+                                  func, 1, 2, 3)
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(r, func), axis=1)
 
     def test_resample_how_callables(self):
         # GH 7929
@@ -1846,6 +1863,32 @@ class TestDatetimeIndex(Base, tm.TestCase):
                                        freq='D', tz='Europe/Paris')),
             'D Frequency')
 
+    def test_resample_with_nat(self):
+        # GH 13020
+        index = DatetimeIndex([pd.NaT,
+                               '1970-01-01 00:00:00',
+                               pd.NaT,
+                               '1970-01-01 00:00:01',
+                               '1970-01-01 00:00:02'])
+        frame = DataFrame([2, 3, 5, 7, 11], index=index)
+
+        index_1s = DatetimeIndex(['1970-01-01 00:00:00',
+                                  '1970-01-01 00:00:01',
+                                  '1970-01-01 00:00:02'])
+        frame_1s = DataFrame([3, 7, 11], index=index_1s)
+        assert_frame_equal(frame.resample('1s').mean(), frame_1s)
+
+        index_2s = DatetimeIndex(['1970-01-01 00:00:00',
+                                  '1970-01-01 00:00:02'])
+        frame_2s = DataFrame([5, 11], index=index_2s)
+        assert_frame_equal(frame.resample('2s').mean(), frame_2s)
+
+        index_3s = DatetimeIndex(['1970-01-01 00:00:00'])
+        frame_3s = DataFrame([7], index=index_3s)
+        assert_frame_equal(frame.resample('3s').mean(), frame_3s)
+
+        assert_frame_equal(frame.resample('60s').mean(), frame_3s)
+
 
 class TestPeriodIndex(Base, tm.TestCase):
     _multiprocess_can_split_ = True
@@ -2517,6 +2560,25 @@ class TestResamplerGrouper(tm.TestCase):
         assert_series_equal(result, expected)
 
         result = g.resample('2s').mean().B
+        assert_series_equal(result, expected)
+
+    def test_getitem_multiple(self):
+
+        # GH 13174
+        # multiple calls after selection causing an issue with aliasing
+        data = [{'id': 1, 'buyer': 'A'}, {'id': 2, 'buyer': 'B'}]
+        df = pd.DataFrame(data, index=pd.date_range('2016-01-01', periods=2))
+        r = df.groupby('id').resample('1D')
+        result = r['buyer'].count()
+        expected = pd.Series([1, 1],
+                             index=pd.MultiIndex.from_tuples(
+                                 [(1, pd.Timestamp('2016-01-01')),
+                                  (2, pd.Timestamp('2016-01-02'))],
+                                 names=['id', None]),
+                             name='buyer')
+        assert_series_equal(result, expected)
+
+        result = r['buyer'].count()
         assert_series_equal(result, expected)
 
     def test_methods(self):

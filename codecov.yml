@@ -7,6 +7,3 @@ coverage:
       default:
         target: '50'
         branches: null
-    changes:
-      default:
-        branches: null

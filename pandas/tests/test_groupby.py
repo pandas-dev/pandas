@@ -8,6 +8,7 @@ from numpy import nan
 from pandas import date_range, bdate_range, Timestamp
 from pandas.core.index import Index, MultiIndex, CategoricalIndex
 from pandas.core.api import Categorical, DataFrame
+from pandas.core.common import UnsupportedFunctionCall
 from pandas.core.groupby import (SpecificationError, DataError, _nargsort,
                                  _lexsort_indexer)
 from pandas.core.series import Series
@@ -1051,12 +1052,38 @@ class TestGroupBy(tm.TestCase):
 
         values = np.repeat(grp.mean().values,
                            com._ensure_platform_int(grp.count().values))
-        expected = pd.Series(values, index=df.index)
+        expected = pd.Series(values, index=df.index, name='val')
         result = grp.transform(np.mean)
         assert_series_equal(result, expected)
 
         result = grp.transform('mean')
         assert_series_equal(result, expected)
+
+        # GH 12737
+        df = pd.DataFrame({'grouping': [0, 1, 1, 3], 'f': [1.1, 2.1, 3.1, 4.5],
+                           'd': pd.date_range('2014-1-1', '2014-1-4'),
+                           'i': [1, 2, 3, 4]},
+                          columns=['grouping', 'f', 'i', 'd'])
+        result = df.groupby('grouping').transform('first')
+
+        dates = [pd.Timestamp('2014-1-1'), pd.Timestamp('2014-1-2'),
+                 pd.Timestamp('2014-1-2'), pd.Timestamp('2014-1-4')]
+        expected = pd.DataFrame({'f': [1.1, 2.1, 2.1, 4.5],
+                                 'd': dates,
+                                 'i': [1, 2, 2, 4]},
+                                columns=['f', 'i', 'd'])
+        assert_frame_equal(result, expected)
+
+        # selection
+        result = df.groupby('grouping')[['f', 'i']].transform('first')
+        expected = expected[['f', 'i']]
+        assert_frame_equal(result, expected)
+
+        # dup columns
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['g', 'a', 'a'])
+        result = df.groupby('g').transform('first')
+        expected = df.drop('g', axis=1)
+        assert_frame_equal(result, expected)
 
     def test_transform_broadcast(self):
         grouped = self.ts.groupby(lambda x: x.month)
@@ -1189,6 +1216,16 @@ class TestGroupBy(tm.TestCase):
 
         result = self.df.groupby('A')['C'].transform('mean')
         expected = self.df.groupby('A')['C'].transform(np.mean)
+        assert_series_equal(result, expected)
+
+    def test_series_fast_transform_date(self):
+        # GH 13191
+        df = pd.DataFrame({'grouping': [np.nan, 1, 1, 3],
+                           'd': pd.date_range('2014-1-1', '2014-1-4')})
+        result = df.groupby('grouping')['d'].transform('first')
+        dates = [pd.NaT, pd.Timestamp('2014-1-2'), pd.Timestamp('2014-1-2'),
+                 pd.Timestamp('2014-1-4')]
+        expected = pd.Series(dates, name='d')
         assert_series_equal(result, expected)
 
     def test_transform_length(self):
@@ -2676,7 +2713,7 @@ class TestGroupBy(tm.TestCase):
         trans_expected = ts_grouped.transform(g)
 
         assert_series_equal(apply_result, agg_expected)
-        assert_series_equal(agg_result, agg_expected)
+        assert_series_equal(agg_result, agg_expected, check_names=False)
         assert_series_equal(trans_result, trans_expected)
 
         agg_result = ts_grouped.agg(f, q=80)
@@ -2692,11 +2729,11 @@ class TestGroupBy(tm.TestCase):
         apply_result = df_grouped.apply(DataFrame.quantile, .8)
         expected = df_grouped.quantile(.8)
         assert_frame_equal(apply_result, expected)
-        assert_frame_equal(agg_result, expected)
+        assert_frame_equal(agg_result, expected, check_names=False)
 
         agg_result = df_grouped.agg(f, q=80)
         apply_result = df_grouped.apply(DataFrame.quantile, q=.8)
-        assert_frame_equal(agg_result, expected)
+        assert_frame_equal(agg_result, expected, check_names=False)
         assert_frame_equal(apply_result, expected)
 
     def test_size(self):
@@ -4406,7 +4443,7 @@ class TestGroupBy(tm.TestCase):
 
         df = DataFrame({"A": range(2), "B": [pd.Timestamp('2000-01-1')] * 2})
         result = df.groupby("A")["B"].transform(min)
-        expected = Series([pd.Timestamp('2000-01-1')] * 2)
+        expected = Series([pd.Timestamp('2000-01-1')] * 2, name='B')
         assert_series_equal(result, expected)
 
     def test_groupby_categorical_unequal_len(self):
@@ -4508,7 +4545,7 @@ class TestGroupBy(tm.TestCase):
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
-    def test_aaa_groupby_with_small_elem(self):
+    def test_groupby_with_small_elem(self):
         # GH 8542
         # length=2
         df = pd.DataFrame({'event': ['start', 'start'],
@@ -5972,7 +6009,7 @@ class TestGroupBy(tm.TestCase):
                 exc.args += ('operation: %s' % op, )
                 raise
 
-    def test_aa_cython_group_transform_algos(self):
+    def test_cython_group_transform_algos(self):
         # GH 4095
         dtypes = [np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint32,
                   np.uint64, np.float32, np.float64]
@@ -6279,6 +6316,29 @@ class TestGroupBy(tm.TestCase):
         expected = DataFrame()
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_apply_none_first(self):
+        # GH 12824. Tests if apply returns None first.
+        test_df1 = DataFrame({'groups': [1, 1, 1, 2], 'vars': [0, 1, 2, 3]})
+        test_df2 = DataFrame({'groups': [1, 2, 2, 2], 'vars': [0, 1, 2, 3]})
+
+        def test_func(x):
+            if x.shape[0] < 2:
+                return None
+            return x.iloc[[0, -1]]
+
+        result1 = test_df1.groupby('groups').apply(test_func)
+        result2 = test_df2.groupby('groups').apply(test_func)
+        index1 = MultiIndex.from_arrays([[1, 1], [0, 2]],
+                                        names=['groups', None])
+        index2 = MultiIndex.from_arrays([[2, 2], [1, 3]],
+                                        names=['groups', None])
+        expected1 = DataFrame({'groups': [1, 1], 'vars': [0, 2]},
+                              index=index1)
+        expected2 = DataFrame({'groups': [2, 2], 'vars': [1, 3]},
+                              index=index2)
+        tm.assert_frame_equal(result1, expected1)
+        tm.assert_frame_equal(result2, expected2)
+
     def test_first_last_max_min_on_time_data(self):
         # GH 10295
         # Verify that NaT is not in the result of max, min, first and last on
@@ -6356,6 +6416,19 @@ class TestGroupBy(tm.TestCase):
                                 'value for each group.*', df.groupby
                                 (axis=1, level=1).transform,
                                 lambda z: z.div(z.sum(axis=1), axis=0))
+
+    def test_numpy_compat(self):
+        # see gh-12811
+        df = pd.DataFrame({'A': [1, 2, 1], 'B': [1, 2, 3]})
+        g = df.groupby('A')
+
+        msg = "numpy operations are not valid with groupby"
+
+        for func in ('mean', 'var', 'std', 'cumprod', 'cumsum'):
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(g, func), 1, 2, 3)
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(g, func), foo=1)
 
 
 def assert_fp_equal(a, b):

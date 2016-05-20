@@ -592,7 +592,6 @@ class MultiIndex(Index):
     def get_value(self, series, key):
         # somewhat broken encapsulation
         from pandas.core.indexing import maybe_droplevels
-        from pandas.core.series import Series
 
         # Label-based
         s = _values_from_object(series)
@@ -604,7 +603,8 @@ class MultiIndex(Index):
             new_values = series._values[loc]
             new_index = self[loc]
             new_index = maybe_droplevels(new_index, k)
-            return Series(new_values, index=new_index, name=series.name)
+            return series._constructor(new_values, index=new_index,
+                                       name=series.name).__finalize__(self)
 
         try:
             return self._engine.get_value(s, k)
@@ -1761,7 +1761,8 @@ class MultiIndex(Index):
 
             else:
                 m = np.zeros(len(labels), dtype=bool)
-                m[np.in1d(labels, r, assume_unique=True)] = True
+                m[np.in1d(labels, r,
+                          assume_unique=Index(labels).is_unique)] = True
 
             return m
 

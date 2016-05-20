@@ -103,7 +103,8 @@ class TestSeriesInternals(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning):
             result = s.convert_objects(convert_dates='coerce',
                                        convert_numeric=False)
-        assert_series_equal(result, s)
+        expected = Series([lib.NaT] * 2 + [Timestamp(1)] * 2)
+        assert_series_equal(result, expected)
 
         # preserver if non-object
         s = Series([1], dtype='float32')
@@ -270,7 +271,7 @@ class TestSeriesInternals(tm.TestCase):
 
         s = Series(['foo', 'bar', 1, 1.0], dtype='O')
         result = s._convert(datetime=True, coerce=True)
-        expected = Series([lib.NaT] * 4)
+        expected = Series([lib.NaT] * 2 + [Timestamp(1)] * 2)
         assert_series_equal(result, expected)
 
         # preserver if non-object
