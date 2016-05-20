@@ -39,6 +39,14 @@ Other enhancements
      idx = pd.Index(["a1a2", "b1", "c1"])
      idx.str.extractall("[ab](?P<digit>\d)")
 
+- ``Timestamp``s can now accept positional and keyword parameters like :func:`datetime.datetime` (:issue:`10758`, :issue:`11630`)
+
+  .. ipython:: python
+
+    Timestamp(2012, 1, 1)
+
+    Timestamp(2012, 1, 1, 8, 30)
+
 .. _whatsnew_0182.api:
 
 API changes
