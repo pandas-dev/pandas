@@ -2363,7 +2363,7 @@ class TestToDatetime(tm.TestCase):
         expected = DatetimeIndex(['2015-06-19 05:33:20',
                                   '2015-05-27 22:33:20'])
         arr1 = [1.434692e+18, 1.432766e+18]
-        arr2 = np.array(arr1).astype(int)
+        arr2 = np.array(arr1).astype('int64')
         for errors in ['ignore', 'raise', 'coerce']:
             result = pd.to_datetime(arr1, errors=errors)
             tm.assert_index_equal(result, expected)
