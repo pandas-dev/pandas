@@ -883,50 +883,63 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
     def test_align_broadcast_axis(self):
         # GH 13194
-        # For 'outer' join
+        # First four tests for DataFrame.align(Index)
+        # For 'right' join
         df = DataFrame(np.array([[1., 2.], [3., 4.]]), columns=list('AB'))
         ts = Series([5., 6., 7.])
-        result = df.align(ts, join='outer', axis=0, broadcast_axis=1)
-        result1 = DataFrame(result[0])
-        result2 = DataFrame(result[1])
+
+        result = df.align(ts, join='right', axis=0, broadcast_axis=1)
         expected1 = DataFrame(np.array([[1., 2.], [3., 4.],
                                         [pd.np.nan, pd.np.nan]]),
                               columns=list('AB'))
         expected2 = DataFrame(np.array([[5., 5.], [6., 6.], [7., 7.]]),
                               columns=list('AB'))
-        assert_frame_equal(result1, expected1)
-        assert_frame_equal(result2, expected2)
+        assert_frame_equal(result[0], expected1)
+        assert_frame_equal(result[1], expected2)
 
-        # For 'inner' join
-        result = df.align(ts, join='inner', axis=0, broadcast_axis=1)
-        result1 = DataFrame(result[0])
-        result2 = DataFrame(result[1])
+        # For 'right' join on different index
+        result = df.align(ts, join='right', axis=1, broadcast_axis=1)
         expected1 = DataFrame(np.array([[1., 2.], [3., 4.]]),
                               columns=list('AB'))
-        expected2 = DataFrame(np.array([[5., 5.], [6., 6.]]),
+        expected2 = DataFrame(np.array([[5., 5.], [6., 6.],
+                                        [7., 7.]]),
                               columns=list('AB'))
-        assert_frame_equal(result1, expected1)
-        assert_frame_equal(result2, expected2)
+        assert_frame_equal(result[0], expected1)
+        assert_frame_equal(result[1], expected2)
 
         # For 'left' join
         result = df.align(ts, join='left', axis=0, broadcast_axis=1)
-        result1 = DataFrame(result[0])
-        result2 = DataFrame(result[1])
         expected1 = DataFrame(np.array([[1., 2.], [3., 4.]]),
                               columns=list('AB'))
         expected2 = DataFrame(np.array([[5., 5.], [6., 6.]]),
                               columns=list('AB'))
-        assert_frame_equal(result1, expected1)
-        assert_frame_equal(result2, expected2)
+        assert_frame_equal(result[0], expected1)
+        assert_frame_equal(result[1], expected2)
 
-        # For 'right' join
-        result = df.align(ts, join='right', axis=0, broadcast_axis=1)
-        result1 = DataFrame(result[0])
-        result2 = DataFrame(result[1])
-        expected1 = DataFrame(np.array([[1., 2.], [3., 4.],
-                                        [pd.np.nan, pd.np.nan]]),
+        # For 'left' join on different axis
+        result = df.align(ts, join='left', axis=1, broadcast_axis=1)
+        expected1 = DataFrame(np.array([[1., 2.], [3., 4.]]),
                               columns=list('AB'))
         expected2 = DataFrame(np.array([[5., 5.], [6., 6.], [7., 7.]]),
                               columns=list('AB'))
-        assert_frame_equal(result1, expected1)
-        assert_frame_equal(result2, expected2)
+        assert_frame_equal(result[0], expected1)
+        assert_frame_equal(result[1], expected2)
+
+        # Series.align(DataFrame) tests, 'outer' join
+        result = ts.align(df, join='outer', axis=0, broadcast_axis=1)
+        expected1 = DataFrame(np.array([[5., 5.], [6., 6.], [7., 7.]]),
+                              columns=list('AB'))
+        expected2 = DataFrame(np.array([[1., 2.], [3., 4.],
+                                        [pd.np.nan, pd.np.nan]]),
+                              columns=list('AB'))
+        assert_frame_equal(result[0], expected1)
+        assert_frame_equal(result[1], expected2)
+
+        # Series.align(DataFrame) tests, 'inner' join
+        result = ts.align(df, join='inner', axis=0, broadcast_axis=1)
+        expected1 = DataFrame(np.array([[5., 5.], [6., 6.]]),
+                              columns=list('AB'))
+        expected2 = DataFrame(np.array([[1., 2.], [3., 4.]]),
+                              columns=list('AB'))
+        assert_frame_equal(result[0], expected1)
+        assert_frame_equal(result[1], expected2)
