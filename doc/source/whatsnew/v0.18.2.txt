@@ -39,6 +39,8 @@ Other enhancements
      idx = pd.Index(["a1a2", "b1", "c1"])
      idx.str.extractall("[ab](?P<digit>\d)")
 
+- ``Index`` gained the ``.empty`` attribute. (:issue: `13207`)
+
 .. _whatsnew_0182.api:
 
 API changes
@@ -149,4 +151,3 @@ Bug Fixes
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
-- ``Index`` gained the ``.empty`` attribute. The function returns True for an empty ``Index`` and False for a non empty ``Index`` (:issue: `13207`)

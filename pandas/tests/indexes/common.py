@@ -724,6 +724,11 @@ class Base(object):
 
     def test_is_index_empty(self):
         """ GH 13207 Bug Fix """
+        for ind in self.indices.values():
+            if ind.size == 0:
+                self.assertEqual(ind.empty, True)
+            else:
+                self.assertEqual(ind.empty, False)
         idx = pd.Index([])
         result = idx.empty
         self.assertEqual(result, True)
