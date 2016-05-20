@@ -39,6 +39,8 @@ Other enhancements
      idx = pd.Index(["a1a2", "b1", "c1"])
      idx.str.extractall("[ab](?P<digit>\d)")
 
+- ``Index`` gained the ``.empty`` attribute. (:issue: `13207`)
+
 .. _whatsnew_0182.api:
 
 API changes

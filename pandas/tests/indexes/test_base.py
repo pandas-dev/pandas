@@ -1615,7 +1615,6 @@ Index([u'あ', u'いい', u'ううう'], dtype='object')"""
 
                 self.assertEqual(coerce(idx), expected)
 
-
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index
     result = _get_combined_index([])
