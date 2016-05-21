@@ -55,6 +55,8 @@ API changes
 
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
 - An ``UnsupportedFunctionCall`` error is now raised if numpy ufuncs like ``np.mean`` are called on groupby or resample objects (:issue:`12811`)
+- Calls to ``.sample()`` will respect the random seed set via ``numpy.random.seed(n)`` (:issue:`13161`)
+
 
 .. _whatsnew_0182.api.tolist:
 
