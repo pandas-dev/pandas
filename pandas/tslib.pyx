@@ -2292,6 +2292,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         iresult[i] = cast_from_unit(val, 'ns')
                     except:
                         iresult[i] = NPY_NAT
+            elif not util.is_string_object(val):
+                if is_coerce:
+                    iresult[i] = NPY_NAT
+                else:
+                    raise TypeError("{0} is not convertible to datetime"
+                                    .format(type(val)))
             else:
                 try:
                     if len(val) == 0 or val in _nat_strings:

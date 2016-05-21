@@ -245,6 +245,7 @@ Bug Fixes
 - Bug in ``Series`` arithmetic raises ``TypeError`` if it contains datetime-like as ``object`` dtype (:issue:`13043`)
 
 
+- Bug in ``pd.to_datetime`` when passing ``bools``; will now respect the ``errors`` value (:issue:`13176`)
 
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
