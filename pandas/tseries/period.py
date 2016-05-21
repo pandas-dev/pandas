@@ -17,9 +17,9 @@ from pandas._period import (Period, IncompatibleFrequency,
 from pandas.core.base import _shared_docs
 
 import pandas.core.common as com
-from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
-                                _values_from_object, ABCSeries,
-                                is_integer, is_float, is_object_dtype)
+from pandas.core.common import (
+    isnull, _INT64_DTYPE, _maybe_box, _values_from_object, ABCSeries,
+    is_integer, is_float)
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, cache_readonly, Substitution
@@ -271,10 +271,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        if not getattr(values, 'dtype', None):
+
+        if not com.is_integer_dtype(values):
             values = np.array(values, copy=False)
-        if is_object_dtype(values):
-            return PeriodIndex(values, name=name, freq=freq, **kwargs)
+            if (len(values) > 0 and com.is_float_dtype(values)):
+                raise TypeError("PeriodIndex can't take floats")
+            else:
+                return PeriodIndex(values, name=name, freq=freq, **kwargs)
+
+        values = np.array(values, dtype='int64', copy=False)
 
         result = object.__new__(cls)
         result._data = values
