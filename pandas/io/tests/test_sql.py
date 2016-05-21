@@ -1537,6 +1537,15 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self.assertTrue(isinstance(sqltype, sqlalchemy.String))
         self.assertEqual(sqltype.length, 10)
 
+        # single dtype
+        df.to_sql('single_dtype_test', self.conn, dtype=sqlalchemy.TEXT)
+        meta = sqlalchemy.schema.MetaData(bind=self.conn)
+        meta.reflect()
+        sqltypea = meta.tables['single_dtype_test'].columns['A'].type
+        sqltypeb = meta.tables['single_dtype_test'].columns['B'].type
+        self.assertTrue(isinstance(sqltypea, sqlalchemy.TEXT))
+        self.assertTrue(isinstance(sqltypeb, sqlalchemy.TEXT))
+
     def test_notnull_dtype(self):
         cols = {'Bool': Series([True, None]),
                 'Date': Series([datetime(2012, 5, 1), None]),
@@ -2005,6 +2014,13 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
             'dtype_test2', 'B'), 'STRING')
         self.assertRaises(ValueError, df.to_sql,
                           'error', self.conn, dtype={'B': bool})
+
+        # single dtype
+        df.to_sql('single_dtype_test', self.conn, dtype='STRING')
+        self.assertEqual(
+            self._get_sqlite_column_type('single_dtype_test', 'A'), 'STRING')
+        self.assertEqual(
+            self._get_sqlite_column_type('single_dtype_test', 'B'), 'STRING')
 
     def test_notnull_dtype(self):
         if self.flavor == 'mysql':
