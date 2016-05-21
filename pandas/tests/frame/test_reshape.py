@@ -158,6 +158,8 @@ class TestDataFrameReshape(tm.TestCase, TestData):
                              index=['x', 'y', 'z'], dtype=np.float)
         assert_frame_equal(result, expected)
 
+    def test_unstack_fill_frame(self):
+
         # From a dataframe
         rows = [[1, 2], [3, 4], [5, 6], [7, 8]]
         df = DataFrame(rows, columns=list('AB'), dtype=np.int32)
@@ -190,6 +192,8 @@ class TestDataFrameReshape(tm.TestCase, TestData):
             [('A', 'a'), ('A', 'b'), ('B', 'a'), ('B', 'b')])
         assert_frame_equal(result, expected)
 
+    def test_unstack_fill_frame_datetime(self):
+
         # Test unstacking with date times
         dv = pd.date_range('2012-01-01', periods=4).values
         data = Series(dv)
@@ -207,6 +211,8 @@ class TestDataFrameReshape(tm.TestCase, TestData):
                               'b': [dv[1], dv[2], dv[0]]},
                              index=['x', 'y', 'z'])
         assert_frame_equal(result, expected)
+
+    def test_unstack_fill_frame_timedelta(self):
 
         # Test unstacking with time deltas
         td = [Timedelta(days=i) for i in range(4)]
@@ -226,6 +232,8 @@ class TestDataFrameReshape(tm.TestCase, TestData):
                              index=['x', 'y', 'z'])
         assert_frame_equal(result, expected)
 
+    def test_unstack_fill_frame_period(self):
+
         # Test unstacking with period
         periods = [Period('2012-01'), Period('2012-02'), Period('2012-03'),
                    Period('2012-04')]
@@ -244,6 +252,8 @@ class TestDataFrameReshape(tm.TestCase, TestData):
                               'b': [periods[1], periods[2], periods[1]]},
                              index=['x', 'y', 'z'])
         assert_frame_equal(result, expected)
+
+    def test_unstack_fill_frame_categorical(self):
 
         # Test unstacking with categorical
         data = pd.Series(['a', 'b', 'c', 'a'], dtype='category')
@@ -273,27 +283,20 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
     def test_stack_ints(self):
-        df = DataFrame(
-            np.random.randn(30, 27),
-            columns=MultiIndex.from_tuples(
-                list(itertools.product(range(3), repeat=3))
-            )
-        )
-        assert_frame_equal(
-            df.stack(level=[1, 2]),
-            df.stack(level=1).stack(level=1)
-        )
-        assert_frame_equal(
-            df.stack(level=[-2, -1]),
-            df.stack(level=1).stack(level=1)
-        )
+        columns = MultiIndex.from_tuples(list(itertools.product(range(3),
+                                                                repeat=3)))
+        df = DataFrame(np.random.randn(30, 27), columns=columns)
+
+        assert_frame_equal(df.stack(level=[1, 2]),
+                           df.stack(level=1).stack(level=1))
+        assert_frame_equal(df.stack(level=[-2, -1]),
+                           df.stack(level=1).stack(level=1))
 
         df_named = df.copy()
         df_named.columns.set_names(range(3), inplace=True)
-        assert_frame_equal(
-            df_named.stack(level=[1, 2]),
-            df_named.stack(level=1).stack(level=1)
-        )
+
+        assert_frame_equal(df_named.stack(level=[1, 2]),
+                           df_named.stack(level=1).stack(level=1))
 
     def test_stack_mixed_levels(self):
         columns = MultiIndex.from_tuples(

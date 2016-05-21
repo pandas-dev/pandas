@@ -234,10 +234,11 @@ class TestStata(tm.TestCase):
         expected = pd.concat([expected[col].astype('category')
                               for col in expected], axis=1)
 
-        tm.assert_frame_equal(parsed_113, expected)
-        tm.assert_frame_equal(parsed_114, expected)
-        tm.assert_frame_equal(parsed_115, expected)
-        tm.assert_frame_equal(parsed_117, expected)
+        # stata doesn't save .category metadata
+        tm.assert_frame_equal(parsed_113, expected, check_categorical=False)
+        tm.assert_frame_equal(parsed_114, expected, check_categorical=False)
+        tm.assert_frame_equal(parsed_115, expected, check_categorical=False)
+        tm.assert_frame_equal(parsed_117, expected, check_categorical=False)
 
     # File containing strls
     def test_read_dta12(self):
@@ -872,8 +873,8 @@ class TestStata(tm.TestCase):
                 # Silence warnings
                 original.to_stata(path)
                 written_and_read_again = self.read_dta(path)
-                tm.assert_frame_equal(
-                    written_and_read_again.set_index('index'), expected)
+                res = written_and_read_again.set_index('index')
+                tm.assert_frame_equal(res, expected, check_categorical=False)
 
     def test_categorical_warnings_and_errors(self):
         # Warning for non-string labels
@@ -915,8 +916,8 @@ class TestStata(tm.TestCase):
         with tm.ensure_clean() as path:
             original.to_stata(path)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(
-                written_and_read_again.set_index('index'), original)
+            res = written_and_read_again.set_index('index')
+            tm.assert_frame_equal(res, original, check_categorical=False)
 
     def test_categorical_order(self):
         # Directly construct using expected codes
@@ -945,8 +946,8 @@ class TestStata(tm.TestCase):
         # Read with and with out categoricals, ensure order is identical
         parsed_115 = read_stata(self.dta19_115)
         parsed_117 = read_stata(self.dta19_117)
-        tm.assert_frame_equal(expected, parsed_115)
-        tm.assert_frame_equal(expected, parsed_117)
+        tm.assert_frame_equal(expected, parsed_115, check_categorical=False)
+        tm.assert_frame_equal(expected, parsed_117, check_categorical=False)
 
         # Check identity of codes
         for col in expected:
@@ -969,8 +970,10 @@ class TestStata(tm.TestCase):
         categories = ["Poor", "Fair", "Good", "Very good", "Excellent"]
         cat = pd.Categorical.from_codes(codes=codes, categories=categories)
         expected = pd.Series(cat, name='srh')
-        tm.assert_series_equal(expected, parsed_115["srh"])
-        tm.assert_series_equal(expected, parsed_117["srh"])
+        tm.assert_series_equal(expected, parsed_115["srh"],
+                               check_categorical=False)
+        tm.assert_series_equal(expected, parsed_117["srh"],
+                               check_categorical=False)
 
     def test_categorical_ordering(self):
         parsed_115 = read_stata(self.dta19_115)
@@ -1021,7 +1024,8 @@ class TestStata(tm.TestCase):
                             from_frame = parsed.iloc[pos:pos + chunksize, :]
                             tm.assert_frame_equal(
                                 from_frame, chunk, check_dtype=False,
-                                check_datetimelike_compat=True)
+                                check_datetimelike_compat=True,
+                                check_categorical=False)
 
                             pos += chunksize
                         itr.close()
@@ -1087,7 +1091,8 @@ class TestStata(tm.TestCase):
                             from_frame = parsed.iloc[pos:pos + chunksize, :]
                             tm.assert_frame_equal(
                                 from_frame, chunk, check_dtype=False,
-                                check_datetimelike_compat=True)
+                                check_datetimelike_compat=True,
+                                check_categorical=False)
 
                             pos += chunksize
                         itr.close()

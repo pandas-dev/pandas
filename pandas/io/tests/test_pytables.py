@@ -1004,7 +1004,7 @@ class TestHDFStore(Base, tm.TestCase):
                          nan_rep=nan_rep)
                 retr = read_hdf(store, key)
                 s_nan = s.replace(nan_rep, np.nan)
-                assert_series_equal(s_nan, retr)
+                assert_series_equal(s_nan, retr, check_categorical=False)
 
         for s in examples:
             roundtrip(s)

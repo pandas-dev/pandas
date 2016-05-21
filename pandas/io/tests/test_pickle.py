@@ -108,6 +108,13 @@ class TestPickle():
         else:
             tm.assert_series_equal(result, expected)
 
+    def compare_series_cat(self, result, expected, typ, version):
+        # Categorical.ordered is changed in < 0.16.0
+        if LooseVersion(version) < '0.16.0':
+            tm.assert_series_equal(result, expected, check_categorical=False)
+        else:
+            tm.assert_series_equal(result, expected)
+
     def compare_frame_dt_mixed_tzs(self, result, expected, typ, version):
         # 8260
         # dtype is object < 0.17.0
@@ -116,6 +123,16 @@ class TestPickle():
             tm.assert_frame_equal(result, expected)
         else:
             tm.assert_frame_equal(result, expected)
+
+    def compare_frame_cat_onecol(self, result, expected, typ, version):
+        # Categorical.ordered is changed in < 0.16.0
+        if LooseVersion(version) < '0.16.0':
+            tm.assert_frame_equal(result, expected, check_categorical=False)
+        else:
+            tm.assert_frame_equal(result, expected)
+
+    def compare_frame_cat_and_float(self, result, expected, typ, version):
+        self.compare_frame_cat_onecol(result, expected, typ, version)
 
     def compare_index_period(self, result, expected, typ, version):
         tm.assert_index_equal(result, expected)

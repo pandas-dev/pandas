@@ -847,7 +847,7 @@ class TestSeries(tm.TestCase, Generic):
         assert_almost_equal(list(result.coords.keys()), ['foo'])
         self.assertIsInstance(result, DataArray)
 
-        def testit(index, check_index_type=True):
+        def testit(index, check_index_type=True, check_categorical=True):
             s = Series(range(6), index=index(6))
             s.index.name = 'foo'
             result = s.to_xarray()
@@ -859,7 +859,8 @@ class TestSeries(tm.TestCase, Generic):
 
             # idempotency
             assert_series_equal(result.to_series(), s,
-                                check_index_type=check_index_type)
+                                check_index_type=check_index_type,
+                                check_categorical=check_categorical)
 
         for index in [tm.makeFloatIndex, tm.makeIntIndex,
                       tm.makeStringIndex, tm.makeUnicodeIndex,
@@ -868,7 +869,8 @@ class TestSeries(tm.TestCase, Generic):
             testit(index)
 
         # not idempotent
-        testit(tm.makeCategoricalIndex, check_index_type=False)
+        testit(tm.makeCategoricalIndex, check_index_type=False,
+               check_categorical=False)
 
         s = Series(range(6))
         s.index.name = 'foo'
@@ -1409,9 +1411,8 @@ class TestDataFrame(tm.TestCase, Generic):
             expected['f'] = expected['f'].astype(object)
             expected['h'] = expected['h'].astype('datetime64[ns]')
             expected.columns.name = None
-            assert_frame_equal(result.to_dataframe(),
-                               expected,
-                               check_index_type=False)
+            assert_frame_equal(result.to_dataframe(), expected,
+                               check_index_type=False, check_categorical=False)
 
         # available in 0.7.1
         # MultiIndex

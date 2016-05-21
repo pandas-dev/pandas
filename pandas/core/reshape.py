@@ -162,9 +162,12 @@ class _Unstacker(object):
 
         # may need to coerce categoricals here
         if self.is_categorical is not None:
-            values = [Categorical.from_array(
-                values[:, i], categories=self.is_categorical.categories,
-                ordered=True) for i in range(values.shape[-1])]
+            categories = self.is_categorical.categories
+            ordered = self.is_categorical.ordered
+            values = [Categorical.from_array(values[:, i],
+                                             categories=categories,
+                                             ordered=ordered)
+                      for i in range(values.shape[-1])]
 
         return DataFrame(values, index=index, columns=columns)
 
