@@ -695,7 +695,7 @@ def test_random_state():
         com._random_state(state2).uniform(), npr.RandomState(10).uniform())
 
     # check with no arg random state
-    assert isinstance(com._random_state(), npr.RandomState)
+    assert com._random_state() is np.random
 
     # Error for floats or strings
     with tm.assertRaises(ValueError):
