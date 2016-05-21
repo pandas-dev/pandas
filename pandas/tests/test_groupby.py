@@ -775,11 +775,11 @@ class TestGroupBy(tm.TestCase):
         # DataFrame
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
         exp_df = DataFrame(columns=self.tsframe.columns, dtype=float,
-                           index=pd.Index(
-                               [], dtype=np.float64))
+                           index=pd.Index([], dtype=np.float64))
         assert_frame_equal(grouped.sum(), exp_df, check_names=False)
         assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
-        assert_frame_equal(grouped.apply(np.sum), DataFrame({}, dtype=float))
+        assert_frame_equal(grouped.apply(np.sum), exp_df.iloc[:, :0],
+                           check_names=False)
 
     def test_agg_grouping_is_list_tuple(self):
         from pandas.core.groupby import Grouping

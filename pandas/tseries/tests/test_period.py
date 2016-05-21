@@ -1742,12 +1742,44 @@ class TestPeriodIndex(tm.TestCase):
         self.assertRaises(ValueError, PeriodIndex, vals, freq='D')
 
     def test_constructor_simple_new(self):
-        idx = period_range('2007-01', name='p', periods=20, freq='M')
+        idx = period_range('2007-01', name='p', periods=2, freq='M')
         result = idx._simple_new(idx, 'p', freq=idx.freq)
         self.assertTrue(result.equals(idx))
 
         result = idx._simple_new(idx.astype('i8'), 'p', freq=idx.freq)
         self.assertTrue(result.equals(idx))
+
+        result = idx._simple_new(
+            [pd.Period('2007-01', freq='M'), pd.Period('2007-02', freq='M')],
+            'p', freq=idx.freq)
+        self.assertTrue(result.equals(idx))
+
+        result = idx._simple_new(
+            np.array([pd.Period('2007-01', freq='M'),
+                      pd.Period('2007-02', freq='M')]),
+            'p', freq=idx.freq)
+        self.assertTrue(result.equals(idx))
+
+    def test_constructor_simple_new_empty(self):
+        # GH13079
+        idx = PeriodIndex([], freq='M', name='p')
+        result = idx._simple_new(idx, name='p', freq='M')
+        assert_index_equal(result, idx)
+
+    def test_constructor_simple_new_floats(self):
+        # GH13079
+        for floats in [[1.1], np.array([1.1])]:
+            with self.assertRaises(TypeError):
+                pd.PeriodIndex._simple_new(floats, freq='M')
+
+    def test_shallow_copy_empty(self):
+
+        # GH13067
+        idx = PeriodIndex([], freq='M')
+        result = idx._shallow_copy()
+        expected = idx
+
+        assert_index_equal(result, expected)
 
     def test_constructor_nat(self):
         self.assertRaises(ValueError, period_range, start='NaT',
