@@ -74,6 +74,8 @@ Other enhancements
 
     pd.Timestamp(year=2012, month=1, day=1, hour=8, minute=30)
 
+- ``DataFrame.to_sql `` now allows a single value as the SQL type for all columns (:issue:`11886`).
+
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``decimal`` option (:issue:`12933`)
 
 - ``Index.astype()`` now accepts an optional boolean argument ``copy``, which allows optional copying if the requirements on dtype are satisfied (:issue:`13209`)
@@ -89,7 +91,7 @@ Other enhancements
 
 - ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
 
-
+- ``DataFrame.to_sql `` now allows a single value as the SQL type for all columns (:issue:`11886`).
 
 .. _whatsnew_0182.api:
 

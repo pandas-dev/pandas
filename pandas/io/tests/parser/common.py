@@ -1302,17 +1302,17 @@ eight,1,2,3"""
 
     def test_inf_parsing(self):
         data = """\
-,A
-a,inf
-b,-inf
-c,+Inf
-d,-Inf
-e,INF
-f,-INF
-g,+INf
-h,-INf
-i,inF
-j,-inF"""
+        ,A
+        a,inf
+        b,-inf
+        c,+Inf
+        d,-Inf
+        e,INF
+        f,-INF
+        g,+INf
+        h,-INf
+        i,inF
+        j,-inF"""
         inf = float('inf')
         expected = Series([inf, -inf] * 5)
 
