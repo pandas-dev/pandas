@@ -2062,7 +2062,7 @@ def _random_state(state=None):
     state : int, np.random.RandomState, None.
         If receives an int, passes to np.random.RandomState() as seed.
         If receives an np.random.RandomState object, just returns object.
-        If receives `None`, returns an np.random.RandomState object.
+        If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
         Default None.
 
@@ -2076,7 +2076,7 @@ def _random_state(state=None):
     elif isinstance(state, np.random.RandomState):
         return state
     elif state is None:
-        return np.random.RandomState()
+        return np.random
     else:
         raise ValueError("random_state must be an integer, a numpy "
                          "RandomState, or None")
