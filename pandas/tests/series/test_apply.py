@@ -187,7 +187,8 @@ class TestSeriesMap(TestData, tm.TestCase):
                    index=pd.CategoricalIndex(['b', 'c', 'd', 'e']))
         c = Series(['B', 'C', 'D', 'E'], index=Index(['b', 'c', 'd', 'e']))
 
-        exp = Series([np.nan, 'B', 'C', 'D'], dtype='category')
+        exp = Series(pd.Categorical([np.nan, 'B', 'C', 'D'],
+                                    categories=['B', 'C', 'D', 'E']))
         self.assert_series_equal(a.map(b), exp)
         exp = Series([np.nan, 'B', 'C', 'D'])
         self.assert_series_equal(a.map(c), exp)
