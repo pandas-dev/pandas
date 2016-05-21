@@ -1233,14 +1233,15 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If not None, then rows will be written in batches of this size at a
             time.  If None, all rows will be written at once.
-        dtype : single SQL type or dict of column name to SQL type, default None
+        dtype : single SQL type or dict of column name to SQL type, default
+            None
             Optional specifying the datatype for columns. The SQL type should
-            be a SQLAlchemy type. If all columns are of the same type, one 
+            be a SQLAlchemy type. If all columns are of the same type, one
             single value can be used.
 
         """
         if dtype and not is_dictlike(dtype):
-            dtype = {col_name : dtype for col_name in frame}
+            dtype = {col_name: dtype for col_name in frame}
 
         if dtype is not None:
             from sqlalchemy.types import to_instance, TypeEngine
@@ -1650,15 +1651,15 @@ class SQLiteDatabase(PandasSQL):
         chunksize : int, default None
             If not None, then rows will be written in batches of this
             size at a time. If None, all rows will be written at once.
-        dtype : single SQL type or dict of column name to SQL type, default None
+        dtype : single SQL type or dict of column name to SQL type, default
+            None
             Optional specifying the datatype for columns. The SQL type should
             be a string. If all columns are of the same type, one single value
             can be used.
 
         """
         if dtype and not is_dictlike(dtype):
-            dtype = {col_name : dtype for col_name in frame}
-            
+            dtype = {col_name: dtype for col_name in frame}
         if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
