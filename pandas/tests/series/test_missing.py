@@ -433,8 +433,8 @@ class TestSeriesMissingData(TestData, tm.TestCase):
 
         result = ts.valid()
         self.assertEqual(len(result), ts.count())
-
-        tm.assert_dict_equal(result, ts, compare_keys=False)
+        tm.assert_series_equal(result, ts[1::2])
+        tm.assert_series_equal(result, ts[pd.notnull(ts)])
 
     def test_isnull(self):
         ser = Series([0, 5.4, 3, nan, -0.001])

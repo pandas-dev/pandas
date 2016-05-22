@@ -131,7 +131,13 @@ def assert_almost_equal(left, right, check_exact=False, **kwargs):
     return _testing.assert_almost_equal(left, right, **kwargs)
 
 
-assert_dict_equal = _testing.assert_dict_equal
+def assert_dict_equal(left, right, compare_keys=True):
+
+    # instance validation
+    assertIsInstance(left, dict, '[dict] ')
+    assertIsInstance(right, dict, '[dict] ')
+
+    return _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
 def randbool(size=(), p=0.5):

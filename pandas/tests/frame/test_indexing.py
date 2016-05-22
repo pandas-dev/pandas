@@ -393,13 +393,17 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         series = self.frame['A'][::2]
         self.frame['col5'] = series
         self.assertIn('col5', self.frame)
-        tm.assert_dict_equal(series, self.frame['col5'],
-                             compare_keys=False)
+
+        self.assertEqual(len(series), 15)
+        self.assertEqual(len(self.frame), 30)
+
+        exp = np.ravel(np.column_stack((series.values, [np.nan] * 15)))
+        exp = Series(exp, index=self.frame.index, name='col5')
+        tm.assert_series_equal(self.frame['col5'], exp)
 
         series = self.frame['A']
         self.frame['col6'] = series
-        tm.assert_dict_equal(series, self.frame['col6'],
-                             compare_keys=False)
+        tm.assert_series_equal(series, self.frame['col6'], check_names=False)
 
         with tm.assertRaises(KeyError):
             self.frame[randn(len(self.frame) + 1)] = 1
