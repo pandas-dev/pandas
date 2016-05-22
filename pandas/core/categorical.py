@@ -883,8 +883,8 @@ class Categorical(PandasObject):
         if idx.size != 0 and idx[0] == -1:  # na sentinel
             idx, inv = idx[1:], inv - 1
 
-        cat._codes = inv
         cat._categories = cat.categories.take(idx)
+        cat._codes = _coerce_indexer_dtype(inv, self._categories)
 
         if not inplace:
             return cat
