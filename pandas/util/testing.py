@@ -753,6 +753,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     # metadata comparison
     if check_names:
         assert_attr_equal('names', left, right, obj=obj)
+    if isinstance(left, pd.PeriodIndex) or isinstance(right, pd.PeriodIndex):
+        assert_attr_equal('freq', left, right, obj=obj)
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
