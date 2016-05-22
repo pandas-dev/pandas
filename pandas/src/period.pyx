@@ -772,6 +772,9 @@ cdef class Period(object):
             if self.ordinal == tslib.iNaT or other.ordinal == tslib.iNaT:
                 return _nat_scalar_rules[op]
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
+        # index/series like
+        elif hasattr(other, '_typ'):
+            return NotImplemented
         else:
             if op == Py_EQ:
                 return NotImplemented
@@ -796,8 +799,8 @@ cdef class Period(object):
                     else:
                         ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
-            msg = 'Input cannnot be converted to Period(freq={0})'
-            raise ValueError(msg)
+            msg = 'Input cannot be converted to Period(freq={0})'
+            raise IncompatibleFrequency(msg.format(self.freqstr))
         elif isinstance(other, offsets.DateOffset):
             freqstr = frequencies.get_standard_freq(other)
             base = frequencies.get_base_alias(freqstr)
@@ -846,8 +849,8 @@ cdef class Period(object):
                 return Period(ordinal=ordinal, freq=self.freq)
             elif isinstance(other, Period):
                 if other.freq != self.freq:
-                    raise ValueError("Cannot do arithmetic with "
-                                     "non-conforming periods")
+                    msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
+                    raise IncompatibleFrequency(msg)
                 if self.ordinal == tslib.iNaT or other.ordinal == tslib.iNaT:
                     return Period(ordinal=tslib.iNaT, freq=self.freq)
                 return self.ordinal - other.ordinal
@@ -861,7 +864,6 @@ cdef class Period(object):
             return NotImplemented
         else:
             return NotImplemented
-
 
     def asfreq(self, freq, how='E'):
         """

@@ -214,8 +214,8 @@ cdef inline bint _is_fixed_offset(object tz):
             return 0
     return 1
 
-
 _zero_time = datetime_time(0, 0)
+_no_input = object()
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
@@ -224,6 +224,10 @@ class Timestamp(_Timestamp):
     and is interchangable with it in most cases. It's the type used
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
+
+    There are essentially three calling conventions for the constructor. The
+    primary form accepts four parameters. They can be passed by position or
+    keyword.
 
     Parameters
     ----------
@@ -235,6 +239,23 @@ class Timestamp(_Timestamp):
         Time zone for time which Timestamp will have.
     unit : string
         numpy unit used for conversion, if ts_input is int or float
+
+    The other two forms mimic the parameters from ``datetime.datetime``. They
+    can be passed by either position or keyword, but not both mixed together.
+
+    :func:`datetime.datetime` Parameters
+    ------------------------------------
+
+    .. versionadded:: 0.18.2
+
+    year : int
+    month : int
+    day : int
+    hour : int, optional, default is 0
+    minute : int, optional, default is 0
+    second : int, optional, default is 0
+    microsecond : int, optional, default is 0
+    tzinfo : datetime.tzinfo, optional, default is None
     """
 
     @classmethod
@@ -288,9 +309,45 @@ class Timestamp(_Timestamp):
     def combine(cls, date, time):
         return cls(datetime.combine(date, time))
 
-    def __new__(cls, object ts_input, object offset=None, tz=None, unit=None):
+    def __new__(cls,
+            object ts_input=_no_input, object offset=None, tz=None, unit=None,
+            year=None, month=None, day=None,
+            hour=None, minute=None, second=None, microsecond=None,
+            tzinfo=None):
+        # The parameter list folds together legacy parameter names (the first
+        # four) and positional and keyword parameter names from pydatetime.
+        #
+        # There are three calling forms:
+        #
+        # - In the legacy form, the first parameter, ts_input, is required
+        #   and may be datetime-like, str, int, or float. The second
+        #   parameter, offset, is optional and may be str or DateOffset.
+        #
+        # - ints in the first, second, and third arguments indicate
+        #   pydatetime positional arguments. Only the first 8 arguments
+        #   (standing in for year, month, day, hour, minute, second,
+        #   microsecond, tzinfo) may be non-None. As a shortcut, we just
+        #   check that the second argument is an int.
+        #
+        # - Nones for the first four (legacy) arguments indicate pydatetime
+        #   keyword arguments. year, month, and day are required. As a
+        #   shortcut, we just check that the first argument was not passed.
+        #
+        # Mixing pydatetime positional and keyword arguments is forbidden!
+
         cdef _TSObject ts
         cdef _Timestamp ts_base
+
+        if ts_input is _no_input:
+            # User passed keyword arguments.
+            return Timestamp(datetime(year, month, day, hour or 0,
+                minute or 0, second or 0, microsecond or 0, tzinfo),
+                tz=tzinfo)
+        elif is_integer_object(offset):
+            # User passed positional arguments:
+            #   Timestamp(year, month, day[, hour[, minute[, second[, microsecond[, tzinfo]]]]])
+            return Timestamp(datetime(ts_input, offset, tz, unit or 0,
+                year or 0, month or 0, day or 0, hour), tz=hour)
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0)
 
@@ -2082,6 +2139,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                                                  unit))
                         elif is_ignore:
                             raise AssertionError
+                        iresult[i] = NPY_NAT
                     except:
                         if is_raise:
                             raise OutOfBoundsDatetime("cannot convert input {0}"
@@ -2149,7 +2207,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         ndarray[int64_t] iresult
         ndarray[object] oresult
         pandas_datetimestruct dts
-        bint utc_convert = bool(utc), seen_integer=0, seen_datetime=0
+        bint utc_convert = bool(utc), seen_integer=0, seen_string=0, seen_datetime=0
         bint is_raise=errors=='raise', is_ignore=errors=='ignore', is_coerce=errors=='coerce'
         _TSObject _ts
         int out_local=0, out_tzoffset=0
@@ -2215,25 +2273,32 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                             continue
                         raise
 
-            # if we are coercing, dont' allow integers
-            elif is_integer_object(val) and not is_coerce:
-                if val == NPY_NAT:
-                    iresult[i] = NPY_NAT
-                else:
-                    iresult[i] = val
-                    seen_integer=1
-            elif is_float_object(val) and not is_coerce:
+            # these must be ns unit by-definition
+            elif is_integer_object(val) or is_float_object(val):
+
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
-                else:
-                    iresult[i] = <int64_t>val
+                elif is_raise or is_ignore:
+                    iresult[i] = val
                     seen_integer=1
+                else:
+                    # coerce
+                    # we now need to parse this as if unit='ns'
+                    # we can ONLY accept integers at this point
+                    # if we have previously (or in future accept
+                    # datetimes/strings, then we must coerce)
+                    seen_integer = 1
+                    try:
+                        iresult[i] = cast_from_unit(val, 'ns')
+                    except:
+                        iresult[i] = NPY_NAT
             else:
                 try:
                     if len(val) == 0 or val in _nat_strings:
                         iresult[i] = NPY_NAT
                         continue
 
+                    seen_string=1
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
                     value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
                     if out_local == 1:
@@ -2276,11 +2341,20 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         continue
                     raise
 
-        # don't allow mixed integers and datetime like
-        # higher levels can catch and is_coerce to object, for
-        # example
-        if seen_integer and seen_datetime:
-            raise ValueError("mixed datetimes and integers in passed array")
+        if  seen_datetime and seen_integer:
+            # we have mixed datetimes & integers
+
+            if is_coerce:
+                # coerce all of the integers/floats to NaT, preserve
+                # the datetimes and other convertibles
+                for i in range(n):
+                    val = values[i]
+                    if is_integer_object(val) or is_float_object(val):
+                        result[i] = NPY_NAT
+            elif is_raise:
+                raise ValueError("mixed datetimes and integers in passed array")
+            else:
+                raise TypeError
 
         return result
     except OutOfBoundsDatetime:

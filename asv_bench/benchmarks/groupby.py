@@ -773,6 +773,21 @@ class groupby_transform_series2(object):
     def time_groupby_transform_series2(self):
         self.df.groupby('id')['val'].transform(np.mean)
 
+
+class groupby_transform_dataframe(object):
+    # GH 12737
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = pd.DataFrame({'group': np.repeat(np.arange(1000), 10),
+                                'B': np.nan,
+                                'C': np.nan})
+        self.df.ix[4::10, 'B':'C'] = 5
+
+    def time_groupby_transform_dataframe(self):
+        self.df.groupby('group').transform('first')
+
+
 class groupby_transform_cythonized(object):
     goal_time = 0.2
 

@@ -16,9 +16,12 @@ from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
 import pandas.core.common as com
 import pandas.core.algorithms as algos
+
 import pandas.compat as compat
+from pandas.compat.numpy import function as nv
 
 from pandas.lib import Timestamp
+from pandas._period import IncompatibleFrequency
 import pandas.lib as lib
 import pandas.tslib as tslib
 
@@ -480,7 +483,7 @@ class Resampler(_GroupBy):
         """
         return self._upsample('asfreq')
 
-    def std(self, ddof=1):
+    def std(self, ddof=1, *args, **kwargs):
         """
         Compute standard deviation of groups, excluding missing values
 
@@ -489,9 +492,10 @@ class Resampler(_GroupBy):
         ddof : integer, default 1
         degrees of freedom
         """
+        nv.validate_resampler_func('std', args, kwargs)
         return self._downsample('std', ddof=ddof)
 
-    def var(self, ddof=1):
+    def var(self, ddof=1, *args, **kwargs):
         """
         Compute variance of groups, excluding missing values
 
@@ -500,6 +504,7 @@ class Resampler(_GroupBy):
         ddof : integer, default 1
         degrees of freedom
         """
+        nv.validate_resampler_func('var', args, kwargs)
         return self._downsample('var', ddof=ddof)
 Resampler._deprecated_valids += dir(Resampler)
 
@@ -507,7 +512,8 @@ Resampler._deprecated_valids += dir(Resampler)
 for method in ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
                'median', 'prod', 'ohlc']:
 
-    def f(self, _method=method):
+    def f(self, _method=method, *args, **kwargs):
+        nv.validate_resampler_func(_method, args, kwargs)
         return self._downsample(_method)
     f.__doc__ = getattr(GroupBy, method).__doc__
     setattr(Resampler, method, f)
@@ -790,16 +796,17 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         ax = self.ax
 
         new_index = self._get_new_index()
-        if len(new_index) == 0:
-            return self._wrap_result(self._selected_obj.reindex(new_index))
 
         # Start vs. end of period
         memb = ax.asfreq(self.freq, how=self.convention)
 
         if is_subperiod(ax.freq, self.freq):
             # Downsampling
-            rng = np.arange(memb.values[0], memb.values[-1] + 1)
-            bins = memb.searchsorted(rng, side='right')
+            if len(new_index) == 0:
+                bins = []
+            else:
+                rng = np.arange(memb.values[0], memb.values[-1] + 1)
+                bins = memb.searchsorted(rng, side='right')
             grouper = BinGrouper(bins, new_index)
             return self._groupby_and_aggregate(how, grouper=grouper)
         elif is_superperiod(ax.freq, self.freq):
@@ -807,10 +814,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         elif ax.freq == self.freq:
             return self.asfreq()
 
-        raise ValueError('Frequency {axfreq} cannot be '
-                         'resampled to {freq}'.format(
-                             axfreq=ax.freq,
-                             freq=self.freq))
+        raise IncompatibleFrequency(
+            'Frequency {} cannot be resampled to {}, as they are not '
+            'sub or super periods'.format(ax.freq, self.freq))
 
     def _upsample(self, method, limit=None):
         """
@@ -832,9 +838,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         ax = self.ax
         obj = self.obj
         new_index = self._get_new_index()
-
-        if len(new_index) == 0:
-            return self._wrap_result(self._selected_obj.reindex(new_index))
 
         # Start vs. end of period
         memb = ax.asfreq(self.freq, how=self.convention)

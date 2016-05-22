@@ -21,7 +21,7 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 from numpy import ndarray
 from pandas.util.validators import (validate_args, validate_kwargs,
                                     validate_args_and_kwargs)
-from pandas.core.common import is_integer
+from pandas.core.common import is_integer, UnsupportedFunctionCall
 from pandas.compat import OrderedDict
 
 
@@ -245,3 +245,77 @@ def validate_transpose_for_generic(inst, kwargs):
             msg += " for {klass} instances".format(klass=klass)
 
         raise ValueError(msg)
+
+
+def validate_window_func(name, args, kwargs):
+    numpy_args = ('axis', 'dtype', 'out')
+    msg = ("numpy operations are not "
+           "valid with window objects. "
+           "Use .{func}() directly instead ".format(func=name))
+
+    if len(args) > 0:
+        raise UnsupportedFunctionCall(msg)
+
+    for arg in numpy_args:
+        if arg in kwargs:
+            raise UnsupportedFunctionCall(msg)
+
+
+def validate_rolling_func(name, args, kwargs):
+    numpy_args = ('axis', 'dtype', 'out')
+    msg = ("numpy operations are not "
+           "valid with window objects. "
+           "Use .rolling(...).{func}() instead ".format(func=name))
+
+    if len(args) > 0:
+        raise UnsupportedFunctionCall(msg)
+
+    for arg in numpy_args:
+        if arg in kwargs:
+            raise UnsupportedFunctionCall(msg)
+
+
+def validate_expanding_func(name, args, kwargs):
+    numpy_args = ('axis', 'dtype', 'out')
+    msg = ("numpy operations are not "
+           "valid with window objects. "
+           "Use .expanding(...).{func}() instead ".format(func=name))
+
+    if len(args) > 0:
+        raise UnsupportedFunctionCall(msg)
+
+    for arg in numpy_args:
+        if arg in kwargs:
+            raise UnsupportedFunctionCall(msg)
+
+
+def validate_groupby_func(name, args, kwargs):
+    """
+    'args' and 'kwargs' should be empty because all of
+    their necessary parameters are explicitly listed in
+    the function signature
+    """
+    if len(args) + len(kwargs) > 0:
+        raise UnsupportedFunctionCall((
+            "numpy operations are not valid "
+            "with groupby. Use .groupby(...)."
+            "{func}() instead".format(func=name)))
+
+RESAMPLER_NUMPY_OPS = ('min', 'max', 'sum', 'prod',
+                       'mean', 'std', 'var')
+
+
+def validate_resampler_func(method, args, kwargs):
+    """
+    'args' and 'kwargs' should be empty because all of
+    their necessary parameters are explicitly listed in
+    the function signature
+    """
+    if len(args) + len(kwargs) > 0:
+        if method in RESAMPLER_NUMPY_OPS:
+            raise UnsupportedFunctionCall((
+                "numpy operations are not valid "
+                "with resample. Use .resample(...)."
+                "{func}() instead".format(func=method)))
+        else:
+            raise TypeError("too many arguments passed in")

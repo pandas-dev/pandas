@@ -13,18 +13,20 @@ from pandas import (Series, DataFrame, Panel, Index, isnull,
                     notnull, Timestamp)
 from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.core.base import SpecificationError
-from pandas.core.common import ABCSeries, ABCDataFrame
+from pandas.core.common import (ABCSeries, ABCDataFrame,
+                                UnsupportedFunctionCall)
 from pandas.core.groupby import DataError
 from pandas.tseries.frequencies import MONTHS, DAYS
+from pandas.tseries.frequencies import to_offset
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex, Period
 from pandas.tseries.resample import (DatetimeIndex, TimeGrouper,
                                      DatetimeIndexResampler)
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.tdi import timedelta_range
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal)
+                                 assert_frame_equal, assert_index_equal)
+from pandas._period import IncompatibleFrequency
 
 bday = BDay()
 
@@ -577,6 +579,7 @@ class Base(object):
     base class for resampling testing, calling
     .create_series() generates a series of each index type
     """
+
     def create_index(self, *args, **kwargs):
         """ return the _index_factory created using the args, kwargs """
         factory = self._index_factory()
@@ -618,6 +621,75 @@ class Base(object):
         assert_frame_equal(
             df.resample('1T').asfreq().interpolate(),
             df.resample('1T').interpolate())
+
+    def test_raises_on_non_datetimelike_index(self):
+        # this is a non datetimelike index
+        xp = DataFrame()
+        self.assertRaises(TypeError, lambda: xp.resample('A').mean())
+
+    def test_resample_empty_series(self):
+        # GH12771 & GH12868
+
+        s = self.create_series()[:0]
+
+        for freq in ['M', 'D', 'H']:
+            # need to test for ohlc from GH13083
+            methods = [method for method in resample_methods
+                       if method != 'ohlc']
+            for method in methods:
+                result = getattr(s.resample(freq), method)()
+
+                expected = s.copy()
+                expected.index = s.index._shallow_copy(freq=freq)
+                assert_index_equal(result.index, expected.index)
+                self.assertEqual(result.index.freq, expected.index.freq)
+
+                if (method == 'size' and
+                   isinstance(result.index, PeriodIndex) and
+                   freq in ['M', 'D']):
+                    # GH12871 - TODO: name should propagate, but currently
+                    # doesn't on lower / same frequency with PeriodIndex
+                    assert_series_equal(result, expected, check_dtype=False,
+                                        check_names=False)
+                    # this assert will break when fixed
+                    self.assertTrue(result.name is None)
+                else:
+                    assert_series_equal(result, expected, check_dtype=False)
+
+    def test_resample_empty_dataframe(self):
+        # GH13212
+        index = self.create_series().index[:0]
+        f = DataFrame(index=index)
+
+        for freq in ['M', 'D', 'H']:
+            # count retains dimensions too
+            methods = downsample_methods + ['count']
+            for method in methods:
+                result = getattr(f.resample(freq), method)()
+
+                expected = f.copy()
+                expected.index = f.index._shallow_copy(freq=freq)
+                assert_index_equal(result.index, expected.index)
+                self.assertEqual(result.index.freq, expected.index.freq)
+                assert_frame_equal(result, expected, check_dtype=False)
+
+            # test size for GH13212 (currently stays as df)
+
+    def test_resample_empty_dtypes(self):
+
+        # Empty series were sometimes causing a segfault (for the functions
+        # with Cython bounds-checking disabled) or an IndexError.  We just run
+        # them to ensure they no longer do.  (GH #10228)
+        for index in tm.all_timeseries_index_generator(0):
+            for dtype in (np.float, np.int, np.object, 'datetime64[ns]'):
+                for how in downsample_methods + upsample_methods:
+                    empty_series = pd.Series([], index, dtype)
+                    try:
+                        getattr(empty_series.resample('d'), how)()
+                    except DataError:
+                        # Ignore these since some combinations are invalid
+                        # (ex: doing mean with dtype of np.object)
+                        pass
 
 
 class TestDatetimeIndex(Base, tm.TestCase):
@@ -745,6 +817,22 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
                 exc.args += ('how=%s' % arg,)
                 raise
+
+    def test_numpy_compat(self):
+        # see gh-12811
+        s = Series([1, 2, 3, 4, 5], index=date_range(
+            '20130101', periods=5, freq='s'))
+        r = s.resample('2s')
+
+        msg = "numpy operations are not valid with resample"
+
+        for func in ('min', 'max', 'sum', 'prod',
+                     'mean', 'var', 'std'):
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(r, func),
+                                  func, 1, 2, 3)
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(r, func), axis=1)
 
     def test_resample_how_callables(self):
         # GH 7929
@@ -1391,39 +1479,6 @@ class TestDatetimeIndex(Base, tm.TestCase):
         result = s2.resample('D').agg(lambda x: x.mean())
         assert_series_equal(result, expected)
 
-    def test_resample_empty(self):
-        ts = _simple_ts('1/1/2000', '2/1/2000')[:0]
-
-        result = ts.resample('A').mean()
-        self.assertEqual(len(result), 0)
-        self.assertEqual(result.index.freqstr, 'A-DEC')
-
-        result = ts.resample('A', kind='period').mean()
-        self.assertEqual(len(result), 0)
-        self.assertEqual(result.index.freqstr, 'A-DEC')
-
-        # this is a non datetimelike index
-        xp = DataFrame()
-        self.assertRaises(TypeError, lambda: xp.resample('A').mean())
-
-        # Empty series were sometimes causing a segfault (for the functions
-        # with Cython bounds-checking disabled) or an IndexError.  We just run
-        # them to ensure they no longer do.  (GH #10228)
-        for index in tm.all_timeseries_index_generator(0):
-            for dtype in (np.float, np.int, np.object, 'datetime64[ns]'):
-                for how in downsample_methods + upsample_methods:
-                    empty_series = pd.Series([], index, dtype)
-                    try:
-                        getattr(empty_series.resample('d'), how)()
-                    except DataError:
-                        # Ignore these since some combinations are invalid
-                        # (ex: doing mean with dtype of np.object)
-                        pass
-
-        # this should also tests nunique
-        # (IOW, use resample_methods)
-        # when GH12886 is closed
-
     def test_resample_segfault(self):
         # GH 8573
         # segfaulting in older versions
@@ -1846,6 +1901,32 @@ class TestDatetimeIndex(Base, tm.TestCase):
                                        freq='D', tz='Europe/Paris')),
             'D Frequency')
 
+    def test_resample_with_nat(self):
+        # GH 13020
+        index = DatetimeIndex([pd.NaT,
+                               '1970-01-01 00:00:00',
+                               pd.NaT,
+                               '1970-01-01 00:00:01',
+                               '1970-01-01 00:00:02'])
+        frame = DataFrame([2, 3, 5, 7, 11], index=index)
+
+        index_1s = DatetimeIndex(['1970-01-01 00:00:00',
+                                  '1970-01-01 00:00:01',
+                                  '1970-01-01 00:00:02'])
+        frame_1s = DataFrame([3, 7, 11], index=index_1s)
+        assert_frame_equal(frame.resample('1s').mean(), frame_1s)
+
+        index_2s = DatetimeIndex(['1970-01-01 00:00:00',
+                                  '1970-01-01 00:00:02'])
+        frame_2s = DataFrame([5, 11], index=index_2s)
+        assert_frame_equal(frame.resample('2s').mean(), frame_2s)
+
+        index_3s = DatetimeIndex(['1970-01-01 00:00:00'])
+        frame_3s = DataFrame([7], index=index_3s)
+        assert_frame_equal(frame.resample('3s').mean(), frame_3s)
+
+        assert_frame_equal(frame.resample('60s').mean(), frame_3s)
+
 
 class TestPeriodIndex(Base, tm.TestCase):
     _multiprocess_can_split_ = True
@@ -2042,19 +2123,6 @@ class TestPeriodIndex(Base, tm.TestCase):
         result2 = s.resample('T', kind='period').mean()
         assert_series_equal(result2, expected)
 
-    def test_resample_empty(self):
-
-        # GH12771 & GH12868
-        index = PeriodIndex(start='2000', periods=0, freq='D', name='idx')
-        s = Series(index=index)
-
-        expected_index = PeriodIndex([], name='idx', freq='M')
-        expected = Series(index=expected_index)
-
-        for method in resample_methods:
-            result = getattr(s.resample('M'), method)()
-            assert_series_equal(result, expected)
-
     def test_resample_count(self):
 
         # GH12774
@@ -2077,6 +2145,12 @@ class TestPeriodIndex(Base, tm.TestCase):
         for method in resample_methods:
             result = getattr(series.resample('M'), method)()
             assert_series_equal(result, expected)
+
+    def test_resample_incompat_freq(self):
+
+        with self.assertRaises(IncompatibleFrequency):
+            pd.Series(range(3), index=pd.period_range(
+                start='2000', periods=3, freq='M')).resample('W').mean()
 
     def test_with_local_timezone_pytz(self):
         # GH5430
@@ -2439,7 +2513,6 @@ class TestTimedeltaIndex(Base, tm.TestCase):
         return Series(np.arange(len(i)), index=i, name='tdi')
 
     def test_asfreq_bug(self):
-
         import datetime as dt
         df = DataFrame(data=[1, 3],
                        index=[dt.timedelta(), dt.timedelta(minutes=3)])
@@ -2452,7 +2525,6 @@ class TestTimedeltaIndex(Base, tm.TestCase):
 
 
 class TestResamplerGrouper(tm.TestCase):
-
     def setUp(self):
         self.frame = DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
                                 'B': np.arange(40)},
@@ -2588,11 +2660,13 @@ class TestResamplerGrouper(tm.TestCase):
 
         def f(x):
             return x.resample('2s').sum()
+
         result = r.apply(f)
         assert_frame_equal(result, expected)
 
         def f(x):
             return x.resample('2s').apply(lambda y: y.sum())
+
         result = g.apply(f)
         assert_frame_equal(result, expected)
 

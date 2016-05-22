@@ -415,6 +415,14 @@ class Generic(object):
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)),
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)))
 
+            os1, os2 = [], []
+            for _ in range(2):
+                np.random.seed(test)
+                os1.append(o.sample(n=4))
+                os2.append(o.sample(frac=0.7))
+            self._compare(*os1)
+            self._compare(*os2)
+
         # Check for error when random_state argument invalid.
         with tm.assertRaises(ValueError):
             o.sample(random_state='astring!')
@@ -839,7 +847,7 @@ class TestSeries(tm.TestCase, Generic):
         assert_almost_equal(list(result.coords.keys()), ['foo'])
         self.assertIsInstance(result, DataArray)
 
-        def testit(index, check_index_type=True):
+        def testit(index, check_index_type=True, check_categorical=True):
             s = Series(range(6), index=index(6))
             s.index.name = 'foo'
             result = s.to_xarray()
@@ -851,7 +859,8 @@ class TestSeries(tm.TestCase, Generic):
 
             # idempotency
             assert_series_equal(result.to_series(), s,
-                                check_index_type=check_index_type)
+                                check_index_type=check_index_type,
+                                check_categorical=check_categorical)
 
         for index in [tm.makeFloatIndex, tm.makeIntIndex,
                       tm.makeStringIndex, tm.makeUnicodeIndex,
@@ -860,7 +869,8 @@ class TestSeries(tm.TestCase, Generic):
             testit(index)
 
         # not idempotent
-        testit(tm.makeCategoricalIndex, check_index_type=False)
+        testit(tm.makeCategoricalIndex, check_index_type=False,
+               check_categorical=False)
 
         s = Series(range(6))
         s.index.name = 'foo'
@@ -1401,9 +1411,8 @@ class TestDataFrame(tm.TestCase, Generic):
             expected['f'] = expected['f'].astype(object)
             expected['h'] = expected['h'].astype('datetime64[ns]')
             expected.columns.name = None
-            assert_frame_equal(result.to_dataframe(),
-                               expected,
-                               check_index_type=False)
+            assert_frame_equal(result.to_dataframe(), expected,
+                               check_index_type=False, check_categorical=False)
 
         # available in 0.7.1
         # MultiIndex

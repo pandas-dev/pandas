@@ -17,14 +17,18 @@ class TestSeriesFormatting(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
+    @property
+    def dtype_format_for_platform(self):
+        return '' if use_32bit_repr else ', dtype=int32'
+
     def test_sparse_max_row(self):
         s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
         result = repr(s)
-        dtype = '' if use_32bit_repr else ', dtype=int32'
+        dfm = self.dtype_format_for_platform
         exp = ("0    1.0\n1    NaN\n2    NaN\n3    3.0\n"
                "4    NaN\ndtype: float64\nBlockIndex\n"
                "Block locations: array([0, 3]{0})\n"
-               "Block lengths: array([1, 1]{0})".format(dtype))
+               "Block lengths: array([1, 1]{0})".format(dfm))
         self.assertEqual(result, exp)
 
         with option_context("display.max_rows", 3):
@@ -33,7 +37,7 @@ class TestSeriesFormatting(tm.TestCase):
             exp = ("0    1.0\n    ... \n4    NaN\n"
                    "dtype: float64\nBlockIndex\n"
                    "Block locations: array([0, 3]{0})\n"
-                   "Block lengths: array([1, 1]{0})".format(dtype))
+                   "Block lengths: array([1, 1]{0})".format(dfm))
             self.assertEqual(result, exp)
 
     def test_sparse_mi_max_row(self):
@@ -42,12 +46,12 @@ class TestSeriesFormatting(tm.TestCase):
         s = pd.Series([1, np.nan, np.nan, 3, np.nan, np.nan],
                       index=idx).to_sparse()
         result = repr(s)
-        dtype = '' if use_32bit_repr else ', dtype=int32'
+        dfm = self.dtype_format_for_platform
         exp = ("A  0    1.0\n   1    NaN\nB  0    NaN\n"
                "C  0    3.0\n   1    NaN\n   2    NaN\n"
                "dtype: float64\nBlockIndex\n"
-               "Block locations: array([0, 3], dtype=int32)\n"
-               "Block lengths: array([1, 1]{0})".format(dtype))
+               "Block locations: array([0, 3]{0})\n"
+               "Block lengths: array([1, 1]{0})".format(dfm))
         self.assertEqual(result, exp)
 
         with option_context("display.max_rows", 3):
@@ -55,6 +59,6 @@ class TestSeriesFormatting(tm.TestCase):
             result = repr(s)
             exp = ("A  0    1.0\n       ... \nC  2    NaN\n"
                    "dtype: float64\nBlockIndex\n"
-                   "Block locations: array([0, 3], dtype=int32)\n"
-                   "Block lengths: array([1, 1]{0})".format(dtype))
+                   "Block locations: array([0, 3]{0})\n"
+                   "Block lengths: array([1, 1]{0})".format(dfm))
             self.assertEqual(result, exp)

@@ -152,9 +152,17 @@ class SparseArray(PandasObject, np.ndarray):
 
         # Create array, do *not* copy data by default
         if copy:
-            subarr = np.array(values, dtype=dtype, copy=True)
+            try:
+                # ToDo: Can remove this error handling when we actually
+                # support other dtypes
+                subarr = np.array(values, dtype=dtype, copy=True)
+            except ValueError:
+                subarr = np.array(values, copy=True)
         else:
-            subarr = np.asarray(values, dtype=dtype)
+            try:
+                subarr = np.asarray(values, dtype=dtype)
+            except ValueError:
+                subarr = np.asarray(values)
 
         # if we have a bool type, make sure that we have a bool fill_value
         if ((dtype is not None and issubclass(dtype.type, np.bool_)) or
@@ -437,12 +445,12 @@ class SparseArray(PandasObject, np.ndarray):
 
     @property
     def _null_fill_value(self):
-        return np.isnan(self.fill_value)
+        return com.isnull(self.fill_value)
 
     @property
     def _valid_sp_values(self):
         sp_vals = self.sp_values
-        mask = np.isfinite(sp_vals)
+        mask = com.notnull(sp_vals)
         return sp_vals[mask]
 
     @Appender(_index_shared_docs['fillna'] % _sparray_doc_kwargs)
@@ -616,8 +624,8 @@ def make_sparse(arr, kind='block', fill_value=nan):
     if arr.ndim > 1:
         raise TypeError("expected dimension <= 1 data")
 
-    if np.isnan(fill_value):
-        mask = ~np.isnan(arr)
+    if com.isnull(fill_value):
+        mask = com.notnull(arr)
     else:
         mask = arr != fill_value
 

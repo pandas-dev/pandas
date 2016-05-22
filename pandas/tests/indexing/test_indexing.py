@@ -4250,7 +4250,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                 pd.Period('2011-01-03', freq='D')]
         exp = Series([np.nan, 0.2, np.nan],
                      index=pd.PeriodIndex(keys, name='idx'), name='s')
-        assert_series_equal(ser.loc[keys], exp, check_index_type=True)
+        result = ser.loc[keys]
+        assert_series_equal(result, exp)
 
     def test_partial_set_invalid(self):
 

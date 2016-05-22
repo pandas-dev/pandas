@@ -13,10 +13,12 @@ import warnings
 import os
 
 import numpy as np
+
 import pandas as pd
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
                     MultiIndex, Int64Index)
 from pandas.core import config
+from pandas.io.common import _stringify_path
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
@@ -254,6 +256,7 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
     else:
         f = lambda store: store.put(key, value, **kwargs)
 
+    path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, string_types):
         with HDFStore(path_or_buf, mode=mode, complevel=complevel,
                       complib=complib) as store:
@@ -270,7 +273,11 @@ def read_hdf(path_or_buf, key=None, **kwargs):
 
         Parameters
         ----------
-        path_or_buf : path (string), or buffer to read from
+        path_or_buf : path (string), buffer, or path object (pathlib.Path or
+            py._path.local.LocalPath) to read from
+
+            .. versionadded:: 0.18.2 support for pathlib, py.path.
+
         key : group identifier in the store. Can be omitted a HDF file contains
             a single pandas object.
         where : list of Term (or convertable) objects, optional
@@ -293,6 +300,7 @@ def read_hdf(path_or_buf, key=None, **kwargs):
     if 'where' in kwargs:
         kwargs['where'] = _ensure_term(kwargs['where'], scope_level=1)
 
+    path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, string_types):
 
         try:
@@ -316,6 +324,7 @@ def read_hdf(path_or_buf, key=None, **kwargs):
 
         store = path_or_buf
         auto_close = False
+
     else:
         raise NotImplementedError('Support for generic buffers has not been '
                                   'implemented.')
