@@ -348,6 +348,7 @@ _parser_defaults = {
     'keep_default_na': True,
     'thousands': None,
     'comment': None,
+    'decimal': b'.',
 
     # 'engine': 'c',
     'parse_dates': False,
@@ -383,7 +384,6 @@ _c_parser_defaults = {
     'error_bad_lines': True,
     'warn_bad_lines': True,
     'dtype': None,
-    'decimal': b'.',
     'float_precision': None
 }
 
@@ -404,7 +404,6 @@ _python_unsupported = set([
     'error_bad_lines',
     'warn_bad_lines',
     'dtype',
-    'decimal',
     'float_precision',
 ])
 
@@ -1582,6 +1581,7 @@ class PythonParser(ParserBase):
         self.converters = kwds['converters']
 
         self.thousands = kwds['thousands']
+        self.decimal = kwds['decimal']
         self.comment = kwds['comment']
         self._comment_lines = []
 
@@ -1638,6 +1638,15 @@ class PythonParser(ParserBase):
             self._no_thousands_columns = self._set_no_thousands_columns()
         else:
             self._no_thousands_columns = None
+
+        if len(self.decimal) != 1:
+            raise ValueError('Only length-1 decimal markers supported')
+
+        if self.thousands is None:
+            self.nonnum = re.compile('[^-^0-9^%s]+' % self.decimal)
+        else:
+            self.nonnum = re.compile('[^-^0-9^%s^%s]+' % (self.thousands,
+                                                          self.decimal))
 
     def _set_no_thousands_columns(self):
         # Create a set of column ids that are not to be stripped of thousands
@@ -2050,21 +2059,34 @@ class PythonParser(ParserBase):
     def _check_thousands(self, lines):
         if self.thousands is None:
             return lines
-        nonnum = re.compile('[^-^0-9^%s^.]+' % self.thousands)
+
+        return self._search_replace_num_columns(lines=lines,
+                                                search=self.thousands,
+                                                replace='')
+
+    def _search_replace_num_columns(self, lines, search, replace):
         ret = []
         for l in lines:
             rl = []
             for i, x in enumerate(l):
                 if (not isinstance(x, compat.string_types) or
-                    self.thousands not in x or
+                    search not in x or
                     (self._no_thousands_columns and
                      i in self._no_thousands_columns) or
-                        nonnum.search(x.strip())):
+                        self.nonnum.search(x.strip())):
                     rl.append(x)
                 else:
-                    rl.append(x.replace(self.thousands, ''))
+                    rl.append(x.replace(search, replace))
             ret.append(rl)
         return ret
+
+    def _check_decimal(self, lines):
+        if self.decimal == _parser_defaults['decimal']:
+            return lines
+
+        return self._search_replace_num_columns(lines=lines,
+                                                search=self.decimal,
+                                                replace='.')
 
     def _clear_buffer(self):
         self.buf = []
@@ -2249,7 +2271,8 @@ class PythonParser(ParserBase):
         lines = self._check_comments(lines)
         if self.skip_blank_lines:
             lines = self._check_empty(lines)
-        return self._check_thousands(lines)
+        lines = self._check_thousands(lines)
+        return self._check_decimal(lines)
 
 
 def _make_date_converter(date_parser=None, dayfirst=False,

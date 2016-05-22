@@ -41,10 +41,10 @@ bar2,12,13,14,15
 1|2,334|5
 10|13|10.
 """
-        # C parser: supports only length-1 decimals
-        # Python parser: 'decimal' not supported yet
-        self.assertRaises(ValueError, self.read_csv,
-                          StringIO(data), decimal='')
+        # Parsers support only length-1 decimals
+        msg = 'Only length-1 decimal markers supported'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(data), decimal='')
 
     def test_read_csv(self):
         if not compat.PY3:
@@ -1236,3 +1236,48 @@ eight,1,2,3"""
                     result = self.read_table(f, squeeze=True, header=None)
                     expected = Series(['DDD', 'EEE', 'FFF', 'GGG'], name=0)
                     tm.assert_series_equal(result, expected)
+
+    def test_1000_sep_with_decimal(self):
+        data = """A|B|C
+1|2,334.01|5
+10|13|10.
+"""
+        expected = DataFrame({
+            'A': [1, 10],
+            'B': [2334.01, 13],
+            'C': [5, 10.]
+        })
+
+        tm.assert_equal(expected.A.dtype, 'int64')
+        tm.assert_equal(expected.B.dtype, 'float')
+        tm.assert_equal(expected.C.dtype, 'float')
+
+        df = self.read_csv(StringIO(data), sep='|', thousands=',', decimal='.')
+        tm.assert_frame_equal(df, expected)
+
+        df = self.read_table(StringIO(data), sep='|',
+                             thousands=',', decimal='.')
+        tm.assert_frame_equal(df, expected)
+
+        data_with_odd_sep = """A|B|C
+1|2.334,01|5
+10|13|10,
+"""
+        df = self.read_csv(StringIO(data_with_odd_sep),
+                           sep='|', thousands='.', decimal=',')
+        tm.assert_frame_equal(df, expected)
+
+        df = self.read_table(StringIO(data_with_odd_sep),
+                             sep='|', thousands='.', decimal=',')
+        tm.assert_frame_equal(df, expected)
+
+    def test_euro_decimal_format(self):
+        data = """Id;Number1;Number2;Text1;Text2;Number3
+1;1521,1541;187101,9543;ABC;poi;4,738797819
+2;121,12;14897,76;DEF;uyt;0,377320872
+3;878,158;108013,434;GHI;rez;2,735694704"""
+
+        df2 = self.read_csv(StringIO(data), sep=';', decimal=',')
+        self.assertEqual(df2['Number1'].dtype, float)
+        self.assertEqual(df2['Number2'].dtype, float)
+        self.assertEqual(df2['Number3'].dtype, float)
