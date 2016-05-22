@@ -1285,6 +1285,7 @@ eight,1,2,3"""
         self.assertEqual(df2['Number1'].dtype, float)
         self.assertEqual(df2['Number2'].dtype, float)
         self.assertEqual(df2['Number3'].dtype, float)
+<<<<<<< HEAD
 
     def test_read_duplicate_names(self):
         # See gh-7160
@@ -1323,3 +1324,5 @@ j,-inF"""
             # TODO: remove condition when 'na_filter' is supported for Python
             df = self.read_csv(StringIO(data), index_col=0, na_filter=False)
             tm.assert_almost_equal(df['A'].values, expected.values)
+=======
+>>>>>>> ENH: support decimal option in PythonParser #12933
