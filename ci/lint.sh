@@ -15,7 +15,12 @@ if [ "$LINT" ]; then
         if [ $? -ne "0" ]; then
             RET=1
         fi
+
     done
+    grep -r --include '*.py' --exclude nosetester.py --exclude testing.py 'numpy.testing' pandas
+    if [ $? = "0" ]; then
+        RET=1
+    fi
 else
     echo "NOT Linting"
 fi

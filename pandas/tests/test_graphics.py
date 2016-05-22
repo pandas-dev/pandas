@@ -19,7 +19,7 @@ from pandas.formats.printing import pprint_thing
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
-                                 assert_is_valid_plot_return_object)
+                                 assert_is_valid_plot_return_object, slow)
 
 from pandas.core.config import set_option
 
@@ -27,8 +27,6 @@ import numpy as np
 from numpy import random
 from numpy.random import rand, randn
 
-from numpy.testing import assert_allclose
-from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 """
 These tests are for ``Dataframe.plot`` and ``Series.plot``.
@@ -140,7 +138,7 @@ class TestPlotBase(tm.TestCase):
         def check_line(xpl, rsl):
             xpdata = xpl.get_xydata()
             rsdata = rsl.get_xydata()
-            assert_allclose(xpdata, rsdata)
+            tm.assert_almost_equal(xpdata, rsdata)
 
         self.assertEqual(len(xp_lines), len(rs_lines))
         [check_line(xpl, rsl) for xpl, rsl in zip(xp_lines, rs_lines)]

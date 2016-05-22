@@ -6,7 +6,6 @@ import pandas
 from pandas.compat import u
 from pandas.util.testing import network
 from pandas.util.testing import assert_frame_equal
-from numpy.testing.decorators import slow
 import pandas.util.testing as tm
 
 # deprecated
@@ -15,7 +14,7 @@ with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
 
 class TestWB(tm.TestCase):
 
-    @slow
+    @tm.slow
     @network
     def test_wdi_search(self):
 
@@ -26,7 +25,7 @@ class TestWB(tm.TestCase):
         result = search('gdp.*capita.*constant')
         self.assertTrue(result.name.str.contains('GDP').any())
 
-    @slow
+    @tm.slow
     @network
     def test_wdi_download(self):
 
@@ -55,7 +54,7 @@ class TestWB(tm.TestCase):
         expected.index = result.index
         assert_frame_equal(result, pandas.DataFrame(expected))
 
-    @slow
+    @tm.slow
     @network
     def test_wdi_download_w_retired_indicator(self):
 
@@ -85,7 +84,7 @@ class TestWB(tm.TestCase):
         if len(result) > 0:
             raise nose.SkipTest("Invalid results")
 
-    @slow
+    @tm.slow
     @network
     def test_wdi_download_w_crash_inducing_countrycode(self):
 
@@ -103,7 +102,7 @@ class TestWB(tm.TestCase):
         if len(result) > 0:
             raise nose.SkipTest("Invalid results")
 
-    @slow
+    @tm.slow
     @network
     def test_wdi_get_countries(self):
         result = get_countries()

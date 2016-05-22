@@ -1356,7 +1356,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series([1, 2, 90, 1000, 3e9])
         r = s.searchsorted(30)
         e = 2
-        tm.assert_equal(r, e)
+        self.assertEqual(r, e)
 
         r = s.searchsorted([30])
         e = np.array([2], dtype=np.int64)
@@ -1373,7 +1373,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         v = pd.Timestamp('20120102')
         r = s.searchsorted(v)
         e = 1
-        tm.assert_equal(r, e)
+        self.assertEqual(r, e)
 
     def test_search_sorted_datetime64_list(self):
         s = Series(pd.date_range('20120101', periods=10, freq='2D'))

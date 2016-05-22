@@ -391,7 +391,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
                        index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])
         res = repr(df)
         exp = '              X\nNaT        a  1\n2013-01-01 b  2'
-        nose.tools.assert_equal(res, exp)
+        self.assertEqual(res, exp)
 
     def test_iterkv_deprecation(self):
         with tm.assert_produces_warning(FutureWarning):
