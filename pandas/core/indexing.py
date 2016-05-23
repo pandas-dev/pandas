@@ -336,9 +336,12 @@ class _NDFrameIndexer(object):
                     # this preserves dtype of the value
                     new_values = Series([value])._values
                     if len(self.obj._values):
-                        new_values = np.concatenate([self.obj._values,
-                                                     new_values])
-
+                        try:
+                            new_values = np.concatenate([self.obj._values,
+                                                         new_values])
+                        except TypeError:
+                            new_values = np.concatenate([self.obj.asobject,
+                                                         new_values])
                     self.obj._data = self.obj._constructor(
                         new_values, index=new_index, name=self.obj.name)._data
                     self.obj._maybe_update_cacher(clear=True)

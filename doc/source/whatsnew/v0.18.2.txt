@@ -59,7 +59,6 @@ API changes
 - An ``UnsupportedFunctionCall`` error is now raised if numpy ufuncs like ``np.mean`` are called on groupby or resample objects (:issue:`12811`)
 - Calls to ``.sample()`` will respect the random seed set via ``numpy.random.seed(n)`` (:issue:`13161`)
 
-
 .. _whatsnew_0182.api.tolist:
 
 ``Series.tolist()`` will now return Python types
@@ -87,6 +86,36 @@ New Behavior:
 
    type(s.tolist()[0])
 
+
+.. _whatsnew_0182.api.promote:
+
+``Series`` type promotoion on assignment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A ``Series`` will now correctly promote its dtype with assignment with incompat values to the current dtype (:issue:`13234`)
+
+
+.. ipython:: python
+
+   s = pd.Series()
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [2]: s["a"] = pd.Timestamp("2016-01-01")
+
+   In [3]: s["b"] = 3.0
+   TypeError: invalid type promotion
+
+New Behavior:
+
+.. ipython:: python
+
+   s["a"] = pd.Timestamp("2016-01-01")
+   s["b"] = 3.0
+   s
+   s.dtype
 
 .. _whatsnew_0182.api.to_datetime_coerce:
 

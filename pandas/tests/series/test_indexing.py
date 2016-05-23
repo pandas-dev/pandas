@@ -287,6 +287,16 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
 
+    def test_type_promotion(self):
+        # GH12599
+        s = pd.Series()
+        s["a"] = pd.Timestamp("2016-01-01")
+        s["b"] = 3.0
+        s["c"] = "foo"
+        expected = Series([pd.Timestamp("2016-01-01"), 3.0, "foo"],
+                          index=["a", "b", "c"])
+        assert_series_equal(s, expected)
+
     def test_getitem_boolean_object(self):
         # using column from DataFrame
 
