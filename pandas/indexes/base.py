@@ -754,8 +754,28 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         return self.values.copy()
 
-    def astype(self, dtype):
-        return Index(self.values.astype(dtype), name=self.name, dtype=dtype)
+    _index_shared_docs['astype'] = """
+        Create an Index with values cast to dtypes. The class of a new Index
+        is determined by dtype. When conversion is impossible, a ValueError
+        exception is raised.
+
+        Parameters
+        ----------
+        dtype : numpy dtype or pandas type
+        copy : bool, default True
+            By default, astype always returns a newly allocated object.
+            If copy is set to False and internal requirements on dtype are
+            satisfied, the original data is used to create a new Index
+            or the original Index is returned.
+
+            .. versionadded:: 0.18.2
+
+        """
+
+    @Appender(_index_shared_docs['astype'])
+    def astype(self, dtype, copy=True):
+        return Index(self.values.astype(dtype, copy=copy), name=self.name,
+                     dtype=dtype)
 
     def _to_safe_for_reshape(self):
         """ convert to object if we are a categorical """

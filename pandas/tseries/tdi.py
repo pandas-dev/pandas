@@ -2,15 +2,17 @@
 
 from datetime import timedelta
 import numpy as np
-from pandas.core.common import (ABCSeries, _TD_DTYPE, _INT64_DTYPE,
-                                _maybe_box,
+from pandas.core.common import (ABCSeries, _TD_DTYPE, _maybe_box,
                                 _values_from_object, isnull,
-                                is_integer, is_float)
+                                is_integer, is_float, is_integer_dtype,
+                                is_object_dtype, is_timedelta64_dtype,
+                                is_timedelta64_ns_dtype)
 from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import to_offset
 from pandas.core.base import _shared_docs
+from pandas.indexes.base import _index_shared_docs
 import pandas.core.common as com
 import pandas.types.concat as _concat
 from pandas.util.decorators import Appender, Substitution
@@ -435,28 +437,28 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         """
         return tslib.ints_to_pytimedelta(self.asi8)
 
-    def astype(self, dtype):
+    @Appender(_index_shared_docs['astype'])
+    def astype(self, dtype, copy=True):
         dtype = np.dtype(dtype)
 
-        if dtype == np.object_:
+        if is_object_dtype(dtype):
             return self.asobject
-        elif dtype == _INT64_DTYPE:
-            return self.asi8.copy()
-        elif dtype == _TD_DTYPE:
+        elif is_timedelta64_ns_dtype(dtype):
+            if copy is True:
+                return self.copy()
             return self
-        elif dtype.kind == 'm':
-
+        elif is_timedelta64_dtype(dtype):
             # return an index (essentially this is division)
-            result = self.values.astype(dtype)
+            result = self.values.astype(dtype, copy=copy)
             if self.hasnans:
                 return Index(self._maybe_mask_results(result,
                                                       convert='float64'),
                              name=self.name)
-
             return Index(result.astype('i8'), name=self.name)
-
-        else:  # pragma: no cover
-            raise ValueError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
+        elif is_integer_dtype(dtype):
+            return Index(self.values.astype('i8', copy=copy), dtype='i8',
+                         name=self.name)
+        raise ValueError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
 
     def union(self, other):
         """
