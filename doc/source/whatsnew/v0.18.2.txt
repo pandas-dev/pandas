@@ -49,6 +49,9 @@ Other enhancements
 
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``decimal`` option (:issue:`12933`)
 
+- ``Index.astype()`` now accepts an optional boolean argument ``copy``, which allows optional copying if the requirements on dtype are satisfied (:issue:`13209`)
+- ``Categorical.astype()`` now accepts an optional boolean argument ``copy``, effective when dtype is categorical (:issue:`13209`)
+
 .. _whatsnew_0182.api:
 
 API changes
@@ -142,6 +145,9 @@ This will now convert integers/floats with the default unit of ``ns``.
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
+
+- ``Float64Index.astype(int)`` will now raise ``ValueError`` if ``Float64Index`` contains ``NaN`` values (:issue:`13149`)
+- ``TimedeltaIndex.astype(int)`` and ``DatetimeIndex.astype(int)`` will now return ``Int64Index`` instead of ``np.array`` (:issue:`13209`)
 
 .. _whatsnew_0182.deprecations:
 

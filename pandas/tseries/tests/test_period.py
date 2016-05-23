@@ -1631,12 +1631,6 @@ class TestPeriodIndex(tm.TestCase):
         series = Series(1, index=index)
         tm.assertIsInstance(series, Series)
 
-    def test_astype(self):
-        idx = period_range('1990', '2009', freq='A')
-
-        result = idx.astype('i8')
-        self.assert_numpy_array_equal(result, idx.values)
-
     def test_constructor_use_start_freq(self):
         # GH #1118
         p = Period('4/2/2012', freq='B')

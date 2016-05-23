@@ -2074,11 +2074,14 @@ class MultiIndex(Index):
             return MultiIndex.from_tuples(difference, sortorder=0,
                                           names=result_names)
 
-    def astype(self, dtype):
+    @Appender(_index_shared_docs['astype'])
+    def astype(self, dtype, copy=True):
         if not is_object_dtype(np.dtype(dtype)):
             raise TypeError('Setting %s dtype to anything other than object '
                             'is not supported' % self.__class__)
-        return self._shallow_copy()
+        elif copy is True:
+            return self._shallow_copy()
+        return self
 
     def _convert_can_do_setop(self, other):
         result_names = self.names

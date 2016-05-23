@@ -422,7 +422,7 @@ class _TimeOp(object):
                 values = tslib.array_to_datetime(values)
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
-            values = to_timedelta(values, errors='coerce')
+            values = to_timedelta(values, errors='coerce', box=False)
         elif inferred_type == 'integer':
             # py3 compat where dtype is 'm' but is an integer
             if values.dtype.kind == 'm':
@@ -504,9 +504,9 @@ class _TimeOp(object):
 
             # convert Tick DateOffset to underlying delta
             if self.is_offset_lhs:
-                lvalues = to_timedelta(lvalues)
+                lvalues = to_timedelta(lvalues, box=False)
             if self.is_offset_rhs:
-                rvalues = to_timedelta(rvalues)
+                rvalues = to_timedelta(rvalues, box=False)
 
             lvalues = lvalues.astype(np.int64)
             if not self.is_floating_rhs:

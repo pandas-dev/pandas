@@ -1191,12 +1191,6 @@ class TestTimedeltaIndex(tm.TestCase):
         result = a.append(c)
         self.assertTrue((result['B'] == td).all())
 
-    def test_astype(self):
-        rng = timedelta_range('1 days', periods=10)
-
-        result = rng.astype('i8')
-        self.assert_numpy_array_equal(result, rng.asi8)
-
     def test_fields(self):
         rng = timedelta_range('1 days, 10:11:12.100123456', periods=2,
                               freq='s')

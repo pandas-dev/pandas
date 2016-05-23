@@ -259,6 +259,11 @@ class TestFloat64Index(Numeric, tm.TestCase):
         for dtype in ['M8[ns]', 'm8[ns]']:
             self.assertRaises(TypeError, lambda: i.astype(dtype))
 
+        # GH 13149
+        for dtype in ['int16', 'int32', 'int64']:
+            i = Float64Index([0, 1.1, np.NAN])
+            self.assertRaises(ValueError, lambda: i.astype(dtype))
+
     def test_equals(self):
 
         i = Float64Index([1.0, 2.0])
