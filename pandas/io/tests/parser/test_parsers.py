@@ -84,13 +84,6 @@ class TestCParserLowMemory(BaseParser, CParserTests, tm.TestCase):
 
 
 class TestPythonParser(BaseParser, PythonParserTests, tm.TestCase):
-    """
-    Class for Python parser testing. Unless specifically stated
-    as a PythonParser-specific issue, the goal is to eventually move
-    as many of these tests into ParserTests as soon as the C parser
-    can accept further specific arguments when parsing.
-    """
-
     engine = 'python'
     float_precision_choices = [None]
 

@@ -243,6 +243,8 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
                                        'Unnamed: 4'])
 
     def test_duplicate_columns(self):
+        # TODO: add test for condition 'mangle_dupe_cols=False'
+        # once it is actually supported (gh-12935)
         data = """A,A,B,B,B
 1,2,3,4,5
 6,7,8,9,10
@@ -255,11 +257,6 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
             df = getattr(self, method)(StringIO(data), sep=',')
             self.assertEqual(list(df.columns),
                              ['A', 'A.1', 'B', 'B.1', 'B.2'])
-
-            df = getattr(self, method)(StringIO(data), sep=',',
-                                       mangle_dupe_cols=False)
-            self.assertEqual(list(df.columns),
-                             ['A', 'A', 'B', 'B', 'B'])
 
             df = getattr(self, method)(StringIO(data), sep=',',
                                        mangle_dupe_cols=True)
@@ -1281,3 +1278,17 @@ eight,1,2,3"""
         self.assertEqual(df2['Number1'].dtype, float)
         self.assertEqual(df2['Number2'].dtype, float)
         self.assertEqual(df2['Number3'].dtype, float)
+
+    def test_read_duplicate_names(self):
+        # See gh-7160
+        data = "a,b,a\n0,1,2\n3,4,5"
+        df = self.read_csv(StringIO(data))
+        expected = DataFrame([[0, 1, 2], [3, 4, 5]],
+                             columns=['a', 'b', 'a.1'])
+        tm.assert_frame_equal(df, expected)
+
+        data = "0,1,2\n3,4,5"
+        df = self.read_csv(StringIO(data), names=["a", "b", "a"])
+        expected = DataFrame([[0, 1, 2], [3, 4, 5]],
+                             columns=['a', 'b', 'a.1'])
+        tm.assert_frame_equal(df, expected)

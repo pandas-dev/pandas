@@ -120,7 +120,8 @@ header : int or list of ints, default ``'infer'``
   rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
-  explicitly pass ``header=None``.
+  explicitly pass ``header=None``. Duplicates in this list are not allowed unless
+  ``mangle_dupe_cols=True``, which is the default.
 index_col :  int or sequence or ``False``, default ``None``
   Column to use as the row labels of the DataFrame. If a sequence is given, a
   MultiIndex is used. If you have a malformed file with delimiters at the end of
@@ -139,6 +140,8 @@ prefix : str, default ``None``
   Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : boolean, default ``True``
   Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'.
+  Passing in False will cause data to be overwritten if there are duplicate
+  names in the columns.
 
 General Parsing Configuration
 +++++++++++++++++++++++++++++
@@ -431,6 +434,42 @@ If the header is in a row other than the first, pass the row number to
 
     data = 'skip this skip it\na,b,c\n1,2,3\n4,5,6\n7,8,9'
     pd.read_csv(StringIO(data), header=1)
+
+.. _io.dupe_names:
+
+Duplicate names parsing
+'''''''''''''''''''''''
+
+If the file or header contains duplicate names, pandas by default will deduplicate
+these names so as to prevent data overwrite:
+
+.. ipython :: python
+
+   data = 'a,b,a\n0,1,2\n3,4,5'
+   pd.read_csv(StringIO(data))
+
+There is no more duplicate data because ``mangle_dupe_cols=True`` by default, which modifies
+a series of duplicate columns 'X'...'X' to become 'X.0'...'X.N'.  If ``mangle_dupe_cols
+=False``, duplicate data can arise:
+
+.. code-block :: python
+
+   In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
+   In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
+   Out[3]:
+      a  b  a
+   0  2  1  2
+   1  5  4  5
+
+To prevent users from encountering this problem with duplicate data, a ``ValueError``
+exception is raised if ``mangle_dupe_cols != True``:
+
+.. code-block :: python
+
+   In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
+   In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
+   ...
+   ValueError: Setting mangle_dupe_cols=False is not supported yet
 
 .. _io.usecols:
 
