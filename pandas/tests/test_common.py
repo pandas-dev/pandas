@@ -817,6 +817,21 @@ def test_dict_compat():
     assert (com._dict_compat(data_unchanged) == data_unchanged)
 
 
+def test_is_timedelta():
+    assert (com.is_timedelta64_dtype('timedelta64'))
+    assert (com.is_timedelta64_dtype('timedelta64[ns]'))
+    assert (not com.is_timedelta64_ns_dtype('timedelta64'))
+    assert (com.is_timedelta64_ns_dtype('timedelta64[ns]'))
+
+    tdi = TimedeltaIndex([1e14, 2e14], dtype='timedelta64')
+    assert (com.is_timedelta64_dtype(tdi))
+    assert (com.is_timedelta64_ns_dtype(tdi))
+    assert (com.is_timedelta64_ns_dtype(tdi.astype('timedelta64[ns]')))
+    # Conversion to Int64Index:
+    assert (not com.is_timedelta64_ns_dtype(tdi.astype('timedelta64')))
+    assert (not com.is_timedelta64_ns_dtype(tdi.astype('timedelta64[h]')))
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
