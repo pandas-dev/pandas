@@ -426,7 +426,7 @@ class Styler(object):
 
     def _apply(self, func, axis=0, subset=None, **kwargs):
         subset = slice(None) if subset is None else subset
-        subset = _non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset, axis)
         if axis is not None:
             result = self.data.loc[subset].apply(func, axis=axis, **kwargs)
         else:
@@ -701,7 +701,7 @@ class Styler(object):
         and ``high * (x.max() - x.min())`` before normalizing.
         """
         subset = _maybe_numeric_slice(self.data, subset)
-        subset = _non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset, axis)
         self.apply(self._background_gradient, cmap=cmap, subset=subset,
                    axis=axis, low=low, high=high)
         return self
@@ -779,7 +779,7 @@ class Styler(object):
         self : Styler
         """
         subset = _maybe_numeric_slice(self.data, subset)
-        subset = _non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset, axis)
         self.apply(self._bar, subset=subset, axis=axis, color=color,
                    width=width)
         return self
