@@ -4,6 +4,7 @@ import sys
 import struct
 import subprocess
 import codecs
+import locale
 
 
 def get_sys_info():
@@ -46,6 +47,7 @@ def get_sys_info():
             ("byteorder", "%s" % sys.byteorder),
             ("LC_ALL", "%s" % os.environ.get('LC_ALL', "None")),
             ("LANG", "%s" % os.environ.get('LANG', "None")),
+            ("LOCALE", "%s.%s" % locale.getlocale()),
 
         ])
     except:
