@@ -220,8 +220,14 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         frame = DataFrame({'col1': self.ts1,
                            'col2': self.ts2})
 
-        tm.assert_dict_equal(self.ts1, frame['col1'], compare_keys=False)
-        tm.assert_dict_equal(self.ts2, frame['col2'], compare_keys=False)
+        # col2 is padded with NaN
+        self.assertEqual(len(self.ts1), 30)
+        self.assertEqual(len(self.ts2), 25)
+
+        tm.assert_series_equal(self.ts1, frame['col1'], check_names=False)
+        exp = pd.Series(np.concatenate([[np.nan] * 5, self.ts2.values]),
+                        index=self.ts1.index, name='col2')
+        tm.assert_series_equal(exp, frame['col2'])
 
         frame = DataFrame({'col1': self.ts1,
                            'col2': self.ts2},

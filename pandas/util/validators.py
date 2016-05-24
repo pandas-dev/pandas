@@ -42,7 +42,16 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
         # as comparison may have been overriden for the left
         # hand object
         try:
-            match = (arg_val_dict[key] == compat_args[key])
+            v1 = arg_val_dict[key]
+            v2 = compat_args[key]
+
+            # check for None-ness otherwise we could end up
+            # comparing a numpy array vs None
+            if (v1 is not None and v2 is None) or \
+               (v1 is None and v2 is not None):
+                match = False
+            else:
+                match = (v1 == v2)
 
             if not is_bool(match):
                 raise ValueError("'match' is not a boolean")
