@@ -1314,12 +1314,20 @@ class TableIterator(object):
         self.s = s
         self.func = func
         self.where = where
-        self.nrows = nrows or 0
-        self.start = start or 0
 
-        if stop is None:
-            stop = self.nrows
-        self.stop = min(self.nrows, stop)
+        # set start/stop if they are not set if we are a table
+        if self.s.is_table:
+            if nrows is None:
+                nrows = 0
+            if start is None:
+                start = 0
+            if stop is None:
+                stop = nrows
+            stop = min(nrows, stop)
+
+        self.nrows = nrows
+        self.start = start
+        self.stop = stop
 
         self.coordinates = None
         if iterator or chunksize is not None:
@@ -2303,14 +2311,23 @@ class GenericFixed(Fixed):
         return klass
 
     def validate_read(self, kwargs):
-        if kwargs.get('columns') is not None:
+        """
+        remove table keywords from kwargs and return
+        raise if any keywords are passed which are not-None
+        """
+        kwargs = copy.copy(kwargs)
+
+        columns = kwargs.pop('columns', None)
+        if columns is not None:
             raise TypeError("cannot pass a column specification when reading "
                             "a Fixed format store. this store must be "
                             "selected in its entirety")
-        if kwargs.get('where') is not None:
+        where = kwargs.pop('where', None)
+        if where is not None:
             raise TypeError("cannot pass a where specification when reading "
                             "from a Fixed format store. this store must be "
                             "selected in its entirety")
+        return kwargs
 
     @property
     def is_exists(self):
@@ -2329,11 +2346,11 @@ class GenericFixed(Fixed):
     def write(self, obj, **kwargs):
         self.set_attrs()
 
-    def read_array(self, key):
+    def read_array(self, key, start=None, stop=None):
         """ read an array for the specified node (off of group """
         import tables
         node = getattr(self.group, key)
-        data = node[:]
+        data = node[start:stop]
         attrs = node._v_attrs
 
         transposed = getattr(attrs, 'transposed', False)
@@ -2363,17 +2380,17 @@ class GenericFixed(Fixed):
         else:
             return ret
 
-    def read_index(self, key):
+    def read_index(self, key, **kwargs):
         variety = _ensure_decoded(getattr(self.attrs, '%s_variety' % key))
 
         if variety == u('multi'):
-            return self.read_multi_index(key)
+            return self.read_multi_index(key, **kwargs)
         elif variety == u('block'):
-            return self.read_block_index(key)
+            return self.read_block_index(key, **kwargs)
         elif variety == u('sparseint'):
-            return self.read_sparse_intindex(key)
+            return self.read_sparse_intindex(key, **kwargs)
         elif variety == u('regular'):
-            _, index = self.read_index_node(getattr(self.group, key))
+            _, index = self.read_index_node(getattr(self.group, key), **kwargs)
             return index
         else:  # pragma: no cover
             raise TypeError('unrecognized index variety: %s' % variety)
@@ -2411,19 +2428,19 @@ class GenericFixed(Fixed):
         self.write_array('%s_blengths' % key, index.blengths)
         setattr(self.attrs, '%s_length' % key, index.length)
 
-    def read_block_index(self, key):
+    def read_block_index(self, key, **kwargs):
         length = getattr(self.attrs, '%s_length' % key)
-        blocs = self.read_array('%s_blocs' % key)
-        blengths = self.read_array('%s_blengths' % key)
+        blocs = self.read_array('%s_blocs' % key, **kwargs)
+        blengths = self.read_array('%s_blengths' % key, **kwargs)
         return BlockIndex(length, blocs, blengths)
 
     def write_sparse_intindex(self, key, index):
         self.write_array('%s_indices' % key, index.indices)
         setattr(self.attrs, '%s_length' % key, index.length)
 
-    def read_sparse_intindex(self, key):
+    def read_sparse_intindex(self, key, **kwargs):
         length = getattr(self.attrs, '%s_length' % key)
-        indices = self.read_array('%s_indices' % key)
+        indices = self.read_array('%s_indices' % key, **kwargs)
         return IntIndex(length, indices)
 
     def write_multi_index(self, key, index):
@@ -2448,7 +2465,7 @@ class GenericFixed(Fixed):
             label_key = '%s_label%d' % (key, i)
             self.write_array(label_key, lab)
 
-    def read_multi_index(self, key):
+    def read_multi_index(self, key, **kwargs):
         nlevels = getattr(self.attrs, '%s_nlevels' % key)
 
         levels = []
@@ -2456,19 +2473,20 @@ class GenericFixed(Fixed):
         names = []
         for i in range(nlevels):
             level_key = '%s_level%d' % (key, i)
-            name, lev = self.read_index_node(getattr(self.group, level_key))
+            name, lev = self.read_index_node(getattr(self.group, level_key),
+                                             **kwargs)
             levels.append(lev)
             names.append(name)
 
             label_key = '%s_label%d' % (key, i)
-            lab = self.read_array(label_key)
+            lab = self.read_array(label_key, **kwargs)
             labels.append(lab)
 
         return MultiIndex(levels=levels, labels=labels, names=names,
                           verify_integrity=True)
 
-    def read_index_node(self, node):
-        data = node[:]
+    def read_index_node(self, node, start=None, stop=None):
+        data = node[start:stop]
         # If the index was an empty array write_array_empty() will
         # have written a sentinel. Here we relace it with the original.
         if ('shape' in node._v_attrs and
@@ -2607,9 +2625,9 @@ class GenericFixed(Fixed):
 
 class LegacyFixed(GenericFixed):
 
-    def read_index_legacy(self, key):
+    def read_index_legacy(self, key, start=None, stop=None):
         node = getattr(self.group, key)
-        data = node[:]
+        data = node[start:stop]
         kind = node._v_attrs.kind
         return _unconvert_index_legacy(data, kind, encoding=self.encoding)
 
@@ -2617,7 +2635,7 @@ class LegacyFixed(GenericFixed):
 class LegacySeriesFixed(LegacyFixed):
 
     def read(self, **kwargs):
-        self.validate_read(kwargs)
+        kwargs = self.validate_read(kwargs)
         index = self.read_index_legacy('index')
         values = self.read_array('values')
         return Series(values, index=index)
@@ -2626,7 +2644,7 @@ class LegacySeriesFixed(LegacyFixed):
 class LegacyFrameFixed(LegacyFixed):
 
     def read(self, **kwargs):
-        self.validate_read(kwargs)
+        kwargs = self.validate_read(kwargs)
         index = self.read_index_legacy('index')
         columns = self.read_index_legacy('columns')
         values = self.read_array('values')
@@ -2645,9 +2663,9 @@ class SeriesFixed(GenericFixed):
             return None
 
     def read(self, **kwargs):
-        self.validate_read(kwargs)
-        index = self.read_index('index')
-        values = self.read_array('values')
+        kwargs = self.validate_read(kwargs)
+        index = self.read_index('index', **kwargs)
+        values = self.read_array('values', **kwargs)
         return Series(values, index=index, name=self.name)
 
     def write(self, obj, **kwargs):
@@ -2657,12 +2675,25 @@ class SeriesFixed(GenericFixed):
         self.attrs.name = obj.name
 
 
-class SparseSeriesFixed(GenericFixed):
+class SparseFixed(GenericFixed):
+
+    def validate_read(self, kwargs):
+        """
+        we don't support start, stop kwds in Sparse
+        """
+        kwargs = super(SparseFixed, self).validate_read(kwargs)
+        if 'start' in kwargs or 'stop' in kwargs:
+            raise NotImplementedError("start and/or stop are not supported "
+                                      "in fixed Sparse reading")
+        return kwargs
+
+
+class SparseSeriesFixed(SparseFixed):
     pandas_kind = u('sparse_series')
     attributes = ['name', 'fill_value', 'kind']
 
     def read(self, **kwargs):
-        self.validate_read(kwargs)
+        kwargs = self.validate_read(kwargs)
         index = self.read_index('index')
         sp_values = self.read_array('sp_values')
         sp_index = self.read_index('sp_index')
@@ -2681,12 +2712,12 @@ class SparseSeriesFixed(GenericFixed):
         self.attrs.kind = obj.kind
 
 
-class SparseFrameFixed(GenericFixed):
+class SparseFrameFixed(SparseFixed):
     pandas_kind = u('sparse_frame')
     attributes = ['default_kind', 'default_fill_value']
 
     def read(self, **kwargs):
-        self.validate_read(kwargs)
+        kwargs = self.validate_read(kwargs)
         columns = self.read_index('columns')
         sdict = {}
         for c in columns:
@@ -2714,12 +2745,12 @@ class SparseFrameFixed(GenericFixed):
         self.write_index('columns', obj.columns)
 
 
-class SparsePanelFixed(GenericFixed):
+class SparsePanelFixed(SparseFixed):
     pandas_kind = u('sparse_panel')
     attributes = ['default_kind', 'default_fill_value']
 
     def read(self, **kwargs):
-        self.validate_read(kwargs)
+        kwargs = self.validate_read(kwargs)
         items = self.read_index('items')
 
         sdict = {}
@@ -2782,19 +2813,26 @@ class BlockManagerFixed(GenericFixed):
         except:
             return None
 
-    def read(self, **kwargs):
-        self.validate_read(kwargs)
+    def read(self, start=None, stop=None, **kwargs):
+        # start, stop applied to rows, so 0th axis only
+
+        kwargs = self.validate_read(kwargs)
+        select_axis = self.obj_type()._get_block_manager_axis(0)
 
         axes = []
         for i in range(self.ndim):
-            ax = self.read_index('axis%d' % i)
+
+            _start, _stop = (start, stop) if i == select_axis else (None, None)
+            ax = self.read_index('axis%d' % i, start=_start, stop=_stop)
             axes.append(ax)
 
         items = axes[0]
         blocks = []
         for i in range(self.nblocks):
+
             blk_items = self.read_index('block%d_items' % i)
-            values = self.read_array('block%d_values' % i)
+            values = self.read_array('block%d_values' % i,
+                                     start=_start, stop=_stop)
             blk = make_block(values,
                              placement=items.get_indexer(blk_items))
             blocks.append(blk)
