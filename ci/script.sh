@@ -17,6 +17,10 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     python -c "$pycmd"
 fi
 
+echo "Version info:"
+pycmd="import pandas; pandas.show_versions();"
+python -c "$pycmd"
+
 if [ "$BUILD_TEST" ]; then
     echo "We are not running nosetests as this is simply a build test."
 elif [ "$COVERAGE" ]; then
