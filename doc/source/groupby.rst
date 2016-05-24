@@ -52,7 +52,7 @@ following:
    step and try to return a sensibly combined result if it doesn't fit into
    either of the above two categories
 
-Since the set of object instance method on pandas data structures are generally
+Since the set of object instance methods on pandas data structures are generally
 rich and expressive, we often simply want to invoke, say, a DataFrame function
 on each group. The name GroupBy should be quite familiar to those who have used
 a SQL-based tool (or ``itertools``), in which you can write code like:
@@ -129,7 +129,7 @@ columns:
 
     In [5]: grouped = df.groupby(get_letter_type, axis=1)
 
-Starting with 0.8, pandas Index objects now supports duplicate values. If a
+Starting with 0.8, pandas Index objects now support duplicate values. If a
 non-unique index is used as the group key in a groupby operation, all values
 for the same index value will be considered to be in one group and thus the
 output of aggregation functions will only contain unique index values:
@@ -171,7 +171,8 @@ By default the group keys are sorted during the ``groupby`` operation. You may h
    df2.groupby(['X'], sort=False).sum()
 
 
-Note that ``groupby`` will preserve the order in which *observations* are sorted *within* each group. For example, the groups created by ``groupby()`` below are in the order the appeared in the original ``DataFrame``:
+Note that ``groupby`` will preserve the order in which *observations* are sorted *within* each group.
+For example, the groups created by ``groupby()`` below are in the order they appeared in the original ``DataFrame``:
 
 .. ipython:: python
 
@@ -254,7 +255,7 @@ GroupBy with MultiIndex
 With :ref:`hierarchically-indexed data <advanced.hierarchical>`, it's quite
 natural to group by one of the levels of the hierarchy.
 
-Let's create a series with a two-level ``MultiIndex``.
+Let's create a Series with a two-level ``MultiIndex``.
 
 .. ipython:: python
 
@@ -636,7 +637,7 @@ with NaNs.
 
    dff.groupby('B').filter(lambda x: len(x) > 2, dropna=False)
 
-For dataframes with multiple columns, filters should explicitly specify a column as the filter criterion.
+For DataFrames with multiple columns, filters should explicitly specify a column as the filter criterion.
 
 .. ipython:: python
 
@@ -755,7 +756,7 @@ The dimension of the returned result can also change:
 
 .. note::
 
-   ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to apply.
+   ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to it.
    So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
    the output as well as set the indices.
 
@@ -789,7 +790,7 @@ Again consider the example DataFrame we've been looking at:
 
    df
 
-Supposed we wished to compute the standard deviation grouped by the ``A``
+Suppose we wish to compute the standard deviation grouped by the ``A``
 column. There is a slight problem, namely that we don't care about the data in
 column ``B``. We refer to this as a "nuisance" column. If the passed
 aggregation function can't be applied to some columns, the troublesome columns
@@ -1019,7 +1020,7 @@ Returning a Series to propagate names
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Group DataFrame columns, compute a set of metrics and return a named Series.
-The Series name is used as the name for the column index.  This is especially
+The Series name is used as the name for the column index. This is especially
 useful in conjunction with reshaping operations such as stacking in which the
 column index name will be used as the name of the inserted column:
 
