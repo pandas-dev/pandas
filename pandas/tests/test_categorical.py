@@ -1022,14 +1022,14 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
     def test_remove_unused_categories(self):
         c = Categorical(["a", "b", "c", "d", "a"],
                         categories=["a", "b", "c", "d", "e"])
-        exp_categories_all = np.array(["a", "b", "c", "d", "e"])
-        exp_categories_dropped = np.array(["a", "b", "c", "d"])
+        exp_categories_all = Index(["a", "b", "c", "d", "e"])
+        exp_categories_dropped = Index(["a", "b", "c", "d"])
 
         self.assert_numpy_array_equal(c.categories, exp_categories_all)
 
         res = c.remove_unused_categories()
-        self.assert_numpy_array_equal(res.categories, exp_categories_dropped)
-        self.assert_numpy_array_equal(c.categories, exp_categories_all)
+        self.assert_index_equal(res.categories, exp_categories_dropped)
+        self.assert_index_equal(c.categories, exp_categories_all)
 
         res = c.remove_unused_categories(inplace=True)
         self.assert_numpy_array_equal(c.categories, exp_categories_dropped)
@@ -1039,15 +1039,18 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         c = Categorical(["a", "b", "c", np.nan],
                         categories=["a", "b", "c", "d", "e"])
         res = c.remove_unused_categories()
-        self.assert_numpy_array_equal(res.categories,
-                                      np.array(["a", "b", "c"]))
-        self.assert_numpy_array_equal(c.categories, exp_categories_all)
+        self.assert_index_equal(res.categories,
+                                Index(np.array(["a", "b", "c"])))
+        exp_codes = np.array([0, 1, 2, -1], dtype=np.int8)
+        self.assert_numpy_array_equal(res.codes, exp_codes)
+        self.assert_index_equal(c.categories, exp_categories_all)
 
         val = ['F', np.nan, 'D', 'B', 'D', 'F', np.nan]
         cat = pd.Categorical(values=val, categories=list('ABCDEFG'))
         out = cat.remove_unused_categories()
-        self.assert_numpy_array_equal(out.categories, ['B', 'D', 'F'])
-        self.assert_numpy_array_equal(out.codes, [2, -1, 1, 0, 1, 2, -1])
+        self.assert_index_equal(out.categories, Index(['B', 'D', 'F']))
+        exp_codes = np.array([2, -1, 1, 0, 1, 2, -1], dtype=np.int8)
+        self.assert_numpy_array_equal(out.codes, exp_codes)
         self.assertEqual(out.get_values().tolist(), val)
 
         alpha = list('abcdefghijklmnopqrstuvwxyz')
