@@ -65,8 +65,9 @@ class TestSeriesCombine(TestData, tm.TestCase):
 
         combined = strings.combine_first(floats)
 
-        tm.assert_dict_equal(strings, combined, compare_keys=False)
-        tm.assert_dict_equal(floats[1::2], combined, compare_keys=False)
+        tm.assert_series_equal(strings, combined.loc[index[::2]])
+        tm.assert_series_equal(floats[1::2].astype(object),
+                               combined.loc[index[1::2]])
 
         # corner case
         s = Series([1., 2, 3], index=[0, 1, 2])

@@ -25,7 +25,10 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         shifted = self.ts.shift(1)
         unshifted = shifted.shift(-1)
 
-        tm.assert_dict_equal(unshifted.valid(), self.ts, compare_keys=False)
+        tm.assert_index_equal(shifted.index, self.ts.index)
+        tm.assert_index_equal(unshifted.index, self.ts.index)
+        tm.assert_numpy_array_equal(unshifted.valid().values,
+                                    self.ts.values[:-1])
 
         offset = datetools.bday
         shifted = self.ts.shift(1, freq=offset)
@@ -49,7 +52,9 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         ps = tm.makePeriodSeries()
         shifted = ps.shift(1)
         unshifted = shifted.shift(-1)
-        tm.assert_dict_equal(unshifted.valid(), ps, compare_keys=False)
+        tm.assert_index_equal(shifted.index, ps.index)
+        tm.assert_index_equal(unshifted.index, ps.index)
+        tm.assert_numpy_array_equal(unshifted.valid().values, ps.values[:-1])
 
         shifted2 = ps.shift(1, 'B')
         shifted3 = ps.shift(1, datetools.bday)
@@ -77,16 +82,16 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
 
         # xref 8260
         # with tz
-        s = Series(
-            date_range('2000-01-01 09:00:00', periods=5,
-                       tz='US/Eastern'), name='foo')
+        s = Series(date_range('2000-01-01 09:00:00', periods=5,
+                              tz='US/Eastern'), name='foo')
         result = s - s.shift()
-        assert_series_equal(result, Series(
-            TimedeltaIndex(['NaT'] + ['1 days'] * 4), name='foo'))
+
+        exp = Series(TimedeltaIndex(['NaT'] + ['1 days'] * 4), name='foo')
+        assert_series_equal(result, exp)
 
         # incompat tz
-        s2 = Series(
-            date_range('2000-01-01 09:00:00', periods=5, tz='CET'), name='foo')
+        s2 = Series(date_range('2000-01-01 09:00:00', periods=5,
+                               tz='CET'), name='foo')
         self.assertRaises(ValueError, lambda: s - s2)
 
     def test_tshift(self):

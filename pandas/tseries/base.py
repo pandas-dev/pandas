@@ -189,8 +189,17 @@ class DatetimeIndexOpsMixin(object):
             return False
 
     def __getitem__(self, key):
+        """
+        This getitem defers to the underlying array, which by-definition can
+        only handle list-likes, slices, and integer scalars
+        """
+
+        is_int = is_integer(key)
+        if lib.isscalar(key) and not is_int:
+            raise ValueError
+
         getitem = self._data.__getitem__
-        if lib.isscalar(key):
+        if is_int:
             val = getitem(key)
             return self._box_func(val)
         else:

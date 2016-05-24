@@ -120,13 +120,13 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
     def test_shift(self):
         # naive shift
         shiftedFrame = self.tsframe.shift(5)
-        self.assertTrue(shiftedFrame.index.equals(self.tsframe.index))
+        self.assert_index_equal(shiftedFrame.index, self.tsframe.index)
 
         shiftedSeries = self.tsframe['A'].shift(5)
         assert_series_equal(shiftedFrame['A'], shiftedSeries)
 
         shiftedFrame = self.tsframe.shift(-5)
-        self.assertTrue(shiftedFrame.index.equals(self.tsframe.index))
+        self.assert_index_equal(shiftedFrame.index, self.tsframe.index)
 
         shiftedSeries = self.tsframe['A'].shift(-5)
         assert_series_equal(shiftedFrame['A'], shiftedSeries)
@@ -154,10 +154,10 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         ps = tm.makePeriodFrame()
         shifted = ps.shift(1)
         unshifted = shifted.shift(-1)
-        self.assertTrue(shifted.index.equals(ps.index))
-
-        tm.assert_dict_equal(unshifted.ix[:, 0].valid(), ps.ix[:, 0],
-                             compare_keys=False)
+        self.assert_index_equal(shifted.index, ps.index)
+        self.assert_index_equal(unshifted.index, ps.index)
+        tm.assert_numpy_array_equal(unshifted.ix[:, 0].valid().values,
+                                    ps.ix[:-1, 0].values)
 
         shifted2 = ps.shift(1, 'B')
         shifted3 = ps.shift(1, datetools.bday)
