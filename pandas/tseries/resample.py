@@ -912,8 +912,7 @@ def get_resampler_for_grouping(groupby, rule, how=None, fill_method=None,
     return _maybe_process_deprecations(r,
                                        how=how,
                                        fill_method=fill_method,
-                                       limit=limit,
-                                       **kwargs)
+                                       limit=limit)
 
 
 class TimeGrouper(Grouper):
