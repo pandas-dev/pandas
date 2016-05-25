@@ -1927,10 +1927,12 @@ def maybe_droplevels(index, key):
 
 def _non_reducing_slice(slice_, axis=0):
     """
-    Ensurse that a slice doesn't reduce to a Series or Scalar.
+    Ensure that a slice doesn't reduce to a Series or Scalar.
 
-    Any user-paseed `subset` should have this called on it
+    Any user-passed `subset` should have this called on it
     to make sure we're always working with DataFrames.
+
+    axis will determine the specification of the IndexSlice
     """
     # default to column slice, like DataFrame
     # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
