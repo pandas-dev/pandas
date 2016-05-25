@@ -15,11 +15,12 @@ from pandas._period import (Period, IncompatibleFrequency,
                             _quarter_to_myear)
 
 from pandas.core.base import _shared_docs
+from pandas.indexes.base import _index_shared_docs
 
 import pandas.core.common as com
-from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
-                                _values_from_object, ABCSeries,
-                                is_integer, is_float, is_object_dtype)
+from pandas.core.common import (
+    _maybe_box, _values_from_object, ABCSeries, is_float, is_integer,
+    is_integer_dtype, is_object_dtype, isnull)
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, cache_readonly, Substitution
@@ -271,10 +272,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        if not getattr(values, 'dtype', None):
+
+        if not com.is_integer_dtype(values):
             values = np.array(values, copy=False)
-        if is_object_dtype(values):
-            return PeriodIndex(values, name=name, freq=freq, **kwargs)
+            if (len(values) > 0 and com.is_float_dtype(values)):
+                raise TypeError("PeriodIndex can't take floats")
+            else:
+                return PeriodIndex(values, name=name, freq=freq, **kwargs)
+
+        values = np.array(values, dtype='int64', copy=False)
 
         result = object.__new__(cls)
         result._data = values
@@ -381,12 +387,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _array_values(self):
         return self.asobject
 
-    def astype(self, dtype):
+    @Appender(_index_shared_docs['astype'])
+    def astype(self, dtype, copy=True):
         dtype = np.dtype(dtype)
-        if dtype == np.object_:
-            return Index(np.array(list(self), dtype), dtype)
-        elif dtype == _INT64_DTYPE:
-            return Index(self.values, dtype)
+        if is_object_dtype(dtype):
+            return self.asobject
+        elif is_integer_dtype(dtype):
+            return Index(self.values.astype('i8', copy=copy), name=self.name,
+                         dtype='i8')
         raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
     @Substitution(klass='PeriodIndex', value='key')

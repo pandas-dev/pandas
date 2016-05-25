@@ -73,7 +73,8 @@ header : int or list of ints, default 'infer'
     rather than the first line of the file.
 names : array-like, default None
     List of column names to use. If file contains no header row, then you
-    should explicitly pass header=None
+    should explicitly pass header=None. Duplicates in this list are not
+    allowed unless mangle_dupe_cols=True, which is the default.
 index_col : int or sequence or False, default None
     Column to use as the row labels of the DataFrame. If a sequence is given, a
     MultiIndex is used. If you have a malformed file with delimiters at the end
@@ -91,7 +92,9 @@ squeeze : boolean, default False
 prefix : str, default None
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : boolean, default True
-    Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'
+    Duplicate columns will be specified as 'X.0'...'X.N', rather than
+    'X'...'X'. Passing in False will cause data to be overwritten if there
+    are duplicate names in the columns.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     (Unsupported with engine='python'). Use `str` or `object` to preserve and
@@ -348,6 +351,7 @@ _parser_defaults = {
     'keep_default_na': True,
     'thousands': None,
     'comment': None,
+    'decimal': b'.',
 
     # 'engine': 'c',
     'parse_dates': False,
@@ -383,7 +387,6 @@ _c_parser_defaults = {
     'error_bad_lines': True,
     'warn_bad_lines': True,
     'dtype': None,
-    'decimal': b'.',
     'float_precision': None
 }
 
@@ -404,7 +407,6 @@ _python_unsupported = set([
     'error_bad_lines',
     'warn_bad_lines',
     'dtype',
-    'decimal',
     'float_precision',
 ])
 
@@ -656,7 +658,14 @@ class TextFileReader(BaseIterator):
         options = {}
 
         for argname, default in compat.iteritems(_parser_defaults):
-            options[argname] = kwds.get(argname, default)
+            value = kwds.get(argname, default)
+
+            # see gh-12935
+            if argname == 'mangle_dupe_cols' and not value:
+                raise ValueError('Setting mangle_dupe_cols=False is '
+                                 'not supported yet')
+            else:
+                options[argname] = value
 
         for argname, default in compat.iteritems(_c_parser_defaults):
             if argname in kwds:
@@ -900,6 +909,7 @@ class ParserBase(object):
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
         self.tupleize_cols = kwds.get('tupleize_cols', False)
+        self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
 
         self._date_conv = _make_date_converter(
@@ -1012,6 +1022,26 @@ class ParserBase(object):
         passed_names = True
 
         return names, index_names, col_names, passed_names
+
+    def _maybe_dedup_names(self, names):
+        # see gh-7160 and gh-9424: this helps to provide
+        # immediate alleviation of the duplicate names
+        # issue and appears to be satisfactory to users,
+        # but ultimately, not needing to butcher the names
+        # would be nice!
+        if self.mangle_dupe_cols:
+            names = list(names)  # so we can index
+            counts = {}
+
+            for i, col in enumerate(names):
+                cur_count = counts.get(col, 0)
+
+                if cur_count > 0:
+                    names[i] = '%s.%d' % (col, cur_count)
+
+                counts[col] = cur_count + 1
+
+        return names
 
     def _maybe_make_multi_index_columns(self, columns, col_names=None):
         # possibly create a column mi here
@@ -1315,10 +1345,11 @@ class CParserWrapper(ParserBase):
         except StopIteration:
             if self._first_chunk:
                 self._first_chunk = False
+                names = self._maybe_dedup_names(self.orig_names)
 
                 index, columns, col_dict = _get_empty_meta(
-                    self.orig_names, self.index_col,
-                    self.index_names, dtype=self.kwds.get('dtype'))
+                    names, self.index_col, self.index_names,
+                    dtype=self.kwds.get('dtype'))
 
                 if self.usecols is not None:
                     columns = self._filter_usecols(columns)
@@ -1362,6 +1393,8 @@ class CParserWrapper(ParserBase):
             if self.usecols is not None:
                 names = self._filter_usecols(names)
 
+            names = self._maybe_dedup_names(names)
+
             # rename dict keys
             data = sorted(data.items())
             data = dict((k, v) for k, (i, v) in zip(names, data))
@@ -1374,6 +1407,7 @@ class CParserWrapper(ParserBase):
 
             # ugh, mutation
             names = list(self.orig_names)
+            names = self._maybe_dedup_names(names)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -1568,7 +1602,6 @@ class PythonParser(ParserBase):
         self.skipinitialspace = kwds['skipinitialspace']
         self.lineterminator = kwds['lineterminator']
         self.quoting = kwds['quoting']
-        self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.usecols = _validate_usecols_arg(kwds['usecols'])
         self.skip_blank_lines = kwds['skip_blank_lines']
 
@@ -1582,6 +1615,7 @@ class PythonParser(ParserBase):
         self.converters = kwds['converters']
 
         self.thousands = kwds['thousands']
+        self.decimal = kwds['decimal']
         self.comment = kwds['comment']
         self._comment_lines = []
 
@@ -1638,6 +1672,15 @@ class PythonParser(ParserBase):
             self._no_thousands_columns = self._set_no_thousands_columns()
         else:
             self._no_thousands_columns = None
+
+        if len(self.decimal) != 1:
+            raise ValueError('Only length-1 decimal markers supported')
+
+        if self.thousands is None:
+            self.nonnum = re.compile('[^-^0-9^%s]+' % self.decimal)
+        else:
+            self.nonnum = re.compile('[^-^0-9^%s^%s]+' % (self.thousands,
+                                                          self.decimal))
 
     def _set_no_thousands_columns(self):
         # Create a set of column ids that are not to be stripped of thousands
@@ -1747,8 +1790,8 @@ class PythonParser(ParserBase):
         columns = list(self.orig_names)
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
-            return _get_empty_meta(self.orig_names,
-                                   self.index_col,
+            names = self._maybe_dedup_names(self.orig_names)
+            return _get_empty_meta(names, self.index_col,
                                    self.index_names)
 
         # handle new style for names in index
@@ -1761,7 +1804,8 @@ class PythonParser(ParserBase):
         alldata = self._rows_to_cols(content)
         data = self._exclude_implicit_index(alldata)
 
-        columns, data = self._do_date_conversions(self.columns, data)
+        columns = self._maybe_dedup_names(self.columns)
+        columns, data = self._do_date_conversions(columns, data)
 
         data = self._convert_data(data)
         index, columns = self._make_index(data, alldata, columns, indexnamerow)
@@ -1769,18 +1813,19 @@ class PythonParser(ParserBase):
         return index, columns, data
 
     def _exclude_implicit_index(self, alldata):
+        names = self._maybe_dedup_names(self.orig_names)
 
         if self._implicit_index:
             excl_indices = self.index_col
 
             data = {}
             offset = 0
-            for i, col in enumerate(self.orig_names):
+            for i, col in enumerate(names):
                 while i + offset in excl_indices:
                     offset += 1
                 data[col] = alldata[i + offset]
         else:
-            data = dict((k, v) for k, v in zip(self.orig_names, alldata))
+            data = dict((k, v) for k, v in zip(names, alldata))
 
         return data
 
@@ -2050,21 +2095,34 @@ class PythonParser(ParserBase):
     def _check_thousands(self, lines):
         if self.thousands is None:
             return lines
-        nonnum = re.compile('[^-^0-9^%s^.]+' % self.thousands)
+
+        return self._search_replace_num_columns(lines=lines,
+                                                search=self.thousands,
+                                                replace='')
+
+    def _search_replace_num_columns(self, lines, search, replace):
         ret = []
         for l in lines:
             rl = []
             for i, x in enumerate(l):
                 if (not isinstance(x, compat.string_types) or
-                    self.thousands not in x or
+                    search not in x or
                     (self._no_thousands_columns and
                      i in self._no_thousands_columns) or
-                        nonnum.search(x.strip())):
+                        self.nonnum.search(x.strip())):
                     rl.append(x)
                 else:
-                    rl.append(x.replace(self.thousands, ''))
+                    rl.append(x.replace(search, replace))
             ret.append(rl)
         return ret
+
+    def _check_decimal(self, lines):
+        if self.decimal == _parser_defaults['decimal']:
+            return lines
+
+        return self._search_replace_num_columns(lines=lines,
+                                                search=self.decimal,
+                                                replace='.')
 
     def _clear_buffer(self):
         self.buf = []
@@ -2249,7 +2307,8 @@ class PythonParser(ParserBase):
         lines = self._check_comments(lines)
         if self.skip_blank_lines:
             lines = self._check_empty(lines)
-        return self._check_thousands(lines)
+        lines = self._check_thousands(lines)
+        return self._check_decimal(lines)
 
 
 def _make_date_converter(date_parser=None, dayfirst=False,

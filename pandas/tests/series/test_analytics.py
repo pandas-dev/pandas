@@ -1279,6 +1279,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertEqual(result, 1.1)
 
     def test_numpy_argmax(self):
+
         # argmax is aliased to idxmax
         data = np.random.randint(0, 11, size=10)
         result = np.argmax(Series(data))

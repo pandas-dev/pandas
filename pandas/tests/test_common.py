@@ -695,7 +695,7 @@ def test_random_state():
         com._random_state(state2).uniform(), npr.RandomState(10).uniform())
 
     # check with no arg random state
-    assert isinstance(com._random_state(), npr.RandomState)
+    assert com._random_state() is np.random
 
     # Error for floats or strings
     with tm.assertRaises(ValueError):
@@ -815,6 +815,21 @@ def test_dict_compat():
     assert (com._dict_compat(data_datetime64) == expected)
     assert (com._dict_compat(expected) == expected)
     assert (com._dict_compat(data_unchanged) == data_unchanged)
+
+
+def test_is_timedelta():
+    assert (com.is_timedelta64_dtype('timedelta64'))
+    assert (com.is_timedelta64_dtype('timedelta64[ns]'))
+    assert (not com.is_timedelta64_ns_dtype('timedelta64'))
+    assert (com.is_timedelta64_ns_dtype('timedelta64[ns]'))
+
+    tdi = TimedeltaIndex([1e14, 2e14], dtype='timedelta64')
+    assert (com.is_timedelta64_dtype(tdi))
+    assert (com.is_timedelta64_ns_dtype(tdi))
+    assert (com.is_timedelta64_ns_dtype(tdi.astype('timedelta64[ns]')))
+    # Conversion to Int64Index:
+    assert (not com.is_timedelta64_ns_dtype(tdi.astype('timedelta64')))
+    assert (not com.is_timedelta64_ns_dtype(tdi.astype('timedelta64[h]')))
 
 
 if __name__ == '__main__':

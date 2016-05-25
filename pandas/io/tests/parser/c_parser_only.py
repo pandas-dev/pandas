@@ -293,23 +293,18 @@ one,two
             {'one': np.empty(0, dtype='u1'), 'one.1': np.empty(0, dtype='f')})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
-    def test_empty_with_dup_column_pass_dtype_by_names(self):
+    def test_empty_with_dup_column_pass_dtype_by_indexes(self):
+        # see gh-9424
+        expected = pd.concat([Series([], name='one', dtype='u1'),
+                              Series([], name='one.1', dtype='f')], axis=1)
+
         data = 'one,one'
-        result = self.read_csv(
-            StringIO(data), mangle_dupe_cols=False, dtype={'one': 'u1'})
-        expected = pd.concat([Series([], name='one', dtype='u1')] * 2, axis=1)
+        result = self.read_csv(StringIO(data), dtype={0: 'u1', 1: 'f'})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
-    def test_empty_with_dup_column_pass_dtype_by_indexes(self):
-        # FIXME in gh-9424
-        raise nose.SkipTest(
-            "gh-9424; known failure read_csv with duplicate columns")
-
-        data = 'one,one'
-        result = self.read_csv(
-            StringIO(data), mangle_dupe_cols=False, dtype={0: 'u1', 1: 'f'})
-        expected = pd.concat([Series([], name='one', dtype='u1'),
-                              Series([], name='one', dtype='f')], axis=1)
+        data = ''
+        result = self.read_csv(StringIO(data), names=['one', 'one'],
+                               dtype={0: 'u1', 1: 'f'})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_usecols_dtypes(self):
@@ -352,17 +347,6 @@ No,No,No"""
 
         result = self.read_csv(StringIO(data), dtype=object, na_filter=False)
         self.assertEqual(result['B'][2], '')
-
-    def test_euro_decimal_format(self):
-        data = """Id;Number1;Number2;Text1;Text2;Number3
-1;1521,1541;187101,9543;ABC;poi;4,738797819
-2;121,12;14897,76;DEF;uyt;0,377320872
-3;878,158;108013,434;GHI;rez;2,735694704"""
-
-        df2 = self.read_csv(StringIO(data), sep=';', decimal=',')
-        self.assertEqual(df2['Number1'].dtype, float)
-        self.assertEqual(df2['Number2'].dtype, float)
-        self.assertEqual(df2['Number3'].dtype, float)
 
     def test_custom_lineterminator(self):
         data = 'a,b,c~1,2,3~4,5,6'
@@ -443,40 +427,6 @@ No,No,No"""
         # test with more than a single newline
         data = "\n\n\n"
         self.assertRaises(ValueError, self.read_csv, StringIO(data))
-
-    def test_1000_sep_with_decimal(self):
-        data = """A|B|C
-1|2,334.01|5
-10|13|10.
-"""
-        expected = DataFrame({
-            'A': [1, 10],
-            'B': [2334.01, 13],
-            'C': [5, 10.]
-        })
-
-        tm.assert_equal(expected.A.dtype, 'int64')
-        tm.assert_equal(expected.B.dtype, 'float')
-        tm.assert_equal(expected.C.dtype, 'float')
-
-        df = self.read_csv(StringIO(data), sep='|', thousands=',', decimal='.')
-        tm.assert_frame_equal(df, expected)
-
-        df = self.read_table(StringIO(data), sep='|',
-                             thousands=',', decimal='.')
-        tm.assert_frame_equal(df, expected)
-
-        data_with_odd_sep = """A|B|C
-1|2.334,01|5
-10|13|10,
-"""
-        df = self.read_csv(StringIO(data_with_odd_sep),
-                           sep='|', thousands='.', decimal=',')
-        tm.assert_frame_equal(df, expected)
-
-        df = self.read_table(StringIO(data_with_odd_sep),
-                             sep='|', thousands='.', decimal=',')
-        tm.assert_frame_equal(df, expected)
 
     def test_grow_boundary_at_cap(self):
         # See gh-12494

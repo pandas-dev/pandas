@@ -775,11 +775,11 @@ class TestGroupBy(tm.TestCase):
         # DataFrame
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
         exp_df = DataFrame(columns=self.tsframe.columns, dtype=float,
-                           index=pd.Index(
-                               [], dtype=np.float64))
+                           index=pd.Index([], dtype=np.float64))
         assert_frame_equal(grouped.sum(), exp_df, check_names=False)
         assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
-        assert_frame_equal(grouped.apply(np.sum), DataFrame({}, dtype=float))
+        assert_frame_equal(grouped.apply(np.sum), exp_df.iloc[:, :0],
+                           check_names=False)
 
     def test_agg_grouping_is_list_tuple(self):
         from pandas.core.groupby import Grouping
@@ -3868,8 +3868,8 @@ class TestGroupBy(tm.TestCase):
                         ['(0, 2.5]', 1, 60],
                         ['(5, 7.5]', 7, 70]], columns=['range', 'foo', 'bar'])
         df['range'] = Categorical(df['range'], ordered=True)
-        index = CategoricalIndex(
-            ['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], name='range')
+        index = CategoricalIndex(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]',
+                                  '(7.5, 10]'], name='range', ordered=True)
         result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]],
                                 columns=['foo', 'bar'], index=index)
 
@@ -3879,13 +3879,15 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result_sort, df.groupby(col, sort=False).first())
 
         df['range'] = Categorical(df['range'], ordered=False)
-        index = CategoricalIndex(
-            ['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], name='range')
+        index = CategoricalIndex(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]',
+                                  '(7.5, 10]'], name='range')
         result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]],
                                 columns=['foo', 'bar'], index=index)
 
-        index = CategoricalIndex(['(7.5, 10]', '(2.5, 5]',
-                                  '(5, 7.5]', '(0, 2.5]'],
+        index = CategoricalIndex(['(7.5, 10]', '(2.5, 5]', '(5, 7.5]',
+                                  '(0, 2.5]'],
+                                 categories=['(7.5, 10]', '(2.5, 5]',
+                                             '(5, 7.5]', '(0, 2.5]'],
                                  name='range')
         result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]],
                                   index=index, columns=['foo', 'bar'])
@@ -3975,7 +3977,8 @@ class TestGroupBy(tm.TestCase):
         result = data.groupby(cats).mean()
 
         expected = data.groupby(np.asarray(cats)).mean()
-        exp_idx = CategoricalIndex(levels, ordered=True)
+        exp_idx = CategoricalIndex(levels, categories=cats.categories,
+                                   ordered=True)
         expected = expected.reindex(exp_idx)
 
         assert_frame_equal(result, expected)
@@ -3986,14 +3989,16 @@ class TestGroupBy(tm.TestCase):
         idx = cats.codes.argsort()
         ord_labels = np.asarray(cats).take(idx)
         ord_data = data.take(idx)
-        expected = ord_data.groupby(
-            Categorical(ord_labels), sort=False).describe()
+
+        exp_cats = Categorical(ord_labels, ordered=True,
+                               categories=['foo', 'bar', 'baz', 'qux'])
+        expected = ord_data.groupby(exp_cats, sort=False).describe()
         expected.index.names = [None, None]
         assert_frame_equal(desc_result, expected)
 
         # GH 10460
-        expc = Categorical.from_codes(
-            np.arange(4).repeat(8), levels, ordered=True)
+        expc = Categorical.from_codes(np.arange(4).repeat(8),
+                                      levels, ordered=True)
         exp = CategoricalIndex(expc)
         self.assert_index_equal(desc_result.index.get_level_values(0), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
@@ -6266,8 +6271,11 @@ class TestGroupBy(tm.TestCase):
         # Grouping on a single column
         groups_single_key = test.groupby("cat")
         res = groups_single_key.agg('mean')
+
+        exp_index = pd.CategoricalIndex(["a", "b", "c"], name="cat",
+                                        ordered=True)
         exp = DataFrame({"ints": [1.5, 1.5, np.nan], "val": [20, 30, np.nan]},
-                        index=pd.CategoricalIndex(["a", "b", "c"], name="cat"))
+                        index=exp_index)
         tm.assert_frame_equal(res, exp)
 
         # Grouping on two columns

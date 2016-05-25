@@ -239,26 +239,16 @@ class TestGetDummies(tm.TestCase):
     def test_include_na(self):
         s = ['a', 'b', np.nan]
         res = get_dummies(s, sparse=self.sparse)
-        exp = DataFrame({'a': {0: 1.0,
-                               1: 0.0,
-                               2: 0.0},
-                         'b': {0: 0.0,
-                               1: 1.0,
-                               2: 0.0}})
+        exp = DataFrame({'a': {0: 1.0, 1: 0.0, 2: 0.0},
+                         'b': {0: 0.0, 1: 1.0, 2: 0.0}})
         assert_frame_equal(res, exp)
 
         # Sparse dataframes do not allow nan labelled columns, see #GH8822
         res_na = get_dummies(s, dummy_na=True, sparse=self.sparse)
-        exp_na = DataFrame({nan: {0: 0.0,
-                                  1: 0.0,
-                                  2: 1.0},
-                            'a': {0: 1.0,
-                                  1: 0.0,
-                                  2: 0.0},
-                            'b': {0: 0.0,
-                                  1: 1.0,
-                                  2: 0.0}}).reindex_axis(
-                                      ['a', 'b', nan], 1)
+        exp_na = DataFrame({nan: {0: 0.0, 1: 0.0, 2: 1.0},
+                            'a': {0: 1.0, 1: 0.0, 2: 0.0},
+                            'b': {0: 0.0, 1: 1.0, 2: 0.0}})
+        exp_na = exp_na.reindex_axis(['a', 'b', nan], 1)
         # hack (NaN handling in assert_index_equal)
         exp_na.columns = res_na.columns
         assert_frame_equal(res_na, exp_na)

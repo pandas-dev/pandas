@@ -724,9 +724,14 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         frame_copy['C'][:5] = nan
 
         added = self.frame + frame_copy
-        tm.assert_dict_equal(added['A'].valid(),
-                             self.frame['A'] * 2,
-                             compare_keys=False)
+
+        indexer = added['A'].valid().index
+        exp = (self.frame['A'] * 2).copy()
+
+        tm.assert_series_equal(added['A'].valid(), exp.loc[indexer])
+
+        exp.loc[~exp.index.isin(indexer)] = np.nan
+        tm.assert_series_equal(added['A'], exp.loc[added['A'].index])
 
         self.assertTrue(
             np.isnan(added['C'].reindex(frame_copy.index)[:5]).all())

@@ -25,7 +25,7 @@ import pandas as pd
 from pandas.core.common import (is_sequence, array_equivalent,
                                 is_list_like, is_datetimelike_v_numeric,
                                 is_datetimelike_v_object, is_number,
-                                needs_i8_conversion)
+                                needs_i8_conversion, is_categorical_dtype)
 from pandas.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 
@@ -131,7 +131,13 @@ def assert_almost_equal(left, right, check_exact=False, **kwargs):
     return _testing.assert_almost_equal(left, right, **kwargs)
 
 
-assert_dict_equal = _testing.assert_dict_equal
+def assert_dict_equal(left, right, compare_keys=True):
+
+    # instance validation
+    assertIsInstance(left, dict, '[dict] ')
+    assertIsInstance(right, dict, '[dict] ')
+
+    return _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
 def randbool(size=(), p=0.5):
@@ -657,7 +663,7 @@ def assert_equal(a, b, msg=""):
 
 def assert_index_equal(left, right, exact='equiv', check_names=True,
                        check_less_precise=False, check_exact=True,
-                       obj='Index'):
+                       check_categorical=True, obj='Index'):
     """Check that left and right Index are equal.
 
     Parameters
@@ -675,6 +681,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         5 digits (False) or 3 digits (True) after decimal points are compared.
     check_exact : bool, default True
         Whether to compare number exactly.
+    check_categorical : bool, default True
+        Whether to compare internal Categorical exactly.
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
         assertion message
@@ -751,6 +759,13 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     # metadata comparison
     if check_names:
         assert_attr_equal('names', left, right, obj=obj)
+    if isinstance(left, pd.PeriodIndex) or isinstance(right, pd.PeriodIndex):
+        assert_attr_equal('freq', left, right, obj=obj)
+
+    if check_categorical:
+        if is_categorical_dtype(left) or is_categorical_dtype(right):
+            assert_categorical_equal(left.values, right.values,
+                                     obj='{0} category'.format(obj))
 
 
 def assert_class_equal(left, right, exact=True, obj='Input'):
@@ -999,6 +1014,7 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_names=True,
                         check_exact=False,
                         check_datetimelike_compat=False,
+                        check_categorical=True,
                         obj='Series'):
 
     """Check that left and right Series are equal.
@@ -1023,6 +1039,8 @@ def assert_series_equal(left, right, check_dtype=True,
         Whether to check the Series and Index names attribute.
     check_dateteimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
+    check_categorical : bool, default True
+        Whether to compare internal Categorical exactly.
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message
@@ -1049,6 +1067,7 @@ def assert_series_equal(left, right, check_dtype=True,
                        check_names=check_names,
                        check_less_precise=check_less_precise,
                        check_exact=check_exact,
+                       check_categorical=check_categorical,
                        obj='{0}.index'.format(obj))
 
     if check_dtype:
@@ -1085,6 +1104,11 @@ def assert_series_equal(left, right, check_dtype=True,
     if check_names:
         assert_attr_equal('name', left, right, obj=obj)
 
+    if check_categorical:
+        if is_categorical_dtype(left) or is_categorical_dtype(right):
+            assert_categorical_equal(left.values, right.values,
+                                     obj='{0} category'.format(obj))
+
 
 # This could be refactored to use the NDFrame.equals method
 def assert_frame_equal(left, right, check_dtype=True,
@@ -1096,6 +1120,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                        by_blocks=False,
                        check_exact=False,
                        check_datetimelike_compat=False,
+                       check_categorical=True,
                        check_like=False,
                        obj='DataFrame'):
 
@@ -1127,6 +1152,8 @@ def assert_frame_equal(left, right, check_dtype=True,
         Whether to compare number exactly.
     check_dateteimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
+    check_categorical : bool, default True
+        Whether to compare internal Categorical exactly.
     check_like : bool, default False
         If true, then reindex_like operands
     obj : str, default 'DataFrame'
@@ -1168,6 +1195,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_names=check_names,
                        check_less_precise=check_less_precise,
                        check_exact=check_exact,
+                       check_categorical=check_categorical,
                        obj='{0}.index'.format(obj))
 
     # column comparison
@@ -1175,6 +1203,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_names=check_names,
                        check_less_precise=check_less_precise,
                        check_exact=check_exact,
+                       check_categorical=check_categorical,
                        obj='{0}.columns'.format(obj))
 
     # compare by blocks
@@ -1199,6 +1228,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                 check_less_precise=check_less_precise,
                 check_exact=check_exact, check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
+                check_categorical=check_categorical,
                 obj='DataFrame.iloc[:, {0}]'.format(i))
 
 
