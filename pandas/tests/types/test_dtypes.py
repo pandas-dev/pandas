@@ -45,6 +45,16 @@ class TestCategoricalDtype(Base, tm.TestCase):
     def setUp(self):
         self.dtype = CategoricalDtype()
 
+    def test_hash_vs_equality(self):
+        # make sure that we satisfy is semantics
+        dtype = self.dtype
+        dtype2 = CategoricalDtype()
+        self.assertTrue(dtype == dtype2)
+        self.assertTrue(dtype2 == dtype)
+        self.assertTrue(dtype is dtype2)
+        self.assertTrue(dtype2 is dtype)
+        self.assertTrue(hash(dtype) == hash(dtype2))
+
     def test_equality(self):
         self.assertTrue(is_dtype_equal(self.dtype, 'category'))
         self.assertTrue(is_dtype_equal(self.dtype, CategoricalDtype()))
@@ -87,6 +97,20 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
 
     def setUp(self):
         self.dtype = DatetimeTZDtype('ns', 'US/Eastern')
+
+    def test_hash_vs_equality(self):
+        # make sure that we satisfy is semantics
+        dtype = self.dtype
+        dtype2 = DatetimeTZDtype('ns', 'US/Eastern')
+        dtype3 = DatetimeTZDtype(dtype2)
+        self.assertTrue(dtype == dtype2)
+        self.assertTrue(dtype2 == dtype)
+        self.assertTrue(dtype3 == dtype)
+        self.assertTrue(dtype is dtype2)
+        self.assertTrue(dtype2 is dtype)
+        self.assertTrue(dtype3 is dtype)
+        self.assertTrue(hash(dtype) == hash(dtype2))
+        self.assertTrue(hash(dtype) == hash(dtype3))
 
     def test_construction(self):
         self.assertRaises(ValueError,
