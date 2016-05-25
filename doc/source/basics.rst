@@ -1726,13 +1726,13 @@ then the more *general* one will be used as the result of the operation.
    # conversion of dtypes
    df3.astype('float32').dtypes
 
-When trying to convert a subset of columns to a specified type using :meth:`~DataFrame.astype`  and :meth:`~numpy.ndarray.loc`, utilizing **:** as mask, upcasting occurs.
-:meth:`~numpy.ndarray.loc` tries to fit in what we are assigning to the current dtypes, while [ ] will overwrite them taking the dtype from the right hand side.
+When trying to convert a subset of columns to a specified type using :meth:`~DataFrame.astype`  and :meth:`~DataFrame.loc`, utilizing **:** as mask, upcasting occurs.
+:meth:`~DataFrame.loc` tries to fit in what we are assigning to the current dtypes, while [ ] will overwrite them taking the dtype from the right hand side.
 
 .. ipython:: python
 
    df = pd.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7, 8, 9]})
-   print df.loc[:, ['a', 'b']].astype(np.uint8).dtypes
+   df.loc[:, ['a', 'b']].astype(np.uint8).dtypes
    df.loc[:, ['a', 'b']] = df.loc[:, ['a', 'b']].astype(np.uint8)
 
 To avoid this please take the following approach.
@@ -1743,6 +1743,7 @@ To avoid this please take the following approach.
    df[['a','b']] = df[['a','b']].astype(np.uint8)
    df
    df.dtypes
+
 object conversion
 ~~~~~~~~~~~~~~~~~
 
