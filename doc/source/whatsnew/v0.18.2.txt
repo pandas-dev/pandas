@@ -78,6 +78,7 @@ Other enhancements
 
 - ``Index.astype()`` now accepts an optional boolean argument ``copy``, which allows optional copying if the requirements on dtype are satisfied (:issue:`13209`)
 - ``Categorical.astype()`` now accepts an optional boolean argument ``copy``, effective when dtype is categorical (:issue:`13209`)
+- Consistent with the Python API, ``pd.read_csv()`` will now interpret ``+inf`` as positive infinity (:issue:`13274`)
 
 
 .. _whatsnew_0182.api:
@@ -224,9 +225,11 @@ Bug Fixes
 
 
 - Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
-- Bug in ``.resample(..)`` with a ``PeriodIndex`` not changing its ``freq`` appropriately when empty (:issue:`13067`)
 - Bug in ``PeriodIndex`` construction returning a ``float64`` index in some circumstances (:issue:`13067`)
+- Bug in ``.resample(..)`` with a ``PeriodIndex`` not changing its ``freq`` appropriately when empty (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not retaining its type or name with an empty ``DataFrame``appropriately when empty (:issue:`13212`)
+- Bug in ``groupby(..).resample(..)`` where passing some keywords would raise an exception (:issue:`13235`)
+- Bug in ``pd.read_csv`` in which the ``nrows`` argument was not properly validated for both engines (:issue:`10476`)
 
 
 
@@ -235,6 +238,7 @@ Bug Fixes
 
 
 
+- Bug in ``pd.read_csv()`` with ``engine=='python'`` in which infinities of mixed-case forms were not being interpreted properly (:issue:`13274`)
 
 
 
@@ -250,6 +254,9 @@ Bug Fixes
 
 
 - Bug in ``groupby`` where ``apply`` returns different result depending on whether first result is ``None`` or not (:issue:`12824`)
+
+
+
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
 

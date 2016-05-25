@@ -272,6 +272,26 @@ fields if it is not spaces (e.g., '~').
 """ % (_parser_params % (_fwf_widths, ''))
 
 
+def _validate_nrows(nrows):
+    """
+    Checks whether the 'nrows' parameter for parsing is either
+    an integer OR float that can SAFELY be cast to an integer
+    without losing accuracy. Raises a ValueError if that is
+    not the case.
+    """
+    msg = "'nrows' must be an integer"
+
+    if nrows is not None:
+        if com.is_float(nrows):
+            if int(nrows) != nrows:
+                raise ValueError(msg)
+            nrows = int(nrows)
+        elif not com.is_integer(nrows):
+            raise ValueError(msg)
+
+    return nrows
+
+
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
     encoding = kwds.get('encoding', None)
@@ -311,14 +331,14 @@ def _read(filepath_or_buffer, kwds):
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get('iterator', False)
-    nrows = kwds.pop('nrows', None)
     chunksize = kwds.get('chunksize', None)
+    nrows = _validate_nrows(kwds.pop('nrows', None))
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
 
     if (nrows is not None) and (chunksize is not None):
-        raise NotImplementedError("'nrows' and 'chunksize' can not be used"
+        raise NotImplementedError("'nrows' and 'chunksize' cannot be used"
                                   " together yet.")
     elif nrows is not None:
         return parser.read(nrows)
