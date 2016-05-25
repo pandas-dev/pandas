@@ -757,7 +757,7 @@ def _parse(flavor, io, match, header, index_col, skiprows,
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
               tupleize_cols=False, thousands=',', encoding=None,
-              decimal=b'.'):
+              decimal='.'):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -836,6 +836,8 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     decimal : str, default '.'
         Character to recognize as decimal point (e.g. use ',' for European
         data).
+
+        .. versionadded:: 0.18.2
 
     Returns
     -------

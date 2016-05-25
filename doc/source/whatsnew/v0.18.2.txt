@@ -79,7 +79,7 @@ Other enhancements
 - ``Index.astype()`` now accepts an optional boolean argument ``copy``, which allows optional copying if the requirements on dtype are satisfied (:issue:`13209`)
 - ``Categorical.astype()`` now accepts an optional boolean argument ``copy``, effective when dtype is categorical (:issue:`13209`)
 
-- The ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
+- ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
 
 .. _whatsnew_0182.api:
 
