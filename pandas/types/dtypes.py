@@ -108,6 +108,16 @@ class CategoricalDtype(ExtensionDtype):
     kind = 'O'
     str = '|O08'
     base = np.dtype('O')
+    _cache = {}
+
+    def __new__(cls):
+
+        try:
+            return cls._cache[cls.name]
+        except KeyError:
+            c = object.__new__(cls)
+            cls._cache[cls.name] = c
+            return c
 
     def __hash__(self):
         # make myself hashable
@@ -155,9 +165,11 @@ class DatetimeTZDtype(ExtensionDtype):
     base = np.dtype('M8[ns]')
     _metadata = ['unit', 'tz']
     _match = re.compile("(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
+    _cache = {}
 
-    def __init__(self, unit, tz=None):
-        """
+    def __new__(cls, unit=None, tz=None):
+        """ Create a new unit if needed, otherwise return from the cache
+
         Parameters
         ----------
         unit : string unit that this represents, currently must be 'ns'
@@ -165,28 +177,46 @@ class DatetimeTZDtype(ExtensionDtype):
         """
 
         if isinstance(unit, DatetimeTZDtype):
-            self.unit, self.tz = unit.unit, unit.tz
-            return
+            unit, tz = unit.unit, unit.tz
 
-        if tz is None:
+        elif unit is None:
+            # we are called as an empty constructor
+            # generally for pickle compat
+            return object.__new__(cls)
+
+        elif tz is None:
 
             # we were passed a string that we can construct
             try:
-                m = self._match.search(unit)
+                m = cls._match.search(unit)
                 if m is not None:
-                    self.unit = m.groupdict()['unit']
-                    self.tz = m.groupdict()['tz']
-                    return
+                    unit = m.groupdict()['unit']
+                    tz = m.groupdict()['tz']
             except:
                 raise ValueError("could not construct DatetimeTZDtype")
 
+        elif isinstance(unit, compat.string_types):
+
+            if unit != 'ns':
+                raise ValueError("DatetimeTZDtype only supports ns units")
+
+            unit = unit
+            tz = tz
+
+        if tz is None:
             raise ValueError("DatetimeTZDtype constructor must have a tz "
                              "supplied")
 
-        if unit != 'ns':
-            raise ValueError("DatetimeTZDtype only supports ns units")
-        self.unit = unit
-        self.tz = tz
+        # set/retrieve from cache
+        key = (unit, str(tz))
+        try:
+            return cls._cache[key]
+        except KeyError:
+            u = object.__new__(cls)
+            u.unit = unit
+            u.tz = tz
+            cls._cache[key] = u
+            return u
 
     @classmethod
     def construct_from_string(cls, string):
