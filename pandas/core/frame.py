@@ -4368,10 +4368,40 @@ class DataFrame(NDFrame):
         1  B1  K1
         2  B2  K2
 
-        Perform a left join using caller's key column and other frame's index 
+        Join DataFrames using their indexes.
 
-        >>> caller.join(other.set_index('key'), on='key', how='left',
-        ...                             lsuffix='_l', rsuffix='_r')
+        >>> caller.join(other, lsuffix='_caller', rsuffix='_other')
+
+        >>>     A key_caller    B key_other
+            0  A0         K0   B0        K0
+            1  A1         K1   B1        K1
+            2  A2         K2   B2        K2
+            3  A3         K3  NaN       NaN
+            4  A4         K4  NaN       NaN
+            5  A5         K5  NaN       NaN
+
+
+        If we want to join using the key columns, we need to set key to be
+        the index in both caller and other. The joined DataFrame will have
+        key as its index.
+
+        >>> caller.set_index('key').join(other.set_index('key'))
+
+        >>>      A    B
+            key
+            K0   A0   B0
+            K1   A1   B1
+            K2   A2   B2
+            K3   A3  NaN
+            K4   A4  NaN
+            K5   A5  NaN
+
+        Another option to join using the key columns is to use the on
+        parameter. DataFrame.join always uses other's index but we can use any
+        column in the caller. This method preserves the original caller's
+        index in the result.
+
+        >>> caller.join(other.set_index('key'), on='key')
 
         >>>     A key    B
             0  A0  K0   B0
@@ -4380,6 +4410,7 @@ class DataFrame(NDFrame):
             3  A3  K3  NaN
             4  A4  K4  NaN
             5  A5  K5  NaN
+
 
         See also
         --------
