@@ -5100,8 +5100,12 @@ class JoinUnit(object):
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if getattr(self.block, 'is_datetimetz', False):
-                    pass
+                if getattr(self.block, 'is_datetimetz', False) \
+                        or com.is_datetimetz(empty_dtype):
+                    # handle timezone-aware all NaT cases
+                    num_elements = np.prod(self.shape)
+                    return DatetimeIndex([fill_value] * num_elements,
+                                         dtype=empty_dtype)
                 elif getattr(self.block, 'is_categorical', False):
                     pass
                 elif getattr(self.block, 'is_sparse', False):
