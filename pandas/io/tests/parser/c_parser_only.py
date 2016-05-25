@@ -447,25 +447,3 @@ No,No,No"""
 
         for count in range(1, 101):
             test_empty_header_read(count)
-
-    def test_inf_parsing(self):
-        data = """\
-,A
-a,inf
-b,-inf
-c,Inf
-d,-Inf
-e,INF
-f,-INF
-g,INf
-h,-INf
-i,inF
-j,-inF"""
-        inf = float('inf')
-        expected = Series([inf, -inf] * 5)
-
-        df = self.read_csv(StringIO(data), index_col=0)
-        tm.assert_almost_equal(df['A'].values, expected.values)
-
-        df = self.read_csv(StringIO(data), index_col=0, na_filter=False)
-        tm.assert_almost_equal(df['A'].values, expected.values)

@@ -78,6 +78,7 @@ Other enhancements
 
 - ``Index.astype()`` now accepts an optional boolean argument ``copy``, which allows optional copying if the requirements on dtype are satisfied (:issue:`13209`)
 - ``Categorical.astype()`` now accepts an optional boolean argument ``copy``, effective when dtype is categorical (:issue:`13209`)
+- Consistent with the Python API, ``pd.read_csv()`` will now interpret ``+inf`` as positive infinity (:issue:`13274`)
 
 
 .. _whatsnew_0182.api:
@@ -237,6 +238,7 @@ Bug Fixes
 
 
 
+- Bug in ``pd.read_csv()`` with ``engine=='python'`` in which infinities of mixed-case forms were not being interpreted properly (:issue:`13274`)
 
 
 
