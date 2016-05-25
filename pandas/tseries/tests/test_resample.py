@@ -1732,6 +1732,26 @@ class TestDatetimeIndex(Base, tm.TestCase):
             result = df.groupby(pd.Grouper(freq='M', key='A')).count()
             assert_frame_equal(result, expected)
 
+    def test_resample_groupby_with_label(self):
+        # GH 13235
+        index = date_range('2000-01-01', freq='2D', periods=5)
+        df = DataFrame(index=index,
+                       data={'col0': [0, 0, 1, 1, 2], 'col1': [1, 1, 1, 1, 1]}
+                       )
+        result = df.groupby('col0').resample('1W', label='left').sum()
+
+        mi = [np.array([0, 0, 1, 2]),
+              pd.to_datetime(np.array(['1999-12-26', '2000-01-02',
+                                       '2000-01-02', '2000-01-02'])
+                             )
+              ]
+        mindex = pd.MultiIndex.from_arrays(mi, names=['col0', None])
+        expected = DataFrame(data={'col0': [0, 0, 2, 2], 'col1': [1, 1, 2, 1]},
+                             index=mindex
+                             )
+
+        assert_frame_equal(result, expected)
+
     def test_resample_nunique(self):
 
         # GH 12352
