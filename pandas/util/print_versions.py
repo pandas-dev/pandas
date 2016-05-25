@@ -4,6 +4,7 @@ import sys
 import struct
 import subprocess
 import codecs
+import importlib
 
 
 def get_sys_info():
@@ -55,7 +56,6 @@ def get_sys_info():
 
 
 def show_versions(as_json=False):
-    import imp
     sys_info = get_sys_info()
 
     deps = [
@@ -99,11 +99,7 @@ def show_versions(as_json=False):
     deps_blob = list()
     for (modname, ver_f) in deps:
         try:
-            try:
-                mod = imp.load_module(modname, *imp.find_module(modname))
-            except (ImportError):
-                import importlib
-                mod = importlib.import_module(modname)
+            mod = importlib.import_module(modname)
             ver = ver_f(mod)
             deps_blob.append((modname, ver))
         except:
