@@ -1014,6 +1014,13 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
    df
    df.groupby(df.sum(), axis=1).sum()
 
+Groupby by Indexer to 'resample' data.
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(10,2))
+   df
+   df.groupby(df.index / 5).std()
 
 Returning a Series to propagate names
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
