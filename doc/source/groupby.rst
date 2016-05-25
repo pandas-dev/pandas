@@ -1022,12 +1022,13 @@ In order to resample to work on indices that are non-datetimelike , the followin
 
 In the following examples, **df.index / 5** returns a binary array which is used to determine what get's selected for the groupby operation.
 
-.. note:: The above example shows how we can downsample. Downsampling refers to the throwing away of samples. Here by using **df.index / 5**, we are throwing away half the samples.
+.. note:: The above example shows how we can downsample. Downsampling refers to the throwing away of samples. Here by using **df.index / 5**, we are throwing away half the samples. Here we also aggregate samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation. Hence we can reduce the number of samples by creating bins by clubbing together samples.
 
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10,2))
    df
+   df.index / 5
    df.groupby(df.index / 5).std()
 
 .. note:: For upsampling, we can again utilize a similar technique. Upsampling inserts values between the original samples. However, we change the indexes to a spaced out interval so that the new samples can fill those vacant indexes. Observe how the indexes of **df_down** are spaced out.
