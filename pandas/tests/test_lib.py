@@ -188,6 +188,45 @@ class TestMisc(tm.TestCase):
         self.assertFalse(lib.isneginf_scalar(1))
         self.assertFalse(lib.isneginf_scalar('a'))
 
+    def test_maybe_convert_numeric_infinities(self):
+        # see gh-13274
+        infinities = ['inf', 'inF', 'iNf', 'Inf',
+                      'iNF', 'InF', 'INf', 'INF']
+        na_values = set(['', 'NULL', 'nan'])
+
+        pos = np.array(['inf'], dtype=np.float64)
+        neg = np.array(['-inf'], dtype=np.float64)
+
+        msg = "Unable to parse string"
+
+        for infinity in infinities:
+            for maybe_int in (True, False):
+                out = lib.maybe_convert_numeric(
+                    np.array([infinity], dtype=object),
+                    na_values, maybe_int)
+                tm.assert_numpy_array_equal(out, pos)
+
+                out = lib.maybe_convert_numeric(
+                    np.array(['-' + infinity], dtype=object),
+                    na_values, maybe_int)
+                tm.assert_numpy_array_equal(out, neg)
+
+                out = lib.maybe_convert_numeric(
+                    np.array([u(infinity)], dtype=object),
+                    na_values, maybe_int)
+                tm.assert_numpy_array_equal(out, pos)
+
+                out = lib.maybe_convert_numeric(
+                    np.array(['+' + infinity], dtype=object),
+                    na_values, maybe_int)
+                tm.assert_numpy_array_equal(out, pos)
+
+                # too many characters
+                with tm.assertRaisesRegexp(ValueError, msg):
+                    lib.maybe_convert_numeric(
+                        np.array(['foo_' + infinity], dtype=object),
+                        na_values, maybe_int)
+
 
 class Testisscalar(tm.TestCase):
 

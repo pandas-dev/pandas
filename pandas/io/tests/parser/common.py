@@ -1300,3 +1300,27 @@ eight,1,2,3"""
         expected = DataFrame([[0, 1, 2], [3, 4, 5]],
                              columns=['a', 'b', 'a.1'])
         tm.assert_frame_equal(df, expected)
+
+    def test_inf_parsing(self):
+        data = """\
+,A
+a,inf
+b,-inf
+c,+Inf
+d,-Inf
+e,INF
+f,-INF
+g,+INf
+h,-INf
+i,inF
+j,-inF"""
+        inf = float('inf')
+        expected = Series([inf, -inf] * 5)
+
+        df = self.read_csv(StringIO(data), index_col=0)
+        tm.assert_almost_equal(df['A'].values, expected.values)
+
+        if self.engine == 'c':
+            # TODO: remove condition when 'na_filter' is supported for Python
+            df = self.read_csv(StringIO(data), index_col=0, na_filter=False)
+            tm.assert_almost_equal(df['A'].values, expected.values)

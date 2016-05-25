@@ -1501,6 +1501,7 @@ cdef inline void _to_fw_string_nogil(parser_t *parser, int col, int line_start,
         data += width
 
 cdef char* cinf = b'inf'
+cdef char* cposinf = b'+inf'
 cdef char* cneginf = b'-inf'
 
 cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
@@ -1562,7 +1563,7 @@ cdef inline int _try_double_nogil(parser_t *parser, int col, int line_start, int
                 data[0] = parser.converter(word, &p_end, parser.decimal, parser.sci,
                                            parser.thousands, 1)
                 if errno != 0 or p_end[0] or p_end == word:
-                    if strcasecmp(word, cinf) == 0:
+                    if strcasecmp(word, cinf) == 0 or strcasecmp(word, cposinf) == 0:
                         data[0] = INF
                     elif strcasecmp(word, cneginf) == 0:
                         data[0] = NEGINF
@@ -1581,7 +1582,7 @@ cdef inline int _try_double_nogil(parser_t *parser, int col, int line_start, int
             data[0] = parser.converter(word, &p_end, parser.decimal, parser.sci,
                                        parser.thousands, 1)
             if errno != 0 or p_end[0] or p_end == word:
-                if strcasecmp(word, cinf) == 0:
+                if strcasecmp(word, cinf) == 0 or strcasecmp(word, cposinf) == 0:
                     data[0] = INF
                 elif strcasecmp(word, cneginf) == 0:
                     data[0] = NEGINF
