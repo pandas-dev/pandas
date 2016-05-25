@@ -1016,11 +1016,31 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
 
 Groupby by Indexer to 'resample' data.
 
+Resampling produces new hypothetical samples(resamples) from already existing observed data or from a data generating mechanism which resemble the underlying population.
+
+In order to resample to work on indices that are non-datetimelike , the following procedure can be utilized.
+
+In the following examples, **df.index / 5** returns a binary array which is used to determine what get's selected for the groupby operation.
+
+.. note:: The above example shows how we can downsample. Downsampling refers to the throwing away of samples. Here by using **df.index / 5**, we are throwing away half the samples.
+
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10,2))
    df
    df.groupby(df.index / 5).std()
+
+.. note:: For upsampling, we can again utilize a similar technique. Upsampling inserts values between the original samples. However, we change the indexes to a spaced out interval so that the new samples can fill those vacant indexes. Observe how the indexes of **df_down** are spaced out.
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(10,2))
+   df
+   s = (df.index.to_series() / 5).astype(int)
+   df_down = df.groupby(df.index / 5).std().set_index(s.index[4::5])
+   df_down
+   df_up = df_down.reindex(range(10)).bfill()
+   df_up
 
 Returning a Series to propagate names
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
