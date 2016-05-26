@@ -2220,8 +2220,10 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         iresult = result.view('i8')
         for i in range(n):
             val = values[i]
+
             if _checknull_with_nat(val):
                 iresult[i] = NPY_NAT
+
             elif PyDateTime_Check(val):
                 seen_datetime=1
                 if val.tzinfo is not None:
@@ -2250,6 +2252,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                             iresult[i] = NPY_NAT
                             continue
                         raise
+
             elif PyDate_Check(val):
                 iresult[i] = _date_to_datetime64(val, &dts)
                 try:
@@ -2260,6 +2263,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         iresult[i] = NPY_NAT
                         continue
                     raise
+
             elif util.is_datetime64_object(val):
                 if get_datetime64_value(val) == NPY_NAT:
                     iresult[i] = NPY_NAT
@@ -2273,8 +2277,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                             continue
                         raise
 
-            # these must be ns unit by-definition
             elif is_integer_object(val) or is_float_object(val):
+                # these must be ns unit by-definition
 
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
@@ -2292,7 +2296,10 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         iresult[i] = cast_from_unit(val, 'ns')
                     except:
                         iresult[i] = NPY_NAT
-            else:
+
+            elif util.is_string_object(val):
+                # string
+
                 try:
                     if len(val) == 0 or val in _nat_strings:
                         iresult[i] = NPY_NAT
@@ -2340,6 +2347,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         iresult[i] = NPY_NAT
                         continue
                     raise
+            else:
+                if is_coerce:
+                    iresult[i] = NPY_NAT
+                else:
+                    raise TypeError("{0} is not convertible to datetime"
+                                    .format(type(val)))
 
         if  seen_datetime and seen_integer:
             # we have mixed datetimes & integers

@@ -2292,6 +2292,33 @@ class TestToDatetime(tm.TestCase):
                                     dtype='datetime64[ns, UTC]')
         tm.assert_index_equal(result, expected)
 
+    def test_datetime_bool(self):
+        # GH13176
+        with self.assertRaises(TypeError):
+            to_datetime(False)
+        self.assertTrue(to_datetime(False, errors="coerce") is tslib.NaT)
+        self.assertEqual(to_datetime(False, errors="ignore"), False)
+        with self.assertRaises(TypeError):
+            to_datetime(True)
+        self.assertTrue(to_datetime(True, errors="coerce") is tslib.NaT)
+        self.assertEqual(to_datetime(True, errors="ignore"), True)
+        with self.assertRaises(TypeError):
+            to_datetime([False, datetime.today()])
+        with self.assertRaises(TypeError):
+            to_datetime(['20130101', True])
+        tm.assert_index_equal(to_datetime([0, False, tslib.NaT, 0.0],
+                                          errors="coerce"),
+                              DatetimeIndex([to_datetime(0), tslib.NaT,
+                                             tslib.NaT, to_datetime(0)]))
+
+    def test_datetime_invalid_datatype(self):
+        # GH13176
+
+        with self.assertRaises(TypeError):
+            pd.to_datetime(bool)
+        with self.assertRaises(TypeError):
+            pd.to_datetime(pd.to_datetime)
+
     def test_unit(self):
         # GH 11758
         # test proper behavior with erros
