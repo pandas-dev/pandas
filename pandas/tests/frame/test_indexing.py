@@ -2699,3 +2699,64 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         result = dg['x', 0]
         assert_series_equal(result, expected)
+
+
+class TestDataFrameIndexingDatetimeWithTZ(tm.TestCase, TestData):
+
+    _multiprocess_can_split_ = True
+
+    def setUp(self):
+        self.idx = Index(date_range('20130101', periods=3, tz='US/Eastern'),
+                         name='foo')
+        self.dr = date_range('20130110', periods=3)
+        self.df = DataFrame({'A': self.idx, 'B': self.dr})
+
+    def test_setitem(self):
+
+        df = self.df
+        idx = self.idx
+
+        # setitem
+        df['C'] = idx
+        assert_series_equal(df['C'], Series(idx, name='C'))
+
+        df['D'] = 'foo'
+        df['D'] = idx
+        assert_series_equal(df['D'], Series(idx, name='D'))
+        del df['D']
+
+        # assert that A & C are not sharing the same base (e.g. they
+        # are copies)
+        b1 = df._data.blocks[1]
+        b2 = df._data.blocks[2]
+        self.assertTrue(b1.values.equals(b2.values))
+        self.assertFalse(id(b1.values.values.base) ==
+                         id(b2.values.values.base))
+
+        # with nan
+        df2 = df.copy()
+        df2.iloc[1, 1] = pd.NaT
+        df2.iloc[1, 2] = pd.NaT
+        result = df2['B']
+        assert_series_equal(notnull(result), Series(
+            [True, False, True], name='B'))
+        assert_series_equal(df2.dtypes, df.dtypes)
+
+    def test_set_reset(self):
+
+        idx = self.idx
+
+        # set/reset
+        df = DataFrame({'A': [0, 1, 2]}, index=idx)
+        result = df.reset_index()
+        self.assertTrue(result['foo'].dtype, 'M8[ns, US/Eastern')
+
+        result = result.set_index('foo')
+        tm.assert_index_equal(df.index, idx)
+
+    def test_transpose(self):
+
+        result = self.df.T
+        expected = DataFrame(self.df.values.T)
+        expected.index = ['A', 'B']
+        assert_frame_equal(result, expected)
