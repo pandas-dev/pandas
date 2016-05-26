@@ -1,13 +1,12 @@
 from datetime import datetime, date, timedelta
 
 import numpy as np
-from numpy.testing import assert_equal
 
 import pandas as pd
 from pandas import DataFrame, Series, Index, MultiIndex, Grouper
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
-from pandas.compat import range, u, product
+from pandas.compat import range, product
 import pandas.util.testing as tm
 
 
@@ -80,21 +79,13 @@ class TestPivotTable(tm.TestCase):
         pv_ind = df.pivot_table(
             'quantity', ['customer', 'product'], 'month', dropna=False)
 
-        m = MultiIndex.from_tuples([(u('A'), u('a')),
-                                    (u('A'), u('b')),
-                                    (u('A'), u('c')),
-                                    (u('A'), u('d')),
-                                    (u('B'), u('a')),
-                                    (u('B'), u('b')),
-                                    (u('B'), u('c')),
-                                    (u('B'), u('d')),
-                                    (u('C'), u('a')),
-                                    (u('C'), u('b')),
-                                    (u('C'), u('c')),
-                                    (u('C'), u('d'))])
-
-        assert_equal(pv_col.columns.values, m.values)
-        assert_equal(pv_ind.index.values, m.values)
+        m = MultiIndex.from_tuples([('A', 'a'), ('A', 'b'), ('A', 'c'),
+                                    ('A', 'd'), ('B', 'a'), ('B', 'b'),
+                                    ('B', 'c'), ('B', 'd'), ('C', 'a'),
+                                    ('C', 'b'), ('C', 'c'), ('C', 'd')],
+                                   names=['customer', 'product'])
+        tm.assert_index_equal(pv_col.columns, m)
+        tm.assert_index_equal(pv_ind.index, m)
 
     def test_pass_array(self):
         result = self.data.pivot_table(
@@ -902,8 +893,9 @@ class TestCrosstab(tm.TestCase):
         res = pd.crosstab(a, [b, c], rownames=['a'],
                           colnames=['b', 'c'], dropna=False)
         m = MultiIndex.from_tuples([('one', 'dull'), ('one', 'shiny'),
-                                    ('two', 'dull'), ('two', 'shiny')])
-        assert_equal(res.columns.values, m.values)
+                                    ('two', 'dull'), ('two', 'shiny')],
+                                   names=['b', 'c'])
+        tm.assert_index_equal(res.columns, m)
 
     def test_categorical_margins(self):
         # GH 10989

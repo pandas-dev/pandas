@@ -573,7 +573,7 @@ class TestStringMethods(tm.TestCase):
             # single group renames series/index properly
             s_or_idx = klass(['A1', 'A2'])
             result = s_or_idx.str.extract(r'(?P<uno>A)\d', expand=False)
-            tm.assert_equal(result.name, 'uno')
+            self.assertEqual(result.name, 'uno')
             tm.assert_numpy_array_equal(result, klass(['A', 'A']))
 
         s = Series(['A1', 'B2', 'C3'])
@@ -1105,7 +1105,7 @@ class TestStringMethods(tm.TestCase):
         # (extract) on empty series
 
         tm.assert_series_equal(empty_str, empty.str.cat(empty))
-        tm.assert_equal('', empty.str.cat())
+        self.assertEqual('', empty.str.cat())
         tm.assert_series_equal(empty_str, empty.str.title())
         tm.assert_series_equal(empty_int, empty.str.count('a'))
         tm.assert_series_equal(empty_bool, empty.str.contains('a'))

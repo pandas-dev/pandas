@@ -4,7 +4,6 @@ import codecs
 import nose
 
 import numpy as np
-from numpy.testing import assert_equal
 
 import pandas as pd
 from pandas import date_range, Index
@@ -22,7 +21,7 @@ class TestCartesianProduct(tm.TestCase):
         result = cartesian_product([x, y])
         expected = [np.array(['A', 'A', 'B', 'B', 'C', 'C']),
                     np.array([1, 22, 1, 22, 1, 22])]
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_datetimeindex(self):
         # regression test for GitHub issue #6439
@@ -30,7 +29,7 @@ class TestCartesianProduct(tm.TestCase):
         x = date_range('2000-01-01', periods=2)
         result = [Index(y).day for y in cartesian_product([x, x])]
         expected = [np.array([1, 1, 2, 2]), np.array([1, 2, 1, 2])]
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestLocaleUtils(tm.TestCase):

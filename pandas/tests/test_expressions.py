@@ -15,10 +15,10 @@ from pandas.computation import expressions as expr
 from pandas import compat
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
-                                 assert_panel4d_equal)
+                                 assert_panel4d_equal, slow)
 from pandas.formats.printing import pprint_thing
 import pandas.util.testing as tm
-from numpy.testing.decorators import slow
+
 
 if not expr._USE_NUMEXPR:
     try:

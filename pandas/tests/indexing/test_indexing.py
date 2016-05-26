@@ -20,14 +20,14 @@ from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
                              MultiIndex, Timestamp, Timedelta)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
-                                 assert_attr_equal)
+                                 assert_attr_equal, slow)
 from pandas.formats.printing import pprint_thing
 from pandas import concat, lib
 from pandas.core.common import PerformanceWarning
 
 import pandas.util.testing as tm
 from pandas import date_range
-from numpy.testing.decorators import slow
+
 
 _verbose = False
 

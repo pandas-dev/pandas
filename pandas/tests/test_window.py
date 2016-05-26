@@ -6,7 +6,6 @@ import warnings
 from nose.tools import assert_raises
 from datetime import datetime
 from numpy.random import randn
-from numpy.testing.decorators import slow
 import numpy as np
 from distutils.version import LooseVersion
 
@@ -15,7 +14,8 @@ from pandas import (Series, DataFrame, Panel, bdate_range, isnull,
                     notnull, concat)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
-                                 assert_index_equal, assert_numpy_array_equal)
+                                 assert_index_equal, assert_numpy_array_equal,
+                                 slow)
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow

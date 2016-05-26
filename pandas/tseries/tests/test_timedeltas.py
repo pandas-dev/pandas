@@ -16,7 +16,6 @@ from pandas import compat, to_timedelta, tslib
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas.util.testing import (assert_series_equal, assert_frame_equal,
                                  assert_almost_equal, assert_index_equal)
-from numpy.testing import assert_allclose
 from pandas.tseries.offsets import Day, Second
 import pandas.util.testing as tm
 from numpy.random import randn
@@ -1224,7 +1223,7 @@ class TestTimedeltaIndex(tm.TestCase):
                               freq='s')
         expt = [1 * 86400 + 10 * 3600 + 11 * 60 + 12 + 100123456. / 1e9,
                 1 * 86400 + 10 * 3600 + 11 * 60 + 13 + 100123456. / 1e9]
-        assert_allclose(rng.total_seconds(), expt, atol=1e-10, rtol=0)
+        tm.assert_almost_equal(rng.total_seconds(), expt)
 
         # test Series
         s = Series(rng)
@@ -1239,14 +1238,14 @@ class TestTimedeltaIndex(tm.TestCase):
 
         # with both nat
         s = Series([np.nan, np.nan], dtype='timedelta64[ns]')
-        tm.assert_series_equal(s.dt.total_seconds(), Series(
-            [np.nan, np.nan], index=[0, 1]))
+        tm.assert_series_equal(s.dt.total_seconds(),
+                               Series([np.nan, np.nan], index=[0, 1]))
 
     def test_total_seconds_scalar(self):
         # GH 10939
         rng = Timedelta('1 days, 10:11:12.100123456')
         expt = 1 * 86400 + 10 * 3600 + 11 * 60 + 12 + 100123456. / 1e9
-        assert_allclose(rng.total_seconds(), expt, atol=1e-10, rtol=0)
+        tm.assert_almost_equal(rng.total_seconds(), expt)
 
         rng = Timedelta(np.nan)
         self.assertTrue(np.isnan(rng.total_seconds()))

@@ -5,7 +5,6 @@ import operator
 from numpy import nan
 import numpy as np
 import pandas as pd
-from numpy.testing import assert_equal
 
 from pandas import Series, DataFrame, bdate_range
 from pandas.core.datetools import BDay
@@ -148,20 +147,23 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_sparse_to_dense(self):
         arr, index = _test_data1()
         series = self.bseries.to_dense()
-        assert_equal(series, arr)
+        tm.assert_series_equal(series, Series(arr, name='bseries'))
 
         series = self.bseries.to_dense(sparse_only=True)
-        assert_equal(series, arr[np.isfinite(arr)])
+
+        indexer = np.isfinite(arr)
+        exp = Series(arr[indexer], index=index[indexer], name='bseries')
+        tm.assert_series_equal(series, exp)
 
         series = self.iseries.to_dense()
-        assert_equal(series, arr)
+        tm.assert_series_equal(series, Series(arr, name='iseries'))
 
         arr, index = _test_data1_zero()
         series = self.zbseries.to_dense()
-        assert_equal(series, arr)
+        tm.assert_series_equal(series, Series(arr, name='zbseries'))
 
         series = self.ziseries.to_dense()
-        assert_equal(series, arr)
+        tm.assert_series_equal(series, Series(arr))
 
     def test_to_dense_fill_value(self):
         s = pd.Series([1, np.nan, np.nan, 3, np.nan])
@@ -225,8 +227,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         tm.assertIsInstance(self.iseries.sp_index, IntIndex)
 
         self.assertEqual(self.zbseries.fill_value, 0)
-        assert_equal(self.zbseries.values.values,
-                     self.bseries.to_dense().fillna(0).values)
+        tm.assert_numpy_array_equal(self.zbseries.values.values,
+                                    self.bseries.to_dense().fillna(0).values)
 
         # pass SparseSeries
         def _check_const(sparse, name):
@@ -252,7 +254,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         # pass Series
         bseries2 = SparseSeries(self.bseries.to_dense())
-        assert_equal(self.bseries.sp_values, bseries2.sp_values)
+        tm.assert_numpy_array_equal(self.bseries.sp_values, bseries2.sp_values)
 
         # pass dict?
 
@@ -292,7 +294,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_constructor_nonnan(self):
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
-        assert_equal(sp_series.values.values, arr)
+        tm.assert_numpy_array_equal(sp_series.values.values, arr)
         self.assertEqual(len(sp_series), 5)
         self.assertEqual(sp_series.shape, (5, ))
 
@@ -1049,8 +1051,8 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         # or compare directly as difference of sparse
         # assert(abs(A - A_result).max() < 1e-12) # max is failing in python
         # 2.6
-        assert_equal(il, il_result)
-        assert_equal(jl, jl_result)
+        tm.assert_numpy_array_equal(il, il_result)
+        tm.assert_numpy_array_equal(jl, jl_result)
 
     def test_concat(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])

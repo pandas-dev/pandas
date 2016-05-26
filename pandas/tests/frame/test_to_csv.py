@@ -14,14 +14,11 @@ from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
 import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal,
-                                 assert_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
                                  ensure_clean,
                                  makeCustomDataframe as mkdf,
-                                 assertRaisesRegexp)
-
-from numpy.testing.decorators import slow
+                                 assertRaisesRegexp, slow)
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
@@ -453,7 +450,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         df = DataFrame({0: ['a', 'b', 'c'],
                         1: ['aa', 'bb', 'cc']})
         df['test'] = 'txt'
-        assert_equal(df.to_csv(), df.to_csv(columns=[0, 1, 'test']))
+        self.assertEqual(df.to_csv(), df.to_csv(columns=[0, 1, 'test']))
 
     def test_to_csv_headers(self):
         # GH6186, the presence or absence of `index` incorrectly
@@ -508,8 +505,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             # do not load index
             tsframe.to_csv(path)
             recons = DataFrame.from_csv(path, index_col=None)
-            np.testing.assert_equal(
-                len(recons.columns), len(tsframe.columns) + 2)
+            self.assertEqual(len(recons.columns), len(tsframe.columns) + 2)
 
             # no index
             tsframe.to_csv(path, index=False)

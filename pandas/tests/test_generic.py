@@ -21,8 +21,7 @@ from pandas.util.testing import (assertRaisesRegexp,
                                  assert_frame_equal,
                                  assert_panel_equal,
                                  assert_panel4d_equal,
-                                 assert_almost_equal,
-                                 assert_equal)
+                                 assert_almost_equal)
 
 import pandas.util.testing as tm
 
@@ -1346,7 +1345,7 @@ class TestDataFrame(tm.TestCase, Generic):
         df['y'] = [2, 4, 6]
         df.y = 5
 
-        assert_equal(df.y, 5)
+        self.assertEqual(df.y, 5)
         assert_series_equal(df['y'], Series([2, 4, 6], name='y'))
 
     def test_pct_change(self):

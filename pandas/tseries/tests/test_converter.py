@@ -3,7 +3,6 @@ from datetime import datetime, date
 import nose
 
 import numpy as np
-from numpy.testing import assert_almost_equal as np_assert_almost_equal
 from pandas import Timestamp, Period
 from pandas.compat import u
 import pandas.util.testing as tm
@@ -69,14 +68,14 @@ class TestDateTimeConverter(tm.TestCase):
         rs = self.dtc.convert(
             Timestamp('2012-1-1 01:02:03', tz='UTC'), None, None)
         xp = converter.dates.date2num(Timestamp('2012-1-1 01:02:03', tz='UTC'))
-        np_assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, decimals)
 
         rs = self.dtc.convert(
             Timestamp('2012-1-1 09:02:03', tz='Asia/Hong_Kong'), None, None)
-        np_assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, decimals)
 
         rs = self.dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
-        np_assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, decimals)
 
     def test_time_formatter(self):
         self.tc(90000)
@@ -88,7 +87,7 @@ class TestDateTimeConverter(tm.TestCase):
             dateindex = tm.makeDateIndex(k=10, freq=freq)
             rs = self.dtc.convert(dateindex, None, None)
             xp = converter.dates.date2num(dateindex._mpl_repr())
-            np_assert_almost_equal(rs, xp, decimals)
+            tm.assert_almost_equal(rs, xp, decimals)
 
     def test_resolution(self):
         def _assert_less(ts1, ts2):

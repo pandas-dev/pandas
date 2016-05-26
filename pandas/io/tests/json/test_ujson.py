@@ -21,8 +21,6 @@ import pandas.json as ujson
 import pandas.compat as compat
 
 import numpy as np
-from numpy.testing import (assert_array_almost_equal_nulp,
-                           assert_approx_equal)
 from pandas import DataFrame, Series, Index, NaT, DatetimeIndex
 import pandas.util.testing as tm
 
@@ -1015,19 +1013,19 @@ class NumpyJSONTests(TestCase):
             inpt = arr.astype(dtype)
             outp = np.array(ujson.decode(ujson.encode(
                 inpt, double_precision=15)), dtype=dtype)
-            assert_array_almost_equal_nulp(inpt, outp)
+            tm.assert_almost_equal(inpt, outp)
 
     def testFloatMax(self):
         num = np.float(np.finfo(np.float).max / 10)
-        assert_approx_equal(np.float(ujson.decode(
+        tm.assert_almost_equal(np.float(ujson.decode(
             ujson.encode(num, double_precision=15))), num, 15)
 
         num = np.float32(np.finfo(np.float32).max / 10)
-        assert_approx_equal(np.float32(ujson.decode(
+        tm.assert_almost_equal(np.float32(ujson.decode(
             ujson.encode(num, double_precision=15))), num, 15)
 
         num = np.float64(np.finfo(np.float64).max / 10)
-        assert_approx_equal(np.float64(ujson.decode(
+        tm.assert_almost_equal(np.float64(ujson.decode(
             ujson.encode(num, double_precision=15))), num, 15)
 
     def testArrays(self):
@@ -1067,9 +1065,9 @@ class NumpyJSONTests(TestCase):
         arr = np.arange(100.202, 200.202, 1, dtype=np.float32)
         arr = arr.reshape((5, 5, 4))
         outp = np.array(ujson.decode(ujson.encode(arr)), dtype=np.float32)
-        assert_array_almost_equal_nulp(arr, outp)
+        tm.assert_almost_equal(arr, outp)
         outp = ujson.decode(ujson.encode(arr), numpy=True, dtype=np.float32)
-        assert_array_almost_equal_nulp(arr, outp)
+        tm.assert_almost_equal(arr, outp)
 
     def testOdArray(self):
         def will_raise():

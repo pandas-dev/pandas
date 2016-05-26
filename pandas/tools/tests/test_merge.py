@@ -17,12 +17,12 @@ from pandas import Categorical, Timestamp
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal,
                                  makeCustomDataframe as mkdf,
-                                 assertRaisesRegexp)
+                                 assertRaisesRegexp, slow)
 from pandas import (isnull, DataFrame, Index, MultiIndex, Panel,
                     Series, date_range, read_csv)
 import pandas.algos as algos
 import pandas.util.testing as tm
-from numpy.testing.decorators import slow
+
 
 a_ = np.array
 

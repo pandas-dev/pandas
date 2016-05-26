@@ -14,7 +14,6 @@ from pandas.compat import StringIO, lrange, u
 import pandas.formats.format as fmt
 import pandas as pd
 
-from numpy.testing.decorators import slow
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
@@ -43,7 +42,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         foo = repr(self.mixed_frame)  # noqa
         self.mixed_frame.info(verbose=False, buf=buf)
 
-    @slow
+    @tm.slow
     def test_repr_mixed_big(self):
         # big mixed
         biggie = DataFrame({'A': np.random.randn(200),
@@ -90,7 +89,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         with option_context('display.show_dimensions', 'truncate'):
             self.assertFalse("2 rows x 2 columns" in repr(df))
 
-    @slow
+    @tm.slow
     def test_repr_big(self):
         # big one
         biggie = DataFrame(np.zeros((200, 4)), columns=lrange(4),

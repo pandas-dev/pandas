@@ -7,8 +7,8 @@ import warnings
 import nose
 import pandas as pd
 from pandas import compat
-from pandas.util.testing import network, assert_frame_equal, with_connectivity_check
-from numpy.testing.decorators import slow
+from pandas.util.testing import (network, assert_frame_equal,
+                                 with_connectivity_check, slow)
 import pandas.util.testing as tm
 
 if compat.PY3:

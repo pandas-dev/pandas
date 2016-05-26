@@ -13,7 +13,6 @@ import nose
 
 from numpy import nan
 import numpy as np
-from numpy.testing.decorators import slow
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex
@@ -544,7 +543,7 @@ class XlrdTests(ReadingTestsBase):
         local_table = self.get_exceldf('test1')
         tm.assert_frame_equal(url_table, local_table)
 
-    @slow
+    @tm.slow
     def test_read_from_file_url(self):
 
         # FILE
@@ -1102,9 +1101,9 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(self.frame, recons)
             recons = read_excel(reader, 'test2', index_col=0)
             tm.assert_frame_equal(self.tsframe, recons)
-            np.testing.assert_equal(2, len(reader.sheet_names))
-            np.testing.assert_equal('test1', reader.sheet_names[0])
-            np.testing.assert_equal('test2', reader.sheet_names[1])
+            self.assertEqual(2, len(reader.sheet_names))
+            self.assertEqual('test1', reader.sheet_names[0])
+            self.assertEqual('test2', reader.sheet_names[1])
 
     def test_colaliases(self):
         _skip_if_no_xlrd()

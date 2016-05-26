@@ -3,7 +3,6 @@ from pandas import Series
 import nose  # noqa
 import numpy as np
 import operator
-from numpy.testing import assert_equal
 import pandas.util.testing as tm
 
 from pandas import compat
@@ -51,14 +50,15 @@ class TestSparseIndexUnion(tm.TestCase):
             yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
             bresult = xindex.make_union(yindex)
             assert (isinstance(bresult, BlockIndex))
-            assert_equal(bresult.blocs, eloc)
-            assert_equal(bresult.blengths, elen)
+            tm.assert_numpy_array_equal(bresult.blocs, eloc)
+            tm.assert_numpy_array_equal(bresult.blengths, elen)
 
             ixindex = xindex.to_int_index()
             iyindex = yindex.to_int_index()
             iresult = ixindex.make_union(iyindex)
             assert (isinstance(iresult, IntIndex))
-            assert_equal(iresult.indices, bresult.to_int_index().indices)
+            tm.assert_numpy_array_equal(iresult.indices,
+                                        bresult.to_int_index().indices)
 
         """
         x: ----
@@ -411,7 +411,7 @@ class TestBlockIndex(tm.TestCase):
         block = BlockIndex(20, locs, lengths)
         dense = block.to_int_index()
 
-        assert_equal(dense.indices, exp_inds)
+        tm.assert_numpy_array_equal(dense.indices, exp_inds)
 
     def test_to_block_index(self):
         index = BlockIndex(10, [0, 5], [4, 5])
@@ -489,7 +489,7 @@ class TestSparseOperators(tm.TestCase):
                                                   ydindex, yfill)
 
             self.assertTrue(rb_index.to_int_index().equals(ri_index))
-            assert_equal(result_block_vals, result_int_vals)
+            tm.assert_numpy_array_equal(result_block_vals, result_int_vals)
 
             # check versus Series...
             xseries = Series(x, xdindex.indices)
@@ -501,8 +501,9 @@ class TestSparseOperators(tm.TestCase):
             series_result = python_op(xseries, yseries)
             series_result = series_result.reindex(ri_index.indices)
 
-            assert_equal(result_block_vals, series_result.values)
-            assert_equal(result_int_vals, series_result.values)
+            tm.assert_numpy_array_equal(result_block_vals,
+                                        series_result.values)
+            tm.assert_numpy_array_equal(result_int_vals, series_result.values)
 
         check_cases(_check_case)
 

@@ -10,7 +10,6 @@ from datetime import datetime
 
 import nose
 import numpy as np
-from numpy.testing.decorators import slow
 from pandas.lib import Timestamp
 
 import pandas as pd
@@ -607,7 +606,7 @@ bar"""
         tm.assert_frame_equal(url_table, local_table)
         # TODO: ftp testing
 
-    @slow
+    @tm.slow
     def test_file(self):
 
         # FILE
