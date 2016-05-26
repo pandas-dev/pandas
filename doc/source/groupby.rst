@@ -1031,18 +1031,6 @@ In the following examples, **df.index / 5** returns a binary array which is used
    df.index / 5
    df.groupby(df.index / 5).std()
 
-.. note:: For upsampling, we can again utilize a similar technique. Upsampling inserts values between the original samples. However, we change the indexes to a spaced out interval so that the new samples can fill those vacant indexes. Observe how the indexes of **df_down** are spaced out.
-
-.. ipython:: python
-
-   df = pd.DataFrame(np.random.randn(10,2))
-   df
-   s = (df.index.to_series() / 5).astype(int)
-   df_down = df.groupby(df.index / 5).std().set_index(s.index[4::5])
-   df_down
-   df_up = df_down.reindex(range(10)).bfill()
-   df_up
-
 Returning a Series to propagate names
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
