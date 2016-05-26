@@ -49,7 +49,7 @@ else
     else
         wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
     fi
-    bash miniconda.sh -b -p MINICONDA_DIR || exit 1
+    bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 
     conda config --set always_yes yes --set changeps1 no || exit 1
     conda update -q conda || exit 1
