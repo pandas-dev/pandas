@@ -873,17 +873,15 @@ class TestNanvarFixedValues(tm.TestCase):
         for axis in range(2):
             for ddof in range(3):
                 var = nanops.nanvar(samples, skipna=True, axis=axis, ddof=ddof)
-                np.testing.assert_array_almost_equal(var[:3],
-                                                     variance[axis, ddof])
-                np.testing.assert_equal(var[3], np.nan)
+                tm.assert_almost_equal(var[:3], variance[axis, ddof])
+                self.assertTrue(np.isnan(var[3]))
 
         # Test nanstd.
         for axis in range(2):
             for ddof in range(3):
                 std = nanops.nanstd(samples, skipna=True, axis=axis, ddof=ddof)
-                np.testing.assert_array_almost_equal(
-                    std[:3], variance[axis, ddof] ** 0.5)
-                np.testing.assert_equal(std[3], np.nan)
+                tm.assert_almost_equal(std[:3], variance[axis, ddof] ** 0.5)
+                self.assertTrue(np.isnan(std[3]))
 
     def test_nanstd_roundoff(self):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure

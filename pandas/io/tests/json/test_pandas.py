@@ -87,7 +87,7 @@ class TestPandasContainer(tm.TestCase):
                                          orient='index'))
         df_unser = read_json(df.to_json(orient='records'), orient='records')
         assert_index_equal(df.columns, df_unser.columns)
-        np.testing.assert_equal(df.values, df_unser.values)
+        tm.assert_numpy_array_equal(df.values, df_unser.values)
 
     def test_frame_non_unique_index(self):
         df = DataFrame([['a', 'b'], ['c', 'd']], index=[1, 1],
@@ -100,9 +100,9 @@ class TestPandasContainer(tm.TestCase):
                                          orient='split'))
         unser = read_json(df.to_json(orient='records'), orient='records')
         self.assertTrue(df.columns.equals(unser.columns))
-        np.testing.assert_equal(df.values, unser.values)
+        tm.assert_numpy_array_equal(df.values, unser.values)
         unser = read_json(df.to_json(orient='values'), orient='values')
-        np.testing.assert_equal(df.values, unser.values)
+        tm.assert_numpy_array_equal(df.values, unser.values)
 
     def test_frame_non_unique_columns(self):
         df = DataFrame([['a', 'b'], ['c', 'd']], index=[1, 2],
@@ -115,7 +115,7 @@ class TestPandasContainer(tm.TestCase):
         assert_frame_equal(df, read_json(df.to_json(orient='split'),
                                          orient='split', dtype=False))
         unser = read_json(df.to_json(orient='values'), orient='values')
-        np.testing.assert_equal(df.values, unser.values)
+        tm.assert_numpy_array_equal(df.values, unser.values)
 
         # GH4377; duplicate columns not processing correctly
         df = DataFrame([['a', 'b'], ['c', 'd']], index=[
@@ -487,7 +487,7 @@ class TestPandasContainer(tm.TestCase):
                                          orient='split', typ='series'))
         unser = read_json(s.to_json(orient='records'),
                           orient='records', typ='series')
-        np.testing.assert_equal(s.values, unser.values)
+        tm.assert_numpy_array_equal(s.values, unser.values)
 
     def test_series_from_json_to_json(self):
 

@@ -4,8 +4,6 @@ import nose
 from pandas.compat import lrange, zip
 
 import numpy as np
-from numpy.testing.decorators import slow
-
 from pandas import Index, Series, DataFrame
 
 from pandas.tseries.index import date_range, bdate_range
@@ -13,7 +11,7 @@ from pandas.tseries.offsets import DateOffset
 from pandas.tseries.period import period_range, Period, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex
 
-from pandas.util.testing import assert_series_equal, ensure_clean
+from pandas.util.testing import assert_series_equal, ensure_clean, slow
 import pandas.util.testing as tm
 
 from pandas.tests.test_graphics import _skip_if_no_scipy_gaussian_kde

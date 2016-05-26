@@ -358,7 +358,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
         index = Index([1.0, np.nan, 0.2], dtype='object')
         result = index.astype(float)
         expected = Float64Index([1.0, np.nan, 0.2])
-        tm.assert_equal(result.dtype, expected.dtype)
+        self.assertEqual(result.dtype, expected.dtype)
         tm.assert_index_equal(result, expected)
 
     def test_fillna_float64(self):

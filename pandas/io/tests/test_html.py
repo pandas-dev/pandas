@@ -16,7 +16,6 @@ import nose
 
 import numpy as np
 from numpy.random import rand
-from numpy.testing.decorators import slow
 
 from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
@@ -129,7 +128,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
         assert_framelist_equal(df1, df2)
 
-    @slow
+    @tm.slow
     def test_banklist(self):
         df1 = self.read_html(self.banklist_data, '.*Florida.*',
                              attrs={'id': 'table'})
@@ -289,9 +288,9 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                 self.read_html('http://www.a23950sdfa908sd.com',
                                match='.*Water.*')
         except ValueError as e:
-            tm.assert_equal(str(e), 'No tables found')
+            self.assertEqual(str(e), 'No tables found')
 
-    @slow
+    @tm.slow
     def test_file_url(self):
         url = self.banklist_data
         dfs = self.read_html(file_path_to_url(url), 'First',
@@ -300,7 +299,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         for df in dfs:
             tm.assertIsInstance(df, DataFrame)
 
-    @slow
+    @tm.slow
     def test_invalid_table_attrs(self):
         url = self.banklist_data
         with tm.assertRaisesRegexp(ValueError, 'No tables found'):
@@ -311,39 +310,39 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         return self.read_html(self.banklist_data, 'Metcalf',
                               attrs={'id': 'table'}, *args, **kwargs)
 
-    @slow
+    @tm.slow
     def test_multiindex_header(self):
         df = self._bank_data(header=[0, 1])[0]
         tm.assertIsInstance(df.columns, MultiIndex)
 
-    @slow
+    @tm.slow
     def test_multiindex_index(self):
         df = self._bank_data(index_col=[0, 1])[0]
         tm.assertIsInstance(df.index, MultiIndex)
 
-    @slow
+    @tm.slow
     def test_multiindex_header_index(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1])[0]
         tm.assertIsInstance(df.columns, MultiIndex)
         tm.assertIsInstance(df.index, MultiIndex)
 
-    @slow
+    @tm.slow
     def test_multiindex_header_skiprows_tuples(self):
         df = self._bank_data(header=[0, 1], skiprows=1, tupleize_cols=True)[0]
         tm.assertIsInstance(df.columns, Index)
 
-    @slow
+    @tm.slow
     def test_multiindex_header_skiprows(self):
         df = self._bank_data(header=[0, 1], skiprows=1)[0]
         tm.assertIsInstance(df.columns, MultiIndex)
 
-    @slow
+    @tm.slow
     def test_multiindex_header_index_skiprows(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1], skiprows=1)[0]
         tm.assertIsInstance(df.index, MultiIndex)
         tm.assertIsInstance(df.columns, MultiIndex)
 
-    @slow
+    @tm.slow
     def test_regex_idempotency(self):
         url = self.banklist_data
         dfs = self.read_html(file_path_to_url(url),
@@ -371,7 +370,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         zz = [df.iloc[0, 0][0:4] for df in dfs]
         self.assertEqual(sorted(zz), sorted(['Repo', 'What']))
 
-    @slow
+    @tm.slow
     def test_thousands_macau_stats(self):
         all_non_nan_table_index = -2
         macau_data = os.path.join(DATA_PATH, 'macau.html')
@@ -381,7 +380,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
         self.assertFalse(any(s.isnull().any() for _, s in df.iteritems()))
 
-    @slow
+    @tm.slow
     def test_thousands_macau_index_col(self):
         all_non_nan_table_index = -2
         macau_data = os.path.join(DATA_PATH, 'macau.html')
@@ -522,7 +521,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         self.assertEqual(df.shape[0], nrows)
         self.assertTrue(df.columns.equals(columns))
 
-    @slow
+    @tm.slow
     def test_banklist_header(self):
         from pandas.io.html import _remove_whitespace
 
@@ -561,7 +560,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                                                              coerce=True)
         tm.assert_frame_equal(converted, gtnew)
 
-    @slow
+    @tm.slow
     def test_gold_canyon(self):
         gc = 'Gold Canyon'
         with open(self.banklist_data, 'r') as f:
@@ -663,7 +662,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         assert os.path.isfile(data), '%r is not a file' % data
         assert os.path.getsize(data), '%r is an empty file' % data
         result = self.read_html(data, 'Arizona', header=1)[0]
-        nose.tools.assert_equal(result['sq mi'].dtype, np.dtype('float64'))
+        self.assertEqual(result['sq mi'].dtype, np.dtype('float64'))
 
     def test_bool_header_arg(self):
         # GH 6114
@@ -753,7 +752,7 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
         tm.assertIsInstance(dfs, list)
         tm.assertIsInstance(dfs[0], DataFrame)
 
-    @slow
+    @tm.slow
     def test_fallback_success(self):
         _skip_if_none_of(('bs4', 'html5lib'))
         banklist_data = os.path.join(DATA_PATH, 'banklist.html')
@@ -796,7 +795,7 @@ def get_elements_from_file(url, element='table'):
     return soup.find_all(element)
 
 
-@slow
+@tm.slow
 def test_bs4_finds_tables():
     filepath = os.path.join(DATA_PATH, "spam.html")
     with warnings.catch_warnings():
@@ -811,13 +810,13 @@ def get_lxml_elements(url, element):
     return doc.xpath('.//{0}'.format(element))
 
 
-@slow
+@tm.slow
 def test_lxml_finds_tables():
     filepath = os.path.join(DATA_PATH, "spam.html")
     assert get_lxml_elements(filepath, 'table')
 
 
-@slow
+@tm.slow
 def test_lxml_finds_tbody():
     filepath = os.path.join(DATA_PATH, "spam.html")
     assert get_lxml_elements(filepath, 'tbody')
