@@ -220,6 +220,13 @@ error_bad_lines : boolean, default True
 warn_bad_lines : boolean, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output. (Only valid with C parser).
+low_memory : boolean, default True
+    Internally process the file in chunks, resulting in lower memory use
+    while parsing, but possibly mixed type inference.  To ensure no mixed
+    types either set False, or specify the type with the `dtype` parameter.
+    Note that the entire file is read into a single DataFrame regardless,
+    use the `chunksize` or `iterator` parameter to return the data in chunks.
+    (Only valid with C parser)
 
 Returns
 -------
