@@ -556,8 +556,11 @@ class TestStylerMatplotlibDep(TestCase):
                     ._compute().ctx)
         self.assertEqual(result[(1, 0)], ['background-color: #fff7fb'])
 
-        self.assertEqual(df.style.background_gradient(subset=pd.IndexSlice[:, 'A':'B'], axis=0)._compute().ctx,
-                         df.style.background_gradient(subset=['A','B'], axis=0)._compute().ctx)
+        grad = df.style.background_gradient
+        self.assertEqual(
+            grad(subset=pd.IndexSlice[:, 'A':'B'], axis=0)._compute().ctx,
+            grad(subset=['A', 'B'], axis=0)._compute().ctx)
 
-        self.assertEqual(df.style.background_gradient(subset=pd.IndexSlice[0:1, ], axis=1)._compute().ctx,
-                         df.style.background_gradient(subset=[0, 1], axis=1)._compute().ctx)
+        self.assertEqual(
+            grad(subset=pd.IndexSlice[0:1, ], axis=1)._compute().ctx,
+            grad(subset=[0, 1], axis=1)._compute().ctx)
