@@ -169,6 +169,13 @@ skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
 nrows : int, default ``None``
   Number of rows of file to read. Useful for reading pieces of large files.
+low_memory : boolean, default ``True``
+  Internally process the file in chunks, resulting in lower memory use
+  while parsing, but possibly mixed type inference.  To ensure no mixed
+  types either set ``False``, or specify the type with the ``dtype`` parameter.
+  Note that the entire file is read into a single DataFrame regardless,
+  use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
+  (Only valid with C parser)
 
 NA and Missing Data Handling
 ++++++++++++++++++++++++++++
