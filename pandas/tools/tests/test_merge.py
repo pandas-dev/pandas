@@ -1133,6 +1133,15 @@ class TestMerge(tm.TestCase):
         result = pd.concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
+    def test_concat_tz_frame(self):
+        df2 = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
+                             B=Timestamp('20130603', tz='CET')),
+                        index=range(5))
+
+        # concat
+        df3 = pd.concat([df2.A.to_frame(), df2.B.to_frame()], axis=1)
+        assert_frame_equal(df2, df3)
+
     def test_concat_tz_series(self):
         # GH 11755
         # tz and no tz
