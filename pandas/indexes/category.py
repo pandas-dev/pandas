@@ -281,7 +281,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
     @Appender(base._shared_docs['duplicated'] % ibase._index_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.hashtable import duplicated_int64
-        return duplicated_int64(self.codes.astype('i8'), keep)
+        codes = self.codes.astype('i8')
+        return duplicated_int64(codes, keep)
 
     def _to_safe_for_reshape(self):
         """ convert to object if we are a categorical """

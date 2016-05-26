@@ -36,7 +36,7 @@ from pandas.tseries.common import (maybe_to_datetimelike,
                                    CombinedDatetimelikeProperties)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
-from pandas.tseries.period import PeriodIndex, Period
+from pandas.tseries.period import PeriodIndex
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.compat import zip, u, OrderedDict, StringIO
@@ -46,7 +46,6 @@ import pandas.core.ops as ops
 import pandas.core.algorithms as algos
 
 import pandas.core.common as com
-import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
 import pandas.formats.format as fmt
 from pandas.util.decorators import Appender, deprecate_kwarg, Substitution
@@ -2600,52 +2599,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     # ----------------------------------------------------------------------
     # Time series-oriented methods
-
-    def asof(self, where):
-        """
-        Return last good (non-NaN) value in Series if value is NaN for
-        requested date.
-
-        If there is no good value, NaN is returned.
-
-        Parameters
-        ----------
-        where : date or array of dates
-
-        Notes
-        -----
-        Dates are assumed to be sorted
-
-        Returns
-        -------
-        value or NaN
-        """
-        if isinstance(where, compat.string_types):
-            where = datetools.to_datetime(where)
-
-        values = self._values
-
-        if not hasattr(where, '__iter__'):
-            start = self.index[0]
-            if isinstance(self.index, PeriodIndex):
-                where = Period(where, freq=self.index.freq).ordinal
-                start = start.ordinal
-
-            if where < start:
-                return np.nan
-            loc = self.index.searchsorted(where, side='right')
-            if loc > 0:
-                loc -= 1
-            while isnull(values[loc]) and loc > 0:
-                loc -= 1
-            return values[loc]
-
-        if not isinstance(where, Index):
-            where = Index(where)
-
-        locs = self.index.asof_locs(where, notnull(values))
-        new_values = algos.take_1d(values, locs)
-        return self._constructor(new_values, index=where).__finalize__(self)
 
     def to_timestamp(self, freq=None, how='start', copy=True):
         """

@@ -153,6 +153,12 @@ Returns
 merged : DataFrame
     The output type will the be same as 'left', if it is a subclass
     of DataFrame.
+
+See also
+--------
+merge_ordered
+merge_asof
+
 """
 
 # -----------------------------------------------------------------------
