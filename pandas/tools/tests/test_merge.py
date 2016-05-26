@@ -1134,8 +1134,8 @@ class TestMerge(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
     def test_concat_tz_frame(self):
-        df2 = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
-                             B=Timestamp('20130603', tz='CET')),
+        df2 = DataFrame(dict(A=pd.Timestamp('20130102', tz='US/Eastern'),
+                             B=pd.Timestamp('20130603', tz='CET')),
                         index=range(5))
 
         # concat
