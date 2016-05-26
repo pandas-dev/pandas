@@ -5,7 +5,6 @@ import sys
 import warnings
 from datetime import datetime, time, timedelta
 from numpy.random import rand
-from numpy.testing.decorators import slow
 
 import nose
 import numpy as np
@@ -31,7 +30,7 @@ from pandas.core.common import PerformanceWarning
 from pandas.tslib import iNaT
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, assert_almost_equal,
-    _skip_if_has_locale)
+    _skip_if_has_locale, slow)
 
 randn = np.random.randn
 
@@ -1110,8 +1109,8 @@ class TestTimeSeries(tm.TestCase):
         index = pd.date_range('20130101', periods=20, name=index_name)
         df = pd.DataFrame([x for x in range(20)], columns=['foo'], index=index)
 
-        tm.assert_equal(index_name, df.index.name)
-        tm.assert_equal(index_name, df.asfreq('10D').index.name)
+        self.assertEqual(index_name, df.index.name)
+        self.assertEqual(index_name, df.asfreq('10D').index.name)
 
     def test_promote_datetime_date(self):
         rng = date_range('1/1/2000', periods=20)
@@ -2291,6 +2290,33 @@ class TestToDatetime(tm.TestCase):
         expected = pd.DatetimeIndex(['2000-01-01 13:00:00'],
                                     dtype='datetime64[ns, UTC]')
         tm.assert_index_equal(result, expected)
+
+    def test_datetime_bool(self):
+        # GH13176
+        with self.assertRaises(TypeError):
+            to_datetime(False)
+        self.assertTrue(to_datetime(False, errors="coerce") is tslib.NaT)
+        self.assertEqual(to_datetime(False, errors="ignore"), False)
+        with self.assertRaises(TypeError):
+            to_datetime(True)
+        self.assertTrue(to_datetime(True, errors="coerce") is tslib.NaT)
+        self.assertEqual(to_datetime(True, errors="ignore"), True)
+        with self.assertRaises(TypeError):
+            to_datetime([False, datetime.today()])
+        with self.assertRaises(TypeError):
+            to_datetime(['20130101', True])
+        tm.assert_index_equal(to_datetime([0, False, tslib.NaT, 0.0],
+                                          errors="coerce"),
+                              DatetimeIndex([to_datetime(0), tslib.NaT,
+                                             tslib.NaT, to_datetime(0)]))
+
+    def test_datetime_invalid_datatype(self):
+        # GH13176
+
+        with self.assertRaises(TypeError):
+            pd.to_datetime(bool)
+        with self.assertRaises(TypeError):
+            pd.to_datetime(pd.to_datetime)
 
     def test_unit(self):
         # GH 11758

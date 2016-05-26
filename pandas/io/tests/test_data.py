@@ -302,6 +302,8 @@ class TestYahooOptions(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestYahooOptions, cls).setUpClass()
+        raise nose.SkipTest('disable Yahoo Options tests')
+
         _skip_if_no_lxml()
         _skip_if_no_bs()
         raise nose.SkipTest('unreliable test')
@@ -500,6 +502,12 @@ class TestDataReader(tm.TestCase):
 
 
 class TestFred(tm.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestFred, cls).setUpClass()
+        raise nose.SkipTest('disable Fred tests')
+
     @network
     def test_fred(self):
         raise nose.SkipTest('buggy as of 2/14/16; maybe a data revision?')

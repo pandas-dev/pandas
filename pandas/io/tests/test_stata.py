@@ -179,7 +179,7 @@ class TestStata(tm.TestCase):
             w = [x for x in w if x.category is UserWarning]
 
             # should get warning for each call to read_dta
-            tm.assert_equal(len(w), 3)
+            self.assertEqual(len(w), 3)
 
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
@@ -375,7 +375,7 @@ class TestStata(tm.TestCase):
             with warnings.catch_warnings(record=True) as w:
                 original.to_stata(path, None)
                 # should get a warning for that format.
-            tm.assert_equal(len(w), 1)
+            self.assertEqual(len(w), 1)
 
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
@@ -403,7 +403,7 @@ class TestStata(tm.TestCase):
             with warnings.catch_warnings(record=True) as w:
                 original.to_stata(path, None)
                 # should get a warning for that format.
-                tm.assert_equal(len(w), 1)
+                self.assertEqual(len(w), 1)
 
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
@@ -904,7 +904,7 @@ class TestStata(tm.TestCase):
         with warnings.catch_warnings(record=True) as w:
             original.to_stata(path)
             # should get a warning for mixed content
-            tm.assert_equal(len(w), 1)
+            self.assertEqual(len(w), 1)
 
     def test_categorical_with_stata_missing_values(self):
         values = [['a' + str(i)] for i in range(120)]
@@ -986,10 +986,10 @@ class TestStata(tm.TestCase):
         for col in parsed_115:
             if not is_categorical_dtype(parsed_115[col]):
                 continue
-            tm.assert_equal(True, parsed_115[col].cat.ordered)
-            tm.assert_equal(True, parsed_117[col].cat.ordered)
-            tm.assert_equal(False, parsed_115_unordered[col].cat.ordered)
-            tm.assert_equal(False, parsed_117_unordered[col].cat.ordered)
+            self.assertEqual(True, parsed_115[col].cat.ordered)
+            self.assertEqual(True, parsed_117[col].cat.ordered)
+            self.assertEqual(False, parsed_115_unordered[col].cat.ordered)
+            self.assertEqual(False, parsed_117_unordered[col].cat.ordered)
 
     def test_read_chunks_117(self):
         files_117 = [self.dta1_117, self.dta2_117, self.dta3_117,

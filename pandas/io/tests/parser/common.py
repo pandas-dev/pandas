@@ -10,7 +10,6 @@ from datetime import datetime
 
 import nose
 import numpy as np
-from numpy.testing.decorators import slow
 from pandas.lib import Timestamp
 
 import pandas as pd
@@ -391,9 +390,22 @@ bar,foo"""
         self.assertEqual(data['B'].dtype, np.int64)
 
     def test_read_nrows(self):
-        df = self.read_csv(StringIO(self.data1), nrows=3)
         expected = self.read_csv(StringIO(self.data1))[:3]
+
+        df = self.read_csv(StringIO(self.data1), nrows=3)
         tm.assert_frame_equal(df, expected)
+
+        # see gh-10476
+        df = self.read_csv(StringIO(self.data1), nrows=3.0)
+        tm.assert_frame_equal(df, expected)
+
+        msg = "must be an integer"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(self.data1), nrows=1.2)
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(self.data1), nrows='foo')
 
     def test_read_chunksize(self):
         reader = self.read_csv(StringIO(self.data1), index_col=0, chunksize=2)
@@ -594,7 +606,7 @@ bar"""
         tm.assert_frame_equal(url_table, local_table)
         # TODO: ftp testing
 
-    @slow
+    @tm.slow
     def test_file(self):
 
         # FILE
@@ -814,11 +826,6 @@ A,B,C
         result = self.read_table(StringIO(data), sep='\s+')
         expected = DataFrame({'a': [1, 4, 7], 'b': [2, 5, 8], 'c': [3, 6, 9]})
         tm.assert_frame_equal(result, expected)
-
-    def test_nrows_and_chunksize_raises_notimplemented(self):
-        data = 'a b c'
-        self.assertRaises(NotImplementedError, self.read_csv, StringIO(data),
-                          nrows=10, chunksize=5)
 
     def test_chunk_begins_with_newline_whitespace(self):
         # see gh-10022
@@ -1292,3 +1299,27 @@ eight,1,2,3"""
         expected = DataFrame([[0, 1, 2], [3, 4, 5]],
                              columns=['a', 'b', 'a.1'])
         tm.assert_frame_equal(df, expected)
+
+    def test_inf_parsing(self):
+        data = """\
+,A
+a,inf
+b,-inf
+c,+Inf
+d,-Inf
+e,INF
+f,-INF
+g,+INf
+h,-INf
+i,inF
+j,-inF"""
+        inf = float('inf')
+        expected = Series([inf, -inf] * 5)
+
+        df = self.read_csv(StringIO(data), index_col=0)
+        tm.assert_almost_equal(df['A'].values, expected.values)
+
+        if self.engine == 'c':
+            # TODO: remove condition when 'na_filter' is supported for Python
+            df = self.read_csv(StringIO(data), index_col=0, na_filter=False)
+            tm.assert_almost_equal(df['A'].values, expected.values)

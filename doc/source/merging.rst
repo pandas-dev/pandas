@@ -562,10 +562,8 @@ DataFrame instance method, with the calling DataFrame being implicitly
 considered the left object in the join.
 
 The related ``DataFrame.join`` method, uses ``merge`` internally for the
-index-on-index and index-on-column(s) joins, but *joins on indexes* by default
-rather than trying to join on common columns (the default behavior for
-``merge``). If you are joining on index, you may wish to use ``DataFrame.join``
-to save yourself some typing.
+index-on-index (by default) and column(s)-on-index join. If you are joining on
+index only, you may wish to use ``DataFrame.join`` to save yourself some typing.
 
 Brief primer on merge methods (relational algebra)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

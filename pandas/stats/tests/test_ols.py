@@ -13,7 +13,6 @@ from pandas import compat
 from distutils.version import LooseVersion
 import nose
 import numpy as np
-from numpy.testing.decorators import slow
 
 from pandas import date_range, bdate_range
 from pandas.core.panel import Panel
@@ -22,7 +21,7 @@ from pandas.stats.api import ols
 from pandas.stats.ols import _filter_data
 from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assertRaisesRegexp)
+                                 assert_frame_equal, assertRaisesRegexp, slow)
 import pandas.util.testing as tm
 import pandas.compat as compat
 from .common import BaseTest

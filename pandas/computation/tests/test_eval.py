@@ -12,8 +12,6 @@ from nose.tools import assert_raises
 
 from numpy.random import randn, rand, randint
 import numpy as np
-from numpy.testing import assert_allclose
-from numpy.testing.decorators import slow
 
 import pandas as pd
 from pandas.core import common as com
@@ -33,7 +31,8 @@ import pandas.util.testing as tm
 import pandas.lib as lib
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assertRaisesRegexp, assert_numpy_array_equal,
-                                 assert_produces_warning, assert_series_equal)
+                                 assert_produces_warning, assert_series_equal,
+                                 slow)
 from pandas.compat import PY3, u, reduce
 
 _series_frame_incompatible = _bool_ops_syms
@@ -280,9 +279,13 @@ class TestEvalNumexprPandas(tm.TestCase):
         ex = 'lhs {0} rhs'.format(arith1)
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
         expected = lhs % rhs
-        assert_allclose(result, expected)
+
+        tm.assert_almost_equal(result, expected)
         expected = self.ne.evaluate('expected {0} rhs'.format(arith1))
-        assert_allclose(result, expected)
+        if isinstance(result, (DataFrame, Series)):
+            tm.assert_almost_equal(result.values, expected)
+        else:
+            tm.assert_almost_equal(result, expected.item())
 
     def check_floor_division(self, lhs, arith1, rhs):
         ex = 'lhs {0} rhs'.format(arith1)
@@ -319,13 +322,13 @@ class TestEvalNumexprPandas(tm.TestCase):
             self.assertRaises(AssertionError, tm.assert_numpy_array_equal,
                               result, expected)
         else:
-            assert_allclose(result, expected)
+            tm.assert_almost_equal(result, expected)
 
             ex = '(lhs {0} rhs) {0} rhs'.format(arith1)
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
             expected = self.get_expected_pow_result(
                 self.get_expected_pow_result(lhs, rhs), rhs)
-            assert_allclose(result, expected)
+            tm.assert_almost_equal(result, expected)
 
     def check_single_invert_op(self, lhs, cmp1, rhs):
         # simple
@@ -701,10 +704,10 @@ class TestEvalPythonPython(TestEvalNumexprPython):
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
 
         expected = lhs % rhs
-        assert_allclose(result, expected)
+        tm.assert_almost_equal(result, expected)
 
         expected = _eval_single_bin(expected, arith1, rhs, self.engine)
-        assert_allclose(result, expected)
+        tm.assert_almost_equal(result, expected)
 
     def check_alignment(self, result, nlhs, ghs, op):
         try:
@@ -1578,7 +1581,7 @@ class TestMathPythonPython(tm.TestCase):
             expr = "{0}(a, b)".format(fn)
             got = self.eval(expr)
             expect = getattr(np, fn)(a, b)
-            np.testing.assert_allclose(got, expect)
+            tm.assert_almost_equal(got, expect, check_names=False)
 
     def test_df_use_case(self):
         df = DataFrame({'a': np.random.randn(10),

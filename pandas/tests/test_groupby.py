@@ -31,7 +31,6 @@ import pandas.core.nanops as nanops
 
 import pandas.util.testing as tm
 import pandas as pd
-from numpy.testing import assert_equal
 
 
 class TestGroupBy(tm.TestCase):
@@ -4621,10 +4620,10 @@ class TestGroupBy(tm.TestCase):
         import pytz
 
         df = pd.DataFrame({'a': [1], 'b': [datetime.now(pytz.utc)]})
-        tm.assert_equal(df['b'][0].tzinfo, pytz.utc)
+        self.assertEqual(df['b'][0].tzinfo, pytz.utc)
         df = pd.DataFrame({'a': [1, 2, 3]})
         df['b'] = datetime.now(pytz.utc)
-        tm.assert_equal(df['b'][0].tzinfo, pytz.utc)
+        self.assertEqual(df['b'][0].tzinfo, pytz.utc)
 
     def test_groupby_with_timegrouper(self):
         # GH 4161
@@ -5855,24 +5854,24 @@ class TestGroupBy(tm.TestCase):
         # orders=True, na_position='last'
         result = _lexsort_indexer(keys, orders=True, na_position='last')
         expected = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # orders=True, na_position='first'
         result = _lexsort_indexer(keys, orders=True, na_position='first')
         expected = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # orders=False, na_position='last'
         result = _lexsort_indexer(keys, orders=False, na_position='last')
         expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105,
                                                                          110))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # orders=False, na_position='first'
         result = _lexsort_indexer(keys, orders=False, na_position='first')
         expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4,
                                                                        -1))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_nargsort(self):
         # np.argsort(items) places NaNs last
@@ -5899,53 +5898,53 @@ class TestGroupBy(tm.TestCase):
         result = _nargsort(items, kind='mergesort', ascending=True,
                            na_position='last')
         expected = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # mergesort, ascending=True, na_position='first'
         result = _nargsort(items, kind='mergesort', ascending=True,
                            na_position='first')
         expected = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # mergesort, ascending=False, na_position='last'
         result = _nargsort(items, kind='mergesort', ascending=False,
                            na_position='last')
         expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105,
                                                                          110))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # mergesort, ascending=False, na_position='first'
         result = _nargsort(items, kind='mergesort', ascending=False,
                            na_position='first')
         expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4,
                                                                        -1))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # mergesort, ascending=True, na_position='last'
         result = _nargsort(items2, kind='mergesort', ascending=True,
                            na_position='last')
         expected = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # mergesort, ascending=True, na_position='first'
         result = _nargsort(items2, kind='mergesort', ascending=True,
                            na_position='first')
         expected = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # mergesort, ascending=False, na_position='last'
         result = _nargsort(items2, kind='mergesort', ascending=False,
                            na_position='last')
         expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105,
                                                                          110))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # mergesort, ascending=False, na_position='first'
         result = _nargsort(items2, kind='mergesort', ascending=False,
                            na_position='first')
         expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4,
                                                                        -1))
-        assert_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_datetime_count(self):
         df = DataFrame({'a': [1, 2, 3] * 2,
