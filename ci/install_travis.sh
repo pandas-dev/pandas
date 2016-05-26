@@ -37,22 +37,28 @@ echo "home_dir: [$home_dir]"
 python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 [ "$python_major_version" == "2" ] && python_major_version=""
 
-# install miniconda
-if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    wget http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+MINICONDA_DIR="$HOME/miniconda"
+
+if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ]; then
+    echo "Miniconda install already present from cache: $MINICONDA_DIR"
 else
-    wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+    rm -rf "$MINICONDA_DIR"
+    # install miniconda
+    if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+        wget http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+    else
+        wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+    fi
+    bash miniconda.sh -b -p MINICONDA_DIR || exit 1
+
+    conda config --set always_yes yes --set changeps1 no || exit 1
+    conda update -q conda || exit 1
+    conda config --add channels http://conda.anaconda.org/pandas || exit 1
+    conda config --set ssl_verify false || exit 1
+
+    # Useful for debugging any issues with conda
+    conda info -a || exit 1
 fi
-bash miniconda.sh -b -p $HOME/miniconda || exit 1
-
-conda config --set always_yes yes --set changeps1 no || exit 1
-conda update -q conda || exit 1
-conda config --add channels http://conda.anaconda.org/pandas || exit 1
-conda config --set ssl_verify false || exit 1
-
-# Useful for debugging any issues with conda
-conda info -a || exit 1
-
 # build deps
 REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.build"
 time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose coverage flake8 || exit 1
