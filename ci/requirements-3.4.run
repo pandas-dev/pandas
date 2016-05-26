@@ -1,4 +1,4 @@
-pytz
+pytz=2015.7
 numpy=1.8.1
 openpyxl
 xlsxwriter
