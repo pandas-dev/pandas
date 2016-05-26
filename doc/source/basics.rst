@@ -1741,12 +1741,12 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`
 
     :meth:`~DataFrame.loc` tries to fit in what we are assigning to the current dtypes, while ``[]`` will overwrite them taking the dtype from the right hand side. Therefore the following piece of code produces the unintended result.
 
-.. ipython:: python
+    .. ipython:: python
 
-   dft = pd.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7, 8, 9]})
-   dft.loc[:, ['a', 'b']].astype(np.uint8).dtypes
-   dft.loc[:, ['a', 'b']] = dft.loc[:, ['a', 'b']].astype(np.uint8)
-   dft.dtypes
+       dft = pd.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7, 8, 9]})
+       dft.loc[:, ['a', 'b']].astype(np.uint8).dtypes
+       dft.loc[:, ['a', 'b']] = dft.loc[:, ['a', 'b']].astype(np.uint8)
+       dft.dtypes
 
 object conversion
 ~~~~~~~~~~~~~~~~~
