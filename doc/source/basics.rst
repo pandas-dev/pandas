@@ -1737,7 +1737,7 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`
 
 .. note::
 
-    When trying to convert a subset of columns to a specified type using :meth:`~DataFrame.astype`  and :meth:`~DataFrame.loc`, utilizing **:** as mask, upcasting occurs.
+    When trying to convert a subset of columns to a specified type using :meth:`~DataFrame.astype`  and :meth:`~DataFrame.loc`, upcasting occurs.
 
     :meth:`~DataFrame.loc` tries to fit in what we are assigning to the current dtypes, while ``[]`` will overwrite them taking the dtype from the right hand side. Therefore the following piece of code produces the unintended result.
 
