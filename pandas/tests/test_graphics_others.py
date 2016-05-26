@@ -11,12 +11,12 @@ from distutils.version import LooseVersion
 from pandas import Series, DataFrame, MultiIndex
 from pandas.compat import range, lmap, lzip
 import pandas.util.testing as tm
+from pandas.util.testing import slow
 
 import numpy as np
 from numpy import random
 from numpy.random import randn
 
-from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 
 from pandas.tests.test_graphics import (TestPlotBase, _check_plot_works,

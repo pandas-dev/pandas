@@ -1420,7 +1420,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
     def test_slicing_directly(self):
         cat = Categorical(["a", "b", "c", "d", "a", "b", "c"])
         sliced = cat[3]
-        tm.assert_equal(sliced, "d")
+        self.assertEqual(sliced, "d")
         sliced = cat[3:5]
         expected = Categorical(["d", "a"], categories=['a', 'b', 'c', 'd'])
         self.assert_numpy_array_equal(sliced._codes, expected._codes)

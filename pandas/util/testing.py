@@ -19,6 +19,7 @@ from contextlib import contextmanager
 from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
+from numpy.testing.decorators import slow     # noqa
 import numpy as np
 
 import pandas as pd
