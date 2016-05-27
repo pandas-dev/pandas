@@ -465,6 +465,24 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(n))
 
+    def where(self, cond, other=None):
+        """
+        .. versionadded:: 0.18.2
+
+        Return an Index of same shape as self and whose corresponding
+        entries are from self where cond is True and otherwise are from
+        other.
+
+        Parameters
+        ----------
+        cond : boolean same length as self
+        other : scalar, or array-like
+        """
+        if other is None:
+            other = self._na_value
+        values = np.where(cond, self.values, other)
+        return self._shallow_copy_with_infer(values, dtype=self.dtype)
+
     def ravel(self, order='C'):
         """
         return an ndarray of the flattened values of the underlying data

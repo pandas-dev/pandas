@@ -1333,6 +1333,7 @@ Modifying and Computations
    Index.max
    Index.reindex
    Index.repeat
+   Index.where
    Index.take
    Index.putmask
    Index.set_names

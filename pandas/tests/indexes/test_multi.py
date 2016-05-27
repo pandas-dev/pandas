@@ -78,6 +78,14 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertTrue((i.labels[0] >= 0).all())
         self.assertTrue((i.labels[1] >= 0).all())
 
+    def test_where(self):
+        i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
+
+        def f():
+            i.where(True)
+
+        self.assertRaises(NotImplementedError, f)
+
     def test_repeat(self):
         reps = 2
         numbers = [1, 2, 3]

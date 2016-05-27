@@ -1084,6 +1084,10 @@ class MultiIndex(Index):
                                   for label in self.labels], names=self.names,
                           sortorder=self.sortorder, verify_integrity=False)
 
+    def where(self, cond, other=None):
+        raise NotImplementedError(".where is not supported for "
+                                  "MultiIndex operations")
+
     def drop(self, labels, level=None, errors='raise'):
         """
         Make new MultiIndex with passed list of labels deleted

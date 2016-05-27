@@ -7,7 +7,7 @@ import numpy as np
 from pandas import (DatetimeIndex, Float64Index, Index, Int64Index,
                     NaT, Period, PeriodIndex, Series, Timedelta,
                     TimedeltaIndex, date_range, period_range,
-                    timedelta_range)
+                    timedelta_range, notnull)
 
 import pandas.util.testing as tm
 
@@ -449,6 +449,38 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         self.assertRaises(ValueError, idx.astype, 'datetime64')
         self.assertRaises(ValueError, idx.astype, 'datetime64[D]')
 
+    def test_where_other(self):
+
+        # other is ndarray or Index
+        i = pd.date_range('20130101', periods=3, tz='US/Eastern')
+
+        for arr in [np.nan, pd.NaT]:
+            result = i.where(notnull(i), other=np.nan)
+            expected = i
+            tm.assert_index_equal(result, expected)
+
+        i2 = i.copy()
+        i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
+        result = i.where(notnull(i2), i2)
+        tm.assert_index_equal(result, i2)
+
+        i2 = i.copy()
+        i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
+        result = i.where(notnull(i2), i2.values)
+        tm.assert_index_equal(result, i2)
+
+    def test_where_tz(self):
+        i = pd.date_range('20130101', periods=3, tz='US/Eastern')
+        result = i.where(notnull(i))
+        expected = i
+        tm.assert_index_equal(result, expected)
+
+        i2 = i.copy()
+        i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
+        result = i.where(notnull(i2))
+        expected = i2
+        tm.assert_index_equal(result, expected)
+
     def test_get_loc(self):
         idx = pd.date_range('2000-01-01', periods=3)
 
@@ -775,6 +807,39 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
         with tm.assertRaises(KeyError):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 day')
+
+    def test_where(self):
+        i = self.create_index()
+        result = i.where(notnull(i))
+        expected = i
+        tm.assert_index_equal(result, expected)
+
+        i2 = i.copy()
+        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
+                            freq='D')
+        result = i.where(notnull(i2))
+        expected = i2
+        tm.assert_index_equal(result, expected)
+
+    def test_where_other(self):
+
+        i = self.create_index()
+        for arr in [np.nan, pd.NaT]:
+            result = i.where(notnull(i), other=np.nan)
+            expected = i
+            tm.assert_index_equal(result, expected)
+
+        i2 = i.copy()
+        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
+                            freq='D')
+        result = i.where(notnull(i2), i2)
+        tm.assert_index_equal(result, i2)
+
+        i2 = i.copy()
+        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
+                            freq='D')
+        result = i.where(notnull(i2), i2.values)
+        tm.assert_index_equal(result, i2)
 
     def test_get_indexer(self):
         idx = pd.period_range('2000-01-01', periods=3).asfreq('H', how='start')
