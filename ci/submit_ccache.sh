@@ -1,39 +1,19 @@
 #!/bin/bash
 
-if [ "${TRAVIS_OS_NAME}" != "linux" ]; then
-   echo "not using ccache on non-linux"
-   exit 0
-fi
+CACHE_DIR="$HOME/.cache"
+home_dir=$(pwd)
 
-if [ "$IRON_TOKEN" ]; then
+if [ -f "$CACHE_DIR/cache.tar.gz" ]; then
 
-    home_dir=$(pwd)
-    ccache -s
+    echo "Not creating cache - file exists"
 
-    MISSES=$(ccache -s | grep "cache miss" | grep -Po "\d+")
-    echo "MISSES: $MISSES"
+else
 
-    if [ x"$MISSES" == x"0" ]; then
-       echo "No cache misses detected, skipping upload"
-       exit 0
-    fi
-
-    # install the compiler cache
-    sudo apt-get $APT_ARGS install ccache p7zip-full
-    # iron_cache, pending py3 fixes upstream
-    pip install -I --allow-external --allow-insecure git+https://github.com/iron-io/iron_cache_python.git@8a451c7d7e4d16e0c3bedffd0f280d5d9bd4fe59#egg=iron_cache
-
-    rm -rf $HOME/ccache.7z
-
-    tar cf - $HOME/.ccache \
+    tar cfz $CACHE_DIR/cache.tar.gz \
     "$TRAVIS_BUILD_DIR"/pandas/{index,algos,lib,tslib,parser,hashtable}.c \
     "$TRAVIS_BUILD_DIR"/pandas/src/{sparse,testing}.c \
-    "$TRAVIS_BUILD_DIR"/pandas/msgpack.cpp  \
-    |  7za a -si $HOME/ccache.7z
+    "$TRAVIS_BUILD_DIR"/pandas/msgpack.cpp
 
-    split -b 500000 -d $HOME/ccache.7z $HOME/ccache.
-
-    python ci/ironcache/put.py
 fi
 
 exit 0

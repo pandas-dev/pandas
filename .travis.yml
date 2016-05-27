@@ -4,6 +4,7 @@ language: python
 cache:
  directories:
   - $HOME/miniconda
+  - $HOME/.cache
 
 env:
   global:
@@ -32,45 +33,50 @@ matrix:
         - BUILD_TYPE=conda
         - JOB_TAG=_OSX
         - TRAVIS_PYTHON_VERSION=3.5
+        - CACHE_NAME="35_osx"
     - python: 2.7
       env:
-      - JOB_NAME: "27_slow_nnet_LOCALE"
-      - NOSE_ARGS="slow and not network and not disabled"
-      - LOCALE_OVERRIDE="zh_CN.UTF-8"
-      - FULL_DEPS=true
-      - JOB_TAG=_LOCALE
+        - JOB_NAME: "27_slow_nnet_LOCALE"
+        - NOSE_ARGS="slow and not network and not disabled"
+        - LOCALE_OVERRIDE="zh_CN.UTF-8"
+        - FULL_DEPS=true
+        - JOB_TAG=_LOCALE
+        - CACHE_NAME="27_slow_nnet_LOCALE"
       addons:
         apt:
           packages:
           - language-pack-zh-hans
     - python: 2.7
       env:
-      - JOB_NAME: "27_nslow"
-      - NOSE_ARGS="not slow and not disabled"
-      - FULL_DEPS=true
-      - CLIPBOARD_GUI=gtk2
-      - LINT=true
+        - JOB_NAME: "27_nslow"
+        - NOSE_ARGS="not slow and not disabled"
+        - FULL_DEPS=true
+        - CLIPBOARD_GUI=gtk2
+        - LINT=true
+        - CACHE_NAME="27_nslow"
       addons:
         apt:
           packages:
           - python-gtk2
     - python: 3.4
       env:
-      - JOB_NAME: "34_nslow"
-      - NOSE_ARGS="not slow and not disabled"
-      - FULL_DEPS=true
-      - CLIPBOARD=xsel
+        - JOB_NAME: "34_nslow"
+        - NOSE_ARGS="not slow and not disabled"
+        - FULL_DEPS=true
+        - CLIPBOARD=xsel
+        - CACHE_NAME="34_nslow"
       addons:
         apt:
           packages:
           - xsel
     - python: 3.5
       env:
-      - JOB_NAME: "35_nslow"
-      - NOSE_ARGS="not slow and not network and not disabled"
-      - FULL_DEPS=true
-      - CLIPBOARD=xsel
-      - COVERAGE=true
+        - JOB_NAME: "35_nslow"
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - FULL_DEPS=true
+        - CLIPBOARD=xsel
+        - COVERAGE=true
+        - CACHE_NAME="35_nslow"
       addons:
         apt:
           packages:
@@ -78,18 +84,20 @@ matrix:
 #    In allow_failures
     - python: 2.7
       env:
-      - JOB_NAME: "27_slow"
-      - JOB_TAG=_SLOW
-      - NOSE_ARGS="slow and not network and not disabled"
-      - FULL_DEPS=true
+        - JOB_NAME: "27_slow"
+        - JOB_TAG=_SLOW
+        - NOSE_ARGS="slow and not network and not disabled"
+        - FULL_DEPS=true
+        - CACHE_NAME="27_slow"
 #    In allow_failures
     - python: 3.4
       env:
-      - JOB_NAME: "34_slow"
-      - JOB_TAG=_SLOW
-      - NOSE_ARGS="slow and not network and not disabled"
-      - FULL_DEPS=true
-      - CLIPBOARD=xsel
+        - JOB_NAME: "34_slow"
+        - JOB_TAG=_SLOW
+        - NOSE_ARGS="slow and not network and not disabled"
+        - FULL_DEPS=true
+        - CLIPBOARD=xsel
+        - CACHE_NAME="34_slow"
       addons:
         apt:
           packages:
@@ -97,18 +105,20 @@ matrix:
 #    In allow_failures
     - python: 2.7
       env:
-      - JOB_NAME: "27_build_test_conda"
-      - JOB_TAG=_BUILD_TEST
-      - NOSE_ARGS="not slow and not disabled"
-      - FULL_DEPS=true
-      - BUILD_TEST=true
+        - JOB_NAME: "27_build_test_conda"
+        - JOB_TAG=_BUILD_TEST
+        - NOSE_ARGS="not slow and not disabled"
+        - FULL_DEPS=true
+        - BUILD_TEST=true
+        - CACHE_NAME="27_build_test_conda"
 #    In allow_failures
     - python: 3.5
       env:
-      - JOB_NAME: "35_numpy_dev"
-      - JOB_TAG=_NUMPY_DEV
-      - NOSE_ARGS="not slow and not network and not disabled"
-      - PANDAS_TESTING_MODE="deprecate"
+        - JOB_NAME: "35_numpy_dev"
+        - JOB_TAG=_NUMPY_DEV
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - PANDAS_TESTING_MODE="deprecate"
+        - CACHE_NAME="35_numpy_dev"
       addons:
         apt:
           packages:
@@ -117,11 +127,12 @@ matrix:
 #    In allow_failures
     - python: 2.7
       env:
-      - JOB_NAME: "27_nslow_nnet_COMPAT"
-      - NOSE_ARGS="not slow and not network and not disabled"
-      - LOCALE_OVERRIDE="it_IT.UTF-8"
-      - INSTALL_TEST=true
-      - JOB_TAG=_COMPAT
+        - JOB_NAME: "27_nslow_nnet_COMPAT"
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - LOCALE_OVERRIDE="it_IT.UTF-8"
+        - INSTALL_TEST=true
+        - JOB_TAG=_COMPAT
+        - CACHE_NAME="27_nslow_nnet_COMPAT"
       addons:
         apt:
           packages:
@@ -129,10 +140,11 @@ matrix:
 #    In allow_failures
     - python: 2.7
       env:
-      - JOB_NAME: "doc_build"
-      - FULL_DEPS=true
-      - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
-      - JOB_TAG=_DOC_BUILD
+        - JOB_NAME: "doc_build"
+        - FULL_DEPS=true
+        - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
+        - JOB_TAG=_DOC_BUILD
+        - CACHE_NAME="doc_build"
     allow_failures:
       - python: 2.7
         env:
@@ -140,6 +152,7 @@ matrix:
         - JOB_TAG=_SLOW
         - NOSE_ARGS="slow and not network and not disabled"
         - FULL_DEPS=true
+        - CACHE_NAME="27_slow"
       - python: 3.4
         env:
         - JOB_NAME: "34_slow"
@@ -147,6 +160,7 @@ matrix:
         - NOSE_ARGS="slow and not network and not disabled"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
+        - CACHE_NAME="34_slow"
         addons:
           apt:
             packages:
@@ -158,12 +172,14 @@ matrix:
         - NOSE_ARGS="not slow and not disabled"
         - FULL_DEPS=true
         - BUILD_TEST=true
+        - CACHE_NAME="27_build_test_conda"
       - python: 3.5
         env:
         - JOB_NAME: "35_numpy_dev"
         - JOB_TAG=_NUMPY_DEV
         - NOSE_ARGS="not slow and not network and not disabled"
         - PANDAS_TESTING_MODE="deprecate"
+        - CACHE_NAME="35_numpy_dev"
         addons:
           apt:
             packages:
@@ -176,6 +192,7 @@ matrix:
         - LOCALE_OVERRIDE="it_IT.UTF-8"
         - INSTALL_TEST=true
         - JOB_TAG=_COMPAT
+        - CACHE_NAME="27_nslow_nnet_COMPAT"
         addons:
           apt:
             packages:
@@ -186,6 +203,7 @@ matrix:
         - FULL_DEPS=true
         - DOC_BUILD=true
         - JOB_TAG=_DOC_BUILD
+        - CACHE_NAME="doc_build"
 
 before_install:
   - echo "before_install"
