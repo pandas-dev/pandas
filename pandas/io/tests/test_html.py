@@ -688,6 +688,28 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         nose.tools.assert_equal(result['Header'].dtype, np.dtype('float64'))
         tm.assert_frame_equal(result, expected)
 
+    def test_decimal_rows(self):
+        data = StringIO('''<html>
+            <body>
+             <table>
+                <thead>
+                    <tr>
+                        <th>Header</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1100#101</td>
+                    </tr>
+                </tbody>
+            </table>
+            </body>
+        </html>''')
+        expected = DataFrame(data={'Header': 1100.101}, index=[0])
+        result = self.read_html(data, decimal='#')[0]
+        nose.tools.assert_equal(result['Header'].dtype, np.dtype('float64'))
+        tm.assert_frame_equal(result, expected)
+
     def test_bool_header_arg(self):
         # GH 6114
         for arg in [True, False]:
