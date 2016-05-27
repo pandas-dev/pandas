@@ -66,7 +66,7 @@ Other enhancements
      idx = pd.Index(["a1a2", "b1", "c1"])
      idx.str.extractall("[ab](?P<digit>\d)")
 
-- ``Timestamp``s can now accept positional and keyword parameters like :func:`datetime.datetime` (:issue:`10758`, :issue:`11630`)
+- ``Timestamp`` s can now accept positional and keyword parameters like :func:`datetime.datetime` (:issue:`10758`, :issue:`11630`)
 
   .. ipython:: python
 
@@ -80,6 +80,7 @@ Other enhancements
 - ``Categorical.astype()`` now accepts an optional boolean argument ``copy``, effective when dtype is categorical (:issue:`13209`)
 - Consistent with the Python API, ``pd.read_csv()`` will now interpret ``+inf`` as positive infinity (:issue:`13274`)
 
+- ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
 
 .. _whatsnew_0182.api:
 
@@ -121,10 +122,10 @@ New Behavior:
 
 .. _whatsnew_0182.api.promote:
 
-``Series`` type promotoion on assignment
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``Series`` type promotion on assignment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A ``Series`` will now correctly promote its dtype with assignment with incompat values to the current dtype (:issue:`13234`)
+A ``Series`` will now correctly promote its dtype for assignment with incompat values to the current dtype (:issue:`13234`)
 
 
 .. ipython:: python
@@ -213,7 +214,7 @@ Bug Fixes
 
 
 - Bug in ``.groupby(..).resample(..)`` when the same object is called multiple times (:issue:`13174`)
-- Bug in ``.to_records()`` when index name is a unicode string (:issue: `13172`)
+- Bug in ``.to_records()`` when index name is a unicode string (:issue:`13172`)
 
 - Bug in calling ``.memory_usage()`` on object which doesn't implement (:issue:`12924`)
 
@@ -238,7 +239,7 @@ Bug Fixes
 
 
 
-- Bug in ``pd.read_csv()`` with ``engine=='python'`` in which infinities of mixed-case forms were not being interpreted properly (:issue:`13274`)
+- Bug in ``pd.read_csv()`` with ``engine='python'`` in which infinities of mixed-case forms were not being interpreted properly (:issue:`13274`)
 
 
 
