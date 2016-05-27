@@ -676,7 +676,7 @@ class TestMerge(tm.TestCase):
         expected = DataFrame({'key': [1, 1, 1, 1, 2, 2, 3, 4, 5],
                               'value': np.array([0, 0, 1, 1, 2, 3, 4,
                                                  np.nan, np.nan]),
-                              'rvalue': np.array([0, 1, 0, 1, 2, 2, 3, 4, 5])},
+                              'rvalue': [0, 1, 0, 1, 2, 2, 3, 4, 5]},
                              columns=['value', 'key', 'rvalue'])
         assert_frame_equal(joined, expected)
 
