@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 from pandas.compat import range, lrange, lzip, zip, map, filter
 import pandas.compat as compat
+
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.generic import NDFrame
@@ -22,6 +23,7 @@ from pandas.core.common import ABCSeries
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.types.concat as _concat
+from pandas.types.api import na_value_for_dtype
 
 import pandas.algos as _algos
 import pandas.hashtable as _hash
@@ -280,55 +282,78 @@ class _MergeOperation(object):
         return result
 
     def _maybe_add_join_keys(self, result, left_indexer, right_indexer):
-        # insert group keys
+
+        left_has_missing = None
+        right_has_missing = None
 
         keys = zip(self.join_names, self.left_on, self.right_on)
         for i, (name, lname, rname) in enumerate(keys):
             if not _should_fill(lname, rname):
                 continue
 
+            take_left, take_right = None, None
+
             if name in result:
-                key_indexer = result.columns.get_loc(name)
 
                 if left_indexer is not None and right_indexer is not None:
-
                     if name in self.left:
-                        if len(self.left) == 0:
-                            continue
 
-                        na_indexer = (left_indexer == -1).nonzero()[0]
-                        if len(na_indexer) == 0:
-                            continue
+                        if left_has_missing is None:
+                            left_has_missing = any(left_indexer == -1)
 
-                        right_na_indexer = right_indexer.take(na_indexer)
-                        result.iloc[na_indexer, key_indexer] = (
-                            algos.take_1d(self.right_join_keys[i],
-                                          right_na_indexer))
+                        if left_has_missing:
+                            take_right = self.right_join_keys[i]
+
+                            if not com.is_dtype_equal(result[name].dtype,
+                                                      self.left[name].dtype):
+                                take_left = self.left[name]._values
+
                     elif name in self.right:
-                        if len(self.right) == 0:
-                            continue
 
-                        na_indexer = (right_indexer == -1).nonzero()[0]
-                        if len(na_indexer) == 0:
-                            continue
+                        if right_has_missing is None:
+                            right_has_missing = any(right_indexer == -1)
 
-                        left_na_indexer = left_indexer.take(na_indexer)
-                        result.iloc[na_indexer, key_indexer] = (
-                            algos.take_1d(self.left_join_keys[i],
-                                          left_na_indexer))
+                        if right_has_missing:
+                            take_left = self.left_join_keys[i]
+
+                            if not com.is_dtype_equal(result[name].dtype,
+                                                      self.right[name].dtype):
+                                take_right = self.right[name]._values
+
             elif left_indexer is not None \
                     and isinstance(self.left_join_keys[i], np.ndarray):
 
-                if name is None:
-                    name = 'key_%d' % i
+                take_left = self.left_join_keys[i]
+                take_right = self.right_join_keys[i]
 
-                # a faster way?
-                key_col = algos.take_1d(self.left_join_keys[i], left_indexer)
-                na_indexer = (left_indexer == -1).nonzero()[0]
-                right_na_indexer = right_indexer.take(na_indexer)
-                key_col.put(na_indexer, algos.take_1d(self.right_join_keys[i],
-                                                      right_na_indexer))
-                result.insert(i, name, key_col)
+            if take_left is not None or take_right is not None:
+
+                if take_left is None:
+                    lvals = result[name]._values
+                else:
+                    lfill = na_value_for_dtype(take_left.dtype)
+                    lvals = algos.take_1d(take_left, left_indexer,
+                                          fill_value=lfill)
+
+                if take_right is None:
+                    rvals = result[name]._values
+                else:
+                    rfill = na_value_for_dtype(take_right.dtype)
+                    rvals = algos.take_1d(take_right, right_indexer,
+                                          fill_value=rfill)
+
+                # if we have an all missing left_indexer
+                # make sure to just use the right values
+                mask = left_indexer == -1
+                if mask.all():
+                    key_col = rvals
+                else:
+                    key_col = Index(lvals).where(~mask, rvals)
+
+                if name in result:
+                    result[name] = key_col
+                else:
+                    result.insert(i, name or 'key_%d' % i, key_col)
 
     def _get_join_info(self):
         left_ax = self.left._data.axes[self.axis]
