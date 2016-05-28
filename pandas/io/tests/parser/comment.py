@@ -19,14 +19,14 @@ class CommentTests(object):
 1,2.,4.#hello world
 5.,NaN,10.0
 """
-        expected = [[1., 2., 4.],
-                    [5., np.nan, 10.]]
+        expected = np.array([[1., 2., 4.],
+                             [5., np.nan, 10.]])
         df = self.read_csv(StringIO(data), comment='#')
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
         df = self.read_table(StringIO(data), sep=',', comment='#',
                              na_values=['NaN'])
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
     def test_line_comment(self):
         data = """# empty
@@ -35,10 +35,10 @@ A,B,C
 #ignore this line
 5.,NaN,10.0
 """
-        expected = [[1., 2., 4.],
-                    [5., np.nan, 10.]]
+        expected = np.array([[1., 2., 4.],
+                             [5., np.nan, 10.]])
         df = self.read_csv(StringIO(data), comment='#')
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
         # check with delim_whitespace=True
         df = self.read_csv(StringIO(data.replace(',', ' ')), comment='#',
@@ -48,11 +48,11 @@ A,B,C
         # custom line terminator is not supported
         # with the Python parser yet
         if self.engine == 'c':
-            expected = [[1., 2., 4.],
-                        [5., np.nan, 10.]]
+            expected = np.array([[1., 2., 4.],
+                                 [5., np.nan, 10.]])
             df = self.read_csv(StringIO(data.replace('\n', '*')),
                                comment='#', lineterminator='*')
-            tm.assert_almost_equal(df.values, expected)
+            tm.assert_numpy_array_equal(df.values, expected)
 
     def test_comment_skiprows(self):
         data = """# empty
@@ -64,9 +64,9 @@ A,B,C
 5.,NaN,10.0
 """
         # this should ignore the first four lines (including comments)
-        expected = [[1., 2., 4.], [5., np.nan, 10.]]
+        expected = np.array([[1., 2., 4.], [5., np.nan, 10.]])
         df = self.read_csv(StringIO(data), comment='#', skiprows=4)
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
     def test_comment_header(self):
         data = """# empty
@@ -77,9 +77,9 @@ A,B,C
 5.,NaN,10.0
 """
         # header should begin at the second non-comment line
-        expected = [[1., 2., 4.], [5., np.nan, 10.]]
+        expected = np.array([[1., 2., 4.], [5., np.nan, 10.]])
         df = self.read_csv(StringIO(data), comment='#', header=1)
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
     def test_comment_skiprows_header(self):
         data = """# empty
@@ -94,9 +94,9 @@ A,B,C
         # skiprows should skip the first 4 lines (including comments), while
         # header should start from the second non-commented line starting
         # with line 5
-        expected = [[1., 2., 4.], [5., np.nan, 10.]]
+        expected = np.array([[1., 2., 4.], [5., np.nan, 10.]])
         df = self.read_csv(StringIO(data), comment='#', skiprows=4, header=1)
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
     def test_custom_comment_char(self):
         data = "a,b,c\n1,2,3#ignore this!\n4,5,6#ignorethistoo"

@@ -330,7 +330,7 @@ class TestTSPlot(tm.TestCase):
         bts = DataFrame({'a': tm.makeTimeSeries()})
         ax = bts.plot()
         idx = ax.get_lines()[0].get_xdata()
-        tm.assert_numpy_array_equal(bts.index.to_period(), PeriodIndex(idx))
+        tm.assert_index_equal(bts.index.to_period(), PeriodIndex(idx))
 
     @slow
     def test_axis_limits(self):
@@ -1113,7 +1113,7 @@ class TestTSPlot(tm.TestCase):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         lines = ax.plot(x, y, label='Y')
-        tm.assert_numpy_array_equal(DatetimeIndex(lines[0].get_xdata()), x)
+        tm.assert_index_equal(DatetimeIndex(lines[0].get_xdata()), x)
 
     @slow
     def test_mpl_nopandas(self):

@@ -185,6 +185,16 @@ class TestEvalNumexprPandas(tm.TestCase):
                                                  mids, cmp_ops, self.rhses):
             self.check_chained_cmp_op(lhs, cmp1, mid, cmp2, rhs)
 
+    def check_equal(self, result, expected):
+        if isinstance(result, DataFrame):
+            tm.assert_frame_equal(result, expected)
+        elif isinstance(result, Series):
+            tm.assert_series_equal(result, expected)
+        elif isinstance(result, np.ndarray):
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            self.assertEqual(result, expected)
+
     def check_complex_cmp_op(self, lhs, cmp1, rhs, binop, cmp2):
         skip_these = _scalar_skip
         ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
@@ -218,7 +228,7 @@ class TestEvalNumexprPandas(tm.TestCase):
                 expected = _eval_single_bin(
                     lhs_new, binop, rhs_new, self.engine)
                 result = pd.eval(ex, engine=self.engine, parser=self.parser)
-                tm.assert_numpy_array_equal(result, expected)
+                self.check_equal(result, expected)
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
         skip_these = _scalar_skip
@@ -249,7 +259,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         else:
             expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
-            tm.assert_numpy_array_equal(result, expected)
+            self.check_equal(result, expected)
 
     def check_binary_arith_op(self, lhs, arith1, rhs):
         ex = 'lhs {0} rhs'.format(arith1)
@@ -293,7 +303,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         if self.engine == 'python':
             res = pd.eval(ex, engine=self.engine, parser=self.parser)
             expected = lhs // rhs
-            tm.assert_numpy_array_equal(res, expected)
+            self.check_equal(res, expected)
         else:
             self.assertRaises(TypeError, pd.eval, ex, local_dict={'lhs': lhs,
                                                                   'rhs': rhs},

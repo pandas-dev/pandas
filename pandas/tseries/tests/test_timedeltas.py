@@ -1223,7 +1223,7 @@ class TestTimedeltaIndex(tm.TestCase):
                               freq='s')
         expt = [1 * 86400 + 10 * 3600 + 11 * 60 + 12 + 100123456. / 1e9,
                 1 * 86400 + 10 * 3600 + 11 * 60 + 13 + 100123456. / 1e9]
-        tm.assert_almost_equal(rng.total_seconds(), expt)
+        tm.assert_almost_equal(rng.total_seconds(), np.array(expt))
 
         # test Series
         s = Series(rng)
@@ -1288,7 +1288,7 @@ class TestTimedeltaIndex(tm.TestCase):
     def test_constructor_coverage(self):
         rng = timedelta_range('1 days', periods=10.5)
         exp = timedelta_range('1 days', periods=10)
-        self.assertTrue(rng.equals(exp))
+        self.assert_index_equal(rng, exp)
 
         self.assertRaises(ValueError, TimedeltaIndex, start='1 days',
                           periods='foo', freq='D')
@@ -1302,16 +1302,16 @@ class TestTimedeltaIndex(tm.TestCase):
         gen = (timedelta(i) for i in range(10))
         result = TimedeltaIndex(gen)
         expected = TimedeltaIndex([timedelta(i) for i in range(10)])
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         # NumPy string array
         strings = np.array(['1 days', '2 days', '3 days'])
         result = TimedeltaIndex(strings)
         expected = to_timedelta([1, 2, 3], unit='d')
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         from_ints = TimedeltaIndex(expected.asi8)
-        self.assertTrue(from_ints.equals(expected))
+        self.assert_index_equal(from_ints, expected)
 
         # non-conforming freq
         self.assertRaises(ValueError, TimedeltaIndex,
@@ -1438,7 +1438,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         f = lambda x: x.days
         result = rng.map(f)
-        exp = [f(x) for x in rng]
+        exp = np.array([f(x) for x in rng], dtype=np.int64)
         self.assert_numpy_array_equal(result, exp)
 
     def test_misc_coverage(self):
@@ -1459,7 +1459,7 @@ class TestTimedeltaIndex(tm.TestCase):
         i2 = timedelta_range('3day', periods=5)
         result = i1.union(i2)
         expected = timedelta_range('1day', periods=7)
-        self.assert_numpy_array_equal(result, expected)
+        self.assert_index_equal(result, expected)
 
         i1 = Int64Index(np.arange(0, 20, 2))
         i2 = TimedeltaIndex(start='1 day', periods=10, freq='D')
@@ -1471,10 +1471,10 @@ class TestTimedeltaIndex(tm.TestCase):
         idx = TimedeltaIndex(['3d', '1d', '2d'])
         ordered = TimedeltaIndex(idx.sort_values(), freq='infer')
         result = ordered.union(idx)
-        self.assertTrue(result.equals(ordered))
+        self.assert_index_equal(result, ordered)
 
         result = ordered[:0].union(ordered)
-        self.assertTrue(result.equals(ordered))
+        self.assert_index_equal(result, ordered)
         self.assertEqual(result.freq, ordered.freq)
 
     def test_union_bug_1730(self):
@@ -1484,18 +1484,18 @@ class TestTimedeltaIndex(tm.TestCase):
 
         result = rng_a.union(rng_b)
         exp = TimedeltaIndex(sorted(set(list(rng_a)) | set(list(rng_b))))
-        self.assertTrue(result.equals(exp))
+        self.assert_index_equal(result, exp)
 
     def test_union_bug_1745(self):
 
         left = TimedeltaIndex(['1 day 15:19:49.695000'])
-        right = TimedeltaIndex(
-            ['2 day 13:04:21.322000', '1 day 15:27:24.873000',
-             '1 day 15:31:05.350000'])
+        right = TimedeltaIndex(['2 day 13:04:21.322000',
+                                '1 day 15:27:24.873000',
+                                '1 day 15:31:05.350000'])
 
         result = left.union(right)
         exp = TimedeltaIndex(sorted(set(list(left)) | set(list(right))))
-        self.assertTrue(result.equals(exp))
+        self.assert_index_equal(result, exp)
 
     def test_union_bug_4564(self):
 
@@ -1504,7 +1504,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         result = left.union(right)
         exp = TimedeltaIndex(sorted(set(list(left)) | set(list(right))))
-        self.assertTrue(result.equals(exp))
+        self.assert_index_equal(result, exp)
 
     def test_intersection_bug_1708(self):
         index_1 = timedelta_range('1 day', periods=4, freq='h')
@@ -1526,7 +1526,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         result = idx.get_duplicates()
         ex = TimedeltaIndex(['2 day', '3day'])
-        self.assertTrue(result.equals(ex))
+        self.assert_index_equal(result, ex)
 
     def test_argmin_argmax(self):
         idx = TimedeltaIndex(['1 day 00:00:05', '1 day 00:00:01',
@@ -1546,11 +1546,13 @@ class TestTimedeltaIndex(tm.TestCase):
 
         ordered, dexer = idx.sort_values(return_indexer=True)
         self.assertTrue(ordered.is_monotonic)
-        self.assert_numpy_array_equal(dexer, [1, 2, 0])
+        self.assert_numpy_array_equal(dexer,
+                                      np.array([1, 2, 0], dtype=np.int64))
 
         ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
         self.assertTrue(ordered[::-1].is_monotonic)
-        self.assert_numpy_array_equal(dexer, [0, 2, 1])
+        self.assert_numpy_array_equal(dexer,
+                                      np.array([0, 2, 1], dtype=np.int64))
 
     def test_insert(self):
 
@@ -1558,7 +1560,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         result = idx.insert(2, timedelta(days=5))
         exp = TimedeltaIndex(['4day', '1day', '5day', '2day'], name='idx')
-        self.assertTrue(result.equals(exp))
+        self.assert_index_equal(result, exp)
 
         # insertion of non-datetime should coerce to object index
         result = idx.insert(1, 'inserted')
@@ -1594,7 +1596,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         for n, d, expected in cases:
             result = idx.insert(n, d)
-            self.assertTrue(result.equals(expected))
+            self.assert_index_equal(result, expected)
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)
 
@@ -1618,7 +1620,7 @@ class TestTimedeltaIndex(tm.TestCase):
                  1: expected_1}
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
-            self.assertTrue(result.equals(expected))
+            self.assert_index_equal(result, expected)
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)
 
@@ -1645,12 +1647,12 @@ class TestTimedeltaIndex(tm.TestCase):
                  (3, 4, 5): expected_3_5}
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
-            self.assertTrue(result.equals(expected))
+            self.assert_index_equal(result, expected)
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.delete(slice(n[0], n[-1] + 1))
-            self.assertTrue(result.equals(expected))
+            self.assert_index_equal(result, expected)
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)
 
@@ -1664,7 +1666,7 @@ class TestTimedeltaIndex(tm.TestCase):
         taken2 = idx[[2, 4, 10]]
 
         for taken in [taken1, taken2]:
-            self.assertTrue(taken.equals(expected))
+            self.assert_index_equal(taken, expected)
             tm.assertIsInstance(taken, TimedeltaIndex)
             self.assertIsNone(taken.freq)
             self.assertEqual(taken.name, expected.name)
@@ -1711,7 +1713,7 @@ class TestTimedeltaIndex(tm.TestCase):
         self.assertTrue(result.all())
 
         assert_almost_equal(index.isin([index[2], 5]),
-                            [False, False, True, False])
+                            np.array([False, False, True, False]))
 
     def test_does_not_convert_mixed_integer(self):
         df = tm.makeCustomDataframe(10, 10,
@@ -1748,18 +1750,18 @@ class TestTimedeltaIndex(tm.TestCase):
 
         arr, idx = idx1.factorize()
         self.assert_numpy_array_equal(arr, exp_arr)
-        self.assertTrue(idx.equals(exp_idx))
+        self.assert_index_equal(idx, exp_idx)
 
         arr, idx = idx1.factorize(sort=True)
         self.assert_numpy_array_equal(arr, exp_arr)
-        self.assertTrue(idx.equals(exp_idx))
+        self.assert_index_equal(idx, exp_idx)
 
         # freq must be preserved
         idx3 = timedelta_range('1 day', periods=4, freq='s')
         exp_arr = np.array([0, 1, 2, 3])
         arr, idx = idx3.factorize()
         self.assert_numpy_array_equal(arr, exp_arr)
-        self.assertTrue(idx.equals(idx3))
+        self.assert_index_equal(idx, idx3)
 
 
 class TestSlicing(tm.TestCase):

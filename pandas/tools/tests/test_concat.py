@@ -266,7 +266,8 @@ class TestConcatenate(tm.TestCase):
                         levels=[level],
                         names=['group_key'])
 
-        self.assert_numpy_array_equal(result.columns.levels[0], level)
+        self.assert_index_equal(result.columns.levels[0],
+                                Index(level, name='group_key'))
         self.assertEqual(result.columns.names[0], 'group_key')
 
     def test_concat_dataframe_keys_bug(self):
@@ -413,7 +414,8 @@ class TestConcatenate(tm.TestCase):
                               ('baz', 'one'), ('baz', 'two')],
                         names=['first', 'second'])
         self.assertEqual(result.index.names, ('first', 'second') + (None,))
-        self.assert_numpy_array_equal(result.index.levels[0], ['baz', 'foo'])
+        self.assert_index_equal(result.index.levels[0],
+                                Index(['baz', 'foo'], name='first'))
 
     def test_concat_keys_levels_no_overlap(self):
         # GH #1406

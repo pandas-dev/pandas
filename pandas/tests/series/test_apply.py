@@ -160,7 +160,7 @@ class TestSeriesMap(TestData, tm.TestCase):
 
         # function
         result = self.ts.map(lambda x: x * 2)
-        self.assert_numpy_array_equal(result, self.ts * 2)
+        self.assert_series_equal(result, self.ts * 2)
 
         # GH 10324
         a = Series([1, 2, 3, 4])

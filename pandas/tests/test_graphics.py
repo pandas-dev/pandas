@@ -706,14 +706,12 @@ class TestSeriesPlots(TestPlotBase):
             expected = np.hstack((1.0e-04, expected, 1.0e+01))
 
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar')
-        tm.assert_numpy_array_equal(ax.get_ylim(),
-                                    (0.001, 0.10000000000000001))
+        self.assertEqual(ax.get_ylim(), (0.001, 0.10000000000000001))
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
         tm.close()
 
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='barh')
-        tm.assert_numpy_array_equal(ax.get_xlim(),
-                                    (0.001, 0.10000000000000001))
+        self.assertEqual(ax.get_xlim(), (0.001, 0.10000000000000001))
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
 
     @slow
@@ -2205,11 +2203,11 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = df.plot.scatter(x='a', y='b', c='c')
         tm.assert_numpy_array_equal(ax.collections[0].get_facecolor()[0],
-                                    (0, 0, 1, 1))
+                                    np.array([0, 0, 1, 1], dtype=np.float64))
 
         ax = df.plot.scatter(x='a', y='b', color='white')
         tm.assert_numpy_array_equal(ax.collections[0].get_facecolor()[0],
-                                    (1, 1, 1, 1))
+                                    np.array([1, 1, 1, 1], dtype=np.float64))
 
     @slow
     def test_plot_bar(self):

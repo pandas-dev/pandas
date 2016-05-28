@@ -25,15 +25,16 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestGenRangeGeneration(tm.TestCase):
+
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=datetools.bday))
         rng2 = list(generate_range(START, END, time_rule='B'))
-        self.assert_numpy_array_equal(rng1, rng2)
+        self.assertEqual(rng1, rng2)
 
     def test_generate_cday(self):
         rng1 = list(generate_range(START, END, offset=datetools.cday))
         rng2 = list(generate_range(START, END, time_rule='C'))
-        self.assert_numpy_array_equal(rng1, rng2)
+        self.assertEqual(rng1, rng2)
 
     def test_1(self):
         eq_gen_range(dict(start=datetime(2009, 3, 25), periods=2),
@@ -68,8 +69,8 @@ class TestGenRangeGeneration(tm.TestCase):
                                   freq='Q-DEC', tz=None)
         expected2 = DatetimeIndex(expected2_list, dtype='datetime64[ns]',
                                   freq='W-SUN', tz=None)
-        self.assertTrue(result1.equals(expected1))
-        self.assertTrue(result2.equals(expected2))
+        self.assert_index_equal(result1, expected1)
+        self.assert_index_equal(result2, expected2)
 
 
 class TestDateRange(tm.TestCase):
@@ -140,7 +141,7 @@ class TestDateRange(tm.TestCase):
     def test_copy(self):
         cp = self.rng.copy()
         repr(cp)
-        self.assertTrue(cp.equals(self.rng))
+        self.assert_index_equal(cp, self.rng)
 
     def test_repr(self):
         # only really care that it works
@@ -148,7 +149,9 @@ class TestDateRange(tm.TestCase):
 
     def test_getitem(self):
         smaller = self.rng[:5]
-        self.assert_numpy_array_equal(smaller, self.rng.view(np.ndarray)[:5])
+        exp = DatetimeIndex(self.rng.view(np.ndarray)[:5])
+        self.assert_index_equal(smaller, exp)
+
         self.assertEqual(smaller.offset, self.rng.offset)
 
         sliced = self.rng[::5]
@@ -211,7 +214,7 @@ class TestDateRange(tm.TestCase):
         tm.assertIsInstance(the_union, DatetimeIndex)
 
         # order does not matter
-        self.assert_numpy_array_equal(right.union(left), the_union)
+        tm.assert_index_equal(right.union(left), the_union)
 
         # overlapping, but different offset
         rng = date_range(START, END, freq=datetools.bmonthEnd)
@@ -256,13 +259,13 @@ class TestDateRange(tm.TestCase):
         rng1 = rng[10:]
         rng2 = rng[:25]
         the_union = rng1.union(rng2)
-        self.assertTrue(the_union.equals(rng))
+        self.assert_index_equal(the_union, rng)
 
         rng1 = rng[10:]
         rng2 = rng[15:35]
         the_union = rng1.union(rng2)
         expected = rng[10:]
-        self.assertTrue(the_union.equals(expected))
+        self.assert_index_equal(the_union, expected)
 
     def test_intersection(self):
         rng = date_range('1/1/2000', periods=50, freq=datetools.Minute())
@@ -270,24 +273,24 @@ class TestDateRange(tm.TestCase):
         rng2 = rng[:25]
         the_int = rng1.intersection(rng2)
         expected = rng[10:25]
-        self.assertTrue(the_int.equals(expected))
+        self.assert_index_equal(the_int, expected)
         tm.assertIsInstance(the_int, DatetimeIndex)
         self.assertEqual(the_int.offset, rng.offset)
 
         the_int = rng1.intersection(rng2.view(DatetimeIndex))
-        self.assertTrue(the_int.equals(expected))
+        self.assert_index_equal(the_int, expected)
 
         # non-overlapping
         the_int = rng[:10].intersection(rng[10:])
         expected = DatetimeIndex([])
-        self.assertTrue(the_int.equals(expected))
+        self.assert_index_equal(the_int, expected)
 
     def test_intersection_bug(self):
         # GH #771
         a = bdate_range('11/30/2011', '12/31/2011')
         b = bdate_range('12/10/2011', '12/20/2011')
         result = a.intersection(b)
-        self.assertTrue(result.equals(b))
+        self.assert_index_equal(result, b)
 
     def test_summary(self):
         self.rng.summary()
@@ -364,7 +367,7 @@ class TestDateRange(tm.TestCase):
 
         start = datetime(2011, 1, 1)
         exp_values = [start + i * offset for i in range(5)]
-        self.assert_numpy_array_equal(result, DatetimeIndex(exp_values))
+        tm.assert_index_equal(result, DatetimeIndex(exp_values))
 
     def test_range_tz_pytz(self):
         # GH 2906
@@ -494,8 +497,8 @@ class TestDateRange(tm.TestCase):
             if begin == closed[0]:
                 expected_right = closed[1:]
 
-            self.assertTrue(expected_left.equals(left))
-            self.assertTrue(expected_right.equals(right))
+            self.assert_index_equal(expected_left, left)
+            self.assert_index_equal(expected_right, right)
 
     def test_range_closed_with_tz_aware_start_end(self):
         # GH12409
@@ -514,8 +517,8 @@ class TestDateRange(tm.TestCase):
             if begin == closed[0]:
                 expected_right = closed[1:]
 
-            self.assertTrue(expected_left.equals(left))
-            self.assertTrue(expected_right.equals(right))
+            self.assert_index_equal(expected_left, left)
+            self.assert_index_equal(expected_right, right)
 
         # test with default frequency, UTC
         begin = Timestamp('2011/1/1', tz='UTC')
@@ -546,9 +549,9 @@ class TestDateRange(tm.TestCase):
                 expected_right = both_boundary[1:]
                 expected_left = both_boundary[:-1]
 
-            self.assertTrue(right_boundary.equals(expected_right))
-            self.assertTrue(left_boundary.equals(expected_left))
-            self.assertTrue(both_boundary.equals(expected_both))
+            self.assert_index_equal(right_boundary, expected_right)
+            self.assert_index_equal(left_boundary, expected_left)
+            self.assert_index_equal(both_boundary, expected_both)
 
     def test_years_only(self):
         # GH 6961
@@ -570,8 +573,8 @@ class TestDateRange(tm.TestCase):
                                     '2005-01-13 15:45:00'],
                                    dtype='datetime64[ns]', freq='345T',
                                    tz=None)
-        self.assertTrue(result_1.equals(expected_1))
-        self.assertTrue(result_2.equals(expected_2))
+        self.assert_index_equal(result_1, expected_1)
+        self.assert_index_equal(result_2, expected_2)
 
 
 class TestCustomDateRange(tm.TestCase):
@@ -613,7 +616,7 @@ class TestCustomDateRange(tm.TestCase):
     def test_copy(self):
         cp = self.rng.copy()
         repr(cp)
-        self.assertTrue(cp.equals(self.rng))
+        self.assert_index_equal(cp, self.rng)
 
     def test_repr(self):
         # only really care that it works
@@ -621,7 +624,8 @@ class TestCustomDateRange(tm.TestCase):
 
     def test_getitem(self):
         smaller = self.rng[:5]
-        self.assert_numpy_array_equal(smaller, self.rng.view(np.ndarray)[:5])
+        exp = DatetimeIndex(self.rng.view(np.ndarray)[:5])
+        self.assert_index_equal(smaller, exp)
         self.assertEqual(smaller.offset, self.rng.offset)
 
         sliced = self.rng[::5]
@@ -686,7 +690,7 @@ class TestCustomDateRange(tm.TestCase):
         tm.assertIsInstance(the_union, DatetimeIndex)
 
         # order does not matter
-        self.assert_numpy_array_equal(right.union(left), the_union)
+        self.assert_index_equal(right.union(left), the_union)
 
         # overlapping, but different offset
         rng = date_range(START, END, freq=datetools.bmonthEnd)
@@ -731,7 +735,7 @@ class TestCustomDateRange(tm.TestCase):
         a = cdate_range('11/30/2011', '12/31/2011')
         b = cdate_range('12/10/2011', '12/20/2011')
         result = a.intersection(b)
-        self.assertTrue(result.equals(b))
+        self.assert_index_equal(result, b)
 
     def test_summary(self):
         self.rng.summary()
@@ -783,25 +787,25 @@ class TestCustomDateRange(tm.TestCase):
     def test_cdaterange(self):
         rng = cdate_range('2013-05-01', periods=3)
         xp = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-03'])
-        self.assertTrue(xp.equals(rng))
+        self.assert_index_equal(xp, rng)
 
     def test_cdaterange_weekmask(self):
         rng = cdate_range('2013-05-01', periods=3,
                           weekmask='Sun Mon Tue Wed Thu')
         xp = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-05'])
-        self.assertTrue(xp.equals(rng))
+        self.assert_index_equal(xp, rng)
 
     def test_cdaterange_holidays(self):
         rng = cdate_range('2013-05-01', periods=3, holidays=['2013-05-01'])
         xp = DatetimeIndex(['2013-05-02', '2013-05-03', '2013-05-06'])
-        self.assertTrue(xp.equals(rng))
+        self.assert_index_equal(xp, rng)
 
     def test_cdaterange_weekmask_and_holidays(self):
         rng = cdate_range('2013-05-01', periods=3,
                           weekmask='Sun Mon Tue Wed Thu',
                           holidays=['2013-05-01'])
         xp = DatetimeIndex(['2013-05-02', '2013-05-05', '2013-05-06'])
-        self.assertTrue(xp.equals(rng))
+        self.assert_index_equal(xp, rng)
 
 
 if __name__ == '__main__':

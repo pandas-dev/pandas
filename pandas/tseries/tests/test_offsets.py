@@ -4551,7 +4551,7 @@ class TestDST(tm.TestCase):
         for offset, test_values in iteritems(tests):
             first = Timestamp(test_values[0], tz='US/Eastern') + offset()
             second = Timestamp(test_values[1], tz='US/Eastern')
-            self.assertEqual(first, second, str(offset))
+            self.assertEqual(first, second, msg=str(offset))
 
 
 if __name__ == '__main__':

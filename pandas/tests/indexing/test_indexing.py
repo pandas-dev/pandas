@@ -2925,7 +2925,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.columns = ['a', 'a', 'b']
         result = df[['b', 'a']].columns
         expected = Index(['b', 'a', 'a'])
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         # across dtypes
         df = DataFrame([[1, 2, 1., 2., 3., 'foo', 'bar']],
@@ -3829,7 +3829,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         index = df.index.copy()
 
         df['A'] = df['A'].astype(np.float64)
-        self.assertTrue(df.index.equals(index))
+        self.assert_index_equal(df.index, index)
 
         # TODO(wesm): unused variables
         # result = df.get_dtype_counts().sort_index()

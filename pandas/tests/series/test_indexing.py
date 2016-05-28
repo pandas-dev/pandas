@@ -246,7 +246,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         result = s[list(mask)]
         expected = s[mask]
         assert_series_equal(result, expected)
-        self.assert_numpy_array_equal(result.index, s.index[mask])
+        self.assert_index_equal(result.index, s.index[mask])
 
     def test_getitem_boolean_empty(self):
         s = Series([], dtype=np.int64)

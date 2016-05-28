@@ -626,7 +626,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             exp = tsframe[:0]
             exp.index = []
 
-            self.assertTrue(recons.columns.equals(exp.columns))
+            self.assert_index_equal(recons.columns, exp.columns)
             self.assertEqual(len(recons), 0)
 
     def test_to_csv_float32_nanrep(self):

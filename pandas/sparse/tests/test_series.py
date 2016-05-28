@@ -294,7 +294,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_constructor_nonnan(self):
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
-        tm.assert_numpy_array_equal(sp_series.values.values, arr)
+        tm.assert_numpy_array_equal(sp_series.values.values, np.array(arr))
         self.assertEqual(len(sp_series), 5)
         self.assertEqual(sp_series.shape, (5, ))
 
@@ -726,9 +726,9 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         expected = sp.to_dense().valid()
         expected = expected[expected != 0]
-
-        tm.assert_almost_equal(sp_valid.values, expected.values)
-        self.assertTrue(sp_valid.index.equals(expected.index))
+        exp_arr = pd.SparseArray(expected.values, fill_value=0, kind='block')
+        tm.assert_sp_array_equal(sp_valid.values, exp_arr)
+        self.assert_index_equal(sp_valid.index, expected.index)
         self.assertEqual(len(sp_valid.sp_values), 2)
 
         result = self.bseries.dropna()
@@ -1042,8 +1042,7 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         results = (results[0].T, results[2], results[1])
         self._check_results_to_coo(results, check)
 
-    @staticmethod
-    def _check_results_to_coo(results, check):
+    def _check_results_to_coo(self, results, check):
         (A, il, jl) = results
         (A_result, il_result, jl_result) = check
         # convert to dense and compare
@@ -1051,8 +1050,8 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         # or compare directly as difference of sparse
         # assert(abs(A - A_result).max() < 1e-12) # max is failing in python
         # 2.6
-        tm.assert_numpy_array_equal(il, il_result)
-        tm.assert_numpy_array_equal(jl, jl_result)
+        self.assertEqual(il, il_result)
+        self.assertEqual(jl, jl_result)
 
     def test_concat(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])

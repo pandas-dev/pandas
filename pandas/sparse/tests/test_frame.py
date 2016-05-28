@@ -97,8 +97,11 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
         # constructed zframe from matrix above
         self.assertEqual(self.zframe['A'].fill_value, 0)
-        tm.assert_almost_equal([0, 0, 0, 0, 1, 2, 3, 4, 5, 6],
-                               self.zframe['A'].values)
+        tm.assert_numpy_array_equal(pd.SparseArray([1., 2., 3., 4., 5., 6.]),
+                                    self.zframe['A'].values)
+        tm.assert_numpy_array_equal(np.array([0., 0., 0., 0., 1., 2.,
+                                              3., 4., 5., 6.]),
+                                    self.zframe['A'].to_dense().values)
 
         # construct no data
         sdf = SparseDataFrame(columns=np.arange(10), index=np.arange(10))
@@ -380,8 +383,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
         res2 = res.set_value('foobar', 'qux', 1.5)
         self.assertIsNot(res2, res)
-        self.assert_numpy_array_equal(res2.columns,
-                                      list(self.frame.columns) + ['qux'])
+        self.assert_index_equal(res2.columns,
+                                pd.Index(list(self.frame.columns) + ['qux']))
         self.assertEqual(res2.get_value('foobar', 'qux'), 1.5)
 
     def test_fancy_index_misc(self):
@@ -407,7 +410,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         subindex = self.frame.index[indexer]
         subframe = self.frame[indexer]
 
-        self.assert_numpy_array_equal(subindex, subframe.index)
+        self.assert_index_equal(subindex, subframe.index)
         self.assertRaises(Exception, self.frame.__getitem__, indexer[:-1])
 
     def test_setitem(self):

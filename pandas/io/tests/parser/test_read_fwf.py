@@ -217,8 +217,8 @@ bar2,12,13,14,15
   1   2.   4  #hello world
   5  NaN  10.0
 """
-        expected = [[1, 2., 4],
-                    [5, np.nan, 10.]]
+        expected = np.array([[1, 2., 4],
+                             [5, np.nan, 10.]])
         df = read_fwf(StringIO(data), colspecs=[(0, 3), (4, 9), (9, 25)],
                       comment='#')
         tm.assert_almost_equal(df.values, expected)
@@ -228,8 +228,8 @@ bar2,12,13,14,15
  1 2,334.0    5
 10   13     10.
 """
-        expected = [[1, 2334., 5],
-                    [10, 13, 10]]
+        expected = np.array([[1, 2334., 5],
+                             [10, 13, 10]])
         df = read_fwf(StringIO(data), colspecs=[(0, 3), (3, 11), (12, 16)],
                       thousands=',')
         tm.assert_almost_equal(df.values, expected)

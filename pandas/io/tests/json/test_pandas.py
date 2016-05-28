@@ -99,8 +99,8 @@ class TestPandasContainer(tm.TestCase):
         assert_frame_equal(df, read_json(df.to_json(orient='split'),
                                          orient='split'))
         unser = read_json(df.to_json(orient='records'), orient='records')
-        self.assertTrue(df.columns.equals(unser.columns))
-        tm.assert_numpy_array_equal(df.values, unser.values)
+        self.assert_index_equal(df.columns, unser.columns)
+        np.testing.assert_equal(df.values, unser.values)
         unser = read_json(df.to_json(orient='values'), orient='values')
         tm.assert_numpy_array_equal(df.values, unser.values)
 
@@ -183,7 +183,8 @@ class TestPandasContainer(tm.TestCase):
                 # index is not captured in this orientation
                 assert_almost_equal(df.values, unser.values,
                                     check_dtype=check_numpy_dtype)
-                self.assertTrue(df.columns.equals(unser.columns))
+                self.assert_index_equal(df.columns, unser.columns,
+                                        exact=check_column_type)
             elif orient == "values":
                 # index and cols are not captured in this orientation
                 if numpy is True and df.shape == (0, 0):
@@ -302,12 +303,10 @@ class TestPandasContainer(tm.TestCase):
 
         # mixed data
         index = pd.Index(['a', 'b', 'c', 'd', 'e'])
-        data = {
-            'A': [0., 1., 2., 3., 4.],
-            'B': [0., 1., 0., 1., 0.],
-            'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
-            'D': [True, False, True, False, True]
-        }
+        data = {'A': [0., 1., 2., 3., 4.],
+                'B': [0., 1., 0., 1., 0.],
+                'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
+                'D': [True, False, True, False, True]}
         df = DataFrame(data=data, index=index)
         _check_orient(df, "split", check_dtype=False)
         _check_orient(df, "records", check_dtype=False)

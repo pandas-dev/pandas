@@ -150,7 +150,11 @@ class TestNumpy(TestPackers):
     def test_list_numpy_float(self):
         x = [np.float32(np.random.rand()) for i in range(5)]
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x, x_rec)
+        # current msgpack cannot distinguish list/tuple
+        tm.assert_almost_equal(tuple(x), x_rec)
+
+        x_rec = self.encode_decode(tuple(x))
+        tm.assert_almost_equal(tuple(x), x_rec)
 
     def test_list_numpy_float_complex(self):
         if not hasattr(np, 'complex128'):
@@ -165,7 +169,11 @@ class TestNumpy(TestPackers):
     def test_list_float(self):
         x = [np.random.rand() for i in range(5)]
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x, x_rec)
+        # current msgpack cannot distinguish list/tuple
+        tm.assert_almost_equal(tuple(x), x_rec)
+
+        x_rec = self.encode_decode(tuple(x))
+        tm.assert_almost_equal(tuple(x), x_rec)
 
     def test_list_float_complex(self):
         x = [np.random.rand() for i in range(5)] + \
@@ -217,7 +225,11 @@ class TestNumpy(TestPackers):
     def test_list_mixed(self):
         x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo')]
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x, x_rec)
+        # current msgpack cannot distinguish list/tuple
+        tm.assert_almost_equal(tuple(x), x_rec)
+
+        x_rec = self.encode_decode(tuple(x))
+        tm.assert_almost_equal(tuple(x), x_rec)
 
 
 class TestBasic(TestPackers):
@@ -286,30 +298,30 @@ class TestIndex(TestPackers):
 
         for s, i in self.d.items():
             i_rec = self.encode_decode(i)
-            self.assertTrue(i.equals(i_rec))
+            self.assert_index_equal(i, i_rec)
 
         # datetime with no freq (GH5506)
         i = Index([Timestamp('20130101'), Timestamp('20130103')])
         i_rec = self.encode_decode(i)
-        self.assertTrue(i.equals(i_rec))
+        self.assert_index_equal(i, i_rec)
 
         # datetime with timezone
         i = Index([Timestamp('20130101 9:00:00'), Timestamp(
             '20130103 11:00:00')]).tz_localize('US/Eastern')
         i_rec = self.encode_decode(i)
-        self.assertTrue(i.equals(i_rec))
+        self.assert_index_equal(i, i_rec)
 
     def test_multi_index(self):
 
         for s, i in self.mi.items():
             i_rec = self.encode_decode(i)
-            self.assertTrue(i.equals(i_rec))
+            self.assert_index_equal(i, i_rec)
 
     def test_unicode(self):
         i = tm.makeUnicodeIndex(100)
 
         i_rec = self.encode_decode(i)
-        self.assertTrue(i.equals(i_rec))
+        self.assert_index_equal(i, i_rec)
 
 
 class TestSeries(TestPackers):
