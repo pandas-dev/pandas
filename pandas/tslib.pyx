@@ -3838,20 +3838,15 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     if (result==NPY_NAT).all():
         return result
 
-    pos = trans.searchsorted(utc_dates[utc_dates!=NPY_NAT][0]) - 1
-    if pos < 0:
-        raise ValueError('First time before start of DST info')
-
-    # TODO: this assumed sortedness :/
-    offset = deltas[pos]
     for i in range(n):
         v = utc_dates[i]
         if vals[i] == NPY_NAT:
             result[i] = vals[i]
         else:
-            while pos + 1 < trans_len and v >= trans[pos + 1]:
-                pos += 1
-                offset = deltas[pos]
+            pos = trans.searchsorted(v, side='right') - 1
+            if pos < 0:
+                raise ValueError('First time before start of DST info')
+            offset = deltas[pos]
             result[i] = v + offset
     return result
 
