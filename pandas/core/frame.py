@@ -5537,7 +5537,8 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
         gen = (list(x.keys()) for x in data)
-        columns = lib.fast_unique_multiple_list_gen(gen)
+        sort = not any(isinstance(d, OrderedDict) for d in data)
+        columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
 
     # assure that they are of the base dict class and not of derived
     # classes
