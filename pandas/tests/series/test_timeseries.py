@@ -492,15 +492,15 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
 
         daily_ts = ts.asfreq('B')
         monthly_ts = daily_ts.asfreq('BM')
-        self.assert_numpy_array_equal(monthly_ts, ts)
+        self.assert_series_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq('B', method='pad')
         monthly_ts = daily_ts.asfreq('BM')
-        self.assert_numpy_array_equal(monthly_ts, ts)
+        self.assert_series_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq(datetools.bday)
         monthly_ts = daily_ts.asfreq(datetools.bmonthEnd)
-        self.assert_numpy_array_equal(monthly_ts, ts)
+        self.assert_series_equal(monthly_ts, ts)
 
         result = ts[:0].asfreq('M')
         self.assertEqual(len(result), 0)

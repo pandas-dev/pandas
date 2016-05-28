@@ -1227,8 +1227,9 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # float + int
         int_ts = self.ts.astype(int)[:-5]
         added = self.ts + int_ts
-        expected = self.ts.values[:-5] + int_ts.values
-        self.assert_numpy_array_equal(added[:-5], expected)
+        expected = Series(self.ts.values[:-5] + int_ts.values,
+                          index=self.ts.index[:-5], name='ts')
+        self.assert_series_equal(added[:-5], expected)
 
     def test_operators_reverse_object(self):
         # GH 56

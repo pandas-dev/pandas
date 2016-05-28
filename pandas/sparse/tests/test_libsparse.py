@@ -50,8 +50,10 @@ class TestSparseIndexUnion(tm.TestCase):
             yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
             bresult = xindex.make_union(yindex)
             assert (isinstance(bresult, BlockIndex))
-            tm.assert_numpy_array_equal(bresult.blocs, eloc)
-            tm.assert_numpy_array_equal(bresult.blengths, elen)
+            tm.assert_numpy_array_equal(bresult.blocs,
+                                        np.array(eloc, dtype=np.int32))
+            tm.assert_numpy_array_equal(bresult.blengths,
+                                        np.array(elen, dtype=np.int32))
 
             ixindex = xindex.to_int_index()
             iyindex = yindex.to_int_index()
@@ -411,7 +413,8 @@ class TestBlockIndex(tm.TestCase):
         block = BlockIndex(20, locs, lengths)
         dense = block.to_int_index()
 
-        tm.assert_numpy_array_equal(dense.indices, exp_inds)
+        tm.assert_numpy_array_equal(dense.indices,
+                                    np.array(exp_inds, dtype=np.int32))
 
     def test_to_block_index(self):
         index = BlockIndex(10, [0, 5], [4, 5])

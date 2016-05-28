@@ -36,7 +36,8 @@ class TestTseriesUtil(tm.TestCase):
 
         filler = algos.backfill_int64(old.values, new.values)
 
-        expect_filler = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1]
+        expect_filler = np.array([0, 0, 1, 1, 1, 1,
+                                  2, 2, 2, 2, 2, -1], dtype=np.int64)
         self.assert_numpy_array_equal(filler, expect_filler)
 
         # corner case
@@ -44,7 +45,7 @@ class TestTseriesUtil(tm.TestCase):
         new = Index(lrange(5, 10))
         filler = algos.backfill_int64(old.values, new.values)
 
-        expect_filler = [-1, -1, -1, -1, -1]
+        expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         self.assert_numpy_array_equal(filler, expect_filler)
 
     def test_pad(self):
@@ -53,14 +54,15 @@ class TestTseriesUtil(tm.TestCase):
 
         filler = algos.pad_int64(old.values, new.values)
 
-        expect_filler = [-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2]
+        expect_filler = np.array([-1, 0, 0, 0, 0, 1,
+                                  1, 1, 1, 1, 2, 2], dtype=np.int64)
         self.assert_numpy_array_equal(filler, expect_filler)
 
         # corner case
         old = Index([5, 10])
         new = Index(lrange(5))
         filler = algos.pad_int64(old.values, new.values)
-        expect_filler = [-1, -1, -1, -1, -1]
+        expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         self.assert_numpy_array_equal(filler, expect_filler)
 
 
@@ -113,9 +115,9 @@ def test_inner_join_indexer():
     b = np.array([5], dtype=np.int64)
 
     index, ares, bres = algos.inner_join_indexer_int64(a, b)
-    assert_almost_equal(index, [5])
-    assert_almost_equal(ares, [0])
-    assert_almost_equal(bres, [0])
+    tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
+    tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
+    tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
 
 
 def test_outer_join_indexer():
@@ -136,9 +138,9 @@ def test_outer_join_indexer():
     b = np.array([5], dtype=np.int64)
 
     index, ares, bres = algos.outer_join_indexer_int64(a, b)
-    assert_almost_equal(index, [5])
-    assert_almost_equal(ares, [0])
-    assert_almost_equal(bres, [0])
+    tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
+    tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
+    tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
 
 
 def test_left_join_indexer():
@@ -158,9 +160,9 @@ def test_left_join_indexer():
     b = np.array([5], dtype=np.int64)
 
     index, ares, bres = algos.left_join_indexer_int64(a, b)
-    assert_almost_equal(index, [5])
-    assert_almost_equal(ares, [0])
-    assert_almost_equal(bres, [0])
+    tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
+    tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
+    tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
 
 
 def test_left_join_indexer2():
@@ -494,8 +496,8 @@ def test_group_ohlc():
         bins = np.array([6, 12, 20])
         out = np.zeros((3, 4), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
-        labels = com._ensure_int64(np.repeat(
-            np.arange(3), np.diff(np.r_[0, bins])))
+        labels = com._ensure_int64(np.repeat(np.arange(3),
+                                             np.diff(np.r_[0, bins])))
 
         func = getattr(algos, 'group_ohlc_%s' % dtype)
         func(out, counts, obj[:, None], labels)
@@ -505,11 +507,12 @@ def test_group_ohlc():
                 return np.repeat(nan, 4)
             return [group[0], group.max(), group.min(), group[-1]]
 
-        expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]), _ohlc(obj[12:])
-                             ])
+        expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]),
+                             _ohlc(obj[12:])])
 
         assert_almost_equal(out, expected)
-        assert_almost_equal(counts, [6, 6, 8])
+        tm.assert_numpy_array_equal(counts,
+                                    np.array([6, 6, 8], dtype=np.int64))
 
         obj[:6] = nan
         func(out, counts, obj[:, None], labels)

@@ -66,15 +66,17 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         smaller_frame = frame.dropna()
         assert_series_equal(frame['foo'], original)
         inp_frame1.dropna(inplace=True)
-        self.assert_numpy_array_equal(smaller_frame['foo'], mat[5:])
-        self.assert_numpy_array_equal(inp_frame1['foo'], mat[5:])
+
+        exp = Series(mat[5:], index=self.frame.index[5:], name='foo')
+        tm.assert_series_equal(smaller_frame['foo'], exp)
+        tm.assert_series_equal(inp_frame1['foo'], exp)
 
         samesize_frame = frame.dropna(subset=['bar'])
         assert_series_equal(frame['foo'], original)
         self.assertTrue((frame['bar'] == 5).all())
         inp_frame2.dropna(subset=['bar'], inplace=True)
-        self.assertTrue(samesize_frame.index.equals(self.frame.index))
-        self.assertTrue(inp_frame2.index.equals(self.frame.index))
+        self.assert_index_equal(samesize_frame.index, self.frame.index)
+        self.assert_index_equal(inp_frame2.index, self.frame.index)
 
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))

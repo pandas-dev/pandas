@@ -644,7 +644,7 @@ class TestMultiIndex(Base, tm.TestCase):
                   ('buz', 'c')]
         expected = MultiIndex.from_tuples(tuples, names=names)
 
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.names, names)
 
     def test_from_product_datetimeindex(self):
@@ -681,14 +681,14 @@ class TestMultiIndex(Base, tm.TestCase):
 
     def test_get_level_values(self):
         result = self.index.get_level_values(0)
-        expected = ['foo', 'foo', 'bar', 'baz', 'qux', 'qux']
-        tm.assert_numpy_array_equal(result, expected)
-
+        expected = Index(['foo', 'foo', 'bar', 'baz', 'qux', 'qux'],
+                         name='first')
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, 'first')
 
         result = self.index.get_level_values('first')
         expected = self.index.get_level_values(0)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # GH 10460
         index = MultiIndex(levels=[CategoricalIndex(
@@ -703,19 +703,19 @@ class TestMultiIndex(Base, tm.TestCase):
         arrays = [['a', 'b', 'b'], [1, np.nan, 2]]
         index = pd.MultiIndex.from_arrays(arrays)
         values = index.get_level_values(1)
-        expected = [1, np.nan, 2]
+        expected = np.array([1, np.nan, 2])
         tm.assert_numpy_array_equal(values.values.astype(float), expected)
 
         arrays = [['a', 'b', 'b'], [np.nan, np.nan, 2]]
         index = pd.MultiIndex.from_arrays(arrays)
         values = index.get_level_values(1)
-        expected = [np.nan, np.nan, 2]
+        expected = np.array([np.nan, np.nan, 2])
         tm.assert_numpy_array_equal(values.values.astype(float), expected)
 
         arrays = [[np.nan, np.nan, np.nan], ['a', np.nan, 1]]
         index = pd.MultiIndex.from_arrays(arrays)
         values = index.get_level_values(0)
-        expected = [np.nan, np.nan, np.nan]
+        expected = np.array([np.nan, np.nan, np.nan])
         tm.assert_numpy_array_equal(values.values.astype(float), expected)
         values = index.get_level_values(1)
         expected = np.array(['a', np.nan, 1], dtype=object)
@@ -1031,10 +1031,10 @@ class TestMultiIndex(Base, tm.TestCase):
         idx2 = index[[1, 3, 5]]
 
         r1 = idx1.get_indexer(idx2)
-        assert_almost_equal(r1, [1, 3, -1])
+        assert_almost_equal(r1, np.array([1, 3, -1]))
 
         r1 = idx2.get_indexer(idx1, method='pad')
-        e1 = [-1, 0, 0, 1, 1]
+        e1 = np.array([-1, 0, 0, 1, 1])
         assert_almost_equal(r1, e1)
 
         r2 = idx2.get_indexer(idx1[::-1], method='pad')
@@ -1044,7 +1044,7 @@ class TestMultiIndex(Base, tm.TestCase):
         assert_almost_equal(r1, rffill1)
 
         r1 = idx2.get_indexer(idx1, method='backfill')
-        e1 = [0, 0, 1, 1, 2]
+        e1 = np.array([0, 0, 1, 1, 2])
         assert_almost_equal(r1, e1)
 
         r2 = idx2.get_indexer(idx1[::-1], method='backfill')
@@ -1064,9 +1064,10 @@ class TestMultiIndex(Base, tm.TestCase):
         # create index with duplicates
         idx1 = Index(lrange(10) + lrange(10))
         idx2 = Index(lrange(20))
-        assertRaisesRegexp(InvalidIndexError, "Reindexing only valid with"
-                           " uniquely valued Index objects", idx1.get_indexer,
-                           idx2)
+
+        msg = "Reindexing only valid with uniquely valued Index objects"
+        with assertRaisesRegexp(InvalidIndexError, msg):
+            idx1.get_indexer(idx2)
 
     def test_get_indexer_nearest(self):
         midx = MultiIndex.from_tuples([('a', 1), ('b', 2)])
@@ -1524,15 +1525,18 @@ class TestMultiIndex(Base, tm.TestCase):
 
         # key not contained in all levels
         new_index = self.index.insert(0, ('abc', 'three'))
-        tm.assert_numpy_array_equal(new_index.levels[0],
-                                    list(self.index.levels[0]) + ['abc'])
-        tm.assert_numpy_array_equal(new_index.levels[1],
-                                    list(self.index.levels[1]) + ['three'])
+
+        exp0 = Index(list(self.index.levels[0]) + ['abc'], name='first')
+        tm.assert_index_equal(new_index.levels[0], exp0)
+
+        exp1 = Index(list(self.index.levels[1]) + ['three'], name='second')
+        tm.assert_index_equal(new_index.levels[1], exp1)
         self.assertEqual(new_index[0], ('abc', 'three'))
 
         # key wrong length
-        assertRaisesRegexp(ValueError, "Item must have length equal to number"
-                           " of levels", self.index.insert, 0, ('foo2', ))
+        msg = "Item must have length equal to number of levels"
+        with assertRaisesRegexp(ValueError, msg):
+            self.index.insert(0, ('foo2', ))
 
         left = pd.DataFrame([['a', 'b', 0], ['b', 'd', 1]],
                             columns=['1st', '2nd', '3rd'])
@@ -1553,14 +1557,9 @@ class TestMultiIndex(Base, tm.TestCase):
         ts.loc[('a', 'w')] = 5
         ts.loc['a', 'a'] = 6
 
-        right = pd.DataFrame([['a', 'b', 0],
-                              ['b', 'd', 1],
-                              ['b', 'x', 2],
-                              ['b', 'a', -1],
-                              ['b', 'b', 3],
-                              ['a', 'x', 4],
-                              ['a', 'w', 5],
-                              ['a', 'a', 6]],
+        right = pd.DataFrame([['a', 'b', 0], ['b', 'd', 1], ['b', 'x', 2],
+                              ['b', 'a', -1], ['b', 'b', 3], ['a', 'x', 4],
+                              ['a', 'w', 5], ['a', 'a', 6]],
                              columns=['1st', '2nd', '3rd'])
         right.set_index(['1st', '2nd'], inplace=True)
         # FIXME data types changes to float because
@@ -2001,9 +2000,9 @@ class TestMultiIndex(Base, tm.TestCase):
     def test_isin_nan(self):
         idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
         tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
-                                    [False, False])
+                                    np.array([False, False]))
         tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
-                                    [False, False])
+                                    np.array([False, False]))
 
     def test_isin_level_kwarg(self):
         idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'], np.arange(

@@ -85,7 +85,7 @@ class TestPickle():
         tm.assert_series_equal(result, expected)
         tm.assert_equal(result.index.freq, expected.index.freq)
         tm.assert_equal(result.index.freq.normalize, False)
-        tm.assert_numpy_array_equal(result > 0, expected > 0)
+        tm.assert_series_equal(result > 0, expected > 0)
 
         # GH 9291
         freq = result.index.freq

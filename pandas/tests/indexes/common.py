@@ -607,7 +607,7 @@ class Base(object):
             # assuming the 2nd to last item is unique in the data
             item = index_a[-2]
             tm.assert_numpy_array_equal(index_a == item, expected3)
-            tm.assert_numpy_array_equal(series_a == item, expected3)
+            tm.assert_series_equal(series_a == item, Series(expected3))
 
     def test_numpy_ufuncs(self):
         # test ufuncs of numpy 1.9.2. see:

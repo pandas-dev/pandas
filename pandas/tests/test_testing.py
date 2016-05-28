@@ -43,6 +43,8 @@ class TestAssertAlmostEqual(tm.TestCase):
 
     def test_assert_almost_equal_numbers_with_zeros(self):
         self._assert_almost_equal_both(0, 0)
+        self._assert_almost_equal_both(0, 0.0)
+        self._assert_almost_equal_both(0, np.float64(0))
         self._assert_almost_equal_both(0.000001, 0)
 
         self._assert_not_almost_equal_both(0.001, 0)
@@ -81,9 +83,11 @@ class TestAssertAlmostEqual(tm.TestCase):
                 if item == 'a':
                     return 1
 
-        self._assert_almost_equal_both({'a': 1}, DictLikeObj())
+        self._assert_almost_equal_both({'a': 1}, DictLikeObj(),
+                                       check_dtype=False)
 
-        self._assert_not_almost_equal_both({'a': 2}, DictLikeObj())
+        self._assert_not_almost_equal_both({'a': 2}, DictLikeObj(),
+                                           check_dtype=False)
 
     def test_assert_almost_equal_strings(self):
         self._assert_almost_equal_both('abc', 'abc')
@@ -95,7 +99,13 @@ class TestAssertAlmostEqual(tm.TestCase):
 
     def test_assert_almost_equal_iterables(self):
         self._assert_almost_equal_both([1, 2, 3], [1, 2, 3])
-        self._assert_almost_equal_both(np.array([1, 2, 3]), [1, 2, 3])
+        self._assert_almost_equal_both(np.array([1, 2, 3]),
+                                       np.array([1, 2, 3]))
+
+        # class / dtype are different
+        self._assert_not_almost_equal_both(np.array([1, 2, 3]), [1, 2, 3])
+        self._assert_not_almost_equal_both(np.array([1, 2, 3]),
+                                           np.array([1., 2., 3.]))
 
         # Can't compare generators
         self._assert_not_almost_equal_both(iter([1, 2, 3]), [1, 2, 3])
@@ -106,8 +116,8 @@ class TestAssertAlmostEqual(tm.TestCase):
 
     def test_assert_almost_equal_null(self):
         self._assert_almost_equal_both(None, None)
-        self._assert_almost_equal_both(None, np.NaN)
 
+        self._assert_not_almost_equal_both(None, np.NaN)
         self._assert_not_almost_equal_both(None, 0)
         self._assert_not_almost_equal_both(np.NaN, 0)
 
@@ -176,7 +186,7 @@ numpy array shapes are different
             assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]))
 
         # scalar comparison
-        expected = """: 1 != 2"""
+        expected = """Expected type """
         with assertRaisesRegexp(AssertionError, expected):
             assert_numpy_array_equal(1, 2)
         expected = """expected 2\\.00000 but got 1\\.00000, with decimal 5"""
@@ -191,6 +201,7 @@ numpy array classes are different
 \\[right\\]: int"""
 
         with assertRaisesRegexp(AssertionError, expected):
+            # numpy_array_equal only accepts np.ndarray
             assert_numpy_array_equal(np.array([1]), 1)
         with assertRaisesRegexp(AssertionError, expected):
             assert_almost_equal(np.array([1]), 1)

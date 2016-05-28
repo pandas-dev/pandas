@@ -733,7 +733,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
         data = dict((k, v.values) for k, v in self.panel4d.iteritems())
         result = Panel4D(data)
         exp_major = Index(np.arange(len(self.panel4d.major_axis)))
-        self.assertTrue(result.major_axis.equals(exp_major))
+        self.assert_index_equal(result.major_axis, exp_major)
 
         result = Panel4D(data,
                          labels=self.panel4d.labels,
@@ -799,9 +799,9 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
         p = self.panel4d['l1'].filter(items=['ItemA', 'ItemB'])
         conformed = self.panel4d.conform(p)
 
-        assert(conformed.items.equals(self.panel4d.labels))
-        assert(conformed.major_axis.equals(self.panel4d.major_axis))
-        assert(conformed.minor_axis.equals(self.panel4d.minor_axis))
+        tm.assert_index_equal(conformed.items, self.panel4d.labels)
+        tm.assert_index_equal(conformed.major_axis, self.panel4d.major_axis)
+        tm.assert_index_equal(conformed.minor_axis, self.panel4d.minor_axis)
 
     def test_reindex(self):
         ref = self.panel4d['l2']
@@ -1085,11 +1085,11 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
         renamed = self.panel4d.rename_axis(mapper, axis=0)
         exp = Index(['foo', 'bar', 'baz'])
-        self.assertTrue(renamed.labels.equals(exp))
+        self.assert_index_equal(renamed.labels, exp)
 
         renamed = self.panel4d.rename_axis(str.lower, axis=3)
         exp = Index(['a', 'b', 'c', 'd'])
-        self.assertTrue(renamed.minor_axis.equals(exp))
+        self.assert_index_equal(renamed.minor_axis, exp)
 
         # don't copy
         renamed_nocopy = self.panel4d.rename_axis(mapper, axis=0, copy=False)

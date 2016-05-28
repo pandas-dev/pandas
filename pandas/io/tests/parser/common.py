@@ -232,14 +232,14 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
 6,7,8,9,10
 11,12,13,14,15
 """
-        expected = [[1, 2, 3, 4, 5.],
-                    [6, 7, 8, 9, 10],
-                    [11, 12, 13, 14, 15]]
+        expected = np.array([[1, 2, 3, 4, 5],
+                             [6, 7, 8, 9, 10],
+                             [11, 12, 13, 14, 15]], dtype=np.int64)
         df = self.read_table(StringIO(data), sep=',')
         tm.assert_almost_equal(df.values, expected)
-        self.assert_numpy_array_equal(df.columns,
-                                      ['A', 'B', 'C', 'Unnamed: 3',
-                                       'Unnamed: 4'])
+        self.assert_index_equal(df.columns,
+                                Index(['A', 'B', 'C', 'Unnamed: 3',
+                                       'Unnamed: 4']))
 
     def test_duplicate_columns(self):
         # TODO: add test for condition 'mangle_dupe_cols=False'
@@ -275,7 +275,7 @@ c,4,5
         df = self.read_csv(self.csv1, index_col=0, parse_dates=True)
         df2 = self.read_table(self.csv1, sep=',', index_col=0,
                               parse_dates=True)
-        self.assert_numpy_array_equal(df.columns, ['A', 'B', 'C', 'D'])
+        self.assert_index_equal(df.columns, pd.Index(['A', 'B', 'C', 'D']))
         self.assertEqual(df.index.name, 'index')
         self.assertIsInstance(
             df.index[0], (datetime, np.datetime64, Timestamp))
@@ -286,12 +286,12 @@ c,4,5
         df = self.read_csv(self.csv2, index_col=0, parse_dates=True)
         df2 = self.read_table(self.csv2, sep=',', index_col=0,
                               parse_dates=True)
-        self.assert_numpy_array_equal(df.columns, ['A', 'B', 'C', 'D', 'E'])
-        self.assertIsInstance(
-            df.index[0], (datetime, np.datetime64, Timestamp))
-        self.assertEqual(df.ix[
-                         :, ['A', 'B', 'C', 'D']
-                         ].values.dtype, np.float64)
+        self.assert_index_equal(df.columns,
+                                pd.Index(['A', 'B', 'C', 'D', 'E']))
+        self.assertIsInstance(df.index[0],
+                              (datetime, np.datetime64, Timestamp))
+        self.assertEqual(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype,
+                         np.float64)
         tm.assert_frame_equal(df, df2)
 
     def test_read_table_unicode(self):
@@ -1121,21 +1121,21 @@ A,B,C
 
 -70,.4,1
 """
-        expected = [[1., 2., 4.],
-                    [5., np.nan, 10.],
-                    [-70., .4, 1.]]
+        expected = np.array([[1., 2., 4.],
+                             [5., np.nan, 10.],
+                             [-70., .4, 1.]])
         df = self.read_csv(StringIO(data))
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
         df = self.read_csv(StringIO(data.replace(',', '  ')), sep='\s+')
-        tm.assert_almost_equal(df.values, expected)
-        expected = [[1., 2., 4.],
-                    [np.nan, np.nan, np.nan],
-                    [np.nan, np.nan, np.nan],
-                    [5., np.nan, 10.],
-                    [np.nan, np.nan, np.nan],
-                    [-70., .4, 1.]]
+        tm.assert_numpy_array_equal(df.values, expected)
+        expected = np.array([[1., 2., 4.],
+                             [np.nan, np.nan, np.nan],
+                             [np.nan, np.nan, np.nan],
+                             [5., np.nan, 10.],
+                             [np.nan, np.nan, np.nan],
+                             [-70., .4, 1.]])
         df = self.read_csv(StringIO(data), skip_blank_lines=False)
-        tm.assert_almost_equal(list(df.values), list(expected))
+        tm.assert_numpy_array_equal(df.values, expected)
 
     def test_whitespace_lines(self):
         data = """
@@ -1146,10 +1146,10 @@ A,B,C
   \t    1,2.,4.
 5.,NaN,10.0
 """
-        expected = [[1, 2., 4.],
-                    [5., np.nan, 10.]]
+        expected = np.array([[1, 2., 4.],
+                             [5., np.nan, 10.]])
         df = self.read_csv(StringIO(data))
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
     def test_regex_separator(self):
         # see gh-6607

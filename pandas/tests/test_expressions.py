@@ -287,7 +287,12 @@ class TestExpressions(tm.TestCase):
                                                use_numexpr=True)
                         expected = expr.evaluate(op, op_str, f, f,
                                                  use_numexpr=False)
-                        tm.assert_numpy_array_equal(result, expected.values)
+
+                        if isinstance(result, DataFrame):
+                            tm.assert_frame_equal(result, expected)
+                        else:
+                            tm.assert_numpy_array_equal(result,
+                                                        expected.values)
 
                         result = expr._can_use_numexpr(op, op_str, f2, f2,
                                                        'evaluate')
@@ -325,7 +330,10 @@ class TestExpressions(tm.TestCase):
                                            use_numexpr=True)
                     expected = expr.evaluate(op, op_str, f11, f12,
                                              use_numexpr=False)
-                    tm.assert_numpy_array_equal(result, expected.values)
+                    if isinstance(result, DataFrame):
+                        tm.assert_frame_equal(result, expected)
+                    else:
+                        tm.assert_numpy_array_equal(result, expected.values)
 
                     result = expr._can_use_numexpr(op, op_str, f21, f22,
                                                    'evaluate')

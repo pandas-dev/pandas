@@ -247,16 +247,18 @@ class TestSeriesMissingData(TestData, tm.TestCase):
     def test_fillna(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
 
-        self.assert_numpy_array_equal(ts, ts.fillna(method='ffill'))
+        self.assert_series_equal(ts, ts.fillna(method='ffill'))
 
         ts[2] = np.NaN
 
-        self.assert_numpy_array_equal(ts.fillna(method='ffill'),
-                                      [0., 1., 1., 3., 4.])
-        self.assert_numpy_array_equal(ts.fillna(method='backfill'),
-                                      [0., 1., 3., 3., 4.])
+        exp = Series([0., 1., 1., 3., 4.], index=ts.index)
+        self.assert_series_equal(ts.fillna(method='ffill'), exp)
 
-        self.assert_numpy_array_equal(ts.fillna(value=5), [0., 1., 5., 3., 4.])
+        exp = Series([0., 1., 3., 3., 4.], index=ts.index)
+        self.assert_series_equal(ts.fillna(method='backfill'), exp)
+
+        exp = Series([0., 1., 5., 3., 4.], index=ts.index)
+        self.assert_series_equal(ts.fillna(value=5), exp)
 
         self.assertRaises(ValueError, ts.fillna)
         self.assertRaises(ValueError, self.ts.fillna, value=0, method='ffill')
@@ -488,7 +490,7 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         ts_copy[5:10] = np.NaN
 
         linear_interp = ts_copy.interpolate(method='linear')
-        self.assert_numpy_array_equal(linear_interp, ts)
+        self.assert_series_equal(linear_interp, ts)
 
         ord_ts = Series([d.toordinal() for d in self.ts.index],
                         index=self.ts.index).astype(float)
@@ -497,7 +499,7 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         ord_ts_copy[5:10] = np.NaN
 
         time_interp = ord_ts_copy.interpolate(method='time')
-        self.assert_numpy_array_equal(time_interp, ord_ts)
+        self.assert_series_equal(time_interp, ord_ts)
 
         # try time interpolation on a non-TimeSeries
         # Only raises ValueError if there are NaNs.

@@ -85,7 +85,7 @@ class LegacySupport(object):
 
         ex_index = DatetimeIndex([], freq='B')
 
-        self.assertTrue(result.index.equals(ex_index))
+        self.assert_index_equal(result.index, ex_index)
         tm.assertIsInstance(result.index.freq, offsets.BDay)
         self.assertEqual(len(result), 0)
 
@@ -116,7 +116,7 @@ class LegacySupport(object):
                                    return_indexers=True)
 
             tm.assertIsInstance(ra, DatetimeIndex)
-            self.assertTrue(ra.equals(ea))
+            self.assert_index_equal(ra, ea)
 
             assert_almost_equal(rb, eb)
             assert_almost_equal(rc, ec)
@@ -150,24 +150,24 @@ class LegacySupport(object):
         result = index[:5].union(obj_index[5:])
         expected = index
         tm.assertIsInstance(result, DatetimeIndex)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         result = index[:10].intersection(obj_index[5:])
         expected = index[5:10]
         tm.assertIsInstance(result, DatetimeIndex)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         result = index[:10] - obj_index[5:]
         expected = index[:5]
         tm.assertIsInstance(result, DatetimeIndex)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
     def test_index_conversion(self):
         index = self.frame.index
         obj_index = index.asobject
 
         conv = DatetimeIndex(obj_index)
-        self.assertTrue(conv.equals(index))
+        self.assert_index_equal(conv, index)
 
         self.assertRaises(ValueError, DatetimeIndex, ['a', 'b', 'c', 'd'])
 
@@ -188,11 +188,11 @@ class LegacySupport(object):
 
         result = index.union(right)
         expected = Index(np.concatenate([index.asobject, right]))
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         result = index.intersection(right)
         expected = Index([])
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
     def test_legacy_time_rules(self):
         rules = [('WEEKDAY', 'B'), ('EOM', 'BM'), ('W@MON', 'W-MON'),
@@ -211,7 +211,7 @@ class LegacySupport(object):
         for old_freq, new_freq in rules:
             old_rng = date_range(start, end, freq=old_freq)
             new_rng = date_range(start, end, freq=new_freq)
-            self.assertTrue(old_rng.equals(new_rng))
+            self.assert_index_equal(old_rng, new_rng)
 
             # test get_legacy_offset_name
             offset = datetools.get_offset(new_freq)

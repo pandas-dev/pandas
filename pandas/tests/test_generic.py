@@ -1289,7 +1289,7 @@ class TestDataFrame(tm.TestCase, Generic):
 
                 df1 = DataFrame(np.ones(5), index=l0)
                 df1 = getattr(df1, fn)('US/Pacific')
-                self.assertTrue(df1.index.equals(l0_expected))
+                self.assert_index_equal(df1.index, l0_expected)
 
                 # MultiIndex
                 # GH7846
@@ -1297,14 +1297,14 @@ class TestDataFrame(tm.TestCase, Generic):
 
                 df3 = getattr(df2, fn)('US/Pacific', level=0)
                 self.assertFalse(df3.index.levels[0].equals(l0))
-                self.assertTrue(df3.index.levels[0].equals(l0_expected))
-                self.assertTrue(df3.index.levels[1].equals(l1))
+                self.assert_index_equal(df3.index.levels[0], l0_expected)
+                self.assert_index_equal(df3.index.levels[1], l1)
                 self.assertFalse(df3.index.levels[1].equals(l1_expected))
 
                 df3 = getattr(df2, fn)('US/Pacific', level=1)
-                self.assertTrue(df3.index.levels[0].equals(l0))
+                self.assert_index_equal(df3.index.levels[0], l0)
                 self.assertFalse(df3.index.levels[0].equals(l0_expected))
-                self.assertTrue(df3.index.levels[1].equals(l1_expected))
+                self.assert_index_equal(df3.index.levels[1], l1_expected)
                 self.assertFalse(df3.index.levels[1].equals(l1))
 
                 df4 = DataFrame(np.ones(5),
@@ -1313,9 +1313,9 @@ class TestDataFrame(tm.TestCase, Generic):
                 # TODO: untested
                 df5 = getattr(df4, fn)('US/Pacific', level=1)  # noqa
 
-                self.assertTrue(df3.index.levels[0].equals(l0))
+                self.assert_index_equal(df3.index.levels[0], l0)
                 self.assertFalse(df3.index.levels[0].equals(l0_expected))
-                self.assertTrue(df3.index.levels[1].equals(l1_expected))
+                self.assert_index_equal(df3.index.levels[1], l1_expected)
                 self.assertFalse(df3.index.levels[1].equals(l1))
 
         # Bad Inputs
