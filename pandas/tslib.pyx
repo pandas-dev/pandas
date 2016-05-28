@@ -3754,8 +3754,8 @@ except:
 
 def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     cdef:
-        ndarray[int64_t] utc_dates, tt, result, trans, deltas
-        Py_ssize_t i, pos, n = len(vals)
+        ndarray[int64_t] utc_dates, tt, result, trans, deltas, posn
+        Py_ssize_t i, j, pos, n = len(vals)
         int64_t v, offset
         pandas_datetimestruct dts
         Py_ssize_t trans_len
@@ -3791,19 +3791,18 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                 return vals
 
             trans_len = len(trans)
-            pos = trans.searchsorted(tt[0]) - 1
-            if pos < 0:
-                raise ValueError('First time before start of DST info')
-
-            offset = deltas[pos]
+            posn = trans.searchsorted(tt, side='right')
+            j = 0
             for i in range(n):
                 v = vals[i]
                 if v == NPY_NAT:
                     utc_dates[i] = NPY_NAT
                 else:
-                    while pos + 1 < trans_len and v >= trans[pos + 1]:
-                        pos += 1
-                        offset = deltas[pos]
+                    pos = posn[j] - 1
+                    j = j + 1
+                    if pos < 0:
+                        raise ValueError('First time before start of DST info')
+                    offset = deltas[pos]
                     utc_dates[i] = v - offset
     else:
         utc_dates = vals
@@ -3838,12 +3837,15 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     if (result==NPY_NAT).all():
         return result
 
+    posn = trans.searchsorted(utc_dates[utc_dates!=NPY_NAT], side='right')
+    j = 0
     for i in range(n):
         v = utc_dates[i]
         if vals[i] == NPY_NAT:
             result[i] = vals[i]
         else:
-            pos = trans.searchsorted(v, side='right') - 1
+            pos = posn[j] - 1
+            j = j + 1
             if pos < 0:
                 raise ValueError('First time before start of DST info')
             offset = deltas[pos]
