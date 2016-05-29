@@ -457,6 +457,11 @@ class _GroupBy(PandasObject, SelectionMixin):
         else:
             return self.obj[self._selection]
 
+    def _reset_group_selection(self):
+        if self._group_selection is not None:
+            self._group_selection = None
+            self._reset_cache('_selected_obj')
+
     def _set_selection_from_grouper(self):
         """ we may need create a selection if we have non-level groupers """
         grp = self.grouper
@@ -468,6 +473,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
             if len(groupers):
                 self._group_selection = ax.difference(Index(groupers)).tolist()
+                self._reset_cache('_selected_obj')
 
     def _set_result_index_ordered(self, result):
         # set the result index on the passed values object and
@@ -1402,6 +1408,7 @@ class GroupBy(_GroupBy):
         0  1  2
         2  5  6
         """
+        self._reset_group_selection()
         mask = self._cumcount_array() < n
         return self._selected_obj[mask]
 
@@ -1428,6 +1435,7 @@ class GroupBy(_GroupBy):
         0  a  1
         2  b  1
         """
+        self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
 

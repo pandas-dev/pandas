@@ -354,6 +354,41 @@ class TestGroupBy(tm.TestCase):
                                          names=['A', 'B']))
         assert_frame_equal(result, expected)
 
+    def test_group_selection_cache(self):
+        # GH 12839 nth, head, and tail should return same result consistently
+        df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+        expected = df.iloc[[0, 2]].set_index('A')
+
+        g = df.groupby('A')
+        g.head()
+        result = g.nth(0)
+        assert_frame_equal(result, expected)
+
+        g = df.groupby('A')
+        g.tail()
+        result = g.nth(0)
+        assert_frame_equal(result, expected)
+
+        g = df.groupby('A')
+        g.nth(0)
+        result = g.head(n=2)
+        assert_frame_equal(result, df)
+
+        g = df.groupby('A')
+        g.nth(0)
+        result = g.tail(n=2)
+        assert_frame_equal(result, df)
+
+        g = df.groupby('A')
+        g.head()
+        result = g.head(n=2)
+        assert_frame_equal(result, df)
+
+        g = df.groupby('A')
+        g.tail()
+        result = g.tail(n=2)
+        assert_frame_equal(result, df)
+
     def test_grouper_index_types(self):
         # related GH5375
         # groupby misbehaving when using a Floatlike index
