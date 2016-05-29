@@ -223,3 +223,21 @@ g,7,seven
                         'Three': ['None', 'two', 'None', 'nan', 'five', '',
                                   'seven']})
         tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
+
+    def test_na_values_na_filter_override(self):
+        data = """\
+A,B
+1,A
+nan,B
+3,C
+"""
+
+        expected = DataFrame([[1, 'A'], [np.nan, np.nan], [3, 'C']],
+                             columns=['A', 'B'])
+        out = self.read_csv(StringIO(data), na_values=['B'], na_filter=True)
+        tm.assert_frame_equal(out, expected)
+
+        expected = DataFrame([['1', 'A'], ['nan', 'B'], ['3', 'C']],
+                             columns=['A', 'B'])
+        out = self.read_csv(StringIO(data), na_values=['B'], na_filter=False)
+        tm.assert_frame_equal(out, expected)

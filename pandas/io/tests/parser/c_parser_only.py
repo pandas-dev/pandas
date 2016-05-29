@@ -61,12 +61,6 @@ class CParserTests(object):
                              columns=['a', 'b', 'c'])
         tm.assert_frame_equal(df, expected)
 
-    def test_parse_dates_empty_string(self):
-        # see gh-2263
-        s = StringIO("Date, test\n2012-01-01, 1\n,2")
-        result = self.read_csv(s, parse_dates=["Date"], na_filter=False)
-        self.assertTrue(result['Date'].isnull()[1])
-
     def test_dtype_and_names_error(self):
         # see gh-8833: passing both dtype and names
         # resulting in an error reporting issue

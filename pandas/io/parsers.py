@@ -425,7 +425,6 @@ _fwf_defaults = {
 _c_unsupported = set(['skip_footer'])
 _python_unsupported = set([
     'as_recarray',
-    'na_filter',
     'compact_ints',
     'use_unsigned',
     'low_memory',
@@ -1188,8 +1187,13 @@ class ParserBase(object):
         result = {}
         for c, values in compat.iteritems(dct):
             conv_f = None if converters is None else converters.get(c, None)
-            col_na_values, col_na_fvalues = _get_na_values(c, na_values,
-                                                           na_fvalues)
+
+            if self.na_filter:
+                col_na_values, col_na_fvalues = _get_na_values(
+                    c, na_values, na_fvalues)
+            else:
+                col_na_values, col_na_fvalues = set(), set()
+
             coerce_type = True
             if conv_f is not None:
                 try:
@@ -1633,6 +1637,8 @@ class PythonParser(ParserBase):
         self.skip_blank_lines = kwds['skip_blank_lines']
 
         self.names_passed = kwds['names'] or None
+
+        self.na_filter = kwds['na_filter']
 
         self.has_index_names = False
         if 'has_index_names' in kwds:
