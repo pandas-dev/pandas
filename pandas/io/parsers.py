@@ -2226,13 +2226,15 @@ class PythonParser(ParserBase):
         return index_name, orig_names, columns
 
     def _rows_to_cols(self, content):
-        zipped_content = list(lib.to_object_array(content).T)
-
         col_len = self.num_original_columns
-        zip_len = len(zipped_content)
 
         if self._implicit_index:
             col_len += len(self.index_col)
+
+        # see gh-13320
+        zipped_content = list(lib.to_object_array(
+            content, min_width=col_len).T)
+        zip_len = len(zipped_content)
 
         if self.skip_footer < 0:
             raise ValueError('skip footer cannot be negative')
