@@ -89,12 +89,14 @@ DataFrame or StataReader
 Examples
 --------
 Read a Stata dta file:
->> df = pandas.read_stata('filename.dta')
+
+>>> df = pandas.read_stata('filename.dta')
 
 Read a Stata dta file in 10,000 line chunks:
->> itr = pandas.read_stata('filename.dta', chunksize=10000)
->> for chunk in itr:
->>     do_something(chunk)
+
+>>> itr = pandas.read_stata('filename.dta', chunksize=10000)
+>>> for chunk in itr:
+>>>     do_something(chunk)
 """ % (_statafile_processing_params1, _encoding_params,
        _statafile_processing_params2, _chunksize_params,
        _iterator_params)
