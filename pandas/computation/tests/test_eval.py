@@ -749,6 +749,35 @@ f = lambda *args, **kwargs: np.random.randn()
 
 ENGINES_PARSERS = list(product(_engines, expr._parsers))
 
+#-------------------------------------
+# typecasting rules consistency with python
+# issue #12388
+
+class TestTypeCasting(tm.TestCase):
+
+    def check_binop_typecasting(self, engine, parser, op, dt):
+        tm.skip_if_no_ne(engine)
+        df = mkdf(5, 3, data_gen_f=f, dtype=dt)
+        s = 'df {} 3'.format(op)
+        res = pd.eval(s, engine=engine, parser=parser)
+        self.assertTrue(df.values.dtype == dt)
+        self.assertTrue(res.values.dtype == dt)
+        assert_frame_equal(res, eval(s))
+
+        s = '3 {} df'.format(op)
+        res = pd.eval(s, engine=engine, parser=parser)
+        self.assertTrue(df.values.dtype == dt)
+        self.assertTrue(res.values.dtype == dt)
+        assert_frame_equal(res, eval(s))
+
+    def test_binop_typecasting(self):
+        for engine, parser in ENGINES_PARSERS:
+            for op in ['+', '-', '*', '**', '/']:
+                # maybe someday... numexpr has too many upcasting rules now
+                #for dt in chain(*(np.sctypes[x] for x in ['uint', 'int', 'float'])):
+                for dt in [np.float32, np.float64]:
+                    yield self.check_binop_typecasting, engine, parser, op, dt
+
 
 #-------------------------------------
 # basic and complex alignment
