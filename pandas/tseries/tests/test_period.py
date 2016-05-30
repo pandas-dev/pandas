@@ -8,7 +8,7 @@ Parts derived from scikits.timeseries code, original authors:
 
 from datetime import datetime, date, timedelta
 
-from pandas import Timestamp
+from pandas import Timestamp, _period
 from pandas.tseries.frequencies import MONTHS, DAYS, _period_code_map
 from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range, Index
@@ -4449,6 +4449,14 @@ class TestSeriesPeriod(tm.TestCase):
         tm.assert_frame_equal(df2 - df, exp)
         tm.assert_frame_equal(df - df2, -exp)
 
+
+class TestPeriodField(tm.TestCase):
+    def test_get_period_field_raises_on_out_of_range(self):
+        self.assertRaises(ValueError, _period.get_period_field, -1, 0, 0)
+
+    def test_get_period_field_array_raises_on_out_of_range(self):
+        self.assertRaises(ValueError, _period.get_period_field_arr, -1,
+                          np.empty(1), 0)
 
 if __name__ == '__main__':
     import nose
