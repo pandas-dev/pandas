@@ -2,7 +2,7 @@ import nose
 from distutils.version import LooseVersion
 import numpy as np
 
-from pandas import tslib
+from pandas import tslib, lib
 import pandas._period as period
 import datetime
 
@@ -23,6 +23,35 @@ from pandas.compat.numpy import (np_datetime64_compat,
                                  np_array_datetime64_compat)
 
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
+
+
+class TestTsUtil(tm.TestCase):
+
+    def test_try_parse_dates(self):
+        from dateutil.parser import parse
+        arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
+
+        result = lib.try_parse_dates(arr, dayfirst=True)
+        expected = [parse(d, dayfirst=True) for d in arr]
+        self.assertTrue(np.array_equal(result, expected))
+
+    def test_min_valid(self):
+        # Ensure that Timestamp.min is a valid Timestamp
+        Timestamp(Timestamp.min)
+
+    def test_max_valid(self):
+        # Ensure that Timestamp.max is a valid Timestamp
+        Timestamp(Timestamp.max)
+
+    def test_to_datetime_bijective(self):
+        # Ensure that converting to datetime and back only loses precision
+        # by going from nanoseconds to microseconds.
+        self.assertEqual(
+            Timestamp(Timestamp.max.to_pydatetime()).value / 1000,
+            Timestamp.max.value / 1000)
+        self.assertEqual(
+            Timestamp(Timestamp.min.to_pydatetime()).value / 1000,
+            Timestamp.min.value / 1000)
 
 
 class TestTimestamp(tm.TestCase):
