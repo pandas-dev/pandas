@@ -276,18 +276,26 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
     _binary_ops_dict.update(d)
 
 
-def _cast_inplace(terms, dtype):
+def _cast_inplace(terms, acceptable_dtypes, dtype):
     """Cast an expression inplace.
 
     Parameters
     ----------
     terms : Op
         The expression that should cast.
+    acceptable_dtypes : list of acceptable numpy.dtype
+        Will not cast if term's dtype in this list.
+
+        .. versionadded:: 0.18.2
+
     dtype : str or numpy.dtype
         The dtype to cast to.
     """
     dt = np.dtype(dtype)
     for term in terms:
+        if term.type in acceptable_dtypes:
+            continue
+
         try:
             new_value = term.value.astype(dt)
         except AttributeError:
@@ -452,7 +460,9 @@ class Div(BinOp):
                                                       rhs.return_type))
 
         if truediv or PY3:
-            _cast_inplace(com.flatten(self), np.float_)
+            # do not upcast float32s to float64 un-necessarily
+            acceptable_dtypes = [np.float32, np.float_]
+            _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
 
 
 _unary_ops_syms = '+', '-', '~', 'not'
