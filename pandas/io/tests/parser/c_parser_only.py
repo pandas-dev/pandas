@@ -419,15 +419,6 @@ No,No,No"""
         expected = self.read_csv(StringIO(data.replace('\r', '\n')))
         tm.assert_frame_equal(result, expected)
 
-    def test_raise_on_no_columns(self):
-        # single newline
-        data = "\n"
-        self.assertRaises(ValueError, self.read_csv, StringIO(data))
-
-        # test with more than a single newline
-        data = "\n\n\n"
-        self.assertRaises(ValueError, self.read_csv, StringIO(data))
-
     def test_grow_boundary_at_cap(self):
         # See gh-12494
         #
