@@ -11,7 +11,7 @@ from numpy import nan
 import pandas.io.parsers as parsers
 import pandas.util.testing as tm
 
-from pandas import DataFrame, MultiIndex, read_csv
+from pandas import DataFrame, MultiIndex
 from pandas.compat import StringIO, range
 
 
@@ -43,57 +43,30 @@ NaN,nan
         tm.assert_numpy_array_equal(df.values, expected)
 
     def test_non_string_na_values(self):
-        # see gh-3611, na_values that are not a string are an issue
-        with tm.ensure_clean('__non_string_na_values__.csv') as path:
-            df = DataFrame({'A': [-999, 2, 3], 'B': [1.2, -999, 4.5]})
-            df.to_csv(path, sep=' ', index=False)
-            result1 = self.read_csv(path, sep=' ', header=0,
-                                    na_values=['-999.0', '-999'])
-            result2 = self.read_csv(path, sep=' ', header=0,
-                                    na_values=[-999, -999.0])
-            result3 = self.read_csv(path, sep=' ', header=0,
-                                    na_values=[-999.0, -999])
-            tm.assert_frame_equal(result1, result2)
-            tm.assert_frame_equal(result2, result3)
+        # see gh-3611: with an odd float format, we can't match
+        # the string '999.0' exactly but still need float matching
+        nice = """A,B
+-999,1.2
+2,-999
+3,4.5
+"""
+        ugly = """A,B
+-999,1.200
+2,-999.000
+3,4.500
+"""
+        na_values_param = [['-999.0', '-999'],
+                           [-999, -999.0],
+                           [-999.0, -999],
+                           ['-999.0'], ['-999'],
+                           [-999.0], [-999]]
+        expected = DataFrame([[np.nan, 1.2], [2.0, np.nan],
+                              [3.0, 4.5]], columns=['A', 'B'])
 
-            result4 = self.read_csv(
-                path, sep=' ', header=0, na_values=['-999.0'])
-            result5 = self.read_csv(
-                path, sep=' ', header=0, na_values=['-999'])
-            result6 = self.read_csv(
-                path, sep=' ', header=0, na_values=[-999.0])
-            result7 = self.read_csv(
-                path, sep=' ', header=0, na_values=[-999])
-            tm.assert_frame_equal(result4, result3)
-            tm.assert_frame_equal(result5, result3)
-            tm.assert_frame_equal(result6, result3)
-            tm.assert_frame_equal(result7, result3)
-
-            good_compare = result3
-
-            # with an odd float format, so we can't match the string 999.0
-            # exactly, but need float matching
-            # TODO: change these to self.read_csv when Python bug is squashed
-            df.to_csv(path, sep=' ', index=False, float_format='%.3f')
-            result1 = read_csv(path, sep=' ', header=0,
-                               na_values=['-999.0', '-999'])
-            result2 = read_csv(path, sep=' ', header=0,
-                               na_values=[-999.0, -999])
-            tm.assert_frame_equal(result1, good_compare)
-            tm.assert_frame_equal(result2, good_compare)
-
-            result3 = read_csv(path, sep=' ',
-                               header=0, na_values=['-999.0'])
-            result4 = read_csv(path, sep=' ',
-                               header=0, na_values=['-999'])
-            result5 = read_csv(path, sep=' ',
-                               header=0, na_values=[-999.0])
-            result6 = read_csv(path, sep=' ',
-                               header=0, na_values=[-999])
-            tm.assert_frame_equal(result3, good_compare)
-            tm.assert_frame_equal(result4, good_compare)
-            tm.assert_frame_equal(result5, good_compare)
-            tm.assert_frame_equal(result6, good_compare)
+        for data in (nice, ugly):
+            for na_values in na_values_param:
+                out = self.read_csv(StringIO(data), na_values=na_values)
+                tm.assert_frame_equal(out, expected)
 
     def test_default_na_values(self):
         _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',

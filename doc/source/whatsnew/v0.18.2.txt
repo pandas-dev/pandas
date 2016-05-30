@@ -291,6 +291,7 @@ Bug Fixes
 
 
 
+- Bug in ``pd.read_csv()`` with ``engine='python'`` in which ``NaN`` values weren't being detected after data was converted to numeric values (:issue:`13314`)
 - Bug in ``MultiIndex`` slicing where extra elements were returned when level is non-unique (:issue:`12896`)
 
 
