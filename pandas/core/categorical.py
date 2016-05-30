@@ -7,6 +7,22 @@ import types
 from pandas import compat, lib
 from pandas.compat import u
 
+from pandas.types.generic import ABCSeries, ABCIndexClass, ABCCategoricalIndex
+from pandas.types.missing import isnull, notnull
+from pandas.types.cast import (_possibly_infer_to_datetimelike,
+                               _coerce_indexer_dtype)
+from pandas.types.dtypes import CategoricalDtype
+from pandas.types.common import (_ensure_int64,
+                                 _ensure_object,
+                                 _ensure_platform_int,
+                                 is_dtype_equal,
+                                 is_datetimelike,
+                                 is_categorical_dtype,
+                                 is_integer_dtype, is_bool,
+                                 is_list_like, is_sequence,
+                                 is_scalar)
+from pandas.core.common import is_null_slice
+
 from pandas.core.algorithms import factorize, take_1d
 from pandas.core.base import (PandasObject, PandasDelegate,
                               NoNewAttributesMixin, _shared_docs)
@@ -16,13 +32,6 @@ from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 
-from pandas.core.common import (
-    ABCSeries, ABCIndexClass, ABCCategoricalIndex, isnull, notnull,
-    is_dtype_equal, is_categorical_dtype, is_integer_dtype,
-    _possibly_infer_to_datetimelike, is_list_like,
-    is_sequence, is_null_slice, is_bool, _ensure_object, _ensure_int64,
-    _coerce_indexer_dtype)
-from pandas.types.api import CategoricalDtype
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 
@@ -64,7 +73,7 @@ def _cat_compare_op(op):
         # With cat[0], for example, being ``np.int64(1)`` by the time it gets
         # into this function would become ``np.array(1)``.
         other = lib.item_from_zerodim(other)
-        if lib.isscalar(other):
+        if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
                 return getattr(self._codes, op)(i)
@@ -968,7 +977,7 @@ class Categorical(PandasObject):
         if codes.ndim > 1:
             raise NotImplementedError("Categorical with ndim > 1.")
         if np.prod(codes.shape) and (periods != 0):
-            codes = np.roll(codes, com._ensure_platform_int(periods), axis=0)
+            codes = np.roll(codes, _ensure_platform_int(periods), axis=0)
             if periods > 0:
                 codes[:periods] = -1
             else:
@@ -1148,7 +1157,7 @@ class Categorical(PandasObject):
         counts : Series
         """
         from numpy import bincount
-        from pandas.core.common import isnull
+        from pandas.types.missing import isnull
         from pandas.core.series import Series
         from pandas.core.index import CategoricalIndex
 
@@ -1182,7 +1191,7 @@ class Categorical(PandasObject):
             Index if datetime / periods
         """
         # if we are a datetime and period index, return Index to keep metadata
-        if com.is_datetimelike(self.categories):
+        if is_datetimelike(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
         return np.array(self)
 
@@ -1933,7 +1942,7 @@ def _convert_to_list_like(list_like):
     if (is_sequence(list_like) or isinstance(list_like, tuple) or
             isinstance(list_like, types.GeneratorType)):
         return list(list_like)
-    elif lib.isscalar(list_like):
+    elif is_scalar(list_like):
         return [list_like]
     else:
         # is this reached?

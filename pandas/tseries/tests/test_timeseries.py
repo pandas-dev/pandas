@@ -12,6 +12,7 @@ import pandas.index as _index
 import pandas.lib as lib
 import pandas.tslib as tslib
 
+from pandas.types.common import is_datetime64_ns_dtype
 import pandas as pd
 import pandas.compat as compat
 import pandas.core.common as com
@@ -2282,7 +2283,7 @@ class TestToDatetime(tm.TestCase):
         i = pd.DatetimeIndex([
             '2000-01-01 08:00:00+00:00'
         ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
-        self.assertFalse(com.is_datetime64_ns_dtype(i))
+        self.assertFalse(is_datetime64_ns_dtype(i))
 
         # tz coerceion
         result = pd.to_datetime(i, errors='coerce')

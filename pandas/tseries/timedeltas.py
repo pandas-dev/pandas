@@ -4,9 +4,11 @@ timedelta support tools
 
 import numpy as np
 import pandas.tslib as tslib
-from pandas.core.common import (ABCSeries, is_integer_dtype,
-                                is_timedelta64_dtype, is_list_like,
-                                _ensure_object, ABCIndexClass)
+from pandas.types.common import (_ensure_object,
+                                 is_integer_dtype,
+                                 is_timedelta64_dtype,
+                                 is_list_like)
+from pandas.types.generic import ABCSeries, ABCIndexClass
 from pandas.util.decorators import deprecate_kwarg
 
 

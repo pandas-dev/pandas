@@ -17,10 +17,11 @@ except ImportError:
           "or `pip install Jinja2`"
     raise ImportError(msg)
 
+from pandas.types.common import is_float, is_string_like
+
 import numpy as np
 import pandas as pd
 from pandas.compat import lzip, range
-import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 try:
     import matplotlib.pyplot as plt
@@ -153,7 +154,7 @@ class Styler(object):
         # display_funcs maps (row, col) -> formatting function
 
         def default_display_func(x):
-            if com.is_float(x):
+            if is_float(x):
                 return '{:>.{precision}g}'.format(x, precision=self.precision)
             else:
                 return x
@@ -893,7 +894,7 @@ class Styler(object):
 
 
 def _maybe_wrap_formatter(formatter):
-    if com.is_string_like(formatter):
+    if is_string_like(formatter):
         return lambda x: formatter.format(x)
     elif callable(formatter):
         return formatter
