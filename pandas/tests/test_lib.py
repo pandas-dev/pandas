@@ -188,6 +188,9 @@ class TestMisc(tm.TestCase):
         self.assertFalse(lib.isneginf_scalar(1))
         self.assertFalse(lib.isneginf_scalar('a'))
 
+
+# tests related to functions imported from inference.pyx
+class TestInference(tm.TestCase):
     def test_maybe_convert_numeric_infinities(self):
         # see gh-13274
         infinities = ['inf', 'inF', 'iNf', 'Inf',
@@ -226,6 +229,16 @@ class TestMisc(tm.TestCase):
                     lib.maybe_convert_numeric(
                         np.array(['foo_' + infinity], dtype=object),
                         na_values, maybe_int)
+
+    def test_maybe_convert_numeric_post_floatify_nan(self):
+        # see gh-13314
+        data = np.array(['1.200', '-999.000', '4.500'], dtype=object)
+        expected = np.array([1.2, np.nan, 4.5], dtype=np.float64)
+        nan_values = set([-999, -999.0])
+
+        for coerce_type in (True, False):
+            out = lib.maybe_convert_numeric(data, nan_values, coerce_type)
+            tm.assert_numpy_array_equal(out, expected)
 
 
 class Testisscalar(tm.TestCase):

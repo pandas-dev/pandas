@@ -596,7 +596,13 @@ def maybe_convert_numeric(object[:] values, set na_values,
         else:
             try:
                 status = floatify(val, &fval, &maybe_int)
-                floats[i] = fval
+
+                if fval in na_values:
+                    floats[i] = complexes[i] = nan
+                    seen_float = True
+                else:
+                    floats[i] = fval
+
                 if not seen_float:
                     if maybe_int:
                         as_int = int(val)
