@@ -85,6 +85,8 @@ time conda install -n pandas --file=${REQ} || exit 1
 
 source activate pandas
 
+which ccache
+
 # set the compiler cache to work
 #if [[ "$IRON_TOKEN" && "${TRAVIS_OS_NAME}" == "linux" ]]; then
 #    export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
