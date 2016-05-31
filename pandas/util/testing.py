@@ -25,7 +25,8 @@ import numpy as np
 import pandas as pd
 from pandas.core.common import (is_sequence, array_equivalent,
                                 is_list_like, is_datetimelike_v_numeric,
-                                is_datetimelike_v_object, is_number,
+                                is_datetimelike_v_object,
+                                is_number, is_bool,
                                 needs_i8_conversion, is_categorical_dtype)
 from pandas.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
@@ -156,6 +157,9 @@ def assert_almost_equal(left, right, check_exact=False,
         if check_dtype:
             if is_number(left) and is_number(right):
                 # do not compare numeric classes, like np.float64 and float
+                pass
+            elif is_bool(left) and is_bool(right):
+                # do not compare bool classes, like np.bool_ and bool
                 pass
             else:
                 if (isinstance(left, np.ndarray) or
