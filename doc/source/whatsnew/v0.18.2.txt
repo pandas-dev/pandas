@@ -229,6 +229,55 @@ resulting dtype will be upcast (unchanged from previous).
    pd.merge(df1, df2, how='outer', on='key')
    pd.merge(df1, df2, how='outer', on='key').dtypes
 
+.. _whatsnew_0182.describe:
+
+``.describe()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Percentile identifiers in the index of a ``.describe()`` output will now be rounded to the least precision that keeps them distinct (:issue:`13104`)
+
+.. ipython:: python
+
+   s = pd.Series([0, 1, 2, 3, 4])
+   df = pd.DataFrame([0, 1, 2, 3, 4])
+
+Previous Behavior:
+
+The percentiles were rounded to at most one decimal place, which could raise ``ValueError`` for a data frame if the percentiles were duplicated.
+
+.. code-block:: ipython
+
+   In [3]: s.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   Out[3]:
+   count     5.000000
+   mean      2.000000
+   std       1.581139
+   min       0.000000
+   0.0%      0.000400
+   0.1%      0.002000
+   0.1%      0.004000
+   50%       2.000000
+   99.9%     3.996000
+   100.0%    3.998000
+   100.0%    3.999600
+   max       4.000000
+   dtype: float64
+
+   In [4]: df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   Out[4]:
+   ...
+   ValueError: cannot reindex from a duplicate axis
+
+New Behavior:
+
+.. ipython:: python
+
+   s.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+
+- Passing duplicated ``percentiles`` will now raise a ``ValueError``.
+- Bug in ``.describe()`` on a DataFrame with a mixed-dtype column index, which would previously raise a ``TypeError`` (:issue:`13288`)
+
 .. _whatsnew_0182.api.other:
 
 Other API changes
