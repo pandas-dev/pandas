@@ -88,6 +88,7 @@ Other enhancements
 - ``Categorical.astype()`` now accepts an optional boolean argument ``copy``, effective when dtype is categorical (:issue:`13209`)
 - Consistent with the Python API, ``pd.read_csv()`` will now interpret ``+inf`` as positive infinity (:issue:`13274`)
 
+- The ``DataFrame`` constructor will now respect key ordering if a list of ``OrderedDict`` objects are passed in (:issue:`13304`)
 - ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
 
 - ``eval``'s upcasting rules for ``float32`` types have been updated to be more consistent with NumPy's rules.  New behavior will not upcast to ``float64`` if you multiply a pandas ``float32`` object by a scalar float64. (:issue:`12388`)

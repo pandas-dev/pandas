@@ -891,6 +891,45 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         expected = DataFrame(index=[0])
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_ordered_dict_preserve_order(self):
+        # see gh-13304
+        expected = DataFrame([[2, 1]], columns=['b', 'a'])
+
+        data = OrderedDict()
+        data['b'] = [2]
+        data['a'] = [1]
+
+        result = DataFrame(data)
+        tm.assert_frame_equal(result, expected)
+
+        data = OrderedDict()
+        data['b'] = 2
+        data['a'] = 1
+
+        result = DataFrame([data])
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_ordered_dict_conflicting_orders(self):
+        # the first dict element sets the ordering for the DataFrame,
+        # even if there are conflicting orders from subsequent ones
+        row_one = OrderedDict()
+        row_one['b'] = 2
+        row_one['a'] = 1
+
+        row_two = OrderedDict()
+        row_two['a'] = 1
+        row_two['b'] = 2
+
+        row_three = {'b': 2, 'a': 1}
+
+        expected = DataFrame([[2, 1], [2, 1]], columns=['b', 'a'])
+        result = DataFrame([row_one, row_two])
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame([[2, 1], [2, 1], [2, 1]], columns=['b', 'a'])
+        result = DataFrame([row_one, row_two, row_three])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_series(self):
         data = [OrderedDict([['a', 1.5], ['b', 3.0], ['c', 4.0]]),
                 OrderedDict([['a', 1.5], ['b', 3.0], ['c', 6.0]])]
@@ -1870,3 +1909,9 @@ class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):
         tm.assert_series_equal(df2[0], Series(idx2, name=0))
         df2 = DataFrame(Series(idx2))
         tm.assert_series_equal(df2[0], Series(idx2, name=0))
+
+if __name__ == '__main__':
+    import nose  # noqa
+
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

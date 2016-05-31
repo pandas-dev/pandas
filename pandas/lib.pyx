@@ -493,7 +493,21 @@ def fast_unique_multiple_list(list lists):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list_gen(object gen):
+def fast_unique_multiple_list_gen(object gen, bint sort=True):
+    """
+    Generate a list of unique values from a generator of lists.
+
+    Parameters
+    ----------
+    gen : generator object
+        A generator of lists from which the unique list is created
+    sort : boolean
+        Whether or not to sort the resulting unique list
+
+    Returns
+    -------
+    unique_list : list of unique values
+    """
     cdef:
         list buf
         Py_ssize_t j, n
@@ -508,11 +522,11 @@ def fast_unique_multiple_list_gen(object gen):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-
-    try:
-        uniques.sort()
-    except Exception:
-        pass
+    if sort:
+        try:
+            uniques.sort()
+        except Exception:
+            pass
 
     return uniques
 
