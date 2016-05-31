@@ -519,12 +519,18 @@ class TestAssertSeriesEqual(tm.TestCase):
 
         self.assertRaises(AssertionError, assert_series_equal, s1, s2)
         self._assert_equal(s1, s2, check_less_precise=True)
+        for i in range(4):
+            self._assert_equal(s1, s2, check_less_precise=i)
+        self.assertRaises(AssertionError, assert_series_equal, s1, s2, 10)
 
         s1 = Series([0.12345], dtype='float32')
         s2 = Series([0.12346], dtype='float32')
 
         self.assertRaises(AssertionError, assert_series_equal, s1, s2)
         self._assert_equal(s1, s2, check_less_precise=True)
+        for i in range(4):
+            self._assert_equal(s1, s2, check_less_precise=i)
+        self.assertRaises(AssertionError, assert_series_equal, s1, s2, 10)
 
         # even less than less precise
         s1 = Series([0.1235], dtype='float32')

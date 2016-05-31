@@ -55,7 +55,9 @@ cpdef assert_dict_equal(a, b, bint compare_keys=True):
 
     return True
 
-cpdef assert_almost_equal(a, b, bint check_less_precise=False, check_dtype=True,
+cpdef assert_almost_equal(a, b,
+                          check_less_precise=False,
+                          bint check_dtype=True,
                           obj=None, lobj=None, robj=None):
     """Check that left and right objects are almost equal.
 
@@ -63,9 +65,10 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False, check_dtype=True,
     ----------
     a : object
     b : object
-    check_less_precise : bool, default False
+    check_less_precise : bool or int, default False
         Specify comparison precision.
         5 digits (False) or 3 digits (True) after decimal points are compared.
+        If an integer, then this will be the number of decimal points to compare
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray
     obj : str, default None
@@ -90,6 +93,8 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False, check_dtype=True,
         lobj = a
     if robj is None:
         robj = b
+
+    assert isinstance(check_less_precise, (int, bool))
 
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
@@ -145,7 +150,7 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False, check_dtype=True,
 
         for i in xrange(len(a)):
             try:
-                assert_almost_equal(a[i], b[i], check_less_precise)
+                assert_almost_equal(a[i], b[i], check_less_precise=check_less_precise)
             except AssertionError:
                 is_unequal = True
                 diff += 1
@@ -173,11 +178,12 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False, check_dtype=True,
             # inf comparison
             return True
 
-        decimal = 5
-
-        # deal with differing dtypes
-        if check_less_precise:
+        if check_less_precise is True:
             decimal = 3
+        elif check_less_precise is False:
+            decimal = 5
+        else:
+            decimal = check_less_precise
 
         fa, fb = a, b
 
