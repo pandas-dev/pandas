@@ -9,6 +9,7 @@ if [ -f "$CACHE_DIR/cache.tar.gz" ]; then
 
 else
 
+    ls "$TRAVIS_BUILD_DIR"/pandas/"
     tar cfz $CACHE_DIR/cache.tar.gz \
     "$TRAVIS_BUILD_DIR"/pandas/{index,algos,lib,tslib,parser,hashtable}.c \
     "$TRAVIS_BUILD_DIR"/pandas/src/{sparse,testing}.c \

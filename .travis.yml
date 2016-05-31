@@ -222,9 +222,9 @@ before_install:
 
 install:
   - echo "install start"
-  - ci/prep_ccache.sh
+  - ci/prep_cache.sh
   - ci/install_travis.sh
-  - ci/submit_ccache.sh
+  - ci/submit_cache.sh
   - echo "install done"
 
 before_script:
