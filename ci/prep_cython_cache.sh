@@ -1,10 +1,10 @@
 #!/bin/bash
 
-CACHE_DIR="$HOME/.cache"
+CACHE_File="$HOME/.cache/cython_files.tar"
 
 clear_cache=0
 
-if [ -f "$CACHE_DIR/cache.tar.gz" ]; then
+if [ -f "$CACHE_File" ]; then
 
     home_dir=$(pwd)
 
@@ -13,13 +13,15 @@ if [ -f "$CACHE_DIR/cache.tar.gz" ]; then
     cd $HOME
     # ls -l $HOME
     cd /
-    tar xzvf $CACHE_DIR/cache.tar.gz
+    tar xvf $CACHE_File
 
     # did the last commit change cython files?
     cd $home_dir
 
     retval=$(git diff HEAD~3 --numstat | grep -P "pyx|pxd"|wc -l)
     echo "number of cython files changed: $retval"
+
+    rm -rf $CACHE_File
 
 fi
 
@@ -32,7 +34,6 @@ then
     touch "$TRAVIS_BUILD_DIR"/pandas/*.cpp
 else
     echo "Rebuilding cythonized files"
-    rm -rf $CACHE_DIR/cache.tar.gz
 fi
 
 
