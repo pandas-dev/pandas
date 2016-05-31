@@ -229,6 +229,75 @@ resulting dtype will be upcast (unchanged from previous).
    pd.merge(df1, df2, how='outer', on='key')
    pd.merge(df1, df2, how='outer', on='key').dtypes
 
+.. _whatsnew_0182.api.describe:
+
+``.describe()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Percentile identifiers in the index of a ``.describe()`` output will now be rounded to the least precision that keeps them distinct (:issue:`13104`)
+
+.. ipython:: python
+
+   s = pd.Series([0, 1, 2, 3, 4])
+   df = pd.DataFrame([0, 1, 2, 3, 4])
+
+Previous Behavior:
+
+They were rounded to at most one decimal place, which could raise ``ValueError`` for a data frame.
+
+.. code-block:: ipython
+
+   In [3]: s.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   Out[3]:
+   count     5.000000
+   mean      2.000000
+   std       1.581139
+   min       0.000000
+   0.0%      0.000400
+   0.1%      0.002000
+   0.1%      0.004000
+   50%       2.000000
+   99.9%     3.996000
+   100.0%    3.998000
+   100.0%    3.999600
+   max       4.000000
+   dtype: float64
+
+   In [4]: df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   Out[4]:
+   ...
+   ValueError: cannot reindex from a duplicate axis
+
+New Behavior:
+
+.. ipython:: python
+
+   s.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+
+In addition to this, both ``Series.describe()`` and ``DataFrame.describe()`` will now raise ``ValueError`` if passed ``pecentiles`` contain duplicates.
+
+Another bug is fixed that could raise ``TypeError`` when a column index of a data frame contained entries of different types (:issue:`13288`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': list("BCDE"), 0: [1, 2, 3, 4]})
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [8]: df.describe()
+   Out[8]:
+   ...
+   ValueError: Buffer dtype mismatch, expected 'Python object' but got 'long'
+
+New Behavior:
+
+.. ipython:: python
+
+   df.describe()
+
 .. _whatsnew_0182.api.other:
 
 Other API changes
