@@ -379,16 +379,6 @@ class TestGroupBy(tm.TestCase):
         result = g.tail(n=2)
         assert_frame_equal(result, df)
 
-        g = df.groupby('A')
-        g.head()
-        result = g.head(n=2)
-        assert_frame_equal(result, df)
-
-        g = df.groupby('A')
-        g.tail()
-        result = g.tail(n=2)
-        assert_frame_equal(result, df)
-
     def test_grouper_index_types(self):
         # related GH5375
         # groupby misbehaving when using a Floatlike index
