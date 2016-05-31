@@ -58,10 +58,12 @@ else
 
     # Useful for debugging any issues with conda
     conda info -a || exit 1
+
+    time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose coverage flake8 || exit 1
+    
 fi
 # build deps
 REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.build"
-time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose coverage flake8 || exit 1
 
 # may have additional installation instructions for this build
 INSTALL="ci/install-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.sh"
