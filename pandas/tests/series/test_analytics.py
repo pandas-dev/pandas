@@ -1397,6 +1397,23 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series(np.arange(1000))
         self.assertTrue(s.is_unique)
 
+    def test_is_monotonic(self):
+
+        s = Series(np.random.randint(0, 10, size=1000))
+        self.assertFalse(s.is_monotonic)
+        s = Series(np.arange(1000))
+        self.assertTrue(s.is_monotonic)
+        self.assertTrue(s.is_monotonic_increasing)
+        s = Series(np.arange(1000, 0, -1))
+        self.assertTrue(s.is_monotonic_decreasing)
+
+        s = Series(pd.date_range('20130101', periods=10))
+        self.assertTrue(s.is_monotonic)
+        self.assertTrue(s.is_monotonic_increasing)
+        s = Series(list(reversed(s.tolist())))
+        self.assertFalse(s.is_monotonic)
+        self.assertTrue(s.is_monotonic_decreasing)
+
     def test_sort_values(self):
 
         ts = self.ts.copy()

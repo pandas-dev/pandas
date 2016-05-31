@@ -995,6 +995,32 @@ class IndexOpsMixin(object):
         """
         return self.nunique() == len(self)
 
+    @property
+    def is_monotonic(self):
+        """
+        Return boolean if values in the object are monotonic
+
+        Returns
+        -------
+        is_monotonic : boolean
+        """
+        from pandas import Index
+        return Index(self).is_monotonic
+    is_monotonic_increasing = is_monotonic
+
+    @property
+    def is_monotonic_decreasing(self):
+        """
+        Return boolean if values in the object are
+        monotonic_decreasing
+
+        Returns
+        -------
+        is_monotonic_decreasing : boolean
+        """
+        from pandas import Index
+        return Index(self).is_monotonic_decreasing
+
     def memory_usage(self, deep=False):
         """
         Memory usage of my values
