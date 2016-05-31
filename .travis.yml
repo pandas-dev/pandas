@@ -5,6 +5,7 @@ cache:
  directories:
   - $HOME/miniconda
   - $HOME/.cache
+  - $HOME/.ccache
 
 env:
   global:
