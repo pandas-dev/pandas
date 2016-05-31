@@ -67,7 +67,6 @@ else
 
     # Useful for debugging any issues with conda
     conda info -a || exit 1
-
     time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose coverage flake8 || exit 1
 
 fi
