@@ -1319,10 +1319,8 @@ j,-inF"""
         df = self.read_csv(StringIO(data), index_col=0)
         tm.assert_almost_equal(df['A'].values, expected.values)
 
-        if self.engine == 'c':
-            # TODO: remove condition when 'na_filter' is supported for Python
-            df = self.read_csv(StringIO(data), index_col=0, na_filter=False)
-            tm.assert_almost_equal(df['A'].values, expected.values)
+        df = self.read_csv(StringIO(data), index_col=0, na_filter=False)
+        tm.assert_almost_equal(df['A'].values, expected.values)
 
     def test_raise_on_no_columns(self):
         # single newline
