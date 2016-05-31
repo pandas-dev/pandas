@@ -41,6 +41,15 @@ MINICONDA_DIR="$HOME/miniconda"
 
 if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ]; then
     echo "Miniconda install already present from cache: $MINICONDA_DIR"
+
+    conda config --set always_yes yes --set changeps1 no || exit 1
+    conda update -q conda || exit 1
+    conda config --add channels http://conda.anaconda.org/pandas || exit 1
+    conda config --set ssl_verify false || exit 1
+
+    # Useful for debugging any issues with conda
+    conda info -a || exit 1
+
 else
     rm -rf "$MINICONDA_DIR"
     # install miniconda
@@ -60,7 +69,7 @@ else
     conda info -a || exit 1
 
     time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose coverage flake8 || exit 1
-    
+
 fi
 # build deps
 REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.build"

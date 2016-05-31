@@ -13,7 +13,7 @@ else
     tar cfz $CACHE_DIR/cache.tar.gz \
     "$TRAVIS_BUILD_DIR"/pandas/{index,algos,lib,tslib,parser,hashtable}.c \
     "$TRAVIS_BUILD_DIR"/pandas/src/{sparse,testing}.c \
-    "$TRAVIS_BUILD_DIR"/pandas/msgpack.cpp
+    "$TRAVIS_BUILD_DIR"/pandas/msgpack.cpp"
 
 fi
 
