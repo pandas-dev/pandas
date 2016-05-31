@@ -2,6 +2,7 @@ sudo: false
 language: python
 
 cache:
+  - ccache
  directories:
   - $HOME/miniconda
   - $HOME/.cache
