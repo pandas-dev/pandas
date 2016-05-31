@@ -279,6 +279,18 @@ class TestToNumeric(tm.TestCase):
         # res = pd.to_numeric(pd.Series(idx, name='xxx'))
         # tm.assert_series_equal(res, pd.Series(idx.asi8, name='xxx'))
 
+    def test_non_hashable(self):
+        # Test for Bug #13324
+        s = pd.Series([[10.0, 2], 1.0, 'apple'])
+        res = pd.to_numeric(s, errors='coerce')
+        tm.assert_series_equal(res, pd.Series([np.nan, 1.0, np.nan]))
+
+        res = pd.to_numeric(s, errors='ignore')
+        tm.assert_series_equal(res, pd.Series([[10.0, 2], 1.0, 'apple']))
+
+        with self.assertRaisesRegexp(TypeError, "Invalid object type"):
+            pd.to_numeric(s)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

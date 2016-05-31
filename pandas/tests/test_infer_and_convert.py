@@ -102,6 +102,12 @@ class TestInference(tm.TestCase):
         result = lib.maybe_convert_numeric(arr, set(), False, True)
         self.assertTrue(np.all(np.isnan(result)))
 
+    def test_convert_non_hashable(self):
+        # Test for Bug #13324
+        arr = np.array([[10.0, 2], 1.0, 'apple'])
+        result = lib.maybe_convert_numeric(arr, set(), False, True)
+        tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
+
 
 class TestTypeInference(tm.TestCase):
     _multiprocess_can_split_ = True

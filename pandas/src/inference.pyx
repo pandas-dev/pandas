@@ -569,7 +569,7 @@ def maybe_convert_numeric(object[:] values, set na_values,
     for i in range(n):
         val = values[i]
 
-        if val in na_values:
+        if val.__hash__ is not None and val in na_values:
             floats[i] = complexes[i] = nan
             seen_float = True
         elif util.is_float_object(val):
