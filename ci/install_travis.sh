@@ -87,6 +87,7 @@ source activate pandas
 
 # set the compiler cache to work
 if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+
     export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
     gcc=$(which gcc)
     echo "gcc: $gcc"
