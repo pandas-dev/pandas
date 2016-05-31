@@ -354,6 +354,9 @@ Computations / Descriptive Stats
    Series.unique
    Series.nunique
    Series.is_unique
+   Series.is_monotonic
+   Series.is_monotonic_increasing
+   Series.is_monotonic_decreasing
    Series.value_counts
 
 Reindexing / Selection / Label manipulation
