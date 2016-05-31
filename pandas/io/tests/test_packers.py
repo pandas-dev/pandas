@@ -671,14 +671,14 @@ class TestCompression(TestPackers):
         with tm.assert_produces_warning(None):
             empty_unpacked = self.encode_decode(empty, compress=compress)
 
-        np.testing.assert_array_equal(empty_unpacked, empty)
+        tm.assert_numpy_array_equal(empty_unpacked, empty)
         self.assertTrue(empty_unpacked.flags.writeable)
 
         char = np.array([ord(b'a')], dtype='uint8')
         with tm.assert_produces_warning(None):
             char_unpacked = self.encode_decode(char, compress=compress)
 
-        np.testing.assert_array_equal(char_unpacked, char)
+        tm.assert_numpy_array_equal(char_unpacked, char)
         self.assertTrue(char_unpacked.flags.writeable)
         # if this test fails I am sorry because the interpreter is now in a
         # bad state where b'a' points to 98 == ord(b'b').
@@ -688,7 +688,7 @@ class TestCompression(TestPackers):
         # always be the same (unless we were able to mutate the shared
         # character singleton in which case ord(b'a') == ord(b'b').
         self.assertEqual(ord(b'a'), ord(u'a'))
-        np.testing.assert_array_equal(
+        tm.assert_numpy_array_equal(
             char_unpacked,
             np.array([ord(b'b')], dtype='uint8'),
         )
