@@ -996,6 +996,59 @@ class TestDataFrame(tm.TestCase, Generic):
         self.assertTrue('0%' in d1.index)
         self.assertTrue('100%' in d2.index)
 
+    def test_describe_percentiles_unique(self):
+        # GH13104
+        df = tm.makeDataFrame()
+        with self.assertRaises(ValueError):
+            df.describe(percentiles=[0.1, 0.2, 0.4, 0.5, 0.2, 0.6])
+        with self.assertRaises(ValueError):
+            df.describe(percentiles=[0.1, 0.2, 0.4, 0.2, 0.6])
+
+    def test_describe_percentiles_formatting(self):
+        # GH13104
+        df = tm.makeDataFrame()
+
+        # default
+        result = df.describe().index
+        expected = Index(['count', 'mean', 'std', 'min', '25%', '50%', '75%',
+                          'max'],
+                         dtype='object')
+        tm.assert_index_equal(result, expected)
+
+        result = df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999,
+                                          0.9995, 0.9999]).index
+        expected = Index(['count', 'mean', 'std', 'min', '0.01%', '0.05%',
+                          '0.1%', '50%', '99.9%', '99.95%', '99.99%', 'max'],
+                         dtype='object')
+        tm.assert_index_equal(result, expected)
+
+        result = df.describe(percentiles=[0.00499, 0.005, 0.25, 0.50,
+                                          0.75]).index
+        expected = Index(['count', 'mean', 'std', 'min', '0.499%', '0.5%',
+                          '25%', '50%', '75%', 'max'],
+                         dtype='object')
+        tm.assert_index_equal(result, expected)
+
+        result = df.describe(percentiles=[0.00499, 0.01001, 0.25, 0.50,
+                                          0.75]).index
+        expected = Index(['count', 'mean', 'std', 'min', '0.5%', '1.0%',
+                          '25%', '50%', '75%', 'max'],
+                         dtype='object')
+        tm.assert_index_equal(result, expected)
+
+    def test_describe_column_index_type(self):
+        # GH13288
+        df = pd.DataFrame([1, 2, 3, 4])
+        df.columns = pd.Index([0], dtype=object)
+        result = df.describe().columns
+        expected = Index([0], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+        df = pd.DataFrame({'A': list("BCDE"), 0: [1, 2, 3, 4]})
+        result = df.describe().columns
+        expected = Index([0], dtype=object)
+        tm.assert_index_equal(result, expected)
+
     def test_describe_no_numeric(self):
         df = DataFrame({'A': ['foo', 'foo', 'bar'] * 8,
                         'B': ['a', 'b', 'c', 'd'] * 6})
@@ -1009,6 +1062,16 @@ class TestDataFrame(tm.TestCase, Generic):
         df = DataFrame({'time': ts.index})
         desc = df.describe()
         self.assertEqual(desc.time['first'], min(ts.index))
+
+    def test_describe_empty(self):
+        df = DataFrame()
+        tm.assertRaisesRegexp(ValueError, 'DataFrame without columns',
+                              df.describe)
+
+        df = DataFrame(columns=['A', 'B'])
+        result = df.describe()
+        expected = DataFrame(0, columns=['A', 'B'], index=['count', 'unique'])
+        tm.assert_frame_equal(result, expected)
 
     def test_describe_empty_int_columns(self):
         df = DataFrame([[0, 1], [1, 2]])

@@ -4264,6 +4264,21 @@ class TestStringRepTimestamp(tm.TestCase):
             self.assertEqual(f(pd.NaT), 'NaT')
 
 
+def test_format_percentiles():
+    result = fmt.format_percentiles([0.01999, 0.02001, 0.5, 0.666666, 0.9999])
+    expected = ['1.999%', '2.001%', '50%', '66.667%', '99.99%']
+    tm.assert_equal(result, expected)
+
+    result = fmt.format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
+    expected = ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
+    tm.assert_equal(result, expected)
+
+    tm.assertRaises(ValueError, fmt.format_percentiles, [0.1, np.nan, 0.5])
+    tm.assertRaises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
+    tm.assertRaises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
+    tm.assertRaises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

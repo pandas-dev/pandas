@@ -20,6 +20,7 @@ import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.datetools as datetools
 from pandas.formats.printing import pprint_thing
+from pandas.formats.format import format_percentiles
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lrange, string_types,
@@ -4868,32 +4869,33 @@ class NDFrame(PandasObject):
     @Appender(_shared_docs['describe'] % _shared_doc_kwargs)
     def describe(self, percentiles=None, include=None, exclude=None):
         if self.ndim >= 3:
-            msg = "describe is not implemented on on Panel or PanelND objects."
+            msg = "describe is not implemented on Panel or PanelND objects."
             raise NotImplementedError(msg)
+        elif self.ndim == 2 and self.columns.size == 0:
+            raise ValueError("Cannot describe a DataFrame without columns")
 
         if percentiles is not None:
             # get them all to be in [0, 1]
             self._check_percentile(percentiles)
+
+            # median should always be included
+            if 0.5 not in percentiles:
+                percentiles.append(0.5)
             percentiles = np.asarray(percentiles)
         else:
             percentiles = np.array([0.25, 0.5, 0.75])
 
-        # median should always be included
-        if (percentiles != 0.5).all():  # median isn't included
-            lh = percentiles[percentiles < .5]
-            uh = percentiles[percentiles > .5]
-            percentiles = np.hstack([lh, 0.5, uh])
+        # sort and check for duplicates
+        unique_pcts = np.unique(percentiles)
+        if len(unique_pcts) < len(percentiles):
+            raise ValueError("percentiles cannot contain duplicates")
+        percentiles = unique_pcts
 
-        def pretty_name(x):
-            x *= 100
-            if x == int(x):
-                return '%.0f%%' % x
-            else:
-                return '%.1f%%' % x
+        formatted_percentiles = format_percentiles(percentiles)
 
-        def describe_numeric_1d(series, percentiles):
+        def describe_numeric_1d(series):
             stat_index = (['count', 'mean', 'std', 'min'] +
-                          [pretty_name(x) for x in percentiles] + ['max'])
+                          formatted_percentiles + ['max'])
             d = ([series.count(), series.mean(), series.std(), series.min()] +
                  [series.quantile(x) for x in percentiles] + [series.max()])
             return pd.Series(d, index=stat_index, name=series.name)
@@ -4918,18 +4920,18 @@ class NDFrame(PandasObject):
 
             return pd.Series(result, index=names, name=data.name)
 
-        def describe_1d(data, percentiles):
+        def describe_1d(data):
             if com.is_bool_dtype(data):
                 return describe_categorical_1d(data)
             elif com.is_numeric_dtype(data):
-                return describe_numeric_1d(data, percentiles)
+                return describe_numeric_1d(data)
             elif com.is_timedelta64_dtype(data):
-                return describe_numeric_1d(data, percentiles)
+                return describe_numeric_1d(data)
             else:
                 return describe_categorical_1d(data)
 
         if self.ndim == 1:
-            return describe_1d(self, percentiles)
+            return describe_1d(self)
         elif (include is None) and (exclude is None):
             if len(self._get_numeric_data()._info_axis) > 0:
                 # when some numerics are found, keep only numerics
@@ -4944,7 +4946,7 @@ class NDFrame(PandasObject):
         else:
             data = self.select_dtypes(include=include, exclude=exclude)
 
-        ldesc = [describe_1d(s, percentiles) for _, s in data.iteritems()]
+        ldesc = [describe_1d(s) for _, s in data.iteritems()]
         # set a convenient order for rows
         names = []
         ldesc_indexes = sorted([x.index for x in ldesc], key=len)
@@ -4954,8 +4956,7 @@ class NDFrame(PandasObject):
                     names.append(name)
 
         d = pd.concat(ldesc, join_axes=pd.Index([names]), axis=1)
-        d.columns = self.columns._shallow_copy(values=d.columns.values)
-        d.columns.names = data.columns.names
+        d.columns = data.columns.copy()
         return d
 
     def _check_percentile(self, q):
