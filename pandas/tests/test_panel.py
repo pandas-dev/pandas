@@ -2301,8 +2301,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                      [[1.5, np.nan, 3.], [1.5, np.nan, 3.], [1.5, np.nan, 3.],
                       [1.5, np.nan, 3.]]])
 
-        np.testing.assert_raises(Exception, pan.update, *(pan, ),
-                                 **{'raise_conflict': True})
+        self.assertRaises(Exception, pan.update, *(pan, ),
+                          **{'raise_conflict': True})
 
     def test_all_any(self):
         self.assertTrue((self.panel.all(axis=0).values == nanall(

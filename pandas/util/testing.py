@@ -116,18 +116,40 @@ class TestCase(unittest.TestCase):
 
 
 def assert_almost_equal(left, right, check_exact=False,
-                        check_dtype='equiv', **kwargs):
+                        check_dtype='equiv', check_less_precise=False,
+                        **kwargs):
+    """Check that left and right Index are equal.
+
+    Parameters
+    ----------
+    left : object
+    right : object
+    check_exact : bool, default True
+        Whether to compare number exactly.
+    check_dtype: bool, default True
+        check dtype if both a and b are the same type
+    check_less_precise : bool or int, default False
+        Specify comparison precision. Only used when check_exact is False.
+        5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare
+    """
     if isinstance(left, pd.Index):
         return assert_index_equal(left, right, check_exact=check_exact,
-                                  exact=check_dtype, **kwargs)
+                                  exact=check_dtype,
+                                  check_less_precise=check_less_precise,
+                                  **kwargs)
 
     elif isinstance(left, pd.Series):
         return assert_series_equal(left, right, check_exact=check_exact,
-                                   check_dtype=check_dtype, **kwargs)
+                                   check_dtype=check_dtype,
+                                   check_less_precise=check_less_precise,
+                                   **kwargs)
 
     elif isinstance(left, pd.DataFrame):
         return assert_frame_equal(left, right, check_exact=check_exact,
-                                  check_dtype=check_dtype, **kwargs)
+                                  check_dtype=check_dtype,
+                                  check_less_precise=check_less_precise,
+                                  **kwargs)
 
     else:
         # other sequences
@@ -142,8 +164,11 @@ def assert_almost_equal(left, right, check_exact=False,
                 else:
                     obj = 'Input'
                 assert_class_equal(left, right, obj=obj)
-        return _testing.assert_almost_equal(left, right,
-                                            check_dtype=check_dtype, **kwargs)
+        return _testing.assert_almost_equal(
+            left, right,
+            check_dtype=check_dtype,
+            check_less_precise=check_less_precise,
+            **kwargs)
 
 
 def assert_dict_equal(left, right, compare_keys=True):
@@ -690,9 +715,10 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         Int64Index as well
     check_names : bool, default True
         Whether to check the names attribute.
-    check_less_precise : bool, default False
+    check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare
     check_exact : bool, default True
         Whether to compare number exactly.
     check_categorical : bool, default True
@@ -1040,9 +1066,10 @@ def assert_series_equal(left, right, check_dtype=True,
         are identical.
     check_series_type : bool, default False
         Whether to check the Series class is identical.
-    check_less_precise : bool, default False
+    check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare
     check_exact : bool, default False
         Whether to compare number exactly.
     check_names : bool, default True
@@ -1106,7 +1133,7 @@ def assert_series_equal(left, right, check_dtype=True,
                                      check_dtype=check_dtype)
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
-                                     check_less_precise,
+                                     check_less_precise=check_less_precise,
                                      check_dtype=check_dtype,
                                      obj='{0}'.format(obj))
 
@@ -1150,9 +1177,10 @@ def assert_frame_equal(left, right, check_dtype=True,
         are identical.
     check_frame_type : bool, default False
         Whether to check the DataFrame class is identical.
-    check_less_precise : bool, default False
+    check_less_precise : bool or it, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare
     check_names : bool, default True
         Whether to check the Index names attribute.
     by_blocks : bool, default False
@@ -1259,9 +1287,10 @@ def assert_panelnd_equal(left, right,
         Whether to check the Panel dtype is identical.
     check_panel_type : bool, default False
         Whether to check the Panel class is identical.
-    check_less_precise : bool, default False
+    check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare
     assert_func : function for comparing data
     check_names : bool, default True
         Whether to check the Index names attribute.

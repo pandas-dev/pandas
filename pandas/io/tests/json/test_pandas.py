@@ -100,7 +100,7 @@ class TestPandasContainer(tm.TestCase):
                                          orient='split'))
         unser = read_json(df.to_json(orient='records'), orient='records')
         self.assert_index_equal(df.columns, unser.columns)
-        np.testing.assert_equal(df.values, unser.values)
+        tm.assert_almost_equal(df.values, unser.values)
         unser = read_json(df.to_json(orient='values'), orient='values')
         tm.assert_numpy_array_equal(df.values, unser.values)
 
