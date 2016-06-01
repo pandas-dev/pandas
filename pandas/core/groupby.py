@@ -76,7 +76,7 @@ _common_apply_whitelist = frozenset([
     'cumsum', 'cumprod', 'cummin', 'cummax', 'cumcount',
     'resample',
     'describe',
-    'rank', 'quantile',
+    'quantile',
     'fillna',
     'mad',
     'any', 'all',
@@ -1377,6 +1377,27 @@ class GroupBy(_GroupBy):
             return self.apply(lambda x: x.cumprod(axis=axis))
 
         return self._cython_transform('cumsum')
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def rank(self, axis=0, method='average', numeric_only=True,
+             na_option='keep', ascending=True, pct=False):
+        """Compute numerical data ranks (1 through n) along axis.
+        """
+
+        if numeric_only:
+            data = self._obj_with_exclusions._get_numeric_data()
+            if data.size == 0:
+                raise DataError('No numeric types to aggregate')
+            data = data.groupby(self.grouper)
+        else:
+            data = self
+
+        def wrapper(values):
+            return values.rank(axis=axis, method=method, na_option=na_option,
+                               ascending=ascending, pct=pct)
+
+        return data.transform(wrapper)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -3182,6 +3203,7 @@ class NDFrameGroupBy(GroupBy):
     agg = aggregate
 
     def _aggregate_generic(self, func, *args, **kwargs):
+
         if self.grouper.nkeys != 1:
             raise AssertionError('Number of keys must be 1')
 

@@ -3646,6 +3646,24 @@ class TestGroupBy(tm.TestCase):
         expected = self.df.groupby('A').agg(np.mean)
         assert_frame_equal(result, expected)
 
+    def test_rank(self):
+        # GH 11759
+        df = DataFrame({'a': ['A1', 'A1', 'A1'],
+                        'b': ['B1', 'B1', 'B2'],
+                        'c': 1.})
+        df = df.set_index('a')
+        dg = df.groupby('c')
+        self.assertRaises(DataError, dg.rank, method='first')
+
+        # with another numeric column
+        df = DataFrame({'a': ['A1', 'A1', 'A1'],
+                        'b': ['B1', 'B1', 'B2'],
+                        'c': 1.,
+                        'd': 1.})
+        df = df.set_index('a')
+        expected = df.drop('b', axis=1).groupby('c').rank(method='first')
+        assert_frame_equal(df.groupby('c').rank(method='first'), expected)
+
     def test_rank_apply(self):
         lev1 = tm.rands_array(10, 100)
         lev2 = tm.rands_array(10, 130)
@@ -5753,7 +5771,6 @@ class TestGroupBy(tm.TestCase):
             'cumcount',
             'resample',
             'describe',
-            'rank',
             'quantile',
             'fillna',
             'mad',
@@ -5794,7 +5811,6 @@ class TestGroupBy(tm.TestCase):
             'cumcount',
             'resample',
             'describe',
-            'rank',
             'quantile',
             'fillna',
             'mad',
