@@ -374,3 +374,4 @@ Bug Fixes
 
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
+- Bug in ``pd.read_csv()`` that prevents ``usecol`` kwarg from accepting single-byte unicode strings (:issue:`13219`)
