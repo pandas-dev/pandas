@@ -6465,6 +6465,14 @@ def test_decons():
     testit(label_list, shape)
 
 
+def test_nunique_empty_Series():
+    series = Series(name='foo')
+    group = series.groupby(level=0)
+    result = group.nunique()
+    expected = Series(name='foo')
+    assert_series_equal(result, expected)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure', '-s'
                          ], exit=False)
