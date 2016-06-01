@@ -1132,7 +1132,24 @@ def map_infer(ndarray arr, object f, bint convert=1):
     return result
 
 
-def to_object_array(list rows):
+def to_object_array(list rows, int min_width=0):
+    """
+    Convert a list of lists into an object array.
+
+    Parameters
+    ----------
+    rows : 2-d array (N, K)
+        A list of lists to be converted into an array
+    min_width : int
+        The minimum width of the object array. If a list
+        in `rows` contains fewer than `width` elements,
+        the remaining elements in the corresponding row
+        will all be `NaN`.
+
+    Returns
+    -------
+    obj_array : numpy array of the object dtype
+    """
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
@@ -1140,7 +1157,7 @@ def to_object_array(list rows):
 
     n = len(rows)
 
-    k = 0
+    k = min_width
     for i from 0 <= i < n:
         tmp = len(rows[i])
         if tmp > k:
