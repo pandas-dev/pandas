@@ -359,8 +359,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
-                 sort=True, group_keys=True, squeeze=False, **kwargs):
-
+                 sort=True, group_keys=True, squeeze=False, dropna=True,
+                 **kwargs):
         self._selection = selection
 
         if isinstance(obj, NDFrame):
@@ -380,13 +380,15 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.group_keys = group_keys
         self.squeeze = squeeze
         self.mutated = kwargs.pop('mutated', False)
+        self.dropna = dropna
 
         if grouper is None:
             grouper, exclusions, obj = _get_grouper(obj, keys,
                                                     axis=axis,
                                                     level=level,
                                                     sort=sort,
-                                                    mutated=self.mutated)
+                                                    mutated=self.mutated,
+                                                    dropna=dropna)
 
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
@@ -968,6 +970,10 @@ class GroupBy(_GroupBy):
         List of columns to exclude
     name : string
         Most users should ignore this
+    dropna : boolean, default True
+        drop NaN in the grouping values
+
+        .. versionadded:: 0.20.0
 
     Notes
     -----
@@ -2324,6 +2330,10 @@ class Grouping(object):
     level :
     in_axis : if the Grouping is a column in self.obj and hence among
         Groupby.exclusions list
+    dropna : boolean, default True
+        drop NaN in the grouping values
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -2337,7 +2347,7 @@ class Grouping(object):
     """
 
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
-                 sort=True, in_axis=False):
+                 sort=True, in_axis=False, dropna=True):
 
         self.name = name
         self.level = level
@@ -2346,6 +2356,7 @@ class Grouping(object):
         self.sort = sort
         self.obj = obj
         self.in_axis = in_axis
+        self.dropna = dropna
 
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
@@ -2396,7 +2407,6 @@ class Grouping(object):
 
             # a passed Grouper like
             elif isinstance(self.grouper, Grouper):
-
                 # get the new grouper
                 grouper = self.grouper._get_binner_for_grouping(self.obj)
                 self.obj = self.grouper.obj
@@ -2433,6 +2443,11 @@ class Grouping(object):
                 from pandas import to_timedelta
                 self.grouper = to_timedelta(self.grouper)
 
+        # convert None to NaN if we are going to keep them
+        if not dropna:
+            if not isinstance(self.grouper, Index):
+                self.grouper[np.equal(self.grouper, None)] = np.NaN
+
     def __repr__(self):
         return 'Grouping({0})'.format(self.name)
 
@@ -2466,7 +2481,7 @@ class Grouping(object):
     def _make_labels(self):
         if self._labels is None or self._group_index is None:
             labels, uniques = algorithms.factorize(
-                self.grouper, sort=self.sort)
+                self.grouper, sort=self.sort, dropna=self.dropna)
             uniques = Index(uniques, name=self.name)
             self._labels = labels
             self._group_index = uniques
@@ -2478,7 +2493,7 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
-                 mutated=False):
+                 mutated=False, dropna=True):
     """
     create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -2631,7 +2646,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                         name=name,
                         level=level,
                         sort=sort,
-                        in_axis=in_axis) \
+                        in_axis=in_axis,
+                        dropna=dropna) \
             if not isinstance(gpr, Grouping) else gpr
 
         groupings.append(ping)
@@ -3386,7 +3402,6 @@ class NDFrameGroupBy(GroupBy):
         return obj
 
     def aggregate(self, arg, *args, **kwargs):
-
         _level = kwargs.pop('_level', None)
         result, how = self._aggregate(arg, _level=_level, *args, **kwargs)
         if how is None:

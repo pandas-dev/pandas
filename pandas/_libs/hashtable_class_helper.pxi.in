@@ -830,7 +830,7 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            if check_null and val != val or val is None:
+            if check_null and (val != val or val is None):
                 labels[i] = na_sentinel
                 continue
 
