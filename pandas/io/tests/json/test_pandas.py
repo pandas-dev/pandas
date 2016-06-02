@@ -948,6 +948,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame({'DT': dti})
         self.assertEqual(dfexp, pd.json.dumps(df, iso_dates=True))
 
+    def test_read_jsonl(self):
+        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
+        expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
 
 if __name__ == '__main__':
     import nose

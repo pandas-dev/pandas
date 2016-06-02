@@ -4,6 +4,7 @@ import os
 import copy
 from collections import defaultdict
 import numpy as np
+import StringIO
 
 import pandas.json as _json
 from pandas.tslib import iNaT
@@ -105,7 +106,7 @@ class FrameWriter(Writer):
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
-              numpy=False, precise_float=False, date_unit=None):
+              numpy=False, precise_float=False, date_unit=None, lines=False):
     """
     Convert a JSON string to pandas object
 
@@ -178,6 +179,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         is to try and detect the correct precision, but if this is not desired
         then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,
         milliseconds, microseconds or nanoseconds respectively.
+    lines : boolean, default False
+        Read the file as a json object per line.
 
     Returns
     -------
@@ -203,6 +206,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         json = filepath_or_buffer.read()
     else:
         json = filepath_or_buffer
+
+    if lines:
+        lines = list(StringIO.StringIO(json))
+        json = '[' + ','.join(lines) + ']'
 
     obj = None
     if typ == 'frame':
