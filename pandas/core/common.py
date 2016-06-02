@@ -167,6 +167,9 @@ def _use_inf_as_null(key):
 
 
 def _isnull_ndarraylike(obj):
+  
+    if isinstance(obj, pd.SparseSeries):
+        obj = pd.SparseArray(obj)
 
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
