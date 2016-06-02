@@ -95,7 +95,7 @@ Plain cython
 ~~~~~~~~~~~~
 
 First we're going to need to import the cython magic function to ipython (for
-cython versions >=0.21 you can use ``%load_ext Cython``):
+cython versions  < 0.21 you can use ``%load_ext cythonmagic``):
 
 .. ipython:: python
    :okwarning:
