@@ -172,28 +172,8 @@ nan 2
         self.assertTrue(sum(precise_errors) <= sum(normal_errors))
         self.assertTrue(max(precise_errors) <= max(normal_errors))
 
-    def test_compact_ints(self):
-        if compat.is_platform_windows() and not self.low_memory:
-            raise nose.SkipTest(
-                "segfaults on win-64, only when all tests are run")
-
-        data = ('0,1,0,0\n'
-                '1,1,0,0\n'
-                '0,1,0,1')
-
-        result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                               compact_ints=True, as_recarray=True)
-        ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
-        self.assertEqual(result.dtype, ex_dtype)
-
-        result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                               as_recarray=True, compact_ints=True,
-                               use_unsigned=True)
-        ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
-        self.assertEqual(result.dtype, ex_dtype)
-
     def test_compact_ints_as_recarray(self):
-        if compat.is_platform_windows() and self.low_memory:
+        if compat.is_platform_windows():
             raise nose.SkipTest(
                 "segfaults on win-64, only when all tests are run")
 
@@ -201,16 +181,20 @@ nan 2
                 '1,1,0,0\n'
                 '0,1,0,1')
 
-        result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                               compact_ints=True, as_recarray=True)
-        ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
-        self.assertEqual(result.dtype, ex_dtype)
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False):
+            result = self.read_csv(StringIO(data), delimiter=',', header=None,
+                                   compact_ints=True, as_recarray=True)
+            ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
+            self.assertEqual(result.dtype, ex_dtype)
 
-        result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                               as_recarray=True, compact_ints=True,
-                               use_unsigned=True)
-        ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
-        self.assertEqual(result.dtype, ex_dtype)
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False):
+            result = self.read_csv(StringIO(data), delimiter=',', header=None,
+                                   as_recarray=True, compact_ints=True,
+                                   use_unsigned=True)
+            ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
+            self.assertEqual(result.dtype, ex_dtype)
 
     def test_pass_dtype(self):
         data = """\

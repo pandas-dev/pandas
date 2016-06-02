@@ -1018,7 +1018,7 @@ cdef class TextReader:
                 col_res = _maybe_upcast(col_res)
 
             if issubclass(col_res.dtype.type, np.integer) and self.compact_ints:
-                col_res = downcast_int64(col_res, self.use_unsigned)
+                col_res = lib.downcast_int64(col_res, na_values, self.use_unsigned)
 
             if col_res is None:
                 raise CParserError('Unable to parse column %d' % i)
@@ -1864,76 +1864,6 @@ cdef raise_parser_error(object base, parser_t *parser):
         message += 'no error message set'
 
     raise CParserError(message)
-
-
-def downcast_int64(ndarray[int64_t] arr, bint use_unsigned=0):
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        int64_t mx = INT64_MIN + 1, mn = INT64_MAX
-        int64_t NA = na_values[np.int64]
-        int64_t val
-        ndarray[uint8_t] mask
-        int na_count = 0
-
-    _mask = np.empty(n, dtype=bool)
-    mask = _mask.view(np.uint8)
-
-    for i in range(n):
-        val = arr[i]
-
-        if val == NA:
-            mask[i] = 1
-            na_count += 1
-            continue
-
-        # not NA
-        mask[i] = 0
-
-        if val > mx:
-            mx = val
-
-        if val < mn:
-            mn = val
-
-    if mn >= 0 and use_unsigned:
-        if mx <= UINT8_MAX - 1:
-            result = arr.astype(np.uint8)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.uint8])
-            return result
-
-        if mx <= UINT16_MAX - 1:
-            result = arr.astype(np.uint16)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.uint16])
-            return result
-
-        if mx <= UINT32_MAX - 1:
-            result = arr.astype(np.uint32)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.uint32])
-            return result
-
-    else:
-        if mn >= INT8_MIN + 1 and mx <= INT8_MAX:
-            result = arr.astype(np.int8)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.int8])
-            return result
-
-        if mn >= INT16_MIN + 1 and mx <= INT16_MAX:
-            result = arr.astype(np.int16)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.int16])
-            return result
-
-        if mn >= INT32_MIN + 1 and mx <= INT32_MAX:
-            result = arr.astype(np.int32)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.int32])
-            return result
-
-    return arr
 
 
 def _concatenate_chunks(list chunks):
