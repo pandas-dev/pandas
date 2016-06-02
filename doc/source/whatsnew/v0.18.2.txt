@@ -338,7 +338,7 @@ Bug Fixes
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not changing its ``freq`` appropriately when empty (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not retaining its type or name with an empty ``DataFrame``appropriately when empty (:issue:`13212`)
 - Bug in ``groupby(..).resample(..)`` where passing some keywords would raise an exception (:issue:`13235`)
-
+- Bug in ``.tz-convert`` tz-aware ``DateTimeIndex`` relies on index being sorted for correct results (:issue: `13306`)
 
 
 
