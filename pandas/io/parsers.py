@@ -227,6 +227,20 @@ low_memory : boolean, default True
     Note that the entire file is read into a single DataFrame regardless,
     use the `chunksize` or `iterator` parameter to return the data in chunks.
     (Only valid with C parser)
+compact_ints : boolean, default False
+    DEPRECATED: this argument will be removed in a future version
+
+    If compact_ints is True, then for any column that is of integer dtype,
+    the parser will attempt to cast it as the smallest integer dtype possible,
+    either signed or unsigned depending on the specification from the
+    `use_unsigned` parameter.
+
+use_unsigned : boolean, default False
+    DEPRECATED: this argument will be removed in a future version
+
+    If integer columns are being compacted (i.e. `compact_ints=True`), specify
+    whether the column should be compacted to the smallest signed or unsigned
+    integer dtype.
 
 Returns
 -------
@@ -425,8 +439,6 @@ _fwf_defaults = {
 _c_unsupported = set(['skip_footer'])
 _python_unsupported = set([
     'as_recarray',
-    'compact_ints',
-    'use_unsigned',
     'low_memory',
     'memory_map',
     'buffer_lines',
@@ -434,6 +446,10 @@ _python_unsupported = set([
     'warn_bad_lines',
     'dtype',
     'float_precision',
+])
+_deprecated_args = set([
+    'compact_ints',
+    'use_unsigned',
 ])
 
 
@@ -788,6 +804,12 @@ class TextFileReader(BaseIterator):
         keep_default_na = result.pop('keep_default_na')
 
         _validate_header_arg(options['header'])
+
+        for arg in _deprecated_args:
+            if result[arg] != _c_parser_defaults[arg]:
+                warnings.warn("The '{arg}' argument has been deprecated "
+                              "and will be removed in a future version"
+                              .format(arg=arg), FutureWarning, stacklevel=2)
 
         if index_col is True:
             raise ValueError("The value of index_col couldn't be 'True'")
@@ -1206,6 +1228,12 @@ class ParserBase(object):
 
             cvals, na_count = self._convert_types(
                 values, set(col_na_values) | col_na_fvalues, coerce_type)
+
+            if issubclass(cvals.dtype.type, np.integer) and self.compact_ints:
+                cvals = lib.downcast_int64(
+                    cvals, _parser.na_values,
+                    self.use_unsigned)
+
             result[c] = cvals
             if verbose and na_count:
                 print('Filled %d NA values in column %s' % (na_count, str(c)))
@@ -1648,8 +1676,11 @@ class PythonParser(ParserBase):
         self.verbose = kwds['verbose']
         self.converters = kwds['converters']
 
+        self.compact_ints = kwds['compact_ints']
+        self.use_unsigned = kwds['use_unsigned']
         self.thousands = kwds['thousands']
         self.decimal = kwds['decimal']
+
         self.comment = kwds['comment']
         self._comment_lines = []
 
