@@ -49,14 +49,13 @@ def _get_series_result_type(result, return_types=None):
     return appropriate class of Series concat
     input is either dict or array-like
     """
-    
+
     if return_types is None:
         from pandas.core.frame import DataFrame
         from pandas.core.series import Series
         return_types = {'series': Series,
                         'frame': DataFrame}
 
-    
     if isinstance(result, dict):
         # concat Series with axis 1
         if all(com.is_sparse(c) for c in compat.itervalues(result)):
