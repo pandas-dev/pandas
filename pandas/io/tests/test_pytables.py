@@ -4877,11 +4877,24 @@ class TestHDFStore(Base, tm.TestCase):
         df = DataFrame(np.random.rand(4, 5),
                        index=list('abcd'),
                        columns=list('ABCDE'))
+        # Categorical dtype not supported for "fixed" format. So no need
+        # to test for that.
         with ensure_clean_path(self.path) as path:
             df.to_hdf(path, 'df', mode='a')
             reread = read_hdf(path)
             assert_frame_equal(df, reread)
             df.to_hdf(path, 'df2', mode='a')
+            self.assertRaises(ValueError, read_hdf, path)
+
+    def test_read_nokey_table(self):
+        # GH13231
+        df = DataFrame({'i': range(5),
+                        'c': Series(list('abacd'), dtype='category')})
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', mode='a', format='table')
+            reread = read_hdf(path)
+            assert_frame_equal(df, reread)
+            df.to_hdf(path, 'df2', mode='a', format='table')
             self.assertRaises(ValueError, read_hdf, path)
 
     def test_read_from_pathlib_path(self):
