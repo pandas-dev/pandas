@@ -5879,7 +5879,7 @@ class TestGroupBy(tm.TestCase):
              'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin', 'inputconstructor',
              'inputconstructor_sliced', 'inputconstructor_expanddim',
              'lenshape', 'ffill', 'bfill', 'pad', 'backfill', 'rolling',
-	     'expanding'])
+             'expanding'])
 
         self.assertEqual(results, expected)
 
