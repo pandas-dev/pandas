@@ -1017,7 +1017,7 @@ class NDFrame(PandasObject):
 
     def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None):
+                default_handler=None, lines=False):
         """
         Convert the object to a JSON string.
 
@@ -1065,6 +1065,13 @@ class NDFrame(PandasObject):
             Handler to call if object cannot otherwise be converted to a
             suitable format for JSON. Should receive a single argument which is
             the object to convert and return a serialisable object.
+        lines : boolean, defalut False
+            If 'orient' is 'records' write out line delimited json format. Will
+            throw ValueError if incorrect 'orient' since others are not list
+            like.
+
+            .. versionadded:: 0.19.0
+
 
         Returns
         -------
@@ -1077,7 +1084,8 @@ class NDFrame(PandasObject):
                             date_format=date_format,
                             double_precision=double_precision,
                             force_ascii=force_ascii, date_unit=date_unit,
-                            default_handler=default_handler)
+                            default_handler=default_handler,
+                            lines=lines)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
         """Activate the HDFStore.

@@ -948,6 +948,58 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame({'DT': dti})
         self.assertEqual(dfexp, pd.json.dumps(df, iso_dates=True))
 
+    def test_read_jsonl(self):
+        # GH9180
+        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
+        expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_to_jsonl(self):
+        # GH9180
+        df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
+        self.assertEqual(result, expected)
+
+    def test_latin_encoding(self):
+        if compat.PY2:
+            self.assertRaisesRegexp(
+                TypeError, '\[unicode\] is not implemented as a table column')
+            return
+
+        values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
+                  [b'E\xc9, 17', b'a', b'b', b'c'],
+                  [b'EE, 17', b'', b'a', b'b', b'c'],
+                  [b'E\xc9, 17', b'\xf8\xfc', b'a', b'b', b'c'],
+                  [b'', b'a', b'b', b'c'],
+                  [b'\xf8\xfc', b'a', b'b', b'c'],
+                  [b'A\xf8\xfc', b'', b'a', b'b', b'c'],
+                  [np.nan, b'', b'b', b'c'],
+                  [b'A\xf8\xfc', np.nan, b'', b'b', b'c']]
+
+        def _try_decode(x, encoding='latin-1'):
+            try:
+                return x.decode(encoding)
+            except AttributeError:
+                return x
+
+        # not sure how to remove latin-1 from code in python 2 and 3
+        values = [[_try_decode(x) for x in y] for y in values]
+
+        examples = []
+        for dtype in ['category', object]:
+            for val in values:
+                examples.append(Series(val, dtype=dtype))
+
+        def roundtrip(s, encoding='latin-1'):
+            with ensure_clean('test.json') as path:
+                s.to_json(path, encoding=encoding)
+                retr = read_json(path, encoding=encoding)
+                assert_series_equal(s, retr, check_categorical=False)
+
+        for s in examples:
+            roundtrip(s)
+
 
 if __name__ == '__main__':
     import nose
