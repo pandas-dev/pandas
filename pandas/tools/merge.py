@@ -949,11 +949,11 @@ class _Concatenator(object):
             if (len(non_empties) and (keys is None and names is None and
                                       levels is None and join_axes is None)):
                 objs = non_empties
-                
+
                 for obj in objs:
-                  if not is_sparse(obj):
-                      sample = obj
-                      break
+                    if not is_sparse(obj):
+                        sample = obj
+                        break
 
         if sample is None:
             sample = objs[0]
@@ -1040,8 +1040,9 @@ class _Concatenator(object):
 
     def get_result(self):
 
-        return_types = {'series': self._constructor_series,
-              'frame': self._constructor_frame}
+        return_types = {
+            'series': self._constructor_series,
+            'frame': self._constructor_frame}
 
         # series only
         if self._is_series:
