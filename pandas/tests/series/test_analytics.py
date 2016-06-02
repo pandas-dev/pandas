@@ -1894,4 +1894,3 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                            labels=[[1, 1, 0, 0], [0, 1, 0, 2]])
         s = tm.SubclassedSeries(np.arange(4.), index=index)
         tm.assertIsInstance(s.unstack(), tm.SubclassedDataFrame)
-
