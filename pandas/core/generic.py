@@ -4903,6 +4903,7 @@ class NDFrame(PandasObject):
             else:
                 return self._constructor_sliced(
                     d, index=stat_index, name=series.name)
+
         def describe_categorical_1d(data):
             names = ['count', 'unique']
             objcounts = data.value_counts()
