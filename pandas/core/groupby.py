@@ -39,6 +39,8 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                _maybe_fill, ABCSeries)
 from pandas.core.config import option_context, is_callable
 
+from pandas.sparse.frame import SparseDataFrame
+
 import pandas.lib as lib
 from pandas.lib import Timestamp
 import pandas.tslib as tslib
@@ -3770,8 +3772,12 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self.axis == 1:
             result = result.T
 
-        return self.inputconstructor(
-            self._reindex_output(result)._convert(datetime=True))
+        if isinstance(self.inputconstructor(), SparseDataFrame):
+            return DataFrame(
+                self._reindex_output(result)._convert(datetime=True))
+        else:
+            return self.inputconstructor(
+                self._reindex_output(result)._convert(datetime=True))
 
     def _reindex_output(self, result):
         """
