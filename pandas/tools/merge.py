@@ -18,7 +18,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
-from pandas.core.common import ABCSeries
+from pandas.core.common import ABCSeries, is_sparse
 
 import pandas.core.algorithms as algos
 import pandas.core.common as com
@@ -949,7 +949,11 @@ class _Concatenator(object):
             if (len(non_empties) and (keys is None and names is None and
                                       levels is None and join_axes is None)):
                 objs = non_empties
-                sample = objs[0]
+                
+                for obj in objs:
+                  if not is_sparse(obj):
+                      sample = obj
+                      break
 
         if sample is None:
             sample = objs[0]
