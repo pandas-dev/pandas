@@ -902,6 +902,88 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         # check that the time hasn't changed.
         self.assertEqual(ts, ts.tz_convert(dateutil.tz.tzutc()))
 
+    def test_tz_convert_hour_overflow_dst(self):
+        # Regression test for:
+        # https://github.com/pydata/pandas/issues/13306
+
+        # sorted case US/Eastern -> UTC
+        ts = ['2008-05-12 09:50:00',
+              '2008-12-12 09:50:35',
+              '2009-05-12 09:50:32']
+        tt = to_datetime(ts).tz_localize('US/Eastern')
+        ut = tt.tz_convert('UTC')
+        expected = np.array([13, 14, 13], dtype=np.int32)
+        self.assert_numpy_array_equal(ut.hour, expected)
+
+        # sorted case UTC -> US/Eastern
+        ts = ['2008-05-12 13:50:00',
+              '2008-12-12 14:50:35',
+              '2009-05-12 13:50:32']
+        tt = to_datetime(ts).tz_localize('UTC')
+        ut = tt.tz_convert('US/Eastern')
+        expected = np.array([9, 9, 9], dtype=np.int32)
+        self.assert_numpy_array_equal(ut.hour, expected)
+
+        # unsorted case US/Eastern -> UTC
+        ts = ['2008-05-12 09:50:00',
+              '2008-12-12 09:50:35',
+              '2008-05-12 09:50:32']
+        tt = to_datetime(ts).tz_localize('US/Eastern')
+        ut = tt.tz_convert('UTC')
+        expected = np.array([13, 14, 13], dtype=np.int32)
+        self.assert_numpy_array_equal(ut.hour, expected)
+
+        # unsorted case UTC -> US/Eastern
+        ts = ['2008-05-12 13:50:00',
+              '2008-12-12 14:50:35',
+              '2008-05-12 13:50:32']
+        tt = to_datetime(ts).tz_localize('UTC')
+        ut = tt.tz_convert('US/Eastern')
+        expected = np.array([9, 9, 9], dtype=np.int32)
+        self.assert_numpy_array_equal(ut.hour, expected)
+
+    def test_tz_convert_hour_overflow_dst_timestamps(self):
+        # Regression test for:
+        # https://github.com/pydata/pandas/issues/13306
+
+        tz = self.tzstr('US/Eastern')
+
+        # sorted case US/Eastern -> UTC
+        ts = [Timestamp('2008-05-12 09:50:00', tz=tz),
+              Timestamp('2008-12-12 09:50:35', tz=tz),
+              Timestamp('2009-05-12 09:50:32', tz=tz)]
+        tt = to_datetime(ts)
+        ut = tt.tz_convert('UTC')
+        expected = np.array([13, 14, 13], dtype=np.int32)
+        self.assert_numpy_array_equal(ut.hour, expected)
+
+        # sorted case UTC -> US/Eastern
+        ts = [Timestamp('2008-05-12 13:50:00', tz='UTC'),
+              Timestamp('2008-12-12 14:50:35', tz='UTC'),
+              Timestamp('2009-05-12 13:50:32', tz='UTC')]
+        tt = to_datetime(ts)
+        ut = tt.tz_convert('US/Eastern')
+        expected = np.array([9, 9, 9], dtype=np.int32)
+        self.assert_numpy_array_equal(ut.hour, expected)
+
+        # unsorted case US/Eastern -> UTC
+        ts = [Timestamp('2008-05-12 09:50:00', tz=tz),
+              Timestamp('2008-12-12 09:50:35', tz=tz),
+              Timestamp('2008-05-12 09:50:32', tz=tz)]
+        tt = to_datetime(ts)
+        ut = tt.tz_convert('UTC')
+        expected = np.array([13, 14, 13], dtype=np.int32)
+        self.assert_numpy_array_equal(ut.hour, expected)
+
+        # unsorted case UTC -> US/Eastern
+        ts = [Timestamp('2008-05-12 13:50:00', tz='UTC'),
+              Timestamp('2008-12-12 14:50:35', tz='UTC'),
+              Timestamp('2008-05-12 13:50:32', tz='UTC')]
+        tt = to_datetime(ts)
+        ut = tt.tz_convert('US/Eastern')
+        expected = np.array([9, 9, 9], dtype=np.int32)
+        self.assert_numpy_array_equal(ut.hour, expected)
+
     def test_tslib_tz_convert_trans_pos_plus_1__bug(self):
         # Regression test for tslib.tz_convert(vals, tz1, tz2).
         # See https://github.com/pydata/pandas/issues/4496 for details.
