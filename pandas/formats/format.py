@@ -586,7 +586,7 @@ class DataFrameFormatter(TableFormatter):
                 self._chk_truncate()
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
-        if not self.index:
+        if not self.index and self.header:
             text = text.replace('\n ', '\n').strip()
         self.buf.writelines(text)
 

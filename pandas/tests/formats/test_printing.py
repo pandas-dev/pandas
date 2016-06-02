@@ -9,6 +9,17 @@ import pandas.core.config as cf
 _multiprocess_can_split_ = True
 
 
+def test_to_string_formatters_index_header():
+    from pandas import DataFrame
+    frame = DataFrame(data={0: 0, 1: 0}, index=[0])
+    expected = '   0    0'
+
+    formatter = lambda x: '{:4d}'.format(x)
+
+    string = frame.to_string(formatters=[formatter, formatter], index=False,
+                             header=False)
+    assert(string == expected)
+
 def test_adjoin():
     data = [['a', 'b', 'c'], ['dd', 'ee', 'ff'], ['ggg', 'hhh', 'iii']]
     expected = 'a  dd  ggg\nb  ee  hhh\nc  ff  iii'
