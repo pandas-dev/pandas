@@ -4,11 +4,10 @@ import os
 import copy
 from collections import defaultdict
 import numpy as np
-import StringIO
 
 import pandas.json as _json
 from pandas.tslib import iNaT
-from pandas.compat import long, u
+from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
 from pandas.io.common import get_filepath_or_buffer
@@ -182,6 +181,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     lines : boolean, default False
         Read the file as a json object per line.
 
+        .. versionadded:: 0.18.2
+
     Returns
     -------
     result : Series or DataFrame
@@ -208,7 +209,9 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         json = filepath_or_buffer
 
     if lines:
-        lines = list(StringIO.StringIO(json))
+        # If given a json lines file, we break the string into lines, add
+        # commas and put it in a json list to make a valid json object.
+        lines = list(StringIO(json))
         json = '[' + ','.join(lines) + ']'
 
     obj = None
