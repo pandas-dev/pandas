@@ -537,6 +537,7 @@ Backwards incompatible API changes
 - the order of keyword arguments to text file parsing functions (``.read_csv()``, ``.read_table()``, ``.read_fwf()``) changed to group related arguments. (:issue:`11555`)
 - ``NaTType.isoformat`` now returns the string ``'NaT`` to allow the result to
   be passed to the constructor of ``Timestamp``. (:issue:`12300`)
+- ``DataFrame.filter()`` enforces mutual exclusion of keyword arguments. (:issue:`12399`)
 
 NaT and Timedelta operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
