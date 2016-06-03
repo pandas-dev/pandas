@@ -1985,12 +1985,12 @@ class GenericArrayFormatter(object):
 
         fmt_values = []
         for i, v in enumerate(vals):
-            if not is_float_type[i] and leading_space:
-                fmt_values.append(' %s' % _format(v))
-            elif is_float_type[i]:
+            if not is_float[i] and leading_space:
+                fmt_values.append('%s' % _format(v))
+            elif is_float[i]:
                 fmt_values.append(float_format(v))
             else:
-                fmt_values.append(' %s' % _format(v))
+                fmt_values.append('%s' % _format(v))
 
         return fmt_values
 
