@@ -1324,7 +1324,11 @@ performing resampling operations during frequency conversion (e.g., converting
 secondly data into 5-minutely data). This is extremely common in, but not
 limited to, financial applications.
 
-``resample`` is a time-based groupby, followed by a reduction method on each of its groups.
+``.resample()`` is a time-based groupby, followed by a reduction method on each of its groups.
+
+.. note::
+
+   ``.resample()`` is similar to using a ``.rolling()`` operation with a time-based offset, see a discussion `here <stats.moments.ts-versus-resampling>`
 
 See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
 
