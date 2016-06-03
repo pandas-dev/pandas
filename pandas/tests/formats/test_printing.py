@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import nose
 from pandas import compat
+from pandas import DataFrame
 import pandas.formats.printing as printing
 import pandas.formats.format as fmt
 import pandas.util.testing as tm
@@ -8,9 +9,8 @@ import pandas.core.config as cf
 
 _multiprocess_can_split_ = True
 
-
+# Added due to issue #13032 as part of PR #13350
 def test_to_string_formatters_index_header():
-    from pandas import DataFrame
     frame = DataFrame(data={0: 0, 1: 0}, index=[0])
     expected = '   0    0'
 
