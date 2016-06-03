@@ -186,7 +186,7 @@ numpy array shapes are different
             assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]))
 
         # scalar comparison
-        expected = """Expected type """
+        expected = """: 1 != 2"""
         with assertRaisesRegexp(AssertionError, expected):
             assert_numpy_array_equal(1, 2)
         expected = """expected 2\\.00000 but got 1\\.00000, with decimal 5"""

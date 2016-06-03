@@ -30,6 +30,7 @@ from pandas.core.common import (is_sequence, array_equivalent,
                                 needs_i8_conversion, is_categorical_dtype)
 from pandas.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
+from pandas.lib import isscalar
 
 import pandas.compat as compat
 from pandas.compat import(
@@ -1009,29 +1010,33 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         assertion message
     """
 
-    # instance validation
-    # to show a detailed erorr message when classes are different
-    assert_class_equal(left, right, obj=obj)
-    # both classes must be an np.ndarray
-    assertIsInstance(left, np.ndarray, '[ndarray] ')
-    assertIsInstance(right, np.ndarray, '[ndarray] ')
-
     def _raise(left, right, err_msg):
         if err_msg is None:
-            if left.shape != right.shape:
-                raise_assert_detail(obj, '{0} shapes are different'
-                                    .format(obj), left.shape, right.shape)
+            # show detailed error
+            if isscalar(left) and isscalar(right):
+                # show scalar comparison error
+                assert_equal(left, right)
+            elif is_list_like(left) and is_list_like(right):
+                # some test cases pass list
+                left = np.asarray(left)
+                right = np.array(right)
 
-            diff = 0
-            for l, r in zip(left, right):
-                # count up differences
-                if not array_equivalent(l, r, strict_nan=strict_nan):
-                    diff += 1
+                if left.shape != right.shape:
+                    raise_assert_detail(obj, '{0} shapes are different'
+                                        .format(obj), left.shape, right.shape)
 
-            diff = diff * 100.0 / left.size
-            msg = '{0} values are different ({1} %)'\
-                .format(obj, np.round(diff, 5))
-            raise_assert_detail(obj, msg, left, right)
+                diff = 0
+                for l, r in zip(left, right):
+                    # count up differences
+                    if not array_equivalent(l, r, strict_nan=strict_nan):
+                        diff += 1
+
+                diff = diff * 100.0 / left.size
+                msg = '{0} values are different ({1} %)'\
+                    .format(obj, np.round(diff, 5))
+                raise_assert_detail(obj, msg, left, right)
+            else:
+                assert_class_equal(left, right, obj=obj)
 
         raise AssertionError(err_msg)
 
