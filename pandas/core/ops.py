@@ -754,7 +754,9 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
         elif isinstance(other, pd.DataFrame):  # pragma: no cover
             return NotImplemented
         elif isinstance(other, (np.ndarray, pd.Index)):
-            if len(self) != len(other):
+            # do not check length of zerorank array
+            if not lib.isscalar(lib.item_from_zerodim(other)) and \
+               len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
             return self._constructor(na_op(self.values, np.asarray(other)),
                                      index=self.index).__finalize__(self)
