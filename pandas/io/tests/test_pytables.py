@@ -4878,7 +4878,7 @@ class TestHDFStore(Base, tm.TestCase):
                        index=list('abcd'),
                        columns=list('ABCDE'))
         # Categorical dtype not supported for "fixed" format. So no need
-        # to test for that.
+        # to test with that dtype in the dataframe here.
         with ensure_clean_path(self.path) as path:
             df.to_hdf(path, 'df', mode='a')
             reread = read_hdf(path)
