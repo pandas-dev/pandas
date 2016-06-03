@@ -706,7 +706,7 @@ class DataFrameFormatter(TableFormatter):
             fmt_columns = columns.format()
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = [[' ' + x if not self._get_formatter(i) and
+            str_columns = [[x if not self._get_formatter(i) and
                             need_leadsp[x] else x]
                            for i, (col, x) in enumerate(zip(columns,
                                                             fmt_columns))]
@@ -2206,7 +2206,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
     def _format_strings(self):
-        formatter = self.formatter or (lambda x: '% d' % x)
+        formatter = self.formatter or (lambda x: '%d' % x)
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
