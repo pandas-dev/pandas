@@ -2297,6 +2297,17 @@ class TestPeriodIndex(Base, tm.TestCase):
         expected = ts.asfreq('H', how='s').reindex(exp_rng)
         assert_series_equal(result, expected)
 
+    def test_resample_hourly_business_hourly(self):
+        ts = pd.Series(index=pd.date_range(start='2016-06-01 03:00:00',
+                                           end='2016-06-03 23:00:00',
+                                           freq='H'))
+        expected = pd.Series(index=pd.date_range(start='2016-05-31 17:00:00',
+                                                 end='2016-06-06 09:00:00',
+                                                 freq='BH'))
+
+        result = ts.resample('BH').mean()
+        assert_series_equal(result, expected)
+
     def test_resample_irregular_sparse(self):
         dr = date_range(start='1/1/2012', freq='5min', periods=1000)
         s = Series(np.array(100), index=dr)
