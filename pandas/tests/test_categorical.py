@@ -3943,6 +3943,38 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                                   'category', categories=list('cab'))})
         tm.assert_frame_equal(result, expected)
 
+    def test_union(self):
+        from pandas.core.algorithms import union_categoricals
+
+        s = Categorical(list('abc'))
+        s2 = Categorical(list('abd'))
+        result = union_categoricals([s, s2])
+        expected = Categorical(list('abcabd'))
+        tm.assert_categorical_equal(result, expected, ignore_order=True)
+
+        s = Categorical([0,1,2])
+        s2 = Categorical([2,3,4])
+        result = union_categoricals([s, s2])
+        expected = Categorical([0,1,2,2,3,4])
+        tm.assert_categorical_equal(result, expected, ignore_order=True)
+
+        s = Categorical([0,1.2,2])
+        s2 = Categorical([2,3.4,4])
+        result = union_categoricals([s, s2])
+        expected = Categorical([0,1.2,2,2,3.4,4])
+        tm.assert_categorical_equal(result, expected, ignore_order=True)
+
+        # can't be ordered
+        s = Categorical([0,1.2,2], ordered=True)
+        with tm.assertRaises(TypeError):
+            union_categoricals([s, s2])
+
+        # must exactly match types
+        s = Categorical([0,1.2,2])
+        s2 = Categorical([2,3,4])
+        with tm.assertRaises(TypeError):
+            union_categoricals([s, s2])
+
     def test_categorical_index_preserver(self):
 
         a = Series(np.arange(6, dtype='int64'))

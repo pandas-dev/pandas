@@ -963,12 +963,17 @@ def assertNotIsInstance(obj, cls, msg=''):
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
-                             obj='Categorical'):
+                             obj='Categorical', ignore_order=False):
     assertIsInstance(left, pd.Categorical, '[Categorical] ')
     assertIsInstance(right, pd.Categorical, '[Categorical] ')
 
-    assert_index_equal(left.categories, right.categories,
-                       obj='{0}.categories'.format(obj))
+    if ignore_order:
+        assert_index_equal(left.categories.sort_values(),
+                           right.categories.sort_values(),
+                           obj='{0}.categories'.format(obj))
+    else:
+        assert_index_equal(left.categories, right.categories,
+                           obj='{0}.categories'.format(obj))
     assert_numpy_array_equal(left.codes, right.codes, check_dtype=check_dtype,
                              obj='{0}.codes'.format(obj))
 

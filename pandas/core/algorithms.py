@@ -573,6 +573,34 @@ def select_n(series, n, keep, method):
     return dropped.iloc[inds]
 
 
+def union_categoricals(to_concat):
+    """
+    Combine list-like of Categoricals, unioning categories. All
+    must have the same dtype, and none can be ordered.
+
+    Makes no guarantee about the ordering of the new categories
+    """
+    from pandas.core.categorical import Categorical
+
+    if any(c.ordered for c in to_concat):
+        raise TypeError("Can only combine unordered Categoricals")
+
+    first = to_concat[0]
+    if not all(com.is_dtype_equal(c.categories, first.categories)
+               for c in to_concat):
+        raise TypeError("dtype of categories must be the same")
+
+    new_size = sum(len(c.codes) for c in to_concat)
+    recode_size = max(len(c.codes) for c in to_concat)
+    codes = [com._ensure_int64(c.codes) for c in to_concat]
+
+    algo_getter = lambda x: _get_data_algo(x.categories, _categorical_combiner)
+    f, _ = algo_getter(first)
+    categories = [algo_getter(c)[1] for c in to_concat]
+    new_codes, new_categories = f(codes, categories, new_size, recode_size)
+    return Categorical.from_codes(new_codes, new_categories)
+
+
 def _finalize_nsmallest(arr, kth_val, n, keep, narr):
     ns, = np.nonzero(arr <= kth_val)
     inds = ns[arr[ns].argsort(kind='mergesort')][:n]
@@ -610,6 +638,12 @@ _hashtables = {
     'float64': (htable.Float64HashTable, htable.Float64Vector),
     'int64': (htable.Int64HashTable, htable.Int64Vector),
     'generic': (htable.PyObjectHashTable, htable.ObjectVector)
+}
+
+_categorical_combiner = {
+    'float64': htable.recategorize_float64,
+    'int64': htable.recategorize_int64,
+    'generic': htable.recategorize_object
 }
 
 

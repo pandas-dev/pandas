@@ -1114,6 +1114,206 @@ def duplicated_int64(ndarray[int64_t, ndim=1] values, object keep='first'):
     kh_destroy_int64(table)
     return out
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def recategorize_int64(list codes, list cats, int N, int recode_size):
+    cdef:
+        kh_int64_t *table = kh_init_int64()
+        int64_t[:] new_codes = np.empty(N, dtype='int64')
+        int64_t[:] recode = np.empty(recode_size, dtype='int64')
+        int64_t[:] current_codes
+        int64_t[:] new_categories, current_categories
+        Py_ssize_t cat_id, j, n_codes, n_cats, i = 0
+        int ret = 0
+        int64_t current_code = 0
+        khiter_t k
+
+    for cat_id in range(len(codes)):
+        current_codes = codes[cat_id]
+        current_categories = cats[cat_id]
+
+        with nogil:
+            n_cats = current_categories.shape[0]
+            n_codes = current_codes.shape[0]
+            if cat_id == 0:
+                kh_resize_int64(table, n_cats)
+                # first pass dump directly in to table since uniqueness
+                # is guaranteed
+                for j in range(n_cats):
+                    k = kh_put_int64(table, current_categories[j], &ret)
+                    table.vals[k] = current_code
+                    current_code += 1
+                # reuse codes
+                for j in range(n_codes):
+                    new_codes[i] = current_codes[j]
+                    i += 1
+            else:
+                for j in range(n_cats):
+                    k = kh_get_int64(table, current_categories[j])
+
+                    # if a new category, add to the master hash table
+                    if k == table.n_buckets:
+                        k = kh_put_int64(table, current_categories[j], &ret)
+                        table.vals[k] = current_code
+                        current_code += 1
+                    # add to the recode table, mapping from
+                    # orig catgory -> master_category
+                    recode[j] = table.vals[k]
+
+                for j in range(n_codes):
+                    # continue filing new codes, this pass
+                    # looking up in recode table
+                    if current_codes[j] == -1:
+                        new_codes[i] = -1
+                    else:
+                        new_codes[i] = recode[current_codes[j]]
+                    i += 1
+
+    # fill in new categories from hash table
+    i = 0
+    new_categories = np.zeros(table.n_occupied, dtype='int64')
+    with nogil:
+        for k in range(table.n_buckets):
+            if kh_exist_int64(table, k):
+                new_categories[i] = table.keys[k]
+                i += 1
+        kh_destroy_int64(table)
+    return np.asarray(new_codes), np.asarray(new_categories)
+
+# this could be fused with the int version
+# but no great way to work with hash table
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def recategorize_float64(list codes, list cats, int N, int recode_size):
+    cdef:
+        kh_float64_t *table = kh_init_float64()
+        int64_t[:] new_codes = np.empty(N, dtype='int64')
+        int64_t[:] recode = np.empty(recode_size, dtype='int64')
+        int64_t[:] current_codes
+        float64_t[:] new_categories, current_categories
+        Py_ssize_t cat_id, j, n_codes, n_cats, i = 0
+        int ret = 0
+        int64_t current_code = 0
+        khiter_t k
+
+    for cat_id in range(len(codes)):
+        current_codes = codes[cat_id]
+        current_categories = cats[cat_id]
+
+        with nogil:
+            n_cats = current_categories.shape[0]
+            n_codes = current_codes.shape[0]
+            if cat_id == 0:
+                # first pass dump directly in, since uniqueness is guaranteed
+                # and don't need to recode
+                kh_resize_float64(table, n_cats)
+                for j in range(n_cats):
+                    k = kh_put_float64(table, current_categories[j], &ret)
+                    table.vals[k] = current_code
+                    current_code += 1
+                for j in range(n_codes):
+                    new_codes[i] = current_codes[j]
+                    i += 1
+            else:
+                for j in range(n_cats):
+                    k = kh_get_float64(table, current_categories[j])
+
+                    # if a new category, add to the master hash table
+                    if k == table.n_buckets:
+                        k = kh_put_float64(table, current_categories[j], &ret)
+                        table.vals[k] = current_code
+                        current_code += 1
+
+                    # add to the recode table, mapping from
+                    # orig_catgory -> master_category
+                    recode[j] = table.vals[k]
+
+                for j in range(n_codes):
+                    if current_codes[j] == -1:
+                        new_codes[i] = -1
+                    else:
+                        new_codes[i] = recode[current_codes[j]]
+                    i += 1
+
+    # fill in new categories from hash table
+    i = 0
+    new_categories = np.zeros(table.n_occupied, dtype='float64')
+    with nogil:
+        for k in range(table.n_buckets):
+            if kh_exist_float64(table, k):
+                new_categories[i] = table.keys[k]
+                i += 1
+        kh_destroy_float64(table)
+    return np.asarray(new_codes), np.asarray(new_categories)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def recategorize_object(list codes, list cats, int N, int recode_size):
+    cdef:
+        kh_pymap_t *table = kh_init_pymap()
+        int64_t[:] new_codes = np.empty(N, dtype='int64')
+        int64_t[:] recode = np.empty(recode_size, dtype='int64')
+        int64_t[:] current_codes
+        object[:] new_categories, current_categories
+        Py_ssize_t cat_id, j, n_codes, n_cats, i = 0
+        int ret = 0
+        int64_t current_code = 0
+        khiter_t k
+
+    for cat_id in range(len(codes)):
+        current_codes = codes[cat_id]
+        current_categories = cats[cat_id]
+
+        n_cats = current_categories.shape[0]
+        n_codes = current_codes.shape[0]
+        if cat_id == 0:
+            kh_resize_pymap(table, n_cats)
+            # first pass dump directly in to table since uniqueness
+            # is guaranteed and don't need to recode
+            for j in range(n_cats):
+                k = kh_put_pymap(table, <PyObject *>current_categories[j], &ret)
+                table.vals[k] = current_code
+                current_code += 1
+            with nogil:
+                # reuse codes
+                for j in range(n_codes):
+                    new_codes[i] = current_codes[j]
+                    i += 1
+        else:
+            for j in range(n_cats):
+                k = kh_get_pymap(table, <PyObject*>current_categories[j])
+
+                # if a new category, add to the master hash table
+                if k == table.n_buckets:
+                    k = kh_put_pymap(table, <PyObject*>current_categories[j], &ret)
+                    table.vals[k] = current_code
+                    current_code += 1
+
+                # add to the recode table, mapping from
+                # orig catgory -> master_category
+                recode[j] = table.vals[k]
+
+            with nogil:
+                for j in range(n_codes):
+                    # continue filing new codes, this pass
+                    # looking up in recode table
+                    if current_codes[j] == -1:
+                        new_codes[i] = -1
+                    else:
+                        new_codes[i] = recode[current_codes[j]]
+                    i += 1
+
+    # fill in new categories from hash table
+    i = 0
+    new_categories = np.zeros(table.n_occupied, dtype='object')
+    for k in range(table.n_buckets):
+        if kh_exist_pymap(table, k):
+            new_categories[i] = <object>table.keys[k]
+            i += 1
+    kh_destroy_pymap(table)
+    return np.asarray(new_codes), np.asarray(new_categories)
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
