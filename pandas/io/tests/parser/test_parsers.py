@@ -72,14 +72,12 @@ class TestCParserLowMemory(BaseParser, CParserTests, tm.TestCase):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         kwds['low_memory'] = self.low_memory
-        kwds['buffer_lines'] = 2
         return read_csv(*args, **kwds)
 
     def read_table(self, *args, **kwds):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         kwds['low_memory'] = True
-        kwds['buffer_lines'] = 2
         return read_table(*args, **kwds)
 
 
