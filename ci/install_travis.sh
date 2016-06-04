@@ -39,7 +39,7 @@ python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 
 MINICONDA_DIR="$HOME/miniconda"
 
-if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ]; then
+if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ] && [ "$USE_CACHE" ]; then
     echo "Miniconda install already present from cache: $MINICONDA_DIR"
 
     conda config --set always_yes yes --set changeps1 no || exit 1
@@ -51,6 +51,7 @@ if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ]; then
     conda info -a || exit 1
 
 else
+    echo "Using clean Miniconda install"
     rm -rf "$MINICONDA_DIR"
     # install miniconda
     if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
@@ -85,14 +86,17 @@ time conda install -n pandas --file=${REQ} || exit 1
 source activate pandas
 
 # set the compiler cache to work
-if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-
+if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "$USE_CACHE" ]; then
+    echo "Using ccache"
     export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
     gcc=$(which gcc)
     echo "gcc: $gcc"
     ccache=$(which ccache)
     echo "ccache: $ccache"
     export CC='ccache gcc'
+
+else
+    echo "Not using ccache"
 fi
 
 if [ "$BUILD_TEST" ]; then

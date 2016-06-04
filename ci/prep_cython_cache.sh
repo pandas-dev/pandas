@@ -1,10 +1,11 @@
 #!/bin/bash
 
+ls "$HOME/.cache/"
 CACHE_File="$HOME/.cache/cython_files.tar"
 
 clear_cache=0
 
-if [ -f "$CACHE_File" ]; then
+if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ]; then
 
     home_dir=$(pwd)
 
@@ -25,7 +26,7 @@ if [ -f "$CACHE_File" ]; then
 
 fi
 
-if [ $clear_cache -eq 1 ] && [ $retval -eq 0 ]
+if [ $clear_cache -eq 1 ] && [ $retval -eq 0 ] && [ "$USE_CACHE" ]
 then
     # nope, reuse cython files
     echo "Will reuse cached cython file"
@@ -35,6 +36,8 @@ then
     touch "$TRAVIS_BUILD_DIR"/pandas/msgpack/*.cpp
 else
     echo "Rebuilding cythonized files"
+    echo "Use cache = $USE_CACHE"
+    echo "Clear cache = $clear_cache"
 fi
 
 
