@@ -333,6 +333,7 @@ def read_hdf(path_or_buf, key=None, **kwargs):
         if key is None:
             groups = store.groups()
             candidate_only_group = groups[0]
+
             # For the HDF file to have only one dataset, all other groups
             # should then be metadata groups for that candidate group. (This
             # assumes that the groups() method enumerates parent groups

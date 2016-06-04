@@ -4877,6 +4877,7 @@ class TestHDFStore(Base, tm.TestCase):
         df = DataFrame(np.random.rand(4, 5),
                        index=list('abcd'),
                        columns=list('ABCDE'))
+
         # Categorical dtype not supported for "fixed" format. So no need
         # to test with that dtype in the dataframe here.
         with ensure_clean_path(self.path) as path:
@@ -4890,6 +4891,7 @@ class TestHDFStore(Base, tm.TestCase):
         # GH13231
         df = DataFrame({'i': range(5),
                         'c': Series(list('abacd'), dtype='category')})
+
         with ensure_clean_path(self.path) as path:
             df.to_hdf(path, 'df', mode='a', format='table')
             reread = read_hdf(path)
