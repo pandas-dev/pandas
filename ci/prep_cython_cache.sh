@@ -32,6 +32,7 @@ then
     touch "$TRAVIS_BUILD_DIR"/pandas/*.c
     touch "$TRAVIS_BUILD_DIR"/pandas/src/*.c
     touch "$TRAVIS_BUILD_DIR"/pandas/*.cpp
+    touch "$TRAVIS_BUILD_DIR"/pandas/msgpack/*.cpp
 else
     echo "Rebuilding cythonized files"
 fi
