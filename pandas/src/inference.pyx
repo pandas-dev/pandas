@@ -6,6 +6,20 @@ iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
 
+cdef extern from "headers/stdint.h":
+    enum: UINT8_MAX
+    enum: UINT16_MAX
+    enum: UINT32_MAX
+    enum: UINT64_MAX
+    enum: INT8_MIN
+    enum: INT8_MAX
+    enum: INT16_MIN
+    enum: INT16_MAX
+    enum: INT32_MAX
+    enum: INT32_MIN
+    enum: INT64_MAX
+    enum: INT64_MIN
+
 # core.common import for fast inference checks
 def is_float(object obj):
     return util.is_float_object(obj)
@@ -569,7 +583,7 @@ def maybe_convert_numeric(object[:] values, set na_values,
     for i in range(n):
         val = values[i]
 
-        if val in na_values:
+        if val.__hash__ is not None and val in na_values:
             floats[i] = complexes[i] = nan
             seen_float = True
         elif util.is_float_object(val):
@@ -596,7 +610,13 @@ def maybe_convert_numeric(object[:] values, set na_values,
         else:
             try:
                 status = floatify(val, &fval, &maybe_int)
-                floats[i] = fval
+
+                if fval in na_values:
+                    floats[i] = complexes[i] = nan
+                    seen_float = True
+                else:
+                    floats[i] = fval
+
                 if not seen_float:
                     if maybe_int:
                         as_int = int(val)
@@ -1126,7 +1146,24 @@ def map_infer(ndarray arr, object f, bint convert=1):
     return result
 
 
-def to_object_array(list rows):
+def to_object_array(list rows, int min_width=0):
+    """
+    Convert a list of lists into an object array.
+
+    Parameters
+    ----------
+    rows : 2-d array (N, K)
+        A list of lists to be converted into an array
+    min_width : int
+        The minimum width of the object array. If a list
+        in `rows` contains fewer than `width` elements,
+        the remaining elements in the corresponding row
+        will all be `NaN`.
+
+    Returns
+    -------
+    obj_array : numpy array of the object dtype
+    """
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
@@ -1134,7 +1171,7 @@ def to_object_array(list rows):
 
     n = len(rows)
 
-    k = 0
+    k = min_width
     for i from 0 <= i < n:
         tmp = len(rows[i])
         if tmp > k:
@@ -1217,3 +1254,74 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
             output[i] = default
 
     return maybe_convert_objects(output)
+
+
+def downcast_int64(ndarray[int64_t] arr, object na_values,
+                   bint use_unsigned=0):
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        int64_t mx = INT64_MIN + 1, mn = INT64_MAX
+        int64_t NA = na_values[np.int64]
+        int64_t val
+        ndarray[uint8_t] mask
+        int na_count = 0
+
+    _mask = np.empty(n, dtype=bool)
+    mask = _mask.view(np.uint8)
+
+    for i in range(n):
+        val = arr[i]
+
+        if val == NA:
+            mask[i] = 1
+            na_count += 1
+            continue
+
+        # not NA
+        mask[i] = 0
+
+        if val > mx:
+            mx = val
+
+        if val < mn:
+            mn = val
+
+    if mn >= 0 and use_unsigned:
+        if mx <= UINT8_MAX - 1:
+            result = arr.astype(np.uint8)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.uint8])
+            return result
+
+        if mx <= UINT16_MAX - 1:
+            result = arr.astype(np.uint16)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.uint16])
+            return result
+
+        if mx <= UINT32_MAX - 1:
+            result = arr.astype(np.uint32)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.uint32])
+            return result
+
+    else:
+        if mn >= INT8_MIN + 1 and mx <= INT8_MAX:
+            result = arr.astype(np.int8)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.int8])
+            return result
+
+        if mn >= INT16_MIN + 1 and mx <= INT16_MAX:
+            result = arr.astype(np.int16)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.int16])
+            return result
+
+        if mn >= INT32_MIN + 1 and mx <= INT32_MAX:
+            result = arr.astype(np.int32)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.int32])
+            return result
+
+    return arr

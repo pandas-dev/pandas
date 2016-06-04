@@ -249,7 +249,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
             # thus no need to care
 
             # we require ALL of the same tz for datetimetz
-            tzs = set([x.tz for x in to_concat])
+            tzs = set([str(x.tz) for x in to_concat])
             if len(tzs) == 1:
                 from pandas.tseries.index import DatetimeIndex
                 new_values = np.concatenate([x.tz_localize(None).asi8

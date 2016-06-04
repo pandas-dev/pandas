@@ -799,30 +799,31 @@ class TestNanvarFixedValues(tm.TestCase):
     def test_nanvar_all_finite(self):
         samples = self.samples
         actual_variance = nanops.nanvar(samples)
-        np.testing.assert_almost_equal(actual_variance, self.variance,
-                                       decimal=2)
+        tm.assert_almost_equal(actual_variance, self.variance,
+                               check_less_precise=2)
 
     def test_nanvar_nans(self):
         samples = np.nan * np.ones(2 * self.samples.shape[0])
         samples[::2] = self.samples
 
         actual_variance = nanops.nanvar(samples, skipna=True)
-        np.testing.assert_almost_equal(actual_variance, self.variance,
-                                       decimal=2)
+        tm.assert_almost_equal(actual_variance, self.variance,
+                               check_less_precise=2)
 
         actual_variance = nanops.nanvar(samples, skipna=False)
-        np.testing.assert_almost_equal(actual_variance, np.nan, decimal=2)
+        tm.assert_almost_equal(actual_variance, np.nan, check_less_precise=2)
 
     def test_nanstd_nans(self):
         samples = np.nan * np.ones(2 * self.samples.shape[0])
         samples[::2] = self.samples
 
         actual_std = nanops.nanstd(samples, skipna=True)
-        np.testing.assert_almost_equal(actual_std, self.variance ** 0.5,
-                                       decimal=2)
+        tm.assert_almost_equal(actual_std, self.variance ** 0.5,
+                               check_less_precise=2)
 
         actual_std = nanops.nanvar(samples, skipna=False)
-        np.testing.assert_almost_equal(actual_std, np.nan, decimal=2)
+        tm.assert_almost_equal(actual_std, np.nan,
+                               check_less_precise=2)
 
     def test_nanvar_axis(self):
         # Generate some sample data.
@@ -831,8 +832,8 @@ class TestNanvarFixedValues(tm.TestCase):
         samples = np.vstack([samples_norm, samples_unif])
 
         actual_variance = nanops.nanvar(samples, axis=1)
-        np.testing.assert_array_almost_equal(actual_variance, np.array(
-            [self.variance, 1.0 / 12]), decimal=2)
+        tm.assert_almost_equal(actual_variance, np.array(
+            [self.variance, 1.0 / 12]), check_less_precise=2)
 
     def test_nanvar_ddof(self):
         n = 5
@@ -845,13 +846,16 @@ class TestNanvarFixedValues(tm.TestCase):
 
         # The unbiased estimate.
         var = 1.0 / 12
-        np.testing.assert_almost_equal(variance_1, var, decimal=2)
+        tm.assert_almost_equal(variance_1, var,
+                               check_less_precise=2)
+
         # The underestimated variance.
-        np.testing.assert_almost_equal(variance_0, (n - 1.0) / n * var,
-                                       decimal=2)
+        tm.assert_almost_equal(variance_0, (n - 1.0) / n * var,
+                               check_less_precise=2)
+
         # The overestimated variance.
-        np.testing.assert_almost_equal(variance_2, (n - 1.0) / (n - 2.0) * var,
-                                       decimal=2)
+        tm.assert_almost_equal(variance_2, (n - 1.0) / (n - 2.0) * var,
+                               check_less_precise=2)
 
     def test_ground_truth(self):
         # Test against values that were precomputed with Numpy.
@@ -929,7 +933,7 @@ class TestNanskewFixedValues(tm.TestCase):
         samples = np.vstack([self.samples,
                              np.nan * np.ones(len(self.samples))])
         skew = nanops.nanskew(samples, axis=1)
-        tm.assert_almost_equal(skew, [self.actual_skew, np.nan])
+        tm.assert_almost_equal(skew, np.array([self.actual_skew, np.nan]))
 
     def test_nans(self):
         samples = np.hstack([self.samples, np.nan])
@@ -979,7 +983,7 @@ class TestNankurtFixedValues(tm.TestCase):
         samples = np.vstack([self.samples,
                              np.nan * np.ones(len(self.samples))])
         kurt = nanops.nankurt(samples, axis=1)
-        tm.assert_almost_equal(kurt, [self.actual_kurt, np.nan])
+        tm.assert_almost_equal(kurt, np.array([self.actual_kurt, np.nan]))
 
     def test_nans(self):
         samples = np.hstack([self.samples, np.nan])

@@ -25,13 +25,13 @@ import numpy as np
 import pandas as pd
 from pandas.core.common import (is_sequence, array_equivalent,
                                 is_list_like, is_datetimelike_v_numeric,
-                                is_datetimelike_v_object, is_number,
+                                is_datetimelike_v_object,
+                                is_number, is_bool,
                                 needs_i8_conversion, is_categorical_dtype)
 from pandas.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 
 import pandas.compat as compat
-import pandas.lib as lib
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
     raise_with_traceback, httplib, is_platform_windows, is_platform_32bit,
@@ -116,25 +116,67 @@ class TestCase(unittest.TestCase):
                          self.assertNotAlmostEqual)(*args, **kwargs)
 
 
-def assert_almost_equal(left, right, check_exact=False, **kwargs):
+def assert_almost_equal(left, right, check_exact=False,
+                        check_dtype='equiv', check_less_precise=False,
+                        **kwargs):
+    """Check that left and right Index are equal.
+
+    Parameters
+    ----------
+    left : object
+    right : object
+    check_exact : bool, default True
+        Whether to compare number exactly.
+    check_dtype: bool, default True
+        check dtype if both a and b are the same type
+    check_less_precise : bool or int, default False
+        Specify comparison precision. Only used when check_exact is False.
+        5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare
+    """
     if isinstance(left, pd.Index):
         return assert_index_equal(left, right, check_exact=check_exact,
+                                  exact=check_dtype,
+                                  check_less_precise=check_less_precise,
                                   **kwargs)
 
     elif isinstance(left, pd.Series):
         return assert_series_equal(left, right, check_exact=check_exact,
+                                   check_dtype=check_dtype,
+                                   check_less_precise=check_less_precise,
                                    **kwargs)
 
     elif isinstance(left, pd.DataFrame):
         return assert_frame_equal(left, right, check_exact=check_exact,
+                                  check_dtype=check_dtype,
+                                  check_less_precise=check_less_precise,
                                   **kwargs)
 
-    return _testing.assert_almost_equal(left, right, **kwargs)
+    else:
+        # other sequences
+        if check_dtype:
+            if is_number(left) and is_number(right):
+                # do not compare numeric classes, like np.float64 and float
+                pass
+            elif is_bool(left) and is_bool(right):
+                # do not compare bool classes, like np.bool_ and bool
+                pass
+            else:
+                if (isinstance(left, np.ndarray) or
+                   isinstance(right, np.ndarray)):
+                    obj = 'numpy array'
+                else:
+                    obj = 'Input'
+                assert_class_equal(left, right, obj=obj)
+        return _testing.assert_almost_equal(
+            left, right,
+            check_dtype=check_dtype,
+            check_less_precise=check_less_precise,
+            **kwargs)
 
 
 def assert_dict_equal(left, right, compare_keys=True):
 
-    # instance validation
     assertIsInstance(left, dict, '[dict] ')
     assertIsInstance(right, dict, '[dict] ')
 
@@ -677,9 +719,10 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         Int64Index as well
     check_names : bool, default True
         Whether to check the names attribute.
-    check_less_precise : bool, default False
+    check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare
     check_exact : bool, default True
         Whether to compare number exactly.
     check_categorical : bool, default True
@@ -966,33 +1009,29 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         assertion message
     """
 
+    # instance validation
+    # to show a detailed erorr message when classes are different
+    assert_class_equal(left, right, obj=obj)
+    # both classes must be an np.ndarray
+    assertIsInstance(left, np.ndarray, '[ndarray] ')
+    assertIsInstance(right, np.ndarray, '[ndarray] ')
+
     def _raise(left, right, err_msg):
         if err_msg is None:
-            # show detailed error
-            if lib.isscalar(left) and lib.isscalar(right):
-                # show scalar comparison error
-                assert_equal(left, right)
-            elif is_list_like(left) and is_list_like(right):
-                # some test cases pass list
-                left = np.asarray(left)
-                right = np.array(right)
+            if left.shape != right.shape:
+                raise_assert_detail(obj, '{0} shapes are different'
+                                    .format(obj), left.shape, right.shape)
 
-                if left.shape != right.shape:
-                    raise_assert_detail(obj, '{0} shapes are different'
-                                        .format(obj), left.shape, right.shape)
+            diff = 0
+            for l, r in zip(left, right):
+                # count up differences
+                if not array_equivalent(l, r, strict_nan=strict_nan):
+                    diff += 1
 
-                diff = 0
-                for l, r in zip(left, right):
-                    # count up differences
-                    if not array_equivalent(l, r, strict_nan=strict_nan):
-                        diff += 1
-
-                diff = diff * 100.0 / left.size
-                msg = '{0} values are different ({1} %)'\
-                    .format(obj, np.round(diff, 5))
-                raise_assert_detail(obj, msg, left, right)
-            else:
-                assert_class_equal(left, right, obj=obj)
+            diff = diff * 100.0 / left.size
+            msg = '{0} values are different ({1} %)'\
+                .format(obj, np.round(diff, 5))
+            raise_assert_detail(obj, msg, left, right)
 
         raise AssertionError(err_msg)
 
@@ -1031,9 +1070,10 @@ def assert_series_equal(left, right, check_dtype=True,
         are identical.
     check_series_type : bool, default False
         Whether to check the Series class is identical.
-    check_less_precise : bool, default False
+    check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare
     check_exact : bool, default False
         Whether to compare number exactly.
     check_names : bool, default True
@@ -1076,8 +1116,8 @@ def assert_series_equal(left, right, check_dtype=True,
 
     if check_exact:
         assert_numpy_array_equal(left.get_values(), right.get_values(),
-                                 obj='{0}'.format(obj),
-                                 check_dtype=check_dtype)
+                                 check_dtype=check_dtype,
+                                 obj='{0}'.format(obj),)
     elif check_datetimelike_compat:
         # we want to check only if we have compat dtypes
         # e.g. integer and M|m are NOT compat, but we can simply check
@@ -1093,11 +1133,11 @@ def assert_series_equal(left, right, check_dtype=True,
                 msg = '[datetimelike_compat=True] {0} is not equal to {1}.'
                 raise AssertionError(msg.format(left.values, right.values))
         else:
-            assert_numpy_array_equal(left.values, right.values,
+            assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
-                                     check_less_precise,
+                                     check_less_precise=check_less_precise,
                                      check_dtype=check_dtype,
                                      obj='{0}'.format(obj))
 
@@ -1141,9 +1181,10 @@ def assert_frame_equal(left, right, check_dtype=True,
         are identical.
     check_frame_type : bool, default False
         Whether to check the DataFrame class is identical.
-    check_less_precise : bool, default False
+    check_less_precise : bool or it, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare
     check_names : bool, default True
         Whether to check the Index names attribute.
     by_blocks : bool, default False
@@ -1250,9 +1291,10 @@ def assert_panelnd_equal(left, right,
         Whether to check the Panel dtype is identical.
     check_panel_type : bool, default False
         Whether to check the Panel class is identical.
-    check_less_precise : bool, default False
+    check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare
     assert_func : function for comparing data
     check_names : bool, default True
         Whether to check the Index names attribute.
@@ -1314,11 +1356,7 @@ def assert_sp_array_equal(left, right):
         raise_assert_detail('SparseArray.index', 'index are not equal',
                             left.sp_index, right.sp_index)
 
-    if np.isnan(left.fill_value):
-        assert (np.isnan(right.fill_value))
-    else:
-        assert (left.fill_value == right.fill_value)
-
+    assert_attr_equal('fill_value', left, right)
     assert_attr_equal('dtype', left, right)
     assert_numpy_array_equal(left.values, right.values)
 

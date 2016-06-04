@@ -17,15 +17,19 @@ from pandas.core.internals import (BlockPlacement, SingleBlockManager,
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas as pd
+from pandas import lib
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  randn, assert_series_equal)
 from pandas.compat import zip, u
 
 
 def assert_block_equal(left, right):
-    assert_almost_equal(left.values, right.values)
+    tm.assert_numpy_array_equal(left.values, right.values)
     assert (left.dtype == right.dtype)
-    assert_almost_equal(left.mgr_locs, right.mgr_locs)
+    tm.assertIsInstance(left.mgr_locs, lib.BlockPlacement)
+    tm.assertIsInstance(right.mgr_locs, lib.BlockPlacement)
+    tm.assert_numpy_array_equal(left.mgr_locs.as_array,
+                                right.mgr_locs.as_array)
 
 
 def get_numeric_mat(shape):
@@ -207,7 +211,9 @@ class TestBlock(tm.TestCase):
         _check(self.bool_block)
 
     def test_mgr_locs(self):
-        assert_almost_equal(self.fblock.mgr_locs, [0, 2, 4])
+        tm.assertIsInstance(self.fblock.mgr_locs, lib.BlockPlacement)
+        tm.assert_numpy_array_equal(self.fblock.mgr_locs.as_array,
+                                    np.array([0, 2, 4], dtype=np.int64))
 
     def test_attrs(self):
         self.assertEqual(self.fblock.shape, self.fblock.values.shape)
@@ -223,9 +229,10 @@ class TestBlock(tm.TestCase):
         ablock = make_block(avals, ref_cols.get_indexer(['e', 'b']))
         bblock = make_block(bvals, ref_cols.get_indexer(['a', 'd']))
         merged = ablock.merge(bblock)
-        assert_almost_equal(merged.mgr_locs, [0, 1, 2, 3])
-        assert_almost_equal(merged.values[[0, 2]], avals)
-        assert_almost_equal(merged.values[[1, 3]], bvals)
+        tm.assert_numpy_array_equal(merged.mgr_locs.as_array,
+                                    np.array([0, 1, 2, 3], dtype=np.int64))
+        tm.assert_numpy_array_equal(merged.values[[0, 2]], np.array(avals))
+        tm.assert_numpy_array_equal(merged.values[[1, 3]], np.array(bvals))
 
         # TODO: merge with mixed type?
 
@@ -246,17 +253,22 @@ class TestBlock(tm.TestCase):
     def test_delete(self):
         newb = self.fblock.copy()
         newb.delete(0)
-        assert_almost_equal(newb.mgr_locs, [2, 4])
+        tm.assertIsInstance(newb.mgr_locs, lib.BlockPlacement)
+        tm.assert_numpy_array_equal(newb.mgr_locs.as_array,
+                                    np.array([2, 4], dtype=np.int64))
         self.assertTrue((newb.values[0] == 1).all())
 
         newb = self.fblock.copy()
         newb.delete(1)
-        assert_almost_equal(newb.mgr_locs, [0, 4])
+        tm.assertIsInstance(newb.mgr_locs, lib.BlockPlacement)
+        tm.assert_numpy_array_equal(newb.mgr_locs.as_array,
+                                    np.array([0, 4], dtype=np.int64))
         self.assertTrue((newb.values[1] == 2).all())
 
         newb = self.fblock.copy()
         newb.delete(2)
-        assert_almost_equal(newb.mgr_locs, [0, 2])
+        tm.assert_numpy_array_equal(newb.mgr_locs.as_array,
+                                    np.array([0, 2], dtype=np.int64))
         self.assertTrue((newb.values[1] == 1).all())
 
         newb = self.fblock.copy()
@@ -399,9 +411,9 @@ class TestBlockManager(tm.TestCase):
             for i, index in enumerate(self.mgr.axes[1]):
                 res = self.mgr.get_scalar((item, index))
                 exp = self.mgr.get(item, fastpath=False)[i]
-                assert_almost_equal(res, exp)
+                self.assertEqual(res, exp)
                 exp = self.mgr.get(item).internal_values()[i]
-                assert_almost_equal(res, exp)
+                self.assertEqual(res, exp)
 
     def test_get(self):
         cols = Index(list('abc'))
@@ -421,10 +433,14 @@ class TestBlockManager(tm.TestCase):
 
         mgr.set('d', np.array(['foo'] * 3))
         mgr.set('b', np.array(['bar'] * 3))
-        assert_almost_equal(mgr.get('a').internal_values(), [0] * 3)
-        assert_almost_equal(mgr.get('b').internal_values(), ['bar'] * 3)
-        assert_almost_equal(mgr.get('c').internal_values(), [2] * 3)
-        assert_almost_equal(mgr.get('d').internal_values(), ['foo'] * 3)
+        tm.assert_numpy_array_equal(mgr.get('a').internal_values(),
+                                    np.array([0] * 3))
+        tm.assert_numpy_array_equal(mgr.get('b').internal_values(),
+                                    np.array(['bar'] * 3, dtype=np.object_))
+        tm.assert_numpy_array_equal(mgr.get('c').internal_values(),
+                                    np.array([2] * 3))
+        tm.assert_numpy_array_equal(mgr.get('d').internal_values(),
+                                    np.array(['foo'] * 3, dtype=np.object_))
 
     def test_insert(self):
         self.mgr.insert(0, 'inserted', np.arange(N))
@@ -689,8 +705,9 @@ class TestBlockManager(tm.TestCase):
         self.assertEqual(cons.nblocks, 4)
         cons = self.mgr.consolidate().get_numeric_data()
         self.assertEqual(cons.nblocks, 1)
-        assert_almost_equal(cons.blocks[0].mgr_locs,
-                            np.arange(len(cons.items)))
+        tm.assertIsInstance(cons.blocks[0].mgr_locs, lib.BlockPlacement)
+        tm.assert_numpy_array_equal(cons.blocks[0].mgr_locs.as_array,
+                                    np.arange(len(cons.items), dtype=np.int64))
 
     def test_reindex_index(self):
         pass
@@ -786,18 +803,18 @@ class TestBlockManager(tm.TestCase):
             bools.get('bool').internal_values())
 
         bools.set('bool', np.array([True, False, True]))
-        assert_almost_equal(
-            mgr.get('bool', fastpath=False), [True, False, True])
-        assert_almost_equal(
-            mgr.get('bool').internal_values(), [True, False, True])
+        tm.assert_numpy_array_equal(mgr.get('bool', fastpath=False),
+                                    np.array([True, False, True]))
+        tm.assert_numpy_array_equal(mgr.get('bool').internal_values(),
+                                    np.array([True, False, True]))
 
         # Check sharing
         bools2 = mgr.get_bool_data(copy=True)
         bools2.set('bool', np.array([False, True, False]))
-        assert_almost_equal(
-            mgr.get('bool', fastpath=False), [True, False, True])
-        assert_almost_equal(
-            mgr.get('bool').internal_values(), [True, False, True])
+        tm.assert_numpy_array_equal(mgr.get('bool', fastpath=False),
+                                    np.array([True, False, True]))
+        tm.assert_numpy_array_equal(mgr.get('bool').internal_values(),
+                                    np.array([True, False, True]))
 
     def test_unicode_repr_doesnt_raise(self):
         repr(create_mgr(u('b,\u05d0: object')))
@@ -892,8 +909,7 @@ class TestIndexing(object):
             mat_slobj = (slice(None), ) * axis + (slobj, )
             tm.assert_numpy_array_equal(mat[mat_slobj], sliced.as_matrix(),
                                         check_dtype=False)
-            tm.assert_numpy_array_equal(mgr.axes[axis][slobj],
-                                        sliced.axes[axis])
+            tm.assert_index_equal(mgr.axes[axis][slobj], sliced.axes[axis])
 
         for mgr in self.MANAGERS:
             for ax in range(mgr.ndim):
@@ -931,8 +947,8 @@ class TestIndexing(object):
             taken = mgr.take(indexer, axis)
             tm.assert_numpy_array_equal(np.take(mat, indexer, axis),
                                         taken.as_matrix(), check_dtype=False)
-            tm.assert_numpy_array_equal(mgr.axes[axis].take(indexer),
-                                        taken.axes[axis])
+            tm.assert_index_equal(mgr.axes[axis].take(indexer),
+                                  taken.axes[axis])
 
         for mgr in self.MANAGERS:
             for ax in range(mgr.ndim):

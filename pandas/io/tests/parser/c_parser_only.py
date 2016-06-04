@@ -61,12 +61,6 @@ class CParserTests(object):
                              columns=['a', 'b', 'c'])
         tm.assert_frame_equal(df, expected)
 
-    def test_parse_dates_empty_string(self):
-        # see gh-2263
-        s = StringIO("Date, test\n2012-01-01, 1\n,2")
-        result = self.read_csv(s, parse_dates=["Date"], na_filter=False)
-        self.assertTrue(result['Date'].isnull()[1])
-
     def test_dtype_and_names_error(self):
         # see gh-8833: passing both dtype and names
         # resulting in an error reporting issue
@@ -178,28 +172,8 @@ nan 2
         self.assertTrue(sum(precise_errors) <= sum(normal_errors))
         self.assertTrue(max(precise_errors) <= max(normal_errors))
 
-    def test_compact_ints(self):
-        if compat.is_platform_windows() and not self.low_memory:
-            raise nose.SkipTest(
-                "segfaults on win-64, only when all tests are run")
-
-        data = ('0,1,0,0\n'
-                '1,1,0,0\n'
-                '0,1,0,1')
-
-        result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                               compact_ints=True, as_recarray=True)
-        ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
-        self.assertEqual(result.dtype, ex_dtype)
-
-        result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                               as_recarray=True, compact_ints=True,
-                               use_unsigned=True)
-        ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
-        self.assertEqual(result.dtype, ex_dtype)
-
     def test_compact_ints_as_recarray(self):
-        if compat.is_platform_windows() and self.low_memory:
+        if compat.is_platform_windows():
             raise nose.SkipTest(
                 "segfaults on win-64, only when all tests are run")
 
@@ -207,16 +181,20 @@ nan 2
                 '1,1,0,0\n'
                 '0,1,0,1')
 
-        result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                               compact_ints=True, as_recarray=True)
-        ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
-        self.assertEqual(result.dtype, ex_dtype)
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False):
+            result = self.read_csv(StringIO(data), delimiter=',', header=None,
+                                   compact_ints=True, as_recarray=True)
+            ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
+            self.assertEqual(result.dtype, ex_dtype)
 
-        result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                               as_recarray=True, compact_ints=True,
-                               use_unsigned=True)
-        ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
-        self.assertEqual(result.dtype, ex_dtype)
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False):
+            result = self.read_csv(StringIO(data), delimiter=',', header=None,
+                                   as_recarray=True, compact_ints=True,
+                                   use_unsigned=True)
+            ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
+            self.assertEqual(result.dtype, ex_dtype)
 
     def test_pass_dtype(self):
         data = """\
@@ -366,15 +344,6 @@ No,No,No"""
                           sep=",", skipinitialspace=True,
                           dtype={'DOY': np.int64})
 
-    def test_na_trailing_columns(self):
-        data = """Date,Currenncy,Symbol,Type,Units,UnitPrice,Cost,Tax
-2012-03-14,USD,AAPL,BUY,1000
-2012-05-12,USD,SBUX,SELL,500"""
-
-        result = self.read_csv(StringIO(data))
-        self.assertEqual(result['Date'][1], '2012-05-12')
-        self.assertTrue(result['UnitPrice'].isnull().all())
-
     def test_parse_ragged_csv(self):
         data = """1,2,3
 1,2,3,4
@@ -418,15 +387,6 @@ No,No,No"""
         result = self.read_csv(StringIO(data))
         expected = self.read_csv(StringIO(data.replace('\r', '\n')))
         tm.assert_frame_equal(result, expected)
-
-    def test_raise_on_no_columns(self):
-        # single newline
-        data = "\n"
-        self.assertRaises(ValueError, self.read_csv, StringIO(data))
-
-        # test with more than a single newline
-        data = "\n\n\n"
-        self.assertRaises(ValueError, self.read_csv, StringIO(data))
 
     def test_grow_boundary_at_cap(self):
         # See gh-12494

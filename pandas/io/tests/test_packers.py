@@ -150,7 +150,11 @@ class TestNumpy(TestPackers):
     def test_list_numpy_float(self):
         x = [np.float32(np.random.rand()) for i in range(5)]
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x, x_rec)
+        # current msgpack cannot distinguish list/tuple
+        tm.assert_almost_equal(tuple(x), x_rec)
+
+        x_rec = self.encode_decode(tuple(x))
+        tm.assert_almost_equal(tuple(x), x_rec)
 
     def test_list_numpy_float_complex(self):
         if not hasattr(np, 'complex128'):
@@ -165,7 +169,11 @@ class TestNumpy(TestPackers):
     def test_list_float(self):
         x = [np.random.rand() for i in range(5)]
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x, x_rec)
+        # current msgpack cannot distinguish list/tuple
+        tm.assert_almost_equal(tuple(x), x_rec)
+
+        x_rec = self.encode_decode(tuple(x))
+        tm.assert_almost_equal(tuple(x), x_rec)
 
     def test_list_float_complex(self):
         x = [np.random.rand() for i in range(5)] + \
@@ -217,7 +225,11 @@ class TestNumpy(TestPackers):
     def test_list_mixed(self):
         x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo')]
         x_rec = self.encode_decode(x)
-        tm.assert_almost_equal(x, x_rec)
+        # current msgpack cannot distinguish list/tuple
+        tm.assert_almost_equal(tuple(x), x_rec)
+
+        x_rec = self.encode_decode(tuple(x))
+        tm.assert_almost_equal(tuple(x), x_rec)
 
 
 class TestBasic(TestPackers):
@@ -286,30 +298,30 @@ class TestIndex(TestPackers):
 
         for s, i in self.d.items():
             i_rec = self.encode_decode(i)
-            self.assertTrue(i.equals(i_rec))
+            self.assert_index_equal(i, i_rec)
 
         # datetime with no freq (GH5506)
         i = Index([Timestamp('20130101'), Timestamp('20130103')])
         i_rec = self.encode_decode(i)
-        self.assertTrue(i.equals(i_rec))
+        self.assert_index_equal(i, i_rec)
 
         # datetime with timezone
         i = Index([Timestamp('20130101 9:00:00'), Timestamp(
             '20130103 11:00:00')]).tz_localize('US/Eastern')
         i_rec = self.encode_decode(i)
-        self.assertTrue(i.equals(i_rec))
+        self.assert_index_equal(i, i_rec)
 
     def test_multi_index(self):
 
         for s, i in self.mi.items():
             i_rec = self.encode_decode(i)
-            self.assertTrue(i.equals(i_rec))
+            self.assert_index_equal(i, i_rec)
 
     def test_unicode(self):
         i = tm.makeUnicodeIndex(100)
 
         i_rec = self.encode_decode(i)
-        self.assertTrue(i.equals(i_rec))
+        self.assert_index_equal(i, i_rec)
 
 
 class TestSeries(TestPackers):
@@ -659,14 +671,14 @@ class TestCompression(TestPackers):
         with tm.assert_produces_warning(None):
             empty_unpacked = self.encode_decode(empty, compress=compress)
 
-        np.testing.assert_array_equal(empty_unpacked, empty)
+        tm.assert_numpy_array_equal(empty_unpacked, empty)
         self.assertTrue(empty_unpacked.flags.writeable)
 
         char = np.array([ord(b'a')], dtype='uint8')
         with tm.assert_produces_warning(None):
             char_unpacked = self.encode_decode(char, compress=compress)
 
-        np.testing.assert_array_equal(char_unpacked, char)
+        tm.assert_numpy_array_equal(char_unpacked, char)
         self.assertTrue(char_unpacked.flags.writeable)
         # if this test fails I am sorry because the interpreter is now in a
         # bad state where b'a' points to 98 == ord(b'b').
@@ -676,7 +688,7 @@ class TestCompression(TestPackers):
         # always be the same (unless we were able to mutate the shared
         # character singleton in which case ord(b'a') == ord(b'b').
         self.assertEqual(ord(b'a'), ord(u'a'))
-        np.testing.assert_array_equal(
+        tm.assert_numpy_array_equal(
             char_unpacked,
             np.array([ord(b'b')], dtype='uint8'),
         )

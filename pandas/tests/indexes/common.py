@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas import (Series, Index, Float64Index, Int64Index, RangeIndex,
                     MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex)
+                    TimedeltaIndex, PeriodIndex, notnull)
 from pandas.util.testing import assertRaisesRegexp
 
 import pandas.util.testing as tm
@@ -363,6 +363,18 @@ class Base(object):
         tm.assertRaisesRegexp(ValueError, msg, np.repeat,
                               i, rep, axis=0)
 
+    def test_where(self):
+        i = self.create_index()
+        result = i.where(notnull(i))
+        expected = i
+        tm.assert_index_equal(result, expected)
+
+        i2 = i.copy()
+        i2 = pd.Index([np.nan, np.nan] + i[2:].tolist())
+        result = i.where(notnull(i2))
+        expected = i2
+        tm.assert_index_equal(result, expected)
+
     def test_setops_errorcases(self):
         for name, idx in compat.iteritems(self.indices):
             # # non-iterable input
@@ -595,7 +607,7 @@ class Base(object):
             # assuming the 2nd to last item is unique in the data
             item = index_a[-2]
             tm.assert_numpy_array_equal(index_a == item, expected3)
-            tm.assert_numpy_array_equal(series_a == item, expected3)
+            tm.assert_series_equal(series_a == item, Series(expected3))
 
     def test_numpy_ufuncs(self):
         # test ufuncs of numpy 1.9.2. see:

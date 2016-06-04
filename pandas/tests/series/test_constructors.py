@@ -137,7 +137,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         cat = pd.Categorical([0, 1, 2, 0, 1, 2], ['a', 'b', 'c'],
                              fastpath=True)
         res = Series(cat)
-        self.assertTrue(res.values.equals(cat))
+        tm.assert_categorical_equal(res.values, cat)
 
         # GH12574
         self.assertRaises(
@@ -418,8 +418,10 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         result = s.values
         self.assertIsInstance(result, np.ndarray)
         self.assertTrue(result.dtype == 'datetime64[ns]')
-        self.assertTrue(dr.equals(pd.DatetimeIndex(result).tz_localize(
-            'UTC').tz_convert(tz=s.dt.tz)))
+
+        exp = pd.DatetimeIndex(result)
+        exp = exp.tz_localize('UTC').tz_convert(tz=s.dt.tz)
+        self.assert_index_equal(dr, exp)
 
         # indexing
         result = s.iloc[0]

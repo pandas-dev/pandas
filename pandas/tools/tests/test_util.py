@@ -18,18 +18,21 @@ class TestCartesianProduct(tm.TestCase):
 
     def test_simple(self):
         x, y = list('ABC'), [1, 22]
-        result = cartesian_product([x, y])
-        expected = [np.array(['A', 'A', 'B', 'B', 'C', 'C']),
-                    np.array([1, 22, 1, 22, 1, 22])]
-        tm.assert_numpy_array_equal(result, expected)
+        result1, result2 = cartesian_product([x, y])
+        expected1 = np.array(['A', 'A', 'B', 'B', 'C', 'C'])
+        expected2 = np.array([1, 22, 1, 22, 1, 22])
+        tm.assert_numpy_array_equal(result1, expected1)
+        tm.assert_numpy_array_equal(result2, expected2)
 
     def test_datetimeindex(self):
         # regression test for GitHub issue #6439
         # make sure that the ordering on datetimeindex is consistent
         x = date_range('2000-01-01', periods=2)
-        result = [Index(y).day for y in cartesian_product([x, x])]
-        expected = [np.array([1, 1, 2, 2]), np.array([1, 2, 1, 2])]
-        tm.assert_numpy_array_equal(result, expected)
+        result1, result2 = [Index(y).day for y in cartesian_product([x, x])]
+        expected1 = np.array([1, 1, 2, 2], dtype=np.int32)
+        expected2 = np.array([1, 2, 1, 2], dtype=np.int32)
+        tm.assert_numpy_array_equal(result1, expected1)
+        tm.assert_numpy_array_equal(result2, expected2)
 
 
 class TestLocaleUtils(tm.TestCase):
@@ -275,6 +278,18 @@ class TestToNumeric(tm.TestCase):
         # ToDo: enable when we can support native PeriodDtype
         # res = pd.to_numeric(pd.Series(idx, name='xxx'))
         # tm.assert_series_equal(res, pd.Series(idx.asi8, name='xxx'))
+
+    def test_non_hashable(self):
+        # Test for Bug #13324
+        s = pd.Series([[10.0, 2], 1.0, 'apple'])
+        res = pd.to_numeric(s, errors='coerce')
+        tm.assert_series_equal(res, pd.Series([np.nan, 1.0, np.nan]))
+
+        res = pd.to_numeric(s, errors='ignore')
+        tm.assert_series_equal(res, pd.Series([[10.0, 2], 1.0, 'apple']))
+
+        with self.assertRaisesRegexp(TypeError, "Invalid object type"):
+            pd.to_numeric(s)
 
 
 if __name__ == '__main__':

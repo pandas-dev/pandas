@@ -66,7 +66,7 @@ Other enhancements
      idx = pd.Index(["a1a2", "b1", "c1"])
      idx.str.extractall("[ab](?P<digit>\d)")
 
-- ``Timestamp``s can now accept positional and keyword parameters like :func:`datetime.datetime` (:issue:`10758`, :issue:`11630`)
+- ``Timestamp`` s can now accept positional and keyword parameters like :func:`datetime.datetime` (:issue:`10758`, :issue:`11630`)
 
   .. ipython:: python
 
@@ -75,11 +75,24 @@ Other enhancements
     pd.Timestamp(year=2012, month=1, day=1, hour=8, minute=30)
 
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``decimal`` option (:issue:`12933`)
+- The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``na_filter`` option (:issue:`13321`)
 
 - ``Index.astype()`` now accepts an optional boolean argument ``copy``, which allows optional copying if the requirements on dtype are satisfied (:issue:`13209`)
+- ``Index`` now supports the ``.where()`` function for same shape indexing (:issue:`13170`)
+
+  .. ipython:: python
+
+     idx = pd.Index(['a', 'b', 'c'])
+     idx.where([True, False, True])
+
 - ``Categorical.astype()`` now accepts an optional boolean argument ``copy``, effective when dtype is categorical (:issue:`13209`)
 - Consistent with the Python API, ``pd.read_csv()`` will now interpret ``+inf`` as positive infinity (:issue:`13274`)
 
+- The ``DataFrame`` constructor will now respect key ordering if a list of ``OrderedDict`` objects are passed in (:issue:`13304`)
+- ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
+
+- ``eval``'s upcasting rules for ``float32`` types have been updated to be more consistent with NumPy's rules.  New behavior will not upcast to ``float64`` if you multiply a pandas ``float32`` object by a scalar float64. (:issue:`12388`)
+- ``Series`` has gained the properties ``.is_monotonic``, ``.is_monotonic_increasing``, ``.is_monotonic_decreasing``, similar to ``Index`` (:issue:`13336`)
 
 .. _whatsnew_0182.api:
 
@@ -88,7 +101,7 @@ API changes
 
 
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
-- An ``UnsupportedFunctionCall`` error is now raised if numpy ufuncs like ``np.mean`` are called on groupby or resample objects (:issue:`12811`)
+- An ``UnsupportedFunctionCall`` error is now raised if NumPy ufuncs like ``np.mean`` are called on groupby or resample objects (:issue:`12811`)
 - Calls to ``.sample()`` will respect the random seed set via ``numpy.random.seed(n)`` (:issue:`13161`)
 
 .. _whatsnew_0182.api.tolist:
@@ -118,13 +131,12 @@ New Behavior:
 
    type(s.tolist()[0])
 
-
 .. _whatsnew_0182.api.promote:
 
-``Series`` type promotoion on assignment
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``Series`` type promotion on assignment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A ``Series`` will now correctly promote its dtype with assignment with incompat values to the current dtype (:issue:`13234`)
+A ``Series`` will now correctly promote its dtype for assignment with incompat values to the current dtype (:issue:`13234`)
 
 
 .. ipython:: python
@@ -170,6 +182,103 @@ This will now convert integers/floats with the default unit of ``ns``.
 
    pd.to_datetime([1, 'foo'], errors='coerce')
 
+.. _whatsnew_0182.api.merging:
+
+Merging changes
+^^^^^^^^^^^^^^^
+
+Merging will now preserve the dtype of the join keys (:issue:`8596`)
+
+.. ipython:: python
+
+   df1 = pd.DataFrame({'key': [1], 'v1': [10]})
+   df1
+   df2 = pd.DataFrame({'key': [1, 2], 'v1': [20, 30]})
+   df2
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [5]: pd.merge(df1, df2, how='outer')
+   Out[5]:
+      key    v1
+   0  1.0  10.0
+   1  1.0  20.0
+   2  2.0  30.0
+
+   In [6]: pd.merge(df1, df2, how='outer').dtypes
+   Out[6]:
+   key    float64
+   v1     float64
+   dtype: object
+
+New Behavior:
+
+We are able to preserve the join keys
+
+.. ipython:: python
+
+   pd.merge(df1, df2, how='outer')
+   pd.merge(df1, df2, how='outer').dtypes
+
+Of course if you have missing values that are introduced, then the
+resulting dtype will be upcast (unchanged from previous).
+
+.. ipython:: python
+
+   pd.merge(df1, df2, how='outer', on='key')
+   pd.merge(df1, df2, how='outer', on='key').dtypes
+
+.. _whatsnew_0182.describe:
+
+``.describe()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Percentile identifiers in the index of a ``.describe()`` output will now be rounded to the least precision that keeps them distinct (:issue:`13104`)
+
+.. ipython:: python
+
+   s = pd.Series([0, 1, 2, 3, 4])
+   df = pd.DataFrame([0, 1, 2, 3, 4])
+
+Previous Behavior:
+
+The percentiles were rounded to at most one decimal place, which could raise ``ValueError`` for a data frame if the percentiles were duplicated.
+
+.. code-block:: ipython
+
+   In [3]: s.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   Out[3]:
+   count     5.000000
+   mean      2.000000
+   std       1.581139
+   min       0.000000
+   0.0%      0.000400
+   0.1%      0.002000
+   0.1%      0.004000
+   50%       2.000000
+   99.9%     3.996000
+   100.0%    3.998000
+   100.0%    3.999600
+   max       4.000000
+   dtype: float64
+
+   In [4]: df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   Out[4]:
+   ...
+   ValueError: cannot reindex from a duplicate axis
+
+New Behavior:
+
+.. ipython:: python
+
+   s.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+
+- Passing duplicated ``percentiles`` will now raise a ``ValueError``.
+- Bug in ``.describe()`` on a DataFrame with a mixed-dtype column index, which would previously raise a ``TypeError`` (:issue:`13288`)
+
 .. _whatsnew_0182.api.other:
 
 Other API changes
@@ -177,12 +286,14 @@ Other API changes
 
 - ``Float64Index.astype(int)`` will now raise ``ValueError`` if ``Float64Index`` contains ``NaN`` values (:issue:`13149`)
 - ``TimedeltaIndex.astype(int)`` and ``DatetimeIndex.astype(int)`` will now return ``Int64Index`` instead of ``np.array`` (:issue:`13209`)
+- ``.filter()`` enforces mutual exclusion of the keyword arguments. (:issue:`12399`)
 
 .. _whatsnew_0182.deprecations:
 
 Deprecations
 ^^^^^^^^^^^^
 
+- ``compact_ints`` and ``use_unsigned`` have been deprecated in ``pd.read_csv`` and will be removed in a future version (:issue:`13320`)
 
 .. _whatsnew_0182.performance:
 
@@ -213,7 +324,7 @@ Bug Fixes
 
 
 - Bug in ``.groupby(..).resample(..)`` when the same object is called multiple times (:issue:`13174`)
-- Bug in ``.to_records()`` when index name is a unicode string (:issue: `13172`)
+- Bug in ``.to_records()`` when index name is a unicode string (:issue:`13172`)
 
 - Bug in calling ``.memory_usage()`` on object which doesn't implement (:issue:`12924`)
 
@@ -229,8 +340,7 @@ Bug Fixes
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not changing its ``freq`` appropriately when empty (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not retaining its type or name with an empty ``DataFrame``appropriately when empty (:issue:`13212`)
 - Bug in ``groupby(..).resample(..)`` where passing some keywords would raise an exception (:issue:`13235`)
-- Bug in ``pd.read_csv`` in which the ``nrows`` argument was not properly validated for both engines (:issue:`10476`)
-
+- Bug in ``.tz_convert`` on a tz-aware ``DateTimeIndex`` that relied on index being sorted for correct results (:issue: `13306`)
 
 
 
@@ -238,7 +348,11 @@ Bug Fixes
 
 
 
-- Bug in ``pd.read_csv()`` with ``engine=='python'`` in which infinities of mixed-case forms were not being interpreted properly (:issue:`13274`)
+- Bug in ``pd.read_csv()`` with ``engine='python'`` in which ``NaN`` values weren't being detected after data was converted to numeric values (:issue:`13314`)
+- Bug in ``pd.read_csv()`` in which the ``nrows`` argument was not properly validated for both engines (:issue:`10476`)
+- Bug in ``pd.read_csv()`` with ``engine='python'`` in which infinities of mixed-case forms were not being interpreted properly (:issue:`13274`)
+- Bug in ``pd.read_csv()`` with ``engine='python'`` in which trailing ``NaN`` values were not being parsed (:issue:`13320`)
+- Bug in ``pd.read_csv()`` that prevents ``usecols`` kwarg from accepting single-byte unicode strings (:issue:`13219`)
 
 
 
@@ -255,9 +369,11 @@ Bug Fixes
 - Bug in ``.unstack`` with ``Categorical`` dtype resets ``.ordered`` to ``True`` (:issue:`13249`)
 
 
+- Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
 - Bug in ``groupby`` where ``apply`` returns different result depending on whether first result is ``None`` or not (:issue:`12824`)
 
 
+- Bug in ``pd.to_numeric`` when ``errors='coerce'`` and input contains non-hashable objects (:issue:`13324`)
 
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)

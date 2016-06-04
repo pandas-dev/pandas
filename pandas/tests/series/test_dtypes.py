@@ -55,7 +55,7 @@ class TestSeriesDtypes(TestData, tm.TestCase):
 
         arr = Series(['1', '2', '3', '4'], dtype=object)
         result = arr.astype(int)
-        self.assert_numpy_array_equal(result, np.arange(1, 5))
+        self.assert_series_equal(result, Series(np.arange(1, 5)))
 
     def test_astype_datetimes(self):
         import pandas.tslib as tslib

@@ -289,8 +289,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         mexpected = np.argsort(s.values, kind='mergesort')
         qexpected = np.argsort(s.values, kind='quicksort')
 
-        self.assert_numpy_array_equal(mindexer, mexpected)
-        self.assert_numpy_array_equal(qindexer, qexpected)
+        self.assert_series_equal(mindexer, Series(mexpected))
+        self.assert_series_equal(qindexer, Series(qexpected))
         self.assertFalse(np.array_equal(qindexer, mindexer))
 
     def test_cumsum(self):
@@ -300,24 +300,24 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self._check_accum_op('cumprod')
 
     def test_cummin(self):
-        self.assert_numpy_array_equal(self.ts.cummin(),
+        self.assert_numpy_array_equal(self.ts.cummin().values,
                                       np.minimum.accumulate(np.array(self.ts)))
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummin()[1::2]
         expected = np.minimum.accumulate(ts.valid())
 
-        self.assert_numpy_array_equal(result, expected)
+        self.assert_series_equal(result, expected)
 
     def test_cummax(self):
-        self.assert_numpy_array_equal(self.ts.cummax(),
+        self.assert_numpy_array_equal(self.ts.cummax().values,
                                       np.maximum.accumulate(np.array(self.ts)))
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummax()[1::2]
         expected = np.maximum.accumulate(ts.valid())
 
-        self.assert_numpy_array_equal(result, expected)
+        self.assert_series_equal(result, expected)
 
     def test_cummin_datetime64(self):
         s = pd.Series(pd.to_datetime(['NaT', '2000-1-2', 'NaT', '2000-1-1',
@@ -489,7 +489,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
     def _check_accum_op(self, name):
         func = getattr(np, name)
-        self.assert_numpy_array_equal(func(self.ts), func(np.array(self.ts)))
+        self.assert_numpy_array_equal(func(self.ts).values,
+                                      func(np.array(self.ts)))
 
         # with missing values
         ts = self.ts.copy()
@@ -498,7 +499,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = func(ts)[1::2]
         expected = func(np.array(ts.valid()))
 
-        self.assert_numpy_array_equal(result, expected)
+        self.assert_numpy_array_equal(result.values, expected)
 
     def test_compress(self):
         cond = [True, False, True, False, False]
@@ -1396,6 +1397,23 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series(np.arange(1000))
         self.assertTrue(s.is_unique)
 
+    def test_is_monotonic(self):
+
+        s = Series(np.random.randint(0, 10, size=1000))
+        self.assertFalse(s.is_monotonic)
+        s = Series(np.arange(1000))
+        self.assertTrue(s.is_monotonic)
+        self.assertTrue(s.is_monotonic_increasing)
+        s = Series(np.arange(1000, 0, -1))
+        self.assertTrue(s.is_monotonic_decreasing)
+
+        s = Series(pd.date_range('20130101', periods=10))
+        self.assertTrue(s.is_monotonic)
+        self.assertTrue(s.is_monotonic_increasing)
+        s = Series(list(reversed(s.tolist())))
+        self.assertFalse(s.is_monotonic)
+        self.assertTrue(s.is_monotonic_decreasing)
+
     def test_sort_values(self):
 
         ts = self.ts.copy()
@@ -1404,13 +1422,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         with tm.assert_produces_warning(FutureWarning):
             ts.sort()
 
-        self.assert_numpy_array_equal(ts, self.ts.sort_values())
-        self.assert_numpy_array_equal(ts.index, self.ts.sort_values().index)
+        self.assert_series_equal(ts, self.ts.sort_values())
+        self.assert_index_equal(ts.index, self.ts.sort_values().index)
 
         ts.sort_values(ascending=False, inplace=True)
-        self.assert_numpy_array_equal(ts, self.ts.sort_values(ascending=False))
-        self.assert_numpy_array_equal(ts.index, self.ts.sort_values(
-            ascending=False).index)
+        self.assert_series_equal(ts, self.ts.sort_values(ascending=False))
+        self.assert_index_equal(ts.index,
+                                self.ts.sort_values(ascending=False).index)
 
         # GH 5856/5853
         # Series.sort_values operating on a view
@@ -1513,11 +1531,11 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         result = ts.sort_values()
         self.assertTrue(np.isnan(result[-5:]).all())
-        self.assert_numpy_array_equal(result[:-5], np.sort(vals[5:]))
+        self.assert_numpy_array_equal(result[:-5].values, np.sort(vals[5:]))
 
         result = ts.sort_values(na_position='first')
         self.assertTrue(np.isnan(result[:5]).all())
-        self.assert_numpy_array_equal(result[5:], np.sort(vals[5:]))
+        self.assert_numpy_array_equal(result[5:].values, np.sort(vals[5:]))
 
         # something object-type
         ser = Series(['A', 'B'], [1, 2])

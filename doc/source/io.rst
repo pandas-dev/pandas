@@ -169,6 +169,24 @@ skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
 nrows : int, default ``None``
   Number of rows of file to read. Useful for reading pieces of large files.
+low_memory : boolean, default ``True``
+  Internally process the file in chunks, resulting in lower memory use
+  while parsing, but possibly mixed type inference.  To ensure no mixed
+  types either set ``False``, or specify the type with the ``dtype`` parameter.
+  Note that the entire file is read into a single DataFrame regardless,
+  use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
+  (Only valid with C parser)
+compact_ints : boolean, default False
+  DEPRECATED: this argument will be removed in a future version
+
+  If ``compact_ints`` is ``True``, then for any column that is of integer dtype, the
+  parser will attempt to cast it as the smallest integer ``dtype`` possible, either
+  signed or unsigned depending on the specification from the ``use_unsigned`` parameter.
+use_unsigned : boolean, default False
+  DEPRECATED: this argument will be removed in a future version
+
+  If integer columns are being compacted (i.e. ``compact_ints=True``), specify whether
+  the column should be compacted to the smallest signed or unsigned integer dtype.
 
 NA and Missing Data Handling
 ++++++++++++++++++++++++++++

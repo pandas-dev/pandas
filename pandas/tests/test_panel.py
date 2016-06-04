@@ -1086,12 +1086,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         # TODO: unused?
         wp3 = Panel.from_dict(d3)  # noqa
 
-        self.assertTrue(wp.major_axis.equals(self.panel.major_axis))
+        self.assert_index_equal(wp.major_axis, self.panel.major_axis)
         assert_panel_equal(wp, wp2)
 
         # intersect
         wp = Panel.from_dict(d, intersect=True)
-        self.assertTrue(wp.major_axis.equals(itemb.index[5:]))
+        self.assert_index_equal(wp.major_axis, itemb.index[5:])
 
         # use constructor
         assert_panel_equal(Panel(d), Panel.from_dict(d))
@@ -1123,7 +1123,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         data = dict((k, v.values) for k, v in self.panel.iteritems())
         result = Panel(data)
         exp_major = Index(np.arange(len(self.panel.major_axis)))
-        self.assertTrue(result.major_axis.equals(exp_major))
+        self.assert_index_equal(result.major_axis, exp_major)
 
         result = Panel(data, items=self.panel.items,
                        major_axis=self.panel.major_axis,
@@ -1213,8 +1213,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         df = self.panel['ItemA'][:-5].filter(items=['A', 'B'])
         conformed = self.panel.conform(df)
 
-        assert (conformed.index.equals(self.panel.major_axis))
-        assert (conformed.columns.equals(self.panel.minor_axis))
+        tm.assert_index_equal(conformed.index, self.panel.major_axis)
+        tm.assert_index_equal(conformed.columns, self.panel.minor_axis)
 
     def test_convert_objects(self):
 
@@ -2078,11 +2078,11 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
         renamed = self.panel.rename_axis(mapper, axis=0)
         exp = Index(['foo', 'bar', 'baz'])
-        self.assertTrue(renamed.items.equals(exp))
+        self.assert_index_equal(renamed.items, exp)
 
         renamed = self.panel.rename_axis(str.lower, axis=2)
         exp = Index(['a', 'b', 'c', 'd'])
-        self.assertTrue(renamed.minor_axis.equals(exp))
+        self.assert_index_equal(renamed.minor_axis, exp)
 
         # don't copy
         renamed_nocopy = self.panel.rename_axis(mapper, axis=0, copy=False)
@@ -2301,8 +2301,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                      [[1.5, np.nan, 3.], [1.5, np.nan, 3.], [1.5, np.nan, 3.],
                       [1.5, np.nan, 3.]]])
 
-        np.testing.assert_raises(Exception, pan.update, *(pan, ),
-                                 **{'raise_conflict': True})
+        self.assertRaises(Exception, pan.update, *(pan, ),
+                          **{'raise_conflict': True})
 
     def test_all_any(self):
         self.assertTrue((self.panel.all(axis=0).values == nanall(
@@ -2485,7 +2485,7 @@ class TestLongPanel(tm.TestCase):
         transformed = make_axis_dummies(self.panel, 'minor',
                                         transform=mapping.get)
         self.assertEqual(len(transformed.columns), 2)
-        self.assert_numpy_array_equal(transformed.columns, ['one', 'two'])
+        self.assert_index_equal(transformed.columns, Index(['one', 'two']))
 
         # TODO: test correctness
 
@@ -2578,10 +2578,10 @@ def test_monotonic():
 
 def test_panel_index():
     index = panelm.panel_index([1, 2, 3, 4], [1, 2, 3])
-    expected = MultiIndex.from_arrays([np.tile(
-        [1, 2, 3, 4], 3), np.repeat(
-            [1, 2, 3], 4)])
-    assert (index.equals(expected))
+    expected = MultiIndex.from_arrays([np.tile([1, 2, 3, 4], 3),
+                                       np.repeat([1, 2, 3], 4)],
+                                      names=['time', 'panel'])
+    tm.assert_index_equal(index, expected)
 
 
 def test_import_warnings():

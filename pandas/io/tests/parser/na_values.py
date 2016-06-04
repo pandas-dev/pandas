@@ -11,7 +11,7 @@ from numpy import nan
 import pandas.io.parsers as parsers
 import pandas.util.testing as tm
 
-from pandas import DataFrame, MultiIndex, read_csv
+from pandas import DataFrame, MultiIndex
 from pandas.compat import StringIO, range
 
 
@@ -37,62 +37,36 @@ foo,bar
 NA,baz
 NaN,nan
 """
-        expected = [['foo', 'bar'], [nan, 'baz'], [nan, nan]]
+        expected = np.array([['foo', 'bar'], [nan, 'baz'], [nan, nan]],
+                            dtype=np.object_)
         df = self.read_csv(StringIO(data))
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
     def test_non_string_na_values(self):
-        # see gh-3611, na_values that are not a string are an issue
-        with tm.ensure_clean('__non_string_na_values__.csv') as path:
-            df = DataFrame({'A': [-999, 2, 3], 'B': [1.2, -999, 4.5]})
-            df.to_csv(path, sep=' ', index=False)
-            result1 = self.read_csv(path, sep=' ', header=0,
-                                    na_values=['-999.0', '-999'])
-            result2 = self.read_csv(path, sep=' ', header=0,
-                                    na_values=[-999, -999.0])
-            result3 = self.read_csv(path, sep=' ', header=0,
-                                    na_values=[-999.0, -999])
-            tm.assert_frame_equal(result1, result2)
-            tm.assert_frame_equal(result2, result3)
+        # see gh-3611: with an odd float format, we can't match
+        # the string '999.0' exactly but still need float matching
+        nice = """A,B
+-999,1.2
+2,-999
+3,4.5
+"""
+        ugly = """A,B
+-999,1.200
+2,-999.000
+3,4.500
+"""
+        na_values_param = [['-999.0', '-999'],
+                           [-999, -999.0],
+                           [-999.0, -999],
+                           ['-999.0'], ['-999'],
+                           [-999.0], [-999]]
+        expected = DataFrame([[np.nan, 1.2], [2.0, np.nan],
+                              [3.0, 4.5]], columns=['A', 'B'])
 
-            result4 = self.read_csv(
-                path, sep=' ', header=0, na_values=['-999.0'])
-            result5 = self.read_csv(
-                path, sep=' ', header=0, na_values=['-999'])
-            result6 = self.read_csv(
-                path, sep=' ', header=0, na_values=[-999.0])
-            result7 = self.read_csv(
-                path, sep=' ', header=0, na_values=[-999])
-            tm.assert_frame_equal(result4, result3)
-            tm.assert_frame_equal(result5, result3)
-            tm.assert_frame_equal(result6, result3)
-            tm.assert_frame_equal(result7, result3)
-
-            good_compare = result3
-
-            # with an odd float format, so we can't match the string 999.0
-            # exactly, but need float matching
-            # TODO: change these to self.read_csv when Python bug is squashed
-            df.to_csv(path, sep=' ', index=False, float_format='%.3f')
-            result1 = read_csv(path, sep=' ', header=0,
-                               na_values=['-999.0', '-999'])
-            result2 = read_csv(path, sep=' ', header=0,
-                               na_values=[-999.0, -999])
-            tm.assert_frame_equal(result1, good_compare)
-            tm.assert_frame_equal(result2, good_compare)
-
-            result3 = read_csv(path, sep=' ',
-                               header=0, na_values=['-999.0'])
-            result4 = read_csv(path, sep=' ',
-                               header=0, na_values=['-999'])
-            result5 = read_csv(path, sep=' ',
-                               header=0, na_values=[-999.0])
-            result6 = read_csv(path, sep=' ',
-                               header=0, na_values=[-999])
-            tm.assert_frame_equal(result3, good_compare)
-            tm.assert_frame_equal(result4, good_compare)
-            tm.assert_frame_equal(result5, good_compare)
-            tm.assert_frame_equal(result6, good_compare)
+        for data in (nice, ugly):
+            for na_values in na_values_param:
+                out = self.read_csv(StringIO(data), na_values=na_values)
+                tm.assert_frame_equal(out, expected)
 
     def test_default_na_values(self):
         _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
@@ -126,20 +100,20 @@ ignore,this,row
 -1.#IND,5,baz
 7,8,NaN
 """
-        expected = [[1., nan, 3],
-                    [nan, 5, nan],
-                    [7, 8, nan]]
+        expected = np.array([[1., nan, 3],
+                             [nan, 5, nan],
+                             [7, 8, nan]])
 
         df = self.read_csv(StringIO(data), na_values=['baz'], skiprows=[1])
-        tm.assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
         df2 = self.read_table(StringIO(data), sep=',', na_values=['baz'],
                               skiprows=[1])
-        tm.assert_almost_equal(df2.values, expected)
+        tm.assert_numpy_array_equal(df2.values, expected)
 
         df3 = self.read_table(StringIO(data), sep=',', na_values='baz',
                               skiprows=[1])
-        tm.assert_almost_equal(df3.values, expected)
+        tm.assert_numpy_array_equal(df3.values, expected)
 
     def test_bool_na_values(self):
         data = """A,B,C
@@ -250,116 +224,29 @@ g,7,seven
                                   'seven']})
         tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
 
-    def test_skiprow_with_newline(self):
-        # see gh-12775 and gh-10911
-        data = """id,text,num_lines
-1,"line 11
-line 12",2
-2,"line 21
-line 22",2
-3,"line 31",1"""
-        expected = [[2, 'line 21\nline 22', 2],
-                    [3, 'line 31', 1]]
-        expected = DataFrame(expected, columns=[
-            'id', 'text', 'num_lines'])
-        df = self.read_csv(StringIO(data), skiprows=[1])
-        tm.assert_frame_equal(df, expected)
+    def test_na_values_na_filter_override(self):
+        data = """\
+A,B
+1,A
+nan,B
+3,C
+"""
 
-        data = ('a,b,c\n~a\n b~,~e\n d~,'
-                '~f\n f~\n1,2,~12\n 13\n 14~')
-        expected = [['a\n b', 'e\n d', 'f\n f']]
-        expected = DataFrame(expected, columns=[
-            'a', 'b', 'c'])
-        df = self.read_csv(StringIO(data),
-                           quotechar="~",
-                           skiprows=[2])
-        tm.assert_frame_equal(df, expected)
+        expected = DataFrame([[1, 'A'], [np.nan, np.nan], [3, 'C']],
+                             columns=['A', 'B'])
+        out = self.read_csv(StringIO(data), na_values=['B'], na_filter=True)
+        tm.assert_frame_equal(out, expected)
 
-        data = ('Text,url\n~example\n '
-                'sentence\n one~,url1\n~'
-                'example\n sentence\n two~,url2\n~'
-                'example\n sentence\n three~,url3')
-        expected = [['example\n sentence\n two', 'url2']]
-        expected = DataFrame(expected, columns=[
-            'Text', 'url'])
-        df = self.read_csv(StringIO(data),
-                           quotechar="~",
-                           skiprows=[1, 3])
-        tm.assert_frame_equal(df, expected)
+        expected = DataFrame([['1', 'A'], ['nan', 'B'], ['3', 'C']],
+                             columns=['A', 'B'])
+        out = self.read_csv(StringIO(data), na_values=['B'], na_filter=False)
+        tm.assert_frame_equal(out, expected)
 
-    def test_skiprow_with_quote(self):
-        # see gh-12775 and gh-10911
-        data = """id,text,num_lines
-1,"line '11' line 12",2
-2,"line '21' line 22",2
-3,"line '31' line 32",1"""
-        expected = [[2, "line '21' line 22", 2],
-                    [3, "line '31' line 32", 1]]
-        expected = DataFrame(expected, columns=[
-            'id', 'text', 'num_lines'])
-        df = self.read_csv(StringIO(data), skiprows=[1])
-        tm.assert_frame_equal(df, expected)
+    def test_na_trailing_columns(self):
+        data = """Date,Currenncy,Symbol,Type,Units,UnitPrice,Cost,Tax
+2012-03-14,USD,AAPL,BUY,1000
+2012-05-12,USD,SBUX,SELL,500"""
 
-    def test_skiprow_with_newline_and_quote(self):
-        # see gh-12775 and gh-10911
-        data = """id,text,num_lines
-1,"line \n'11' line 12",2
-2,"line \n'21' line 22",2
-3,"line \n'31' line 32",1"""
-        expected = [[2, "line \n'21' line 22", 2],
-                    [3, "line \n'31' line 32", 1]]
-        expected = DataFrame(expected, columns=[
-            'id', 'text', 'num_lines'])
-        df = self.read_csv(StringIO(data), skiprows=[1])
-        tm.assert_frame_equal(df, expected)
-
-        data = """id,text,num_lines
-1,"line '11\n' line 12",2
-2,"line '21\n' line 22",2
-3,"line '31\n' line 32",1"""
-        expected = [[2, "line '21\n' line 22", 2],
-                    [3, "line '31\n' line 32", 1]]
-        expected = DataFrame(expected, columns=[
-            'id', 'text', 'num_lines'])
-        df = self.read_csv(StringIO(data), skiprows=[1])
-        tm.assert_frame_equal(df, expected)
-
-        data = """id,text,num_lines
-1,"line '11\n' \r\tline 12",2
-2,"line '21\n' \r\tline 22",2
-3,"line '31\n' \r\tline 32",1"""
-        expected = [[2, "line '21\n' \r\tline 22", 2],
-                    [3, "line '31\n' \r\tline 32", 1]]
-        expected = DataFrame(expected, columns=[
-            'id', 'text', 'num_lines'])
-        df = self.read_csv(StringIO(data), skiprows=[1])
-        tm.assert_frame_equal(df, expected)
-
-    def test_skiprows_lineterminator(self):
-        # see gh-9079
-        data = '\n'.join(['SMOSMANIA ThetaProbe-ML2X ',
-                          '2007/01/01 01:00   0.2140 U M ',
-                          '2007/01/01 02:00   0.2141 M O ',
-                          '2007/01/01 04:00   0.2142 D M '])
-        expected = DataFrame([['2007/01/01', '01:00', 0.2140, 'U', 'M'],
-                              ['2007/01/01', '02:00', 0.2141, 'M', 'O'],
-                              ['2007/01/01', '04:00', 0.2142, 'D', 'M']],
-                             columns=['date', 'time', 'var', 'flag',
-                                      'oflag'])
-
-        # test with default line terminators "LF" and "CRLF"
-        df = self.read_csv(StringIO(data), skiprows=1, delim_whitespace=True,
-                           names=['date', 'time', 'var', 'flag', 'oflag'])
-        tm.assert_frame_equal(df, expected)
-
-        df = self.read_csv(StringIO(data.replace('\n', '\r\n')),
-                           skiprows=1, delim_whitespace=True,
-                           names=['date', 'time', 'var', 'flag', 'oflag'])
-        tm.assert_frame_equal(df, expected)
-
-        # "CR" is not respected with the Python parser yet
-        if self.engine == 'c':
-            df = self.read_csv(StringIO(data.replace('\n', '\r')),
-                               skiprows=1, delim_whitespace=True,
-                               names=['date', 'time', 'var', 'flag', 'oflag'])
-            tm.assert_frame_equal(df, expected)
+        result = self.read_csv(StringIO(data))
+        self.assertEqual(result['Date'][1], '2012-05-12')
+        self.assertTrue(result['UnitPrice'].isnull().all())

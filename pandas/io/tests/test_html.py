@@ -519,7 +519,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                          'Volume', 'Price', 'Chg', '% Chg'])
         nrows = 100
         self.assertEqual(df.shape[0], nrows)
-        self.assertTrue(df.columns.equals(columns))
+        self.assert_index_equal(df.columns, columns)
 
     @tm.slow
     def test_banklist_header(self):
@@ -663,6 +663,30 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         assert os.path.getsize(data), '%r is an empty file' % data
         result = self.read_html(data, 'Arizona', header=1)[0]
         self.assertEqual(result['sq mi'].dtype, np.dtype('float64'))
+
+    def test_decimal_rows(self):
+
+        # GH 12907
+        data = StringIO('''<html>
+            <body>
+             <table>
+                <thead>
+                    <tr>
+                        <th>Header</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1100#101</td>
+                    </tr>
+                </tbody>
+            </table>
+            </body>
+        </html>''')
+        expected = DataFrame(data={'Header': 1100.101}, index=[0])
+        result = self.read_html(data, decimal='#')[0]
+        nose.tools.assert_equal(result['Header'].dtype, np.dtype('float64'))
+        tm.assert_frame_equal(result, expected)
 
     def test_bool_header_arg(self):
         # GH 6114

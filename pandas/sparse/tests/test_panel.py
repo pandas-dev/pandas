@@ -121,7 +121,8 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
                 dlp = panel.to_dense().to_frame()
 
                 self.assert_numpy_array_equal(slp.values, dlp.values)
-                self.assertTrue(slp.index.equals(dlp.index))
+                self.assert_index_equal(slp.index, dlp.index,
+                                        check_names=False)
 
             _compare_with_dense(self.panel)
             _compare_with_dense(self.panel.reindex(items=['ItemA']))

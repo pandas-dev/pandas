@@ -1088,13 +1088,13 @@ class TestGroupBy(tm.TestCase):
         grouped = self.ts.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
 
-        self.assertTrue(result.index.equals(self.ts.index))
+        self.assert_index_equal(result.index, self.ts.index)
         for _, gp in grouped:
             assert_fp_equal(result.reindex(gp.index), gp.mean())
 
         grouped = self.tsframe.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
-        self.assertTrue(result.index.equals(self.tsframe.index))
+        self.assert_index_equal(result.index, self.tsframe.index)
         for _, gp in grouped:
             agged = gp.mean()
             res = result.reindex(gp.index)
@@ -1105,8 +1105,8 @@ class TestGroupBy(tm.TestCase):
         grouped = self.tsframe.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
                                        axis=1)
         result = grouped.transform(np.mean)
-        self.assertTrue(result.index.equals(self.tsframe.index))
-        self.assertTrue(result.columns.equals(self.tsframe.columns))
+        self.assert_index_equal(result.index, self.tsframe.index)
+        self.assert_index_equal(result.columns, self.tsframe.columns)
         for _, gp in grouped:
             agged = gp.mean(1)
             res = result.reindex(columns=gp.columns)
@@ -2137,7 +2137,7 @@ class TestGroupBy(tm.TestCase):
                                 lambda x: x.day], axis=1)
 
         agged = grouped.agg(lambda x: x.sum())
-        self.assertTrue(agged.index.equals(df.columns))
+        self.assert_index_equal(agged.index, df.columns)
         assert_almost_equal(df.T.values, agged.values)
 
         agged = grouped.agg(lambda x: x.sum())
@@ -2549,7 +2549,7 @@ class TestGroupBy(tm.TestCase):
         result = grouped.apply(f)
 
         tm.assertIsInstance(result, DataFrame)
-        self.assertTrue(result.index.equals(ts.index))
+        self.assert_index_equal(result.index, ts.index)
 
     def test_apply_series_yield_constant(self):
         result = self.df.groupby(['A', 'B'])['C'].apply(len)
@@ -2559,7 +2559,7 @@ class TestGroupBy(tm.TestCase):
         grouped = self.df.groupby(['A', 'B'])
         result = grouped.apply(len)
         expected = grouped.count()['C']
-        self.assertTrue(result.index.equals(expected.index))
+        self.assert_index_equal(result.index, expected.index)
         self.assert_numpy_array_equal(result.values, expected.values)
 
     def test_apply_frame_concat_series(self):
@@ -2673,26 +2673,26 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame(np.random.randn(8, 4), index=index, columns=columns)
 
         result = df.groupby(level=0).mean()
-        self.assertTrue(result.columns.equals(columns))
+        self.assert_index_equal(result.columns, columns)
 
         result = df.groupby(level=0, axis=1).mean()
-        self.assertTrue(result.index.equals(df.index))
+        self.assert_index_equal(result.index, df.index)
 
         result = df.groupby(level=0).agg(np.mean)
-        self.assertTrue(result.columns.equals(columns))
+        self.assert_index_equal(result.columns, columns)
 
         result = df.groupby(level=0).apply(lambda x: x.mean())
-        self.assertTrue(result.columns.equals(columns))
+        self.assert_index_equal(result.columns, columns)
 
         result = df.groupby(level=0, axis=1).agg(lambda x: x.mean(1))
-        self.assertTrue(result.columns.equals(Index(['A', 'B'])))
-        self.assertTrue(result.index.equals(df.index))
+        self.assert_index_equal(result.columns, Index(['A', 'B']))
+        self.assert_index_equal(result.index, df.index)
 
         # add a nuisance column
         sorted_columns, _ = columns.sortlevel(0)
         df['A', 'foo'] = 'bar'
         result = df.groupby(level=0).mean()
-        self.assertTrue(result.columns.equals(df.columns[:-1]))
+        self.assert_index_equal(result.columns, df.columns[:-1])
 
     def test_pass_args_kwargs(self):
         from numpy import percentile
@@ -3413,18 +3413,18 @@ class TestGroupBy(tm.TestCase):
 
         tm.assert_panel_equal(agged, agged2)
 
-        self.assert_numpy_array_equal(agged.items, [0, 1])
+        self.assert_index_equal(agged.items, Index([0, 1]))
 
         grouped = self.panel.groupby(lambda x: x.month, axis='major')
         agged = grouped.mean()
 
-        self.assert_numpy_array_equal(agged.major_axis, sorted(list(set(
-            self.panel.major_axis.month))))
+        exp = Index(sorted(list(set(self.panel.major_axis.month))))
+        self.assert_index_equal(agged.major_axis, exp)
 
         grouped = self.panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
                                      axis='minor')
         agged = grouped.mean()
-        self.assert_numpy_array_equal(agged.minor_axis, [0, 1])
+        self.assert_index_equal(agged.minor_axis, Index([0, 1]))
 
     def test_numpy_groupby(self):
         from pandas.core.groupby import numpy_groupby
@@ -3450,7 +3450,7 @@ class TestGroupBy(tm.TestCase):
         d['label'] = ['l1', 'l2']
         tmp = d.groupby(['group']).mean()
         res_values = np.array([[0, 1], [0, 1]], dtype=np.int64)
-        self.assert_numpy_array_equal(tmp.columns, ['zeros', 'ones'])
+        self.assert_index_equal(tmp.columns, Index(['zeros', 'ones']))
         self.assert_numpy_array_equal(tmp.values, res_values)
 
     def test_int32_overflow(self):
@@ -3489,10 +3489,10 @@ class TestGroupBy(tm.TestCase):
         right = rg.sum()['values']
 
         exp_index, _ = left.index.sortlevel(0)
-        self.assertTrue(left.index.equals(exp_index))
+        self.assert_index_equal(left.index, exp_index)
 
         exp_index, _ = right.index.sortlevel(0)
-        self.assertTrue(right.index.equals(exp_index))
+        self.assert_index_equal(right.index, exp_index)
 
         tups = list(map(tuple, df[['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
                                    ]].values))
@@ -3720,9 +3720,9 @@ class TestGroupBy(tm.TestCase):
         # GH #610
         funcs = [('mean', np.mean), ('max', np.max), ('min', np.min)]
         result = self.df.groupby('A')['C'].agg(funcs)
-        exp_cols = ['mean', 'max', 'min']
+        exp_cols = Index(['mean', 'max', 'min'])
 
-        self.assert_numpy_array_equal(result.columns, exp_cols)
+        self.assert_index_equal(result.columns, exp_cols)
 
     def test_multiple_functions_tuples_and_non_tuples(self):
         # #1359
@@ -4275,10 +4275,10 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame([[long(1), 'A']], columns=midx)
 
         grouped = df.groupby('to filter').groups
-        self.assert_numpy_array_equal(grouped['A'], [0])
+        self.assertEqual(grouped['A'], [0])
 
         grouped = df.groupby([('to filter', '')]).groups
-        self.assert_numpy_array_equal(grouped['A'], [0])
+        self.assertEqual(grouped['A'], [0])
 
         df = DataFrame([[long(1), 'A'], [long(2), 'B']], columns=midx)
 
@@ -5853,25 +5853,23 @@ class TestGroupBy(tm.TestCase):
         keys = [[nan] * 5 + list(range(100)) + [nan] * 5]
         # orders=True, na_position='last'
         result = _lexsort_indexer(keys, orders=True, na_position='last')
-        expected = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
+        tm.assert_numpy_array_equal(result, np.array(exp))
 
         # orders=True, na_position='first'
         result = _lexsort_indexer(keys, orders=True, na_position='first')
-        expected = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
+        tm.assert_numpy_array_equal(result, np.array(exp))
 
         # orders=False, na_position='last'
         result = _lexsort_indexer(keys, orders=False, na_position='last')
-        expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105,
-                                                                         110))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
+        tm.assert_numpy_array_equal(result, np.array(exp))
 
         # orders=False, na_position='first'
         result = _lexsort_indexer(keys, orders=False, na_position='first')
-        expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4,
-                                                                       -1))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
+        tm.assert_numpy_array_equal(result, np.array(exp))
 
     def test_nargsort(self):
         # np.argsort(items) places NaNs last
@@ -5897,54 +5895,50 @@ class TestGroupBy(tm.TestCase):
         # mergesort, ascending=True, na_position='last'
         result = _nargsort(items, kind='mergesort', ascending=True,
                            na_position='last')
-        expected = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
 
         # mergesort, ascending=True, na_position='first'
         result = _nargsort(items, kind='mergesort', ascending=True,
                            na_position='first')
-        expected = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
 
         # mergesort, ascending=False, na_position='last'
         result = _nargsort(items, kind='mergesort', ascending=False,
                            na_position='last')
-        expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105,
-                                                                         110))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
 
         # mergesort, ascending=False, na_position='first'
         result = _nargsort(items, kind='mergesort', ascending=False,
                            na_position='first')
-        expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4,
-                                                                       -1))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
 
         # mergesort, ascending=True, na_position='last'
         result = _nargsort(items2, kind='mergesort', ascending=True,
                            na_position='last')
-        expected = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
 
         # mergesort, ascending=True, na_position='first'
         result = _nargsort(items2, kind='mergesort', ascending=True,
                            na_position='first')
-        expected = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
 
         # mergesort, ascending=False, na_position='last'
         result = _nargsort(items2, kind='mergesort', ascending=False,
                            na_position='last')
-        expected = list(range(104, 4, -1)) + list(range(5)) + list(range(105,
-                                                                         110))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
 
         # mergesort, ascending=False, na_position='first'
         result = _nargsort(items2, kind='mergesort', ascending=False,
                            na_position='first')
-        expected = list(range(5)) + list(range(105, 110)) + list(range(104, 4,
-                                                                       -1))
-        tm.assert_numpy_array_equal(result, expected)
+        exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
 
     def test_datetime_count(self):
         df = DataFrame({'a': [1, 2, 3] * 2,

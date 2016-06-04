@@ -264,6 +264,18 @@ class TestSeriesOperators(TestData, tm.TestCase):
         rs[2] += np.timedelta64(timedelta(minutes=5, seconds=1))
         self.assertEqual(rs[2], value)
 
+    def test_operator_series_comparison_zerorank(self):
+        # GH 13006
+        result = np.float64(0) > pd.Series([1, 2, 3])
+        expected = 0.0 > pd.Series([1, 2, 3])
+        self.assert_series_equal(result, expected)
+        result = pd.Series([1, 2, 3]) < np.float64(0)
+        expected = pd.Series([1, 2, 3]) < 0.0
+        self.assert_series_equal(result, expected)
+        result = np.array([0, 1, 2])[0] > pd.Series([0, 1, 2])
+        expected = 0.0 > pd.Series([1, 2, 3])
+        self.assert_series_equal(result, expected)
+
     def test_timedeltas_with_DateOffset(self):
 
         # GH 4532
@@ -1227,8 +1239,9 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # float + int
         int_ts = self.ts.astype(int)[:-5]
         added = self.ts + int_ts
-        expected = self.ts.values[:-5] + int_ts.values
-        self.assert_numpy_array_equal(added[:-5], expected)
+        expected = Series(self.ts.values[:-5] + int_ts.values,
+                          index=self.ts.index[:-5], name='ts')
+        self.assert_series_equal(added[:-5], expected)
 
     def test_operators_reverse_object(self):
         # GH 56

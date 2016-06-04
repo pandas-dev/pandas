@@ -117,6 +117,27 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 with tm.assertRaisesRegexp(ValueError, msg):
                     read_csv(StringIO(data), engine=engine, **kwargs)
 
+
+class TestDeprecatedFeatures(tm.TestCase):
+    def test_deprecated_args(self):
+        data = '1,2,3'
+
+        # deprecated arguments with non-default values
+        deprecated = {
+            'compact_ints': True,
+            'use_unsigned': True,
+        }
+
+        engines = 'c', 'python'
+
+        for engine in engines:
+            for arg, non_default_val in deprecated.items():
+                with tm.assert_produces_warning(
+                        FutureWarning, check_stacklevel=False):
+                    kwargs = {arg: non_default_val}
+                    read_csv(StringIO(data), engine=engine,
+                             **kwargs)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

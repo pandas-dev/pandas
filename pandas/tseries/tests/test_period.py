@@ -8,7 +8,7 @@ Parts derived from scikits.timeseries code, original authors:
 
 from datetime import datetime, date, timedelta
 
-from pandas import Timestamp
+from pandas import Timestamp, _period
 from pandas.tseries.frequencies import MONTHS, DAYS, _period_code_map
 from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range, Index
@@ -26,8 +26,6 @@ from pandas.compat.numpy import np_datetime64_compat
 from pandas import (Series, DataFrame,
                     _np_version_under1p9, _np_version_under1p12)
 from pandas import tslib
-from pandas.util.testing import (assert_index_equal, assert_series_equal,
-                                 assert_almost_equal, assertRaisesRegexp)
 import pandas.util.testing as tm
 
 
@@ -1752,22 +1750,21 @@ class TestPeriodIndex(tm.TestCase):
         result = idx._simple_new(idx.astype('i8'), 'p', freq=idx.freq)
         tm.assert_index_equal(result, idx)
 
-        result = idx._simple_new(
-            [pd.Period('2007-01', freq='M'), pd.Period('2007-02', freq='M')],
-            'p', freq=idx.freq)
-        self.assertTrue(result.equals(idx))
+        result = idx._simple_new([pd.Period('2007-01', freq='M'),
+                                  pd.Period('2007-02', freq='M')],
+                                 'p', freq=idx.freq)
+        self.assert_index_equal(result, idx)
 
-        result = idx._simple_new(
-            np.array([pd.Period('2007-01', freq='M'),
-                      pd.Period('2007-02', freq='M')]),
-            'p', freq=idx.freq)
-        self.assertTrue(result.equals(idx))
+        result = idx._simple_new(np.array([pd.Period('2007-01', freq='M'),
+                                           pd.Period('2007-02', freq='M')]),
+                                 'p', freq=idx.freq)
+        self.assert_index_equal(result, idx)
 
     def test_constructor_simple_new_empty(self):
         # GH13079
         idx = PeriodIndex([], freq='M', name='p')
         result = idx._simple_new(idx, name='p', freq='M')
-        assert_index_equal(result, idx)
+        tm.assert_index_equal(result, idx)
 
     def test_constructor_simple_new_floats(self):
         # GH13079
@@ -1782,7 +1779,7 @@ class TestPeriodIndex(tm.TestCase):
         result = idx._shallow_copy()
         expected = idx
 
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_nat(self):
         self.assertRaises(ValueError, period_range, start='NaT',
@@ -1902,7 +1899,7 @@ class TestPeriodIndex(tm.TestCase):
 
         exp = result
         result = ts[24:]
-        assert_series_equal(exp, result)
+        tm.assert_series_equal(exp, result)
 
         ts = ts[10:].append(ts[10:])
         self.assertRaisesRegexp(KeyError,
@@ -1918,7 +1915,7 @@ class TestPeriodIndex(tm.TestCase):
         dt4 = datetime(2012, 4, 20)
 
         rs = ts[dt1:dt4]
-        assert_series_equal(rs, ts)
+        tm.assert_series_equal(rs, ts)
 
     def test_slice_with_negative_step(self):
         ts = Series(np.arange(20),
@@ -1926,9 +1923,9 @@ class TestPeriodIndex(tm.TestCase):
         SLC = pd.IndexSlice
 
         def assert_slices_equivalent(l_slc, i_slc):
-            assert_series_equal(ts[l_slc], ts.iloc[i_slc])
-            assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
-            assert_series_equal(ts.ix[l_slc], ts.iloc[i_slc])
+            tm.assert_series_equal(ts[l_slc], ts.iloc[i_slc])
+            tm.assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
+            tm.assert_series_equal(ts.ix[l_slc], ts.iloc[i_slc])
 
         assert_slices_equivalent(SLC[Period('2014-10')::-1], SLC[9::-1])
         assert_slices_equivalent(SLC['2014-10'::-1], SLC[9::-1])
@@ -2100,13 +2097,13 @@ class TestPeriodIndex(tm.TestCase):
         df = DataFrame(randn(10, 5), columns=rng)
 
         ts = df[rng[0]]
-        assert_series_equal(ts, df.ix[:, 0])
+        tm.assert_series_equal(ts, df.ix[:, 0])
 
         # GH # 1211
         repr(df)
 
         ts = df['1/1/2000']
-        assert_series_equal(ts, df.ix[:, 0])
+        tm.assert_series_equal(ts, df.ix[:, 0])
 
     def test_indexing(self):
 
@@ -2151,7 +2148,7 @@ class TestPeriodIndex(tm.TestCase):
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
         result = df.to_timestamp('D', 'end')
         tm.assert_index_equal(result.index, exp_index)
-        assert_almost_equal(result.values, df.values)
+        tm.assert_numpy_array_equal(result.values, df.values)
 
         exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-JAN')
         result = df.to_timestamp('D', 'start')
@@ -2182,7 +2179,7 @@ class TestPeriodIndex(tm.TestCase):
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
         result = df.to_timestamp('D', 'end', axis=1)
         tm.assert_index_equal(result.columns, exp_index)
-        assert_almost_equal(result.values, df.values)
+        tm.assert_numpy_array_equal(result.values, df.values)
 
         exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-JAN')
         result = df.to_timestamp('D', 'start', axis=1)
@@ -2204,7 +2201,7 @@ class TestPeriodIndex(tm.TestCase):
         tm.assert_index_equal(result.columns, exp_index)
 
         # invalid axis
-        assertRaisesRegexp(ValueError, 'axis', df.to_timestamp, axis=2)
+        tm.assertRaisesRegexp(ValueError, 'axis', df.to_timestamp, axis=2)
 
         result1 = df.to_timestamp('5t', axis=1)
         result2 = df.to_timestamp('t', axis=1)
@@ -2224,7 +2221,7 @@ class TestPeriodIndex(tm.TestCase):
 
         result = ts[2007]
         expected = ts[1:3]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         result[:] = 1
         self.assertTrue((ts[1:3] == 1).all())
 
@@ -2234,19 +2231,19 @@ class TestPeriodIndex(tm.TestCase):
 
         result = ts[2007]
         expected = ts[idx == 2007]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_index_unique(self):
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq='A-JUN')
         expected = PeriodIndex([2000, 2007, 2009], freq='A-JUN')
-        self.assert_numpy_array_equal(idx.unique(), expected.values)
+        self.assert_index_equal(idx.unique(), expected)
         self.assertEqual(idx.nunique(), 3)
 
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq='A-JUN',
                           tz='US/Eastern')
         expected = PeriodIndex([2000, 2007, 2009], freq='A-JUN',
                                tz='US/Eastern')
-        self.assert_numpy_array_equal(idx.unique(), expected.values)
+        self.assert_index_equal(idx.unique(), expected)
         self.assertEqual(idx.nunique(), 3)
 
     def test_constructor(self):
@@ -2336,20 +2333,17 @@ class TestPeriodIndex(tm.TestCase):
             Period('2001-01-02'), Period('2001-01-02'),
         ])
 
-        assert_index_equal(index.repeat(2), expected)
+        tm.assert_index_equal(index.repeat(2), expected)
 
     def test_numpy_repeat(self):
         index = period_range('20010101', periods=2)
-        expected = PeriodIndex([
-            Period('2001-01-01'), Period('2001-01-01'),
-            Period('2001-01-02'), Period('2001-01-02'),
-        ])
+        expected = PeriodIndex([Period('2001-01-01'), Period('2001-01-01'),
+                                Period('2001-01-02'), Period('2001-01-02')])
 
-        assert_index_equal(np.repeat(index, 2), expected)
+        tm.assert_index_equal(np.repeat(index, 2), expected)
 
         msg = "the 'axis' parameter is not supported"
-        assertRaisesRegexp(ValueError, msg, np.repeat,
-                           index, 2, axis=1)
+        tm.assertRaisesRegexp(ValueError, msg, np.repeat, index, 2, axis=1)
 
     def test_shift(self):
         pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
@@ -2598,7 +2592,7 @@ class TestPeriodIndex(tm.TestCase):
 
         idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq='A')
         idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq='A')
-        tm.assert_numpy_array_equal(idx1, idx2)
+        tm.assert_index_equal(idx1, idx2)
 
     def test_dti_to_period(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
@@ -2626,10 +2620,10 @@ class TestPeriodIndex(tm.TestCase):
         s = Series(np.random.rand(len(pi)), index=pi)
         res = s['2010']
         exp = s[0:12]
-        assert_series_equal(res, exp)
+        tm.assert_series_equal(res, exp)
         res = s['2011']
         exp = s[12:24]
-        assert_series_equal(res, exp)
+        tm.assert_series_equal(res, exp)
 
     def test_getitem_day(self):
         # GH 6716
@@ -2655,9 +2649,9 @@ class TestPeriodIndex(tm.TestCase):
                     continue
 
             s = Series(np.random.rand(len(idx)), index=idx)
-            assert_series_equal(s['2013/01'], s[0:31])
-            assert_series_equal(s['2013/02'], s[31:59])
-            assert_series_equal(s['2014'], s[365:])
+            tm.assert_series_equal(s['2013/01'], s[0:31])
+            tm.assert_series_equal(s['2013/02'], s[31:59])
+            tm.assert_series_equal(s['2014'], s[365:])
 
             invalid = ['2013/02/01 9H', '2013/02/01 09:00']
             for v in invalid:
@@ -2683,10 +2677,10 @@ class TestPeriodIndex(tm.TestCase):
 
             s = Series(np.random.rand(len(idx)), index=idx)
 
-            assert_series_equal(s['2013/01/02':], s[1:])
-            assert_series_equal(s['2013/01/02':'2013/01/05'], s[1:5])
-            assert_series_equal(s['2013/02':], s[31:])
-            assert_series_equal(s['2014':], s[365:])
+            tm.assert_series_equal(s['2013/01/02':], s[1:])
+            tm.assert_series_equal(s['2013/01/02':'2013/01/05'], s[1:5])
+            tm.assert_series_equal(s['2013/02':], s[31:])
+            tm.assert_series_equal(s['2014':], s[365:])
 
             invalid = ['2013/02/01 9H', '2013/02/01 09:00']
             for v in invalid:
@@ -2716,10 +2710,10 @@ class TestPeriodIndex(tm.TestCase):
                     continue
 
             s = Series(np.random.rand(len(idx)), index=idx)
-            assert_series_equal(s['2013/01/01 10:00'], s[3600:3660])
-            assert_series_equal(s['2013/01/01 9H'], s[:3600])
+            tm.assert_series_equal(s['2013/01/01 10:00'], s[3600:3660])
+            tm.assert_series_equal(s['2013/01/01 9H'], s[:3600])
             for d in ['2013/01/01', '2013/01', '2013']:
-                assert_series_equal(s[d], s)
+                tm.assert_series_equal(s[d], s)
 
     def test_range_slice_seconds(self):
         # GH 6716
@@ -2741,14 +2735,14 @@ class TestPeriodIndex(tm.TestCase):
 
             s = Series(np.random.rand(len(idx)), index=idx)
 
-            assert_series_equal(s['2013/01/01 09:05':'2013/01/01 09:10'],
-                                s[300:660])
-            assert_series_equal(s['2013/01/01 10:00':'2013/01/01 10:05'],
-                                s[3600:3960])
-            assert_series_equal(s['2013/01/01 10H':], s[3600:])
-            assert_series_equal(s[:'2013/01/01 09:30'], s[:1860])
+            tm.assert_series_equal(s['2013/01/01 09:05':'2013/01/01 09:10'],
+                                   s[300:660])
+            tm.assert_series_equal(s['2013/01/01 10:00':'2013/01/01 10:05'],
+                                   s[3600:3960])
+            tm.assert_series_equal(s['2013/01/01 10H':], s[3600:])
+            tm.assert_series_equal(s[:'2013/01/01 09:30'], s[:1860])
             for d in ['2013/01/01', '2013/01', '2013']:
-                assert_series_equal(s[d:], s)
+                tm.assert_series_equal(s[d:], s)
 
     def test_range_slice_outofbounds(self):
         # GH 5407
@@ -2757,8 +2751,8 @@ class TestPeriodIndex(tm.TestCase):
 
         for idx in [didx, pidx]:
             df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
-            empty = DataFrame(index=idx.__class__(
-                [], freq='D'), columns=['units'])
+            empty = DataFrame(index=idx.__class__([], freq='D'),
+                              columns=['units'])
             empty['units'] = empty['units'].astype('int64')
 
             tm.assert_frame_equal(df['2013/09/01':'2013/09/30'], empty)
@@ -2949,16 +2943,16 @@ class TestPeriodIndex(tm.TestCase):
         result = ts + ts[::2]
         expected = ts + ts
         expected[1::2] = np.nan
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = ts + _permute(ts[::2])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # it works!
         for kind in ['inner', 'outer', 'left', 'right']:
             ts.align(ts[::2], join=kind)
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
-        with assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
             ts + ts.asfreq('D', how="end")
 
     def test_align_frame(self):
@@ -3158,7 +3152,7 @@ class TestPeriodIndex(tm.TestCase):
         tm.assert_index_equal(result, expected)
 
         result = index.map(lambda x: x.ordinal)
-        exp = [x.ordinal for x in index]
+        exp = np.array([x.ordinal for x in index], dtype=np.int64)
         tm.assert_numpy_array_equal(result, exp)
 
     def test_map_with_string_constructor(self):
@@ -4231,19 +4225,19 @@ class TestSeriesPeriod(tm.TestCase):
     def test_series_comparison_scalars(self):
         val = pd.Period('2000-01-04', freq='D')
         result = self.series > val
-        expected = np.array([x > val for x in self.series])
-        self.assert_numpy_array_equal(result, expected)
+        expected = pd.Series([x > val for x in self.series])
+        tm.assert_series_equal(result, expected)
 
         val = self.series[5]
         result = self.series > val
-        expected = np.array([x > val for x in self.series])
-        self.assert_numpy_array_equal(result, expected)
+        expected = pd.Series([x > val for x in self.series])
+        tm.assert_series_equal(result, expected)
 
     def test_between(self):
         left, right = self.series[[2, 7]]
         result = self.series.between(left, right)
         expected = (self.series >= left) & (self.series <= right)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     # ---------------------------------------------------------------------
     # NaT support
@@ -4262,7 +4256,7 @@ class TestSeriesPeriod(tm.TestCase):
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')
         expected = Series([NaT])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
     """
 
     def test_set_none_nan(self):
@@ -4455,6 +4449,14 @@ class TestSeriesPeriod(tm.TestCase):
         tm.assert_frame_equal(df2 - df, exp)
         tm.assert_frame_equal(df - df2, -exp)
 
+
+class TestPeriodField(tm.TestCase):
+    def test_get_period_field_raises_on_out_of_range(self):
+        self.assertRaises(ValueError, _period.get_period_field, -1, 0, 0)
+
+    def test_get_period_field_array_raises_on_out_of_range(self):
+        self.assertRaises(ValueError, _period.get_period_field_arr, -1,
+                          np.empty(1), 0)
 
 if __name__ == '__main__':
     import nose

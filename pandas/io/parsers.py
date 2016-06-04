@@ -220,6 +220,27 @@ error_bad_lines : boolean, default True
 warn_bad_lines : boolean, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output. (Only valid with C parser).
+low_memory : boolean, default True
+    Internally process the file in chunks, resulting in lower memory use
+    while parsing, but possibly mixed type inference.  To ensure no mixed
+    types either set False, or specify the type with the `dtype` parameter.
+    Note that the entire file is read into a single DataFrame regardless,
+    use the `chunksize` or `iterator` parameter to return the data in chunks.
+    (Only valid with C parser)
+compact_ints : boolean, default False
+    DEPRECATED: this argument will be removed in a future version
+
+    If compact_ints is True, then for any column that is of integer dtype,
+    the parser will attempt to cast it as the smallest integer dtype possible,
+    either signed or unsigned depending on the specification from the
+    `use_unsigned` parameter.
+
+use_unsigned : boolean, default False
+    DEPRECATED: this argument will be removed in a future version
+
+    If integer columns are being compacted (i.e. `compact_ints=True`), specify
+    whether the column should be compacted to the smallest signed or unsigned
+    integer dtype.
 
 Returns
 -------
@@ -418,9 +439,6 @@ _fwf_defaults = {
 _c_unsupported = set(['skip_footer'])
 _python_unsupported = set([
     'as_recarray',
-    'na_filter',
-    'compact_ints',
-    'use_unsigned',
     'low_memory',
     'memory_map',
     'buffer_lines',
@@ -428,6 +446,10 @@ _python_unsupported = set([
     'warn_bad_lines',
     'dtype',
     'float_precision',
+])
+_deprecated_args = set([
+    'compact_ints',
+    'use_unsigned',
 ])
 
 
@@ -783,6 +805,12 @@ class TextFileReader(BaseIterator):
 
         _validate_header_arg(options['header'])
 
+        for arg in _deprecated_args:
+            if result[arg] != _c_parser_defaults[arg]:
+                warnings.warn("The '{arg}' argument has been deprecated "
+                              "and will be removed in a future version"
+                              .format(arg=arg), FutureWarning, stacklevel=2)
+
         if index_col is True:
             raise ValueError("The value of index_col couldn't be 'True'")
         if _is_index_col(index_col):
@@ -876,12 +904,13 @@ def _validate_usecols_arg(usecols):
     or strings (column by name). Raises a ValueError
     if that is not the case.
     """
+    msg = ("The elements of 'usecols' must "
+           "either be all strings, all unicode, or all integers")
+
     if usecols is not None:
         usecols_dtype = lib.infer_dtype(usecols)
-        if usecols_dtype not in ('integer', 'string'):
-            raise ValueError(("The elements of 'usecols' "
-                              "must either be all strings "
-                              "or all integers"))
+        if usecols_dtype not in ('integer', 'string', 'unicode'):
+            raise ValueError(msg)
 
     return usecols
 
@@ -1181,8 +1210,13 @@ class ParserBase(object):
         result = {}
         for c, values in compat.iteritems(dct):
             conv_f = None if converters is None else converters.get(c, None)
-            col_na_values, col_na_fvalues = _get_na_values(c, na_values,
-                                                           na_fvalues)
+
+            if self.na_filter:
+                col_na_values, col_na_fvalues = _get_na_values(
+                    c, na_values, na_fvalues)
+            else:
+                col_na_values, col_na_fvalues = set(), set()
+
             coerce_type = True
             if conv_f is not None:
                 try:
@@ -1194,6 +1228,12 @@ class ParserBase(object):
 
             cvals, na_count = self._convert_types(
                 values, set(col_na_values) | col_na_fvalues, coerce_type)
+
+            if issubclass(cvals.dtype.type, np.integer) and self.compact_ints:
+                cvals = lib.downcast_int64(
+                    cvals, _parser.na_values,
+                    self.use_unsigned)
+
             result[c] = cvals
             if verbose and na_count:
                 print('Filled %d NA values in column %s' % (na_count, str(c)))
@@ -1627,6 +1667,8 @@ class PythonParser(ParserBase):
 
         self.names_passed = kwds['names'] or None
 
+        self.na_filter = kwds['na_filter']
+
         self.has_index_names = False
         if 'has_index_names' in kwds:
             self.has_index_names = kwds['has_index_names']
@@ -1634,8 +1676,11 @@ class PythonParser(ParserBase):
         self.verbose = kwds['verbose']
         self.converters = kwds['converters']
 
+        self.compact_ints = kwds['compact_ints']
+        self.use_unsigned = kwds['use_unsigned']
         self.thousands = kwds['thousands']
         self.decimal = kwds['decimal']
+
         self.comment = kwds['comment']
         self._comment_lines = []
 
@@ -2213,13 +2258,15 @@ class PythonParser(ParserBase):
         return index_name, orig_names, columns
 
     def _rows_to_cols(self, content):
-        zipped_content = list(lib.to_object_array(content).T)
-
         col_len = self.num_original_columns
-        zip_len = len(zipped_content)
 
         if self._implicit_index:
             col_len += len(self.index_col)
+
+        # see gh-13320
+        zipped_content = list(lib.to_object_array(
+            content, min_width=col_len).T)
+        zip_len = len(zipped_content)
 
         if self.skip_footer < 0:
             raise ValueError('skip footer cannot be negative')

@@ -216,7 +216,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         subindex = self.tsframe.index[indexer]
         subframe = self.tsframe[indexer]
 
-        self.assert_numpy_array_equal(subindex, subframe.index)
+        self.assert_index_equal(subindex, subframe.index)
         with assertRaisesRegexp(ValueError, 'Item wrong length'):
             self.tsframe[indexer[:-1]]
 
@@ -1200,7 +1200,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         for col in f.columns:
             ts = f[col]
             for idx in f.index[::5]:
-                assert_almost_equal(ix[idx, col], ts[idx])
+                self.assertEqual(ix[idx, col], ts[idx])
 
     def test_setitem_fancy_scalar(self):
         f = self.frame
@@ -1392,7 +1392,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                        columns=['foo', 'bar', 'baz'])
         df['str'] = 'qux'
         df.ix[::2, 'str'] = nan
-        expected = [nan, 'qux', nan, 'qux', nan]
+        expected = np.array([nan, 'qux', nan, 'qux', nan], dtype=object)
         assert_almost_equal(df['str'].values, expected)
 
     def test_setitem_single_column_mixed_datetime(self):
@@ -1546,21 +1546,21 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
             for col in self.frame.columns:
                 result = self.frame.get_value(idx, col)
                 expected = self.frame[col][idx]
-                assert_almost_equal(result, expected)
+                self.assertEqual(result, expected)
 
     def test_lookup(self):
-        def alt(df, rows, cols):
+        def alt(df, rows, cols, dtype):
             result = []
             for r, c in zip(rows, cols):
                 result.append(df.get_value(r, c))
-            return result
+            return np.array(result, dtype=dtype)
 
         def testit(df):
             rows = list(df.index) * len(df.columns)
             cols = list(df.columns) * len(df.index)
             result = df.lookup(rows, cols)
-            expected = alt(df, rows, cols)
-            assert_almost_equal(result, expected)
+            expected = alt(df, rows, cols, dtype=np.object_)
+            tm.assert_almost_equal(result, expected, check_dtype=False)
 
         testit(self.mixed_frame)
         testit(self.frame)
@@ -1570,7 +1570,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                         'mask_b': [True, False, False, False],
                         'mask_c': [False, True, False, True]})
         df['mask'] = df.lookup(df.index, 'mask_' + df['label'])
-        exp_mask = alt(df, df.index, 'mask_' + df['label'])
+        exp_mask = alt(df, df.index, 'mask_' + df['label'], dtype=np.bool_)
         tm.assert_series_equal(df['mask'], pd.Series(exp_mask, name='mask'))
         self.assertEqual(df['mask'].dtype, np.bool_)
 
@@ -1587,7 +1587,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         for idx in self.frame.index:
             for col in self.frame.columns:
                 self.frame.set_value(idx, col, 1)
-                assert_almost_equal(self.frame[col][idx], 1)
+                self.assertEqual(self.frame[col][idx], 1)
 
     def test_set_value_resize(self):
 
@@ -1777,7 +1777,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
             for j, col in enumerate(self.frame.columns):
                 result = self.frame.iat[i, j]
                 expected = self.frame.at[row, col]
-                assert_almost_equal(result, expected)
+                self.assertEqual(result, expected)
 
     def test_nested_exception(self):
         # Ignore the strange way of triggering the problem
@@ -2699,3 +2699,64 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         result = dg['x', 0]
         assert_series_equal(result, expected)
+
+
+class TestDataFrameIndexingDatetimeWithTZ(tm.TestCase, TestData):
+
+    _multiprocess_can_split_ = True
+
+    def setUp(self):
+        self.idx = Index(date_range('20130101', periods=3, tz='US/Eastern'),
+                         name='foo')
+        self.dr = date_range('20130110', periods=3)
+        self.df = DataFrame({'A': self.idx, 'B': self.dr})
+
+    def test_setitem(self):
+
+        df = self.df
+        idx = self.idx
+
+        # setitem
+        df['C'] = idx
+        assert_series_equal(df['C'], Series(idx, name='C'))
+
+        df['D'] = 'foo'
+        df['D'] = idx
+        assert_series_equal(df['D'], Series(idx, name='D'))
+        del df['D']
+
+        # assert that A & C are not sharing the same base (e.g. they
+        # are copies)
+        b1 = df._data.blocks[1]
+        b2 = df._data.blocks[2]
+        self.assertTrue(b1.values.equals(b2.values))
+        self.assertFalse(id(b1.values.values.base) ==
+                         id(b2.values.values.base))
+
+        # with nan
+        df2 = df.copy()
+        df2.iloc[1, 1] = pd.NaT
+        df2.iloc[1, 2] = pd.NaT
+        result = df2['B']
+        assert_series_equal(notnull(result), Series(
+            [True, False, True], name='B'))
+        assert_series_equal(df2.dtypes, df.dtypes)
+
+    def test_set_reset(self):
+
+        idx = self.idx
+
+        # set/reset
+        df = DataFrame({'A': [0, 1, 2]}, index=idx)
+        result = df.reset_index()
+        self.assertTrue(result['foo'].dtype, 'M8[ns, US/Eastern')
+
+        result = result.set_index('foo')
+        tm.assert_index_equal(df.index, idx)
+
+    def test_transpose(self):
+
+        result = self.df.T
+        expected = DataFrame(self.df.values.T)
+        expected.index = ['A', 'B']
+        assert_frame_equal(result, expected)

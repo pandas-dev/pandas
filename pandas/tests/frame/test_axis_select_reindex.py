@@ -221,7 +221,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
-        self.assertTrue(newFrame.index.equals(self.ts1.index))
+        self.assert_index_equal(newFrame.index, self.ts1.index)
 
         # copy with no axes
         result = self.frame.reindex()
@@ -381,7 +381,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         # axis = 0
         other = self.frame.ix[:-5, :3]
         af, bf = self.frame.align(other, axis=0, fill_value=-1)
-        self.assertTrue(bf.columns.equals(other.columns))
+        self.assert_index_equal(bf.columns, other.columns)
         # test fill value
         join_idx = self.frame.index.join(other.index)
         diff_a = self.frame.index.difference(join_idx)
@@ -391,15 +391,15 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         self.assertTrue((diff_a_vals == -1).all())
 
         af, bf = self.frame.align(other, join='right', axis=0)
-        self.assertTrue(bf.columns.equals(other.columns))
-        self.assertTrue(bf.index.equals(other.index))
-        self.assertTrue(af.index.equals(other.index))
+        self.assert_index_equal(bf.columns, other.columns)
+        self.assert_index_equal(bf.index, other.index)
+        self.assert_index_equal(af.index, other.index)
 
         # axis = 1
         other = self.frame.ix[:-5, :3].copy()
         af, bf = self.frame.align(other, axis=1)
-        self.assertTrue(bf.columns.equals(self.frame.columns))
-        self.assertTrue(bf.index.equals(other.index))
+        self.assert_index_equal(bf.columns, self.frame.columns)
+        self.assert_index_equal(bf.index, other.index)
 
         # test fill value
         join_idx = self.frame.index.join(other.index)
@@ -413,35 +413,35 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         self.assertTrue((diff_a_vals == -1).all())
 
         af, bf = self.frame.align(other, join='inner', axis=1)
-        self.assertTrue(bf.columns.equals(other.columns))
+        self.assert_index_equal(bf.columns, other.columns)
 
         af, bf = self.frame.align(other, join='inner', axis=1, method='pad')
-        self.assertTrue(bf.columns.equals(other.columns))
+        self.assert_index_equal(bf.columns, other.columns)
 
         # test other non-float types
         af, bf = self.intframe.align(other, join='inner', axis=1, method='pad')
-        self.assertTrue(bf.columns.equals(other.columns))
+        self.assert_index_equal(bf.columns, other.columns)
 
         af, bf = self.mixed_frame.align(self.mixed_frame,
                                         join='inner', axis=1, method='pad')
-        self.assertTrue(bf.columns.equals(self.mixed_frame.columns))
+        self.assert_index_equal(bf.columns, self.mixed_frame.columns)
 
         af, bf = self.frame.align(other.ix[:, 0], join='inner', axis=1,
                                   method=None, fill_value=None)
-        self.assertTrue(bf.index.equals(Index([])))
+        self.assert_index_equal(bf.index, Index([]))
 
         af, bf = self.frame.align(other.ix[:, 0], join='inner', axis=1,
                                   method=None, fill_value=0)
-        self.assertTrue(bf.index.equals(Index([])))
+        self.assert_index_equal(bf.index, Index([]))
 
         # mixed floats/ints
         af, bf = self.mixed_float.align(other.ix[:, 0], join='inner', axis=1,
                                         method=None, fill_value=0)
-        self.assertTrue(bf.index.equals(Index([])))
+        self.assert_index_equal(bf.index, Index([]))
 
         af, bf = self.mixed_int.align(other.ix[:, 0], join='inner', axis=1,
                                       method=None, fill_value=0)
-        self.assertTrue(bf.index.equals(Index([])))
+        self.assert_index_equal(bf.index, Index([]))
 
         # try to align dataframe to series along bad axis
         self.assertRaises(ValueError, self.frame.align, af.ix[0, :3],
@@ -662,7 +662,23 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # pass in None
         with assertRaisesRegexp(TypeError, 'Must pass'):
+            self.frame.filter()
+        with assertRaisesRegexp(TypeError, 'Must pass'):
             self.frame.filter(items=None)
+        with assertRaisesRegexp(TypeError, 'Must pass'):
+            self.frame.filter(axis=1)
+
+        # test mutually exclusive arguments
+        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+            self.frame.filter(items=['one', 'three'], regex='e$', like='bbi')
+        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+            self.frame.filter(items=['one', 'three'], regex='e$', axis=1)
+        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+            self.frame.filter(items=['one', 'three'], regex='e$')
+        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+            self.frame.filter(items=['one', 'three'], like='bbi', axis=0)
+        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+            self.frame.filter(items=['one', 'three'], like='bbi')
 
         # objects
         filtered = self.mixed_frame.filter(like='foo')
@@ -810,10 +826,9 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         index = Index(['a', 'b', 'c'])
         dm = self.empty.reindex(index=[1, 2, 3])
         reindexed = dm.reindex(columns=index)
-        self.assertTrue(reindexed.columns.equals(index))
+        self.assert_index_equal(reindexed.columns, index)
 
         # ints are weird
-
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
         self.assertEqual(smaller['E'].dtype, np.float64)
 

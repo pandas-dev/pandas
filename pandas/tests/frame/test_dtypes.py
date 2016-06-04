@@ -9,6 +9,7 @@ import numpy as np
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
                     compat, option_context)
 from pandas.compat import u
+from pandas.core import common as com
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
@@ -73,6 +74,21 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         # same but for empty slice of df
         assert_series_equal(df[:0].dtypes, ex_dtypes)
         assert_series_equal(df[:0].ftypes, ex_ftypes)
+
+    def test_datetime_with_tz_dtypes(self):
+        tzframe = DataFrame({'A': date_range('20130101', periods=3),
+                             'B': date_range('20130101', periods=3,
+                                             tz='US/Eastern'),
+                             'C': date_range('20130101', periods=3, tz='CET')})
+        tzframe.iloc[1, 1] = pd.NaT
+        tzframe.iloc[1, 2] = pd.NaT
+        result = tzframe.dtypes.sort_index()
+        expected = Series([np.dtype('datetime64[ns]'),
+                           com.DatetimeTZDtype('datetime64[ns, US/Eastern]'),
+                           com.DatetimeTZDtype('datetime64[ns, CET]')],
+                          ['A', 'B', 'C'])
+
+        assert_series_equal(result, expected)
 
     def test_dtypes_are_correct_after_column_slice(self):
         # GH6525
@@ -177,6 +193,16 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
         with tm.assertRaisesRegexp(ValueError, '.+ is too specific'):
             df.select_dtypes(exclude=['datetime64[as]'])
+
+    def test_select_dtypes_datetime_with_tz(self):
+
+        df2 = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
+                             B=Timestamp('20130603', tz='CET')),
+                        index=range(5))
+        df3 = pd.concat([df2.A.to_frame(), df2.B.to_frame()], axis=1)
+        result = df3.select_dtypes(include=['datetime64[ns]'])
+        expected = df3.reindex(columns=[])
+        assert_frame_equal(result, expected)
 
     def test_select_dtypes_str_raises(self):
         df = DataFrame({'a': list('abc'),
@@ -394,3 +420,94 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
                            'int64': 1}).sort_values()
         result = df.get_dtype_counts().sort_values()
         assert_series_equal(result, expected)
+
+
+class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
+
+    _multiprocess_can_split_ = True
+
+    def test_interleave(self):
+
+        # interleave with object
+        result = self.tzframe.assign(D='foo').values
+        expected = np.array([[Timestamp('2013-01-01 00:00:00'),
+                              Timestamp('2013-01-02 00:00:00'),
+                              Timestamp('2013-01-03 00:00:00')],
+                             [Timestamp('2013-01-01 00:00:00-0500',
+                                        tz='US/Eastern'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00-0500',
+                                        tz='US/Eastern')],
+                             [Timestamp('2013-01-01 00:00:00+0100', tz='CET'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00+0100', tz='CET')],
+                             ['foo', 'foo', 'foo']], dtype=object).T
+        self.assert_numpy_array_equal(result, expected)
+
+        # interleave with only datetime64[ns]
+        result = self.tzframe.values
+        expected = np.array([[Timestamp('2013-01-01 00:00:00'),
+                              Timestamp('2013-01-02 00:00:00'),
+                              Timestamp('2013-01-03 00:00:00')],
+                             [Timestamp('2013-01-01 00:00:00-0500',
+                                        tz='US/Eastern'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00-0500',
+                                        tz='US/Eastern')],
+                             [Timestamp('2013-01-01 00:00:00+0100', tz='CET'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00+0100',
+                                        tz='CET')]], dtype=object).T
+        self.assert_numpy_array_equal(result, expected)
+
+    def test_astype(self):
+        # astype
+        expected = np.array([[Timestamp('2013-01-01 00:00:00'),
+                              Timestamp('2013-01-02 00:00:00'),
+                              Timestamp('2013-01-03 00:00:00')],
+                             [Timestamp('2013-01-01 00:00:00-0500',
+                                        tz='US/Eastern'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00-0500',
+                                        tz='US/Eastern')],
+                             [Timestamp('2013-01-01 00:00:00+0100', tz='CET'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00+0100',
+                                        tz='CET')]],
+                            dtype=object).T
+        result = self.tzframe.astype(object)
+        assert_frame_equal(result, DataFrame(
+            expected, index=self.tzframe.index, columns=self.tzframe.columns))
+
+        result = self.tzframe.astype('datetime64[ns]')
+        expected = DataFrame({'A': date_range('20130101', periods=3),
+                              'B': (date_range('20130101', periods=3,
+                                               tz='US/Eastern')
+                                    .tz_convert('UTC')
+                                    .tz_localize(None)),
+                              'C': (date_range('20130101', periods=3,
+                                               tz='CET')
+                                    .tz_convert('UTC')
+                                    .tz_localize(None))})
+        expected.iloc[1, 1] = pd.NaT
+        expected.iloc[1, 2] = pd.NaT
+        assert_frame_equal(result, expected)
+
+    def test_astype_str(self):
+        # str formatting
+        result = self.tzframe.astype(str)
+        expected = DataFrame([['2013-01-01', '2013-01-01 00:00:00-05:00',
+                               '2013-01-01 00:00:00+01:00'],
+                              ['2013-01-02', 'NaT', 'NaT'],
+                              ['2013-01-03', '2013-01-03 00:00:00-05:00',
+                               '2013-01-03 00:00:00+01:00']],
+                             columns=self.tzframe.columns)
+        self.assert_frame_equal(result, expected)
+
+        result = str(self.tzframe)
+        self.assertTrue('0 2013-01-01 2013-01-01 00:00:00-05:00 '
+                        '2013-01-01 00:00:00+01:00' in result)
+        self.assertTrue('1 2013-01-02                       '
+                        'NaT                       NaT' in result)
+        self.assertTrue('2 2013-01-03 2013-01-03 00:00:00-05:00 '
+                        '2013-01-03 00:00:00+01:00' in result)

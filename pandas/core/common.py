@@ -142,7 +142,7 @@ _isnull = _isnull_new
 
 def _use_inf_as_null(key):
     """Option change callback for null/inf behaviour
-    Choose which replacement for numpy.isnan / -numpy.isfinite is used.
+    Choose which replacement for numpy.isnan / ~numpy.isfinite is used.
 
     Parameters
     ----------
@@ -233,7 +233,7 @@ def _isnull_ndarraylike_old(obj):
 
 
 def notnull(obj):
-    """Replacement for numpy.isfinite / -numpy.isnan which is suitable for use
+    """Replacement for numpy.isfinite / ~numpy.isnan which is suitable for use
     on object arrays.
 
     Parameters
@@ -316,8 +316,8 @@ def array_equivalent(left, right, strict_nan=False):
 
         if not strict_nan:
             # pd.isnull considers NaN and None to be equivalent.
-            return lib.array_equivalent_object(
-                _ensure_object(left.ravel()), _ensure_object(right.ravel()))
+            return lib.array_equivalent_object(_ensure_object(left.ravel()),
+                                               _ensure_object(right.ravel()))
 
         for left_value, right_value in zip(left, right):
             if left_value is tslib.NaT and right_value is not tslib.NaT:
@@ -1115,7 +1115,7 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
 
 def _possibly_infer_to_datetimelike(value, convert_dates=False):
     """
-    we might have a array (or single object) that is datetime like,
+    we might have an array (or single object) that is datetime like,
     and no dtype is passed don't change the value unless we find a
     datetime/timedelta set
 
