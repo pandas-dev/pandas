@@ -160,7 +160,7 @@ and `Good as first PR
 <https://github.com/pydata/pandas/issues?labels=Good+as+first+PR&sort=updated&state=open>`_
 where you could start out.
 
-Or maybe you have an idea of you own, by using pandas, looking for something
+Or maybe you have an idea of your own, by using pandas, looking for something
 in the documentation and thinking 'this can be improved', let's do something
 about that!
 
