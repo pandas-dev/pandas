@@ -3944,7 +3944,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_frame_equal(result, expected)
 
     def test_union(self):
-        from pandas.core.algorithms import union_categoricals
+        from pandas.types.concat import union_categoricals
 
         s = Categorical(list('abc'))
         s2 = Categorical(list('abd'))
