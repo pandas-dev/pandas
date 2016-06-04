@@ -332,6 +332,8 @@ def read_hdf(path_or_buf, key=None, **kwargs):
     try:
         if key is None:
             groups = store.groups()
+            if len(groups) == 0:
+                raise ValueError('No dataset in HDF file.')
             candidate_only_group = groups[0]
 
             # For the HDF file to have only one dataset, all other groups

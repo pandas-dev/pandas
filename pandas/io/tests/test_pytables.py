@@ -4899,6 +4899,12 @@ class TestHDFStore(Base, tm.TestCase):
             df.to_hdf(path, 'df2', mode='a', format='table')
             self.assertRaises(ValueError, read_hdf, path)
 
+    def test_read_nokey_empty(self):
+        with ensure_clean_path(self.path) as path:
+            store = HDFStore(path)
+            store.close()
+            self.assertRaises(ValueError, read_hdf, path)
+
     def test_read_from_pathlib_path(self):
 
         # GH11773
