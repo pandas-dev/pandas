@@ -1505,51 +1505,7 @@ def roll_kurt(ndarray[double_t] input,
 #-------------------------------------------------------------------------------
 # Rolling median, min, max
 
-ctypedef double_t (* skiplist_f)(object sl, int n, int p)
-
-cdef _roll_skiplist_op(ndarray arg, int win, int minp, skiplist_f op):
-    cdef ndarray[double_t] input = arg
-    cdef double val, prev, midpoint
-    cdef IndexableSkiplist skiplist
-    cdef Py_ssize_t nobs = 0, i
-
-    cdef Py_ssize_t N = len(input)
-    cdef ndarray[double_t] output = np.empty(N, dtype=float)
-
-    skiplist = IndexableSkiplist(win)
-
-    minp = _check_minp(win, minp, N)
-
-    for i from 0 <= i < minp - 1:
-        val = input[i]
-
-        # Not NaN
-        if val == val:
-            nobs += 1
-            skiplist.insert(val)
-
-        output[i] = NaN
-
-    for i from minp - 1 <= i < N:
-        val = input[i]
-
-        if i > win - 1:
-            prev = input[i - win]
-
-            if prev == prev:
-                skiplist.remove(prev)
-                nobs -= 1
-
-        if val == val:
-            nobs += 1
-            skiplist.insert(val)
-
-        output[i] = op(skiplist, nobs, minp)
-
-    return output
-
 from skiplist cimport *
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
