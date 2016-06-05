@@ -1,6 +1,10 @@
 sudo: false
 language: python
 
+# To turn off cached miniconda, cython files and compiler cache comment out the
+# USE_CACHE=true line for the build in the matrix below. To delete caches go to
+# https://travis-ci.org/OWNER/REPOSITORY/caches or run
+# travis cache --delete inside the project directory from the travis command line client
 cache:
  directories:
   - $HOME/miniconda # miniconda cache
