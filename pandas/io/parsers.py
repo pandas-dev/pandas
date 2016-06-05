@@ -192,6 +192,10 @@ quoting : int or csv.QUOTE_* instance, default None
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
     QUOTE_MINIMAL (0), QUOTE_ALL (1), QUOTE_NONNUMERIC (2) or QUOTE_NONE (3).
     Default (None) results in QUOTE_MINIMAL behavior.
+doublequote : boolean, default ``True``
+   When quotechar is specified and quoting is not ``QUOTE_NONE``, indicate
+   whether or not to interpret two consecutive quotechar elements INSIDE a
+   field as a single ``quotechar`` element.
 escapechar : str (length 1), default None
     One-character string used to escape delimiter when quoting is QUOTE_NONE.
 comment : str, default None
