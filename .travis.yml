@@ -86,7 +86,7 @@ matrix:
         - CLIPBOARD=xsel
         - COVERAGE=true
         - CACHE_NAME="35_nslow"
-        - USE_CACHE=true
+#        - USE_CACHE=true # Don't use cache for 35_nslow
       addons:
         apt:
           packages:
