@@ -148,20 +148,6 @@ class TestSeriesDtypes(TestData, tm.TestCase):
         self.assertRaises(KeyError, s.astype, {'abc': str, 'def': str})
         self.assertRaises(KeyError, s.astype, {0: str})
 
-    def test_astype_inplace(self):
-        s = Series(np.random.randn(5), name='foo')
-        dtypes = ['float32', 'float64', 'int64', 'int32']
-
-        for dtype in dtypes:
-            result = s.astype(dtype, inplace=False)
-            self.assertEqual(result.dtype, dtype)
-            self.assertEqual(result.name, s.name)
-
-        for dtype in dtypes:
-            s.astype(dtype, inplace=True)
-            self.assertEqual(s.dtype, dtype)
-            self.assertEqual(s.name, 'foo')
-
     def test_complexx(self):
         # GH4819
         # complex access for ndarray compat

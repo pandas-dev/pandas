@@ -391,6 +391,15 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
         assert_frame_equal(df, original)
 
+        result = df.astype({'b': np.float32, 'c': 'float32', 'd': np.float64})
+        expected = DataFrame({
+            'a': a,
+            'b': Series([0.0, 1.0, 2.0, 3.0, 4.0], dtype='float32'),
+            'c': Series([0.0, 0.2, 0.4, 0.6, 0.8], dtype='float32'),
+            'd': Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype='float64')})
+        assert_frame_equal(result, expected)
+        assert_frame_equal(df, original)
+
         # change all columns
         assert_frame_equal(df.astype({'a': str, 'b': str, 'c': str, 'd': str}),
                            df.astype(str))
@@ -407,39 +416,6 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         equiv = df.astype({col: df[col].dtype for col in df.columns})
         assert_frame_equal(df, equiv)
         assert_frame_equal(df, original)
-
-        # using inplace=True, the df should be changed
-        output = df.astype({'b': 'str', 'd': 'float32'}, inplace=True)
-        expected = DataFrame({
-            'a': a,
-            'b': Series(['0', '1', '2', '3', '4']),
-            'c': c,
-            'd': Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype='float32')})
-        self.assertEqual(output, None)
-        assert_frame_equal(df, expected)
-
-        df.astype({'b': np.float32, 'c': 'float32', 'd': np.float64},
-                  inplace=True)
-        expected = DataFrame({
-            'a': a,
-            'b': Series([0.0, 1.0, 2.0, 3.0, 4.0], dtype='float32'),
-            'c': Series([0.0, 0.2, 0.4, 0.6, 0.8], dtype='float32'),
-            'd': Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype='float64')})
-        assert_frame_equal(df, expected)
-
-    def test_astype_inplace(self):
-        # GH7271
-        df = DataFrame({'a': range(10),
-                        'b': range(2, 12),
-                        'c': np.arange(4.0, 14.0, dtype='float64')})
-        df.astype('float', inplace=True)
-        for col in df.columns:
-            self.assertTrue(df[col].map(lambda x: type(x) == float).all())
-            self.assertEqual(df[col].dtype, 'float64')
-        df.astype('str', inplace=True)
-        for col in df.columns:
-            self.assertTrue(df[col].map(lambda x: type(x) == str).all())
-            self.assertEqual(df[col].dtype, 'object')
 
     def test_timedeltas(self):
         df = DataFrame(dict(A=Series(date_range('2012-1-1', periods=3,
