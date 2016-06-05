@@ -18,8 +18,8 @@ if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ]; then
 
     # did the last commit change cython files?
     cd $home_dir
-
-    retval=$(git diff HEAD~3 --numstat | grep -E "pyx|pxd"| wc -l)
+    # go back 2 commit
+    retval=$(git diff HEAD~2 --numstat | grep -E "pyx|pxd"| wc -l)
     echo "number of cython files changed: $retval"
 
     rm -rf $CACHE_File

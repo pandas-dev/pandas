@@ -1,6 +1,7 @@
 #!/bin/bash
 
 CACHE_File="$HOME/.cache/cython_files.tar"
+rm -rf $CACHE_File
 home_dir=$(pwd)
 ls "$TRAVIS_BUILD_DIR/pandas/"
 tar cf "$CACHE_File" \
