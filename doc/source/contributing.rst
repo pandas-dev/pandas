@@ -21,7 +21,7 @@ and `Difficulty Novice
 <https://github.com/pydata/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
 where you could start out.
 
-Or maybe through using *pandas* you have an idea of you own or are looking for something
+Or maybe through using *pandas* you have an idea of your own or are looking for something
 in the documentation and thinking 'this can be improved'...you can do something
 about it!
 
