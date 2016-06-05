@@ -19,7 +19,7 @@
 #
 # @y-p, Jan/2014
 
-# disto latex is sometimes finicky. Optionall use
+# disto latex is sometimes finicky. Optionally use
 # a local texlive install
 export PATH=/mnt/debian/texlive/2013/bin/x86_64-linux:$PATH
 
