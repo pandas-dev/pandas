@@ -295,6 +295,7 @@ Deprecations
 
 - ``compact_ints`` and ``use_unsigned`` have been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13320`)
 - ``buffer_lines`` has been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13360`)
+- ``as_recarray`` has been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13373`)
 
 .. _whatsnew_0182.performance:
 
