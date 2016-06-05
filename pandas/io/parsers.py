@@ -231,6 +231,12 @@ low_memory : boolean, default True
     Note that the entire file is read into a single DataFrame regardless,
     use the `chunksize` or `iterator` parameter to return the data in chunks.
     (Only valid with C parser)
+buffer_lines : int, default None
+    DEPRECATED: this argument will be removed in a future version because its
+    value is not respected by the parser
+
+    If low_memory is True, specify the number of rows to be read for each
+    chunk. (Only valid with C parser)
 compact_ints : boolean, default False
     DEPRECATED: this argument will be removed in a future version
 
@@ -238,7 +244,6 @@ compact_ints : boolean, default False
     the parser will attempt to cast it as the smallest integer dtype possible,
     either signed or unsigned depending on the specification from the
     `use_unsigned` parameter.
-
 use_unsigned : boolean, default False
     DEPRECATED: this argument will be removed in a future version
 
@@ -452,6 +457,7 @@ _python_unsupported = set([
     'float_precision',
 ])
 _deprecated_args = set([
+    'buffer_lines',
     'compact_ints',
     'use_unsigned',
 ])
@@ -810,7 +816,8 @@ class TextFileReader(BaseIterator):
         _validate_header_arg(options['header'])
 
         for arg in _deprecated_args:
-            if result[arg] != _c_parser_defaults[arg]:
+            parser_default = _c_parser_defaults[arg]
+            if result.get(arg, parser_default) != parser_default:
                 warnings.warn("The '{arg}' argument has been deprecated "
                               "and will be removed in a future version"
                               .format(arg=arg), FutureWarning, stacklevel=2)
