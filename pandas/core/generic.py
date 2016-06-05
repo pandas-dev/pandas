@@ -2974,44 +2974,33 @@ class NDFrame(PandasObject):
         """Internal property, property synonym for as_blocks()"""
         return self.as_blocks()
 
-    def astype(self, dtype, copy=True, inplace=False, raise_on_error=True,
-               **kwargs):
+    def astype(self, dtype, copy=True, raise_on_error=True, **kwargs):
         """
         Cast object to input numpy.dtype
+        Return a copy when copy = True (be really careful with this!)
 
         Parameters
         ----------
-        dtype : numpy.dtype or Python type (to cast entire DataFrame to the
-            same type). Alternatively, {col: dtype, ...}, where col is a column
-            label and dtype is a numpy.dtype or Python type (to cast one or
-            more of the DataFrame's columns to column-specific types).
-        copy : deprecated; use inplace instead
-        inplace : boolean, default False
-            Modify the NDFrame in place (do not create a new object)
+        dtype : numpy.dtype, Python type, or dict
+            Use a numpy.dtype or Python type to cast entire pandas object to the
+            same type. Alternatively, use {col: dtype, ...}, where col is a
+            column label and dtype is a numpy.dtype or Python type to cast one
+            or more of the DataFrame's columns to column-specific types.
         raise_on_error : raise on invalid input
-        kwargs : keyword arguments to pass on to the constructor if
-            inplace=False
+        kwargs : keyword arguments to pass on to the constructor
 
         Returns
         -------
-        casted : type of caller (if inplace=False) or None (if inplace=True)
+        casted : type of caller
         """
         if isinstance(dtype, collections.Mapping):
             if self.ndim == 1:  # i.e. Series
                 if len(dtype) > 1 or list(dtype.keys())[0] != self.name:
-                    if raise_on_error:
-                        raise KeyError('Only the Series name can be used for '
-                                       'the key in Series dtype mappings.')
-                    return
-                for key, value in dtype.items():
-                    return self.astype(value, copy, inplace, raise_on_error,
-                                       **kwargs)
+                    raise KeyError('Only the Series name can be used for '
+                                   'the key in Series dtype mappings.')
+                typ = list(dtype.values())[0]
+                return self.astype(typ, copy, raise_on_error, **kwargs)
 
-            if inplace:
-                for col, typ in dtype.items():
-                    self[col].astype(typ, inplace=True,
-                                     raise_on_error=raise_on_error)
-                return
             from pandas.tools.merge import concat
             casted_cols = [self[col].astype(typ, copy=copy)
                            for col, typ in dtype.items()]
@@ -3022,13 +3011,9 @@ class NDFrame(PandasObject):
             return new_df.reindex(columns=self.columns, copy=False)
 
         # else, only a single dtype is given
-        new_data = self._data.astype(dtype=dtype, copy=not inplace,
+        new_data = self._data.astype(dtype=dtype, copy=copy,
                                      raise_on_error=raise_on_error, **kwargs)
-        if inplace:
-            self._update_inplace(new_data)
-            return
-        else:
-            return self._constructor(new_data).__finalize__(self)
+        return self._constructor(new_data).__finalize__(self)
 
     def copy(self, deep=True):
         """
