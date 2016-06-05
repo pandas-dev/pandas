@@ -331,11 +331,20 @@ def read_hdf(path_or_buf, key=None, **kwargs):
 
     try:
         if key is None:
-            keys = store.keys()
-            if len(keys) != 1:
-                raise ValueError('key must be provided when HDF file contains '
-                                 'multiple datasets.')
-            key = keys[0]
+            groups = store.groups()
+            if len(groups) == 0:
+                raise ValueError('No dataset in HDF file.')
+            candidate_only_group = groups[0]
+
+            # For the HDF file to have only one dataset, all other groups
+            # should then be metadata groups for that candidate group. (This
+            # assumes that the groups() method enumerates parent groups
+            # before their children.)
+            for group_to_check in groups[1:]:
+                if not _is_metadata_of(group_to_check, candidate_only_group):
+                    raise ValueError('key must be provided when HDF file '
+                                     'contains multiple datasets.')
+            key = candidate_only_group._v_pathname
         return store.select(key, auto_close=auto_close, **kwargs)
     except:
         # if there is an error, close the store
@@ -345,6 +354,20 @@ def read_hdf(path_or_buf, key=None, **kwargs):
             pass
 
         raise
+
+
+def _is_metadata_of(group, parent_group):
+    """Check if a given group is a metadata group for a given parent_group."""
+    if group._v_depth <= parent_group._v_depth:
+        return False
+
+    current = group
+    while current._v_depth > 1:
+        parent = current._v_parent
+        if parent == parent_group and current._v_name == 'meta':
+            return True
+        current = current._v_parent
+    return False
 
 
 class HDFStore(StringMixin):

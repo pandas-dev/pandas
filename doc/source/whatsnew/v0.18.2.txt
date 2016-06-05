@@ -378,3 +378,6 @@ Bug Fixes
 
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
+
+- Bug in ``pd.read_hdf()`` where attempting to load an HDF file with a single dataset (that had one or more categorical columns) failed unless the key argument was set to the name of the dataset. (:issue:`13231`)
+
