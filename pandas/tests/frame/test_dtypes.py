@@ -398,6 +398,51 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
             expected = DataFrame(['1.12345678901'])
             assert_frame_equal(result, expected)
 
+    def test_astype_dict(self):
+        # GH7271
+        a = Series(date_range('2010-01-04', periods=5))
+        b = Series(range(5))
+        c = Series([0.0, 0.2, 0.4, 0.6, 0.8])
+        d = Series(['1.0', '2', '3.14', '4', '5.4'])
+        df = DataFrame({'a': a, 'b': b, 'c': c, 'd': d})
+        original = df.copy(deep=True)
+
+        # change type of a subset of columns
+        result = df.astype({'b': 'str', 'd': 'float32'})
+        expected = DataFrame({
+            'a': a,
+            'b': Series(['0', '1', '2', '3', '4']),
+            'c': c,
+            'd': Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype='float32')})
+        assert_frame_equal(result, expected)
+        assert_frame_equal(df, original)
+
+        result = df.astype({'b': np.float32, 'c': 'float32', 'd': np.float64})
+        expected = DataFrame({
+            'a': a,
+            'b': Series([0.0, 1.0, 2.0, 3.0, 4.0], dtype='float32'),
+            'c': Series([0.0, 0.2, 0.4, 0.6, 0.8], dtype='float32'),
+            'd': Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype='float64')})
+        assert_frame_equal(result, expected)
+        assert_frame_equal(df, original)
+
+        # change all columns
+        assert_frame_equal(df.astype({'a': str, 'b': str, 'c': str, 'd': str}),
+                           df.astype(str))
+        assert_frame_equal(df, original)
+
+        # error should be raised when using something other than column labels
+        # in the keys of the dtype dict
+        self.assertRaises(KeyError, df.astype, {'b': str, 2: str})
+        self.assertRaises(KeyError, df.astype, {'e': str})
+        assert_frame_equal(df, original)
+
+        # if the dtypes provided are the same as the original dtypes, the
+        # resulting DataFrame should be the same as the original DataFrame
+        equiv = df.astype({col: df[col].dtype for col in df.columns})
+        assert_frame_equal(df, equiv)
+        assert_frame_equal(df, original)
+
     def test_timedeltas(self):
         df = DataFrame(dict(A=Series(date_range('2012-1-1', periods=3,
                                                 freq='D')),

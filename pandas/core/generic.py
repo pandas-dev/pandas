@@ -1,4 +1,5 @@
 # pylint: disable=W0231,E1101
+import collections
 import warnings
 import operator
 import weakref
@@ -144,7 +145,7 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor(self):
-        """Used when a manipulation result has the same dimesions as the
+        """Used when a manipulation result has the same dimensions as the
         original.
         """
         raise AbstractMethodError(self)
@@ -2980,7 +2981,11 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        dtype : numpy.dtype or Python type
+        dtype : numpy.dtype, Python type, or dict
+            Use a numpy.dtype or Python type to cast entire pandas object to the
+            same type. Alternatively, use {col: dtype, ...}, where col is a
+            column label and dtype is a numpy.dtype or Python type to cast one
+            or more of the DataFrame's columns to column-specific types.
         raise_on_error : raise on invalid input
         kwargs : keyword arguments to pass on to the constructor
 
@@ -2988,10 +2993,27 @@ class NDFrame(PandasObject):
         -------
         casted : type of caller
         """
+        if isinstance(dtype, collections.Mapping):
+            if self.ndim == 1:  # i.e. Series
+                if len(dtype) > 1 or list(dtype.keys())[0] != self.name:
+                    raise KeyError('Only the Series name can be used for '
+                                   'the key in Series dtype mappings.')
+                typ = list(dtype.values())[0]
+                return self.astype(typ, copy, raise_on_error, **kwargs)
 
-        mgr = self._data.astype(dtype=dtype, copy=copy,
-                                raise_on_error=raise_on_error, **kwargs)
-        return self._constructor(mgr).__finalize__(self)
+            from pandas.tools.merge import concat
+            casted_cols = [self[col].astype(typ, copy=copy)
+                           for col, typ in dtype.items()]
+            other_col_labels = self.columns.difference(dtype.keys())
+            other_cols = [self[col].copy() if copy else self[col]
+                          for col in other_col_labels]
+            new_df = concat(casted_cols + other_cols, axis=1)
+            return new_df.reindex(columns=self.columns, copy=False)
+
+        # else, only a single dtype is given
+        new_data = self._data.astype(dtype=dtype, copy=copy,
+                                     raise_on_error=raise_on_error, **kwargs)
+        return self._constructor(new_data).__finalize__(self)
 
     def copy(self, deep=True):
         """

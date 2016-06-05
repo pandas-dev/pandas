@@ -133,6 +133,21 @@ class TestSeriesDtypes(TestData, tm.TestCase):
             reload(sys)  # noqa
             sys.setdefaultencoding(former_encoding)
 
+    def test_astype_dict(self):
+        s = Series(range(0, 10, 2), name='abc')
+
+        result = s.astype({'abc': str})
+        expected = Series(['0', '2', '4', '6', '8'], name='abc')
+        assert_series_equal(result, expected)
+
+        result = s.astype({'abc': 'float64'})
+        expected = Series([0.0, 2.0, 4.0, 6.0, 8.0], dtype='float64',
+                          name='abc')
+        assert_series_equal(result, expected)
+
+        self.assertRaises(KeyError, s.astype, {'abc': str, 'def': str})
+        self.assertRaises(KeyError, s.astype, {0: str})
+
     def test_complexx(self):
         # GH4819
         # complex access for ndarray compat
