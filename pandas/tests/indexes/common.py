@@ -225,9 +225,8 @@ class Base(object):
 
             s1 = Series(2, index=first)
             s2 = Series(3, index=second[:-1])
-            if not isinstance(index, CategoricalIndex):  # See GH13365
-                s3 = s1 * s2
-                self.assertEqual(s3.index.name, 'mario')
+            s3 = s1 * s2
+            self.assertEqual(s3.index.name, 'mario')
 
     def test_ensure_copied_data(self):
         # Check the "copy" argument of each Index.__new__ is honoured
