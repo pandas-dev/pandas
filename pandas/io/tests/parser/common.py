@@ -1458,3 +1458,14 @@ j,-inF"""
             out = self.read_csv(StringIO(data), as_recarray=True,
                                 usecols=['a'])
             tm.assert_numpy_array_equal(out, expected)
+
+    def test_memory_map(self):
+        mmap_file = os.path.join(self.dirpath, 'test_mmap.csv')
+        expected = DataFrame({
+            'a': [1, 2, 3],
+            'b': ['one', 'two', 'three'],
+            'c': ['I', 'II', 'III']
+        })
+
+        out = self.read_csv(mmap_file, memory_map=True)
+        tm.assert_frame_equal(out, expected)
