@@ -280,7 +280,7 @@ class Window(_Window):
     center : boolean, default False
         Set the labels at the center of the window.
     win_type : string, default None
-        prove a window type, see the notes below
+        Provide a window type. See the notes below.
     axis : int, default 0
 
     Returns
