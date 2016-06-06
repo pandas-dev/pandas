@@ -115,10 +115,12 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
         # INVALID OPTIONS
 
         # no as_recarray
-        self.assertRaises(ValueError, self.read_csv,
-                          StringIO(data), header=[0, 1, 2, 3],
-                          index_col=[0, 1], as_recarray=True,
-                          tupleize_cols=False)
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False):
+            self.assertRaises(ValueError, self.read_csv,
+                              StringIO(data), header=[0, 1, 2, 3],
+                              index_col=[0, 1], as_recarray=True,
+                              tupleize_cols=False)
 
         # names
         self.assertRaises(ValueError, self.read_csv,

@@ -200,11 +200,6 @@ class TestTextReader(tm.TestCase):
                           delimiter=',', header=5, as_recarray=True)
 
     def test_header_not_enough_lines_as_recarray(self):
-
-        if compat.is_platform_windows():
-            raise nose.SkipTest(
-                "segfaults on win-64, only when all tests are run")
-
         data = ('skip this\n'
                 'skip this\n'
                 'a,b,c\n'
@@ -278,10 +273,6 @@ aa,2
 aaa,3
 aaaa,4
 aaaaa,5"""
-
-        if compat.is_platform_windows():
-            raise nose.SkipTest(
-                "segfaults on win-64, only when all tests are run")
 
         def _make_reader(**kwds):
             return TextReader(StringIO(data), delimiter=',', header=None,

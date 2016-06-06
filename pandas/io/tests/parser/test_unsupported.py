@@ -124,6 +124,7 @@ class TestDeprecatedFeatures(tm.TestCase):
 
         # deprecated arguments with non-default values
         deprecated = {
+            'as_recarray': True,
             'buffer_lines': True,
             'compact_ints': True,
             'use_unsigned': True,

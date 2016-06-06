@@ -134,6 +134,14 @@ usecols : array-like, default ``None``
   inferred from the document header row(s). For example, a valid `usecols`
   parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Using this parameter
   results in much faster parsing time and lower memory usage.
+as_recarray : boolean, default ``False``
+  DEPRECATED: this argument will be removed in a future version. Please call
+  ``pd.read_csv(...).to_records()`` instead.
+
+  Return a NumPy recarray instead of a DataFrame after parsing the data. If
+  set to ``True``, this option takes precedence over the ``squeeze`` parameter.
+  In addition, as row indices are not available in such a format, the ``index_col``
+  parameter will be ignored.
 squeeze : boolean, default ``False``
   If the parsed data only contains one column then return a Series.
 prefix : str, default ``None``
@@ -179,9 +187,6 @@ low_memory : boolean, default ``True``
 buffer_lines : int, default None
     DEPRECATED: this argument will be removed in a future version because its
     value is not respected by the parser
-
-    If ``low_memory`` is ``True``, specify the number of rows to be read for
-    each chunk. (Only valid with C parser)
 compact_ints : boolean, default False
   DEPRECATED: this argument will be removed in a future version
 

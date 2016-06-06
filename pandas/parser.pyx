@@ -809,7 +809,7 @@ cdef class TextReader:
 
         if self.as_recarray:
             self._start_clock()
-            result = _to_structured_array(columns, self.header)
+            result = _to_structured_array(columns, self.header, self.usecols)
             self._end_clock('Conversion to structured array')
 
             return result
@@ -1965,7 +1965,7 @@ cdef _apply_converter(object f, parser_t *parser, int col,
     return lib.maybe_convert_objects(result)
 
 
-def _to_structured_array(dict columns, object names):
+def _to_structured_array(dict columns, object names, object usecols):
     cdef:
         ndarray recs, column
         cnp.dtype dt
@@ -1981,6 +1981,10 @@ def _to_structured_array(dict columns, object names):
     else:
         # single line header
         names = names[0]
+
+    if usecols is not None:
+        names = [n for i, n in enumerate(names)
+                 if i in usecols or n in usecols]
 
     dt = np.dtype([(str(name), columns[i].dtype)
                    for i, name in enumerate(names)])

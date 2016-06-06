@@ -2,7 +2,8 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
-from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
+from pandas.compat import (range, lrange, StringIO, lzip, zip,
+                           string_types, map, OrderedDict)
 from pandas import compat
 from collections import defaultdict
 import re
@@ -87,6 +88,14 @@ usecols : array-like, default None
     inferred from the document header row(s). For example, a valid `usecols`
     parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Using this parameter
     results in much faster parsing time and lower memory usage.
+as_recarray : boolean, default False
+    DEPRECATED: this argument will be removed in a future version. Please call
+    `pd.read_csv(...).to_records()` instead.
+
+    Return a NumPy recarray instead of a DataFrame after parsing the data.
+    If set to True, this option takes precedence over the `squeeze` parameter.
+    In addition, as row indices are not available in such a format, the
+    `index_col` parameter will be ignored.
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 prefix : str, default None
@@ -239,9 +248,6 @@ low_memory : boolean, default True
 buffer_lines : int, default None
     DEPRECATED: this argument will be removed in a future version because its
     value is not respected by the parser
-
-    If low_memory is True, specify the number of rows to be read for each
-    chunk. (Only valid with C parser)
 compact_ints : boolean, default False
     DEPRECATED: this argument will be removed in a future version
 
@@ -452,7 +458,6 @@ _fwf_defaults = {
 
 _c_unsupported = set(['skip_footer'])
 _python_unsupported = set([
-    'as_recarray',
     'low_memory',
     'memory_map',
     'buffer_lines',
@@ -462,6 +467,7 @@ _python_unsupported = set([
     'float_precision',
 ])
 _deprecated_args = set([
+    'as_recarray',
     'buffer_lines',
     'compact_ints',
     'use_unsigned',
@@ -820,12 +826,22 @@ class TextFileReader(BaseIterator):
 
         _validate_header_arg(options['header'])
 
+        depr_warning = ''
+
         for arg in _deprecated_args:
             parser_default = _c_parser_defaults[arg]
+            msg = ("The '{arg}' argument has been deprecated "
+                   "and will be removed in a future version."
+                   .format(arg=arg))
+
+            if arg == 'as_recarray':
+                msg += ' Please call pd.to_csv(...).to_records() instead.'
+
             if result.get(arg, parser_default) != parser_default:
-                warnings.warn("The '{arg}' argument has been deprecated "
-                              "and will be removed in a future version"
-                              .format(arg=arg), FutureWarning, stacklevel=2)
+                depr_warning += msg + '\n\n'
+
+        if depr_warning != '':
+            warnings.warn(depr_warning, FutureWarning, stacklevel=2)
 
         if index_col is True:
             raise ValueError("The value of index_col couldn't be 'True'")
@@ -973,6 +989,7 @@ class ParserBase(object):
         self.na_fvalues = kwds.get('na_fvalues')
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
+        self.as_recarray = kwds.get('as_recarray', False)
         self.tupleize_cols = kwds.get('tupleize_cols', False)
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
@@ -1304,7 +1321,6 @@ class CParserWrapper(ParserBase):
         self.kwds = kwds
         kwds = kwds.copy()
 
-        self.as_recarray = kwds.get('as_recarray', False)
         ParserBase.__init__(self, kwds)
 
         if 'utf-16' in (kwds.get('encoding') or ''):
@@ -1889,6 +1905,9 @@ class PythonParser(ParserBase):
         columns, data = self._do_date_conversions(columns, data)
 
         data = self._convert_data(data)
+        if self.as_recarray:
+            return self._to_recarray(data, columns)
+
         index, columns = self._make_index(data, alldata, columns, indexnamerow)
 
         return index, columns, data
@@ -1927,6 +1946,19 @@ class PythonParser(ParserBase):
 
         return self._convert_to_ndarrays(data, self.na_values, self.na_fvalues,
                                          self.verbose, clean_conv)
+
+    def _to_recarray(self, data, columns):
+        dtypes = []
+        o = OrderedDict()
+
+        # use the columns to "order" the keys
+        # in the unordered 'data' dictionary
+        for col in columns:
+            dtypes.append((str(col), data[col].dtype))
+            o[col] = data[col]
+
+        tuples = lzip(*o.values())
+        return np.array(tuples, dtypes)
 
     def _infer_columns(self):
         names = self.names
