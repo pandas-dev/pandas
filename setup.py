@@ -270,6 +270,7 @@ class CheckSDist(sdist_class):
                  'pandas/tslib.pyx',
                  'pandas/index.pyx',
                  'pandas/algos.pyx',
+                 'pandas/window.pyx',
                  'pandas/parser.pyx',
                  'pandas/src/period.pyx',
                  'pandas/src/sparse.pyx',
@@ -425,17 +426,23 @@ ext_data = dict(
            'sources': ['pandas/src/datetime/np_datetime.c',
                        'pandas/src/datetime/np_datetime_strings.c']},
     algos={'pyxfile': 'algos',
-           'pxdfiles': ['src/skiplist'],
+           'pxdfiles': ['src/util'],
            'depends': [srcpath('generated', suffix='.pyx'),
-                       srcpath('join', suffix='.pyx'),
-                       'pandas/src/skiplist.pyx',
-                       'pandas/src/skiplist.h']},
+                       srcpath('join', suffix='.pyx')]},
+    _window={'pyxfile': 'window',
+            'pxdfiles': ['src/skiplist','src/util'],
+            'depends': ['pandas/src/skiplist.pyx',
+                        'pandas/src/skiplist.h']},
     parser={'pyxfile': 'parser',
             'depends': ['pandas/src/parser/tokenizer.h',
                         'pandas/src/parser/io.h',
                         'pandas/src/numpy_helper.h'],
             'sources': ['pandas/src/parser/tokenizer.c',
                         'pandas/src/parser/io.c']},
+    _sparse={'pyxfile': 'src/sparse',
+             'depends': [srcpath('sparse', suffix='.pyx')]},
+    _testing={'pyxfile': 'src/testing',
+              'depends': [srcpath('testing', suffix='.pyx')]},
 )
 
 ext_data["io.sas.saslib"] = {'pyxfile': 'io/sas/saslib'}
@@ -460,22 +467,6 @@ for name, data in ext_data.items():
 
     extensions.append(obj)
 
-
-sparse_ext = Extension('pandas._sparse',
-                       sources=[srcpath('sparse', suffix=suffix)],
-                       include_dirs=[],
-                       libraries=libraries,
-                       extra_compile_args=extra_compile_args)
-
-extensions.extend([sparse_ext])
-
-testing_ext = Extension('pandas._testing',
-                       sources=[srcpath('testing', suffix=suffix)],
-                       include_dirs=[],
-                       libraries=libraries,
-                       extra_compile_args=extra_compile_args)
-
-extensions.extend([testing_ext])
 
 #----------------------------------------------------------------------
 # msgpack
