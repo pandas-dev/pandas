@@ -183,6 +183,11 @@ thousands : str, default None
     Thousands separator
 decimal : str, default '.'
     Character to recognize as decimal point (e.g. use ',' for European data).
+float_precision : string, default None
+    Specifies which converter the C engine should use for floating-point
+    values. The options are `None` for the ordinary converter,
+    `high` for the high-precision converter, and `round_trip` for the
+    round-trip converter.
 lineterminator : str (length 1), default None
     Character to break file into lines. Only valid with C parser.
 quotechar : str (length 1), optional
