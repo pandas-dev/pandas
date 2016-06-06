@@ -24,6 +24,20 @@ cdef extern from "numpy_helper.h":
     object sarr_from_data(cnp.dtype, int length, void* data)
     inline object unbox_if_zerodim(object arr)
 
+ctypedef fused numeric:
+    cnp.int8_t
+    cnp.int16_t
+    cnp.int32_t
+    cnp.int64_t
+
+    cnp.uint8_t
+    cnp.uint16_t
+    cnp.uint32_t
+    cnp.uint64_t
+
+    cnp.float32_t
+    cnp.float64_t
+
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz

@@ -16,7 +16,7 @@ from pandas.lib import isscalar
 from pandas.core.base import (PandasObject, SelectionMixin,
                               GroupByMixin)
 import pandas.core.common as com
-import pandas.algos as algos
+import pandas._window as _window
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Substitution, Appender
@@ -407,9 +407,10 @@ class Window(_Window):
 
             def f(arg, *args, **kwargs):
                 minp = _use_window(self.min_periods, len(window))
-                return algos.roll_window(np.concatenate((arg, additional_nans))
-                                         if center else arg, window, minp,
-                                         avg=mean)
+                return _window.roll_window(np.concatenate((arg,
+                                                           additional_nans))
+                                           if center else arg, window, minp,
+                                           avg=mean)
 
             result = np.apply_along_axis(f, self.axis, values)
 
@@ -532,11 +533,10 @@ class _Rolling(_Window):
 
             # if we have a string function name, wrap it
             if isinstance(func, compat.string_types):
-                if not hasattr(algos, func):
+                cfunc = getattr(_window, func, None)
+                if cfunc is None:
                     raise ValueError("we do not support this function "
-                                     "algos.{0}".format(func))
-
-                cfunc = getattr(algos, func)
+                                     "in _window.{0}".format(func))
 
                 def func(arg, window, min_periods=None):
                     minp = check_minp(min_periods, window)
@@ -617,8 +617,8 @@ class _Rolling_and_Expanding(_Rolling):
 
         def f(arg, window, min_periods):
             minp = _use_window(min_periods, window)
-            return algos.roll_generic(arg, window, minp, offset, func, args,
-                                      kwargs)
+            return _window.roll_generic(arg, window, minp, offset, func, args,
+                                        kwargs)
 
         return self._apply(f, func, args=args, kwargs=kwargs,
                            center=False)
@@ -687,7 +687,7 @@ class _Rolling_and_Expanding(_Rolling):
 
         def f(arg, *args, **kwargs):
             minp = _require_min_periods(1)(self.min_periods, window)
-            return _zsqrt(algos.roll_var(arg, window, minp, ddof))
+            return _zsqrt(_window.roll_var(arg, window, minp, ddof))
 
         return self._apply(f, 'std', check_minp=_require_min_periods(1),
                            ddof=ddof, **kwargs)
@@ -732,7 +732,7 @@ class _Rolling_and_Expanding(_Rolling):
 
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
-            return algos.roll_quantile(arg, window, minp, quantile)
+            return _window.roll_quantile(arg, window, minp, quantile)
 
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)
@@ -1278,11 +1278,10 @@ class EWM(_Rolling):
 
             # if we have a string function name, wrap it
             if isinstance(func, compat.string_types):
-                if not hasattr(algos, func):
+                cfunc = getattr(_window, func, None)
+                if cfunc is None:
                     raise ValueError("we do not support this function "
-                                     "algos.{0}".format(func))
-
-                cfunc = getattr(algos, func)
+                                     "in _window.{0}".format(func))
 
                 def func(arg):
                     return cfunc(arg, self.com, int(self.adjust),
@@ -1317,9 +1316,9 @@ class EWM(_Rolling):
         nv.validate_window_func('var', args, kwargs)
 
         def f(arg):
-            return algos.ewmcov(arg, arg, self.com, int(self.adjust),
-                                int(self.ignore_na), int(self.min_periods),
-                                int(bias))
+            return _window.ewmcov(arg, arg, self.com, int(self.adjust),
+                                  int(self.ignore_na), int(self.min_periods),
+                                  int(bias))
 
         return self._apply(f, **kwargs)
 
@@ -1337,9 +1336,9 @@ class EWM(_Rolling):
         def _get_cov(X, Y):
             X = self._shallow_copy(X)
             Y = self._shallow_copy(Y)
-            cov = algos.ewmcov(X._prep_values(), Y._prep_values(), self.com,
-                               int(self.adjust), int(self.ignore_na),
-                               int(self.min_periods), int(bias))
+            cov = _window.ewmcov(X._prep_values(), Y._prep_values(), self.com,
+                                 int(self.adjust), int(self.ignore_na),
+                                 int(self.min_periods), int(bias))
             return X._wrap_result(cov)
 
         return _flex_binary_moment(self._selected_obj, other._selected_obj,
@@ -1361,9 +1360,10 @@ class EWM(_Rolling):
             Y = self._shallow_copy(Y)
 
             def _cov(x, y):
-                return algos.ewmcov(x, y, self.com, int(self.adjust),
-                                    int(self.ignore_na), int(self.min_periods),
-                                    1)
+                return _window.ewmcov(x, y, self.com, int(self.adjust),
+                                      int(self.ignore_na),
+                                      int(self.min_periods),
+                                      1)
 
             x_values = X._prep_values()
             y_values = Y._prep_values()
