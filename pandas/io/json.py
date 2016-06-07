@@ -10,7 +10,7 @@ from pandas.tslib import iNaT
 from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, _get_handle
 from pandas.core.common import AbstractMethodError
 from pandas.formats.printing import pprint_thing
 
@@ -105,7 +105,8 @@ class FrameWriter(Writer):
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
-              numpy=False, precise_float=False, date_unit=None, lines=False):
+              numpy=False, precise_float=False, date_unit=None, encoding=None,
+              lines=False):
     """
     Convert a JSON string to pandas object
 
@@ -183,12 +184,16 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.18.2
 
+    encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
+
+        .. versionadded:: 0.18.2
+
     Returns
     -------
     result : Series or DataFrame
     """
 
-    filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf)
+    filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf, encoding=encoding)
     if isinstance(filepath_or_buffer, compat.string_types):
         try:
             exists = os.path.exists(filepath_or_buffer)
@@ -199,7 +204,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             exists = False
 
         if exists:
-            with open(filepath_or_buffer, 'r') as fh:
+            with _get_handle(filepath_or_buffer, 'r', encoding=encoding) as fh:
                 json = fh.read()
         else:
             json = filepath_or_buffer
@@ -212,7 +217,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         # If given a json lines file, we break the string into lines, add
         # commas and put it in a json list to make a valid json object.
         lines = list(StringIO(json))
-        json = '[' + ','.join(lines) + ']'
+        json = u'[' + u','.join(lines) + u']'
 
     obj = None
     if typ == 'frame':
