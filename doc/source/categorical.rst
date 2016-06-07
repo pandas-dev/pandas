@@ -668,7 +668,7 @@ will be the union of the categories being combined.
 .. note::
 
    `union_categoricals` only works with unordered categoricals
-   and will raise if any are orderd.
+   and will raise if any are ordered.
 
 
 Getting Data In/Out

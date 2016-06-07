@@ -922,26 +922,40 @@ class TestConcatenate(tm.TestCase):
 
     def test_union_categorical(self):
         # GH 13361
-        s = Categorical(list('abc'))
-        s2 = Categorical(list('abd'))
-        result = union_categoricals([s, s2])
-        expected = Categorical(list('abcabd'))
-        tm.assert_categorical_equal(result, expected, ignore_order=True)
+        data = [
+            (list('abc'), list('abd'), list('abcabd')),
+            ([0, 1, 2], [2, 3, 4], [0, 1, 2, 2, 3, 4]),
+            ([0, 1.2, 2], [2, 3.4, 4], [0, 1.2, 2, 2, 3.4, 4]),
 
-        s = Categorical([0, 1, 2])
-        s2 = Categorical([2, 3, 4])
-        result = union_categoricals([s, s2])
-        expected = Categorical([0, 1, 2, 2, 3, 4])
-        tm.assert_categorical_equal(result, expected, ignore_order=True)
+            (pd.date_range('2014-01-01', '2014-01-05'),
+             pd.date_range('2014-01-06', '2014-01-07'),
+             pd.date_range('2014-01-01', '2014-01-07')),
 
-        s = Categorical([0, 1.2, 2])
-        s2 = Categorical([2, 3.4, 4])
-        result = union_categoricals([s, s2])
-        expected = Categorical([0, 1.2, 2, 2, 3.4, 4])
-        tm.assert_categorical_equal(result, expected, ignore_order=True)
+            (pd.date_range('2014-01-01', '2014-01-05', tz='US/Central'),
+             pd.date_range('2014-01-06', '2014-01-07', tz='US/Central'),
+             pd.date_range('2014-01-01', '2014-01-07', tz='US/Central')),
+
+            (pd.period_range('2014-01-01', '2014-01-05'),
+             pd.period_range('2014-01-06', '2014-01-07'),
+             pd.period_range('2014-01-01', '2014-01-07')),
+        ]
+
+        for a, b, combined in data:
+            result = union_categoricals([Categorical(a), Categorical(b)])
+            expected = Categorical(combined)
+            tm.assert_categorical_equal(result, expected,
+                                        check_category_order=True)
+
+        # new categories ordered by appearance
+        s = Categorical(['x', 'y', 'z'])
+        s2 = Categorical(['a', 'b', 'c'])
+        result = union_categoricals([s, s2]).categories
+        expected = Index(['x', 'y', 'z', 'a', 'b', 'c'])
+        tm.assert_index_equal(result, expected)
 
         # can't be ordered
         s = Categorical([0, 1.2, 2], ordered=True)
+        s2 = Categorical([0, 1.2, 2], ordered=True)
         with tm.assertRaises(TypeError):
             union_categoricals([s, s2])
 

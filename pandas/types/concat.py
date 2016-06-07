@@ -206,27 +206,36 @@ def union_categoricals(to_union):
     Combine list-like of Categoricals, unioning categories. All
     must have the same dtype, and none can be ordered.
 
+    .. versionadded 0.18.2
+
     Parameters
     ----------
-    to_union : list like of Categorical
+    to_union : list-like of Categoricals
 
     Returns
     -------
     Categorical
        A single array, categories will be ordered as they
        appear in the list
+
+    Raises
+    ------
+    TypeError
+        If any of the categoricals are ordered or all do not
+        have the same dtype
     """
-    from pandas import Index, Categorical, unique
+    from pandas import Index, Categorical
 
     if any(c.ordered for c in to_union):
         raise TypeError("Can only combine unordered Categoricals")
 
     first = to_union[0]
-    if not all(com.is_dtype_equal(c.categories, first.categories)
+    if not all(com.is_dtype_equal(c.categories.dtype, first.categories.dtype)
                for c in to_union):
         raise TypeError("dtype of categories must be the same")
 
-    unique_cats = unique(np.concatenate([c.categories for c in to_union]))
+    cats = first.categories
+    unique_cats = cats.append([c.categories for c in to_union[1:]]).unique()
     categories = Index(unique_cats)
 
     new_codes = []
