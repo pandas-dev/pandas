@@ -832,6 +832,24 @@ def test_is_timedelta():
     assert (not com.is_timedelta64_ns_dtype(tdi.astype('timedelta64[h]')))
 
 
+def test_array_equivalent_compat():
+    # see gh-13388
+    m = np.array([(1, 2), (3, 4)], dtype=[('a', int), ('b', float)])
+    n = np.array([(1, 2), (3, 4)], dtype=[('a', int), ('b', float)])
+    assert (com.array_equivalent(m, n, strict_nan=True))
+    assert (com.array_equivalent(m, n, strict_nan=False))
+
+    m = np.array([(1, 2), (3, 4)], dtype=[('a', int), ('b', float)])
+    n = np.array([(1, 2), (4, 3)], dtype=[('a', int), ('b', float)])
+    assert (not com.array_equivalent(m, n, strict_nan=True))
+    assert (not com.array_equivalent(m, n, strict_nan=False))
+
+    m = np.array([(1, 2), (3, 4)], dtype=[('a', int), ('b', float)])
+    n = np.array([(1, 2), (3, 4)], dtype=[('b', int), ('a', float)])
+    assert (not com.array_equivalent(m, n, strict_nan=True))
+    assert (not com.array_equivalent(m, n, strict_nan=False))
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
