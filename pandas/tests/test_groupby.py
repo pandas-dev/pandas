@@ -6304,6 +6304,47 @@ class TestGroupBy(tm.TestCase):
                                 nan, nan, nan, nan, 200, 34]}, index=idx)
         tm.assert_frame_equal(res, exp)
 
+    def test_groupby_multi_categorical_as_index(self):
+        # GH13204
+        df = DataFrame({'cat': Categorical([1, 2, 2], [1, 2, 3]),
+                        'A': [10, 11, 11],
+                        'B': [101, 102, 103]})
+        result = df.groupby(['cat', 'A'], as_index=False).sum()
+        expected = DataFrame({'cat': [1, 1, 2, 2, 3, 3],
+                              'A': [10, 11, 10, 11, 10, 11],
+                              'B': [101.0, nan, nan, 205.0, nan, nan]},
+                             columns=['cat', 'A', 'B'])
+        tm.assert_frame_equal(result, expected)
+
+        # function grouper
+        f = lambda r: df.loc[r, 'A']
+        result = df.groupby(['cat', f], as_index=False).sum()
+        expected = DataFrame({'cat': [1, 1, 2, 2, 3, 3],
+                              'A': [10.0, nan, nan, 22.0, nan, nan],
+                              'B': [101.0, nan, nan, 205.0, nan, nan]},
+                             columns=['cat', 'A', 'B'])
+        tm.assert_frame_equal(result, expected)
+
+        # another not in-axis grouper (conflicting names in index)
+        s = Series(['a', 'b', 'b'], name='cat')
+        result = df.groupby(['cat', s], as_index=False).sum()
+        expected = DataFrame({'cat': [1, 1, 2, 2, 3, 3],
+                              'A': [10.0, nan, nan, 22.0, nan, nan],
+                              'B': [101.0, nan, nan, 205.0, nan, nan]},
+                             columns=['cat', 'A', 'B'])
+        tm.assert_frame_equal(result, expected)
+
+        # is original index dropped?
+        expected = DataFrame({'cat': [1, 1, 2, 2, 3, 3],
+                              'A': [10, 11, 10, 11, 10, 11],
+                              'B': [101.0, nan, nan, 205.0, nan, nan]},
+                             columns=['cat', 'A', 'B'])
+
+        for name in [None, 'X', 'B', 'cat']:
+            df.index = Index(list("abc"), name=name)
+            result = df.groupby(['cat', 'A'], as_index=False).sum()
+            tm.assert_frame_equal(result, expected, check_index_type=True)
+
     def test_groupby_apply_all_none(self):
         # Tests to make sure no errors if apply function returns all None
         # values. Issue 9684.
@@ -6430,6 +6471,16 @@ class TestGroupBy(tm.TestCase):
                                   getattr(g, func), 1, 2, 3)
             tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
                                   getattr(g, func), foo=1)
+
+    def test_grouping_string_repr(self):
+        # GH 13394
+        mi = MultiIndex.from_arrays([list("AAB"), list("aba")])
+        df = DataFrame([[1, 2, 3]], columns=mi)
+        gr = df.groupby(df[('A', 'a')])
+
+        result = gr.grouper.groupings[0].__repr__()
+        expected = "Grouping(('A', 'a'))"
+        tm.assert_equal(result, expected)
 
 
 def assert_fp_equal(a, b):
