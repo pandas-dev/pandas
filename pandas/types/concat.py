@@ -216,7 +216,7 @@ def union_categoricals(to_union):
        A single array, categories will be ordered as they
        appear in the list
     """
-    from pandas import Index, Categorical
+    from pandas import Index, Categorical, unique
 
     if any(c.ordered for c in to_union):
         raise TypeError("Can only combine unordered Categoricals")
@@ -226,19 +226,16 @@ def union_categoricals(to_union):
                for c in to_union):
         raise TypeError("dtype of categories must be the same")
 
-    for i, c in enumerate(to_union):
-        if i == 0:
-            cats = c.categories.tolist()
-        else:
-            cats = cats + c.categories.difference(Index(cats)).tolist()
+    unique_cats = unique(np.concatenate([c.categories for c in to_union]))
+    categories = Index(unique_cats)
 
-    cats = Index(cats)
     new_codes = []
     for c in to_union:
-        indexer = cats.get_indexer(c.categories)
+        indexer = categories.get_indexer(c.categories)
         new_codes.append(indexer.take(c.codes))
     codes = np.concatenate(new_codes)
-    return Categorical.from_codes(codes, cats)
+    return Categorical(codes, categories=categories, ordered=False,
+                       fastpath=True)
 
 
 def _concat_datetime(to_concat, axis=0, typs=None):

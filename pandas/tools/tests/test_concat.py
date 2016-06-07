@@ -9,7 +9,8 @@ import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isnull, Series, date_range,
                     Index, Panel, MultiIndex, Timestamp,
-                    DatetimeIndex)
+                    DatetimeIndex, Categorical)
+from pandas.types.concat import union_categoricals
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
                                  makeCustomDataframe as mkdf,
@@ -918,6 +919,37 @@ class TestConcatenate(tm.TestCase):
         expected = concat([df0, df0[:2], df0[:1], df0],
                           keys=['b', 'c', 'd', 'e'])
         tm.assert_frame_equal(result, expected)
+
+    def test_union_categorical(self):
+        # GH 13361
+        s = Categorical(list('abc'))
+        s2 = Categorical(list('abd'))
+        result = union_categoricals([s, s2])
+        expected = Categorical(list('abcabd'))
+        tm.assert_categorical_equal(result, expected, ignore_order=True)
+
+        s = Categorical([0, 1, 2])
+        s2 = Categorical([2, 3, 4])
+        result = union_categoricals([s, s2])
+        expected = Categorical([0, 1, 2, 2, 3, 4])
+        tm.assert_categorical_equal(result, expected, ignore_order=True)
+
+        s = Categorical([0, 1.2, 2])
+        s2 = Categorical([2, 3.4, 4])
+        result = union_categoricals([s, s2])
+        expected = Categorical([0, 1.2, 2, 2, 3.4, 4])
+        tm.assert_categorical_equal(result, expected, ignore_order=True)
+
+        # can't be ordered
+        s = Categorical([0, 1.2, 2], ordered=True)
+        with tm.assertRaises(TypeError):
+            union_categoricals([s, s2])
+
+        # must exactly match types
+        s = Categorical([0, 1.2, 2])
+        s2 = Categorical([2, 3, 4])
+        with tm.assertRaises(TypeError):
+            union_categoricals([s, s2])
 
     def test_concat_bug_1719(self):
         ts1 = tm.makeTimeSeries()
