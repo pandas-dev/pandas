@@ -1397,7 +1397,14 @@ class GroupBy(_GroupBy):
             return values.rank(axis=axis, method=method, na_option=na_option,
                                ascending=ascending, pct=pct)
 
-        return data.transform(wrapper)
+        try:
+            return data.transform(wrapper)
+        except ValueError:
+            if not numeric_only and method=='first':
+                raise ValueError('first not supported for non-numeric data')
+                # such a ValueError is raised by pandas.algos.rank_2d_generic
+                # for regular (non-grouped) dataframes
+
 
     @Substitution(name='groupby')
     @Appender(_doc_template)

@@ -3653,7 +3653,14 @@ class TestGroupBy(tm.TestCase):
                         'c': 1.})
         df = df.set_index('a')
         dg = df.groupby('c')
-        self.assertRaises(DataError, dg.rank, method='first')
+        self.assertRaises(DataError, dg.rank,
+                          method='first')
+        self.assertRaises(DataError, dg.rank,
+                          method='first', numeric_only=True)
+        self.assertRaises(ValueError, dg.rank,
+                          method='first', numeric_only=False)
+        # such a ValueError is raised by pandas.algos.rank_2d_generic
+        # for regular (non-grouped) dataframes
 
         # with another numeric column
         df = DataFrame({'a': ['A1', 'A1', 'A1'],
@@ -3661,8 +3668,18 @@ class TestGroupBy(tm.TestCase):
                         'c': 1.,
                         'd': 1.})
         df = df.set_index('a')
+        dg = df.groupby('c')
         expected = df.drop('b', axis=1).groupby('c').rank(method='first')
-        assert_frame_equal(df.groupby('c').rank(method='first'), expected)
+
+        result = dg.rank(method='first')
+        assert_frame_equal(result, expected)
+
+        result = dg.rank(method='first', numeric_only=True)
+        assert_frame_equal(result, expected)
+
+        self.assertRaises(ValueError, dg.rank,
+                          method='first', numeric_only=False)
+        # same remark as above
 
     def test_rank_apply(self):
         lev1 = tm.rands_array(10, 100)
