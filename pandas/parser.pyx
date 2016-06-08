@@ -25,6 +25,7 @@ cdef extern from "Python.h":
 cdef extern from "stdlib.h":
     void memcpy(void *dst, void *src, size_t n)
 
+cimport cython
 cimport numpy as cnp
 
 from numpy cimport ndarray, uint8_t, uint64_t
@@ -33,6 +34,9 @@ import numpy as np
 cimport util
 
 import pandas.lib as lib
+from pandas.core.common import is_categorical_dtype, CategoricalDtype
+from pandas.core.categorical import Categorical
+from pandas.types.concat import union_categoricals
 
 import time
 import os
@@ -219,6 +223,24 @@ cdef extern from "parser/tokenizer.h":
 #                                     char tsep)
     int to_boolean(const char *item, uint8_t *val) nogil
 
+
+# XXX
+# this is a hack - in order to make the inference
+# functions generic (converting either data directly
+# from the parser or from a passed in hash table)
+# we add an "optional" parameter via fused type, that can either
+# be the hash table to parse, or an integer, which is used
+# as a sentinel to specialize the function for reading
+# from the parser.
+
+# This is to avoid duplicating a bunch of code or
+# adding runtime checks, but may be too much
+ctypedef kh_str_t* kh_str_t_p
+ctypedef int use_parser_data
+
+ctypedef fused inference_data_t:
+    kh_str_t_p
+    use_parser_data
 
 cdef extern from "parser/io.h":
     void *new_mmap(char *fname)
@@ -475,12 +497,17 @@ cdef class TextReader:
             conv = {}
             for k in dtype:
                 v = dtype[k]
-                if isinstance(v, basestring):
+                if is_categorical_dtype(v):
+                    v = CategoricalDtype()
+                elif isinstance(v, basestring):
                     v = np.dtype(v)
                 conv[k] = v
             dtype = conv
         elif dtype is not None:
-            dtype = np.dtype(dtype)
+            if is_categorical_dtype(dtype):
+                dtype = CategoricalDtype()
+            else:
+                dtype = np.dtype(dtype)
 
         self.dtype = dtype
 
@@ -1082,7 +1109,7 @@ cdef class TextReader:
 
             if col_dtype is not None:
                 if not isinstance(col_dtype, basestring):
-                    if isinstance(col_dtype, np.dtype):
+                    if isinstance(col_dtype, np.dtype) or is_categorical_dtype(col_dtype):
                         col_dtype = col_dtype.str
                     else:
                         col_dtype = np.dtype(col_dtype).str
@@ -1138,11 +1165,12 @@ cdef class TextReader:
                              object na_flist):
         if dtype[1] == 'i' or dtype[1] == 'u':
             result, na_count = _try_int64(self.parser, i, start, end,
-                                          na_filter, na_hashset)
+                                          na_filter, na_hashset,
+                                          <use_parser_data>NULL)
             if user_dtype and na_count is not None:
                 if na_count > 0:
                     raise ValueError("Integer column has NA values in "
-                                    "column {column}".format(column=i))
+                                     "column {column}".format(column=i))
 
             if result is not None and dtype[1:] != 'i8':
                 result = result.astype(dtype)
@@ -1151,7 +1179,8 @@ cdef class TextReader:
 
         elif dtype[1] == 'f':
             result, na_count = _try_double(self.parser, i, start, end,
-                                           na_filter, na_hashset, na_flist)
+                                           na_filter, na_hashset, na_flist,
+                                           <use_parser_data>NULL)
 
             if result is not None and dtype[1:] != 'f8':
                 result = result.astype(dtype)
@@ -1160,7 +1189,8 @@ cdef class TextReader:
         elif dtype[1] == 'b':
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
-                                              self.true_set, self.false_set)
+                                              self.true_set, self.false_set,
+                                              <use_parser_data>NULL)
             return result, na_count
         elif dtype[1] == 'c':
             raise NotImplementedError("the dtype %s is not supported for parsing" % dtype)
@@ -1183,8 +1213,15 @@ cdef class TextReader:
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
+        # is this comparison good enough?
+        elif dtype == '|O08':
+            codes, cats, na_count = _categorical_convert(self.parser, i, start,
+                                                         end, na_filter, na_hashset,
+                                                         na_flist, self.true_set,
+                                                         self.false_set, self.c_encoding)
 
-
+            return Categorical(codes, categories=cats, ordered=False,
+                               fastpath=True), na_count
         elif dtype[1] == 'O':
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
@@ -1500,6 +1537,97 @@ cdef _string_box_decode(parser_t *parser, int col,
 
     return result, na_count
 
+@cython.boundscheck(False)
+cdef _categorical_convert(parser_t *parser, int col,
+                          int line_start, int line_end,
+                          bint na_filter, kh_str_t *na_hashset,
+                          object na_flist, const kh_str_t *true_hashset,
+                          const kh_str_t *false_hashset,
+                          char *encoding):
+    "Convert column data into codes, categories"
+    cdef:
+        int error, na_count = 0
+        Py_ssize_t i, size
+        size_t lines
+        coliter_t it
+        const char *word = NULL
+        int64_t NA = -1
+        int64_t[:] codes
+        size_t current_category = 0
+
+        char *errors = "strict"
+
+        int ret = 0
+        kh_str_t *table
+
+        khiter_t k
+
+    lines = line_end - line_start
+    codes = np.empty(lines, dtype=np.int64)
+    with nogil:
+        table = kh_init_str()
+        coliter_setup(&it, parser, col, line_start)
+
+        for i in range(lines):
+            COLITER_NEXT(it, word)
+
+            if na_filter:
+                k = kh_get_str(na_hashset, word)
+                # is in NA values
+                if k != na_hashset.n_buckets:
+                    na_count += 1
+                    codes[i] = NA
+                    continue
+
+            k = kh_get_str(table, word)
+            # not in the hash table
+            if k == table.n_buckets:
+                k = kh_put_str(table, word, &ret)
+                table.vals[k] = current_category
+                current_category += 1
+
+            codes[i] = table.vals[k]
+
+
+    # follow the same inference attempts as
+    # normal data (int64, float64, bool, object)
+    result, result_na = _try_int64(parser, col, 0, table.n_occupied,
+                                   na_filter, na_hashset, table)
+    if result is None:
+        result, result_na = _try_double(parser, col, 0, table.n_occupied,
+                                        na_filter, na_hashset, na_flist,
+                                        table)
+    if result is None:
+        # bool categorical doesn't really make sense, but following the
+        # inference path for now
+        result, result_na = _try_bool_flex(parser, col, 0, table.n_occupied,
+                                           na_filter, na_hashset, true_hashset,
+                                           false_hashset, table)
+    # duplicated logic here, but doesn't make sense to reuse
+    # other string logic since those paths factorize where we
+    # already have guaranteed uniques
+    if result is None:
+        i = 0
+        result = np.empty(table.n_occupied, dtype=np.object_)
+        if encoding != NULL and encoding != b"utf-8":
+            for k in range(table.n_buckets):
+                if kh_exist_str(table, k):
+                    size = strlen(table.keys[k])
+                    result[i] = PyUnicode_Decode(table.keys[k], size, encoding, errors)
+                    i += 1
+        elif PY3 or encoding != NULL:
+            for k in range(table.n_buckets):
+                if kh_exist_str(table, k):
+                    result[i] = PyUnicode_FromString(table.keys[k])
+                    i += 1
+        else:
+            for k in range(table.n_buckets):
+                if kh_exist_str(table, k):
+                    result[i] = PyBytes_FromString(table.keys[k])
+                    i += 1
+
+    kh_destroy_str(table)
+    return np.asarray(codes), result, na_count
 
 cdef _to_fw_string(parser_t *parser, int col, int line_start,
                    int line_end, size_t width):
@@ -1536,12 +1664,12 @@ cdef char* cinf = b'inf'
 cdef char* cposinf = b'+inf'
 cdef char* cneginf = b'-inf'
 
-cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
-                 bint na_filter, kh_str_t *na_hashset, object na_flist):
+cdef inline _try_double(parser_t *parser, int col, int line_start, int line_end,
+                        bint na_filter, kh_str_t *na_hashset, object na_flist,
+                        inference_data_t inference_data):
     cdef:
         int error, na_count = 0
         size_t i, lines
-        coliter_t it
         const char *word = NULL
         char *p_end
         double *data
@@ -1557,17 +1685,19 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
     na_fset = kset_float64_from_list(na_flist)
     with nogil:
         error = _try_double_nogil(parser, col, line_start, line_end,
-                                  na_filter, na_hashset, use_na_flist, na_fset, NA, data, &na_count)
+                                  na_filter, na_hashset, use_na_flist, na_fset, NA, data,
+                                  &na_count, inference_data)
     kh_destroy_float64(na_fset)
     if error != 0:
         return None, None
     return result, na_count
 
+
 cdef inline int _try_double_nogil(parser_t *parser, int col, int line_start, int line_end,
-                                  bint na_filter, kh_str_t *na_hashset, bint use_na_flist,
-                                  const kh_float64_t *na_flist,
-                                  double NA,
-                                  double *data, int *na_count) nogil:
+                           bint na_filter, kh_str_t *na_hashset, bint use_na_flist,
+                           const kh_float64_t *na_flist,
+                           double NA, double *data, int *na_count,
+                           inference_data_t inference_data) nogil:
     cdef:
         int error,
         size_t i
@@ -1576,15 +1706,24 @@ cdef inline int _try_double_nogil(parser_t *parser, int col, int line_start, int
         const char *word = NULL
         char *p_end
         khiter_t k, k64
+        # only used with passed in data
+        khiter_t kit = 0
 
     global errno
 
     na_count[0] = 0
-    coliter_setup(&it, parser, col, line_start)
+
+    # these type checks specialize at compile time
+    # see typedefs
+    if inference_data_t is use_parser_data:
+        coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            if inference_data_t is use_parser_data:
+                COLITER_NEXT(it, word)
+            else:
+                kit = _htable_next(inference_data, kit, &word)
 
             k = kh_get_str(na_hashset, word)
             # in the hash table
@@ -1610,7 +1749,11 @@ cdef inline int _try_double_nogil(parser_t *parser, int col, int line_start, int
             data += 1
     else:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            if inference_data_t is use_parser_data:
+                COLITER_NEXT(it, word)
+            else:
+                kit = _htable_next(inference_data, kit, &word)
+
             data[0] = parser.converter(word, &p_end, parser.decimal, parser.sci,
                                        parser.thousands, 1)
             if errno != 0 or p_end[0] or p_end == word:
@@ -1626,11 +1769,11 @@ cdef inline int _try_double_nogil(parser_t *parser, int col, int line_start, int
     return 0
 
 cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
-                bint na_filter, kh_str_t *na_hashset):
+                bint na_filter, kh_str_t *na_hashset,
+                inference_data_t inference_data):
     cdef:
         int error, na_count = 0
         size_t i, lines
-        coliter_t it
         int64_t *data
         ndarray result
 
@@ -1640,9 +1783,10 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.int64)
     data = <int64_t *> result.data
-    coliter_setup(&it, parser, col, line_start)
+    # compile time
     with nogil:
-        error = _try_int64_nogil(parser, col, line_start, line_end, na_filter, na_hashset, NA, data, &na_count)
+        error = _try_int64_nogil(parser, col, line_start, line_end, na_filter,
+                                 na_hashset, NA, data, &na_count, inference_data)
     if error != 0:
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
@@ -1653,21 +1797,26 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
 
 cdef inline int _try_int64_nogil(parser_t *parser, int col, int line_start, int line_end,
                                  bint na_filter, const kh_str_t *na_hashset, int64_t NA, int64_t *data,
-                                 int *na_count) nogil:
+                                 int *na_count, inference_data_t inference_data) nogil:
     cdef:
         int error
         size_t i
         size_t lines = line_end - line_start
         coliter_t it
         const char *word = NULL
-        khiter_t k
+        khiter_t k, kit = 0
 
     na_count[0] = 0
-    coliter_setup(&it, parser, col, line_start)
+    # compile time checks
+    if inference_data_t is use_parser_data:
+        coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            if inference_data_t is use_parser_data:
+                COLITER_NEXT(it, word)
+            else:
+                kit = _htable_next(inference_data, kit, &word)
             k = kh_get_str(na_hashset, word)
             # in the hash table
             if k != na_hashset.n_buckets:
@@ -1681,7 +1830,10 @@ cdef inline int _try_int64_nogil(parser_t *parser, int col, int line_start, int 
                 return error
     else:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            if inference_data_t is use_parser_data:
+                COLITER_NEXT(it, word)
+            else:
+                kit = _htable_next(inference_data, kit, &word)
             data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
                                    &error, parser.thousands)
             if error != 0:
@@ -1719,6 +1871,7 @@ cdef inline int _try_bool_nogil(parser_t *parser, int col, int line_start, int l
         const char *word = NULL
         khiter_t k
     na_count[0] = 0
+
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
@@ -1749,7 +1902,8 @@ cdef inline int _try_bool_nogil(parser_t *parser, int col, int line_start, int l
 
 cdef _try_bool_flex(parser_t *parser, int col, int line_start, int line_end,
                     bint na_filter, const kh_str_t *na_hashset,
-                    const kh_str_t *true_hashset, const kh_str_t *false_hashset):
+                    const kh_str_t *true_hashset, const kh_str_t *false_hashset,
+                    inference_data_t inference_data):
     cdef:
         int error, na_count = 0
         size_t i, lines
@@ -1765,8 +1919,9 @@ cdef _try_bool_flex(parser_t *parser, int col, int line_start, int line_end,
     result = np.empty(lines, dtype=np.uint8)
     data = <uint8_t *> result.data
     with nogil:
-        error = _try_bool_flex_nogil(parser, col, line_start, line_end, na_filter, na_hashset,
-                                     true_hashset, false_hashset, NA, data, &na_count)
+        error = _try_bool_flex_nogil(parser, col, line_start, line_end, na_filter,
+                                     na_hashset, true_hashset, false_hashset, NA, data,
+                                     &na_count, inference_data)
     if error != 0:
         return None, None
     return result.view(np.bool_), na_count
@@ -1774,21 +1929,27 @@ cdef _try_bool_flex(parser_t *parser, int col, int line_start, int line_end,
 cdef inline int _try_bool_flex_nogil(parser_t *parser, int col, int line_start, int line_end,
                                      bint na_filter, const kh_str_t *na_hashset,
                                      const kh_str_t *true_hashset, const kh_str_t *false_hashset,
-                                     uint8_t NA, uint8_t *data, int *na_count) nogil:
+                                     uint8_t NA, uint8_t *data, int *na_count,
+                                     inference_data_t inference_data) nogil:
     cdef:
         int error = 0
         size_t i
         size_t lines = line_end - line_start
         coliter_t it
         const char *word = NULL
-        khiter_t k
+        khiter_t k, kit = 0
 
     na_count[0] = 0
-    coliter_setup(&it, parser, col, line_start)
+    # compile time
+    if inference_data_t is use_parser_data:
+        coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            if inference_data_t is use_parser_data:
+                COLITER_NEXT(it, word)
+            else:
+                kit = _htable_next(inference_data, kit, &word)
 
             k = kh_get_str(na_hashset, word)
             # in the hash table
@@ -1815,7 +1976,10 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int col, int line_start, 
             data += 1
     else:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            if inference_data_t is use_parser_data:
+                COLITER_NEXT(it, word)
+            else:
+                kit = _htable_next(inference_data, kit, &word)
 
             k = kh_get_str(true_hashset, word)
             if k != true_hashset.n_buckets:
@@ -1835,6 +1999,19 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int col, int line_start, 
             data += 1
 
     return 0
+
+
+cdef inline khiter_t _htable_next(kh_str_t *table, khiter_t k, char **word) nogil:
+    """given starting iterator, asssign next valid key to word and return
+    the next iterator"""
+    while k < table.n_buckets:
+        if kh_exist_str(table, k):
+            break
+        k += 1
+
+    word[0] = table.keys[k]
+    return (k + 1)
+
 
 cdef kh_str_t* kset_from_list(list values) except NULL:
     # caller takes responsibility for freeing the hash table
@@ -1924,7 +2101,12 @@ def _concatenate_chunks(list chunks):
             common_type = np.find_common_type(dtypes, [])
             if common_type == np.object:
                 warning_columns.append(str(name))
-        result[name] = np.concatenate(arrs)
+
+        if is_categorical_dtype(dtypes.pop()):
+            result[name] = union_categoricals(arrs)
+            #np.concatenate([c.codes for c in arrs])
+        else:
+            result[name] = np.concatenate(arrs)
 
     if warning_columns:
         warning_names = ','.join(warning_columns)

@@ -12,9 +12,10 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import DataFrame, Series, Index, MultiIndex
+from pandas import DataFrame, Series, Index, MultiIndex, Categorical
 from pandas import compat
 from pandas.compat import StringIO, range, lrange
+from pandas.types.dtypes import CategoricalDtype
 
 
 class CParserTests(object):
@@ -183,6 +184,26 @@ one,two
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'})
         self.assertEqual(result['one'].dtype, 'u1')
         self.assertEqual(result['two'].dtype, 'object')
+
+    def test_categorical_dtype(self):
+        # GH 10153
+        data = """a,b,c
+1,a,3.4
+1,a,3.4
+2,b,4.5"""
+        expected = pd.DataFrame({'a': Categorical([1, 1, 2]),
+                                 'b': Categorical(['a', 'a', 'b']),
+                                 'c': Categorical([3.4, 3.4, 4.5])})
+        actual = self.read_csv(StringIO(data), dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype=CategoricalDtype())
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype={'a': 'category',
+                                                      'b': 'category',
+                                                      'c': CategoricalDtype()})
+        tm.assert_frame_equal(actual, expected)
 
     def test_pass_dtype_as_recarray(self):
         if compat.is_platform_windows() and self.low_memory:
