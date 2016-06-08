@@ -648,6 +648,31 @@ In this case the categories are not the same and so an error is raised:
 
 The same applies to ``df.append(df_different)``.
 
+.. _categorical.union:
+
+Unioning
+~~~~~~~~
+
+.. versionadded:: 0.18.2
+
+If you want to combine categoricals that do not necessarily have
+the same categories, the `union_categorical` function will
+combine a list-like of categoricals. The new categories
+will be the union of the categories being combined.
+
+.. ipython:: python
+
+    from pandas.types.concat import union_categoricals
+    a = pd.Categorical(["b", "c"])
+    b = pd.Categorical(["a", "b"])
+    union_categoricals([a, b])
+
+.. note::
+
+   `union_categoricals` only works with unordered categoricals
+   and will raise if any are ordered.
+
+
 Getting Data In/Out
 -------------------
 

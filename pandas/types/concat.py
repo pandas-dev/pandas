@@ -201,6 +201,57 @@ def _concat_categorical(to_concat, axis=0):
         return Categorical(concatted, rawcats)
 
 
+def union_categoricals(to_union):
+    """
+    Combine list-like of Categoricals, unioning categories. All
+    must have the same dtype, and none can be ordered.
+
+    .. versionadded 0.18.2
+
+    Parameters
+    ----------
+    to_union : list-like of Categoricals
+
+    Returns
+    -------
+    Categorical
+       A single array, categories will be ordered as they
+       appear in the list
+
+    Raises
+    ------
+    TypeError
+        If any of the categoricals are ordered or all do not
+        have the same dtype
+    ValueError
+        Emmpty list of categoricals passed
+    """
+    from pandas import Index, Categorical
+
+    if len(to_union) == 0:
+        raise ValueError('No Categoricals to union')
+
+    first = to_union[0]
+    if any(c.ordered for c in to_union):
+        raise TypeError("Can only combine unordered Categoricals")
+
+    if not all(com.is_dtype_equal(c.categories.dtype, first.categories.dtype)
+               for c in to_union):
+        raise TypeError("dtype of categories must be the same")
+
+    cats = first.categories
+    unique_cats = cats.append([c.categories for c in to_union[1:]]).unique()
+    categories = Index(unique_cats)
+
+    new_codes = []
+    for c in to_union:
+        indexer = categories.get_indexer(c.categories)
+        new_codes.append(indexer.take(c.codes))
+    codes = np.concatenate(new_codes)
+    return Categorical(codes, categories=categories, ordered=False,
+                       fastpath=True)
+
+
 def _concat_datetime(to_concat, axis=0, typs=None):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
