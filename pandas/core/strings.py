@@ -708,6 +708,8 @@ def str_extractall(arr, pat, flags=0):
                 subject_key = (subject_key, )
 
             for match_i, match_tuple in enumerate(regex.findall(subject)):
+                if isinstance(match_tuple, compat.string_types):
+                    match_tuple = (match_tuple,)
                 na_tuple = [np.NaN if group == "" else group
                             for group in match_tuple]
                 match_list.append(na_tuple)
