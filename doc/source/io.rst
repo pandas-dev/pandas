@@ -198,6 +198,10 @@ use_unsigned : boolean, default False
 
   If integer columns are being compacted (i.e. ``compact_ints=True``), specify whether
   the column should be compacted to the smallest signed or unsigned integer dtype.
+memory_map : boolean, default False
+  If a filepath is provided for ``filepath_or_buffer``, map the file object
+  directly onto memory and access the data directly from there. Using this
+  option can improve performance because there is no longer any I/O overhead.
 
 NA and Missing Data Handling
 ++++++++++++++++++++++++++++
