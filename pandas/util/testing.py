@@ -963,14 +963,40 @@ def assertNotIsInstance(obj, cls, msg=''):
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
-                             obj='Categorical'):
+                             obj='Categorical', check_category_order=True):
+    """Test that categoricals are eqivalent
+
+    Parameters
+    ----------
+    left, right : Categorical
+        Categoricals to compare
+    check_dtype : bool, default True
+        Check that integer dtype of the codes are the same
+    obj : str, default 'Categorical'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
+    check_category_order : bool, default True
+        Whether the order of the categories should be compared, which
+        implies identical integer codes.  If False, only the resulting
+        values are compared.  The ordered attribute is
+        checked regardless.
+    """
     assertIsInstance(left, pd.Categorical, '[Categorical] ')
     assertIsInstance(right, pd.Categorical, '[Categorical] ')
 
-    assert_index_equal(left.categories, right.categories,
-                       obj='{0}.categories'.format(obj))
-    assert_numpy_array_equal(left.codes, right.codes, check_dtype=check_dtype,
-                             obj='{0}.codes'.format(obj))
+    if check_category_order:
+        assert_index_equal(left.categories, right.categories,
+                           obj='{0}.categories'.format(obj))
+        assert_numpy_array_equal(left.codes, right.codes,
+                                 check_dtype=check_dtype,
+                                 obj='{0}.codes'.format(obj))
+    else:
+        assert_index_equal(left.categories.sort_values(),
+                           right.categories.sort_values(),
+                           obj='{0}.categories'.format(obj))
+        assert_index_equal(left.categories.take(left.codes),
+                           right.categories.take(right.codes),
+                           obj='{0}.values'.format(obj))
 
     assert_attr_equal('ordered', left, right, obj=obj)
 

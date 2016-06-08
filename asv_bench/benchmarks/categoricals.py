@@ -1,4 +1,8 @@
 from .pandas_vb_common import *
+try:
+    from pandas.types.concat import union_categoricals
+except ImportError:
+    pass
 import string
 
 
@@ -10,6 +14,17 @@ class concat_categorical(object):
 
     def time_concat_categorical(self):
         concat([self.s, self.s])
+
+
+class union_categorical(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.a = pd.Categorical((list('aabbcd') * 1000000))
+        self.b = pd.Categorical((list('bbcdjk') * 1000000))
+
+    def time_union_categorical(self):
+        union_categoricals([self.a, self.b])
 
 
 class categorical_value_counts(object):
