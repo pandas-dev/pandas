@@ -261,6 +261,10 @@ use_unsigned : boolean, default False
     If integer columns are being compacted (i.e. `compact_ints=True`), specify
     whether the column should be compacted to the smallest signed or unsigned
     integer dtype.
+memory_map : boolean, default False
+    If a filepath is provided for `filepath_or_buffer`, map the file object
+    directly onto memory and access the data directly from there. Using this
+    option can improve performance because there is no longer any I/O overhead.
 
 Returns
 -------
@@ -459,7 +463,6 @@ _fwf_defaults = {
 _c_unsupported = set(['skip_footer'])
 _python_unsupported = set([
     'low_memory',
-    'memory_map',
     'buffer_lines',
     'error_bad_lines',
     'warn_bad_lines',
@@ -1683,6 +1686,7 @@ class PythonParser(ParserBase):
 
         self.encoding = kwds['encoding']
         self.compression = kwds['compression']
+        self.memory_map = kwds['memory_map']
         self.skiprows = kwds['skiprows']
 
         self.skip_footer = kwds['skip_footer']
@@ -1718,7 +1722,8 @@ class PythonParser(ParserBase):
 
         if isinstance(f, compat.string_types):
             f = _get_handle(f, 'r', encoding=self.encoding,
-                            compression=self.compression)
+                            compression=self.compression,
+                            memory_map=self.memory_map)
         elif self.compression:
             f = _wrap_compressed(f, self.compression, self.encoding)
         # in Python 3, convert BytesIO or fileobjects passed with an encoding

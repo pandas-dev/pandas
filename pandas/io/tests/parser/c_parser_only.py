@@ -285,10 +285,6 @@ one,two
         self.assertTrue((result.dtypes == [object, np.int, np.float]).all())
         self.assertTrue((result2.dtypes == [object, np.float]).all())
 
-    def test_memory_map(self):
-        # it works!
-        self.read_csv(self.csv1, memory_map=True)
-
     def test_disable_bool_parsing(self):
         # #2090
 

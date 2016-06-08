@@ -4,6 +4,7 @@ import sys
 import os
 import csv
 import codecs
+import mmap
 import zipfile
 from contextlib import contextmanager, closing
 
@@ -276,7 +277,7 @@ else:
     ZipFile = zipfile.ZipFile
 
 
-def _get_handle(path, mode, encoding=None, compression=None):
+def _get_handle(path, mode, encoding=None, compression=None, memory_map=False):
     """Gets file handle for given path and mode.
     """
     if compression is not None:
@@ -324,7 +325,53 @@ def _get_handle(path, mode, encoding=None, compression=None):
         else:
             f = open(path, mode)
 
+    if memory_map and hasattr(f, 'fileno'):
+        try:
+            f = MMapWrapper(f)
+        except Exception:
+            # we catch any errors that may have occurred
+            # because that is consistent with the lower-level
+            # functionality of the C engine (pd.read_csv), so
+            # leave the file handler as is then
+            pass
+
     return f
+
+
+class MMapWrapper(BaseIterator):
+    """
+    Wrapper for the Python's mmap class so that it can be properly read in
+    by Python's csv.reader class.
+
+    Parameters
+    ----------
+    f : file object
+        File object to be mapped onto memory. Must support the 'fileno'
+        method or have an equivalent attribute
+
+    """
+
+    def __init__(self, f):
+        self.mmap = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+
+    def __getattr__(self, name):
+        return getattr(self.mmap, name)
+
+    def __next__(self):
+        newline = self.mmap.readline()
+
+        # readline returns bytes, not str, in Python 3,
+        # but Python's CSV reader expects str, so convert
+        # the output to str before continuing
+        if compat.PY3:
+            newline = compat.bytes_to_str(newline)
+
+        # mmap doesn't raise if reading past the allocated
+        # data but instead returns an empty string, so raise
+        # if that is returned
+        if newline == '':
+            raise StopIteration
+        return newline
 
 
 class UTF8Recoder(BaseIterator):

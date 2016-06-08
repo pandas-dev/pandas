@@ -2,6 +2,7 @@
     Tests for the pandas.io.common functionalities
 """
 from pandas.compat import StringIO
+import mmap
 import os
 from os.path import isabs
 
@@ -87,3 +88,49 @@ bar2,12,13,14,15
         tm.assert_frame_equal(first, expected.iloc[[0]])
         expected.index = [0 for i in range(len(expected))]
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
+
+
+class TestMMapWrapper(tm.TestCase):
+
+    def setUp(self):
+        self.mmap_file = os.path.join(tm.get_data_path(),
+                                      'test_mmap.csv')
+
+    def test_constructor_bad_file(self):
+        non_file = StringIO('I am not a file')
+        non_file.fileno = lambda: -1
+
+        msg = "Invalid argument"
+        tm.assertRaisesRegexp(mmap.error, msg, common.MMapWrapper, non_file)
+
+        target = open(self.mmap_file, 'r')
+        target.close()
+
+        msg = "I/O operation on closed file"
+        tm.assertRaisesRegexp(ValueError, msg, common.MMapWrapper, target)
+
+    def test_get_attr(self):
+        target = open(self.mmap_file, 'r')
+        wrapper = common.MMapWrapper(target)
+
+        attrs = dir(wrapper.mmap)
+        attrs = [attr for attr in attrs
+                 if not attr.startswith('__')]
+        attrs.append('__next__')
+
+        for attr in attrs:
+            self.assertTrue(hasattr(wrapper, attr))
+
+        self.assertFalse(hasattr(wrapper, 'foo'))
+
+    def test_next(self):
+        target = open(self.mmap_file, 'r')
+        wrapper = common.MMapWrapper(target)
+
+        lines = target.readlines()
+
+        for line in lines:
+            next_line = next(wrapper)
+            self.assertEqual(next_line, line)
+
+        self.assertRaises(StopIteration, next, wrapper)
