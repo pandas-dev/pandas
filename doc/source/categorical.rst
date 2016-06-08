@@ -653,6 +653,8 @@ The same applies to ``df.append(df_different)``.
 Unioning
 ~~~~~~~~
 
+.. versionadded:: 0.18.2
+
 If you want to combine categoricals that do not necessarily have
 the same categories, the `union_categorical` function will
 combine a list-like of categoricals. The new categories

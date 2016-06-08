@@ -223,13 +223,18 @@ def union_categoricals(to_union):
     TypeError
         If any of the categoricals are ordered or all do not
         have the same dtype
+    ValueError
+        Emmpty list of categoricals passed
     """
     from pandas import Index, Categorical
 
+    if len(to_union) == 0:
+        raise ValueError('No Categoricals to union')
+
+    first = to_union[0]
     if any(c.ordered for c in to_union):
         raise TypeError("Can only combine unordered Categoricals")
 
-    first = to_union[0]
     if not all(com.is_dtype_equal(c.categories.dtype, first.categories.dtype)
                for c in to_union):
         raise TypeError("dtype of categories must be the same")

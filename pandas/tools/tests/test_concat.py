@@ -965,6 +965,9 @@ class TestConcatenate(tm.TestCase):
         with tm.assertRaises(TypeError):
             union_categoricals([s, s2])
 
+        with tm.assertRaises(ValueError):
+            union_categoricals([])
+
     def test_concat_bug_1719(self):
         ts1 = tm.makeTimeSeries()
         ts2 = tm.makeTimeSeries()[::2]
