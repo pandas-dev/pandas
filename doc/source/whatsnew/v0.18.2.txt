@@ -336,6 +336,7 @@ Bug Fixes
 - Bug in ``SeriesGroupBy.transform`` with datetime values and missing groups (:issue:`13191`)
 
 - Bug in ``Series.str.extractall()`` with ``str`` index raises ``ValueError``  (:issue:`13156`)
+- Bug in ``Series.str.extractall()`` with single group and quantifier  (:issue:`13382`)
 
 
 - Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
