@@ -358,6 +358,7 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` with ``engine='python'`` in which infinities of mixed-case forms were not being interpreted properly (:issue:`13274`)
 - Bug in ``pd.read_csv()`` with ``engine='python'`` in which trailing ``NaN`` values were not being parsed (:issue:`13320`)
 - Bug in ``pd.read_csv()`` that prevents ``usecols`` kwarg from accepting single-byte unicode strings (:issue:`13219`)
+- Bug in ``pd.read_csv()`` that prevents ``usecols`` from being an empty set (:issue:`13402`)
 
 
 

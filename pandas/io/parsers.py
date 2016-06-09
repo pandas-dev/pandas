@@ -944,7 +944,8 @@ def _validate_usecols_arg(usecols):
 
     if usecols is not None:
         usecols_dtype = lib.infer_dtype(usecols)
-        if usecols_dtype not in ('integer', 'string', 'unicode'):
+        if usecols_dtype not in ('empty', 'integer',
+                                 'string', 'unicode'):
             raise ValueError(msg)
 
     return usecols
