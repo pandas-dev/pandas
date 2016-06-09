@@ -198,9 +198,13 @@ To view your environments::
 
       conda info -e
 
-To return to you home root environment::
+To return to your home root environment in windows::
 
       deactivate
+
+To return to your home root environment in linux::
+
+      source deactivate
 
 See the full conda docs `here <http://conda.pydata.org/docs>`__.
 
