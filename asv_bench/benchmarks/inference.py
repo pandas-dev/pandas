@@ -136,3 +136,24 @@ class dtype_infer_uint32(object):
 
     def time_dtype_infer_uint32(self):
         (self.df_uint32['A'] + self.df_uint32['B'])
+
+
+class to_numeric(object):
+    N = 500000
+
+    param_names = ['data', 'dtype']
+    params = [
+        [(['1'] * N / 2) + ([2] * N / 2),
+         (['-1'] * N / 2) + ([2] * N / 2),
+         np.repeat(np.array('1970-01-01', '1970-01-02',
+                            dtype='datetime64[D]'), N),
+         (['1.1'] * N / 2) + ([2] * N / 2),
+         ([1] * N / 2) + ([2] * N / 2),
+         np.repeat(np.int32(1), N)],
+        ['int64', 'uint64', 'int32', 'uint32',
+         'int16', 'uint16', 'int8', 'uint8',
+         'float64', 'float32', float, int],
+    ]
+
+    def time_to_numeric(self, data, dtype):
+        pd.to_numeric(data, downcast=dtype)
