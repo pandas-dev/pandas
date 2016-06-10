@@ -10,7 +10,7 @@ import numpy as np
 from pandas.compat import (lmap, range, lrange, StringIO, u)
 from pandas.parser import CParserError
 from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
-                    date_range, read_csv, compat)
+                    date_range, read_csv, compat, to_datetime)
 import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal,
@@ -139,7 +139,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             self.tzframe.to_csv(path)
             result = pd.read_csv(path, index_col=0, parse_dates=['A'])
 
-            converter = lambda c: pd.to_datetime(result[c]).dt.tz_localize(
+            converter = lambda c: to_datetime(result[c]).dt.tz_localize(
                 'UTC').dt.tz_convert(self.tzframe[c].dt.tz)
             result['B'] = converter('B')
             result['C'] = converter('C')
@@ -161,15 +161,6 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             rs_c = pd.read_csv(path, index_col=0)
 
         assert_frame_equal(df[cols], rs_c, check_names=False)
-
-    def test_to_csv_legacy_raises_on_dupe_cols(self):
-        df = mkdf(10, 3)
-        df.columns = ['a', 'a', 'b']
-        with ensure_clean() as path:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                self.assertRaises(NotImplementedError,
-                                  df.to_csv, path, engine='python')
 
     def test_to_csv_new_dupe_cols(self):
         import pandas as pd
@@ -712,7 +703,6 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             cols.extend([0, 1, 2])
         df.columns = cols
 
-        from pandas import to_datetime
         with ensure_clean() as filename:
             df.to_csv(filename)
             result = read_csv(filename, index_col=0)
@@ -993,72 +983,57 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                               filename, compression="zip")
 
     def test_to_csv_date_format(self):
-        from pandas import to_datetime
         with ensure_clean('__tmp_to_csv_date_format__') as path:
-            for engine in [None, 'python']:
-                w = FutureWarning if engine == 'python' else None
+            dt_index = self.tsframe.index
+            datetime_frame = DataFrame(
+                {'A': dt_index, 'B': dt_index.shift(1)}, index=dt_index)
+            datetime_frame.to_csv(path, date_format='%Y%m%d')
 
-                dt_index = self.tsframe.index
-                datetime_frame = DataFrame(
-                    {'A': dt_index, 'B': dt_index.shift(1)}, index=dt_index)
+            # Check that the data was put in the specified format
+            test = read_csv(path, index_col=0)
 
-                with tm.assert_produces_warning(w, check_stacklevel=False):
-                    datetime_frame.to_csv(
-                        path, date_format='%Y%m%d', engine=engine)
+            datetime_frame_int = datetime_frame.applymap(
+                lambda x: int(x.strftime('%Y%m%d')))
+            datetime_frame_int.index = datetime_frame_int.index.map(
+                lambda x: int(x.strftime('%Y%m%d')))
 
-                # Check that the data was put in the specified format
-                test = read_csv(path, index_col=0)
+            assert_frame_equal(test, datetime_frame_int)
 
-                datetime_frame_int = datetime_frame.applymap(
-                    lambda x: int(x.strftime('%Y%m%d')))
-                datetime_frame_int.index = datetime_frame_int.index.map(
-                    lambda x: int(x.strftime('%Y%m%d')))
+            datetime_frame.to_csv(path, date_format='%Y-%m-%d')
 
-                assert_frame_equal(test, datetime_frame_int)
+            # Check that the data was put in the specified format
+            test = read_csv(path, index_col=0)
+            datetime_frame_str = datetime_frame.applymap(
+                lambda x: x.strftime('%Y-%m-%d'))
+            datetime_frame_str.index = datetime_frame_str.index.map(
+                lambda x: x.strftime('%Y-%m-%d'))
 
-                with tm.assert_produces_warning(w, check_stacklevel=False):
-                    datetime_frame.to_csv(
-                        path, date_format='%Y-%m-%d', engine=engine)
+            assert_frame_equal(test, datetime_frame_str)
 
-                # Check that the data was put in the specified format
-                test = read_csv(path, index_col=0)
-                datetime_frame_str = datetime_frame.applymap(
-                    lambda x: x.strftime('%Y-%m-%d'))
-                datetime_frame_str.index = datetime_frame_str.index.map(
-                    lambda x: x.strftime('%Y-%m-%d'))
+            # Check that columns get converted
+            datetime_frame_columns = datetime_frame.T
+            datetime_frame_columns.to_csv(path, date_format='%Y%m%d')
 
-                assert_frame_equal(test, datetime_frame_str)
+            test = read_csv(path, index_col=0)
 
-                # Check that columns get converted
-                datetime_frame_columns = datetime_frame.T
+            datetime_frame_columns = datetime_frame_columns.applymap(
+                lambda x: int(x.strftime('%Y%m%d')))
+            # Columns don't get converted to ints by read_csv
+            datetime_frame_columns.columns = (
+                datetime_frame_columns.columns
+                .map(lambda x: x.strftime('%Y%m%d')))
 
-                with tm.assert_produces_warning(w, check_stacklevel=False):
-                    datetime_frame_columns.to_csv(
-                        path, date_format='%Y%m%d', engine=engine)
+            assert_frame_equal(test, datetime_frame_columns)
 
-                test = read_csv(path, index_col=0)
+            # test NaTs
+            nat_index = to_datetime(
+                ['NaT'] * 10 + ['2000-01-01', '1/1/2000', '1-1-2000'])
+            nat_frame = DataFrame({'A': nat_index}, index=nat_index)
+            nat_frame.to_csv(path, date_format='%Y-%m-%d')
 
-                datetime_frame_columns = datetime_frame_columns.applymap(
-                    lambda x: int(x.strftime('%Y%m%d')))
-                # Columns don't get converted to ints by read_csv
-                datetime_frame_columns.columns = (
-                    datetime_frame_columns.columns
-                    .map(lambda x: x.strftime('%Y%m%d')))
+            test = read_csv(path, parse_dates=[0, 1], index_col=0)
 
-                assert_frame_equal(test, datetime_frame_columns)
-
-                # test NaTs
-                nat_index = to_datetime(
-                    ['NaT'] * 10 + ['2000-01-01', '1/1/2000', '1-1-2000'])
-                nat_frame = DataFrame({'A': nat_index}, index=nat_index)
-
-                with tm.assert_produces_warning(w, check_stacklevel=False):
-                    nat_frame.to_csv(
-                        path, date_format='%Y-%m-%d', engine=engine)
-
-                test = read_csv(path, parse_dates=[0, 1], index_col=0)
-
-                assert_frame_equal(test, nat_frame)
+            assert_frame_equal(test, nat_frame)
 
     def test_to_csv_with_dst_transitions(self):
 
@@ -1077,7 +1052,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                 # we have to reconvert the index as we
                 # don't parse the tz's
                 result = read_csv(path, index_col=0)
-                result.index = pd.to_datetime(result.index).tz_localize(
+                result.index = to_datetime(result.index).tz_localize(
                     'UTC').tz_convert('Europe/London')
                 assert_frame_equal(result, df)
 
@@ -1089,9 +1064,9 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         with ensure_clean('csv_date_format_with_dst') as path:
             df.to_csv(path, index=True)
             result = read_csv(path, index_col=0)
-            result.index = pd.to_datetime(result.index).tz_localize(
+            result.index = to_datetime(result.index).tz_localize(
                 'UTC').tz_convert('Europe/Paris')
-            result['idx'] = pd.to_datetime(result['idx']).astype(
+            result['idx'] = to_datetime(result['idx']).astype(
                 'datetime64[ns, Europe/Paris]')
             assert_frame_equal(result, df)
 
