@@ -1342,7 +1342,6 @@ class DataFrame(NDFrame):
                                      cols=columns, header=header, index=index,
                                      index_label=index_label, mode=mode,
                                      chunksize=chunksize, quotechar=quotechar,
-                                     engine=kwds.get("engine"),
                                      tupleize_cols=tupleize_cols,
                                      date_format=date_format,
                                      doublequote=doublequote,
