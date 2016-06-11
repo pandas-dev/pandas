@@ -34,7 +34,10 @@ import numpy as np
 cimport util
 
 import pandas.lib as lib
-from pandas.core.common import is_categorical_dtype, CategoricalDtype
+from pandas.core.common import (is_categorical_dtype, CategoricalDtype,
+                                is_integer_dtype, is_float_dtype,
+                                is_bool_dtype, is_object_dtype,
+                                is_string_dtype, is_datetime64_dtype)
 from pandas.core.categorical import Categorical
 from pandas.types.concat import union_categoricals
 
@@ -224,19 +227,13 @@ cdef extern from "parser/tokenizer.h":
     int to_boolean(const char *item, uint8_t *val) nogil
 
 
-# XXX
-# this is a hack - in order to make the inference
-# functions generic (converting either data directly
-# from the parser or from a passed in hash table)
-# we add an "optional" parameter via fused type, that can either
-# be the hash table to parse, or an integer, which is used
-# as a sentinel to specialize the function for reading
-# from the parser.
 
-# This is to avoid duplicating a bunch of code or
-# adding runtime checks, but may be too much
+# to make the inference functions generic
+# add an optional last parameter that is
+# the source of data to be used
+# other than the parser_t
 ctypedef kh_str_t* kh_str_t_p
-ctypedef int use_parser_data
+ctypedef void* use_parser_data
 
 ctypedef fused inference_data_t:
     kh_str_t_p
@@ -421,11 +418,12 @@ cdef class TextReader:
 
         self._set_quoting(quotechar, quoting)
 
-        # TODO: endianness just a placeholder?
+
+        dtype_order = ['int64', 'float64', 'bool', 'object']
         if quoting == QUOTE_NONNUMERIC:
-            self.dtype_cast_order = ['<f8', '<i8', '|b1', '|O8']
-        else:
-            self.dtype_cast_order = ['<i8', '<f8', '|b1', '|O8']
+            # consistent with csv module semantics, cast all to float
+            dtype_order = dtype_order[1:]
+        self.dtype_cast_order = [np.dtype(x) for x in dtype_order]
 
         if comment is not None:
             if len(comment) > 1:
@@ -1108,12 +1106,6 @@ cdef class TextReader:
                     col_dtype = self.dtype
 
             if col_dtype is not None:
-                if not isinstance(col_dtype, basestring):
-                    if isinstance(col_dtype, np.dtype) or is_categorical_dtype(col_dtype):
-                        col_dtype = col_dtype.str
-                    else:
-                        col_dtype = np.dtype(col_dtype).str
-
                 col_res, na_count = self._convert_with_dtype(col_dtype, i, start, end,
                                                              na_filter, 1, na_hashset, na_flist)
 
@@ -1131,7 +1123,7 @@ cdef class TextReader:
                         dt, i, start, end, na_filter, 0, na_hashset, na_flist)
                 except OverflowError:
                     col_res, na_count = self._convert_with_dtype(
-                        '|O8', i, start, end, na_filter, 0, na_hashset, na_flist)
+                        np.dtype('object'), i, start, end, na_filter, 0, na_hashset, na_flist)
 
                 if col_res is not None:
                     break
@@ -1163,41 +1155,38 @@ cdef class TextReader:
                              bint user_dtype,
                              kh_str_t *na_hashset,
                              object na_flist):
-        if dtype[1] == 'i' or dtype[1] == 'u':
-            result, na_count = _try_int64(self.parser, i, start, end,
-                                          na_filter, na_hashset,
-                                          <use_parser_data>NULL)
+        if is_integer_dtype(dtype):
+            result, na_count = _try_int64[use_parser_data](self.parser, i,
+                                                           start, end, na_filter,
+                                                           na_hashset, NULL)
             if user_dtype and na_count is not None:
                 if na_count > 0:
                     raise ValueError("Integer column has NA values in "
                                      "column {column}".format(column=i))
 
-            if result is not None and dtype[1:] != 'i8':
+            if result is not None and dtype != 'int64':
                 result = result.astype(dtype)
 
             return result, na_count
 
-        elif dtype[1] == 'f':
-            result, na_count = _try_double(self.parser, i, start, end,
-                                           na_filter, na_hashset, na_flist,
-                                           <use_parser_data>NULL)
+        elif is_float_dtype(dtype):
+            result, na_count = _try_double[use_parser_data](self.parser, i, start, end,
+                                                            na_filter, na_hashset, na_flist,
+                                                            NULL)
 
-            if result is not None and dtype[1:] != 'f8':
+            if result is not None and dtype != 'float64':
                 result = result.astype(dtype)
             return result, na_count
 
-        elif dtype[1] == 'b':
-            result, na_count = _try_bool_flex(self.parser, i, start, end,
-                                              na_filter, na_hashset,
-                                              self.true_set, self.false_set,
-                                              <use_parser_data>NULL)
+        elif is_bool_dtype(dtype):
+            result, na_count = _try_bool_flex[use_parser_data](self.parser, i, start, end,
+                                                               na_filter, na_hashset,
+                                                               self.true_set, self.false_set,
+                                                               NULL)
             return result, na_count
-        elif dtype[1] == 'c':
-            raise NotImplementedError("the dtype %s is not supported for parsing" % dtype)
-
-        elif dtype[1] == 'S':
+        elif dtype.kind == 'S':
             # TODO: na handling
-            width = int(dtype[2:])
+            width = dtype.itemsize
             if width > 0:
                 result = _to_fw_string(self.parser, i, start, end, width)
                 return result, 0
@@ -1205,8 +1194,8 @@ cdef class TextReader:
             # treat as a regular string parsing
             return self._string_convert(i, start, end, na_filter,
                                        na_hashset)
-        elif dtype[1] == 'U':
-            width = int(dtype[2:])
+        elif dtype.kind == 'U':
+            width = dtype.itemsize
             if width > 0:
                 raise NotImplementedError("the dtype %s is not supported for parsing" % dtype)
 
@@ -1214,19 +1203,18 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
         # is this comparison good enough?
-        elif dtype == '|O08':
+        elif is_categorical_dtype(dtype):
             codes, cats, na_count = _categorical_convert(self.parser, i, start,
                                                          end, na_filter, na_hashset,
                                                          na_flist, self.true_set,
                                                          self.false_set, self.c_encoding)
-
             return Categorical(codes, categories=cats, ordered=False,
                                fastpath=True), na_count
-        elif dtype[1] == 'O':
+        elif is_object_dtype(dtype):
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
         else:
-            if dtype[1] == 'M':
+            if is_datetime64_dtype(dtype):
                  raise TypeError("the dtype %s is not supported for parsing, "
                                  "pass this column using parse_dates instead" % dtype)
             raise TypeError("the dtype %s is not supported for parsing" % dtype)
@@ -1588,7 +1576,7 @@ cdef _categorical_convert(parser_t *parser, int col,
 
             codes[i] = table.vals[k]
 
-
+    # Codes are complete, now inference on cats
     # follow the same inference attempts as
     # normal data (int64, float64, bool, object)
     result, result_na = _try_int64(parser, col, 0, table.n_occupied,
@@ -1603,9 +1591,10 @@ cdef _categorical_convert(parser_t *parser, int col,
         result, result_na = _try_bool_flex(parser, col, 0, table.n_occupied,
                                            na_filter, na_hashset, true_hashset,
                                            false_hashset, table)
-    # duplicated logic here, but doesn't make sense to reuse
-    # other string logic since those paths factorize where we
-    # already have guaranteed uniques
+
+    # if no numeric types parsed, convert to object.
+    # Note that the decoding path logic should sync up with that
+    # of `TextReader.string_convert`
     if result is None:
         i = 0
         result = np.empty(table.n_occupied, dtype=np.object_)
@@ -1694,10 +1683,10 @@ cdef inline _try_double(parser_t *parser, int col, int line_start, int line_end,
 
 
 cdef inline int _try_double_nogil(parser_t *parser, int col, int line_start, int line_end,
-                           bint na_filter, kh_str_t *na_hashset, bint use_na_flist,
-                           const kh_float64_t *na_flist,
-                           double NA, double *data, int *na_count,
-                           inference_data_t inference_data) nogil:
+                                  bint na_filter, kh_str_t *na_hashset, bint use_na_flist,
+                                  const kh_float64_t *na_flist,
+                                  double NA, double *data, int *na_count,
+                                  inference_data_t inference_data) nogil:
     cdef:
         int error,
         size_t i
@@ -1783,7 +1772,6 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.int64)
     data = <int64_t *> result.data
-    # compile time
     with nogil:
         error = _try_int64_nogil(parser, col, line_start, line_end, na_filter,
                                  na_hashset, NA, data, &na_count, inference_data)
@@ -2104,7 +2092,6 @@ def _concatenate_chunks(list chunks):
 
         if is_categorical_dtype(dtypes.pop()):
             result[name] = union_categoricals(arrs)
-            #np.concatenate([c.codes for c in arrs])
         else:
             result[name] = np.concatenate(arrs)
 
