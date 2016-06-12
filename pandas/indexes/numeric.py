@@ -22,6 +22,28 @@ class NumericIndex(Index):
     """
     _is_numeric_dtype = True
 
+    def __new__(cls, data=None, dtype=None, copy=False, name=None,
+                fastpath=False):
+
+        if fastpath:
+            return cls._simple_new(data, name=name)
+
+        # isscalar, generators handled in coerce_to_ndarray
+        data = cls._coerce_to_ndarray(data)
+
+        if issubclass(data.dtype.type, compat.string_types):
+            cls._string_data_error(data)
+
+        if copy or not com.is_dtype_equal(data.dtype, cls._default_dtype):
+            subarr = np.array(data, dtype=cls._default_dtype, copy=copy)
+            cls._assert_safe_casting(data, subarr)
+        else:
+            subarr = data
+
+        if name is None and hasattr(data, 'name'):
+            name = data.name
+        return cls._simple_new(subarr, name=name)
+
     def _maybe_cast_slice_bound(self, label, side, kind):
         """
         This function should be overloaded in subclasses that allow non-trivial
@@ -54,6 +76,15 @@ class NumericIndex(Index):
         except ValueError:
             raise ValueError('tolerance argument for %s must be numeric: %r' %
                              (type(self).__name__, tolerance))
+
+    @classmethod
+    def _assert_safe_casting(cls, data, subarr):
+        """
+        Subclasses need to override this only if the process of casting data
+        from some accepted dtype to the internal dtype(s) bears the risk of
+        truncation (e.g. float to int).
+        """
+        pass
 
 
 class Int64Index(NumericIndex):
@@ -90,29 +121,7 @@ class Int64Index(NumericIndex):
 
     _engine_type = _index.Int64Engine
 
-    def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False, **kwargs):
-
-        if fastpath:
-            return cls._simple_new(data, name=name)
-
-        # isscalar, generators handled in coerce_to_ndarray
-        data = cls._coerce_to_ndarray(data)
-
-        if issubclass(data.dtype.type, compat.string_types):
-            cls._string_data_error(data)
-
-        elif issubclass(data.dtype.type, np.integer):
-            dtype = np.int64
-            subarr = np.array(data, dtype=dtype, copy=copy)
-        else:
-            subarr = np.array(data, dtype=np.int64, copy=copy)
-            if len(data) > 0:
-                if (subarr != data).any():
-                    raise TypeError('Unsafe NumPy casting to integer, you must'
-                                    ' explicitly cast')
-
-        return cls._simple_new(subarr, name=name)
+    _default_dtype = np.int64
 
     @property
     def inferred_type(self):
@@ -155,17 +164,22 @@ class Int64Index(NumericIndex):
         if self.is_(other):
             return True
 
-        try:
-            return com.array_equivalent(com._values_from_object(self),
-                                        com._values_from_object(other))
-        except TypeError:
-            # e.g. fails in numpy 1.6 with DatetimeIndex #1681
-            return False
+        return com.array_equivalent(com._values_from_object(self),
+                                    com._values_from_object(other))
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
         return Int64Index(joined, name=name)
 
+    @classmethod
+    def _assert_safe_casting(cls, data, subarr):
+        """
+        Ensure incoming data can be represented as ints.
+        """
+        if not issubclass(data.dtype.type, np.integer):
+            if not np.array_equal(data, subarr):
+                raise TypeError('Unsafe NumPy casting, you must '
+                                'explicitly cast')
 
 Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()
@@ -200,39 +214,7 @@ class Float64Index(NumericIndex):
     _inner_indexer = _algos.inner_join_indexer_float64
     _outer_indexer = _algos.outer_join_indexer_float64
 
-    def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False, **kwargs):
-
-        if fastpath:
-            return cls._simple_new(data, name)
-
-        data = cls._coerce_to_ndarray(data)
-
-        if issubclass(data.dtype.type, compat.string_types):
-            cls._string_data_error(data)
-
-        if dtype is None:
-            dtype = np.float64
-        dtype = np.dtype(dtype)
-
-        # allow integer / object dtypes to be passed, but coerce to float64
-        if dtype.kind in ['i', 'O', 'f']:
-            dtype = np.float64
-
-        else:
-            raise TypeError("cannot support {0} dtype in "
-                            "Float64Index".format(dtype))
-
-        try:
-            subarr = np.array(data, dtype=dtype, copy=copy)
-        except:
-            raise TypeError('Unsafe NumPy casting, you must explicitly cast')
-
-        # coerce to float64 for storage
-        if subarr.dtype != np.float64:
-            subarr = subarr.astype(np.float64)
-
-        return cls._simple_new(subarr, name)
+    _default_dtype = np.float64
 
     @property
     def inferred_type(self):
@@ -339,8 +321,7 @@ class Float64Index(NumericIndex):
                 return False
             left, right = self._values, other._values
             return ((left == right) | (self._isnan & other._isnan)).all()
-        except TypeError:
-            # e.g. fails in numpy 1.6 with DatetimeIndex #1681
+        except (TypeError, ValueError):
             return False
 
     def __contains__(self, other):
@@ -391,7 +372,6 @@ class Float64Index(NumericIndex):
             self._validate_index_level(level)
         return lib.ismember_nans(np.array(self), value_set,
                                  isnull(list(value_set)).any())
-
 
 Float64Index._add_numeric_methods()
 Float64Index._add_logical_methods_disabled()
