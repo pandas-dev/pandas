@@ -321,6 +321,8 @@ class Window(_Window):
         if isinstance(window, (list, tuple, np.ndarray)):
             pass
         elif com.is_integer(window):
+            if window < 0:
+                raise ValueError("window must be non-negative")
             try:
                 import scipy.signal as sig
             except ImportError:
@@ -850,6 +852,8 @@ class Rolling(_Rolling_and_Expanding):
         super(Rolling, self).validate()
         if not com.is_integer(self.window):
             raise ValueError("window must be an integer")
+        elif self.window < 0:
+            raise ValueError("window must be non-negative")
 
     @Substitution(name='rolling')
     @Appender(SelectionMixin._see_also_template)
