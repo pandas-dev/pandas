@@ -38,6 +38,7 @@ from pandas.core.common import (is_categorical_dtype, CategoricalDtype,
                                 is_integer_dtype, is_float_dtype,
                                 is_bool_dtype, is_object_dtype,
                                 is_string_dtype, is_datetime64_dtype)
+from pandas.types.api import pandas_dtype
 from pandas.core.categorical import Categorical
 from pandas.types.concat import union_categoricals
 
@@ -492,22 +493,13 @@ cdef class TextReader:
         self.encoding = encoding
 
         if isinstance(dtype, dict):
-            conv = {}
-            for k in dtype:
-                v = dtype[k]
-                if is_categorical_dtype(v):
-                    v = CategoricalDtype()
-                elif isinstance(v, basestring):
-                    v = np.dtype(v)
-                conv[k] = v
-            dtype = conv
+            dtype = {k: pandas_dtype(dtype[k])
+                     for k in dtype}
         elif dtype is not None:
-            if is_categorical_dtype(dtype):
-                dtype = CategoricalDtype()
-            else:
-                dtype = np.dtype(dtype)
+            dtype = pandas_dtype(dtype)
 
         self.dtype = dtype
+        print dtype
 
         # XXX
         self.noconvert = set()
@@ -1101,7 +1093,8 @@ cdef class TextReader:
                     col_dtype = self.dtype[i]
             else:
                 if self.dtype.names:
-                    col_dtype = self.dtype.descr[i][1]
+                    # structured array
+                    col_dtype = np.dtype(self.dtype.descr[i][1])
                 else:
                     col_dtype = self.dtype
 
@@ -1202,7 +1195,6 @@ cdef class TextReader:
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        # is this comparison good enough?
         elif is_categorical_dtype(dtype):
             codes, cats, na_count = _categorical_convert(self.parser, i, start,
                                                          end, na_filter, na_hashset,
