@@ -307,7 +307,7 @@ Performance Improvements
 - Improved performance of sparse arithmetic with ``BlockIndex`` when the number of blocks are large, though recommended to use ``IntIndex`` in such cases (:issue:`13082`)
 - increased performance of ``DataFrame.quantile()`` as it now operates per-block (:issue:`11623`)
 
-
+- Improved performance of float64 hash table fixing some very slow indexing and groupby operations in python 3 (:issue:`13166`, :issue:`13334`)
 - Improved performance of ``DataFrameGroupBy.transform`` (:issue:`12737`)
 
 

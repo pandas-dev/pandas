@@ -2,9 +2,10 @@
 
 #include "khash.h"
 
-// kludge
-
-#define kh_float64_hash_func _Py_HashDouble
+inline khint64_t asint64(double key) {
+  return *(khint64_t *)(&key);
+}
+#define kh_float64_hash_func(key) (khint32_t)((asint64(key))>>33^(asint64(key))^(asint64(key))<<11)
 #define kh_float64_hash_equal(a, b) ((a) == (b) || ((b) != (b) && (a) != (a)))
 
 #define KHASH_MAP_INIT_FLOAT64(name, khval_t)								\
