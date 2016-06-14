@@ -315,6 +315,17 @@ numpy array values are different \\(50\\.0 %\\)
         with assertRaisesRegexp(AssertionError, expected):
             assert_almost_equal(a, b)
 
+    def test_numpy_array_equal_copy_flag(self):
+        a = np.array([1, 2, 3])
+        b = a.copy()
+        c = a.view()
+        expected = 'array\(\[1, 2, 3\]\) is not array\(\[1, 2, 3\]\)'
+        with assertRaisesRegexp(AssertionError, expected):
+            assert_numpy_array_equal(a, b, check_same='same')
+        expected = 'array\(\[1, 2, 3\]\) is array\(\[1, 2, 3\]\)'
+        with assertRaisesRegexp(AssertionError, expected):
+            assert_numpy_array_equal(a, c, check_same='copy')
+
     def test_assert_almost_equal_iterable_message(self):
 
         expected = """Iterable are different

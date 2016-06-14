@@ -507,6 +507,20 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertTrue(ci1.identical(ci1.copy()))
         self.assertFalse(ci1.identical(ci2))
 
+    def test_ensure_copied_data(self):
+        # Check the "copy" argument of each Index.__new__ is honoured
+        # GH12309
+        # Must be tested separately from other indexes because
+        # self.value is not an ndarray
+        _base = lambda ar : ar if ar.base is None else ar.base
+        for index in self.indices.values():
+            result = CategoricalIndex(index.values, copy=True)
+            tm.assert_index_equal(index, result)
+            self.assertIsNot(_base(index.values), _base(result.values))
+
+            result = CategoricalIndex(index.values, copy=False)
+            self.assertIs(_base(index.values), _base(result.values))
+
     def test_equals(self):
 
         ci1 = CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=True)

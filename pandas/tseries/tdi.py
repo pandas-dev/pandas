@@ -138,8 +138,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
         if isinstance(data, TimedeltaIndex) and freq is None and name is None:
             if copy:
-                data = data.copy()
-            return data
+                return data.copy()
+            else:
+                return data._shallow_copy()
 
         freq_infer = False
         if not isinstance(freq, DateOffset):
