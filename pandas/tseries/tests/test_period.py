@@ -1742,6 +1742,84 @@ class TestPeriodIndex(tm.TestCase):
 
         self.assertRaises(ValueError, PeriodIndex, vals, freq='D')
 
+    def test_constructor_empty(self):
+        idx = pd.PeriodIndex([], freq='M')
+        tm.assertIsInstance(idx, PeriodIndex)
+        self.assertEqual(len(idx), 0)
+        self.assertEqual(idx.freq, 'M')
+
+        with tm.assertRaisesRegexp(ValueError, 'freq not specified'):
+            pd.PeriodIndex([])
+
+    def test_constructor_pi_nat(self):
+        idx = PeriodIndex([Period('2011-01', freq='M'), pd.NaT,
+                           Period('2011-01', freq='M')])
+        exp = PeriodIndex(['2011-01', 'NaT', '2011-01'], freq='M')
+        tm.assert_index_equal(idx, exp)
+
+        idx = PeriodIndex(np.array([Period('2011-01', freq='M'), pd.NaT,
+                                    Period('2011-01', freq='M')]))
+        tm.assert_index_equal(idx, exp)
+
+        idx = PeriodIndex([pd.NaT, pd.NaT, Period('2011-01', freq='M'),
+                           Period('2011-01', freq='M')])
+        exp = PeriodIndex(['NaT', 'NaT', '2011-01', '2011-01'], freq='M')
+        tm.assert_index_equal(idx, exp)
+
+        idx = PeriodIndex(np.array([pd.NaT, pd.NaT,
+                                    Period('2011-01', freq='M'),
+                                    Period('2011-01', freq='M')]))
+        tm.assert_index_equal(idx, exp)
+
+        idx = PeriodIndex([pd.NaT, pd.NaT, '2011-01', '2011-01'], freq='M')
+        tm.assert_index_equal(idx, exp)
+
+        with tm.assertRaisesRegexp(ValueError, 'freq not specified'):
+            PeriodIndex([pd.NaT, pd.NaT])
+
+        with tm.assertRaisesRegexp(ValueError, 'freq not specified'):
+            PeriodIndex(np.array([pd.NaT, pd.NaT]))
+
+        with tm.assertRaisesRegexp(ValueError, 'freq not specified'):
+            PeriodIndex(['NaT', 'NaT'])
+
+        with tm.assertRaisesRegexp(ValueError, 'freq not specified'):
+            PeriodIndex(np.array(['NaT', 'NaT']))
+
+    def test_constructor_incompat_freq(self):
+        msg = "Input has different freq=D from PeriodIndex\\(freq=M\\)"
+
+        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            PeriodIndex([Period('2011-01', freq='M'), pd.NaT,
+                         Period('2011-01', freq='D')])
+
+        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            PeriodIndex(np.array([Period('2011-01', freq='M'), pd.NaT,
+                                  Period('2011-01', freq='D')]))
+
+        # first element is pd.NaT
+        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            PeriodIndex([pd.NaT, Period('2011-01', freq='M'),
+                         Period('2011-01', freq='D')])
+
+        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            PeriodIndex(np.array([pd.NaT, Period('2011-01', freq='M'),
+                                  Period('2011-01', freq='D')]))
+
+    def test_constructor_mixed(self):
+        idx = PeriodIndex(['2011-01', pd.NaT, Period('2011-01', freq='M')])
+        exp = PeriodIndex(['2011-01', 'NaT', '2011-01'], freq='M')
+        tm.assert_index_equal(idx, exp)
+
+        idx = PeriodIndex(['NaT', pd.NaT, Period('2011-01', freq='M')])
+        exp = PeriodIndex(['NaT', 'NaT', '2011-01'], freq='M')
+        tm.assert_index_equal(idx, exp)
+
+        idx = PeriodIndex([Period('2011-01-01', freq='D'), pd.NaT,
+                           '2012-01-01'])
+        exp = PeriodIndex(['2011-01-01', 'NaT', '2012-01-01'], freq='D')
+        tm.assert_index_equal(idx, exp)
+
     def test_constructor_simple_new(self):
         idx = period_range('2007-01', name='p', periods=2, freq='M')
         result = idx._simple_new(idx, 'p', freq=idx.freq)

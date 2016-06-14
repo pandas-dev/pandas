@@ -325,6 +325,7 @@ Other API changes
 - ``Float64Index.astype(int)`` will now raise ``ValueError`` if ``Float64Index`` contains ``NaN`` values (:issue:`13149`)
 - ``TimedeltaIndex.astype(int)`` and ``DatetimeIndex.astype(int)`` will now return ``Int64Index`` instead of ``np.array`` (:issue:`13209`)
 - ``.filter()`` enforces mutual exclusion of the keyword arguments. (:issue:`12399`)
+- ``PeridIndex`` can now accept ``list`` and ``array`` which contains ``pd.NaT`` (:issue:`13430`)
 
 .. _whatsnew_0182.deprecations:
 
