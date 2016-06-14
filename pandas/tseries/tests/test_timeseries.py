@@ -3095,10 +3095,14 @@ class TestDatetimeIndex(tm.TestCase):
                     exp = klass([Timestamp('2001-1-1'), Timestamp('2001-2-1')])
                     assert_func(result, exp)
 
-            s = klass([Timestamp('2000-01-05 00:15:00'), Timestamp(
-                '2000-01-31 00:23:00'), Timestamp('2000-01-01'), Timestamp(
-                    '2000-03-31'), Timestamp('2000-02-29'), Timestamp(
-                        '2000-12-31')])
+            s = klass([Timestamp('2000-01-05 00:15:00'),
+                       Timestamp('2000-01-31 00:23:00'),
+                       Timestamp('2000-01-01'),
+                       Timestamp('2000-03-31'),
+                       Timestamp('2000-02-29'),
+                       Timestamp('2000-12-31'),
+                       Timestamp('2000-05-15'),
+                       Timestamp('2001-06-15')])
 
             # DateOffset relativedelta fastpath
             relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
@@ -3115,6 +3119,7 @@ class TestDatetimeIndex(tm.TestCase):
             # assert these are equal on a piecewise basis
             offsets = ['YearBegin', ('YearBegin', {'month': 5}), 'YearEnd',
                        ('YearEnd', {'month': 5}), 'MonthBegin', 'MonthEnd',
+                       'SemiMonthEnd', 'SemiMonthBegin',
                        'Week', ('Week', {
                            'weekday': 3
                        }), 'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin',

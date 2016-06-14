@@ -52,6 +52,26 @@ def test_to_offset_multiple():
     expected = offsets.Nano(2800)
     assert (result == expected)
 
+    freqstr = '2SM'
+    result = frequencies.to_offset(freqstr)
+    expected = offsets.SemiMonthEnd(2)
+    assert (result == expected)
+
+    freqstr = '2SM-16'
+    result = frequencies.to_offset(freqstr)
+    expected = offsets.SemiMonthEnd(2, day_of_month=16)
+    assert (result == expected)
+
+    freqstr = '2SMS-14'
+    result = frequencies.to_offset(freqstr)
+    expected = offsets.SemiMonthBegin(2, day_of_month=14)
+    assert (result == expected)
+
+    freqstr = '2SMS-15'
+    result = frequencies.to_offset(freqstr)
+    expected = offsets.SemiMonthBegin(2)
+    assert (result == expected)
+
     # malformed
     try:
         frequencies.to_offset('2h20m')
@@ -69,6 +89,14 @@ def test_to_offset_negative():
     freqstr = '-5min10s'
     result = frequencies.to_offset(freqstr)
     assert (result.n == -310)
+
+    freqstr = '-2SM'
+    result = frequencies.to_offset(freqstr)
+    assert (result.n == -2)
+
+    freqstr = '-1SMS'
+    result = frequencies.to_offset(freqstr)
+    assert (result.n == -1)
 
 
 def test_to_offset_leading_zero():
@@ -136,6 +164,41 @@ def test_anchored_shortcuts():
     result1 = frequencies.to_offset('Q-MAY')
     expected = offsets.QuarterEnd(startingMonth=5)
     assert (result1 == expected)
+
+    result1 = frequencies.to_offset('SM')
+    result2 = frequencies.to_offset('SM-15')
+    expected = offsets.SemiMonthEnd(day_of_month=15)
+    assert (result1 == expected)
+    assert (result2 == expected)
+
+    result = frequencies.to_offset('SM-1')
+    expected = offsets.SemiMonthEnd(day_of_month=1)
+    assert (result == expected)
+
+    result = frequencies.to_offset('SM-27')
+    expected = offsets.SemiMonthEnd(day_of_month=27)
+    assert (result == expected)
+
+    result = frequencies.to_offset('SMS-2')
+    expected = offsets.SemiMonthBegin(day_of_month=2)
+    assert (result == expected)
+
+    result = frequencies.to_offset('SMS-27')
+    expected = offsets.SemiMonthBegin(day_of_month=27)
+    assert (result == expected)
+
+    # ensure invalid cases fail as expected
+    invalid_anchors = ['SM-0', 'SM-28', 'SM-29',
+                       'SM-FOO', 'BSM', 'SM--1'
+                       'SMS-1', 'SMS-28', 'SMS-30',
+                       'SMS-BAR', 'BSMS', 'SMS--2']
+    for invalid_anchor in invalid_anchors:
+        try:
+            frequencies.to_offset(invalid_anchor)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(invalid_anchor)
 
 
 def test_get_rule_month():
