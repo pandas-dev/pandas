@@ -205,6 +205,53 @@ class Base(object):
                                        type(ind).__name__):
                 hash(ind)
 
+    def test_copy_name(self):
+        # Check that "name" argument passed at initialization is honoured
+        # GH12309
+        for name, index in compat.iteritems(self.indices):
+            if isinstance(index, MultiIndex):
+                continue
+
+            first = index.__class__(index, copy=True, name='mario')
+            second = first.__class__(first, copy=False)
+
+            # Even though "copy=False", we want a new object.
+            self.assertIsNot(first, second)
+            # Not using tm.assert_index_equal() since names differ:
+            self.assertTrue(index.equals(first))
+
+            self.assertEqual(first.name, 'mario')
+            self.assertEqual(second.name, 'mario')
+
+            s1 = Series(2, index=first)
+            s2 = Series(3, index=second[:-1])
+            if not isinstance(index, CategoricalIndex):  # See GH13365
+                s3 = s1 * s2
+                self.assertEqual(s3.index.name, 'mario')
+
+    def test_ensure_copied_data(self):
+        # Check the "copy" argument of each Index.__new__ is honoured
+        # GH12309
+        for name, index in compat.iteritems(self.indices):
+            init_kwargs = {}
+            if isinstance(index, PeriodIndex):
+                # Needs "freq" specification:
+                init_kwargs['freq'] = index.freq
+            elif isinstance(index, (RangeIndex, MultiIndex, CategoricalIndex)):
+                # RangeIndex cannot be initialized from data
+                # MultiIndex and CategoricalIndex are tested separately
+                continue
+
+            index_type = index.__class__
+            result = index_type(index.values, copy=True, **init_kwargs)
+            tm.assert_index_equal(index, result)
+            tm.assert_numpy_array_equal(index.values, result.values,
+                                        check_same='copy')
+
+            result = index_type(index.values, copy=False, **init_kwargs)
+            tm.assert_numpy_array_equal(index.values, result.values,
+                                        check_same='same')
+
     def test_copy_and_deepcopy(self):
         from copy import copy, deepcopy
 
