@@ -51,6 +51,43 @@ New behaviour:
 
    In [2]: pd.read_csv(StringIO(data), names=names)
 
+.. _whatsnew_0182.enhancements.semi_month_offsets:
+
+Semi-Month Offsets
+^^^^^^^^^^^^^^^^^^
+
+Pandas has gained new frequency offsets, ``SemiMonthEnd`` ('SM') and ``SemiMonthBegin`` ('SMS').
+These provide date offsets anchored (by default) to the 15th and end of month, and 15th and 1st of month respectively.
+(:issue:`1543`)
+
+.. ipython:: python
+
+    from pandas.tseries.offsets import SemiMonthEnd, SemiMonthBegin
+
+SemiMonthEnd:
+
+.. ipython:: python
+
+    Timestamp('2016-01-01') + SemiMonthEnd()
+
+    pd.date_range('2015-01-01', freq='SM', periods=4)
+
+SemiMonthBegin:
+
+.. ipython:: python
+
+    Timestamp('2016-01-01') + SemiMonthBegin()
+
+    pd.date_range('2015-01-01', freq='SMS', periods=4)
+
+Using the anchoring suffix, you can also specify the day of month to use instead of the 15th.
+
+.. ipython:: python
+
+    pd.date_range('2015-01-01', freq='SMS-16', periods=4)
+
+    pd.date_range('2015-01-01', freq='SM-14', periods=4)
+
 .. _whatsnew_0182.enhancements.other:
 
 Other enhancements
