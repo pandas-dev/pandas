@@ -24,6 +24,7 @@ cimport cython
 from datetime cimport *
 cimport util
 cimport lib
+from lib cimport is_null_datetimelike
 import lib
 from pandas import tslib
 from tslib import Timedelta, Timestamp, iNaT, NaT
@@ -458,12 +459,38 @@ def extract_ordinals(ndarray[object] values, freq):
 
     for i in range(n):
         p = values[i]
-        ordinals[i] = p.ordinal
-        if p.freqstr != freqstr:
-            msg = _DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
-            raise IncompatibleFrequency(msg)
+
+        if is_null_datetimelike(p):
+            ordinals[i] = tslib.iNaT
+        else:
+            try:
+                ordinals[i] = p.ordinal
+
+                if p.freqstr != freqstr:
+                    msg = _DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
+                    raise IncompatibleFrequency(msg)
+
+            except AttributeError:
+                p = Period(p, freq=freq)
+                ordinals[i] = p.ordinal
 
     return ordinals
+
+
+def extract_freq(ndarray[object] values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object p
+
+    for i in range(n):
+        p = values[i]
+        try:
+            return p.freq
+        except AttributeError:
+            pass
+
+    raise ValueError('freq not specified and cannot be inferred')
+
 
 cpdef resolution(ndarray[int64_t] stamps, tz=None):
     cdef:
@@ -719,7 +746,7 @@ cdef class Period(object):
                 converted = other.asfreq(freq)
                 ordinal = converted.ordinal
 
-        elif lib.is_null_datetimelike(value) or value in tslib._nat_strings:
+        elif is_null_datetimelike(value) or value in tslib._nat_strings:
             ordinal = tslib.iNaT
             if freq is None:
                 raise ValueError("If value is NaT, freq cannot be None "
