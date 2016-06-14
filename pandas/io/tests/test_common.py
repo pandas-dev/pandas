@@ -1,7 +1,7 @@
 """
     Tests for the pandas.io.common functionalities
 """
-from pandas.compat import StringIO
+import nose
 import mmap
 import os
 from os.path import isabs
@@ -9,6 +9,7 @@ from os.path import isabs
 import pandas.util.testing as tm
 
 from pandas.io import common
+from pandas.compat import is_platform_windows, StringIO
 
 from pandas import read_csv, concat
 
@@ -97,6 +98,10 @@ class TestMMapWrapper(tm.TestCase):
                                       'test_mmap.csv')
 
     def test_constructor_bad_file(self):
+        if is_platform_windows():
+            raise nose.SkipTest("skipping construction error messages "
+                                "tests on windows")
+
         non_file = StringIO('I am not a file')
         non_file.fileno = lambda: -1
 
