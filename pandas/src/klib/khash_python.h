@@ -13,7 +13,7 @@
 // simple hash, viewing the double bytes as an int64 and using khash's default
 // hash for 64 bit integers.
 // GH 13436
-inline khint64_t asint64(double key) {
+khint64_t PANDAS_INLINE asint64(double key) {
   return *(khint64_t *)(&key);
 }
 #define kh_float64_hash_func(key) (khint32_t)((asint64(key))>>33^(asint64(key))^(asint64(key))<<11)

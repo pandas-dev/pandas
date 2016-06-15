@@ -461,6 +461,13 @@ class TestSeriesCoercion(tm.TestCase):
 
         result = s.replace(replacer)
 
+        # buggy on windows for bool/int64
+        if (from_key == 'bool' and
+                to_key == 'int64' and
+                tm.is_platform_windows()):
+            raise nose.SkipTest("windows platform buggy: {0} -> {1}".format
+                                (from_key, to_key))
+
         if ((from_key == 'float64' and
              to_key in ('bool', 'int64')) or
 
@@ -471,7 +478,7 @@ class TestSeriesCoercion(tm.TestCase):
              to_key in ('bool')) or
 
             # TODO_GH12747 The result must be int?
-           (from_key == 'bool' and to_key in ('int64'))):
+           (from_key == 'bool' and to_key == 'int64')):
 
             # buggy on 32-bit
             if tm.is_platform_32bit():
