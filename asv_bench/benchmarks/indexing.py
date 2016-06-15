@@ -487,3 +487,16 @@ class sort_level_zero(object):
 
     def time_sort_level_zero(self):
         self.midx.sortlevel(0)
+
+class float_loc(object):
+    # GH 13166
+    goal_time = 0.2
+
+    def setup(self):
+        a = np.arange(100000)
+        self.ind = pd.Float64Index(a * 4.8000000418824129e-08)
+
+    def time_float_loc(self):
+        self.ind.get_loc(0)
+
+
