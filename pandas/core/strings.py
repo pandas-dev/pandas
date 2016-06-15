@@ -543,7 +543,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     each group. Any capture group names in regular expression pat will
     be used for column names; otherwise capture group numbers will be
     used. The dtype of each result column is always object, even when
-    no match is found. If expand=True and pat has only one capture group,
+    no match is found. If expand=False and pat has only one capture group,
     then return a Series (if subject is a Series) or Index (if subject
     is an Index).
 
