@@ -2,6 +2,17 @@
 
 #include "khash.h"
 
+// Previously we were using the built in cpython hash function for doubles
+// python 2.7 https://github.com/python/cpython/blob/2.7/Objects/object.c#L1021
+// python 3.5 https://github.com/python/cpython/blob/3.5/Python/pyhash.c#L85
+
+// The python 3 hash function has the invariant hash(x) == hash(int(x)) == hash(decimal(x))
+// and the size of hash may be different by platform / version (long in py2, Py_ssize_t in py3).
+// We don't need those invariants because types will be cast before hashing, and if Py_ssize_t
+// is 64 bits the truncation causes collission issues.  Given all that, we use our own
+// simple hash, viewing the double bytes as an int64 and using khash's default
+// hash for 64 bit integers.
+// GH 13436
 inline khint64_t asint64(double key) {
   return *(khint64_t *)(&key);
 }
