@@ -779,6 +779,13 @@ class TestPivotTable(tm.TestCase):
         )
         tm.assert_frame_equal(pivot_values_gen, pivot_values_list)
 
+    def test_pivot_table_margins_name_with_aggfunc_list(self):
+        # GH 13354
+        margins_name = 'Weekly'
+        table = self.data.pivot_table(index='A', columns='B', margins=True,
+                              margins_name=margins_name, aggfunc=[np.mean, max])
+        self.assertEqual(table[:][:].index[2], margins_name)
+
 
 class TestCrosstab(tm.TestCase):
 
