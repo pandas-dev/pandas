@@ -68,6 +68,7 @@ python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 [ "$python_major_version" == "2" ] && python_major_version=""
 
 # install miniconda
+echo "install miniconda"
 if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     wget http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
 else
@@ -75,12 +76,18 @@ else
 fi
 bash miniconda.sh -b -p $HOME/miniconda || exit 1
 
-conda config --set always_yes yes --set changeps1 no || exit 1
-
-# fix the conda version
-conda install conda==4.0.8
-conda config --add channels http://conda.anaconda.org/pandas || exit 1
+echo "update conda"
 conda config --set ssl_verify false || exit 1
+conda config --set always_yes true --set changeps1 false || exit 1
+conda update -q conda
+
+# add the pandas channel *before* defaults to have defaults take priority
+echo "add channels"
+conda config --add channels pandas || exit 1
+conda config --remove channels defaults || exit 1
+conda config --add channels defaults || exit 1
+
+conda install anaconda-client
 
 # Useful for debugging any issues with conda
 conda info -a || exit 1
