@@ -484,8 +484,9 @@ Bug Fixes
 
 - Bug in ``Series.str.extractall()`` with ``str`` index raises ``ValueError``  (:issue:`13156`)
 - Bug in ``Series.str.extractall()`` with single group and quantifier  (:issue:`13382`)
-
 - Bug in ``DatetimeIndex`` and ``Period`` subtraction raises ``ValueError`` or ``AttributeError`` rather than ``TypeError`` (:issue:`13078`)
+- Bug in ``Index`` and ``Series`` created with ``NaN`` and ``NaT`` mixed data may not have ``datetime64`` dtype  (:issue:`13324`)
+- Bug in ``Index`` and ``Series`` may ignore ``np.datetime64('nat')`` and ``np.timdelta64('nat')`` to infer dtype (:issue:`13324`)
 - Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``PeriodIndex`` construction returning a ``float64`` index in some circumstances (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not changing its ``freq`` appropriately when empty (:issue:`13067`)

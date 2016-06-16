@@ -242,8 +242,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     # don't support boolean explicity ATM
                     pass
                 elif inferred != 'string':
-                    if (inferred.startswith('datetime') or
-                            tslib.is_timestamp_array(subarr)):
+                    if inferred.startswith('datetime'):
 
                         if (lib.is_datetime_with_singletz_array(subarr) or
                                 'tz' in kwargs):
