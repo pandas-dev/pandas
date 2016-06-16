@@ -133,7 +133,7 @@ class Styler(object):
         self._todo = []
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError
+            raise TypeError("``data`` must be a Series or DataFrame")
         if data.ndim == 1:
             data = data.to_frame()
         if not data.index.is_unique or not data.columns.is_unique:

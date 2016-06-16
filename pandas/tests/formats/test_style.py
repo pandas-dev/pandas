@@ -46,6 +46,17 @@ class TestStyler(TestCase):
                           'c': pd.Categorical(['a', 'b'])})
         ]
 
+    def test_init_non_pandas(self):
+        with tm.assertRaises(TypeError):
+            Styler([1, 2, 3])
+
+    def test_init_series(self):
+        result = Styler(pd.Series([1, 2]))
+        self.assertEqual(result.data.ndim, 2)
+
+    def test_repr_html_ok(self):
+        self.styler._repr_html_()
+
     def test_update_ctx(self):
         self.styler._update_ctx(self.attrs)
         expected = {(0, 0): ['color: red'],
