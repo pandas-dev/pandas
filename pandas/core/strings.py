@@ -4,7 +4,7 @@ from pandas.compat import zip
 from pandas.core.common import (isnull, notnull, _values_from_object,
                                 is_bool_dtype,
                                 is_list_like, is_categorical_dtype,
-                                is_object_dtype)
+                                is_object_dtype, is_string_like)
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
@@ -309,6 +309,8 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     -------
     replaced : Series/Index of objects
     """
+    if not is_string_like(repl):  # Check whether repl is valid (GH 13438)
+        raise TypeError("repl must be a string")
     use_re = not case or len(pat) > 1 or flags
 
     if use_re:
