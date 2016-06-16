@@ -432,6 +432,10 @@ class TestValueCounts(tm.TestCase):
         expected = Series([1, 1, 1, 1], index=expected_index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
+    def test_value_counts_subclassing(self):
+        s1 = tm.SubclassedSeries(np.random.randn(6), index=list('abcdef'))
+        tm.assertIsInstance(s1.value_counts(), tm.SubclassedSeries)
+
     def test_value_counts_bins(self):
         s = [1, 2, 3, 4]
         result = algos.value_counts(s, bins=1)

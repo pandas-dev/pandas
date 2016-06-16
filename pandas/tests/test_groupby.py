@@ -743,6 +743,14 @@ class TestGroupBy(tm.TestCase):
         self.assertRaises(ValueError,
                           lambda: g.get_group(('foo', 'bar', 'baz')))
 
+    def test_get_group_subclassing(self):
+        df = tm.SubclassedDataFrame(
+            {'A': ['foo', 'bar', 'foo', 'bar', 'foo', 'bar', 'foo', 'foo'],
+             'B': ['one', 'one', 'two', 'three', 'two', 'two', 'one', 'three'],
+             'C': np.random.randn(8)})
+        result = df.groupby('A').get_group('foo')
+        tm.assertIsInstance(result, tm.SubclassedDataFrame)
+
     def test_get_group_grouped_by_tuple(self):
         # GH 8121
         df = DataFrame([[(1, ), (1, 2), (1, ), (1, 2)]], index=['ids']).T
@@ -2585,6 +2593,21 @@ class TestGroupBy(tm.TestCase):
         expected = grouped.transform(lambda x: x * 2)
         assert_series_equal(result, expected)
 
+    def test_apply_transform_agg_subclassing(self):
+        df = tm.SubclassedDataFrame(
+            {'A': ['foo', 'bar', 'foo', 'bar', 'foo', 'bar', 'foo', 'foo'],
+             'B': ['one', 'one', 'two', 'three', 'two', 'two', 'one', 'three'],
+             'C': np.random.randn(8)})
+
+        grouped = df.groupby('A')
+        result_apply = grouped.apply(lambda x: x * 2)
+        result_transform = grouped.transform(lambda x: x * 2)
+        result_agg = grouped.agg(lambda x: 0)
+
+        tm.assertIsInstance(result_apply, tm.SubclassedDataFrame)
+        tm.assertIsInstance(result_transform, tm.SubclassedDataFrame)
+        tm.assertIsInstance(result_agg, tm.SubclassedDataFrame)
+
     def test_apply_multikey_corner(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
 
@@ -2807,6 +2830,14 @@ class TestGroupBy(tm.TestCase):
 
         count_B = df.groupby('A')['B'].count()
         assert_series_equal(count_B, expected['B'])
+
+    def test_count_subclassing(self):
+        df = tm.SubclassedDataFrame(
+            {'A': ['foo', 'bar', 'foo', 'bar', 'foo', 'bar', 'foo', 'foo'],
+             'B': ['one', 'one', 'two', 'three', 'two', 'two', 'one', 'three'],
+             'C': np.random.randn(8), 'D': np.random.randn(8)})
+        result = df.groupby('A').count()
+        tm.assertIsInstance(result, tm.SubclassedDataFrame)
 
     def test_count_object(self):
         df = pd.DataFrame({'a': ['a'] * 3 + ['b'] * 3, 'c': [2] * 3 + [3] * 3})
@@ -5845,8 +5876,11 @@ class TestGroupBy(tm.TestCase):
              'cumprod', 'tail', 'resample', 'cummin', 'fillna', 'cumsum',
              'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill', 'take',
              'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith', 'cov',
-             'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
-             'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding'])
+             'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin', 'inputconstructor',
+             'inputconstructor_sliced', 'inputconstructor_expanddim',
+             'lenshape', 'ffill', 'bfill', 'pad', 'backfill', 'rolling',
+             'expanding'])
+
         self.assertEqual(results, expected)
 
     def test_lexsort_indexer(self):

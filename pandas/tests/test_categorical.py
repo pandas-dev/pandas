@@ -3911,6 +3911,16 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         self.assert_index_equal(df['grade'].cat.categories,
                                 dfx['grade'].cat.categories)
 
+    def test_concat_subclassing(self):
+        s1 = tm.SubclassedSeries(np.random.randn(6), index=list('abcdef'))
+        tm.assertIsInstance(pd.concat([s1, s1]), tm.SubclassedSeries)
+        tm.assertIsInstance(
+            pd.concat([s1, s1], axis=1), tm.SubclassedDataFrame)
+
+        df1 = tm.SubclassedDataFrame(
+            np.random.randn(6, 4), index=list('abcdef'), columns=list('ABCD'))
+        tm.assertIsInstance(pd.concat([df1, df1]), tm.SubclassedDataFrame)
+
     def test_concat_preserve(self):
 
         # GH 8641

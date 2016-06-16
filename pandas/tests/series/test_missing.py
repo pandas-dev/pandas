@@ -312,6 +312,11 @@ class TestSeriesMissingData(TestData, tm.TestCase):
             expected = Series([0, 1, val, val, 4], dtype='object')
             assert_series_equal(result, expected)
 
+    def test_fillna_subclassing(self):
+        df = tm.SubclassedSeries([np.nan, 1, 2, np.nan, np.nan],
+                                 index=list('VWXYZ'))
+        tm.assertIsInstance(df.fillna(0), tm.SubclassedSeries)
+
     def test_fillna_bug(self):
         x = Series([nan, 1., nan, 3., nan], ['z', 'a', 'b', 'c', 'd'])
         filled = x.fillna(method='ffill')

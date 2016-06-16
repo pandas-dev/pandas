@@ -168,6 +168,9 @@ def _use_inf_as_null(key):
 
 def _isnull_ndarraylike(obj):
 
+    if isinstance(obj, pd.SparseSeries):
+        obj = pd.SparseArray(obj)
+
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
@@ -197,8 +200,8 @@ def _isnull_ndarraylike(obj):
 
     # box
     if isinstance(obj, gt.ABCSeries):
-        from pandas import Series
-        result = Series(result, index=obj.index, name=obj.name, copy=False)
+        result = obj._constructor(
+            result, index=obj.index, name=obj.name, copy=False)
 
     return result
 
@@ -226,8 +229,8 @@ def _isnull_ndarraylike_old(obj):
 
     # box
     if isinstance(obj, gt.ABCSeries):
-        from pandas import Series
-        result = Series(result, index=obj.index, name=obj.name, copy=False)
+        result = obj._constructor(
+            result, index=obj.index, name=obj.name, copy=False)
 
     return result
 

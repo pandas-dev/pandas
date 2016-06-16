@@ -61,6 +61,13 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         res = df['@awesome_domain']
         assert_numpy_array_equal(ad, res.values)
 
+    def test_getitem_subclassing(self):
+        df = tm.SubclassedDataFrame(
+            np.random.randn(6, 4),
+            index=list('abcdef'), columns=list('ABCD'))
+        tm.assertIsInstance(df['A'], tm.SubclassedSeries)
+        tm.assertIsInstance(df[['A', 'C']], tm.SubclassedDataFrame)
+
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
         try:

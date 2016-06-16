@@ -44,27 +44,32 @@ def get_dtype_kinds(l):
     return typs
 
 
-def _get_series_result_type(result):
+def _get_series_result_type(result, return_types=None):
     """
     return appropriate class of Series concat
     input is either dict or array-like
     """
+
+    if return_types is None:
+        from pandas.core.frame import DataFrame
+        from pandas.core.series import Series
+        return_types = {'series': Series,
+                        'frame': DataFrame}
+
     if isinstance(result, dict):
         # concat Series with axis 1
         if all(com.is_sparse(c) for c in compat.itervalues(result)):
             from pandas.sparse.api import SparseDataFrame
             return SparseDataFrame
         else:
-            from pandas.core.frame import DataFrame
-            return DataFrame
+            return return_types['frame']
 
     elif com.is_sparse(result):
         # concat Series with axis 1
         from pandas.sparse.api import SparseSeries
         return SparseSeries
     else:
-        from pandas.core.series import Series
-        return Series
+        return return_types['series']
 
 
 def _get_frame_result_type(result, objs):

@@ -1661,6 +1661,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         tm.assert_series_equal(result, exp)
         self.assertEqual(result.dtype, np.object)
 
+    def test_apply_subclassing(self):
+        s1 = tm.SubclassedSeries(np.random.randn(6), index=list('abcdef'))
+        tm.assertIsInstance(s1.apply(lambda x: x), tm.SubclassedSeries)
+
     def test_shift_int(self):
         ts = self.ts.astype(int)
         shifted = ts.shift(1)
@@ -1884,3 +1888,9 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                         index=exp_idx, name='xxx')
         tm.assert_series_equal(s.value_counts(normalize=True), exp)
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+
+    def test_unstack_subclassing(self):
+        index = MultiIndex(levels=[['bar', 'foo'], ['one', 'three', 'two']],
+                           labels=[[1, 1, 0, 0], [0, 1, 0, 2]])
+        s = tm.SubclassedSeries(np.arange(4.), index=index)
+        tm.assertIsInstance(s.unstack(), tm.SubclassedDataFrame)

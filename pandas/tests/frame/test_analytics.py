@@ -340,6 +340,10 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         expected = Series(0, index=[])
         tm.assert_series_equal(result, expected)
 
+    def test_count_subclassing(self):
+        df = tm.SubclassedDataFrame(data=[[1, 2, np.nan], [2, 3, 4]])
+        tm.assertIsInstance(df.count(), tm.SubclassedSeries)
+
     def test_sum(self):
         self._check_stat_op('sum', np.sum, has_numeric_only=True)
 
@@ -348,6 +352,10 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                             frame=self.mixed_float.astype('float32'),
                             has_numeric_only=True, check_dtype=False,
                             check_less_precise=True)
+
+    def test_sum_subclassing(self):
+        df = tm.SubclassedDataFrame(data=[[1, 2, 3], [2, 3, 4]])
+        tm.assertIsInstance(df.sum(), tm.SubclassedSeries)
 
     def test_stat_operators_attempt_obj_array(self):
         data = {

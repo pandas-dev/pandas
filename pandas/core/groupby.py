@@ -36,8 +36,11 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                is_categorical_dtype, _values_from_object,
                                is_datetime_or_timedelta_dtype, is_bool,
                                is_bool_dtype, AbstractMethodError,
-                               _maybe_fill)
+                               _maybe_fill, ABCSeries)
 from pandas.core.config import option_context, is_callable
+
+from pandas.sparse.frame import SparseDataFrame
+
 import pandas.lib as lib
 from pandas.lib import Timestamp
 import pandas.tslib as tslib
@@ -340,6 +343,16 @@ class _GroupBy(PandasObject, SelectionMixin):
             if axis != 0:
                 raise ValueError('as_index=False only valid for axis=0')
 
+        self.inputconstructor = obj._constructor
+        if isinstance(obj, ABCSeries):
+            self.inputconstructor_sliced = obj._constructor
+        else:
+            self.inputconstructor_sliced = obj._constructor_sliced
+        if isinstance(obj, Panel):
+            self.inputconstructor_expanddim = obj._constructor
+        else:
+            self.inputconstructor_expanddim = obj._constructor_expanddim
+        self.lenshape = obj.ndim
         self.as_index = as_index
         self.keys = keys
         self.sort = sort
@@ -392,6 +405,38 @@ class _GroupBy(PandasObject, SelectionMixin):
         """ dict {group name -> group indices} """
         self._assure_grouper()
         return self.grouper.indices
+
+    @property
+    def inputconstructor(self):
+        return self._inputconstructor
+
+    @inputconstructor.setter
+    def inputconstructor(self, constructor):
+        self._inputconstructor = constructor
+
+    @property
+    def inputconstructor_sliced(self):
+        return self._inputconstructor_sliced
+
+    @inputconstructor_sliced.setter
+    def inputconstructor_sliced(self, constructor):
+        self._inputconstructor_sliced = constructor
+
+    @property
+    def inputconstructor_expanddim(self):
+        return self._inputconstructor_expanddim
+
+    @inputconstructor_expanddim.setter
+    def inputconstructor_expanddim(self, constructor):
+        self._inputconstructor_expanddim = constructor
+
+    @property
+    def lenshape(self):
+        return self._lenshape
+
+    @lenshape.setter
+    def lenshape(self, lenshape_in):
+        self._lenshape = lenshape_in
 
     def _get_indices(self, names):
         """
@@ -1328,7 +1373,7 @@ class GroupBy(_GroupBy):
 
         index = self._selected_obj.index
         cumcounts = self._cumcount_array(ascending=ascending)
-        return Series(cumcounts, index)
+        return self.inputconstructor_sliced(cumcounts, index)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -2603,7 +2648,7 @@ class SeriesGroupBy(GroupBy):
                 result = self._aggregate_named(func_or_funcs, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
-            ret = Series(result, index=index)
+            ret = self.inputconstructor(result, index=index)
 
         if not self.as_index:  # pragma: no cover
             print('Warning, ignoring as_index=True')
@@ -2659,19 +2704,25 @@ class SeriesGroupBy(GroupBy):
             if _level:
                 return results
             return list(compat.itervalues(results))[0]
-        return DataFrame(results, columns=columns)
+
+        if self.lenshape == 2:
+            return self.inputconstructor(results, columns=columns)
+        elif self.lenshape == 1:
+            return self.inputconstructor_expanddim(results, columns=columns)
 
     def _wrap_output(self, output, index, names=None):
         """ common agg/transform wrapping logic """
         output = output[self.name]
 
         if names is not None:
-            return DataFrame(output, index=index, columns=names)
+            return self.inputconstructor_expanddim(
+                output, index=index, columns=names)
         else:
             name = self.name
             if name is None:
                 name = self._selected_obj.name
-            return Series(output, index=index, name=name)
+            return self.inputconstructor(
+                output, index=index, name=name)
 
     def _wrap_aggregated_output(self, output, names=None):
         return self._wrap_output(output=output,
@@ -2873,6 +2924,7 @@ class SeriesGroupBy(GroupBy):
             inc[idx] = 1
 
         out = np.add.reduceat(inc, idx).astype('int64', copy=False)
+
         res = out if ids[0] != -1 else out[1:]
         ri = self.grouper.result_index
 
@@ -2881,9 +2933,7 @@ class SeriesGroupBy(GroupBy):
             res, out = np.zeros(len(ri), dtype=out.dtype), res
             res[ids] = out
 
-        return Series(res,
-                      index=ri,
-                      name=self.name)
+        return self.inputconstructor_sliced(res, index=ri, name=self.name)
 
     @deprecate_kwarg('take_last', 'keep',
                      mapping={True: 'last', False: 'first'})
@@ -3024,10 +3074,9 @@ class SeriesGroupBy(GroupBy):
         ids = com._ensure_platform_int(ids)
         out = np.bincount(ids[mask], minlength=ngroups or None)
 
-        return Series(out,
-                      index=self.grouper.result_index,
-                      name=self.name,
-                      dtype='int64')
+        return self.inputconstructor_sliced(
+            out, index=self.grouper.result_index,
+            name=self.name, dtype='int64')
 
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
@@ -3141,7 +3190,11 @@ class NDFrameGroupBy(GroupBy):
                         result.columns.levels[0],
                         name=self._selected_obj.columns.name)
                 except:
-                    result = self._aggregate_generic(arg, *args, **kwargs)
+                    if self.lenshape == 2:
+                        result = self.inputconstructor(
+                            self._aggregate_generic(arg, *args, **kwargs))
+                    else:
+                        result = self._aggregate_generic(arg, *args, **kwargs)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -3719,7 +3772,12 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result)._convert(datetime=True)
+        if isinstance(self.inputconstructor(), SparseDataFrame):
+            return DataFrame(
+                self._reindex_output(result)._convert(datetime=True))
+        else:
+            return self.inputconstructor(
+                self._reindex_output(result)._convert(datetime=True))
 
     def _reindex_output(self, result):
         """

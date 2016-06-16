@@ -909,6 +909,13 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         test_comp(operator.ge)
         test_comp(operator.le)
 
+    def test_comparison_subclassing(self):
+        df = tm.SubclassedDataFrame({'A': np.random.randn(4),
+                                    'B': np.random.randn(4)})
+        df2 = tm.SubclassedDataFrame({'A': list('abcd'), 'B': list('dcba')})
+        tm.assertIsInstance(df > 0, tm.SubclassedDataFrame)
+        tm.assertIsInstance(df2 == 'a', tm.SubclassedDataFrame)
+
     def test_string_comparison(self):
         df = DataFrame([{"a": 1, "b": "foo"}, {"a": 2, "b": "bar"}])
         mask_a = df.a > 1

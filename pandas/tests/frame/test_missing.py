@@ -247,6 +247,13 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         result = df.fillna(value={'Date': df['Date2']})
         assert_frame_equal(result, expected)
 
+    def test_fillna_subclassing(self):
+        df = tm.SubclassedDataFrame({'a': [np.nan, 1, 2, np.nan, np.nan],
+                                     'b': ['1', '2', '3', None, None],
+                                    'c': [None, '1', '2', '3', '4']},
+                                    index=list('VWXYZ'))
+        tm.assertIsInstance(df.fillna(0), tm.SubclassedDataFrame)
+
     def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
