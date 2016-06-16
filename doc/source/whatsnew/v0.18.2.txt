@@ -391,7 +391,7 @@ Bug Fixes
 
 - Bug in ``DataFrame.to_csv()`` in which float values were being quoted even though quotations were specified for non-numeric values only (:issue:`12922`, :issue:`13259`)
 - Bug in ``MultiIndex`` slicing where extra elements were returned when level is non-unique (:issue:`12896`)
-
+- Bug in ``.str.replace`` does not raise ``TypeError`` for invalid replacement (:issue:`13438`)
 
 
 - Bug in ``pd.read_csv()`` with ``engine='python'`` in which ``NaN`` values weren't being detected after data was converted to numeric values (:issue:`13314`)

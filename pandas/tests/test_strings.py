@@ -430,6 +430,13 @@ class TestStringMethods(tm.TestCase):
         result = values.str.replace("(?<=\w),(?=\w)", ", ", flags=re.UNICODE)
         tm.assert_series_equal(result, exp)
 
+        # GH 13438
+        for klass in (Series, Index):
+            for repl in (None, 3, {'a': 'b'}):
+                for data in (['a', 'b', None], ['a', 'b', 'c', 'ad']):
+                    values = klass(data)
+                    self.assertRaises(TypeError, values.str.replace, 'a', repl)
+
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
 
