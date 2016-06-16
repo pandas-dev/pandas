@@ -1529,6 +1529,20 @@ class FloatBlock(FloatOrComplexBlock):
         if slicer is not None:
             values = values[:, slicer]
 
+        # see gh-13418: no special formatting is desired at the
+        # output (important for appropriate 'quoting' behaviour),
+        # so do not pass it through the FloatArrayFormatter
+        if float_format is None and decimal == '.':
+            mask = isnull(values)
+
+            if not quoting:
+                values = values.astype(str)
+            else:
+                values = np.array(values, dtype='object')
+
+            values[mask] = na_rep
+            return values
+
         from pandas.formats.format import FloatArrayFormatter
         formatter = FloatArrayFormatter(values, na_rep=na_rep,
                                         float_format=float_format,

@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+Internal module for formatting output data in csv, html,
+and latex files. This module also applies to display formatting.
+"""
+
 from __future__ import print_function
 from distutils.version import LooseVersion
 # pylint: disable=W0141
