@@ -1105,13 +1105,17 @@ class DataFrame(NDFrame):
                         count += 1
             elif index_names[0] is None:
                 index_names = ['index']
-            names = lmap(str, index_names) + lmap(str, self.columns)
+            names = (lmap(compat.text_type, index_names) +
+                     lmap(compat.text_type, self.columns))
         else:
             arrays = [self[c].get_values() for c in self.columns]
-            names = lmap(str, self.columns)
+            names = lmap(compat.text_type, self.columns)
 
-        dtype = np.dtype([(x, v.dtype) for x, v in zip(names, arrays)])
-        return np.rec.fromarrays(arrays, dtype=dtype, names=names)
+        formats = [v.dtype for v in arrays]
+        return np.rec.fromarrays(
+            arrays,
+            dtype={'names': names, 'formats': formats}
+        )
 
     @classmethod
     def from_items(cls, items, columns=None, orient='columns'):
