@@ -615,7 +615,8 @@ Bug Fixes
 - Bug in ``DataFrame.fillna()`` where the argument ``downcast`` was ignored when fillna value was of type ``dict`` (:issue:`15277`)
 - Bug in ``.reset_index()`` when an all ``NaN`` level of a ``MultiIndex`` would fail (:issue:`6322`)
 
-- Bug in ``pd.read_msgpack`` when deserializing a ``CategoricalIndex`` (:issue:`15487`)
+- Bug in ``pd.read_msgpack()`` when deserializing a ``CategoricalIndex`` (:issue:`15487`)
+- Bug in ``pd.DataFrame.to_records()`` which failed with unicode characters in column names (:issue:`11879`)
 
 
 - Bug in ``pd.read_csv()`` with ``float_precision='round_trip'`` which caused a segfault when a text entry is parsed (:issue:`15140`)
