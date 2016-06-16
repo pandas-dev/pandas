@@ -2320,7 +2320,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                             iresult[i] = NPY_NAT
                             continue
                         elif is_raise:
-                            raise ValueError("time data %r does match format specified" %
+                            raise ValueError("time data %r doesn't match format specified" %
                                              (val,))
                         else:
                             return values
