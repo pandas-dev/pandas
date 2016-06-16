@@ -2563,6 +2563,33 @@ class TestToDatetime(tm.TestCase):
         with self.assertRaises(ValueError):
             to_datetime(df2)
 
+    def test_dataframe_dtypes(self):
+        # #13451
+        df = DataFrame({'year': [2015, 2016],
+                        'month': [2, 3],
+                        'day': [4, 5]})
+
+        # int16
+        result = to_datetime(df.astype('int16'))
+        expected = Series([Timestamp('20150204 00:00:00'),
+                           Timestamp('20160305 00:00:00')])
+        assert_series_equal(result, expected)
+
+        # mixed dtypes
+        df['month'] = df['month'].astype('int8')
+        df['day'] = df['day'].astype('int8')
+        result = to_datetime(df)
+        expected = Series([Timestamp('20150204 00:00:00'),
+                           Timestamp('20160305 00:00:00')])
+        assert_series_equal(result, expected)
+
+        # float
+        df = DataFrame({'year': [2000, 2001],
+                        'month': [1.5, 1],
+                        'day': [1, 1]})
+        with self.assertRaises(ValueError):
+            to_datetime(df)
+
 
 class TestDatetimeIndex(tm.TestCase):
     _multiprocess_can_split_ = True

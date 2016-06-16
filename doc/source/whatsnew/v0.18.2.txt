@@ -517,3 +517,5 @@ Bug Fixes
 
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
+
+- Bug in ``DataFrame.to_datetime()`` raises ValueError in case of dtype ``int8`` and ``int16`` (:issue:`13451`)
