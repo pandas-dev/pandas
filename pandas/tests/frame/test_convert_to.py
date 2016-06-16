@@ -179,3 +179,11 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
             .to_records()
         expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
         tm.assert_almost_equal(result, expected)
+
+    def test_to_records_with_unicode_column_names(self):
+        # Issue #11879. to_records used to raise an exception when used
+        # with column names containing non ascii caracters in Python 2
+        try:
+            DataFrame(columns=[u"accented_name_é"]).to_records()
+        except UnicodeEncodeError:
+            self.fail("to_records() raised a UnicodeEncodeError exception")
