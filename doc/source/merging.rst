@@ -78,7 +78,7 @@ some configurable handling of "what to do with the other axes":
 ::
 
     pd.concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
-           keys=None, levels=None, names=None, verify_integrity=False)
+              keys=None, levels=None, names=None, verify_integrity=False)
 
 - ``objs``: a sequence or mapping of Series, DataFrame, or Panel objects. If a
   dict is passed, the sorted keys will be used as the `keys` argument, unless
@@ -510,48 +510,45 @@ standard database join operations between DataFrame objects:
 
 ::
 
-    merge(left, right, how='inner', on=None, left_on=None, right_on=None,
-          left_index=False, right_index=False, sort=True,
-          suffixes=('_x', '_y'), copy=True, indicator=False)
+    pd.merge(left, right, how='inner', on=None, left_on=None, right_on=None,
+             left_index=False, right_index=False, sort=True,
+             suffixes=('_x', '_y'), copy=True, indicator=False)
 
-Here's a description of what each argument is for:
+- ``left``: A DataFrame object
+- ``right``: Another DataFrame object
+- ``on``: Columns (names) to join on. Must be found in both the left and
+  right DataFrame objects. If not passed and ``left_index`` and
+  ``right_index`` are ``False``, the intersection of the columns in the
+  DataFrames will be inferred to be the join keys
+- ``left_on``: Columns from the left DataFrame to use as keys. Can either be
+  column names or arrays with length equal to the length of the DataFrame
+- ``right_on``: Columns from the right DataFrame to use as keys. Can either be
+  column names or arrays with length equal to the length of the DataFrame
+- ``left_index``: If ``True``, use the index (row labels) from the left
+  DataFrame as its join key(s). In the case of a DataFrame with a MultiIndex
+  (hierarchical), the number of levels must match the number of join keys
+  from the right DataFrame
+- ``right_index``: Same usage as ``left_index`` for the right DataFrame
+- ``how``: One of ``'left'``, ``'right'``, ``'outer'``, ``'inner'``. Defaults
+  to ``inner``. See below for more detailed description of each method
+- ``sort``: Sort the result DataFrame by the join keys in lexicographical
+  order. Defaults to ``True``, setting to ``False`` will improve performance
+  substantially in many cases
+- ``suffixes``: A tuple of string suffixes to apply to overlapping
+  columns. Defaults to ``('_x', '_y')``.
+- ``copy``: Always copy data (default ``True``) from the passed DataFrame
+  objects, even when reindexing is not necessary. Cannot be avoided in many
+  cases but may improve performance / memory usage. The cases where copying
+  can be avoided are somewhat pathological but this option is provided
+  nonetheless.
+- ``indicator``: Add a column to the output DataFrame called ``_merge``
+  with information on the source of each row. ``_merge`` is Categorical-type
+  and takes on a value of ``left_only`` for observations whose merge key
+  only appears in ``'left'`` DataFrame, ``right_only`` for observations whose
+  merge key only appears in ``'right'`` DataFrame, and ``both`` if the
+  observation's merge key is found in both.
 
-  - ``left``: A DataFrame object
-  - ``right``: Another DataFrame object
-  - ``on``: Columns (names) to join on. Must be found in both the left and
-    right DataFrame objects. If not passed and ``left_index`` and
-    ``right_index`` are ``False``, the intersection of the columns in the
-    DataFrames will be inferred to be the join keys
-  - ``left_on``: Columns from the left DataFrame to use as keys. Can either be
-    column names or arrays with length equal to the length of the DataFrame
-  - ``right_on``: Columns from the right DataFrame to use as keys. Can either be
-    column names or arrays with length equal to the length of the DataFrame
-  - ``left_index``: If ``True``, use the index (row labels) from the left
-    DataFrame as its join key(s). In the case of a DataFrame with a MultiIndex
-    (hierarchical), the number of levels must match the number of join keys
-    from the right DataFrame
-  - ``right_index``: Same usage as ``left_index`` for the right DataFrame
-  - ``how``: One of ``'left'``, ``'right'``, ``'outer'``, ``'inner'``. Defaults
-    to ``inner``. See below for more detailed description of each method
-  - ``sort``: Sort the result DataFrame by the join keys in lexicographical
-    order. Defaults to ``True``, setting to ``False`` will improve performance
-    substantially in many cases
-  - ``suffixes``: A tuple of string suffixes to apply to overlapping
-    columns. Defaults to ``('_x', '_y')``.
-  - ``copy``: Always copy data (default ``True``) from the passed DataFrame
-    objects, even when reindexing is not necessary. Cannot be avoided in many
-    cases but may improve performance / memory usage. The cases where copying
-    can be avoided are somewhat pathological but this option is provided
-    nonetheless.
-  - ``indicator``: Add a column to the output DataFrame called ``_merge``
-    with information on the source of each row. ``_merge`` is Categorical-type
-    and takes on a value of ``left_only`` for observations whose merge key
-    only appears in ``'left'`` DataFrame, ``right_only`` for observations whose
-    merge key only appears in ``'right'`` DataFrame, and ``both`` if the
-    observation's merge key is found in both.
-
-    .. versionadded:: 0.17.0
-
+  .. versionadded:: 0.17.0
 
 The return type will be the same as ``left``. If ``left`` is a ``DataFrame``
 and ``right`` is a subclass of DataFrame, the return type will still be
@@ -573,11 +570,11 @@ terminology used to describe join operations between two SQL-table like
 structures (DataFrame objects). There are several cases to consider which are
 very important to understand:
 
-  - **one-to-one** joins: for example when joining two DataFrame objects on
-    their indexes (which must contain unique values)
-  - **many-to-one** joins: for example when joining an index (unique) to one or
-    more columns in a DataFrame
-  - **many-to-many** joins: joining columns on columns.
+- **one-to-one** joins: for example when joining two DataFrame objects on
+  their indexes (which must contain unique values)
+- **many-to-one** joins: for example when joining an index (unique) to one or
+  more columns in a DataFrame
+- **many-to-many** joins: joining columns on columns.
 
 .. note::
 
@@ -714,15 +711,15 @@ The merge indicator
 
 .. ipython:: python
 
-   df1 = DataFrame({'col1':[0,1], 'col_left':['a','b']})
-   df2 = DataFrame({'col1':[1,2,2],'col_right':[2,2,2]})
-   merge(df1, df2, on='col1', how='outer', indicator=True)
+   df1 = pd.DataFrame({'col1': [0, 1], 'col_left':['a', 'b']})
+   df2 = pd.DataFrame({'col1': [1, 2, 2],'col_right':[2, 2, 2]})
+   pd.merge(df1, df2, on='col1', how='outer', indicator=True)
 
 The ``indicator`` argument will also accept string arguments, in which case the indicator function will use the value of the passed string as the name for the indicator column.
 
 .. ipython:: python
 
-   merge(df1, df2, on='col1', how='outer', indicator='indicator_column')
+   pd.merge(df1, df2, on='col1', how='outer', indicator='indicator_column')
 
 
 .. _merging.join.index:
@@ -924,7 +921,7 @@ a level name of the multi-indexed frame.
 
    left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
                         'B': ['B0', 'B1', 'B2']},
-                        index=Index(['K0', 'K1', 'K2'], name='key'))
+                        index=pd.Index(['K0', 'K1', 'K2'], name='key'))
 
    index = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
                                      ('K2', 'Y2'), ('K2', 'Y3')],
@@ -1116,28 +1113,20 @@ Timeseries friendly merging
 Merging Ordered Data
 ~~~~~~~~~~~~~~~~~~~~
 
-The ``pd.merge_ordered()`` function allows combining time series and other
+A :func:`pd.merge_ordered` function allows combining time series and other
 ordered data. In particular it has an optional ``fill_method`` keyword to
 fill/interpolate missing data:
 
 .. ipython:: python
 
-   left = DataFrame({'k': ['K0', 'K1', 'K1', 'K2'],
-                     'lv': [1, 2, 3, 4],
-                     's': ['a', 'b', 'c', 'd']})
+   left = pd.DataFrame({'k': ['K0', 'K1', 'K1', 'K2'],
+                        'lv': [1, 2, 3, 4],
+                        's': ['a', 'b', 'c', 'd']})
 
-   right = DataFrame({'k': ['K1', 'K2', 'K4'],
-                      'rv': [1, 2, 3]})
+   right = pd.DataFrame({'k': ['K1', 'K2', 'K4'],
+                         'rv': [1, 2, 3]})
 
-   result = pd.merge_ordered(left, right, fill_method='ffill', left_by='s')
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_ordered_merge.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=True);
-   plt.close('all');
+   pd.merge_ordered(left, right, fill_method='ffill', left_by='s')
 
 .. _merging.merge_asof:
 
@@ -1146,12 +1135,7 @@ Merging AsOf
 
 .. versionadded:: 0.18.2
 
-An ``pd.merge_asof()`` this is similar to an ordered left-join except that we
-match on nearest key rather than equal keys.
-
-For each row in the ``left`` DataFrame, we select the last row in the ``right``
-DataFrame whose ``on`` key is less than the left's key. Both DataFrames must
-be sorted by the key.
+A :func:`pd.merge_asof` is similar to an ordered left-join except that we match on nearest key rather than equal keys. For each row in the ``left`` DataFrame, we select the last row in the ``right`` DataFrame whose ``on`` key is less than the left's key. Both DataFrames must be sorted by the key.
 
 Optionally an asof merge can perform a group-wise merge. This matches the ``by`` key equally,
 in addition to the nearest match on the ``on`` key.
