@@ -337,9 +337,8 @@ def merge_asof(left, right, on=None,
     1   5        b        3.0
     2  10        c        7.0
 
-    For this example, we can achieve a similar result thru ``pd.merge_ordered()``,
-    though its not nearly as performant.
-
+    For this example, we can achieve a similar result thru
+    ``pd.merge_ordered()``, though its not nearly as performant.
 
     >>> (pd.merge_ordered(left, right, on='a')
     ...    .ffill()

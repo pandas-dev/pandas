@@ -287,11 +287,10 @@ lineterminator : str (length 1), default ``None``
 quotechar : str (length 1)
   The character used to denote the start and end of a quoted item. Quoted items
   can include the delimiter and it will be ignored.
-quoting : int or ``csv.QUOTE_*`` instance, default ``None``
+quoting : int or ``csv.QUOTE_*`` instance, default ``0``
   Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
   ``QUOTE_MINIMAL`` (0), ``QUOTE_ALL`` (1), ``QUOTE_NONNUMERIC`` (2) or
-  ``QUOTE_NONE`` (3). Default (``None``) results in ``QUOTE_MINIMAL``
-  behavior.
+  ``QUOTE_NONE`` (3).
 doublequote : boolean, default ``True``
    When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``,
    indicate whether or not to interpret two consecutive ``quotechar`` elements

@@ -1113,7 +1113,7 @@ Timeseries friendly merging
 Merging Ordered Data
 ~~~~~~~~~~~~~~~~~~~~
 
-A :func:`pd.merge_ordered` function allows combining time series and other
+A :func:`merge_ordered` function allows combining time series and other
 ordered data. In particular it has an optional ``fill_method`` keyword to
 fill/interpolate missing data:
 
@@ -1135,7 +1135,7 @@ Merging AsOf
 
 .. versionadded:: 0.18.2
 
-A :func:`pd.merge_asof` is similar to an ordered left-join except that we match on nearest key rather than equal keys. For each row in the ``left`` DataFrame, we select the last row in the ``right`` DataFrame whose ``on`` key is less than the left's key. Both DataFrames must be sorted by the key.
+A :func:`merge_asof` is similar to an ordered left-join except that we match on nearest key rather than equal keys. For each row in the ``left`` DataFrame, we select the last row in the ``right`` DataFrame whose ``on`` key is less than the left's key. Both DataFrames must be sorted by the key.
 
 Optionally an asof merge can perform a group-wise merge. This matches the ``by`` key equally,
 in addition to the nearest match on the ``on`` key.
