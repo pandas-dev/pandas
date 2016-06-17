@@ -1,3 +1,5 @@
+# cython: profile=False
+
 from numpy cimport *
 cimport numpy as np
 import numpy as np
@@ -982,21 +984,35 @@ def is_lexsorted(list list_of_arrays):
 
 
 @cython.boundscheck(False)
-def groupby_indices(ndarray values):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[int64_t] labels, counts, arr, seen
-        int64_t loc
-        dict ids = {}
-        object val
-        int64_t k
+def groupby_indices(dict ids, ndarray[int64_t] labels, ndarray[int64_t] counts):
+    """
+    turn group_labels output into a combined indexer maping the labels to
+    indexers
 
-    ids, labels, counts = group_labels(values)
+    Parameters
+    ----------
+    ids: dict
+        mapping of label -> group indexer
+    labels: ndarray
+        labels for positions
+    counts: ndarray
+        group counts
+
+    Returns
+    -------
+    list of ndarrays of indices
+
+    """
+    cdef:
+        Py_ssize_t i, n = len(labels)
+        ndarray[int64_t] arr, seen
+        int64_t loc
+        int64_t k
+        dict result = {}
+
     seen = np.zeros_like(counts)
 
-    # try not to get in trouble here...
     cdef int64_t **vecs = <int64_t **> malloc(len(ids) * sizeof(int64_t*))
-    result = {}
     for i from 0 <= i < len(counts):
         arr = np.empty(counts[i], dtype=np.int64)
         result[ids[i]] = arr
@@ -1014,7 +1030,6 @@ def groupby_indices(ndarray values):
         seen[k] = loc + 1
 
     free(vecs)
-
     return result
 
 @cython.wraparound(False)
@@ -1023,8 +1038,15 @@ def group_labels(ndarray[object] values):
     """
     Compute label vector from input values and associated useful data
 
+    Parameters
+    ----------
+    values: object ndarray
+
     Returns
     -------
+    tuple of (reverse mappings of label -> group indexer,
+              factorized labels ndarray,
+              group counts ndarray)
     """
     cdef:
         Py_ssize_t i, n = len(values)
