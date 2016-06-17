@@ -433,12 +433,13 @@ class Styler(object):
         else:
             result = func(data, **kwargs)
             if not isinstance(result, pd.DataFrame):
-                raise TypeError("Function {!r} must return a DataFrame when "
-                                "passed to `Styler.apply` with axis=None")
+                raise TypeError(
+                    "Function {!r} must return a DataFrame when "
+                    "passed to `Styler.apply` with axis=None".format(func))
             if not (result.index.equals(data.index) and
                     result.columns.equals(data.columns)):
                 msg = ('Result of {!r} must have identical index and columns '
-                       'as the input')
+                       'as the input'.format(func))
                 raise ValueError(msg)
 
         result_shape = result.shape
