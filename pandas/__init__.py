@@ -43,7 +43,8 @@ from pandas.tseries.api import *
 from pandas.io.api import *
 from pandas.computation.api import *
 
-from pandas.tools.merge import merge, concat, ordered_merge
+from pandas.tools.merge import (merge, concat, ordered_merge,
+                                merge_ordered, merge_asof)
 from pandas.tools.pivot import pivot_table, crosstab
 from pandas.tools.plotting import scatter_matrix, plot_params
 from pandas.tools.tile import cut, qcut

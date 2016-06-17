@@ -151,6 +151,8 @@ Data manipulations
    cut
    qcut
    merge
+   merge_ordered
+   merge_asof
    concat
    get_dummies
    factorize
@@ -943,6 +945,7 @@ Time series-related
    :toctree: generated/
 
    DataFrame.asfreq
+   DataFrame.asof
    DataFrame.shift
    DataFrame.first_valid_index
    DataFrame.last_valid_index

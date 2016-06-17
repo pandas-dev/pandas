@@ -1,7 +1,7 @@
 import nose
 
 import pandas as pd
-from pandas import DataFrame, ordered_merge
+from pandas import DataFrame, merge_ordered
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal
 
@@ -17,10 +17,15 @@ class TestOrderedMerge(tm.TestCase):
         self.right = DataFrame({'key': ['b', 'c', 'd', 'f'],
                                 'rvalue': [1, 2, 3., 4]})
 
+    def test_deprecation(self):
+
+        with tm.assert_produces_warning(FutureWarning):
+            pd.ordered_merge(self.left, self.right, on='key')
+
     # GH #813
 
     def test_basic(self):
-        result = ordered_merge(self.left, self.right, on='key')
+        result = merge_ordered(self.left, self.right, on='key')
         expected = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'f'],
                               'lvalue': [1, nan, 2, nan, 3, nan],
                               'rvalue': [nan, 1, 2, 3, nan, 4]})
@@ -28,7 +33,7 @@ class TestOrderedMerge(tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_ffill(self):
-        result = ordered_merge(
+        result = merge_ordered(
             self.left, self.right, on='key', fill_method='ffill')
         expected = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'f'],
                               'lvalue': [1., 1, 2, 2, 3, 3.],
@@ -42,7 +47,7 @@ class TestOrderedMerge(tm.TestCase):
         left['group'] = ['a'] * 3 + ['b'] * 3
         # right['group'] = ['a'] * 4 + ['b'] * 4
 
-        result = ordered_merge(left, self.right, on='key', left_by='group',
+        result = merge_ordered(left, self.right, on='key', left_by='group',
                                fill_method='ffill')
         expected = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'f'] * 2,
                               'lvalue': [1., 1, 2, 2, 3, 3.] * 2,
@@ -51,11 +56,11 @@ class TestOrderedMerge(tm.TestCase):
 
         assert_frame_equal(result, expected.ix[:, result.columns])
 
-        result2 = ordered_merge(self.right, left, on='key', right_by='group',
+        result2 = merge_ordered(self.right, left, on='key', right_by='group',
                                 fill_method='ffill')
         assert_frame_equal(result, result2.ix[:, result.columns])
 
-        result = ordered_merge(left, self.right, on='key', left_by='group')
+        result = merge_ordered(left, self.right, on='key', left_by='group')
         self.assertTrue(result['group'].notnull().all())
 
     def test_merge_type(self):

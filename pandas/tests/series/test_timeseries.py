@@ -3,10 +3,9 @@
 
 from datetime import datetime
 
-from numpy import nan
 import numpy as np
 
-from pandas import Index, Series, notnull, date_range
+from pandas import Index, Series, date_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
 
@@ -178,51 +177,6 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         self.assertRaises(ValueError, ts.truncate,
                           before=self.ts.index[-1] + offset,
                           after=self.ts.index[0] - offset)
-
-    def test_asof(self):
-        # array or list or dates
-        N = 50
-        rng = date_range('1/1/1990', periods=N, freq='53s')
-        ts = Series(np.random.randn(N), index=rng)
-        ts[15:30] = np.nan
-        dates = date_range('1/1/1990', periods=N * 3, freq='25s')
-
-        result = ts.asof(dates)
-        self.assertTrue(notnull(result).all())
-        lb = ts.index[14]
-        ub = ts.index[30]
-
-        result = ts.asof(list(dates))
-        self.assertTrue(notnull(result).all())
-        lb = ts.index[14]
-        ub = ts.index[30]
-
-        mask = (result.index >= lb) & (result.index < ub)
-        rs = result[mask]
-        self.assertTrue((rs == ts[lb]).all())
-
-        val = result[result.index[result.index >= ub][0]]
-        self.assertEqual(ts[ub], val)
-
-        self.ts[5:10] = np.NaN
-        self.ts[15:20] = np.NaN
-
-        val1 = self.ts.asof(self.ts.index[7])
-        val2 = self.ts.asof(self.ts.index[19])
-
-        self.assertEqual(val1, self.ts[4])
-        self.assertEqual(val2, self.ts[14])
-
-        # accepts strings
-        val1 = self.ts.asof(str(self.ts.index[7]))
-        self.assertEqual(val1, self.ts[4])
-
-        # in there
-        self.assertEqual(self.ts.asof(self.ts.index[3]), self.ts[3])
-
-        # no as of value
-        d = self.ts.index[0] - datetools.bday
-        self.assertTrue(np.isnan(self.ts.asof(d)))
 
     def test_getitem_setitem_datetimeindex(self):
         from pandas import date_range
@@ -423,68 +377,6 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         result[ts.index[4:8]] = 0
         result[4:8] = ts[4:8]
         assert_series_equal(result, ts)
-
-    def test_asof_periodindex(self):
-        from pandas import period_range, PeriodIndex
-        # array or list or dates
-        N = 50
-        rng = period_range('1/1/1990', periods=N, freq='H')
-        ts = Series(np.random.randn(N), index=rng)
-        ts[15:30] = np.nan
-        dates = date_range('1/1/1990', periods=N * 3, freq='37min')
-
-        result = ts.asof(dates)
-        self.assertTrue(notnull(result).all())
-        lb = ts.index[14]
-        ub = ts.index[30]
-
-        result = ts.asof(list(dates))
-        self.assertTrue(notnull(result).all())
-        lb = ts.index[14]
-        ub = ts.index[30]
-
-        pix = PeriodIndex(result.index.values, freq='H')
-        mask = (pix >= lb) & (pix < ub)
-        rs = result[mask]
-        self.assertTrue((rs == ts[lb]).all())
-
-        ts[5:10] = np.NaN
-        ts[15:20] = np.NaN
-
-        val1 = ts.asof(ts.index[7])
-        val2 = ts.asof(ts.index[19])
-
-        self.assertEqual(val1, ts[4])
-        self.assertEqual(val2, ts[14])
-
-        # accepts strings
-        val1 = ts.asof(str(ts.index[7]))
-        self.assertEqual(val1, ts[4])
-
-        # in there
-        self.assertEqual(ts.asof(ts.index[3]), ts[3])
-
-        # no as of value
-        d = ts.index[0].to_timestamp() - datetools.bday
-        self.assertTrue(np.isnan(ts.asof(d)))
-
-    def test_asof_more(self):
-        from pandas import date_range
-
-        s = Series([nan, nan, 1, 2, nan, nan, 3, 4, 5],
-                   index=date_range('1/1/2000', periods=9))
-
-        dates = s.index[[4, 5, 6, 2, 1]]
-
-        result = s.asof(dates)
-        expected = Series([2, 2, 3, 1, np.nan], index=dates)
-
-        assert_series_equal(result, expected)
-
-        s = Series([1.5, 2.5, 1, 2, nan, nan, 3, 4, 5],
-                   index=date_range('1/1/2000', periods=9))
-        result = s.asof(s.index[0])
-        self.assertEqual(result, s[0])
 
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30), datetime(

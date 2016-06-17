@@ -104,7 +104,7 @@ some configurable handling of "what to do with the other axes":
 - ``ignore_index`` : boolean, default False. If True, do not use the index
   values on the concatenation axis. The resulting axis will be labeled 0, ...,
   n - 1. This is useful if you are concatenating objects where the
-  concatenation axis does not have meaningful indexing information. Note 
+  concatenation axis does not have meaningful indexing information. Note
   the index values on the other axes are still respected in the join.
 - ``copy`` : boolean, default True. If False, do not copy data unnecessarily.
 
@@ -544,12 +544,12 @@ Here's a description of what each argument is for:
     can be avoided are somewhat pathological but this option is provided
     nonetheless.
   - ``indicator``: Add a column to the output DataFrame called ``_merge``
-    with information on the source of each row. ``_merge`` is Categorical-type 
-    and takes on a value of ``left_only`` for observations whose merge key 
-    only appears in ``'left'`` DataFrame, ``right_only`` for observations whose 
-    merge key only appears in ``'right'`` DataFrame, and ``both`` if the 
-    observation's merge key is found in both. 
-    
+    with information on the source of each row. ``_merge`` is Categorical-type
+    and takes on a value of ``left_only`` for observations whose merge key
+    only appears in ``'left'`` DataFrame, ``right_only`` for observations whose
+    merge key only appears in ``'right'`` DataFrame, and ``both`` if the
+    observation's merge key is found in both.
+
     .. versionadded:: 0.17.0
 
 
@@ -718,7 +718,7 @@ The merge indicator
    df2 = DataFrame({'col1':[1,2,2],'col_right':[2,2,2]})
    merge(df1, df2, on='col1', how='outer', indicator=True)
 
-The ``indicator`` argument will also accept string arguments, in which case the indicator function will use the value of the passed string as the name for the indicator column. 
+The ``indicator`` argument will also accept string arguments, in which case the indicator function will use the value of the passed string as the name for the indicator column.
 
 .. ipython:: python
 
@@ -1055,34 +1055,6 @@ them together on their indexes. The same is true for ``Panel.join``.
           labels=['left', 'right', 'right2'], vertical=False);
    plt.close('all');
 
-.. _merging.ordered_merge:
-
-Merging Ordered Data
-~~~~~~~~~~~~~~~~~~~~
-
-New in v0.8.0 is the ordered_merge function for combining time series and other
-ordered data. In particular it has an optional ``fill_method`` keyword to
-fill/interpolate missing data:
-
-.. ipython:: python
-
-   left = DataFrame({'k': ['K0', 'K1', 'K1', 'K2'],
-                     'lv': [1, 2, 3, 4],
-                     's': ['a', 'b', 'c', 'd']})
-
-   right = DataFrame({'k': ['K1', 'K2', 'K4'],
-                      'rv': [1, 2, 3]})
-
-   result = ordered_merge(left, right, fill_method='ffill', left_by='s')
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_ordered_merge.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=True);
-   plt.close('all');
-
 .. _merging.combine_first.update:
 
 Merging together values within Series or DataFrame columns
@@ -1133,3 +1105,123 @@ values inplace:
    p.plot([df1_copy, df2], df1,
           labels=['df1', 'df2'], vertical=False);
    plt.close('all');
+
+.. _merging.time_series:
+
+Timeseries friendly merging
+---------------------------
+
+.. _merging.merge_ordered:
+
+Merging Ordered Data
+~~~~~~~~~~~~~~~~~~~~
+
+The ``pd.merge_ordered()`` function allows combining time series and other
+ordered data. In particular it has an optional ``fill_method`` keyword to
+fill/interpolate missing data:
+
+.. ipython:: python
+
+   left = DataFrame({'k': ['K0', 'K1', 'K1', 'K2'],
+                     'lv': [1, 2, 3, 4],
+                     's': ['a', 'b', 'c', 'd']})
+
+   right = DataFrame({'k': ['K1', 'K2', 'K4'],
+                      'rv': [1, 2, 3]})
+
+   result = pd.merge_ordered(left, right, fill_method='ffill', left_by='s')
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_ordered_merge.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=True);
+   plt.close('all');
+
+.. _merging.merge_asof:
+
+Merging AsOf
+~~~~~~~~~~~~
+
+.. versionadded:: 0.18.2
+
+An ``pd.merge_asof()`` this is similar to an ordered left-join except that we
+match on nearest key rather than equal keys.
+
+For each row in the ``left`` DataFrame, we select the last row in the ``right``
+DataFrame whose ``on`` key is less than the left's key. Both DataFrames must
+be sorted by the key.
+
+Optionally an asof merge can perform a group-wise merge. This matches the ``by`` key equally,
+in addition to the nearest match on the ``on`` key.
+
+For example; we might have ``trades`` and ``quotes`` and we want to ``asof`` merge them.
+
+.. ipython:: python
+
+   trades = pd.DataFrame({
+       'time': pd.to_datetime(['20160525 13:30:00.023',
+                               '20160525 13:30:00.038',
+                               '20160525 13:30:00.048',
+                               '20160525 13:30:00.048',
+                               '20160525 13:30:00.048']),
+       'ticker': ['MSFT', 'MSFT',
+                  'GOOG', 'GOOG', 'AAPL'],
+       'price': [51.95, 51.95,
+                 720.77, 720.92, 98.00],
+       'quantity': [75, 155,
+                    100, 100, 100]},
+       columns=['time', 'ticker', 'price', 'quantity'])
+
+   quotes = pd.DataFrame({
+       'time': pd.to_datetime(['20160525 13:30:00.023',
+                               '20160525 13:30:00.023',
+                               '20160525 13:30:00.030',
+                               '20160525 13:30:00.041',
+                               '20160525 13:30:00.048',
+                               '20160525 13:30:00.049',
+                               '20160525 13:30:00.072',
+                               '20160525 13:30:00.075']),
+       'ticker': ['GOOG', 'MSFT', 'MSFT',
+                  'MSFT', 'GOOG', 'AAPL', 'GOOG',
+                  'MSFT'],
+       'bid': [720.50, 51.95, 51.97, 51.99,
+               720.50, 97.99, 720.50, 52.01],
+       'ask': [720.93, 51.96, 51.98, 52.00,
+               720.93, 98.01, 720.88, 52.03]},
+       columns=['time', 'ticker', 'bid', 'ask'])
+
+.. ipython:: python
+
+   trades
+   quotes
+
+By default we are taking the asof of the quotes.
+
+.. ipython:: python
+
+   pd.merge_asof(trades, quotes,
+                 on='time',
+                 by='ticker')
+
+We only asof within ``2ms`` betwen the quote time and the trade time.
+
+.. ipython:: python
+
+   pd.merge_asof(trades, quotes,
+                 on='time',
+                 by='ticker',
+                 tolerance=pd.Timedelta('2ms'))
+
+We only asof within ``10ms`` betwen the quote time and the trade time and we exclude exact matches on time.
+Note that though we exclude the exact matches (of the quotes), prior quotes DO propogate to that point
+in time.
+
+.. ipython:: python
+
+   pd.merge_asof(trades, quotes,
+                 on='time',
+                 by='ticker',
+                 tolerance=pd.Timedelta('10ms'),
+                 allow_exact_matches=False)

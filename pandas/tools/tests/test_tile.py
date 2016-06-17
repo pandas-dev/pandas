@@ -216,8 +216,7 @@ class TestCut(tm.TestCase):
 
     def test_qcut_binning_issues(self):
         # #1978, 1979
-        path = os.path.join(curpath(), 'cut_data.csv')
-
+        path = os.path.join(tm.get_data_path(), 'cut_data.csv')
         arr = np.loadtxt(path)
 
         result = qcut(arr, 20)
