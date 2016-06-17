@@ -9,7 +9,7 @@ We recommend that all users upgrade to this version.
 
 Highlights include:
 
-  - ``pd.merge_asof()`` for asof-style time-series joining, see :ref:`here <whatsnew_0182.enhancements.asof_merge>`
+- :func:`merge_asof` for asof-style time-series joining, see :ref:`here <whatsnew_0182.enhancements.asof_merge>`
 
 .. contents:: What's new in v0.18.2
     :local:
@@ -22,8 +22,8 @@ New features
 
 .. _whatsnew_0182.enhancements.asof_merge:
 
-``pd.merge_asof()`` for asof-style time-series joining
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:func:`merge_asof` for asof-style time-series joining
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A long-time requested feature has been added through the :func:`merge_asof` function, to
 support asof style joining of time-series. (:issue:`1870`). Full documentation is
@@ -113,10 +113,10 @@ passed DataFrame (``trades`` in this case), with the fields of the ``quotes`` me
 
 .. _whatsnew_0182.enhancements.read_csv_dupe_col_names_support:
 
-``pd.read_csv`` has improved support for duplicate column names
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:func:`read_csv` has improved support for duplicate column names
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:ref:`Duplicate column names <io.dupe_names>` are now supported in ``pd.read_csv()`` whether
+:ref:`Duplicate column names <io.dupe_names>` are now supported in :func:`read_csv` whether
 they are in the file or passed in as the ``names`` parameter (:issue:`7160`, :issue:`9424`)
 
 .. ipython :: python
@@ -187,7 +187,7 @@ Other enhancements
 
 - The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behaviour remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
 
-- ``Index`` now supports ``.str.extractall()`` which returns ``DataFrame``, see :ref:`Extract all matches in each subject (extractall) <text.extractall>` (:issue:`10008`, :issue:`13156`)
+- ``Index`` now supports ``.str.extractall()`` which returns a ``DataFrame``, see :ref:`documentation here <text.extractall>` (:issue:`10008`, :issue:`13156`)
 - ``.to_hdf/read_hdf()`` now accept path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path (:issue:`11773`)
 
   .. ipython:: python
@@ -406,6 +406,8 @@ New Behavior:
    s.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
    df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
 
+Furthermore:
+
 - Passing duplicated ``percentiles`` will now raise a ``ValueError``.
 - Bug in ``.describe()`` on a DataFrame with a mixed-dtype column index, which would previously raise a ``TypeError`` (:issue:`13288`)
 
@@ -462,7 +464,7 @@ Bug Fixes
 
 - Bug in calling ``.memory_usage()`` on object which doesn't implement (:issue:`12924`)
 
-- Regression in ``Series.quantile`` with nans (also shows up in ``.median()`` and ``.describe()``); furthermore now names the ``Series`` with the quantile (:issue:`13098`, :issue:`13146`)
+- Regression in ``Series.quantile`` with nans (also shows up in ``.median()`` and ``.describe()`` ); furthermore now names the ``Series`` with the quantile (:issue:`13098`, :issue:`13146`)
 
 - Bug in ``SeriesGroupBy.transform`` with datetime values and missing groups (:issue:`13191`)
 
@@ -473,9 +475,9 @@ Bug Fixes
 - Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``PeriodIndex`` construction returning a ``float64`` index in some circumstances (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not changing its ``freq`` appropriately when empty (:issue:`13067`)
-- Bug in ``.resample(..)`` with a ``PeriodIndex`` not retaining its type or name with an empty ``DataFrame``appropriately when empty (:issue:`13212`)
+- Bug in ``.resample(..)`` with a ``PeriodIndex`` not retaining its type or name with an empty ``DataFrame`` appropriately when empty (:issue:`13212`)
 - Bug in ``groupby(..).resample(..)`` where passing some keywords would raise an exception (:issue:`13235`)
-- Bug in ``.tz_convert`` on a tz-aware ``DateTimeIndex`` that relied on index being sorted for correct results (:issue: `13306`)
+- Bug in ``.tz_convert`` on a tz-aware ``DateTimeIndex`` that relied on index being sorted for correct results (:issue:`13306`)
 - Bug in ``pd.read_hdf()`` where attempting to load an HDF file with a single dataset, that had one or more categorical columns, failed unless the key argument was set to the name of the dataset. (:issue:`13231`)
 
 
@@ -493,6 +495,8 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` with ``engine='python'`` in which trailing ``NaN`` values were not being parsed (:issue:`13320`)
 - Bug in ``pd.read_csv()`` that prevents ``usecols`` kwarg from accepting single-byte unicode strings (:issue:`13219`)
 - Bug in ``pd.read_csv()`` that prevents ``usecols`` from being an empty set (:issue:`13402`)
+- Bug in ``pd.read_csv()`` with ``engine=='c'`` in which null ``quotechar`` was not accepted even though ``quoting`` was specified as ``None`` (:issue:`13411`)
+- Bug in ``pd.read_csv()`` with ``engine=='c'`` in which fields were not properly cast to float when quoting was specified as non-numeric (:issue:`13411`)
 
 
 

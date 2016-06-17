@@ -7,6 +7,7 @@ from libc.string cimport strncpy, strlen, strcmp, strcasecmp
 cimport libc.stdio as stdio
 import warnings
 
+from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
 from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString, PyBytes_Check,
                       PyUnicode_Check, PyUnicode_AsUTF8String)
@@ -283,6 +284,7 @@ cdef class TextReader:
         object compression
         object mangle_dupe_cols
         object tupleize_cols
+        list dtype_cast_order
         set noconvert, usecols
 
     def __cinit__(self, source,
@@ -393,8 +395,13 @@ cdef class TextReader:
                 raise ValueError('Only length-1 escapes  supported')
             self.parser.escapechar = ord(escapechar)
 
-        self.parser.quotechar = ord(quotechar)
-        self.parser.quoting = quoting
+        self._set_quoting(quotechar, quoting)
+
+        # TODO: endianness just a placeholder?
+        if quoting == QUOTE_NONNUMERIC:
+            self.dtype_cast_order = ['<f8', '<i8', '|b1', '|O8']
+        else:
+            self.dtype_cast_order = ['<i8', '<f8', '|b1', '|O8']
 
         if comment is not None:
             if len(comment) > 1:
@@ -547,6 +554,29 @@ cdef class TextReader:
 
     def set_error_bad_lines(self, int status):
         self.parser.error_bad_lines = status
+
+    def _set_quoting(self, quote_char, quoting):
+        if not isinstance(quoting, int):
+            raise TypeError('"quoting" must be an integer')
+
+        if not QUOTE_MINIMAL <= quoting <= QUOTE_NONE:
+            raise TypeError('bad "quoting" value')
+
+        if not isinstance(quote_char, (str, bytes)) and quote_char is not None:
+            dtype = type(quote_char).__name__
+            raise TypeError('"quotechar" must be string, '
+                            'not {dtype}'.format(dtype=dtype))
+
+        if quote_char is None or quote_char == '':
+            if quoting != QUOTE_NONE:
+                raise TypeError("quotechar must be set if quoting enabled")
+            self.parser.quoting = quoting
+            self.parser.quotechar = -1
+        elif len(quote_char) > 1:  # 0-len case handled earlier
+            raise TypeError('"quotechar" must be a 1-character string')
+        else:
+            self.parser.quoting = quoting
+            self.parser.quotechar = ord(quote_char)
 
     cdef _make_skiprow_set(self):
         if isinstance(self.skiprows, (int, np.integer)):
@@ -1066,7 +1096,7 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
-            for dt in dtype_cast_order:
+            for dt in self.dtype_cast_order:
                 try:
                     col_res, na_count = self._convert_with_dtype(
                         dt, i, start, end, na_filter, 0, na_hashset, na_flist)
@@ -1845,12 +1875,6 @@ cdef kh_float64_t* kset_float64_from_list(values) except NULL:
         k = kh_put_float64(table, val, &ret)
 
     return table
-
-
-# if at first you don't succeed...
-
-# TODO: endianness just a placeholder?
-cdef list dtype_cast_order = ['<i8', '<f8', '|b1', '|O8']
 
 
 cdef raise_parser_error(object base, parser_t *parser):
