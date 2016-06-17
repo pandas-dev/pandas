@@ -32,7 +32,8 @@ environment:
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       CONDA_PY: "35"
-      CONDA_NPY: "110"
+      CONDA_NPY: "111"
+
 
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
