@@ -243,6 +243,8 @@ def merge_ordered(left, right, on=None,
         result = _merger(left, right)
     return result
 
+ordered_merge.__doc__ = merge_ordered.__doc__
+
 
 def merge_asof(left, right, on=None,
                left_on=None, right_on=None,
@@ -335,7 +337,7 @@ def merge_asof(left, right, on=None,
     1   5        b        3.0
     2  10        c        7.0
 
-    For this example, we can achieve a similar result thru pd.merge_ordered,
+    For this example, we can achieve a similar result thru ``pd.merge_ordered()``,
     though its not nearly as performant.
 
 
@@ -348,7 +350,7 @@ def merge_asof(left, right, on=None,
     3   5        b        3.0
     6  10        c        7.0
 
-    Here is a real-worth times-series example
+    Here is a real-world times-series example
 
     >>> quotes
                          time ticker     bid     ask
@@ -369,7 +371,8 @@ def merge_asof(left, right, on=None,
     3 2016-05-25 13:30:00.048   GOOG  720.92       100
     4 2016-05-25 13:30:00.048   AAPL   98.00       100
 
-    # by default we are taking the asof of the quotes
+    By default we are taking the asof of the quotes
+
     >>> pd.asof_merge(trades, quotes,
     ...                       on='time',
     ...                       by='ticker')
@@ -380,7 +383,8 @@ def merge_asof(left, right, on=None,
     3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
 
-    # we only asof within 2ms betwen the quote time and the trade time
+    We only asof within 2ms betwen the quote time and the trade time
+
     >>> pd.asof_merge(trades, quotes,
     ...                       on='time',
     ...                       by='ticker',
@@ -392,9 +396,10 @@ def merge_asof(left, right, on=None,
     3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
 
-    # we only asof within 10ms betwen the quote time and the trade time
-    # and we exclude exact matches on time. However *prior* data will
-    # propogate forward
+    We only asof within 10ms betwen the quote time and the trade time
+    and we exclude exact matches on time. However *prior* data will
+    propogate forward
+
     >>> pd.asof_merge(trades, quotes,
     ...                       on='time',
     ...                       by='ticker',

@@ -9,6 +9,7 @@ We recommend that all users upgrade to this version.
 
 Highlights include:
 
+  - ``pd.merge_asof()`` for asof-style time-series joining, see :ref:`here <whatsnew_0182.enhancements.asof_merge>`
 
 .. contents:: What's new in v0.18.2
     :local:
@@ -28,7 +29,7 @@ A long-time requested feature has been added through the :func:`merge_asof` func
 support asof style joining of time-series. (:issue:`1870`). Full documentation is
 :ref:`here <merging.merge_asof>`
 
-The :func:`merge_asof`` performs an asof merge, which is similar to a left-join
+The :func:`merge_asof` performs an asof merge, which is similar to a left-join
 except that we match on nearest key rather than equal keys.
 
 .. ipython:: python
@@ -108,7 +109,7 @@ that forward filling happens automatically taking the most recent non-NaN value.
                  by='ticker')
 
 This returns a merged DataFrame with the entries in the same order as the original left
-passed DataFrame (``trades`` in this case). With the fields of the ``quotes`` merged.
+passed DataFrame (``trades`` in this case), with the fields of the ``quotes`` merged.
 
 .. _whatsnew_0182.enhancements.read_csv_dupe_col_names_support:
 
