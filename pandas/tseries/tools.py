@@ -508,7 +508,12 @@ def _assemble_from_unit_mappings(arg, errors):
 
     def coerce(values):
         # we allow coercion to if errors allows
-        return to_numeric(values, errors=errors)
+        values = to_numeric(values, errors=errors)
+
+        # prevent overflow in case of int8 or int16
+        if com.is_integer_dtype(values):
+            values = values.astype('int64', copy=False)
+        return values
 
     values = (coerce(arg[unit_rev['year']]) * 10000 +
               coerce(arg[unit_rev['month']]) * 100 +
