@@ -522,3 +522,5 @@ Bug Fixes
 
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
+
+- Bug in Style calls specifying axis=1 and a subset of id's (:issue:`13273`)
