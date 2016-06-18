@@ -171,3 +171,26 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             columns=list('abcABC'), index=list('abc'))
         actual = self.read_table(StringIO(data), sep='\s+')
         tm.assert_frame_equal(actual, expected)
+
+    def test_temporary_file(self):
+        # GH13398
+        data1 = """index,A,B,C,D
+foo,2,3,4,5
+bar,7,8,9,10
+baz,12,13,14,15
+qux,12,13,14,15
+foo2,12,13,14,15
+bar2,12,13,14,15
+"""
+        data2 = data1.replace(",", " ")
+
+        from tempfile import TemporaryFile
+        new_file = TemporaryFile("w+")
+        new_file.write(data2)
+        new_file.flush()
+        new_file.seek(0)
+
+        result = self.read_csv(new_file, sep=r"\s+", engine="python")
+        expected = self.read_csv(StringIO(data1))
+        tm.assert_frame_equal(result, expected)
+        

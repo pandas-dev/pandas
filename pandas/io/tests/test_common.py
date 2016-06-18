@@ -33,7 +33,6 @@ qux,12,13,14,15
 foo2,12,13,14,15
 bar2,12,13,14,15
 """
-    data2 = data1.replace(",", " ")
     
     def test_expand_user(self):
         filename = '~/sometest'
@@ -90,18 +89,6 @@ bar2,12,13,14,15
         tm.assert_frame_equal(first, expected.iloc[[0]])
         expected.index = [0 for i in range(len(expected))]
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
-
-    def test_temporary_file(self):
-        # GH13398
-        from tempfile import TemporaryFile
-        new_file = TemporaryFile("w+")
-        new_file.write(self.data2)
-        new_file.flush()
-        new_file.seek(0)
-
-        result = read_csv(new_file, sep=r"\s+", engine="python")
-        expected = read_csv(StringIO(self.data1))
-        tm.assert_frame_equal(result, expected)
 
 
 class TestMMapWrapper(tm.TestCase):
