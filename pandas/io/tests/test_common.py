@@ -11,7 +11,7 @@ import pandas.util.testing as tm
 from pandas.io import common
 from pandas.compat import is_platform_windows, StringIO
 
-from pandas import read_csv, concat
+from pandas import read_csv, read_table, concat
 
 try:
     from pathlib import Path
@@ -89,6 +89,15 @@ bar2,12,13,14,15
         tm.assert_frame_equal(first, expected.iloc[[0]])
         expected.index = [0 for i in range(len(expected))]
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
+
+    def test_temporary_file(self):
+        from tempfile import TemporaryFile
+        new_file = TemporaryFile("w+")
+        new_file.write("0   0")
+        new_file.flush()
+        new_file.seek(0)
+
+        dataframe = read_table(new_file, sep=r"\s+", header=None, engine="python")
 
 
 class TestMMapWrapper(tm.TestCase):
