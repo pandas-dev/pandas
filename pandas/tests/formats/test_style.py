@@ -46,6 +46,17 @@ class TestStyler(TestCase):
                           'c': pd.Categorical(['a', 'b'])})
         ]
 
+    def test_init_non_pandas(self):
+        with tm.assertRaises(TypeError):
+            Styler([1, 2, 3])
+
+    def test_init_series(self):
+        result = Styler(pd.Series([1, 2]))
+        self.assertEqual(result.data.ndim, 2)
+
+    def test_repr_html_ok(self):
+        self.styler._repr_html_()
+
     def test_update_ctx(self):
         self.styler._update_ctx(self.attrs)
         expected = {(0, 0): ['color: red'],
@@ -102,7 +113,7 @@ class TestStyler(TestCase):
     def test_render(self):
         df = pd.DataFrame({"A": [0, 1]})
         style = lambda x: pd.Series(["color: red", "color: blue"], name=x.name)
-        s = Styler(df, uuid='AB').apply(style).apply(style, axis=1)
+        s = Styler(df, uuid='AB').apply(style)
         s.render()
         # it worked?
 
@@ -538,6 +549,37 @@ class TestStyler(TestCase):
         ctx = df.style.format({"a": "{:0.1f}", "c": str.upper})._translate()
         self.assertEqual(ctx['body'][0][1]['display_value'], '0.1')
         self.assertEqual(ctx['body'][0][3]['display_value'], 'AAA')
+
+    def test_bad_apply_shape(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        with tm.assertRaises(ValueError):
+            df.style._apply(lambda x: 'x', subset=pd.IndexSlice[[0, 1], :])
+
+        with tm.assertRaises(ValueError):
+            df.style._apply(lambda x: [''], subset=pd.IndexSlice[[0, 1], :])
+
+        with tm.assertRaises(ValueError):
+            df.style._apply(lambda x: ['', '', '', ''])
+
+        with tm.assertRaises(ValueError):
+            df.style._apply(lambda x: ['', '', ''], subset=1)
+
+        with tm.assertRaises(ValueError):
+            df.style._apply(lambda x: ['', '', ''], axis=1)
+
+    def test_apply_bad_return(self):
+        def f(x):
+            return ''
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        with tm.assertRaises(TypeError):
+            df.style._apply(f, axis=None)
+
+    def test_apply_bad_labels(self):
+        def f(x):
+            return pd.DataFrame(index=[1, 2], columns=['a', 'b'])
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        with tm.assertRaises(ValueError):
+            df.style._apply(f, axis=None)
 
 
 @tm.mplskip
