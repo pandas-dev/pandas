@@ -360,7 +360,7 @@ code.
 
 It is easiest to :ref:`create a development environment <contributing.dev_env>`, then install::
 
-      conda install -n pandas_dev sphinx ipython
+      conda install -n pandas_dev sphinx ipython nbconvert nbformat
 
 Furthermore, it is recommended to have all `optional dependencies
 <http://pandas.pydata.org/pandas-docs/dev/install.html#optional-dependencies>`_
@@ -369,6 +369,8 @@ messages when building the docs. This happens because all the code in the docume
 is executed during the doc build, and so code examples using optional dependencies
 will generate errors. Run ``pd.show_versions()`` to get an overview of the installed
 version of all dependencies.
+`nbconvert <https://nbconvert.readthedocs.io/en/latest/>`_ and `nbformat <http://nbformat.readthedocs.io/en/latest/>`_ are required to build the Jupyter notebooks
+included in the documentation.
 
 .. warning::
 

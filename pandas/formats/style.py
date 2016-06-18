@@ -133,7 +133,7 @@ class Styler(object):
         self._todo = []
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError
+            raise TypeError("``data`` must be a Series or DataFrame")
         if data.ndim == 1:
             data = data.to_frame()
         if not data.index.is_unique or not data.columns.is_unique:
@@ -427,11 +427,30 @@ class Styler(object):
     def _apply(self, func, axis=0, subset=None, **kwargs):
         subset = slice(None) if subset is None else subset
         subset = _non_reducing_slice(subset)
+        data = self.data.loc[subset]
         if axis is not None:
-            result = self.data.loc[subset].apply(func, axis=axis, **kwargs)
+            result = data.apply(func, axis=axis, **kwargs)
         else:
-            # like tee
-            result = func(self.data.loc[subset], **kwargs)
+            result = func(data, **kwargs)
+            if not isinstance(result, pd.DataFrame):
+                raise TypeError(
+                    "Function {!r} must return a DataFrame when "
+                    "passed to `Styler.apply` with axis=None".format(func))
+            if not (result.index.equals(data.index) and
+                    result.columns.equals(data.columns)):
+                msg = ('Result of {!r} must have identical index and columns '
+                       'as the input'.format(func))
+                raise ValueError(msg)
+
+        result_shape = result.shape
+        expected_shape = self.data.loc[subset].shape
+        if result_shape != expected_shape:
+            msg = ("Function {!r} returned the wrong shape.\n"
+                   "Result has shape: {}\n"
+                   "Expected shape:   {}".format(func,
+                                                 result.shape,
+                                                 expected_shape))
+            raise ValueError(msg)
         self._update_ctx(result)
         return self
 
@@ -444,15 +463,19 @@ class Styler(object):
 
         Parameters
         ----------
-        func: function
-        axis: int, str or None
+        func : function
+            ``func`` should take a Series or DataFrame (depending
+            on ``axis``), and return an object with the same shape.
+            Must return a DataFrame with identical index and
+            column labels when ``axis=None``
+        axis : int, str or None
             apply to each column (``axis=0`` or ``'index'``)
             or to each row (``axis=1`` or ``'columns'``) or
-            to the entire DataFrame at once with ``axis=None``.
-        subset: IndexSlice
+            to the entire DataFrame at once with ``axis=None``
+        subset : IndexSlice
             a valid indexer to limit ``data`` to *before* applying the
             function. Consider using a pandas.IndexSlice
-        kwargs: dict
+        kwargs : dict
             pass along to ``func``
 
         Returns
@@ -461,9 +484,22 @@ class Styler(object):
 
         Notes
         -----
+        The output shape of ``func`` should match the input, i.e. if
+        ``x`` is the input row, column, or table (depending on ``axis``),
+        then ``func(x.shape) == x.shape`` should be true.
+
         This is similar to ``DataFrame.apply``, except that ``axis=None``
         applies the function to the entire DataFrame at once,
         rather than column-wise or row-wise.
+
+        Examples
+        --------
+        >>> def highlight_max(x):
+        ...     return ['background-color: yellow' if v == x.max() else ''
+                        for v in x]
+        ...
+        >>> df = pd.DataFrame(np.random.randn(5, 2))
+        >>> df.style.apply(highlight_max)
         """
         self._todo.append((lambda instance: getattr(instance, '_apply'),
                            (func, axis, subset), kwargs))
@@ -488,6 +524,7 @@ class Styler(object):
         Parameters
         ----------
         func : function
+            ``func`` should take a scalar and return a scalar
         subset : IndexSlice
             a valid indexer to limit ``data`` to *before* applying the
             function. Consider using a pandas.IndexSlice
@@ -742,6 +779,7 @@ class Styler(object):
         --------
         >>> df = pd.DataFrame(np.random.randn(10, 4))
         >>> df.style.set_properties(color="white", align="right")
+        >>> df.style.set_properties(**{'background-color': 'yellow'})
         """
         values = ';'.join('{p}: {v}'.format(p=p, v=v)
                           for p, v in kwargs.items())
