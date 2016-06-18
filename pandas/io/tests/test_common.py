@@ -91,8 +91,8 @@ bar2,12,13,14,15
         expected.index = [0 for i in range(len(expected))]
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
 
-    #13398
     def test_temporary_file(self):
+        # GH13398
         from tempfile import TemporaryFile
         new_file = TemporaryFile("w+")
         new_file.write(self.data2)
