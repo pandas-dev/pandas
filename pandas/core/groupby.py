@@ -1385,26 +1385,24 @@ class GroupBy(_GroupBy):
         """Compute numerical data ranks (1 through n) along axis.
         """
 
-        if numeric_only:
-            data = self._obj_with_exclusions._get_numeric_data()
-            if data.size == 0:
-                raise DataError('No numeric types to aggregate')
-            data = data.groupby(self.grouper)
-        else:
-            data = self
-
         def wrapper(values):
             return values.rank(axis=axis, method=method, na_option=na_option,
                                ascending=ascending, pct=pct)
 
         try:
-            return data.transform(wrapper)
+            return self.transform(wrapper)
         except ValueError:
-            if not numeric_only and method=='first':
+            if not numeric_only and method == 'first':
                 raise ValueError('first not supported for non-numeric data')
                 # such a ValueError is raised by pandas.algos.rank_2d_generic
                 # for regular (non-grouped) dataframes
-
+            if numeric_only:
+                data = self._obj_with_exclusions._get_numeric_data()
+                if data.size == 0:
+                    raise DataError('No numeric types to aggregate')
+                data = data.groupby(self.grouper)
+                return data.transform(wrapper)
+            raise
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
