@@ -193,4 +193,3 @@ bar2,12,13,14,15
         result = self.read_csv(new_file, sep=r"\s+", engine="python")
         expected = self.read_csv(StringIO(data1))
         tm.assert_frame_equal(result, expected)
-        

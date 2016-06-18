@@ -33,7 +33,7 @@ qux,12,13,14,15
 foo2,12,13,14,15
 bar2,12,13,14,15
 """
-    
+
     def test_expand_user(self):
         filename = '~/sometest'
         expanded_name = common._expand_user(filename)
