@@ -2,9 +2,9 @@
 
 ci_changes=$(git diff HEAD~2 --numstat | grep -E "ci/"| wc -l)
 
-MINICONDA_DIR="$HOME/miniconda"
-CACHE_DIR="$HOME/.cache"
-CCACHE_DIR="$HOME/.ccache"
+MINICONDA_DIR="$HOME/miniconda/"
+CACHE_DIR="$HOME/.cache/"
+CCACHE_DIR="$HOME/.ccache/"
 
 if [ $ci_changes -ne 0 ]
 then

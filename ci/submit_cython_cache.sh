@@ -14,7 +14,7 @@ tar cf ${CACHE_File} --files-from /dev/null
 for i in ${pyx_files}
 do
         f=${i%.pyx}
-        ls $f.c* | tar rf  ${CACHE_File} -T -
+        ls $f.{c,cpp} | tar rf  ${CACHE_File} -T -
 done
 
 echo "Cython files in cache tar:"
