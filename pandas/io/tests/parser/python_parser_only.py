@@ -174,12 +174,11 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_temporary_file(self):
         # GH13398
-        data1 = "0,0"
-        data2 = data1.replace(",", " ")
+        data1 = "0 0"
 
         from tempfile import TemporaryFile
         new_file = TemporaryFile("w+")
-        new_file.write(data2)
+        new_file.write(data1)
         new_file.flush()
         new_file.seek(0)
 
