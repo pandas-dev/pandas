@@ -244,6 +244,7 @@ before_install:
 
 install:
   - echo "install start"
+  - ci/check_cache.sh
   - ci/prep_cython_cache.sh
   - ci/install_travis.sh
   - ci/submit_cython_cache.sh
