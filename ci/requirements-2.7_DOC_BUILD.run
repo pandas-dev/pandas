@@ -1,6 +1,7 @@
 ipython
 sphinx
 nbconvert
+nbformat
 matplotlib
 scipy
 lxml
