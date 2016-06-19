@@ -12,8 +12,4 @@ then
     rm -rf "$MINICONDA_DIR"
     rm -rf "$CACHE_DIR"
     rm -rf "$CCACHE_DIR"
-    if [ "$USE_CACHE" ]
-    then
-        unset USE_CACHE
-    fi
 fi
