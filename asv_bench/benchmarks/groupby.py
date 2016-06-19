@@ -379,15 +379,24 @@ class groupby_size(object):
 #----------------------------------------------------------------------
 # groupby with a variable value for ngroups
 
-class groupby_ngroups_10000(object):
+class groupby_ngroups_int_10000(object):
     goal_time = 0.2
+    dtype = 'int'
+    ngroups = 10000
 
     def setup(self):
         np.random.seed(1234)
-        self.ngroups = 10000
-        self.size = (self.ngroups * 2)
-        self.rng = np.arange(self.ngroups)
-        self.df = DataFrame(dict(timestamp=self.rng.take(np.random.randint(0, self.ngroups, size=self.size)), value=np.random.randint(0, self.size, size=self.size)))
+        size = self.ngroups * 2
+        rng = np.arange(self.ngroups)
+        ts = rng.take(np.random.randint(0, self.ngroups, size=size))
+        if self.dtype == 'int':
+            value = np.random.randint(0, size, size=size)
+        else:
+            value = np.concatenate([np.random.random(self.ngroups) * 0.1,
+                                    np.random.random(self.ngroups) * 10.0])
+
+        self.df = DataFrame({'timestamp': ts,
+                             'value': value})
 
     def time_all(self):
         self.df.groupby('value')['timestamp'].all()
@@ -482,109 +491,35 @@ class groupby_ngroups_10000(object):
     def time_var(self):
         self.df.groupby('value')['timestamp'].var()
 
+class groupby_ngroups_int_100(groupby_ngroups_int_10000):
+    goal_time = 0.2
+    dtype = 'int'
+    ngroups = 100
 
-class groupby_ngroups_100(object):
+class groupby_ngroups_float_100(groupby_ngroups_int_10000):
+    goal_time = 0.2
+    dtype = 'float'
+    ngroups = 100
+
+class groupby_ngroups_float_10000(groupby_ngroups_int_10000):
+    goal_time = 0.2
+    dtype = 'float'
+    ngroups = 10000
+
+
+class groupby_float32(object):
+    # GH 13335
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
-        self.ngroups = 100
-        self.size = (self.ngroups * 2)
-        self.rng = np.arange(self.ngroups)
-        self.df = DataFrame(dict(timestamp=self.rng.take(np.random.randint(0, self.ngroups, size=self.size)), value=np.random.randint(0, self.size, size=self.size)))
+        tmp1 = (np.random.random(10000) * 0.1).astype(np.float32)
+        tmp2 = (np.random.random(10000) * 10.0).astype(np.float32)
+        tmp = np.concatenate((tmp1, tmp2))
+        arr = np.repeat(tmp, 10)
+        self.df = DataFrame(dict(a=arr, b=arr))
 
-    def time_all(self):
-        self.df.groupby('value')['timestamp'].all()
-
-    def time_any(self):
-        self.df.groupby('value')['timestamp'].any()
-
-    def time_count(self):
-        self.df.groupby('value')['timestamp'].count()
-
-    def time_cumcount(self):
-        self.df.groupby('value')['timestamp'].cumcount()
-
-    def time_cummax(self):
-        self.df.groupby('value')['timestamp'].cummax()
-
-    def time_cummin(self):
-        self.df.groupby('value')['timestamp'].cummin()
-
-    def time_cumprod(self):
-        self.df.groupby('value')['timestamp'].cumprod()
-
-    def time_cumsum(self):
-        self.df.groupby('value')['timestamp'].cumsum()
-
-    def time_describe(self):
-        self.df.groupby('value')['timestamp'].describe()
-
-    def time_diff(self):
-        self.df.groupby('value')['timestamp'].diff()
-
-    def time_first(self):
-        self.df.groupby('value')['timestamp'].first()
-
-    def time_head(self):
-        self.df.groupby('value')['timestamp'].head()
-
-    def time_last(self):
-        self.df.groupby('value')['timestamp'].last()
-
-    def time_mad(self):
-        self.df.groupby('value')['timestamp'].mad()
-
-    def time_max(self):
-        self.df.groupby('value')['timestamp'].max()
-
-    def time_mean(self):
-        self.df.groupby('value')['timestamp'].mean()
-
-    def time_median(self):
-        self.df.groupby('value')['timestamp'].median()
-
-    def time_min(self):
-        self.df.groupby('value')['timestamp'].min()
-
-    def time_nunique(self):
-        self.df.groupby('value')['timestamp'].nunique()
-
-    def time_pct_change(self):
-        self.df.groupby('value')['timestamp'].pct_change()
-
-    def time_prod(self):
-        self.df.groupby('value')['timestamp'].prod()
-
-    def time_rank(self):
-        self.df.groupby('value')['timestamp'].rank()
-
-    def time_sem(self):
-        self.df.groupby('value')['timestamp'].sem()
-
-    def time_size(self):
-        self.df.groupby('value')['timestamp'].size()
-
-    def time_skew(self):
-        self.df.groupby('value')['timestamp'].skew()
-
-    def time_std(self):
-        self.df.groupby('value')['timestamp'].std()
-
-    def time_sum(self):
-        self.df.groupby('value')['timestamp'].sum()
-
-    def time_tail(self):
-        self.df.groupby('value')['timestamp'].tail()
-
-    def time_unique(self):
-        self.df.groupby('value')['timestamp'].unique()
-
-    def time_value_counts(self):
-        self.df.groupby('value')['timestamp'].value_counts()
-
-    def time_var(self):
-        self.df.groupby('value')['timestamp'].var()
+    def time_groupby_sum(self):
+        self.df.groupby(['a'])['b'].sum()
 
 
 #----------------------------------------------------------------------

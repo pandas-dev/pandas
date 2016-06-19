@@ -21,7 +21,7 @@ and `Difficulty Novice
 <https://github.com/pydata/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
 where you could start out.
 
-Or maybe through using *pandas* you have an idea of you own or are looking for something
+Or maybe through using *pandas* you have an idea of your own or are looking for something
 in the documentation and thinking 'this can be improved'...you can do something
 about it!
 
@@ -188,7 +188,7 @@ To work in this environment, Windows users should ``activate`` it as follows::
 
       activate pandas_dev
 
-Mac OSX and Linux users should use::
+Mac OSX / Linux users should use::
 
       source activate pandas_dev
 
@@ -198,9 +198,13 @@ To view your environments::
 
       conda info -e
 
-To return to you home root environment::
+To return to your home root environment in Windows::
 
       deactivate
+
+To return to your home root environment in OSX / Linux::
+
+      source deactivate
 
 See the full conda docs `here <http://conda.pydata.org/docs>`__.
 

@@ -430,6 +430,13 @@ class TestStringMethods(tm.TestCase):
         result = values.str.replace("(?<=\w),(?=\w)", ", ", flags=re.UNICODE)
         tm.assert_series_equal(result, exp)
 
+        # GH 13438
+        for klass in (Series, Index):
+            for repl in (None, 3, {'a': 'b'}):
+                for data in (['a', 'b', None], ['a', 'b', 'c', 'ad']):
+                    values = klass(data)
+                    self.assertRaises(TypeError, values.str.replace, 'a', repl)
+
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
 
@@ -975,6 +982,20 @@ class TestStringMethods(tm.TestCase):
         # un-named column.
         r = s.str.extractall(r'([a-z])')
         e = DataFrame(['a', 'b', 'd', 'c'], i)
+        tm.assert_frame_equal(r, e)
+
+    def test_extractall_single_group_with_quantifier(self):
+        # extractall(one un-named group with quantifier) returns
+        # DataFrame with one un-named column (GH13382).
+        s = Series(['ab3', 'abc3', 'd4cd2'], name='series_name')
+        r = s.str.extractall(r'([a-z]+)')
+        i = MultiIndex.from_tuples([
+            (0, 0),
+            (1, 0),
+            (2, 0),
+            (2, 1),
+        ], names=(None, "match"))
+        e = DataFrame(['ab', 'abc', 'd', 'cd'], i)
         tm.assert_frame_equal(r, e)
 
     def test_extractall_no_matches(self):

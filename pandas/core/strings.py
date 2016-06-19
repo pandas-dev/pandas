@@ -4,7 +4,7 @@ from pandas.compat import zip
 from pandas.core.common import (isnull, notnull, _values_from_object,
                                 is_bool_dtype,
                                 is_list_like, is_categorical_dtype,
-                                is_object_dtype)
+                                is_object_dtype, is_string_like)
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
@@ -309,6 +309,10 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     -------
     replaced : Series/Index of objects
     """
+
+    # Check whether repl is valid (GH 13438)
+    if not is_string_like(repl):
+        raise TypeError("repl must be a string")
     use_re = not case or len(pat) > 1 or flags
 
     if use_re:
@@ -543,7 +547,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     each group. Any capture group names in regular expression pat will
     be used for column names; otherwise capture group numbers will be
     used. The dtype of each result column is always object, even when
-    no match is found. If expand=True and pat has only one capture group,
+    no match is found. If expand=False and pat has only one capture group,
     then return a Series (if subject is a Series) or Index (if subject
     is an Index).
 
@@ -708,6 +712,8 @@ def str_extractall(arr, pat, flags=0):
                 subject_key = (subject_key, )
 
             for match_i, match_tuple in enumerate(regex.findall(subject)):
+                if isinstance(match_tuple, compat.string_types):
+                    match_tuple = (match_tuple,)
                 na_tuple = [np.NaN if group == "" else group
                             for group in match_tuple]
                 match_list.append(na_tuple)

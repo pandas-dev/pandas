@@ -9,7 +9,8 @@ import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isnull, Series, date_range,
                     Index, Panel, MultiIndex, Timestamp,
-                    DatetimeIndex)
+                    DatetimeIndex, Categorical)
+from pandas.types.concat import union_categoricals
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
                                  makeCustomDataframe as mkdf,
@@ -918,6 +919,54 @@ class TestConcatenate(tm.TestCase):
         expected = concat([df0, df0[:2], df0[:1], df0],
                           keys=['b', 'c', 'd', 'e'])
         tm.assert_frame_equal(result, expected)
+
+    def test_union_categorical(self):
+        # GH 13361
+        data = [
+            (list('abc'), list('abd'), list('abcabd')),
+            ([0, 1, 2], [2, 3, 4], [0, 1, 2, 2, 3, 4]),
+            ([0, 1.2, 2], [2, 3.4, 4], [0, 1.2, 2, 2, 3.4, 4]),
+
+            (pd.date_range('2014-01-01', '2014-01-05'),
+             pd.date_range('2014-01-06', '2014-01-07'),
+             pd.date_range('2014-01-01', '2014-01-07')),
+
+            (pd.date_range('2014-01-01', '2014-01-05', tz='US/Central'),
+             pd.date_range('2014-01-06', '2014-01-07', tz='US/Central'),
+             pd.date_range('2014-01-01', '2014-01-07', tz='US/Central')),
+
+            (pd.period_range('2014-01-01', '2014-01-05'),
+             pd.period_range('2014-01-06', '2014-01-07'),
+             pd.period_range('2014-01-01', '2014-01-07')),
+        ]
+
+        for a, b, combined in data:
+            result = union_categoricals([Categorical(a), Categorical(b)])
+            expected = Categorical(combined)
+            tm.assert_categorical_equal(result, expected,
+                                        check_category_order=True)
+
+        # new categories ordered by appearance
+        s = Categorical(['x', 'y', 'z'])
+        s2 = Categorical(['a', 'b', 'c'])
+        result = union_categoricals([s, s2]).categories
+        expected = Index(['x', 'y', 'z', 'a', 'b', 'c'])
+        tm.assert_index_equal(result, expected)
+
+        # can't be ordered
+        s = Categorical([0, 1.2, 2], ordered=True)
+        s2 = Categorical([0, 1.2, 2], ordered=True)
+        with tm.assertRaises(TypeError):
+            union_categoricals([s, s2])
+
+        # must exactly match types
+        s = Categorical([0, 1.2, 2])
+        s2 = Categorical([2, 3, 4])
+        with tm.assertRaises(TypeError):
+            union_categoricals([s, s2])
+
+        with tm.assertRaises(ValueError):
+            union_categoricals([])
 
     def test_concat_bug_1719(self):
         ts1 = tm.makeTimeSeries()

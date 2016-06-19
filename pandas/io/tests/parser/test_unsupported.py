@@ -124,6 +124,8 @@ class TestDeprecatedFeatures(tm.TestCase):
 
         # deprecated arguments with non-default values
         deprecated = {
+            'as_recarray': True,
+            'buffer_lines': True,
             'compact_ints': True,
             'use_unsigned': True,
         }
@@ -132,6 +134,10 @@ class TestDeprecatedFeatures(tm.TestCase):
 
         for engine in engines:
             for arg, non_default_val in deprecated.items():
+                if engine == 'python' and arg == 'buffer_lines':
+                    # unsupported --> exception is raised first
+                    continue
+
                 with tm.assert_produces_warning(
                         FutureWarning, check_stacklevel=False):
                     kwargs = {arg: non_default_val}

@@ -431,10 +431,13 @@ class ExcelFile(object):
             if header is not None:
                 if com.is_list_like(header):
                     header_names = []
+                    control_row = [True for x in data[0]]
                     for row in header:
                         if com.is_integer(skiprows):
                             row += skiprows
-                        data[row] = _fill_mi_header(data[row])
+
+                        data[row], control_row = _fill_mi_header(
+                            data[row], control_row)
                         header_name, data[row] = _pop_header_name(
                             data[row], index_col)
                         header_names.append(header_name)
@@ -511,16 +514,35 @@ def _trim_excel_header(row):
     return row
 
 
-def _fill_mi_header(row):
-    # forward fill blanks entries
-    # from headers if parsing as MultiIndex
+def _fill_mi_header(row, control_row):
+    """Forward fills blank entries in row, but only inside the same parent index
+
+    Used for creating headers in Multiindex.
+    Parameters
+    ----------
+    row : list
+        List of items in a single row.
+    constrol_row : list of boolean
+        Helps to determine if particular column is in same parent index as the
+        previous value. Used to stop propagation of empty cells between
+        different indexes.
+
+    Returns
+    ----------
+    Returns changed row and control_row
+    """
     last = row[0]
     for i in range(1, len(row)):
+        if not control_row[i]:
+            last = row[i]
+
         if row[i] == '' or row[i] is None:
             row[i] = last
         else:
+            control_row[i] = False
             last = row[i]
-    return row
+
+    return row, control_row
 
 # fill blank if index_col not None
 

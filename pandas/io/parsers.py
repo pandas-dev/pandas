@@ -2,7 +2,8 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
-from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
+from pandas.compat import (range, lrange, StringIO, lzip, zip,
+                           string_types, map, OrderedDict)
 from pandas import compat
 from collections import defaultdict
 import re
@@ -87,6 +88,14 @@ usecols : array-like, default None
     inferred from the document header row(s). For example, a valid `usecols`
     parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Using this parameter
     results in much faster parsing time and lower memory usage.
+as_recarray : boolean, default False
+    DEPRECATED: this argument will be removed in a future version. Please call
+    `pd.read_csv(...).to_records()` instead.
+
+    Return a NumPy recarray instead of a DataFrame after parsing the data.
+    If set to True, this option takes precedence over the `squeeze` parameter.
+    In addition, as row indices are not available in such a format, the
+    `index_col` parameter will be ignored.
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 prefix : str, default None
@@ -183,6 +192,11 @@ thousands : str, default None
     Thousands separator
 decimal : str, default '.'
     Character to recognize as decimal point (e.g. use ',' for European data).
+float_precision : string, default None
+    Specifies which converter the C engine should use for floating-point
+    values. The options are `None` for the ordinary converter,
+    `high` for the high-precision converter, and `round_trip` for the
+    round-trip converter.
 lineterminator : str (length 1), default None
     Character to break file into lines. Only valid with C parser.
 quotechar : str (length 1), optional
@@ -192,6 +206,10 @@ quoting : int or csv.QUOTE_* instance, default None
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
     QUOTE_MINIMAL (0), QUOTE_ALL (1), QUOTE_NONNUMERIC (2) or QUOTE_NONE (3).
     Default (None) results in QUOTE_MINIMAL behavior.
+doublequote : boolean, default ``True``
+   When quotechar is specified and quoting is not ``QUOTE_NONE``, indicate
+   whether or not to interpret two consecutive quotechar elements INSIDE a
+   field as a single ``quotechar`` element.
 escapechar : str (length 1), default None
     One-character string used to escape delimiter when quoting is QUOTE_NONE.
 comment : str, default None
@@ -227,6 +245,9 @@ low_memory : boolean, default True
     Note that the entire file is read into a single DataFrame regardless,
     use the `chunksize` or `iterator` parameter to return the data in chunks.
     (Only valid with C parser)
+buffer_lines : int, default None
+    DEPRECATED: this argument will be removed in a future version because its
+    value is not respected by the parser
 compact_ints : boolean, default False
     DEPRECATED: this argument will be removed in a future version
 
@@ -234,13 +255,16 @@ compact_ints : boolean, default False
     the parser will attempt to cast it as the smallest integer dtype possible,
     either signed or unsigned depending on the specification from the
     `use_unsigned` parameter.
-
 use_unsigned : boolean, default False
     DEPRECATED: this argument will be removed in a future version
 
     If integer columns are being compacted (i.e. `compact_ints=True`), specify
     whether the column should be compacted to the smallest signed or unsigned
     integer dtype.
+memory_map : boolean, default False
+    If a filepath is provided for `filepath_or_buffer`, map the file object
+    directly onto memory and access the data directly from there. Using this
+    option can improve performance because there is no longer any I/O overhead.
 
 Returns
 -------
@@ -438,9 +462,7 @@ _fwf_defaults = {
 
 _c_unsupported = set(['skip_footer'])
 _python_unsupported = set([
-    'as_recarray',
     'low_memory',
-    'memory_map',
     'buffer_lines',
     'error_bad_lines',
     'warn_bad_lines',
@@ -448,6 +470,8 @@ _python_unsupported = set([
     'float_precision',
 ])
 _deprecated_args = set([
+    'as_recarray',
+    'buffer_lines',
     'compact_ints',
     'use_unsigned',
 ])
@@ -805,11 +829,22 @@ class TextFileReader(BaseIterator):
 
         _validate_header_arg(options['header'])
 
+        depr_warning = ''
+
         for arg in _deprecated_args:
-            if result[arg] != _c_parser_defaults[arg]:
-                warnings.warn("The '{arg}' argument has been deprecated "
-                              "and will be removed in a future version"
-                              .format(arg=arg), FutureWarning, stacklevel=2)
+            parser_default = _c_parser_defaults[arg]
+            msg = ("The '{arg}' argument has been deprecated "
+                   "and will be removed in a future version."
+                   .format(arg=arg))
+
+            if arg == 'as_recarray':
+                msg += ' Please call pd.to_csv(...).to_records() instead.'
+
+            if result.get(arg, parser_default) != parser_default:
+                depr_warning += msg + '\n\n'
+
+        if depr_warning != '':
+            warnings.warn(depr_warning, FutureWarning, stacklevel=2)
 
         if index_col is True:
             raise ValueError("The value of index_col couldn't be 'True'")
@@ -909,7 +944,8 @@ def _validate_usecols_arg(usecols):
 
     if usecols is not None:
         usecols_dtype = lib.infer_dtype(usecols)
-        if usecols_dtype not in ('integer', 'string', 'unicode'):
+        if usecols_dtype not in ('empty', 'integer',
+                                 'string', 'unicode'):
             raise ValueError(msg)
 
     return usecols
@@ -957,6 +993,7 @@ class ParserBase(object):
         self.na_fvalues = kwds.get('na_fvalues')
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
+        self.as_recarray = kwds.get('as_recarray', False)
         self.tupleize_cols = kwds.get('tupleize_cols', False)
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
@@ -1288,7 +1325,6 @@ class CParserWrapper(ParserBase):
         self.kwds = kwds
         kwds = kwds.copy()
 
-        self.as_recarray = kwds.get('as_recarray', False)
         ParserBase.__init__(self, kwds)
 
         if 'utf-16' in (kwds.get('encoding') or ''):
@@ -1651,6 +1687,7 @@ class PythonParser(ParserBase):
 
         self.encoding = kwds['encoding']
         self.compression = kwds['compression']
+        self.memory_map = kwds['memory_map']
         self.skiprows = kwds['skiprows']
 
         self.skip_footer = kwds['skip_footer']
@@ -1686,7 +1723,8 @@ class PythonParser(ParserBase):
 
         if isinstance(f, compat.string_types):
             f = _get_handle(f, 'r', encoding=self.encoding,
-                            compression=self.compression)
+                            compression=self.compression,
+                            memory_map=self.memory_map)
         elif self.compression:
             f = _wrap_compressed(f, self.compression, self.encoding)
         # in Python 3, convert BytesIO or fileobjects passed with an encoding
@@ -1873,6 +1911,9 @@ class PythonParser(ParserBase):
         columns, data = self._do_date_conversions(columns, data)
 
         data = self._convert_data(data)
+        if self.as_recarray:
+            return self._to_recarray(data, columns)
+
         index, columns = self._make_index(data, alldata, columns, indexnamerow)
 
         return index, columns, data
@@ -1911,6 +1952,19 @@ class PythonParser(ParserBase):
 
         return self._convert_to_ndarrays(data, self.na_values, self.na_fvalues,
                                          self.verbose, clean_conv)
+
+    def _to_recarray(self, data, columns):
+        dtypes = []
+        o = OrderedDict()
+
+        # use the columns to "order" the keys
+        # in the unordered 'data' dictionary
+        for col in columns:
+            dtypes.append((str(col), data[col].dtype))
+            o[col] = data[col]
+
+        tuples = lzip(*o.values())
+        return np.array(tuples, dtypes)
 
     def _infer_columns(self):
         names = self.names

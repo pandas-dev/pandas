@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+Internal module for formatting output data in csv, html,
+and latex files. This module also applies to display formatting.
+"""
+
 from __future__ import print_function
 from distutils.version import LooseVersion
 # pylint: disable=W0141
@@ -1277,29 +1282,41 @@ class HTMLFormatter(TableFormatter):
 
 
 def _get_level_lengths(levels, sentinel=''):
-    from itertools import groupby
+    """For each index in each level the function returns lengths of indexes.
 
-    def _make_grouper():
-        record = {'count': 0}
+    Parameters
+    ----------
+    levels : list of lists
+        List of values on for level.
+    sentinel : string, optional
+        Value which states that no new index starts on there.
 
-        def grouper(x):
-            if x != sentinel:
-                record['count'] += 1
-            return record['count']
+    Returns
+    ----------
+    Returns list of maps. For each level returns map of indexes (key is index
+    in row and value is length of index).
+    """
+    if len(levels) == 0:
+        return []
 
-        return grouper
+    control = [True for x in levels[0]]
 
     result = []
-    for lev in levels:
-        i = 0
-        f = _make_grouper()
-        recs = {}
-        for key, gpr in groupby(lev, f):
-            values = list(gpr)
-            recs[i] = len(values)
-            i += len(values)
+    for level in levels:
+        last_index = 0
 
-        result.append(recs)
+        lengths = {}
+        for i, key in enumerate(level):
+            if control[i] and key == sentinel:
+                pass
+            else:
+                control[i] = False
+                lengths[last_index] = i - last_index
+                last_index = i
+
+        lengths[last_index] = len(level) - last_index
+
+        result.append(lengths)
 
     return result
 
@@ -1762,7 +1779,6 @@ class ExcelFormatter(object):
         return val
 
     def _format_header_mi(self):
-
         if self.columns.nlevels > 1:
             if not self.index:
                 raise NotImplementedError("Writing to Excel with MultiIndex"

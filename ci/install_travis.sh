@@ -28,9 +28,6 @@ function edit_init()
 
 edit_init
 
-python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
-[ "$python_major_version" == "2" ] && python_major_version=""
-
 home_dir=$(pwd)
 echo "home_dir: [$home_dir]"
 
@@ -43,9 +40,8 @@ if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ] && [ "$USE_CACHE
     echo "Miniconda install already present from cache: $MINICONDA_DIR"
 
     conda config --set always_yes yes --set changeps1 no || exit 1
+    echo "update conda"
     conda update -q conda || exit 1
-    conda config --add channels http://conda.anaconda.org/pandas || exit 1
-    conda config --set ssl_verify false || exit 1
 
     # Useful for debugging any issues with conda
     conda info -a || exit 1
@@ -61,13 +57,22 @@ else
     fi
     bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 
-    conda config --set always_yes yes --set changeps1 no || exit 1
-    conda update -q conda || exit 1
-    conda config --add channels http://conda.anaconda.org/pandas || exit 1
+    echo "update conda"
     conda config --set ssl_verify false || exit 1
+    conda config --set always_yes true --set changeps1 false || exit 1
+    conda update -q conda
+
+    # add the pandas channel *before* defaults to have defaults take priority
+    echo "add channels"
+    conda config --add channels pandas || exit 1
+    conda config --remove channels defaults || exit 1
+    conda config --add channels defaults || exit 1
+
+    conda install anaconda-client
 
     # Useful for debugging any issues with conda
     conda info -a || exit 1
+
     time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose coverage flake8 || exit 1
 
 fi

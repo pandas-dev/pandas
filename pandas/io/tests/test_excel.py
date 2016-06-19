@@ -725,6 +725,46 @@ class XlrdTests(ReadingTestsBase):
                             header=[0, 1], skiprows=2)
         tm.assert_frame_equal(actual, expected)
 
+    def test_read_excel_multiindex_empty_level(self):
+        # GH 12453
+        _skip_if_no_xlsxwriter()
+        with ensure_clean('.xlsx') as path:
+            df = DataFrame({
+                ('Zero', ''): {0: 0},
+                ('One', 'x'): {0: 1},
+                ('Two', 'X'): {0: 3},
+                ('Two', 'Y'): {0: 7}
+            })
+
+            expected = DataFrame({
+                ('Zero', 'Unnamed: 3_level_1'): {0: 0},
+                ('One', u'x'): {0: 1},
+                ('Two', u'X'): {0: 3},
+                ('Two', u'Y'): {0: 7}
+            })
+
+            df.to_excel(path)
+            actual = pd.read_excel(path, header=[0, 1])
+            tm.assert_frame_equal(actual, expected)
+
+            df = pd.DataFrame({
+                ('Beg', ''): {0: 0},
+                ('Middle', 'x'): {0: 1},
+                ('Tail', 'X'): {0: 3},
+                ('Tail', 'Y'): {0: 7}
+            })
+
+            expected = pd.DataFrame({
+                ('Beg', 'Unnamed: 0_level_1'): {0: 0},
+                ('Middle', u'x'): {0: 1},
+                ('Tail', u'X'): {0: 3},
+                ('Tail', u'Y'): {0: 7}
+            })
+
+            df.to_excel(path)
+            actual = pd.read_excel(path, header=[0, 1])
+            tm.assert_frame_equal(actual, expected)
+
     def test_excel_multindex_roundtrip(self):
         # GH 4679
         _skip_if_no_xlsxwriter()

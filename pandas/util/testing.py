@@ -963,14 +963,40 @@ def assertNotIsInstance(obj, cls, msg=''):
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
-                             obj='Categorical'):
+                             obj='Categorical', check_category_order=True):
+    """Test that categoricals are eqivalent
+
+    Parameters
+    ----------
+    left, right : Categorical
+        Categoricals to compare
+    check_dtype : bool, default True
+        Check that integer dtype of the codes are the same
+    obj : str, default 'Categorical'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
+    check_category_order : bool, default True
+        Whether the order of the categories should be compared, which
+        implies identical integer codes.  If False, only the resulting
+        values are compared.  The ordered attribute is
+        checked regardless.
+    """
     assertIsInstance(left, pd.Categorical, '[Categorical] ')
     assertIsInstance(right, pd.Categorical, '[Categorical] ')
 
-    assert_index_equal(left.categories, right.categories,
-                       obj='{0}.categories'.format(obj))
-    assert_numpy_array_equal(left.codes, right.codes, check_dtype=check_dtype,
-                             obj='{0}.codes'.format(obj))
+    if check_category_order:
+        assert_index_equal(left.categories, right.categories,
+                           obj='{0}.categories'.format(obj))
+        assert_numpy_array_equal(left.codes, right.codes,
+                                 check_dtype=check_dtype,
+                                 obj='{0}.codes'.format(obj))
+    else:
+        assert_index_equal(left.categories.sort_values(),
+                           right.categories.sort_values(),
+                           obj='{0}.categories'.format(obj))
+        assert_index_equal(left.categories.take(left.codes),
+                           right.categories.take(right.codes),
+                           obj='{0}.values'.format(obj))
 
     assert_attr_equal('ordered', left, right, obj=obj)
 
@@ -991,7 +1017,7 @@ def raise_assert_detail(obj, message, left, right):
 
 def assert_numpy_array_equal(left, right, strict_nan=False,
                              check_dtype=True, err_msg=None,
-                             obj='numpy array'):
+                             obj='numpy array', check_same=None):
     """ Checks that 'np.ndarray' is equivalent
 
     Parameters
@@ -1007,6 +1033,8 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message
+    check_same : None|'copy'|'same', default None
+        Ensure "left" and "right refer/do not refer to the same memory area
     """
 
     # instance validation
@@ -1015,6 +1043,14 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
     # both classes must be an np.ndarray
     assertIsInstance(left, np.ndarray, '[ndarray] ')
     assertIsInstance(right, np.ndarray, '[ndarray] ')
+
+    def _get_base(obj):
+        return obj.base if getattr(obj, 'base', None) is not None else obj
+
+    if check_same == 'same':
+        assertIs(_get_base(left), _get_base(right))
+    elif check_same == 'copy':
+        assertIsNot(_get_base(left), _get_base(right))
 
     def _raise(left, right, err_msg):
         if err_msg is None:

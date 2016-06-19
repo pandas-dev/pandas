@@ -46,8 +46,8 @@ except ImportError:
 
 from distutils.version import LooseVersion
 
-_default_compressor = LooseVersion(tables.__version__) >= '2.2' \
-    and 'blosc' or 'zlib'
+_default_compressor = ('blosc' if LooseVersion(tables.__version__) >= '2.2'
+                       else 'zlib')
 
 _multiprocess_can_split_ = False
 
@@ -4877,11 +4877,32 @@ class TestHDFStore(Base, tm.TestCase):
         df = DataFrame(np.random.rand(4, 5),
                        index=list('abcd'),
                        columns=list('ABCDE'))
+
+        # Categorical dtype not supported for "fixed" format. So no need
+        # to test with that dtype in the dataframe here.
         with ensure_clean_path(self.path) as path:
             df.to_hdf(path, 'df', mode='a')
             reread = read_hdf(path)
             assert_frame_equal(df, reread)
             df.to_hdf(path, 'df2', mode='a')
+            self.assertRaises(ValueError, read_hdf, path)
+
+    def test_read_nokey_table(self):
+        # GH13231
+        df = DataFrame({'i': range(5),
+                        'c': Series(list('abacd'), dtype='category')})
+
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', mode='a', format='table')
+            reread = read_hdf(path)
+            assert_frame_equal(df, reread)
+            df.to_hdf(path, 'df2', mode='a', format='table')
+            self.assertRaises(ValueError, read_hdf, path)
+
+    def test_read_nokey_empty(self):
+        with ensure_clean_path(self.path) as path:
+            store = HDFStore(path)
+            store.close()
             self.assertRaises(ValueError, read_hdf, path)
 
     def test_read_from_pathlib_path(self):

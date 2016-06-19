@@ -172,30 +172,6 @@ nan 2
         self.assertTrue(sum(precise_errors) <= sum(normal_errors))
         self.assertTrue(max(precise_errors) <= max(normal_errors))
 
-    def test_compact_ints_as_recarray(self):
-        if compat.is_platform_windows():
-            raise nose.SkipTest(
-                "segfaults on win-64, only when all tests are run")
-
-        data = ('0,1,0,0\n'
-                '1,1,0,0\n'
-                '0,1,0,1')
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                                   compact_ints=True, as_recarray=True)
-            ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
-            self.assertEqual(result.dtype, ex_dtype)
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                                   as_recarray=True, compact_ints=True,
-                                   use_unsigned=True)
-            ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
-            self.assertEqual(result.dtype, ex_dtype)
-
     def test_pass_dtype(self):
         data = """\
 one,two
@@ -220,10 +196,12 @@ one,two
 3,4.5
 4,5.5"""
 
-        result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'},
-                               as_recarray=True)
-        self.assertEqual(result['one'].dtype, 'u1')
-        self.assertEqual(result['two'].dtype, 'S1')
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False):
+            result = self.read_csv(StringIO(data), dtype={
+                'one': 'u1', 1: 'S1'}, as_recarray=True)
+            self.assertEqual(result['one'].dtype, 'u1')
+            self.assertEqual(result['two'].dtype, 'S1')
 
     def test_empty_pass_dtype(self):
         data = 'one,two'
@@ -306,10 +284,6 @@ one,two
                                 )
         self.assertTrue((result.dtypes == [object, np.int, np.float]).all())
         self.assertTrue((result2.dtypes == [object, np.float]).all())
-
-    def test_memory_map(self):
-        # it works!
-        self.read_csv(self.csv1, memory_map=True)
 
     def test_disable_bool_parsing(self):
         # #2090

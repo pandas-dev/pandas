@@ -1075,7 +1075,8 @@ def mode_int64(int64_t[:] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def duplicated_int64(ndarray[int64_t, ndim=1] values, object keep='first'):
+def duplicated_int64(ndarray[int64_t, ndim=1] values,
+                     object keep='first'):
     cdef:
         int ret = 0, k
         int64_t value

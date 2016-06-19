@@ -172,6 +172,7 @@ class TestIndex(Base, tm.TestCase):
         df['date'] = ['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990',
                       '5-1-1990']
         result = DatetimeIndex(df['date'], freq='MS')
+        expected.name = 'date'
         self.assert_index_equal(result, expected)
         self.assertEqual(df['date'].dtype, object)
 

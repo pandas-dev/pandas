@@ -40,14 +40,6 @@ def _field_accessor(name, alias, docstring=None):
     return property(f)
 
 
-def _get_ordinals(data, freq):
-    f = lambda x: Period(x, freq=freq).ordinal
-    if isinstance(data[0], Period):
-        return period.extract_ordinals(data, freq)
-    else:
-        return lib.map_infer(data, f)
-
-
 def dt64arr_to_periodarr(data, freq, tz):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
@@ -182,6 +174,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 raise ValueError('Periods must be a number, got %s' %
                                  str(periods))
 
+        if name is None and hasattr(data, 'name'):
+            name = data.name
+
         if data is None:
             if ordinal is not None:
                 data = np.asarray(ordinal, dtype=np.int64)
@@ -190,7 +185,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                                                  freq, kwargs)
         else:
             ordinal, freq = cls._from_arraylike(data, freq, tz)
-            data = np.array(ordinal, dtype=np.int64, copy=False)
+            data = np.array(ordinal, dtype=np.int64, copy=copy)
 
         return cls._simple_new(data, name=name, freq=freq)
 
@@ -232,14 +227,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             except (TypeError, ValueError):
                 data = com._ensure_object(data)
 
-                if freq is None and len(data) > 0:
-                    freq = getattr(data[0], 'freq', None)
-
                 if freq is None:
-                    raise ValueError('freq not specified and cannot be '
-                                     'inferred from first element')
-
-                data = _get_ordinals(data, freq)
+                    freq = period.extract_freq(data)
+                data = period.extract_ordinals(data, freq)
         else:
             if isinstance(data, PeriodIndex):
                 if freq is None or freq == data.freq:
@@ -251,12 +241,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                     data = period.period_asfreq_arr(data.values,
                                                     base1, base2, 1)
             else:
-                if freq is None and len(data) > 0:
-                    freq = getattr(data[0], 'freq', None)
+
+                if freq is None and com.is_object_dtype(data):
+                    # must contain Period instance and thus extract ordinals
+                    freq = period.extract_freq(data)
+                    data = period.extract_ordinals(data, freq)
 
                 if freq is None:
-                    raise ValueError('freq not specified and cannot be '
-                                     'inferred from first element')
+                    msg = 'freq not specified and cannot be inferred'
+                    raise ValueError(msg)
 
                 if data.dtype != np.int64:
                     if np.issubdtype(data.dtype, np.datetime64):
@@ -266,7 +259,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                             data = com._ensure_int64(data)
                         except (TypeError, ValueError):
                             data = com._ensure_object(data)
-                            data = _get_ordinals(data, freq)
+                            data = period.extract_ordinals(data, freq)
 
         return data, freq
 

@@ -225,6 +225,15 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 verify_integrity=True, normalize=False,
                 closed=None, ambiguous='raise', dtype=None, **kwargs):
 
+        # This allows to later ensure that the 'copy' parameter is honored:
+        if isinstance(data, Index):
+            ref_to_data = data._data
+        else:
+            ref_to_data = data
+
+        if name is None and hasattr(data, 'name'):
+            name = data.name
+
         dayfirst = kwargs.pop('dayfirst', None)
         yearfirst = kwargs.pop('yearfirst', None)
 
@@ -302,7 +311,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                             raise TypeError("Already tz-aware, use tz_convert "
                                             "to convert.")
 
-                    return data
+                    return data._deepcopy_if_needed(ref_to_data, copy)
 
         if issubclass(data.dtype.type, compat.string_types):
             data = tslib.parse_str_array_to_datetime(data, freq=freq,
@@ -335,10 +344,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         elif data.dtype == _INT64_DTYPE:
             if isinstance(data, Int64Index):
                 raise TypeError('cannot convert Int64Index->DatetimeIndex')
-            if copy:
-                subarr = np.asarray(data, dtype=_NS_DTYPE)
-            else:
-                subarr = data.view(_NS_DTYPE)
+            subarr = data.view(_NS_DTYPE)
         else:
             if isinstance(data, (ABCSeries, Index)):
                 values = data._values
@@ -414,7 +420,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             if inferred:
                 subarr.offset = to_offset(inferred)
 
-        return subarr
+        return subarr._deepcopy_if_needed(ref_to_data, copy)
 
     @classmethod
     def _generate(cls, start, end, periods, name, offset,

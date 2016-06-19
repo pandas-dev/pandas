@@ -134,6 +134,14 @@ usecols : array-like, default ``None``
   inferred from the document header row(s). For example, a valid `usecols`
   parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Using this parameter
   results in much faster parsing time and lower memory usage.
+as_recarray : boolean, default ``False``
+  DEPRECATED: this argument will be removed in a future version. Please call
+  ``pd.read_csv(...).to_records()`` instead.
+
+  Return a NumPy recarray instead of a DataFrame after parsing the data. If
+  set to ``True``, this option takes precedence over the ``squeeze`` parameter.
+  In addition, as row indices are not available in such a format, the ``index_col``
+  parameter will be ignored.
 squeeze : boolean, default ``False``
   If the parsed data only contains one column then return a Series.
 prefix : str, default ``None``
@@ -176,6 +184,9 @@ low_memory : boolean, default ``True``
   Note that the entire file is read into a single DataFrame regardless,
   use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
   (Only valid with C parser)
+buffer_lines : int, default None
+    DEPRECATED: this argument will be removed in a future version because its
+    value is not respected by the parser
 compact_ints : boolean, default False
   DEPRECATED: this argument will be removed in a future version
 
@@ -187,6 +198,10 @@ use_unsigned : boolean, default False
 
   If integer columns are being compacted (i.e. ``compact_ints=True``), specify whether
   the column should be compacted to the smallest signed or unsigned integer dtype.
+memory_map : boolean, default False
+  If a filepath is provided for ``filepath_or_buffer``, map the file object
+  directly onto memory and access the data directly from there. Using this
+  option can improve performance because there is no longer any I/O overhead.
 
 NA and Missing Data Handling
 ++++++++++++++++++++++++++++
@@ -263,6 +278,10 @@ thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
   Character to recognize as decimal point. E.g. use ``','`` for European data.
+float_precision : string, default None
+  Specifies which converter the C engine should use for floating-point values.
+  The options are ``None`` for the ordinary converter, ``high`` for the
+  high-precision converter, and ``round_trip`` for the round-trip converter.
 lineterminator : str (length 1), default ``None``
   Character to break file into lines. Only valid with C parser.
 quotechar : str (length 1)
@@ -273,6 +292,10 @@ quoting : int or ``csv.QUOTE_*`` instance, default ``None``
   ``QUOTE_MINIMAL`` (0), ``QUOTE_ALL`` (1), ``QUOTE_NONNUMERIC`` (2) or
   ``QUOTE_NONE`` (3). Default (``None``) results in ``QUOTE_MINIMAL``
   behavior.
+doublequote : boolean, default ``True``
+   When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``,
+   indicate whether or not to interpret two consecutive ``quotechar`` elements
+   **inside** a field as a single ``quotechar`` element.
 escapechar : str (length 1), default ``None``
   One-character string used to escape delimiter when quoting is ``QUOTE_NONE``.
 comment : str, default ``None``
