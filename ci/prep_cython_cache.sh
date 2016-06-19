@@ -4,36 +4,25 @@ ls "$HOME/.cache/"
 CACHE_File="$HOME/.cache/cython_files.tar"
 
 clear_cache=0
+home_dir=$(pwd)
 
 if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ]; then
 
-    home_dir=$(pwd)
-
-    echo "Cache retrieved"
+    echo "Cache available"
     clear_cache=1
-    cd $HOME
-    # ls -l $HOME
-    cd /
-    tar xvf $CACHE_File
-
     # did the last commit change cython files?
-    cd $home_dir
-    # go back 2 commit
+    # go back 2 commits
     retval=$(git diff HEAD~2 --numstat | grep -E "pyx|pxd"| wc -l)
     echo "number of cython files changed: $retval"
-
-    rm -rf $CACHE_File
-
 fi
 
 if [ $clear_cache -eq 1 ] && [ $retval -eq 0 ] && [ "$USE_CACHE" ]
 then
     # nope, reuse cython files
     echo "Will reuse cached cython file"
-    touch "$TRAVIS_BUILD_DIR"/pandas/*.c
-    touch "$TRAVIS_BUILD_DIR"/pandas/src/*.c
-    touch "$TRAVIS_BUILD_DIR"/pandas/*.cpp
-    touch "$TRAVIS_BUILD_DIR"/pandas/msgpack/*.cpp
+    cd /
+    tar xvmf $CACHE_File
+    cd $home_dir
 else
     echo "Rebuilding cythonized files"
     echo "Use cache = $USE_CACHE"
