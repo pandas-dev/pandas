@@ -186,4 +186,3 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = self.read_csv(new_file, sep=r"\s+", header=None)
         expected = DataFrame([[0, 0]])
         tm.assert_frame_equal(result, expected)
-
