@@ -4810,12 +4810,10 @@ def dates_normalized(ndarray[int64_t] stamps, tz=None):
     elif _is_tzlocal(tz):
         for i in range(n):
             pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
-            if (dts.min + dts.sec + dts.us) > 0:
-                return False
             dt = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
                           dts.sec, dts.us, tz)
             dt = dt + tz.utcoffset(dt)
-            if dt.hour > 0:
+            if (dt.hour + dt.minute + dt.second + dt.microsecond) > 0:
                 return False
     else:
         trans, deltas, typ = _get_dst_info(tz)

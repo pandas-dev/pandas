@@ -524,3 +524,5 @@ Bug Fixes
 
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
+
+- Bug in ``DatetimeIndex.is_normalized`` returns False for normalized date_range in case of local timezones (:issue:`13459`)
