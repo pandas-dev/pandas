@@ -158,7 +158,7 @@ matrix:
       env:
         - JOB_NAME: "doc_build"
         - FULL_DEPS=true
-        - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
+        - DOC_BUILD=true
         - JOB_TAG=_DOC_BUILD
         - CACHE_NAME="doc_build"
         - USE_CACHE=true

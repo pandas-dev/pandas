@@ -1,5 +1,6 @@
 #!/bin/bash
 
+git diff HEAD~2 --numstat | grep -E "ci/"
 ci_changes=$(git diff HEAD~2 --numstat | grep -E "ci/"| wc -l)
 
 MINICONDA_DIR="$HOME/miniconda/"
