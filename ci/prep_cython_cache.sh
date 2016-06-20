@@ -15,10 +15,12 @@ if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ]; then
     if [ "$TRAVIS_PULL_REQUEST" == "false" ]
     then
         echo "Not a PR: checking for cython files changes from last 2 commits"
+        git diff HEAD~2 --numstat | grep -E "pyx|pxd"
         retval=$(git diff HEAD~2 --numstat | grep -E "pyx|pxd"| wc -l)
     else
-        echo "PR: checking for any cython file changes from whole PR"
-        retval=$(git diff --name-only master | grep -E "pyx|pxd"| wc -l)
+        echo "PR: checking for any cython file changes from last 5 commits"
+        git diff FETCH_HEAD~5 --numstat | grep -E "pyx|pxd"
+        retval=$(git diff FETCH_HEAD~5 --numstat | grep -E "pyx|pxd"| wc -l)
     fi
     echo "number of cython files changed: $retval"
 fi
