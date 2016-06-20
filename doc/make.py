@@ -116,6 +116,11 @@ def cleanup_nb(nb):
             pass
 
 
+def get_kernel():
+    """Find the kernel name for your python version"""
+    return 'python%s' % sys.version_info.major
+
+
 def execute_nb(src, dst, allow_errors=False, timeout=1000, kernel_name=''):
     """
     Execute notebook in `src` and write the output to `dst`
@@ -184,10 +189,12 @@ def html():
         with cleanup_nb(nb):
             try:
                 print("Converting %s" % nb)
-                executed = execute_nb(nb, nb + '.executed', allow_errors=True)
+                kernel_name = get_kernel()
+                executed = execute_nb(nb, nb + '.executed', allow_errors=True,
+                                      kernel_name=kernel_name)
                 convert_nb(executed, nb.rstrip('.ipynb') + '.html')
-            except ImportError:
-                pass
+            except (ImportError, IndexError):
+                print("Failed to convert %s" % nb)
 
     if os.system('sphinx-build -P -b html -d build/doctrees '
                  'source build/html'):
@@ -198,6 +205,7 @@ def html():
         os.system('cd build; rm -f html/pandas.zip;')
     except:
         pass
+
 
 def zip_html():
     try:
