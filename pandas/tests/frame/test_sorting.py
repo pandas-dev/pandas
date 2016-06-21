@@ -84,7 +84,7 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         frame = DataFrame([[1, 1, 2], [3, 1, 0], [4, 5, 6]],
                           index=[1, 2, 3], columns=list('ABC'))
 
-        # by column
+        # by column (axis=0)
         sorted_df = frame.sort_values(by='A')
         indexer = frame['A'].argsort().values
         expected = frame.ix[frame.index[indexer]]
@@ -116,9 +116,25 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         self.assertRaises(ValueError, lambda: frame.sort_values(
             by=['A', 'B'], axis=2, inplace=True))
 
-        msg = 'When sorting by column, axis must be 0'
-        with assertRaisesRegexp(ValueError, msg):
-            frame.sort_values(by='A', axis=1)
+        # by row (axis=1): GH 10806
+        sorted_df = frame.sort_values(by=3, axis=1)
+        expected = frame
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.sort_values(by=3, axis=1, ascending=False)
+        expected = frame.reindex(columns=['C', 'B', 'A'])
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.sort_values(by=[1, 2], axis=1)
+        expected = frame.reindex(columns=['B', 'A', 'C'])
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.sort_values(by=[1, 3], axis=1, ascending=[True, False])
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.sort_values(by=[1, 3], axis=1, ascending=False)
+        expected = frame.reindex(columns=['C', 'B', 'A'])
+        assert_frame_equal(sorted_df, expected)
 
         msg = r'Length of ascending \(5\) != length of by \(2\)'
         with assertRaisesRegexp(ValueError, msg):
