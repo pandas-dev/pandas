@@ -21,7 +21,7 @@ class TestDataFrameSorting(tm.TestCase, TestData):
 
     _multiprocess_can_split_ = True
 
-    def test_sort_values(self):
+    def test_sort_index(self):
         # API for 9816
 
         # sort_index
@@ -34,62 +34,49 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         with tm.assert_produces_warning(FutureWarning):
             frame.sort()
 
+        # axis=0 : sort rows by index labels
         unordered = frame.ix[[3, 2, 4, 1]]
-        expected = unordered.sort_index()
-
         result = unordered.sort_index(axis=0)
+        expected = frame
         assert_frame_equal(result, expected)
 
+        result = unordered.sort_index(ascending=False)
+        expected = frame[::-1]
+        assert_frame_equal(result, expected)
+
+        # axis=1 : sort columns by column names
         unordered = frame.ix[:, [2, 1, 3, 0]]
-        expected = unordered.sort_index(axis=1)
-
         result = unordered.sort_index(axis=1)
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, frame)
+
+        result = unordered.sort_index(axis=1, ascending=False)
+        expected = frame.ix[:, ::-1]
         assert_frame_equal(result, expected)
 
-        # sortlevel
-        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
+        # sort rows by specified level of multi-index
+        mi = MultiIndex.from_tuples([[2, 1, 3], [1, 1, 1]], names=list('ABC'))
         df = DataFrame([[1, 2], [3, 4]], mi)
 
         result = df.sort_index(level='A', sort_remaining=False)
         expected = df.sortlevel('A', sort_remaining=False)
         assert_frame_equal(result, expected)
 
+        # sort columns by specified level of multi-index
         df = df.T
         result = df.sort_index(level='A', axis=1, sort_remaining=False)
         expected = df.sortlevel('A', axis=1, sort_remaining=False)
         assert_frame_equal(result, expected)
 
-        # MI sort, but no by
+        # MI sort, but no level
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         df = DataFrame([[1, 2], [3, 4]], mi)
         result = df.sort_index(sort_remaining=False)
         expected = df.sort_index()
         assert_frame_equal(result, expected)
 
-    def test_sort_index(self):
+    def test_sort_values(self):
         frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
                           columns=['A', 'B', 'C', 'D'])
-
-        # axis=0
-        unordered = frame.ix[[3, 2, 4, 1]]
-        sorted_df = unordered.sort_index(axis=0)
-        expected = frame
-        assert_frame_equal(sorted_df, expected)
-
-        sorted_df = unordered.sort_index(ascending=False)
-        expected = frame[::-1]
-        assert_frame_equal(sorted_df, expected)
-
-        # axis=1
-        unordered = frame.ix[:, ['D', 'B', 'C', 'A']]
-        sorted_df = unordered.sort_index(axis=1)
-        expected = frame
-        assert_frame_equal(sorted_df, expected)
-
-        sorted_df = unordered.sort_index(axis=1, ascending=False)
-        expected = frame.ix[:, ::-1]
-        assert_frame_equal(sorted_df, expected)
 
         # by column
         sorted_df = frame.sort_values(by='A')
