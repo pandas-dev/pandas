@@ -19,8 +19,8 @@ if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ]; then
         retval=$(git diff HEAD~2 --numstat | grep -E "pyx|pxd"| wc -l)
     else
         echo "PR: checking for any cython file changes from last 5 commits"
-        git diff FETCH_HEAD~5 --numstat | grep -E "pyx|pxd"
-        retval=$(git diff FETCH_HEAD~5 --numstat | grep -E "pyx|pxd"| wc -l)
+        git diff PR_HEAD~5 --numstat | grep -E "pyx|pxd"
+        retval=$(git diff PR_HEAD~5 --numstat | grep -E "pyx|pxd"| wc -l)
     fi
     echo "number of cython files changed: $retval"
 fi

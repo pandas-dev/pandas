@@ -7,8 +7,9 @@ then
     ci_changes=$(git diff HEAD~2 --numstat | grep -E "ci/"| wc -l)
 else
     echo "PR: checking for changes in ci/ from last 2 commits"
-    git diff FETCH_HEAD~2 --numstat | grep -E "ci/"
-    ci_changes=$(git diff FETCH_HEAD~2 --numstat | grep -E "ci/"| wc -l)
+    git fetch origin pull/${TRAVIS_PULL_REQUEST}/head:PR_HEAD
+    git diff PR_HEAD~2 --numstat | grep -E "ci/"
+    ci_changes=$(git diff PR_HEAD~2 --numstat | grep -E "ci/"| wc -l)
 fi
 
 MINICONDA_DIR="$HOME/miniconda/"
