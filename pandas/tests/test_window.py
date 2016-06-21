@@ -331,6 +331,11 @@ class TestRolling(Base):
             c(window=2, min_periods=1, center=True)
             c(window=2, min_periods=1, center=False)
 
+            # GH 13383
+            c(0)
+            with self.assertRaises(ValueError):
+                c(-1)
+
             # not valid
             for w in [2., 'foo', np.array([2])]:
                 with self.assertRaises(ValueError):
@@ -339,6 +344,15 @@ class TestRolling(Base):
                     c(window=2, min_periods=w)
                 with self.assertRaises(ValueError):
                     c(window=2, min_periods=1, center=w)
+
+    def test_constructor_with_win_type(self):
+        # GH 13383
+        tm._skip_if_no_scipy()
+        for o in [self.series, self.frame]:
+            c = o.rolling
+            c(0, win_type='boxcar')
+            with self.assertRaises(ValueError):
+                c(-1, win_type='boxcar')
 
     def test_numpy_compat(self):
         # see gh-12811
