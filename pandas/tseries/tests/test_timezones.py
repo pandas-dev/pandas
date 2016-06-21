@@ -18,7 +18,7 @@ from pytz import NonExistentTimeError
 
 import pandas.util.testing as tm
 from pandas.types.api import DatetimeTZDtype
-from pandas.util.testing import assert_frame_equal
+from pandas.util.testing import assert_frame_equal, set_timezone
 from pandas.compat import lrange, zip
 
 try:
@@ -1397,6 +1397,26 @@ class TestTimeZones(tm.TestCase):
 
         self.assertTrue(result.is_normalized)
         self.assertFalse(rng.is_normalized)
+
+    def test_normalize_tz_local(self):
+        # GH 13459
+        from dateutil.tz import tzlocal
+
+        timezones = ['US/Pacific', 'US/Eastern', 'UTC', 'Asia/Kolkata',
+                     'Asia/Shanghai', 'Australia/Canberra']
+
+        for timezone in timezones:
+            with set_timezone(timezone):
+                rng = date_range('1/1/2000 9:30', periods=10, freq='D',
+                                 tz=tzlocal())
+
+                result = rng.normalize()
+                expected = date_range('1/1/2000', periods=10, freq='D',
+                                      tz=tzlocal())
+                self.assert_index_equal(result, expected)
+
+                self.assertTrue(result.is_normalized)
+                self.assertFalse(rng.is_normalized)
 
     def test_tzaware_offset(self):
         dates = date_range('2012-11-01', periods=3, tz='US/Pacific')

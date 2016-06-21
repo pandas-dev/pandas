@@ -34,7 +34,8 @@ from pandas.util.testing import (assert_panel4d_equal,
                                  assert_panel_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
-                                 assert_produces_warning)
+                                 assert_produces_warning,
+                                 set_timezone)
 from pandas import concat, Timestamp
 from pandas import compat
 from pandas.compat import range, lrange, u
@@ -5309,14 +5310,6 @@ class TestTimezones(Base, tm.TestCase):
         # issue storing datetime.date with a timezone as it resets when read
         # back in a new timezone
 
-        import platform
-        if platform.system() == "Windows":
-            raise nose.SkipTest("timezone setting not supported on windows")
-
-        import datetime
-        import time
-        import os
-
         # original method
         with ensure_clean_store(self.path) as store:
 
@@ -5327,34 +5320,17 @@ class TestTimezones(Base, tm.TestCase):
             assert_frame_equal(result, df)
 
         # with tz setting
-        orig_tz = os.environ.get('TZ')
+        with ensure_clean_store(self.path) as store:
 
-        def setTZ(tz):
-            if tz is None:
-                try:
-                    del os.environ['TZ']
-                except:
-                    pass
-            else:
-                os.environ['TZ'] = tz
-                time.tzset()
-
-        try:
-
-            with ensure_clean_store(self.path) as store:
-
-                setTZ('EST5EDT')
+            with set_timezone('EST5EDT'):
                 today = datetime.date(2013, 9, 10)
                 df = DataFrame([1, 2, 3], index=[today, today, today])
                 store['obj1'] = df
 
-                setTZ('CST6CDT')
+            with set_timezone('CST6CDT'):
                 result = store['obj1']
 
-                assert_frame_equal(result, df)
-
-        finally:
-            setTZ(orig_tz)
+            assert_frame_equal(result, df)
 
     def test_legacy_datetimetz_object(self):
         # legacy from < 0.17.0

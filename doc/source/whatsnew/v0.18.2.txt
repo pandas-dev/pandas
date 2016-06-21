@@ -485,6 +485,7 @@ Bug Fixes
 
 - Bug in various index types, which did not propagate the name of passed index (:issue:`12309`)
 - Bug in ``DatetimeIndex``, which did not honour the ``copy=True`` (:issue:`13205`)
+- Bug in ``DatetimeIndex.is_normalized`` returns incorrectly for normalized date_range in case of local timezones (:issue:`13459`)
 
 - Bug in ``DataFrame.to_csv()`` in which float values were being quoted even though quotations were specified for non-numeric values only (:issue:`12922`, :issue:`13259`)
 - Bug in ``MultiIndex`` slicing where extra elements were returned when level is non-unique (:issue:`12896`)
