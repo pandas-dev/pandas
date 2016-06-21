@@ -2667,3 +2667,50 @@ def patch(ob, attr, value):
             delattr(ob, attr)
         else:
             setattr(ob, attr, old)
+
+
+@contextmanager
+def set_timezone(tz):
+    """Context manager for temporarily setting a timezone.
+
+    Parameters
+    ----------
+    tz : str
+        A string representing a valid timezone.
+
+    Examples
+    --------
+
+    >>> from datetime import datetime
+    >>> from dateutil.tz import tzlocal
+    >>> tzlocal().tzname(datetime.now())
+    'IST'
+
+    >>> with set_timezone('US/Eastern'):
+    ...     tzlocal().tzname(datetime.now())
+    ...
+    'EDT'
+    """
+    if is_platform_windows():
+        import nose
+        raise nose.SkipTest("timezone setting not supported on windows")
+
+    import os
+    import time
+
+    def setTZ(tz):
+        if tz is None:
+            try:
+                del os.environ['TZ']
+            except:
+                pass
+        else:
+            os.environ['TZ'] = tz
+            time.tzset()
+
+    orig_tz = os.environ.get('TZ')
+    setTZ(tz)
+    try:
+        yield
+    finally:
+        setTZ(orig_tz)
