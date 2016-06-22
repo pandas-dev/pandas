@@ -1,7 +1,6 @@
 """
     Tests for the pandas.io.common functionalities
 """
-import nose
 import mmap
 import os
 from os.path import isabs
@@ -98,15 +97,18 @@ class TestMMapWrapper(tm.TestCase):
                                       'test_mmap.csv')
 
     def test_constructor_bad_file(self):
-        if is_platform_windows():
-            raise nose.SkipTest("skipping construction error messages "
-                                "tests on windows")
-
         non_file = StringIO('I am not a file')
         non_file.fileno = lambda: -1
 
-        msg = "Invalid argument"
-        tm.assertRaisesRegexp(mmap.error, msg, common.MMapWrapper, non_file)
+        # the error raised is different on Windows
+        if is_platform_windows():
+            msg = "The parameter is incorrect"
+            err = OSError
+        else:
+            msg = "Invalid argument"
+            err = mmap.error
+
+        tm.assertRaisesRegexp(err, msg, common.MMapWrapper, non_file)
 
         target = open(self.mmap_file, 'r')
         target.close()
