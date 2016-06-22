@@ -1877,6 +1877,15 @@ class TestMultiIndex(Base, tm.TestCase):
             self.assertTrue(idx.has_duplicates)
             self.assertEqual(idx.drop_duplicates().names, idx.names)
 
+    def test_get_unique_index(self):
+        idx = self.index[[0, 1, 0, 1, 1, 0, 0]]
+        expected = self.index._shallow_copy(idx[[0, 1]])
+
+        for dropna in [False, True]:
+            result = idx._get_unique_index(dropna=dropna)
+            self.assertTrue(result.unique)
+            self.assert_index_equal(result, expected)
+
     def test_tolist(self):
         result = self.index.tolist()
         exp = list(self.index.values)

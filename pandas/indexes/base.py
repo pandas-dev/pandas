@@ -1773,7 +1773,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             else:
                 name = None
             if self.name != name:
-                return other._shallow_copy(name=name)
+                return self._shallow_copy(name=name)
         return self
 
     def union(self, other):
@@ -1920,7 +1920,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         Return a new Index with elements from the index that are not in
         `other`.
 
-        This is the sorted set difference of two Index objects.
+        This is the set difference of two Index objects.
+        It's sorted if sorting is possible.
 
         Parameters
         ----------
@@ -1946,14 +1947,27 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         other, result_name = self._convert_can_do_setop(other)
 
-        theDiff = sorted(set(self) - set(other))
-        return Index(theDiff, name=result_name)
+        this = self._get_unique_index()
+
+        indexer = this.get_indexer(other)
+        indexer = indexer.take((indexer != -1).nonzero()[0])
+
+        label_diff = np.setdiff1d(np.arange(this.size), indexer,
+                                  assume_unique=True)
+        the_diff = this.values.take(label_diff)
+        try:
+            the_diff = algos.safe_sort(the_diff)
+        except TypeError:
+            pass
+
+        return this._shallow_copy(the_diff, name=result_name)
 
     diff = deprecate('diff', difference)
 
     def symmetric_difference(self, other, result_name=None):
         """
-        Compute the sorted symmetric difference of two Index objects.
+        Compute the symmetric difference of two Index objects.
+        It's sorted if sorting is possible.
 
         Parameters
         ----------
@@ -1969,9 +1983,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         ``symmetric_difference`` contains elements that appear in either
         ``idx1`` or ``idx2`` but not both. Equivalent to the Index created by
         ``(idx1 - idx2) + (idx2 - idx1)`` with duplicates dropped.
-
-        The sorting of a result containing ``NaN`` values is not guaranteed
-        across Python versions. See GitHub issue #6444.
 
         Examples
         --------
@@ -1990,8 +2001,26 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if result_name is None:
             result_name = result_name_update
 
-        the_diff = sorted(set((self.difference(other)).
-                              union(other.difference(self))))
+        this = self._get_unique_index()
+        other = other._get_unique_index()
+        indexer = this.get_indexer(other)
+
+        # {this} minus {other}
+        common_indexer = indexer.take((indexer != -1).nonzero()[0])
+        left_indexer = np.setdiff1d(np.arange(this.size), common_indexer,
+                                    assume_unique=True)
+        left_diff = this.values.take(left_indexer)
+
+        # {other} minus {this}
+        right_indexer = (indexer == -1).nonzero()[0]
+        right_diff = other.values.take(right_indexer)
+
+        the_diff = _concat._concat_compat([left_diff, right_diff])
+        try:
+            the_diff = algos.safe_sort(the_diff)
+        except TypeError:
+            pass
+
         attribs = self._get_attributes_dict()
         attribs['name'] = result_name
         if 'freq' in attribs:
@@ -1999,6 +2028,36 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return self._shallow_copy_with_infer(the_diff, **attribs)
 
     sym_diff = deprecate('sym_diff', symmetric_difference)
+
+    def _get_unique_index(self, dropna=False):
+        """
+        Returns an index containing unique values.
+
+        Parameters
+        ----------
+        dropna : bool
+            If True, NaN values are dropped.
+
+        Returns
+        -------
+        uniques : index
+        """
+        if self.is_unique and not dropna:
+            return self
+
+        values = self.values
+
+        if not self.is_unique:
+            values = self.unique()
+
+        if dropna:
+            try:
+                if self.hasnans:
+                    values = values[~isnull(values)]
+            except NotImplementedError:
+                pass
+
+        return self._shallow_copy(values)
 
     def get_loc(self, key, method=None, tolerance=None):
         """

@@ -56,6 +56,80 @@ class TestMatch(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
 
+class TestSafeSort(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_basic_sort(self):
+        values = [3, 1, 2, 0, 4]
+        result = algos.safe_sort(values)
+        expected = np.array([0, 1, 2, 3, 4])
+        tm.assert_numpy_array_equal(result, expected)
+
+        values = list("baaacb")
+        result = algos.safe_sort(values)
+        expected = np.array(list("aaabbc"))
+        tm.assert_numpy_array_equal(result, expected)
+
+        values = []
+        result = algos.safe_sort(values)
+        expected = np.array([])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_labels(self):
+        values = [3, 1, 2, 0, 4]
+        expected = np.array([0, 1, 2, 3, 4])
+
+        labels = [0, 1, 1, 2, 3, 0, -1, 4]
+        result, result_labels = algos.safe_sort(values, labels)
+        expected_labels = np.array([3, 1, 1, 2, 0, 3, -1, 4])
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+        # na_sentinel
+        labels = [0, 1, 1, 2, 3, 0, 99, 4]
+        result, result_labels = algos.safe_sort(values, labels,
+                                                na_sentinel=99)
+        expected_labels = np.array([3, 1, 1, 2, 0, 3, 99, 4])
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+        # out of bound indices
+        labels = [0, 101, 102, 2, 3, 0, 99, 4]
+        result, result_labels = algos.safe_sort(values, labels)
+        expected_labels = np.array([3, -1, -1, 2, 0, 3, -1, 4])
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+        labels = []
+        result, result_labels = algos.safe_sort(values, labels)
+        expected_labels = np.array([], dtype=np.int_)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+    def test_mixed_integer(self):
+        values = np.array(['b', 1, 0, 'a', 0, 'b'], dtype=object)
+        result = algos.safe_sort(values)
+        expected = np.array([0, 0, 1, 'a', 'b', 'b'], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        values = np.array(['b', 1, 0, 'a'], dtype=object)
+        labels = [0, 1, 2, 3, 0, -1, 1]
+        result, result_labels = algos.safe_sort(values, labels)
+        expected = np.array([0, 1, 'a', 'b'], dtype=object)
+
+    def test_exceptions(self):
+        with tm.assertRaisesRegexp(TypeError,
+                                   "Only list-like objects are allowed"):
+            algos.safe_sort(values=1)
+
+        with tm.assertRaisesRegexp(TypeError,
+                                   "Only list-like objects or None"):
+            algos.safe_sort(values=[0, 1, 2], labels=1)
+
+        with tm.assertRaisesRegexp(ValueError, "values should be unique"):
+            algos.safe_sort(values=[0, 1, 2, 1], labels=[0, 1])
+
+
 class TestFactorize(tm.TestCase):
     _multiprocess_can_split_ = True
 

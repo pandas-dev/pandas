@@ -640,47 +640,56 @@ class TestIndex(Base, tm.TestCase):
         first = Index(list('ab'), name='A')
         second = Index(list('ab'), name='B')
         union = first.union(second)
-        self.assertIsNone(union.name)
+        expected = Index(list('ab'), name=None)
+        tm.assert_index_equal(union, expected)
 
         first = Index(list('ab'), name='A')
         second = Index([], name='B')
         union = first.union(second)
-        self.assertIsNone(union.name)
+        expected = Index(list('ab'), name=None)
+        tm.assert_index_equal(union, expected)
 
         first = Index([], name='A')
         second = Index(list('ab'), name='B')
         union = first.union(second)
-        self.assertIsNone(union.name)
+        expected = Index(list('ab'), name=None)
+        tm.assert_index_equal(union, expected)
 
         first = Index(list('ab'))
         second = Index(list('ab'), name='B')
         union = first.union(second)
-        self.assertEqual(union.name, 'B')
+        expected = Index(list('ab'), name='B')
+        tm.assert_index_equal(union, expected)
 
         first = Index([])
         second = Index(list('ab'), name='B')
         union = first.union(second)
-        self.assertEqual(union.name, 'B')
+        expected = Index(list('ab'), name='B')
+        tm.assert_index_equal(union, expected)
 
         first = Index(list('ab'))
         second = Index([], name='B')
         union = first.union(second)
-        self.assertEqual(union.name, 'B')
+        expected = Index(list('ab'), name='B')
+        tm.assert_index_equal(union, expected)
 
         first = Index(list('ab'), name='A')
         second = Index(list('ab'))
         union = first.union(second)
-        self.assertEqual(union.name, 'A')
+        expected = Index(list('ab'), name='A')
+        tm.assert_index_equal(union, expected)
 
         first = Index(list('ab'), name='A')
         second = Index([])
         union = first.union(second)
-        self.assertEqual(union.name, 'A')
+        expected = Index(list('ab'), name='A')
+        tm.assert_index_equal(union, expected)
 
         first = Index([], name='A')
         second = Index(list('ab'))
         union = first.union(second)
-        self.assertEqual(union.name, 'A')
+        expected = Index(list('ab'), name='A')
+        tm.assert_index_equal(union, expected)
 
     def test_add(self):
 
@@ -803,17 +812,19 @@ class TestIndex(Base, tm.TestCase):
         self.assertTrue(tm.equalContents(result, expected))
 
         # nans:
-        # GH #6444, sorting of nans. Make sure the number of nans is right
-        # and the correct non-nan values are there. punt on sorting.
-        idx1 = Index([1, 2, 3, np.nan])
+        # GH 13514 change: {nan} - {nan} == {}
+        # (GH 6444, sorting of nans, is no longer an issue)
+        idx1 = Index([1, np.nan, 2, 3])
         idx2 = Index([0, 1, np.nan])
-        result = idx1.symmetric_difference(idx2)
-        # expected = Index([0.0, np.nan, 2.0, 3.0, np.nan])
+        idx3 = Index([0, 1])
 
-        nans = pd.isnull(result)
-        self.assertEqual(nans.sum(), 1)
-        self.assertEqual((~nans).sum(), 3)
-        [self.assertIn(x, result) for x in [0.0, 2.0, 3.0]]
+        result = idx1.symmetric_difference(idx2)
+        expected = Index([0.0, 2.0, 3.0])
+        tm.assert_index_equal(result, expected)
+
+        result = idx1.symmetric_difference(idx3)
+        expected = Index([0.0, 2.0, 3.0, np.nan])
+        tm.assert_index_equal(result, expected)
 
         # other not an Index:
         idx1 = Index([1, 2, 3, 4], name='idx1')
@@ -1663,6 +1674,149 @@ Index([u'あ', u'いい', u'ううう'], dtype='object')"""
       dtype='object', length=300)"""
 
                 self.assertEqual(coerce(idx), expected)
+
+
+class TestMixedIntIndex(Base, tm.TestCase):
+    # Mostly the tests from common.py for which the results differ
+    # in py2 and py3 because ints and strings are uncomparable in py3
+    # (GH 13514)
+
+    _holder = Index
+    _multiprocess_can_split_ = True
+
+    def setUp(self):
+        self.indices = dict(mixedIndex=Index([0, 'a', 1, 'b', 2, 'c']))
+        self.setup_indices()
+
+    def create_index(self):
+        return self.mixedIndex
+
+    def test_order(self):
+        idx = self.create_index()
+        # 9816 deprecated
+        if PY3:
+            with tm.assertRaisesRegexp(TypeError, "unorderable types"):
+                with tm.assert_produces_warning(FutureWarning):
+                    idx.order()
+        else:
+            with tm.assert_produces_warning(FutureWarning):
+                idx.order()
+
+    def test_argsort(self):
+        idx = self.create_index()
+        if PY3:
+            with tm.assertRaisesRegexp(TypeError, "unorderable types"):
+                result = idx.argsort()
+        else:
+            result = idx.argsort()
+            expected = np.array(idx).argsort()
+            tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
+    def test_numpy_argsort(self):
+        idx = self.create_index()
+        if PY3:
+            with tm.assertRaisesRegexp(TypeError, "unorderable types"):
+                result = np.argsort(idx)
+        else:
+            result = np.argsort(idx)
+            expected = idx.argsort()
+            tm.assert_numpy_array_equal(result, expected)
+
+    def test_copy_name(self):
+        # Check that "name" argument passed at initialization is honoured
+        # GH12309
+        idx = self.create_index()
+
+        first = idx.__class__(idx, copy=True, name='mario')
+        second = first.__class__(first, copy=False)
+
+        # Even though "copy=False", we want a new object.
+        self.assertIsNot(first, second)
+        # Not using tm.assert_index_equal() since names differ:
+        self.assertTrue(idx.equals(first))
+
+        self.assertEqual(first.name, 'mario')
+        self.assertEqual(second.name, 'mario')
+
+        s1 = Series(2, index=first)
+        s2 = Series(3, index=second[:-1])
+        if PY3:
+            with tm.assert_produces_warning(RuntimeWarning):
+                # unorderable types
+                s3 = s1 * s2
+        else:
+            s3 = s1 * s2
+        self.assertEqual(s3.index.name, 'mario')
+
+    def test_union_base(self):
+        idx = self.create_index()
+        first = idx[3:]
+        second = idx[:5]
+
+        if PY3:
+            with tm.assert_produces_warning(RuntimeWarning):
+                # unorderable types
+                result = first.union(second)
+                expected = Index(['b', 2, 'c', 0, 'a', 1])
+                self.assert_index_equal(result, expected)
+        else:
+            result = first.union(second)
+            expected = Index(['b', 2, 'c', 0, 'a', 1])
+            self.assert_index_equal(result, expected)
+
+        # GH 10149
+        cases = [klass(second.values)
+                 for klass in [np.array, Series, list]]
+        for case in cases:
+            if PY3:
+                with tm.assert_produces_warning(RuntimeWarning):
+                    # unorderable types
+                    result = first.union(case)
+                    self.assertTrue(tm.equalContents(result, idx))
+            else:
+                result = first.union(case)
+                self.assertTrue(tm.equalContents(result, idx))
+
+    def test_intersection_base(self):
+        # (same results for py2 and py3 but sortedness not tested elsewhere)
+        idx = self.create_index()
+        first = idx[:5]
+        second = idx[:3]
+        result = first.intersection(second)
+        expected = Index([0, 'a', 1])
+        self.assert_index_equal(result, expected)
+
+        # GH 10149
+        cases = [klass(second.values)
+                 for klass in [np.array, Series, list]]
+        for case in cases:
+            result = first.intersection(case)
+            self.assertTrue(tm.equalContents(result, second))
+
+    def test_difference_base(self):
+        # (same results for py2 and py3 but sortedness not tested elsewhere)
+        idx = self.create_index()
+        first = idx[:4]
+        second = idx[3:]
+
+        result = first.difference(second)
+        expected = Index([0, 1, 'a'])
+        self.assert_index_equal(result, expected)
+
+    def test_symmetric_difference(self):
+        # (same results for py2 and py3 but sortedness not tested elsewhere)
+        idx = self.create_index()
+        first = idx[:4]
+        second = idx[3:]
+
+        result = first.symmetric_difference(second)
+        expected = Index([0, 1, 2, 'a', 'c'])
+        self.assert_index_equal(result, expected)
+
+    def test_logical_compat(self):
+        idx = self.create_index()
+        self.assertEqual(idx.all(), idx.values.all())
+        self.assertEqual(idx.any(), idx.values.any())
 
 
 def test_get_combined_index():

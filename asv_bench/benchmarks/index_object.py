@@ -63,6 +63,27 @@ class index_datetime_union(object):
         self.rng.union(self.rng2)
 
 
+class index_datetime_set_difference(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 100000
+        self.A = self.N - 20000
+        self.B = self.N + 20000
+        self.idx1 = DatetimeIndex(range(self.N))
+        self.idx2 = DatetimeIndex(range(self.A, self.B))
+        self.idx3 = DatetimeIndex(range(self.N, self.B))
+
+    def time_index_datetime_difference(self):
+        self.idx1.difference(self.idx2)
+
+    def time_index_datetime_difference_disjoint(self):
+        self.idx1.difference(self.idx3)
+
+    def time_index_datetime_symmetric_difference(self):
+        self.idx1.symmetric_difference(self.idx2)
+
+
 class index_float64_boolean_indexer(object):
     goal_time = 0.2
 
@@ -181,6 +202,40 @@ class index_int64_union(object):
 
     def time_index_int64_union(self):
         self.left.union(self.right)
+
+
+class index_int64_set_difference(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 500000
+        self.options = np.arange(self.N)
+        self.left = Index(self.options.take(
+            np.random.permutation(self.N)[:(self.N // 2)]))
+        self.right = Index(self.options.take(
+            np.random.permutation(self.N)[:(self.N // 2)]))
+
+    def time_index_int64_difference(self):
+        self.left.difference(self.right)
+
+    def time_index_int64_symmetric_difference(self):
+        self.left.symmetric_difference(self.right)
+
+
+class index_str_set_difference(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 10000
+        self.strs = tm.rands_array(10, self.N)
+        self.left = Index(self.strs[:self.N * 2 // 3])
+        self.right = Index(self.strs[self.N // 3:])
+
+    def time_str_difference(self):
+        self.left.difference(self.right)
+
+    def time_str_symmetric_difference(self):
+        self.left.symmetric_difference(self.right)
 
 
 class index_str_boolean_indexer(object):
