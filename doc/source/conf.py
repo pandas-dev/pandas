@@ -318,6 +318,7 @@ ipython_exec_lines = [
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
+import sphinx
 from sphinx.util import rpartition
 from sphinx.ext.autodoc import Documenter, MethodDocumenter, AttributeDocumenter
 from sphinx.ext.autosummary import Autosummary
@@ -365,7 +366,10 @@ class AccessorLevelDocumenter(Documenter):
             if not modname:
                 modname = self.env.temp_data.get('autodoc:module')
             if not modname:
-                modname = self.env.temp_data.get('py:module')
+                if sphinx.__version__ > '1.3':
+                    modname = self.env.ref_context.get('py:module')
+                else:
+                    modname = self.env.temp_data.get('py:module')
             # ... else, it stays None, which means invalid
         return modname, parents + [base]
 
