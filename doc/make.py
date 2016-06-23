@@ -193,7 +193,8 @@ def html():
                 executed = execute_nb(nb, nb + '.executed', allow_errors=True,
                                       kernel_name=kernel_name)
                 convert_nb(executed, nb.rstrip('.ipynb') + '.html')
-            except (ImportError, IndexError):
+            except (ImportError, IndexError) as e:
+                print(e)
                 print("Failed to convert %s" % nb)
 
     if os.system('sphinx-build -P -b html -d build/doctrees '
