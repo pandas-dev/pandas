@@ -1353,6 +1353,20 @@ class TestMultiIndex(Base, tm.TestCase):
         assertRaisesRegexp(TypeError, "other must be a MultiIndex or a list"
                            " of tuples", first.difference, [1, 2, 3, 4, 5])
 
+    def test_symmetric_difference(self):
+        idx1 = MultiIndex.from_tuples(self.index, names=('A', 'B'))
+        idx2 = MultiIndex.from_tuples([('foo', 'one'), ('bar', 'one'),
+                                       ('baz', 'two'), ('qux', 'two'),
+                                       ('qux', 'one')], names=('A', 'B'))
+        result = idx1.symmetric_difference(idx2)
+        expected = MultiIndex.from_tuples([('foo', 'two')], names=('A', 'B'))
+        tm.assert_index_equal(result, expected)
+
+        # Test for equal multiIndexes
+        result = self.index.symmetric_difference(self.index)
+        expected = result._create_as_empty()
+        tm.assert_index_equal(result, expected)
+
     def test_from_tuples(self):
         assertRaisesRegexp(TypeError, 'Cannot infer number of levels from'
                            ' empty list', MultiIndex.from_tuples, [])
