@@ -15,17 +15,57 @@ class TestSeriesSorting(TestData, tm.TestCase):
 
     _multiprocess_can_split_ = True
 
-    def test_sort_values(self):
+    def test_sort(self):
 
         ts = self.ts.copy()
 
         # 9816 deprecated
         with tm.assert_produces_warning(FutureWarning):
-            ts.sort()
-
+            ts.sort()  # sorts inplace
         self.assert_series_equal(ts, self.ts.sort_values())
-        self.assert_index_equal(ts.index, self.ts.sort_values().index)
 
+    def test_order(self):
+
+        # 9816 deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            result = self.ts.order()
+        self.assert_series_equal(result, self.ts.sort_values())
+
+    def test_sort_values(self):
+
+        # check indexes are reordered corresponding with the values
+        ser = Series([3, 2, 4, 1], ['A', 'B', 'C', 'D'])
+        expected = Series([1, 2, 3, 4], ['D', 'B', 'A', 'C'])
+        result = ser.sort_values()
+        self.assert_series_equal(expected, result)
+
+        ts = self.ts.copy()
+        ts[:5] = np.NaN
+        vals = ts.values
+
+        result = ts.sort_values()
+        self.assertTrue(np.isnan(result[-5:]).all())
+        self.assert_numpy_array_equal(result[:-5].values, np.sort(vals[5:]))
+
+        # na_position
+        result = ts.sort_values(na_position='first')
+        self.assertTrue(np.isnan(result[:5]).all())
+        self.assert_numpy_array_equal(result[5:].values, np.sort(vals[5:]))
+
+        # something object-type
+        ser = Series(['A', 'B'], [1, 2])
+        # no failure
+        ser.sort_values()
+
+        # ascending=False
+        ordered = ts.sort_values(ascending=False)
+        expected = np.sort(ts.valid().values)[::-1]
+        assert_almost_equal(expected, ordered.valid().values)
+        ordered = ts.sort_values(ascending=False, na_position='first')
+        assert_almost_equal(expected, ordered.valid().values)
+
+        # inplace=True
+        ts = self.ts.copy()
         ts.sort_values(ascending=False, inplace=True)
         self.assert_series_equal(ts, self.ts.sort_values(ascending=False))
         self.assert_index_equal(ts.index,
@@ -40,20 +80,6 @@ class TestSeriesSorting(TestData, tm.TestCase):
             s.sort_values(inplace=True)
 
         self.assertRaises(ValueError, f)
-
-        # test order/sort inplace
-        # GH6859
-        ts1 = self.ts.copy()
-        ts1.sort_values(ascending=False, inplace=True)
-        ts2 = self.ts.copy()
-        ts2.sort_values(ascending=False, inplace=True)
-        assert_series_equal(ts1, ts2)
-
-        ts1 = self.ts.copy()
-        ts1 = ts1.sort_values(ascending=False, inplace=False)
-        ts2 = self.ts.copy()
-        ts2 = ts.sort_values(ascending=False)
-        assert_series_equal(ts1, ts2)
 
     def test_sort_index(self):
         rindex = list(self.ts.index)
@@ -119,33 +145,3 @@ class TestSeriesSorting(TestData, tm.TestCase):
 
         self.assertRaises(ValueError,
                           lambda: random_order.sort_index(level=0, axis=1))
-
-    def test_order(self):
-
-        # 9816 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            self.ts.order()
-
-        ts = self.ts.copy()
-        ts[:5] = np.NaN
-        vals = ts.values
-
-        result = ts.sort_values()
-        self.assertTrue(np.isnan(result[-5:]).all())
-        self.assert_numpy_array_equal(result[:-5].values, np.sort(vals[5:]))
-
-        result = ts.sort_values(na_position='first')
-        self.assertTrue(np.isnan(result[:5]).all())
-        self.assert_numpy_array_equal(result[5:].values, np.sort(vals[5:]))
-
-        # something object-type
-        ser = Series(['A', 'B'], [1, 2])
-        # no failure
-        ser.sort_values()
-
-        # ascending=False
-        ordered = ts.sort_values(ascending=False)
-        expected = np.sort(ts.valid().values)[::-1]
-        assert_almost_equal(expected, ordered.valid().values)
-        ordered = ts.sort_values(ascending=False, na_position='first')
-        assert_almost_equal(expected, ordered.valid().values)

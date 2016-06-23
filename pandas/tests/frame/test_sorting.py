@@ -22,17 +22,8 @@ class TestDataFrameSorting(tm.TestCase, TestData):
     _multiprocess_can_split_ = True
 
     def test_sort_index(self):
-        # API for 9816
-
-        # sort_index
         frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
                           columns=['A', 'B', 'C', 'D'])
-
-        # 9816 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            frame.sort(columns='A')
-        with tm.assert_produces_warning(FutureWarning):
-            frame.sort()
 
         # axis=0 : sort rows by index labels
         unordered = frame.ix[[3, 2, 4, 1]]
@@ -67,12 +58,22 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         expected = df.sortlevel('A', axis=1, sort_remaining=False)
         assert_frame_equal(result, expected)
 
-        # MI sort, but no level
+        # MI sort, but no level: sort_level has no effect
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         df = DataFrame([[1, 2], [3, 4]], mi)
         result = df.sort_index(sort_remaining=False)
         expected = df.sort_index()
         assert_frame_equal(result, expected)
+
+    def test_sort(self):
+        frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
+                          columns=['A', 'B', 'C', 'D'])
+
+        # 9816 deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            frame.sort(columns='A')
+        with tm.assert_produces_warning(FutureWarning):
+            frame.sort()
 
     def test_sort_values(self):
         frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
