@@ -105,7 +105,7 @@ class TestMMapWrapper(tm.TestCase):
             msg = "The parameter is incorrect"
             err = OSError
         else:
-            msg = "Invalid argument"
+            msg = "[Errno 22]"
             err = mmap.error
 
         tm.assertRaisesRegexp(err, msg, common.MMapWrapper, non_file)
