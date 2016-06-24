@@ -1197,7 +1197,8 @@ class GroupBy(_GroupBy):
         1  4
         5  6
 
-        # NaNs denote group exhausted when using dropna
+        NaNs denote group exhausted when using dropna
+
         >>> g.nth(1, dropna='any')
             B
             A

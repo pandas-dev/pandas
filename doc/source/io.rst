@@ -4789,7 +4789,7 @@ Reading
 
 Space on disk (in bytes)
 
-.. code-block::
+.. code-block:: none
 
     25843712 Apr  8 14:11 test.sql
     24007368 Apr  8 14:11 test_fixed.hdf

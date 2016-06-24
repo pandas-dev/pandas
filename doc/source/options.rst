@@ -71,6 +71,7 @@ with no argument ``describe_option`` will print out the descriptions for all ava
 
 .. ipython:: python
    :suppress:
+   :okwarning:
 
    pd.reset_option("all")
 
