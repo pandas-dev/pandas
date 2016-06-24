@@ -12,8 +12,6 @@ pip uninstall numpy -y
 # these wheels don't play nice with the conda libgfortran / openblas
 # time conda install -n pandas libgfortran openblas || exit 1
 
-time sudo apt-get $APT_ARGS install libatlas-base-dev gfortran
-
 # install numpy wheel from master
 pip install --pre --upgrade --no-index --timeout=60 --trusted-host travis-dev-wheels.scipy.org -f http://travis-dev-wheels.scipy.org/ numpy
 

@@ -9,8 +9,6 @@ echo "inside $0"
 
 # overview
 if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-   sudo apt-get update $APT_ARGS # run apt-get update for all versions
-
    sh -e /etc/init.d/xvfb start
 fi
 
