@@ -374,7 +374,7 @@ New Behavior:
    df.groupby('c', sort=False).nth(1)
 
 
-.. _whatsnew_0181.numpy_compatibility
+.. _whatsnew_0181.numpy_compatibility:
 
 numpy function compatibility
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
