@@ -291,6 +291,59 @@ class TestToNumeric(tm.TestCase):
         with self.assertRaisesRegexp(TypeError, "Invalid object type"):
             pd.to_numeric(s)
 
+    def test_downcast(self):
+        mixed_data = ['1', 2, 3]
+        int_data = [1, 2, 3]
+        date_data = np.array(['1970-01-02', '1970-01-03',
+                              '1970-01-04'], dtype='datetime64[D]')
+
+        smaller_dtypes = [np.int8, np.uint8, np.int16, np.uint16,
+                          np.int32, np.uint32, np.float32]
+
+        larger_dtypes = [np.int64, np.uint64, np.float64]
+
+        msg = "'downcast' must be a numerical dtype"
+        bad_dtype = 'datetime64[D]'
+
+        for data in [mixed_data, int_data, date_data]:
+            tm.assertRaisesRegexp(ValueError, msg, pd.to_numeric,
+                                  data, downcast=bad_dtype)
+
+            for smaller_dtype in smaller_dtypes:
+                res = pd.to_numeric(data, downcast=smaller_dtype)
+                expected = np.array([1, 2, 3], dtype=smaller_dtype)
+                tm.assert_numpy_array_equal(res, expected)
+
+            expected = np.array([1, 2, 3], dtype=np.int64)
+
+            # default
+            res = pd.to_numeric(data)
+            tm.assert_numpy_array_equal(res, expected)
+
+            # explicit
+            res = pd.to_numeric(data, downcast=None)
+            tm.assert_numpy_array_equal(res, expected)
+
+            for larger_dtype in larger_dtypes:
+                res = pd.to_numeric(data, downcast=larger_dtype)
+                tm.assert_numpy_array_equal(res, expected)
+
+        # cannot downcast because it is the wrong type
+        data = ['-1', 2, 3]
+        res = pd.to_numeric(data, downcast=np.uint8)
+        expected = np.array([-1, 2, 3], dtype=np.int64)
+        tm.assert_numpy_array_equal(res, expected)
+
+        # ensure behaviour is respected when values are of
+        # different integer dtypes (i.e. not 'np.int')
+        data = np.array([1, 2, 3], dtype=np.int16)
+
+        res = pd.to_numeric(data, downcast=np.int16)
+        tm.assert_numpy_array_equal(res, data)
+
+        expected = np.array([1, 2, 3], dtype=np.uint8)
+        res = pd.to_numeric(data, downcast=np.uint8)
+        tm.assert_numpy_array_equal(res, expected)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

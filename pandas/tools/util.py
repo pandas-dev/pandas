@@ -50,7 +50,7 @@ def compose(*funcs):
     return reduce(_compose2, funcs)
 
 
-def to_numeric(arg, errors='raise'):
+def to_numeric(arg, errors='raise', downcast=None):
     """
     Convert argument to a numeric type.
 
@@ -61,6 +61,13 @@ def to_numeric(arg, errors='raise'):
         - If 'raise', then invalid parsing will raise an exception
         - If 'coerce', then invalid parsing will be set as NaN
         - If 'ignore', then invalid parsing will return the input
+    downcast : numpy.dtype or Python dtype, default None
+        If possible, downcast the resulting numerical data to the
+        specified **numerical** dtype in 'downcast'. If the size of
+        the data's dtype is smaller or equal to that of 'downcast',
+        then this parameter will be ignored.
+
+        .. versionadded:: 0.18.2
 
     Returns
     -------
@@ -74,6 +81,7 @@ def to_numeric(arg, errors='raise'):
     >>> import pandas as pd
     >>> s = pd.Series(['1.0', '2', -3])
     >>> pd.to_numeric(s)
+    >>> pd.to_numeric(s, downcast=np.int8)
     >>> s = pd.Series(['apple', '1.0', '2', -3])
     >>> pd.to_numeric(s, errors='ignore')
     >>> pd.to_numeric(s, errors='coerce')
@@ -102,20 +110,29 @@ def to_numeric(arg, errors='raise'):
     else:
         values = arg
 
-    if com.is_numeric_dtype(values):
-        pass
-    elif com.is_datetime_or_timedelta_dtype(values):
-        values = values.astype(np.int64)
-    else:
-        values = com._ensure_object(values)
-        coerce_numeric = False if errors in ('ignore', 'raise') else True
+    try:
+        if com.is_numeric_dtype(values):
+            pass
+        elif com.is_datetime_or_timedelta_dtype(values):
+            values = values.astype(np.int64)
+        else:
+            values = com._ensure_object(values)
+            coerce_numeric = False if errors in ('ignore', 'raise') else True
 
-        try:
             values = lib.maybe_convert_numeric(values, set(),
                                                coerce_numeric=coerce_numeric)
-        except:
-            if errors == 'raise':
-                raise
+
+        if downcast is not None:
+            dtype = np.dtype(downcast)
+            if not com.is_numeric_dtype(dtype):
+                raise ValueError("'downcast' must be a numerical dtype")
+
+            if values.dtype.itemsize > dtype.itemsize:
+                values = com._possibly_downcast_to_dtype(values, dtype)
+
+    except Exception:
+        if errors == 'raise':
+            raise
 
     if is_series:
         return pd.Series(values, index=arg.index, name=arg.name)

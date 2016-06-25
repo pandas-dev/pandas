@@ -186,6 +186,12 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behaviour remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
+- ``pd.to_numeric()`` now accepts a ``downcast`` parameter (:issue:`13352`)
+
+  .. ipython:: python
+
+     s = ['1', 2, 3]
+     pd.to_numeric(s, downcast=np.int8)
 
 - ``Index`` now supports ``.str.extractall()`` which returns a ``DataFrame``, see :ref:`documentation here <text.extractall>` (:issue:`10008`, :issue:`13156`)
 - ``.to_hdf/read_hdf()`` now accept path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path (:issue:`11773`)
