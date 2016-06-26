@@ -2295,14 +2295,17 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Parameters
         ----------
-        mapper : callable
+        mapper : callable or dict
             Function to be applied.
 
         Returns
         -------
         applied : array
         """
-        return self._arrmap(self.values, mapper)
+        if isinstance(mapper, dict):
+            return self._arrmap(self.values, lambda key: mapper[key])
+        else:
+            return self._arrmap(self.values, mapper)
 
     def isin(self, values, level=None):
         """

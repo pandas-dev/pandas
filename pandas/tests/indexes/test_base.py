@@ -20,7 +20,7 @@ from pandas import (period_range, date_range, Series,
                     Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex)
-from pandas.util.testing import assert_almost_equal
+from pandas.util.testing import assert_almost_equal, assert_numpy_array_equal
 from pandas.compat.numpy import np_datetime64_compat
 
 import pandas.core.config as cf
@@ -1461,6 +1461,16 @@ class TestIndex(Base, tm.TestCase):
         i = pd.Index(['01:02:03', '01:02:04'], name='label')
         self.assertEqual(i.name, pd.to_datetime(i).name)
         self.assertEqual(i.name, pd.to_timedelta(i).name)
+
+    def test_map_dict(self):
+        # GH 13517
+        i = pd.Index(['a', 'b', 'c', 'd'])
+        d = {'a': 0, 'b': 2, 'c': 1, 'd': 5}
+
+        actual = i.map(d)
+        expected = np.array([0, 2, 1, 5])
+
+        tm.assert_numpy_array_equal(actual, expected)
 
     def test_string_index_repr(self):
         # py3/py2 repr can differ because of "u" prefix
