@@ -2295,15 +2295,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Parameters
         ----------
-        mapper : callable or dict
+        mapper : callable or dict-like
             Function to be applied.
 
         Returns
         -------
         applied : array
         """
-        if isinstance(mapper, dict):
-            return self._arrmap(self.values, lambda key: mapper[key])
+        if com.is_dict_like(mapper):
+            return self._arrmap(self.values, lambda key: mapper[key] if key in mapper.keys() else None)
         else:
             return self._arrmap(self.values, mapper)
 

@@ -1465,11 +1465,22 @@ class TestIndex(Base, tm.TestCase):
     def test_map_dict(self):
         # GH 13517
         i = pd.Index(['a', 'b', 'c', 'd'])
-        d = {'a': 0, 'b': 2, 'c': 1, 'd': 5}
 
+        # actual dict
+        d = {'a': 0, 'b': 2, 'c': 1, 'd': 5}
         actual = i.map(d)
         expected = np.array([0, 2, 1, 5])
+        tm.assert_numpy_array_equal(actual, expected)
 
+        # series
+        s = pd.Series([0, 2, 1, 5], index=['a', 'b', 'c', 'd'])
+        actual = i.map(s)
+        tm.assert_numpy_array_equal(actual, expected)
+
+        # missing values
+        d2 = {'b': 2, 'd': 5}
+        actual = i.map(d2)
+        expected = np.array([np.nan, 2, np.nan, 5])
         tm.assert_numpy_array_equal(actual, expected)
 
     def test_string_index_repr(self):

@@ -207,7 +207,7 @@ Other enhancements
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``na_filter`` option (:issue:`13321`)
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``memory_map`` option (:issue:`13381`)
 
-- ``Index.map`` now accepts a dictionary as its argument (:issue:`13517`)
+- ``Index.map`` now accepts a dict-like object as its argument (:issue:`13517`)
 - ``Index.astype()`` now accepts an optional boolean argument ``copy``, which allows optional copying if the requirements on dtype are satisfied (:issue:`13209`)
 - ``Index`` now supports the ``.where()`` function for same shape indexing (:issue:`13170`)
 
