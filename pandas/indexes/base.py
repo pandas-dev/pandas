@@ -2303,7 +2303,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         applied : array
         """
         if com.is_dict_like(mapper):
-            return self._arrmap(self.values, lambda key: mapper[key] if key in mapper.keys() else None)
+            map_fn = lambda key: mapper[key] if key in mapper.keys() else None
+            return self._arrmap(self.values, map_fn)
         else:
             return self._arrmap(self.values, mapper)
 
