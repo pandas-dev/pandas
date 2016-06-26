@@ -481,7 +481,7 @@ Bug Fixes
 - Bug in ``.tz_convert`` on a tz-aware ``DateTimeIndex`` that relied on index being sorted for correct results (:issue:`13306`)
 - Bug in ``pd.read_hdf()`` where attempting to load an HDF file with a single dataset, that had one or more categorical columns, failed unless the key argument was set to the name of the dataset. (:issue:`13231`)
 - Bug in ``.rolling()`` that allowed a negative integer window in contruction of the ``Rolling()`` object, but would later fail on aggregation (:issue:`13383`)
-
+- Bug in ``__setitem__`` causing a callable rhs to be applied rather than stored (:issue:`13299`)
 
 - Bug in various index types, which did not propagate the name of passed index (:issue:`12309`)
 - Bug in ``DatetimeIndex``, which did not honour the ``copy=True`` (:issue:`13205`)

@@ -2395,7 +2395,7 @@ class DataFrame(NDFrame):
 
         self._check_inplace_setting(value)
         self._check_setitem_copy()
-        self.where(-key, value, inplace=True)
+        self.where(-key, value, inplace=True, apply_other=False)
 
     def _ensure_valid_index(self, value):
         """

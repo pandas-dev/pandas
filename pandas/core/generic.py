@@ -4455,6 +4455,9 @@ class NDFrame(PandasObject):
         raise_on_error : boolean, default True
             Whether to raise on invalid data types (e.g. trying to where on
             strings)
+        apply_other : boolean, default True
+            If False, other will be stored directly rather than applied to
+            self, even if callable
 
         Returns
         -------
@@ -4463,10 +4466,12 @@ class NDFrame(PandasObject):
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True"))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-              try_cast=False, raise_on_error=True):
+              try_cast=False, raise_on_error=True, apply_other=True):
 
         cond = com._apply_if_callable(cond, self)
-        other = com._apply_if_callable(other, self)
+
+        if apply_other:
+            other = com._apply_if_callable(other, self)
 
         if isinstance(cond, NDFrame):
             cond, _ = cond.align(self, join='right', broadcast_axis=1)
