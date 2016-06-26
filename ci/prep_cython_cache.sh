@@ -21,6 +21,8 @@ if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ]; then
         echo "PR: checking for any cython file changes from last 5 commits"
         git diff PR_HEAD~5 --numstat | grep -E "pyx|pxd"
         retval=$(git diff PR_HEAD~5 --numstat | grep -E "pyx|pxd"| wc -l)
+        echo "Forcing cython rebuild due to possibility of history rewritting in PR"
+        retval=-1
     fi
     echo "number of cython files changed: $retval"
 fi
