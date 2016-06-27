@@ -1016,20 +1016,20 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
 
 Groupby by Indexer to 'resample' data.
 
-Resampling produces new hypothetical samples(resamples) from already existing observed data or from a data generating mechanism which resemble the underlying population.
+Resampling produces new hypothetical samples(resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
 
 In order to resample to work on indices that are non-datetimelike , the following procedure can be utilized.
 
-In the following examples, **df.index / 5** returns a binary array which is used to determine what get's selected for the groupby operation.
+In the following examples, **df.index // 5** returns a binary array which is used to determine what get's selected for the groupby operation.
 
-.. note:: The above example shows how we can downsample. Downsampling refers to the throwing away of samples. Here by using **df.index / 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation. Hence we can reduce the number of samples by creating bins by clubbing together samples.
+.. note:: The below example shows how we can downsample which is  the throwing away of samples. Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation thereby reducing the number of samples.
 
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10,2))
    df
-   df.index / 5
-   df.groupby(df.index / 5).std()
+   df.index // 5
+   df.groupby(df.index // 5).std()
 
 Returning a Series to propagate names
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
