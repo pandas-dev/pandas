@@ -1014,7 +1014,8 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
    df
    df.groupby(df.sum(), axis=1).sum()
 
-Groupby by Indexer to 'resample' data.
+Groupby by Indexer to 'resample' data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Resampling produces new hypothetical samples(resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
 
@@ -1022,7 +1023,7 @@ In order to resample to work on indices that are non-datetimelike , the followin
 
 In the following examples, **df.index // 5** returns a binary array which is used to determine what get's selected for the groupby operation.
 
-.. note:: The below example shows how we can downsample which is  the throwing away of samples. Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation thereby reducing the number of samples.
+.. note:: The below example shows how we can downsample by consolidation of samples into fewer samples. Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation thereby reducing the number of samples.
 
 .. ipython:: python
 
