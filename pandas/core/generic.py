@@ -37,10 +37,12 @@ from pandas.core import config
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = dict()
-_shared_doc_kwargs = dict(axes='keywords for axes', klass='NDFrame',
-                          axes_single_arg='int or labels for object',
-                          args_transpose='axes to permute (int or label for'
-                          ' object)')
+_shared_doc_kwargs = dict(
+    axes='keywords for axes', klass='NDFrame',
+    axes_single_arg='int or labels for object',
+    args_transpose='axes to permute (int or label for object)',
+    optional_by="""by : str or list of str
+        Name or list of names which refer to the axis items.""")
 
 
 def is_dictlike(x):
@@ -1956,8 +1958,7 @@ class NDFrame(PandasObject):
         .. versionadded:: 0.17.0
 
         Parameters
-        ----------
-        by : string name or list of names which refer to the axis items
+        ----------%(optional_by)s
         axis : %(axes)s to direct sorting
         ascending : bool or list of bool
              Sort ascending vs. descending. Specify list for multiple sort

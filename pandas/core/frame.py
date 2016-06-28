@@ -68,8 +68,11 @@ from pandas.core.config import get_option
 # ---------------------------------------------------------------------
 # Docstring templates
 
-_shared_doc_kwargs = dict(axes='index, columns', klass='DataFrame',
-                          axes_single_arg="{0, 1, 'index', 'columns'}")
+_shared_doc_kwargs = dict(
+    axes='index, columns', klass='DataFrame',
+    axes_single_arg="{0, 1, 'index', 'columns'}",
+    optional_by="""by : str or list of str
+        Name or list of names which refer to the axis items.""")
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
