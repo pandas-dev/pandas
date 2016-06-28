@@ -29,7 +29,7 @@ if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ] && [ -d "$PYX_CACHE_DIR" ]; then
     for i in ${pyx_file_list}
     do
             diff=`diff -u $i $PYX_CACHE_DIR${i}`
-            if [[ $? -ne 0 ]]
+            if [[ $? -eq 2 ]]
             then
                     echo "${i##*/} can't be diffed; probably not in cache"
                     clear_cache=1

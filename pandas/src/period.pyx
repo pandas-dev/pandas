@@ -1,4 +1,5 @@
 from datetime import datetime, date, timedelta
+
 import operator
 
 from cpython cimport (
@@ -21,6 +22,7 @@ from pandas.tseries import offsets
 from pandas.tseries.tools import parse_time_string
 
 cimport cython
+
 from datetime cimport *
 cimport util
 cimport lib
