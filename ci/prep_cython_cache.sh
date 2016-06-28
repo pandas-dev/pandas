@@ -4,9 +4,22 @@ ls "$HOME/.cache/"
 
 PYX_CACHE_DIR="$HOME/.cache/pyxfiles"
 pyx_file_list=`find ${TRAVIS_BUILD_DIR} -name "*.pyx"`
+pyx_cache_file_list=`find ${PYX_CACHE_DIR} -name "*.pyx"`
+
 CACHE_File="$HOME/.cache/cython_files.tar"
 
+# Clear the cython cache 0 = NO, 1 = YES
 clear_cache=0
+
+pyx_files=`echo "$pyx_file_list" | wc -l`
+pyx_cache_files=`echo "$pyx_cache_file_list" | wc -l`
+
+if [[ pyx_files -ne pyx_cache_files ]]
+then
+        echo "Different number of pyx files"
+        clear_cache=1
+fi
+
 home_dir=$(pwd)
 
 if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ] && [ -d "$PYX_CACHE_DIR" ]; then
@@ -44,17 +57,17 @@ if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ] && [ -d "$PYX_CACHE_DIR" ]; then
 
 fi
 
-if [ $clear_cache -eq 1 ] && [ "$USE_CACHE" ]
+if [ $clear_cache -eq 0 ] && [ "$USE_CACHE" ]
 then
-    # nope, reuse cython files
+    # No and use_cache is set
     echo "Will reuse cached cython file"
     cd /
     tar xvmf $CACHE_File
     cd $home_dir
 else
     echo "Rebuilding cythonized files"
-    echo "Use cache = $USE_CACHE"
-    echo "Clear cache = $clear_cache"
+    echo "Use cache (Blank if not set) = $USE_CACHE"
+    echo "Clear cache (1=YES) = $clear_cache"
 fi
 
 
