@@ -1194,7 +1194,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
             try:
                 return to_timedelta(v)._values.reshape(shape)
             except:
-                return v
+                return v.reshape(shape)
 
         # do a quick inference for perf
         sample = v[:min(3, len(v))]
