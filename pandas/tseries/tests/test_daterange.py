@@ -485,7 +485,7 @@ class TestDateRange(tm.TestCase):
         begin = datetime(2011, 1, 1)
         end = datetime(2014, 1, 1)
 
-        for freq in ["3D", "2M", "7W", "3H", "A"]:
+        for freq in ["1D", "3D", "2M", "7W", "3H", "A"]:
             closed = date_range(begin, end, closed=None, freq=freq)
             left = date_range(begin, end, closed="left", freq=freq)
             right = date_range(begin, end, closed="right", freq=freq)
@@ -501,11 +501,11 @@ class TestDateRange(tm.TestCase):
             self.assert_index_equal(expected_right, right)
 
     def test_range_closed_with_tz_aware_start_end(self):
-        # GH12409
+        # GH12409, GH12684
         begin = Timestamp('2011/1/1', tz='US/Eastern')
         end = Timestamp('2014/1/1', tz='US/Eastern')
 
-        for freq in ["3D", "2M", "7W", "3H", "A"]:
+        for freq in ["1D", "3D", "2M", "7W", "3H", "A"]:
             closed = date_range(begin, end, closed=None, freq=freq)
             left = date_range(begin, end, closed="left", freq=freq)
             right = date_range(begin, end, closed="right", freq=freq)
@@ -520,15 +520,28 @@ class TestDateRange(tm.TestCase):
             self.assert_index_equal(expected_left, left)
             self.assert_index_equal(expected_right, right)
 
-        # test with default frequency, UTC
-        begin = Timestamp('2011/1/1', tz='UTC')
-        end = Timestamp('2014/1/1', tz='UTC')
+        begin = Timestamp('2011/1/1')
+        end = Timestamp('2014/1/1')
+        begintz = Timestamp('2011/1/1', tz='US/Eastern')
+        endtz = Timestamp('2014/1/1', tz='US/Eastern')
 
-        intervals = ['left', 'right', None]
-        for i in intervals:
-            result = date_range(start=begin, end=end, closed=i)
-            self.assertEqual(result[0], begin)
-            self.assertEqual(result[-1], end)
+        for freq in ["1D", "3D", "2M", "7W", "3H", "A"]:
+            closed = date_range(begin, end, closed=None, freq=freq,
+                                tz='US/Eastern')
+            left = date_range(begin, end, closed="left", freq=freq,
+                              tz='US/Eastern')
+            right = date_range(begin, end, closed="right", freq=freq,
+                               tz='US/Eastern')
+            expected_left = left
+            expected_right = right
+
+            if endtz == closed[-1]:
+                expected_left = closed[:-1]
+            if begintz == closed[0]:
+                expected_right = closed[1:]
+
+            self.assert_index_equal(expected_left, left)
+            self.assert_index_equal(expected_right, right)
 
     def test_range_closed_boundary(self):
         # GH 11804

@@ -541,6 +541,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                                  ambiguous=ambiguous)
                 index = index.view(_NS_DTYPE)
 
+                # index is localized datetime64 array -> have to convert
+                # start/end as well to compare
+                if start is not None:
+                    start = start.tz_localize(tz).asm8
+                if end is not None:
+                    end = end.tz_localize(tz).asm8
+
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
         if not right_closed and len(index) and index[-1] == end:
