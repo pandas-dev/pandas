@@ -77,8 +77,16 @@ more advanced types of plots then those offered by pandas.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <https://github.com/trifacta/vega>`__
-(that in turn, leverages `d3 <http://d3js.org/>`__) to create plots . It has great support
-for pandas data objects.
+(that in turn, leverages `d3 <http://d3js.org/>`__) to create
+plots. Although functional, as of Summer 2016 the Vincent project has not been updated 
+in over two years and is `unlikely to receive further updates <https://github.com/wrobstory/vincent#2015-08-12-update>`__.
+
+`IPython Vega <https://github.com/vega/ipyvega>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Like Vincent, the `IPython Vega <https://github.com/vega/ipyvega>`__ project leverages `Vega
+<https://github.com/trifacta/vega>`__ to create plots, but primarily
+targets the IPython Notebook environment.
 
 `Plotly <https://plot.ly/python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
