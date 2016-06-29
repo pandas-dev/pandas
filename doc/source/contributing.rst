@@ -351,31 +351,33 @@ How to build the *pandas* documentation
 Requirements
 ~~~~~~~~~~~~
 
-To build the *pandas* docs there are some extra requirements: you will need to
+First, you need to have a development environment to be able to build pandas
+(see the docs on :ref:`creating a development environment above <contributing.dev_env>`).
+Further, to build the docs, there are some extra requirements: you will need to
 have ``sphinx`` and ``ipython`` installed. `numpydoc
 <https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
 follow the Numpy Docstring Standard (see above), but you don't need to install
 this because a local copy of numpydoc is included in the *pandas* source
 code.
+`nbconvert <https://nbconvert.readthedocs.io/en/latest/>`_ and
+`nbformat <http://nbformat.readthedocs.io/en/latest/>`_ are required to build
+the Jupyter notebooks included in the documentation.
 
-It is easiest to :ref:`create a development environment <contributing.dev_env>`, then install::
+If you have a conda environment named ``pandas_dev``, you can install the extra
+requirements with::
 
       conda install -n pandas_dev sphinx ipython nbconvert nbformat
 
-Furthermore, it is recommended to have all `optional dependencies
-<http://pandas.pydata.org/pandas-docs/dev/install.html#optional-dependencies>`_
+Furthermore, it is recommended to have all :ref:`optional dependencies <install.optional_dependencies>`.
 installed. This is not strictly necessary, but be aware that you will see some error
 messages when building the docs. This happens because all the code in the documentation
 is executed during the doc build, and so code examples using optional dependencies
 will generate errors. Run ``pd.show_versions()`` to get an overview of the installed
 version of all dependencies.
-`nbconvert <https://nbconvert.readthedocs.io/en/latest/>`_ and `nbformat <http://nbformat.readthedocs.io/en/latest/>`_ are required to build the Jupyter notebooks
-included in the documentation.
 
 .. warning::
 
-   You need to have ``sphinx`` version 1.2.2 or newer, but older than version 1.3.
-   Versions before 1.1.3 should also work.
+   You need to have ``sphinx`` version >= 1.3.2.
 
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
