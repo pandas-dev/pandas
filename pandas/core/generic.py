@@ -555,8 +555,8 @@ class NDFrame(PandasObject):
     _shared_docs['rename'] = """
         Alter axes input function or functions. Function / dict values must be
         unique (1-to-1). Labels not contained in a dict / Series will be left
-        as-is. Alternatively, change ``Series.name`` with a scalar
-        value (Series only).
+        as-is. Extra labels listed don't throw an error. Alternatively, change
+        ``Series.name`` with a scalar value (Series only).
 
         Parameters
         ----------
@@ -608,6 +608,11 @@ class NDFrame(PandasObject):
         TypeError: 'int' object is not callable
         >>> df.rename(index=str, columns={"A": "a", "B": "c"})
            a  c
+        0  1  4
+        1  2  5
+        2  3  6
+        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
+           a  B
         0  1  4
         1  2  5
         2  3  6
