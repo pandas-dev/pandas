@@ -89,6 +89,7 @@ cdef class IndexEngine:
 
         self.initialized = 0
         self.monotonic_check = 0
+        self.unique_check = 0
 
         self.unique = 0
         self.unique_check = 0
@@ -270,7 +271,7 @@ cdef class IndexEngine:
 
         if len(self.mapping) == len(values):
             self.unique = 1
-            self.unique_check = 1
+        self.unique_check = 1
 
         self.initialized = 1
 
