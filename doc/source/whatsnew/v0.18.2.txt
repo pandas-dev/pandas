@@ -527,3 +527,4 @@ Bug Fixes
 
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
+- Bug in ``pd.read_csv`` in which the ``nrows`` argument was not properly validated for both engines (:issue:`10476`)
