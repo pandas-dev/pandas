@@ -3596,6 +3596,14 @@ class TestHDFStore(Base, tm.TestCase):
 
             self.assertIsNone(read_hdf(path, 'data').index.name)
 
+        # with a Timestamp data column
+        df = DataFrame(dict(ts=bdate_range('2012-01-01', periods=300), A=np.random.randn(300)))
+        self.store.remove('df')
+        self.store.append('df', df, data_columns=['ts', 'A'])
+        result = self.store.select('df', [Term('ts', '>=', Timestamp('2012-02-01').value)])
+        expected = df[df.ts >= Timestamp('2012-02-01')]
+        tm.assert_frame_equal(expected, result)
+
     def test_panel_select(self):
 
         wp = tm.makePanel()
