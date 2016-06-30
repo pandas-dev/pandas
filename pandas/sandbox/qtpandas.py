@@ -14,14 +14,19 @@ warnings.warn("The pandas.sandbox.qtpandas module is deprecated and will be "
               "here: https://github.com/datalyze-solutions/pandas-qt")
 
 try:
-    from PyQt4.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex
-    from PyQt4.QtGui import (
+    from PyQt5.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex
+    from PyQt5.QtWidgets import (
         QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
 except ImportError:
-    from PySide.QtCore import QAbstractTableModel, Qt, QModelIndex
-    from PySide.QtGui import (
-        QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
-    QVariant = lambda value=None: value
+    try:
+        from PyQt4.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex
+        from PyQt4.QtGui import (
+            QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
+    except ImportError:
+        from PySide.QtCore import QAbstractTableModel, Qt, QModelIndex
+        from PySide.QtGui import (
+            QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
+        QVariant = lambda value=None: value
 
 from pandas import DataFrame, Index
 
@@ -129,7 +134,7 @@ class Form(QDialog):
 
         df = testDf()  # make up some data
         widget = DataFrameWidget(df)
-        widget.resizeColumnsToContents()
+        widget.dataTable.resizeColumnsToContents()
 
         layout = QVBoxLayout()
         layout.addWidget(widget)
