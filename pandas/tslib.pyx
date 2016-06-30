@@ -740,6 +740,9 @@ class NaTType(_NaT):
 
 
 
+    def date(self):
+        raise ValueError("pd.NaT.date() can't return a valid date")
+
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
           'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek', 'weekday_name']
