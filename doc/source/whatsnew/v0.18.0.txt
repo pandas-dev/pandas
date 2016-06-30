@@ -522,6 +522,7 @@ Other enhancements
 - ``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue:`12221`).
 - Add missing methods/fields to ``.dt`` for ``Period`` (:issue:`8848`)
 - The entire codebase has been ``PEP``-ified (:issue:`12096`)
+- Index (or index levels, with a MultiIndex) can now be referenced like column names (:issue:`8162`, :issue:`10816`).
 
 .. _whatsnew_0180.api_breaking:
 

@@ -1348,14 +1348,24 @@ class NDFrame(PandasObject):
         cache = self._item_cache
         res = cache.get(item)
         if res is None:
-            values = self._data.get(item)
-            res = self._box_item_values(item, values)
+            try:
+                values = self._data.get(item)
+                res = self._box_item_values(item, values)
+            except KeyError:
+                if hasattr(self, 'index') and item in self.index.names:
+                    res = self._get_item_index_name(item)
+                else:
+                    raise
             cache[item] = res
             res._set_as_cached(item, self)
 
             # for a chain
             res.is_copy = self.is_copy
         return res
+
+    def _get_item_index_name(self, item):
+        return pd.Series(self.index.get_level_values(item),
+                         index=self.index, name=item)
 
     def _set_as_cached(self, item, cacher):
         """Set the _cacher attribute on the calling object with a weakref to
@@ -2709,10 +2719,9 @@ class NDFrame(PandasObject):
         if (name in self._internal_names_set or name in self._metadata or
                 name in self._accessors):
             return object.__getattribute__(self, name)
-        else:
-            if name in self._info_axis:
+        elif name in self._info_axis or name in self.index.names:
                 return self[name]
-            return object.__getattribute__(self, name)
+        return object.__getattribute__(self, name)
 
     def __setattr__(self, name, value):
         """After regular attribute access, try setting the name
