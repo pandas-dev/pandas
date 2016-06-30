@@ -409,3 +409,11 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         result = s[s.between(s[3], s[17], inclusive=False)]
         expected = s[5:16].dropna()
         assert_series_equal(result, expected)
+
+        result = s[s.between(s[3], s[17], inclusive=(True, False))]
+        expected = s[3:16].dropna()
+        assert_series_equal(result, expected)
+
+        result = s[s.between(s[3], s[17], inclusive=(False, True))]
+        expected = s[5:18].dropna()
+        assert_series_equal(result, expected)
