@@ -1159,14 +1159,14 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices):
-            sarr = SparseArray(np.ones(len(ixs)),
+            sarr = SparseArray(np.ones(len(ixs), dtype=bool),
                                sparse_index=IntIndex(N, ixs), fill_value=0)
-            sparse_series[col] = SparseSeries(data=sarr, index=index)
+            sparse_series[col] = SparseSeries(data=sarr, index=index, dtype=bool)
 
-        return SparseDataFrame(sparse_series, index=index, columns=dummy_cols)
+        return SparseDataFrame(sparse_series, index=index, columns=dummy_cols, dtype=bool)
 
     else:
-        dummy_mat = np.eye(number_of_cols).take(codes, axis=0)
+        dummy_mat = np.eye(number_of_cols, dtype=bool).take(codes, axis=0)
 
         if not dummy_na:
             # reset NaN GH4446
@@ -1176,7 +1176,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             # remove first GH12042
             dummy_mat = dummy_mat[:, 1:]
             dummy_cols = dummy_cols[1:]
-        return DataFrame(dummy_mat, index=index, columns=dummy_cols)
+        return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=bool)
 
 
 def make_axis_dummies(frame, axis='minor', transform=None):
