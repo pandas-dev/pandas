@@ -252,7 +252,7 @@ Optional Dependencies
     - `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
     - `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
-* `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
+* `matplotlib <http://matplotlib.org/>`__: for plotting
 * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__: Needed for Excel I/O
 * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
@@ -264,9 +264,9 @@ Optional Dependencies
   <http://qt-project.org/wiki/Category:LanguageBindings::PySide>`__, `pygtk
   <http://www.pygtk.org/>`__, `xsel
   <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
-  <http://sourceforge.net/projects/xclip/>`__: necessary to use
+  <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.io.clipboard.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* Google's `python-gflags <http://code.google.com/p/python-gflags/>`__ ,
+* Google's `python-gflags <<https://github.com/google/python-gflags/>`__ ,
   `oauth2client <https://github.com/google/oauth2client>`__ ,
   `httplib2 <http://pypi.python.org/pypi/httplib2>`__
   and `google-api-python-client <http://github.com/google/google-api-python-client>`__

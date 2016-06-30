@@ -94,7 +94,7 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
 
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
-# module http://matplotlib.sourceforge.net/users/license.html
+# module http://matplotlib.org/users/license.html
 
 
 class Substitution(object):

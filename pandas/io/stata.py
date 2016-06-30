@@ -7,7 +7,7 @@ project who also developed the StataWriter and was finally added to pandas in
 a once again improved version.
 
 You can find more information on http://presbrey.mit.edu/PyDTA and
-http://statsmodels.sourceforge.net/devel/
+http://www.statsmodels.org/devel/
 """
 import numpy as np
 
