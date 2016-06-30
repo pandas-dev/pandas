@@ -1159,13 +1159,16 @@ mapping (a dict or Series) or an arbitrary function.
    s.rename(str.upper)
 
 If you pass a function, it must return a value when called with any of the
-labels (and must produce a set of unique values). But if you pass a dict or
-Series, it need only contain a subset of the labels as keys:
+labels (and must produce a set of unique values). A dict or
+Series can also be used:
 
 .. ipython:: python
 
    df.rename(columns={'one' : 'foo', 'two' : 'bar'},
              index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
+
+If the mapping doesn't include a column/index label, it isn't renamed. Also
+extra labels in the mapping don't throw an error.
 
 The :meth:`~DataFrame.rename` method also provides an ``inplace`` named
 parameter that is by default ``False`` and copies the underlying data. Pass
