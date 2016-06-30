@@ -2042,9 +2042,7 @@ class MultiIndex(Index):
         other_tuples = other._values
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
         if len(uniq_tuples) == 0:
-            return MultiIndex(levels=[[]] * self.nlevels,
-                              labels=[[]] * self.nlevels,
-                              names=result_names, verify_integrity=False)
+            return self._create_as_empty(names=result_names)
         else:
             return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                           names=result_names)
@@ -2052,6 +2050,10 @@ class MultiIndex(Index):
     def difference(self, other):
         """
         Compute sorted set difference of two MultiIndex objects
+
+        Parameters
+        ----------
+        other : MultiIndex or array / Index of tuples
 
         Returns
         -------
@@ -2064,19 +2066,68 @@ class MultiIndex(Index):
             return self
 
         if self.equals(other):
-            return MultiIndex(levels=[[]] * self.nlevels,
-                              labels=[[]] * self.nlevels,
-                              names=result_names, verify_integrity=False)
+            return self._create_as_empty(names=result_names)
 
         difference = sorted(set(self._values) - set(other._values))
 
         if len(difference) == 0:
-            return MultiIndex(levels=[[]] * self.nlevels,
-                              labels=[[]] * self.nlevels,
-                              names=result_names, verify_integrity=False)
+            return self._create_as_empty(names=result_names)
         else:
             return MultiIndex.from_tuples(difference, sortorder=0,
                                           names=result_names)
+
+    def _create_as_empty(self, nlevels=None, names=None,
+                         verify_integrity=False):
+        """
+        Creates an empty MultiIndex
+
+        Parameters
+        -------
+        nlevels : optional int, default None
+            The number of levels in the empty MultiIndex. If None defaults
+            to the current number of levels
+        names : optional sequence of objects, default None
+            Names for each of the index levels. If None defaults to the
+            current names.
+        verify_integrity : boolean, default False
+            Check that the levels/labels are consistent and valid
+
+        Returns
+        -------
+        empty : MultiIndex
+        """
+
+        if nlevels is None:
+            nlevels = len(self.levels)
+        if names is None:
+            names = self.names
+
+        return MultiIndex(levels=[[]] * nlevels,
+                          labels=[[]] * nlevels,
+                          names=names, verify_integrity=verify_integrity)
+
+    def symmetric_difference(self, other, result_name=None):
+        """
+        Compute sorted set symmetric difference of two MultiIndex objects
+
+        Returns
+        -------
+        diff : MultiIndex
+        """
+        self._assert_can_do_setop(other)
+        other, result_name_update = self._convert_can_do_setop(other)
+
+        if result_name is None:
+            result_name = result_name_update
+
+        if self.equals(other):
+            return self._create_as_empty(names=result_name)
+
+        difference = sorted(set((self.difference(other)).
+                                union(other.difference(self))))
+
+        return MultiIndex.from_tuples(difference, sortorder=0,
+                                      names=result_name)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -2092,9 +2143,7 @@ class MultiIndex(Index):
 
         if not hasattr(other, 'names'):
             if len(other) == 0:
-                other = MultiIndex(levels=[[]] * self.nlevels,
-                                   labels=[[]] * self.nlevels,
-                                   verify_integrity=False)
+                other = self._create_as_empty()
             else:
                 msg = 'other must be a MultiIndex or a list of tuples'
                 try:

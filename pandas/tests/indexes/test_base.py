@@ -752,13 +752,6 @@ class TestIndex(Base, tm.TestCase):
         self.assertTrue(tm.equalContents(result, expected))
         self.assertIsNone(result.name)
 
-        # multiIndex
-        idx1 = MultiIndex.from_tuples(self.tuples)
-        idx2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
-        result = idx1.symmetric_difference(idx2)
-        expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
-        self.assertTrue(tm.equalContents(result, expected))
-
         # nans:
         # GH #6444, sorting of nans. Make sure the number of nans is right
         # and the correct non-nan values are there. punt on sorting.
