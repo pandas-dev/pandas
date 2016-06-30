@@ -527,3 +527,4 @@ Bug Fixes
 
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
+- Bug in ``pd.pivot_table()`` where ``margins_name`` is ignored when ``aggfunc`` is a list (:issue:`13354`)
