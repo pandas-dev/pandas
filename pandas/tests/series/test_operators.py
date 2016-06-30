@@ -1413,3 +1413,18 @@ class TestSeriesOperators(TestData, tm.TestCase):
         df['expected'] = df['date'] - df.index.to_series()
         df['result'] = df['date'] - df.index
         assert_series_equal(df['result'], df['expected'], check_names=False)
+
+    # See gh-12290
+    def test_datetime64_single_non_native(self):
+        f = Series([pd.Timestamp('2016-02-08 13:43:14.605000',
+                                 tz='America/Sao_Paulo')])
+        s = Series([pd.Timestamp('2016-02-10 13:43:14.605000',
+                                 tz='America/Sao_Paulo')])
+
+        out = f - s
+        expected = Series(pd.Timedelta('-2days'))
+        assert_series_equal(out, expected)
+
+        out = s - f
+        expected = Series(pd.Timedelta('2days'))
+        assert_series_equal(out, expected)
