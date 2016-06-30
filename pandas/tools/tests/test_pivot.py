@@ -366,6 +366,25 @@ class TestPivotTable(tm.TestCase):
 
         tm.assert_frame_equal(result['SALARY'], expected['SALARY'])
 
+        # test margins with dictionary aggfunc
+
+        self.data=pd.DataFrame([{'JOB':'Worker','NAME':'Bob' ,'YEAR':2013,'MONTH':12,'DAYS': 3,'SALARY': 17}, 
+                                {'JOB':'Employ','NAME':'Mary','YEAR':2013,'MONTH':12,'DAYS': 5,'SALARY': 23}, 
+                                {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 1,'DAYS':10,'SALARY':100}, 
+                                {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 1,'DAYS':11,'SALARY':110}, 
+                                {'JOB':'Employ','NAME':'Mary','YEAR':2014,'MONTH': 1,'DAYS':15,'SALARY':200}, 
+                                {'JOB':'Worker','NAME':'Bob' ,'YEAR':2014,'MONTH': 2,'DAYS': 8,'SALARY': 80}, 
+                                {'JOB':'Employ','NAME':'Mary','YEAR':2014,'MONTH': 2,'DAYS': 5,'SALARY':190} ])
+
+        self.data=self.data.set_index(['JOB','NAME','YEAR','MONTH'],drop=False,append=False)
+
+        table=self.data.pivot_table(index=['JOB','NAME'],
+                                columns=['YEAR','MONTH'],
+                                values=['DAYS','SALARY'],
+                                aggfunc={'DAYS':'mean','SALARY':'sum'},
+                                margins=True)
+
+
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
 
