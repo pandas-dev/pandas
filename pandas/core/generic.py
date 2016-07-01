@@ -4424,54 +4424,14 @@ class NDFrame(PandasObject):
             right = right.fillna(fill_value, method=method, limit=limit)
         return left.__finalize__(self), right.__finalize__(other)
 
-    _shared_docs['where'] = ("""
-        Return an object of same shape as self and whose corresponding
-        entries are from self where cond is %(cond)s and otherwise are from
-        other.
-
-        Parameters
-        ----------
-        cond : boolean %(klass)s, array or callable
-            If cond is callable, it is computed on the %(klass)s and
-            should return boolean %(klass)s or array.
-            The callable must not change input %(klass)s
-            (though pandas doesn't check it).
-
-            .. versionadded:: 0.18.1
-
-            A callable can be used as cond.
-
-        other : scalar, %(klass)s, or callable
-            If other is callable, it is computed on the %(klass)s and
-            should return scalar or %(klass)s.
-            The callable must not change input %(klass)s
-            (though pandas doesn't check it).
-
-            .. versionadded:: 0.18.1
-
-            A callable can be used as other.
-
-        inplace : boolean, default False
-            Whether to perform the operation in place on the data
-        axis : alignment axis if needed, default None
-        level : alignment level if needed, default None
-        try_cast : boolean, default False
-            try to cast the result back to the input type (if possible),
-        raise_on_error : boolean, default True
-            Whether to raise on invalid data types (e.g. trying to where on
-            strings)
-
-        Returns
-        -------
-        wh : same type as caller
-        """)
-
-    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True"))
-    def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-              try_cast=False, raise_on_error=True):
+    def _where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
+               try_cast=False, raise_on_error=True):
+        """
+        Equivalent to public method `where`, except that `other` is not
+        applied as a function even if callable. Used in __setitem__.
+        """
 
         cond = com._apply_if_callable(cond, self)
-        other = com._apply_if_callable(other, self)
 
         if isinstance(cond, NDFrame):
             cond, _ = cond.align(self, join='right', broadcast_axis=1)
@@ -4626,6 +4586,56 @@ class NDFrame(PandasObject):
                                         transpose=self._AXIS_REVERSED)
 
             return self._constructor(new_data).__finalize__(self)
+
+    _shared_docs['where'] = ("""
+        Return an object of same shape as self and whose corresponding
+        entries are from self where cond is %(cond)s and otherwise are from
+        other.
+
+        Parameters
+        ----------
+        cond : boolean %(klass)s, array or callable
+            If cond is callable, it is computed on the %(klass)s and
+            should return boolean %(klass)s or array.
+            The callable must not change input %(klass)s
+            (though pandas doesn't check it).
+
+            .. versionadded:: 0.18.1
+
+            A callable can be used as cond.
+
+        other : scalar, %(klass)s, or callable
+            If other is callable, it is computed on the %(klass)s and
+            should return scalar or %(klass)s.
+            The callable must not change input %(klass)s
+            (though pandas doesn't check it).
+
+            .. versionadded:: 0.18.1
+
+            A callable can be used as other.
+
+        inplace : boolean, default False
+            Whether to perform the operation in place on the data
+        axis : alignment axis if needed, default None
+        level : alignment level if needed, default None
+        try_cast : boolean, default False
+            try to cast the result back to the input type (if possible),
+        raise_on_error : boolean, default True
+            Whether to raise on invalid data types (e.g. trying to where on
+            strings)
+
+        Returns
+        -------
+        wh : same type as caller
+        """)
+
+    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True"))
+    def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
+              try_cast=False, raise_on_error=True):
+
+        other = com._apply_if_callable(other, self)
+        return self._where(cond, other, inplace, axis, level, try_cast,
+                           raise_on_error)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False"))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,

@@ -441,6 +441,16 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s[lambda x: 'A'] = -1
         tm.assert_series_equal(s, pd.Series([-1, 2, 3, 4], index=list('ABCD')))
 
+    def test_setitem_other_callable(self):
+        # GH 13299
+        inc = lambda x: x + 1
+
+        s = pd.Series([1, 2, -1, 4])
+        s[s < 0] = inc
+
+        expected = pd.Series([1, 2, inc, 4])
+        tm.assert_series_equal(s, expected)
+
     def test_slice(self):
         numSlice = self.series[10:20]
         numSliceEnd = self.series[-10:]

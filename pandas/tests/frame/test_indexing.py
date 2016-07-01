@@ -207,6 +207,16 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         exp = pd.DataFrame({'A': [11, 12, 13, 14], 'B': [5, 6, 7, 8]})
         tm.assert_frame_equal(df, exp)
 
+    def test_setitem_other_callable(self):
+        # GH 13299
+        inc = lambda x: x + 1
+
+        df = pd.DataFrame([[-1, 1], [1, -1]])
+        df[df > 0] = inc
+
+        expected = pd.DataFrame([[-1, inc], [inc, -1]])
+        tm.assert_frame_equal(df, expected)
+
     def test_getitem_boolean(self):
         # boolean indexing
         d = self.tsframe.index[10]

@@ -738,7 +738,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             if is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
                 try:
-                    self.where(~key, value, inplace=True)
+                    self._where(~key, value, inplace=True)
                     return
                 except InvalidIndexError:
                     pass
