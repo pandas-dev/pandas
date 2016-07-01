@@ -4420,7 +4420,11 @@ class NDFrame(PandasObject):
         return left.__finalize__(self), right.__finalize__(other)
 
     def _where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-              try_cast=False, raise_on_error=True):
+               try_cast=False, raise_on_error=True):
+        """
+        Equivalent to public method `where`, except that `other` is not
+        applied as a function even if callable. Used in __setitem__.
+        """
 
         cond = com._apply_if_callable(cond, self)
 
@@ -4625,7 +4629,8 @@ class NDFrame(PandasObject):
               try_cast=False, raise_on_error=True):
 
         other = com._apply_if_callable(other, self)
-        return self._where(cond, other, inplace, axis, level, try_cast, raise_on_error)
+        return self._where(cond, other, inplace, axis, level, try_cast,
+                           raise_on_error)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False"))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
