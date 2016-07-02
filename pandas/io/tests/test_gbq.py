@@ -4,12 +4,9 @@ import nose
 import pytz
 import platform
 from time import sleep
-
 import numpy as np
-
 from distutils.version import StrictVersion
 from pandas import compat
-
 from pandas import NaT
 from pandas.compat import u, range
 from pandas.core.frame import DataFrame
@@ -75,10 +72,8 @@ def _test_imports():
         try:
             from apiclient.discovery import build  # noqa
             from apiclient.errors import HttpError  # noqa
-
             from oauth2client.client import OAuth2WebServerFlow  # noqa
             from oauth2client.client import AccessTokenRefreshError  # noqa
-
             from oauth2client.file import Storage  # noqa
             from oauth2client.tools import run_flow  # noqa
             _GOOGLE_API_CLIENT_INSTALLED = True
@@ -185,7 +180,6 @@ def test_generate_bq_schema_deprecated():
 
 
 class TestGBQConnectorIntegration(tm.TestCase):
-
     def setUp(self):
         test_requirements()
 
@@ -279,6 +273,15 @@ class TestGBQConnectorServiceAccountKeyContentsIntegration(tm.TestCase):
 class GBQUnitTests(tm.TestCase):
     def setUp(self):
         test_requirements()
+        self.sut_public = gbq.GbqConnector('bigquery-public-data')
+        self.names_df = DataFrame(
+            {'state': '', 'gender': '', 'year': [1],
+             'name': '', 'number': [1]},
+            columns=['state', 'gender', 'year', 'name', 'number'])
+        self.shakes_df = DataFrame(
+            {'word': 'foo', 'word_count': [1],
+             'corpus': 'bar', 'corpus_date': [1]},
+            columns=['word', 'word_count', 'corpus', 'corpus_date'])
 
     def test_should_return_bigquery_integers_as_python_floats(self):
         result = gbq._parse_entry(1, 'INTEGER')
@@ -349,9 +352,45 @@ class GBQUnitTests(tm.TestCase):
                 'SELECT 1', project_id='x',
                 private_key=re.sub('[a-z]', '9', PRIVATE_KEY_JSON_CONTENTS))
 
+    def test_df_with_matching_schema_should_verify_schema(self):
+        schema = gbq._generate_bq_schema(self.names_df)
+        self.assertTrue(self.sut_public.verify_schema(
+            'usa_names', 'usa_1910_2013', schema))
+
+    def test_bq_table_with_required_fields_should_fail_verify_schema(self):
+        schema = gbq._generate_bq_schema(self.shakes_df)
+        self.assertFalse(
+            self.sut_public.verify_schema('samples', 'shakespeare', schema))
+
+    def test_append_to_table_w_required_cols_should_raise_InvalidSchema(self):
+        with tm.assertRaises(gbq.InvalidSchema):
+            gbq.to_gbq(self.shakes_df, 'samples.shakespeare',
+                       'bigquery-public-data', if_exists='append')
+
+    def test_verify_schema_should_ignore_column_description(self):
+        bigquery_service = self.sut_public.get_service()
+
+        remote_schema = bigquery_service.tables().get(
+            projectId='bigquery-public-data',
+            datasetId='usa_names',
+            tableId='usa_1910_2013'
+        ).execute()['schema']
+
+        gen_schema = gbq._generate_bq_schema(self.names_df)
+
+        # prove that the schemas are identical except for description
+        f = lambda x, y: set(x.keys()) - set(y.keys())
+        key_set_list = map(f, remote_schema['fields'], gen_schema['fields'])
+        list_of_keys_in_remote_schema_only = list(
+            reduce(lambda x, y: set.union(x, y), key_set_list))
+        self.assertEqual(list_of_keys_in_remote_schema_only, ['description'])
+
+        self.assertTrue(self.sut_public.verify_schema('usa_names',
+                                                      'usa_1910_2013',
+                                                      gen_schema))
+
 
 class TestReadGBQIntegration(tm.TestCase):
-
     @classmethod
     def setUpClass(cls):
         # - GLOBAL CLASS FIXTURES -
@@ -493,7 +532,7 @@ class TestReadGBQIntegration(tm.TestCase):
         result_frame = gbq.read_gbq(
             query, project_id=PROJECT_ID, col_order=col_order)
         correct_frame = DataFrame({'STRING_1': ['a'], 'STRING_2': [
-                                  'b'], 'STRING_3': ['c']})[col_order]
+            'b'], 'STRING_3': ['c']})[col_order]
         tm.assert_frame_equal(result_frame, correct_frame)
 
     def test_column_order_plus_index(self):
@@ -677,10 +716,11 @@ class TestToGBQIntegration(tm.TestCase):
         df = tm.makeMixedDataFrame()
         schema = gbq._generate_bq_schema(df)
 
-        test_schema = {'fields': [{'name': 'A', 'type': 'FLOAT'},
-                                  {'name': 'B', 'type': 'FLOAT'},
-                                  {'name': 'C', 'type': 'STRING'},
-                                  {'name': 'D', 'type': 'TIMESTAMP'}]}
+        test_schema = {'fields': [
+            {'name': 'A', 'type': 'FLOAT', 'mode': 'NULLABLE'},
+            {'name': 'B', 'type': 'FLOAT', 'mode': 'NULLABLE'},
+            {'name': 'C', 'type': 'STRING', 'mode': 'NULLABLE'},
+            {'name': 'D', 'type': 'TIMESTAMP', 'mode': 'NULLABLE'}]}
 
         self.assertEqual(schema, test_schema)
 
@@ -720,6 +760,23 @@ class TestToGBQIntegration(tm.TestCase):
             destination_table in self.dataset.tables(DATASET_ID + "1"),
             'Expected table list to contain table {0}'
             .format(destination_table))
+
+    def test_table_with_required_columns_shouldnt_append(self):
+        destination_table = TABLE_ID + "10"
+        test_size = 10
+        df = make_mixed_dataframe_v2(test_size)
+        schema = gbq._generate_bq_schema(df)
+        schema['fields'][0]['mode'] = 'REQUIRED'
+
+        # initialize table with same schema as the
+        # dataframe but with one REQUIRED column
+        self.table.create(destination_table, schema)
+
+        # Try appending to a table with similar schema
+        # but with REQUIRED columns, confirm failure
+        with tm.assertRaises(gbq.InvalidSchema):
+            gbq.to_gbq(df, DATASET_ID + "1." + destination_table,
+                       PROJECT_ID, chunksize=1000, if_exists='append')
 
     def test_list_dataset(self):
         dataset_id = DATASET_ID + "1"
@@ -824,7 +881,6 @@ class TestToGBQIntegrationServiceAccountKeyPath(tm.TestCase):
             "SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table),
             project_id=PROJECT_ID,
             private_key=PRIVATE_KEY_JSON_PATH)
-
         self.assertEqual(result['NUM_ROWS'][0], test_size)
 
 
@@ -884,6 +940,7 @@ class TestToGBQIntegrationServiceAccountKeyContents(tm.TestCase):
             project_id=PROJECT_ID,
             private_key=PRIVATE_KEY_JSON_CONTENTS)
         self.assertEqual(result['NUM_ROWS'][0], test_size)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

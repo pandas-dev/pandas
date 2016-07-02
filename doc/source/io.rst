@@ -4408,10 +4408,17 @@ a ``TableCreationError`` if the destination table already exists.
 
 .. note::
 
-   If the ``if_exists`` argument is set to ``'append'``, the destination dataframe will
-   be written to the table using the defined table schema and column types. The
-   dataframe must match the destination table in column order, structure, and
-   data types.
+   If the ``if_exists`` argument is set to ``'append'``, the dataframe will be written
+   to the destination table using the defined table schema and column types. The
+   dataframe must match the destination table in column order and the following attributes:
+
+   * ``name``
+   * ``type``
+   * ``mode``
+
+   The destination table's columns must all have ``NULLABLE`` modes.
+
+
    If the ``if_exists`` argument is set to ``'replace'``, and the existing table has a
    different schema, a delay of 2 minutes will be forced to ensure that the new schema
    has propagated in the Google environment. See
@@ -4476,12 +4483,12 @@ produce the dictionary representation schema of the specified pandas DataFrame.
 
    In [10]: gbq.generate_bq_schema(df, default_type='STRING')
 
-   Out[10]: {'fields': [{'name': 'my_bool1', 'type': 'BOOLEAN'},
-            {'name': 'my_bool2', 'type': 'BOOLEAN'},
-            {'name': 'my_dates', 'type': 'TIMESTAMP'},
-            {'name': 'my_float64', 'type': 'FLOAT'},
-            {'name': 'my_int64', 'type': 'INTEGER'},
-            {'name': 'my_string', 'type': 'STRING'}]}
+   Out[10]: {'fields': [{'name': 'my_bool1', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
+            {'name': 'my_bool2', 'type': 'BOOLEAN', 'mode': 'NULLABLE',
+            {'name': 'my_dates', 'type': 'TIMESTAMP', 'mode': 'NULLABLE'},
+            {'name': 'my_float64', 'type': 'FLOAT', 'mode': 'NULLABLE'},
+            {'name': 'my_int64', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+            {'name': 'my_string', 'type': 'STRING', 'mode': 'NULLABLE'}]}
 
 .. note::
 

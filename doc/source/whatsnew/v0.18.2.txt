@@ -527,3 +527,5 @@ Bug Fixes
 
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
+
+- Bug in ``DataFrame.to_gbq()`` where dataframes could not be appended to Google BigQuery tables that had been created in any way other than ``DataFrame.to_gbq()``.

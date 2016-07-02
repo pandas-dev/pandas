@@ -477,11 +477,17 @@ class GbqConnector(object):
         from apiclient.errors import HttpError
 
         try:
-            return (self.service.tables().get(
+            remote_schema = self.service.tables().get(
                 projectId=self.project_id,
                 datasetId=dataset_id,
                 tableId=table_id
-            ).execute()['schema']) == schema
+            ).execute()['schema']
+
+            modified_schema_field_list = [
+                {key: field[key] for key in field if key != 'description'}
+                for field in remote_schema['fields']]
+
+            return {'fields': modified_schema_field_list} == schema
 
         except HttpError as ex:
             self.process_http_error(ex)
@@ -717,7 +723,11 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                 raise InvalidSchema("Please verify that the column order, "
                                     "structure and data types in the "
                                     "DataFrame match the schema of the "
-                                    "destination table.")
+                                    "destination table. All columns in the "
+                                    "destination table must be NULLABLE. "
+                                    "To change REQUIRED columns to NULLABLE, "
+                                    "see https://cloud.google.com/bigquery/"
+                                    "docs/tables#updateschema")
     else:
         table.create(table_id, table_schema)
 
@@ -756,7 +766,8 @@ def _generate_bq_schema(df, default_type='STRING'):
     fields = []
     for column_name, dtype in df.dtypes.iteritems():
         fields.append({'name': column_name,
-                       'type': type_mapping.get(dtype.kind, default_type)})
+                       'type': type_mapping.get(dtype.kind, default_type),
+                       'mode': 'NULLABLE'})
 
     return {'fields': fields}
 
