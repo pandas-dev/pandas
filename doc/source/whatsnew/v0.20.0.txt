@@ -1287,6 +1287,38 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` methods.
 
      left.join(right, how='inner')
 
+.. _whatsnew_0200.api_breaking.pivot_table:
+
+Pivot Table always returns a DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The documentation for :meth:`pivot_table` states that a ``DataFrame`` is *always* returned. Here a bug
+is fixed that allowed this to return a ``Series`` under a narrow circumstance. (:issue:`4386`)
+
+.. ipython:: python
+
+   df = DataFrame({'col1': [3, 4, 5],
+                   'col2': ['C', 'D', 'E'],
+                   'col3': [1, 3, 9]})
+   df
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [2]: df.pivot_table('col1', index=['col3', 'col2'], aggfunc=np.sum)
+   Out[2]:
+   col3  col2
+   1     C       3
+   3     D       4
+   9     E       5
+   Name: col1, dtype: int64
+
+New Behavior:
+
+.. ipython:: python
+
+   df.pivot_table('col1', index=['col3', 'col2'], aggfunc=np.sum)
 
 .. _whatsnew_0200.api:
 
