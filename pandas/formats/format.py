@@ -1840,7 +1840,8 @@ class ExcelFormatter(object):
                                                  self.df.index.levels,
                                                  self.df.index.labels):
 
-                    values = levels.take(labels, allow_fill=levels._can_hold_na,
+                    values = levels.take(labels,
+                                         allow_fill=levels._can_hold_na,
                                          fill_value=True)
 
                     for i in spans:
