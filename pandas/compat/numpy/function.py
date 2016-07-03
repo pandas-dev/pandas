@@ -21,7 +21,7 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 from numpy import ndarray
 from pandas.util.validators import (validate_args, validate_kwargs,
                                     validate_args_and_kwargs)
-from pandas.core.common import is_integer, UnsupportedFunctionCall
+from pandas.core.common import is_bool, is_integer, UnsupportedFunctionCall
 from pandas.compat import OrderedDict
 
 
@@ -148,9 +148,25 @@ validate_compress = CompatValidator(COMPRESS_DEFAULTS, fname='compress',
 CUM_FUNC_DEFAULTS = OrderedDict()
 CUM_FUNC_DEFAULTS['dtype'] = None
 CUM_FUNC_DEFAULTS['out'] = None
-validate_cum_func = CompatValidator(CUM_FUNC_DEFAULTS, method='kwargs')
+validate_cum_func = CompatValidator(CUM_FUNC_DEFAULTS, method='both',
+                                    max_fname_arg_count=1)
 validate_cumsum = CompatValidator(CUM_FUNC_DEFAULTS, fname='cumsum',
                                   method='both', max_fname_arg_count=1)
+
+
+def validate_cum_func_with_skipna(skipna, args, kwargs, name):
+    """
+    If this function is called via the 'numpy' library, the third
+    parameter in its signature is 'dtype', which takes either a
+    'numpy' dtype or 'None', so check if the 'skipna' parameter is
+    a boolean or not
+    """
+    if not is_bool(skipna):
+        args = (skipna,) + args
+        skipna = True
+
+    validate_cum_func(args, kwargs, fname=name)
+    return skipna
 
 LOGICAL_FUNC_DEFAULTS = dict(out=None)
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method='kwargs')
