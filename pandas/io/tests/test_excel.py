@@ -1328,6 +1328,20 @@ class ExcelWriterBase(SharedItems):
                             parse_dates=False)
             tm.assert_frame_equal(frame, df)
 
+    # GH13511
+    def test_to_excel_multiindex_nan_label(self):
+        _skip_if_no_xlrd()
+
+        frame = self.frame
+        frame.A = np.arange(len(frame))
+        frame.iloc[0, 0] = None
+        frame.set_index(['A', 'B'], inplace=True)
+
+        with ensure_clean(self.ext) as path:
+            frame.to_excel(path, merge_cells=self.merge_cells)
+            df = read_excel(path, index_col=[0, 1])
+            tm.assert_frame_equal(frame, df)
+
     # Test for Issue 11328. If column indices are integers, make
     # sure they are handled correctly for either setting of
     # merge_cells
