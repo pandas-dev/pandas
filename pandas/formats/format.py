@@ -2715,7 +2715,7 @@ def set_eng_float_format(accuracy=3, use_eng_prefix=False):
 
 
 def _put_lines(buf, lines):
-    if any(isinstance(x, compat.text_type) for x in lines):
+    if any(not isinstance(x, compat.text_type) for x in lines):
         lines = [compat.text_type(x) for x in lines]
     buf.write('\n'.join(lines))
 
