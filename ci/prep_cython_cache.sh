@@ -1,43 +1,73 @@
 #!/bin/bash
 
 ls "$HOME/.cache/"
+
+PYX_CACHE_DIR="$HOME/.cache/pyxfiles"
+pyx_file_list=`find ${TRAVIS_BUILD_DIR} -name "*.pyx"`
+pyx_cache_file_list=`find ${PYX_CACHE_DIR} -name "*.pyx"`
+
 CACHE_File="$HOME/.cache/cython_files.tar"
 
+# Clear the cython cache 0 = NO, 1 = YES
 clear_cache=0
-home_dir=$(pwd)
 
-if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ]; then
+pyx_files=`echo "$pyx_file_list" | wc -l`
+pyx_cache_files=`echo "$pyx_cache_file_list" | wc -l`
 
-    echo "Cache available"
-    clear_cache=1
-    # did the last commit change cython files?
-    # go back 2 commits
-    if [ "$TRAVIS_PULL_REQUEST" == "false" ]
-    then
-        echo "Not a PR: checking for cython files changes from last 2 commits"
-        git diff HEAD~2 --numstat | grep -E "pyx|pxd"
-        retval=$(git diff HEAD~2 --numstat | grep -E "pyx|pxd"| wc -l)
-    else
-        echo "PR: checking for any cython file changes from last 5 commits"
-        git diff PR_HEAD~5 --numstat | grep -E "pyx|pxd"
-        retval=$(git diff PR_HEAD~5 --numstat | grep -E "pyx|pxd"| wc -l)
-        echo "Forcing cython rebuild due to possibility of history rewritting in PR"
-        retval=-1
-    fi
-    echo "number of cython files changed: $retval"
+if [[ pyx_files -ne pyx_cache_files ]]
+then
+        echo "Different number of pyx files"
+        clear_cache=1
 fi
 
-if [ $clear_cache -eq 1 ] && [ $retval -eq 0 ] && [ "$USE_CACHE" ]
+home_dir=$(pwd)
+
+if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ] && [ -d "$PYX_CACHE_DIR" ]; then
+
+    echo "Cache available - checking pyx diff"
+
+    for i in ${pyx_file_list}
+    do
+            diff=`diff -u $i $PYX_CACHE_DIR${i}`
+            if [[ $? -eq 2 ]]
+            then
+                    echo "${i##*/} can't be diffed; probably not in cache"
+                    clear_cache=1
+            fi
+            if [[ ! -z $diff ]]
+            then
+                    echo "${i##*/} has changed:"
+                    echo $diff
+                    clear_cache=1
+            fi
+    done
+
+    if [ "$TRAVIS_PULL_REQUEST" == "false" ]
+    then
+        echo "Not a PR"
+        # Uncomment next 2 lines to turn off cython caching not in a PR
+        # echo "Non PR cython caching is disabled"
+        # clear_cache=1
+    else
+        echo "In a PR"
+        # Uncomment next 2 lines to turn off cython caching in a PR
+        # echo "PR cython caching is disabled"
+        # clear_cache=1
+    fi
+
+fi
+
+if [ $clear_cache -eq 0 ] && [ "$USE_CACHE" ]
 then
-    # nope, reuse cython files
+    # No and use_cache is set
     echo "Will reuse cached cython file"
     cd /
     tar xvmf $CACHE_File
     cd $home_dir
 else
     echo "Rebuilding cythonized files"
-    echo "Use cache = $USE_CACHE"
-    echo "Clear cache = $clear_cache"
+    echo "Use cache (Blank if not set) = $USE_CACHE"
+    echo "Clear cache (1=YES) = $clear_cache"
 fi
 
 
