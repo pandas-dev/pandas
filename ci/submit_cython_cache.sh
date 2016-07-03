@@ -1,17 +1,23 @@
 #!/bin/bash
 
 CACHE_File="$HOME/.cache/cython_files.tar"
+PYX_CACHE_DIR="$HOME/.cache/pyxfiles"
+pyx_file_list=`find ${TRAVIS_BUILD_DIR} -name "*.pyx"`
+
 rm -rf $CACHE_File
+rm -rf $PYX_CACHE_DIR
 
 home_dir=$(pwd)
 
-pyx_files=`find ${TRAVIS_BUILD_DIR} -name "*.pyx"`
+mkdir $PYX_CACHE_DIR
+rsync -Rv $pyx_file_list $PYX_CACHE_DIR
+
 echo "pyx files:"
-echo $pyx_files
+echo $pyx_file_list
 
 tar cf ${CACHE_File} --files-from /dev/null
 
-for i in ${pyx_files}
+for i in ${pyx_file_list}
 do
         f=${i%.pyx}
         ls $f.{c,cpp} | tar rf  ${CACHE_File} -T -
