@@ -6,7 +6,7 @@ import nose
 import re
 import warnings
 
-from pandas import (date_range, MultiIndex, Index, CategoricalIndex,
+from pandas import (DataFrame, date_range, MultiIndex, Index, CategoricalIndex,
                     compat)
 from pandas.core.common import PerformanceWarning
 from pandas.indexes.base import InvalidIndexError
@@ -2200,6 +2200,15 @@ class TestMultiIndex(Base, tm.TestCase):
         # Slicing date on first level should break (of course)
         with assertRaises(KeyError):
             df_swap.loc['2016-01-01']
+
+        # GH12685 (partial string with daily resolution or below)
+        dr = date_range('2013-01-01', periods=100, freq='D')
+        ix = MultiIndex.from_product([dr, ['a', 'b']])
+        df = DataFrame(np.random.randn(200, 1), columns=['A'], index=ix)
+
+        result = df.loc[idx['2013-03':'2013-03', :], :]
+        expected = df.iloc[118:180]
+        tm.assert_frame_equal(result, expected)
 
     def test_rangeindex_fallback_coercion_bug(self):
         # GH 12893
