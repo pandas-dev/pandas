@@ -36,7 +36,7 @@ class TestPDApi(Base, tm.TestCase):
     lib = ['api', 'compat', 'computation', 'core',
            'indexes', 'formats', 'pandas',
            'test', 'tools', 'tseries',
-           'types', 'util', 'options', 'io']
+           'types', 'util', 'options', 'io', 'plotting']
 
     # top-level packages that are c-imports, should rename to _*
     # to avoid naming conflicts
