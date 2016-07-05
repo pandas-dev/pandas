@@ -4277,7 +4277,7 @@ to existing tables.
 
 You will need to install some additional dependencies:
 
-- Google's `python-gflags <http://code.google.com/p/python-gflags/>`__
+- Google's `python-gflags <https://github.com/google/python-gflags/>`__
 - `httplib2 <http://pypi.python.org/pypi/httplib2>`__
 - `google-api-python-client <http://github.com/google/google-api-python-client>`__
 

@@ -24,7 +24,7 @@ substantial projects that you feel should be on this list, please let us know.
 Statistics and Machine Learning
 -------------------------------
 
-`Statsmodels <http://statsmodels.sourceforge.net>`__
+`Statsmodels <http://www.statsmodels.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Statsmodels is the prominent python "statistics and econometrics library" and it has
@@ -123,7 +123,7 @@ compatible with non-HTML IPython output formats.)
 qgrid is "an interactive grid for sorting and filtering
 DataFrames in IPython Notebook" built with SlickGrid.
 
-`Spyder <https://code.google.com/p/spyderlib/>`__
+`Spyder <https://github.com/spyder-ide/spyder/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Spyder is a cross-platform Qt-based open-source Python IDE with

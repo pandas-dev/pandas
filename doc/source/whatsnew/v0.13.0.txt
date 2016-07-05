@@ -825,7 +825,7 @@ Experimental
 
      # Your Google BigQuery Project ID
      # To find this, see your dashboard:
-     # https://code.google.com/apis/console/b/0/?noredirect
+     # https://console.developers.google.com/iam-admin/projects?authuser=0
      projectid = xxxxxxxxx;
 
      df = gbq.read_gbq(query, project_id = projectid)

@@ -630,7 +630,7 @@ Highlights include:
   modules are deprecated. We refer users to external packages like
   `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_,
   `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_ and
-  `rpy2 <http://rpy.sourceforge.net/>`_ for similar or equivalent
+  `rpy2 <http://rpy2.bitbucket.org/>`_ for similar or equivalent
   functionality, see :ref:`here <whatsnew_0160.deprecations>`
 
 See the :ref:`v0.16.0 Whatsnew <whatsnew_0160>` overview or the issue tracker on GitHub for an extensive list

@@ -11,7 +11,7 @@ creates a dummy module that contains the specified docstrings. This
 can be used to get the current docstrings from a Pydocweb instance
 without needing to rebuild the documented module.
 
-.. [1] http://code.google.com/p/pydocweb
+.. [1] https://github.com/pv/pydocweb
 
 """
 from __future__ import division, absolute_import, print_function

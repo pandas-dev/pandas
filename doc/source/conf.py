@@ -288,7 +288,7 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'statsmodels': ('http://statsmodels.sourceforge.net/devel/', None),
+    'statsmodels': ('http://www.statsmodels.org/devel/', None),
     'matplotlib': ('http://matplotlib.org/', None),
     'python': ('http://docs.python.org/3', None),
     'numpy': ('http://docs.scipy.org/doc/numpy', None),

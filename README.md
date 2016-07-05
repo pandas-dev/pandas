@@ -170,8 +170,8 @@ conda install pandas
 - [SciPy](http://www.scipy.org): miscellaneous statistical functions
 - [PyTables](http://www.pytables.org): necessary for HDF5-based storage
 - [SQLAlchemy](http://www.sqlalchemy.org): for SQL database support. Version 0.8.1 or higher recommended.
-- [matplotlib](http://matplotlib.sourceforge.net/): for plotting
-- [statsmodels](http://statsmodels.sourceforge.net/)
+- [matplotlib](http://matplotlib.org/): for plotting
+- [statsmodels](http://www.statsmodels.org/)
    - Needed for parts of `pandas.stats`
 - For Excel I/O:
   - [xlrd/xlwt](http://www.python-excel.org/)
