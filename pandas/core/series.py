@@ -3001,7 +3001,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 # ----------------------------------------------------------------------
 # Add plotting methods to Series
 
-import pandas.tools.plotting as _gfx  # noqa
+import pandas.plotting.plotting as _gfx  # noqa
 
 Series.plot = base.AccessorProperty(_gfx.SeriesPlotMethods,
                                     _gfx.SeriesPlotMethods)

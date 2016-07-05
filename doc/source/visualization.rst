@@ -152,7 +152,7 @@ You can also create these other plots using the methods ``DataFrame.plot.<kind>`
 In addition to these ``kind`` s, there are  the :ref:`DataFrame.hist() <visualization.hist>`,
 and :ref:`DataFrame.boxplot() <visualization.box>` methods, which use a separate interface.
 
-Finally, there are several :ref:`plotting functions <visualization.tools>` in ``pandas.tools.plotting``
+Finally, there are several :ref:`plotting functions <visualization.tools>` in ``pandas.plotting``
 that take a :class:`Series` or :class:`DataFrame` as an argument. These
 include
 
@@ -823,7 +823,7 @@ before plotting.
 Plotting Tools
 --------------
 
-These functions can be imported from ``pandas.tools.plotting``
+These functions can be imported from ``pandas.plotting``
 and take a :class:`Series` or :class:`DataFrame` as an argument.
 
 .. _visualization.scatter_matrix:
@@ -834,7 +834,7 @@ Scatter Matrix Plot
 .. versionadded:: 0.7.3
 
 You can create a scatter plot matrix using the
-``scatter_matrix`` method in ``pandas.tools.plotting``:
+``scatter_matrix`` method in ``pandas.plotting``:
 
 .. ipython:: python
    :suppress:
@@ -843,7 +843,7 @@ You can create a scatter plot matrix using the
 
 .. ipython:: python
 
-   from pandas.tools.plotting import scatter_matrix
+   from pandas.plotting import scatter_matrix
    df = pd.DataFrame(np.random.randn(1000, 4), columns=['a', 'b', 'c', 'd'])
 
    @savefig scatter_matrix_kde.png
@@ -896,7 +896,7 @@ of the same class will usually be closer together and form larger structures.
 
 .. ipython:: python
 
-   from pandas.tools.plotting import andrews_curves
+   from pandas.plotting import andrews_curves
 
    data = pd.read_csv('data/iris.data')
 
@@ -918,7 +918,7 @@ represents one data point. Points that tend to cluster will appear closer togeth
 
 .. ipython:: python
 
-   from pandas.tools.plotting import parallel_coordinates
+   from pandas.plotting import parallel_coordinates
 
    data = pd.read_csv('data/iris.data')
 
@@ -948,7 +948,7 @@ implies that the underlying data are not random.
 
 .. ipython:: python
 
-   from pandas.tools.plotting import lag_plot
+   from pandas.plotting import lag_plot
 
    plt.figure()
 
@@ -983,7 +983,7 @@ confidence band.
 
 .. ipython:: python
 
-   from pandas.tools.plotting import autocorrelation_plot
+   from pandas.plotting import autocorrelation_plot
 
    plt.figure()
 
@@ -1016,7 +1016,7 @@ are what constitutes the bootstrap plot.
 
 .. ipython:: python
 
-   from pandas.tools.plotting import bootstrap_plot
+   from pandas.plotting import bootstrap_plot
 
    data = pd.Series(np.random.rand(1000))
 
@@ -1048,7 +1048,7 @@ be colored differently.
 
 .. ipython:: python
 
-   from pandas.tools.plotting import radviz
+   from pandas.plotting import radviz
 
    data = pd.read_csv('data/iris.data')
 
@@ -1450,11 +1450,11 @@ Also, you can pass different :class:`DataFrame` or :class:`Series` for ``table``
 
    plt.close('all')
 
-Finally, there is a helper function ``pandas.tools.plotting.table`` to create a table from :class:`DataFrame` and :class:`Series`, and add it to an ``matplotlib.Axes``. This function can accept keywords which matplotlib table has.
+Finally, there is a helper function ``pandas.plotting.table`` to create a table from :class:`DataFrame` and :class:`Series`, and add it to an ``matplotlib.Axes``. This function can accept keywords which matplotlib table has.
 
 .. ipython:: python
 
-   from pandas.tools.plotting import table
+   from pandas.plotting import table
    fig, ax = plt.subplots(1, 1)
 
    table(ax, np.round(df.describe(), 2),

@@ -144,7 +144,7 @@ class TestTSPlot(TestPlotBase):
             _check_plot_works(ser.plot)
 
     def test_get_datevalue(self):
-        from pandas.tseries.converter import get_datevalue
+        from pandas.plotting.converter import get_datevalue
         self.assertIsNone(get_datevalue(None, 'D'))
         self.assertEqual(get_datevalue(1987, 'A'), 1987)
         self.assertEqual(get_datevalue(Period(1987, 'A'), 'M'),
@@ -243,7 +243,7 @@ class TestTSPlot(TestPlotBase):
 
     @slow
     def test_uhf(self):
-        import pandas.tseries.converter as conv
+        import pandas.plotting.converter as conv
         import matplotlib.pyplot as plt
         fig = plt.gcf()
         plt.clf()
@@ -387,7 +387,7 @@ class TestTSPlot(TestPlotBase):
             _test(ax)
 
     def test_get_finder(self):
-        import pandas.tseries.converter as conv
+        import pandas.plotting.converter as conv
 
         self.assertEqual(conv.get_finder('B'), conv._daily_finder)
         self.assertEqual(conv.get_finder('D'), conv._daily_finder)

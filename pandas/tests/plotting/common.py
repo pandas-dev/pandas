@@ -16,7 +16,7 @@ from pandas.util.testing import (ensure_clean,
 import numpy as np
 from numpy import random
 
-import pandas.tools.plotting as plotting
+import pandas.plotting as plotting
 
 
 """
@@ -48,12 +48,12 @@ class TestPlotBase(tm.TestCase):
         import matplotlib as mpl
         mpl.rcdefaults()
 
-        self.mpl_le_1_2_1 = plotting._mpl_le_1_2_1()
-        self.mpl_ge_1_3_1 = plotting._mpl_ge_1_3_1()
-        self.mpl_ge_1_4_0 = plotting._mpl_ge_1_4_0()
-        self.mpl_ge_1_5_0 = plotting._mpl_ge_1_5_0()
-        self.mpl_ge_2_0_0 = plotting._mpl_ge_2_0_0()
-        self.mpl_ge_2_0_1 = plotting._mpl_ge_2_0_1()
+        self.mpl_le_1_2_1 = plotting.compat._mpl_le_1_2_1()
+        self.mpl_ge_1_3_1 = plotting.compat._mpl_ge_1_3_1()
+        self.mpl_ge_1_4_0 = plotting.compat._mpl_ge_1_4_0()
+        self.mpl_ge_1_5_0 = plotting.compat._mpl_ge_1_5_0()
+        self.mpl_ge_2_0_0 = plotting.compat._mpl_ge_2_0_0()
+        self.mpl_ge_2_0_1 = plotting.compat._mpl_ge_2_0_1()
 
         if self.mpl_ge_1_4_0:
             self.bp_n_objects = 7
@@ -353,7 +353,7 @@ class TestPlotBase(tm.TestCase):
                 self.assertTrue(len(ax.get_children()) > 0)
 
         if layout is not None:
-            result = self._get_axes_layout(plotting._flatten(axes))
+            result = self._get_axes_layout(plotting.tools._flatten(axes))
             self.assertEqual(result, layout)
 
         self.assert_numpy_array_equal(
@@ -379,7 +379,7 @@ class TestPlotBase(tm.TestCase):
         axes : matplotlib Axes object, or its list-like
 
         """
-        axes = plotting._flatten(axes)
+        axes = plotting.tools._flatten(axes)
         axes = [ax for ax in axes if ax.get_visible()]
         return axes
 
