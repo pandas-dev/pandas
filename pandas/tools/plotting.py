@@ -3353,7 +3353,8 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
             if sharex or sharey:
                 warnings.warn("When passing multiple axes, sharex and sharey "
                               "are ignored. These settings must be specified "
-                              "when creating axes", UserWarning)
+                              "when creating axes", UserWarning,
+                              stacklevel=4)
             if len(ax) == naxes:
                 fig = ax[0].get_figure()
                 return fig, ax
@@ -3370,7 +3371,8 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
                 return fig, _flatten(ax)
         else:
             warnings.warn("To output multiple subplots, the figure containing "
-                          "the passed axes is being cleared", UserWarning)
+                          "the passed axes is being cleared", UserWarning,
+                          stacklevel=4)
             fig.clear()
 
     nrows, ncols = _get_layout(naxes, layout=layout, layout_type=layout_type)

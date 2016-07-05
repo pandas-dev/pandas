@@ -5,7 +5,6 @@ import nose
 import itertools
 import os
 import string
-import warnings
 from distutils.version import LooseVersion
 
 from pandas import Series, DataFrame, MultiIndex
@@ -61,8 +60,11 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
         _check_plot_works(self.ts.hist, figsize=(8, 10))
-        _check_plot_works(self.ts.hist, by=self.ts.index.month)
-        _check_plot_works(self.ts.hist, by=self.ts.index.month, bins=5)
+        # _check_plot_works adds an ax so catch warning. see GH #13188
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(self.ts.hist, by=self.ts.index.month)
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(self.ts.hist, by=self.ts.index.month, bins=5)
 
         fig, ax = self.plt.subplots(1, 1)
         _check_plot_works(self.ts.hist, ax=ax)
@@ -96,29 +98,42 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_layout_with_by(self):
         df = self.hist_df
 
-        axes = _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
+        # _check_plot_works adds an `ax` kwarg to the method call
+        # so we get a warning about an axis being cleared, even
+        # though we don't explicing pass one, see GH #13188
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(df.height.hist, by=df.gender,
+                                     layout=(2, 1))
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
-        axes = _check_plot_works(df.height.hist, by=df.gender, layout=(3, -1))
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(df.height.hist, by=df.gender,
+                                     layout=(3, -1))
         self._check_axes_shape(axes, axes_num=2, layout=(3, 1))
 
-        axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 1))
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(df.height.hist, by=df.category,
+                                     layout=(4, 1))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        axes = _check_plot_works(
-            df.height.hist, by=df.category, layout=(2, -1))
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(
+                df.height.hist, by=df.category, layout=(2, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
-        axes = _check_plot_works(
-            df.height.hist, by=df.category, layout=(3, -1))
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(
+                df.height.hist, by=df.category, layout=(3, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(3, 2))
 
-        axes = _check_plot_works(
-            df.height.hist, by=df.category, layout=(-1, 4))
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(
+                df.height.hist, by=df.category, layout=(-1, 4))
         self._check_axes_shape(axes, axes_num=4, layout=(1, 4))
 
-        axes = _check_plot_works(
-            df.height.hist, by=df.classroom, layout=(2, 2))
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(
+                df.height.hist, by=df.classroom, layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         axes = df.height.hist(by=df.category, layout=(4, 2), figsize=(12, 7))
@@ -135,7 +150,7 @@ class TestSeriesPlots(TestPlotBase):
         subplot(122)
         y.hist()
         fig = gcf()
-        axes = fig.get_axes()
+        axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
         self.assertEqual(len(axes), 2)
 
     @slow
@@ -203,33 +218,43 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.boxplot, return_type='dict')
         _check_plot_works(df.boxplot, column=[
                           'one', 'two'], return_type='dict')
-        _check_plot_works(df.boxplot, column=['one', 'two'], by='indic')
+        # _check_plot_works adds an ax so catch warning. see GH #13188
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(df.boxplot, column=['one', 'two'],
+                              by='indic')
         _check_plot_works(df.boxplot, column='one', by=['indic', 'indic2'])
-        _check_plot_works(df.boxplot, by='indic')
-        _check_plot_works(df.boxplot, by=['indic', 'indic2'])
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(df.boxplot, by='indic')
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(df.boxplot, by=['indic', 'indic2'])
         _check_plot_works(plotting.boxplot, data=df['one'], return_type='dict')
         _check_plot_works(df.boxplot, notch=1, return_type='dict')
-        _check_plot_works(df.boxplot, by='indic', notch=1)
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(df.boxplot, by='indic', notch=1)
 
         df = DataFrame(np.random.rand(10, 2), columns=['Col1', 'Col2'])
         df['X'] = Series(['A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B'])
         df['Y'] = Series(['A'] * 10)
-        _check_plot_works(df.boxplot, by='X')
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(df.boxplot, by='X')
 
         # When ax is supplied and required number of axes is 1,
         # passed ax should be used:
         fig, ax = self.plt.subplots()
         axes = df.boxplot('Col1', by='X', ax=ax)
-        self.assertIs(ax.get_axes(), axes)
+        ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
+        self.assertIs(ax_axes, axes)
 
         fig, ax = self.plt.subplots()
         axes = df.groupby('Y').boxplot(ax=ax, return_type='axes')
-        self.assertIs(ax.get_axes(), axes['A'])
+        ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
+        self.assertIs(ax_axes, axes['A'])
 
         # Multiple columns with an ax argument should use same figure
         fig, ax = self.plt.subplots()
-        axes = df.boxplot(column=['Col1', 'Col2'],
-                          by='X', ax=ax, return_type='axes')
+        with tm.assert_produces_warning(UserWarning):
+            axes = df.boxplot(column=['Col1', 'Col2'],
+                              by='X', ax=ax, return_type='axes')
         self.assertIs(axes['Col1'].get_figure(), fig)
 
         # When by is None, check that all relevant lines are present in the
@@ -304,11 +329,13 @@ class TestDataFramePlots(TestPlotBase):
     @slow
     def test_hist_df_legacy(self):
         from matplotlib.patches import Rectangle
-        _check_plot_works(self.hist_df.hist)
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(self.hist_df.hist)
 
         # make sure layout is handled
         df = DataFrame(randn(100, 3))
-        axes = _check_plot_works(df.hist, grid=False)
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(df.hist, grid=False)
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
         self.assertFalse(axes[1, 1].get_visible())
 
@@ -317,17 +344,21 @@ class TestDataFramePlots(TestPlotBase):
 
         # make sure layout is handled
         df = DataFrame(randn(100, 6))
-        axes = _check_plot_works(df.hist, layout=(4, 2))
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(df.hist, layout=(4, 2))
         self._check_axes_shape(axes, axes_num=6, layout=(4, 2))
 
         # make sure sharex, sharey is handled
-        _check_plot_works(df.hist, sharex=True, sharey=True)
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(df.hist, sharex=True, sharey=True)
 
         # handle figsize arg
-        _check_plot_works(df.hist, figsize=(8, 10))
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(df.hist, figsize=(8, 10))
 
         # check bins argument
-        _check_plot_works(df.hist, bins=5)
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(df.hist, bins=5)
 
         # make sure xlabelsize and xrot are handled
         ser = df[0]
@@ -401,22 +432,30 @@ class TestDataFramePlots(TestPlotBase):
         def scat(**kwds):
             return plotting.scatter_matrix(df, **kwds)
 
-        _check_plot_works(scat)
-        _check_plot_works(scat, marker='+')
-        _check_plot_works(scat, vmin=0)
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat)
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat, marker='+')
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat, vmin=0)
         if _ok_for_gaussian_kde('kde'):
-            _check_plot_works(scat, diagonal='kde')
+            with tm.assert_produces_warning(UserWarning):
+                _check_plot_works(scat, diagonal='kde')
         if _ok_for_gaussian_kde('density'):
-            _check_plot_works(scat, diagonal='density')
-        _check_plot_works(scat, diagonal='hist')
-        _check_plot_works(scat, range_padding=.1)
+            with tm.assert_produces_warning(UserWarning):
+                _check_plot_works(scat, diagonal='density')
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat, diagonal='hist')
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat, range_padding=.1)
 
         def scat2(x, y, by=None, ax=None, figsize=None):
             return plotting.scatter_plot(df, x, y, by, ax, figsize=None)
 
         _check_plot_works(scat2, x=0, y=1)
         grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
-        _check_plot_works(scat2, x=0, y=1, by=grouper)
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat2, x=0, y=1, by=grouper)
 
     def test_scatter_matrix_axis(self):
         tm._skip_if_no_scipy()
@@ -607,8 +646,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @slow
     def test_boxplot_legacy(self):
         grouped = self.hist_df.groupby(by='gender')
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+        with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type='axes')
         self._check_axes_shape(list(axes.values()), axes_num=2, layout=(1, 2))
 
@@ -620,7 +658,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                        index=MultiIndex.from_tuples(tuples))
 
         grouped = df.groupby(level=1)
-        axes = _check_plot_works(grouped.boxplot, return_type='axes')
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(grouped.boxplot, return_type='axes')
         self._check_axes_shape(list(axes.values()), axes_num=10, layout=(4, 3))
 
         axes = _check_plot_works(grouped.boxplot, subplots=False,
@@ -628,7 +667,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
-        axes = _check_plot_works(grouped.boxplot, return_type='axes')
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(grouped.boxplot, return_type='axes')
         self._check_axes_shape(list(axes.values()), axes_num=3, layout=(2, 2))
 
         axes = _check_plot_works(grouped.boxplot, subplots=False,
@@ -774,18 +814,22 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self.assertRaises(ValueError, df.boxplot, column=['weight', 'height'],
                           by=df.gender, layout=(-1, -1))
 
-        box = _check_plot_works(df.groupby('gender').boxplot, column='height',
-                                return_type='dict')
+        # _check_plot_works adds an ax so catch warning. see GH #13188
+        with tm.assert_produces_warning(UserWarning):
+            box = _check_plot_works(df.groupby('gender').boxplot,
+                                    column='height', return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=2, layout=(1, 2))
 
-        box = _check_plot_works(df.groupby('category').boxplot,
-                                column='height',
-                                return_type='dict')
+        with tm.assert_produces_warning(UserWarning):
+            box = _check_plot_works(df.groupby('category').boxplot,
+                                    column='height',
+                                    return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(2, 2))
 
         # GH 6769
-        box = _check_plot_works(df.groupby('classroom').boxplot,
-                                column='height', return_type='dict')
+        with tm.assert_produces_warning(UserWarning):
+            box = _check_plot_works(df.groupby('classroom').boxplot,
+                                    column='height', return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
         # GH 5897
@@ -803,13 +847,15 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             column=['height', 'weight', 'category'], return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
-        box = _check_plot_works(df.groupby('category').boxplot,
-                                column='height',
-                                layout=(3, 2), return_type='dict')
+        with tm.assert_produces_warning(UserWarning):
+            box = _check_plot_works(df.groupby('category').boxplot,
+                                    column='height',
+                                    layout=(3, 2), return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(3, 2))
-        box = _check_plot_works(df.groupby('category').boxplot,
-                                column='height',
-                                layout=(3, -1), return_type='dict')
+        with tm.assert_produces_warning(UserWarning):
+            box = _check_plot_works(df.groupby('category').boxplot,
+                                    column='height',
+                                    layout=(3, -1), return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(3, 2))
 
         box = df.boxplot(column=['height', 'weight', 'category'], by='gender',
@@ -848,8 +894,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                    axes_num=4, layout=(2, 2))
 
         fig, axes = self.plt.subplots(2, 3)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+        with tm.assert_produces_warning(UserWarning):
             returned = df.boxplot(column=['height', 'weight', 'category'],
                                   by='gender', return_type='axes', ax=axes[0])
         returned = np.array(list(returned.values()))
@@ -858,8 +903,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self.assertIs(returned[0].figure, fig)
 
         # draw on second row
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+        with tm.assert_produces_warning(UserWarning):
             returned = df.groupby('classroom').boxplot(
                 column=['height', 'weight', 'category'],
                 return_type='axes', ax=axes[1])
@@ -871,7 +915,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         with tm.assertRaises(ValueError):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
-            axes = df.groupby('classroom').boxplot(ax=axes)
+            with tm.assert_produces_warning(UserWarning):
+                axes = df.groupby('classroom').boxplot(ax=axes)
 
     @slow
     def test_grouped_hist_layout(self):
@@ -883,12 +928,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self.assertRaises(ValueError, df.hist, column='height', by=df.category,
                           layout=(-1, -1))
 
-        axes = _check_plot_works(df.hist, column='height', by=df.gender,
-                                 layout=(2, 1))
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(df.hist, column='height', by=df.gender,
+                                     layout=(2, 1))
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
-        axes = _check_plot_works(df.hist, column='height', by=df.gender,
-                                 layout=(2, -1))
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(df.hist, column='height', by=df.gender,
+                                     layout=(2, -1))
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
         axes = df.hist(column='height', by=df.category, layout=(4, 1))
@@ -904,12 +951,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.close()
 
         # GH 6769
-        axes = _check_plot_works(
-            df.hist, column='height', by='classroom', layout=(2, 2))
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(
+                df.hist, column='height', by='classroom', layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         # without column
-        axes = _check_plot_works(df.hist, by='classroom')
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(df.hist, by='classroom')
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         axes = df.hist(by='gender', layout=(3, 5))
