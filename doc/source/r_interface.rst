@@ -73,7 +73,7 @@ The ``convert_to_r_matrix`` function can be replaced by the normal
     comparison to the ones in pandas, please report this at the
     `issue tracker <https://github.com/pydata/pandas/issues>`_.
 
-See also the documentation of the `rpy2 <http://rpy.sourceforge.net/>`__ project.
+See also the documentation of the `rpy2 <http://rpy2.bitbucket.org/>`__ project.
 
 
 R interface with rpy2

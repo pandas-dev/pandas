@@ -19,7 +19,7 @@ Highlights include:
   modules are deprecated. We refer users to external packages like
   `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_,
   `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_ and
-  `rpy2 <http://rpy.sourceforge.net/>`_ for similar or equivalent
+  `rpy2 <http://rpy2.bitbucket.org/>`_ for similar or equivalent
   functionality, see :ref:`here <whatsnew_0160.deprecations>`
 
 Check the :ref:`API Changes <whatsnew_0160.api>` and :ref:`deprecations <whatsnew_0160.deprecations>` before updating.
@@ -508,7 +508,7 @@ Deprecations
   We refer users to the external package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_. (:issue:`9615`)
 
 - The ``pandas.rpy`` interface is deprecated and will be removed in a future version.
-  Similar functionaility can be accessed thru the `rpy2 <http://rpy.sourceforge.net/>`_ project (:issue:`9602`)
+  Similar functionaility can be accessed thru the `rpy2 <http://rpy2.bitbucket.org/>`_ project (:issue:`9602`)
 
 - Adding ``DatetimeIndex/PeriodIndex`` to another ``DatetimeIndex/PeriodIndex`` is being deprecated as a set-operation. This will be changed to a ``TypeError`` in a future version. ``.union()`` should be used for the union set operation. (:issue:`9094`)
 - Subtracting ``DatetimeIndex/PeriodIndex`` from another ``DatetimeIndex/PeriodIndex`` is being deprecated as a set-operation. This will be changed to an actual numeric subtraction yielding a ``TimeDeltaIndex`` in a future version. ``.difference()`` should be used for the differencing set operation. (:issue:`9094`)

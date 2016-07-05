@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Portions of code from MODP_ASCII - Ascii transformations (upper/lower, etc)
-http://code.google.com/p/stringencoders/
+https://github.com/client9/stringencoders
 Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights reserved.
 
 Numeric decoder derived from from TCL library

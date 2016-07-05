@@ -241,7 +241,7 @@ matplotlib knows how to handle ``datetime.datetime`` but not Timestamp
 objects. While I recommend that you plot time series using ``TimeSeries.plot``,
 you can either use ``to_pydatetime`` or register a converter for the Timestamp
 type. See `matplotlib documentation
-<http://matplotlib.sourceforge.net/api/units_api.html>`__ for more on this.
+<http://matplotlib.org/api/units_api.html>`__ for more on this.
 
 .. warning::
 
