@@ -456,6 +456,28 @@ class TestDataFrameFormatting(tm.TestCase):
                                   '2 0x3 [ 3.0]   -False-'))
         self.assertEqual(result, result2)
 
+    def test_to_string_with_datetime64_monthformatter(self):
+        months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
+        x = DataFrame({'months': months})
+
+        def format_func(x):
+            return x.strftime('%Y-%m')
+        result = x.to_string(formatters={'months': format_func})
+        expected = 'months\n0 2016-01\n1 2016-02'
+        self.assertEqual(result.strip(), expected)
+
+    def test_to_string_with_datetime64_hourformatter(self):
+
+        x = DataFrame({'hod': pd.to_datetime(['10:10:10.100', '12:12:12.120'],
+                                             format='%H:%M:%S.%f')})
+
+        def format_func(x):
+            return x.strftime('%H:%M')
+
+        result = x.to_string(formatters={'hod': format_func})
+        expected = 'hod\n0 10:10\n1 12:12'
+        self.assertEqual(result.strip(), expected)
+
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
         result = df.to_string(formatters={u('c/\u03c3'): lambda x: '%s' % x})
@@ -1231,6 +1253,63 @@ class TestDataFrameFormatting(tm.TestCase):
   </tbody>
 </table>"""
 
+        self.assertEqual(result, expected)
+
+    def test_to_html_datetime64_monthformatter(self):
+        months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
+        x = DataFrame({'months': months})
+
+        def format_func(x):
+            return x.strftime('%Y-%m')
+        result = x.to_html(formatters={'months': format_func})
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>months</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2016-01</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2016-02</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(result, expected)
+
+    def test_to_html_datetime64_hourformatter(self):
+
+        x = DataFrame({'hod': pd.to_datetime(['10:10:10.100', '12:12:12.120'],
+                                             format='%H:%M:%S.%f')})
+
+        def format_func(x):
+            return x.strftime('%H:%M')
+        result = x.to_html(formatters={'hod': format_func})
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>hod</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>10:10</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>12:12</td>
+    </tr>
+  </tbody>
+</table>"""
         self.assertEqual(result, expected)
 
     def test_to_html_regression_GH6098(self):
@@ -2775,6 +2854,33 @@ c  10  11  12  13  14\
 
         self.assertEqual(withindex_result, withindex_expected)
 
+    def test_to_latex_with_formatters(self):
+        df = DataFrame({'int': [1, 2, 3],
+                        'float': [1.0, 2.0, 3.0],
+                        'object': [(1, 2), True, False],
+                        'datetime64': [datetime(2016, 1, 1),
+                                   datetime(2016, 2, 5),
+                                   datetime(2016, 3, 3)]})
+
+        formatters = {'int': lambda x: '0x%x' % x,
+                      'float': lambda x: '[% 4.1f]' % x,
+                      'object': lambda x: '-%s-' % str(x),
+                      'datetime64': lambda x: x.strftime('%Y-%m'),
+                      '__index__': lambda x: 'index: %s' % x}
+        result = df.to_latex(formatters=dict(formatters))
+
+        expected = r"""\begin{tabular}{llrrl}
+\toprule
+{} & datetime64 &  float & int &    object \\
+\midrule
+index: 0 &    2016-01 & [ 1.0] & 0x1 &  -(1, 2)- \\
+index: 1 &    2016-02 & [ 2.0] & 0x2 &    -True- \\
+index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(result, expected)
+
     def test_to_latex_multiindex(self):
         df = DataFrame({('x', 'y'): ['a']})
         result = df.to_latex()
@@ -4160,6 +4266,28 @@ class TestDatetime64Formatter(tm.TestCase):
         self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000000000")
         self.assertEqual(result[1].strip(), "NaT")
         self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.000000004")
+
+    def test_datetime64formatter_yearmonth(self):
+        x = Series([datetime(2016, 1, 1), datetime(2016, 2, 2)])
+
+        def format_func(x):
+            return x.strftime('%Y-%m')
+
+        formatter = fmt.Datetime64Formatter(x, formatter=format_func)
+        result = formatter.get_result()
+        self.assertEqual(result, ['2016-01', '2016-02'])
+                       
+    def test_datetime64formatter_hoursecond(self):
+
+        x = Series(pd.to_datetime(['10:10:10.100', '12:12:12.120'],
+                                  format='%H:%M:%S.%f'))
+
+        def format_func(x):
+            return x.strftime('%H:%M')
+
+        formatter = fmt.Datetime64Formatter(x, formatter=format_func)
+        result = formatter.get_result()
+        self.assertEqual(result, ['10:10', '12:12'])
 
 
 class TestNaTFormatting(tm.TestCase):
