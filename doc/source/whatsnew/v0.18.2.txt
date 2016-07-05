@@ -521,7 +521,7 @@ Bug Fixes
 
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
 - Bug in ``groupby`` where ``apply`` returns different result depending on whether first result is ``None`` or not (:issue:`12824`)
-
+- Bug in ``groupby(..).nth()`` where the group key is included inconsistently (:issue:`12839`)
 
 - Bug in ``pd.to_numeric`` when ``errors='coerce'`` and input contains non-hashable objects (:issue:`13324`)
 
