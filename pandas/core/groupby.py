@@ -457,7 +457,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         else:
             return self.obj[self._selection]
 
-    def _clear_group_selection(self):
+    def _reset_group_selection(self):
         """
         Clear group based selection. Used for methods needing to return info on
         each group regardless of whether a group selection was previously set.
@@ -1417,7 +1417,7 @@ class GroupBy(_GroupBy):
         0  1  2
         2  5  6
         """
-        self._clear_group_selection()
+        self._reset_group_selection()
         mask = self._cumcount_array() < n
         return self._selected_obj[mask]
 
@@ -1444,7 +1444,7 @@ class GroupBy(_GroupBy):
         0  a  1
         2  b  1
         """
-        self._clear_group_selection()
+        self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
 
