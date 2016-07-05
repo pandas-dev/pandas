@@ -360,24 +360,28 @@ class TestGroupBy(tm.TestCase):
         expected = df.iloc[[0, 2]].set_index('A')
 
         g = df.groupby('A')
-        g.head()
-        result = g.nth(0)
-        assert_frame_equal(result, expected)
+        result1 = g.head(n=2)
+        result2 = g.nth(0)
+        assert_frame_equal(result1, df)
+        assert_frame_equal(result2, expected)
 
         g = df.groupby('A')
-        g.tail()
-        result = g.nth(0)
-        assert_frame_equal(result, expected)
+        result1 = g.tail(n=2)
+        result2 = g.nth(0)
+        assert_frame_equal(result1, df)
+        assert_frame_equal(result2, expected)
 
         g = df.groupby('A')
-        g.nth(0)
-        result = g.head(n=2)
-        assert_frame_equal(result, df)
+        result1 = g.nth(0)
+        result2 = g.head(n=2)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, df)
 
         g = df.groupby('A')
-        g.nth(0)
-        result = g.tail(n=2)
-        assert_frame_equal(result, df)
+        result1 = g.nth(0)
+        result2 = g.tail(n=2)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, df)
 
     def test_grouper_index_types(self):
         # related GH5375
@@ -6132,7 +6136,7 @@ class TestGroupBy(tm.TestCase):
                 # bit a of hack to make sure the cythonized shift
                 # is equivalent to pre 0.17.1 behavior
                 if op == 'shift':
-                    gb._set_selection_from_grouper()
+                    gb._set_group_selection()
 
                 for (op, args), targop in ops:
                     if op != 'shift' and 'int' not in gb_target:
