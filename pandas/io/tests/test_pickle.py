@@ -109,8 +109,12 @@ class TestPickle():
             tm.assert_series_equal(result, expected)
 
     def compare_series_cat(self, result, expected, typ, version):
-        # Categorical.ordered is changed in < 0.16.0
-        if LooseVersion(version) < '0.16.0':
+        # Categorical dtype is added in 0.15.0
+        # ordered is changed in 0.16.0
+        if LooseVersion(version) < '0.15.0':
+            tm.assert_series_equal(result, expected, check_dtype=False,
+                                   check_categorical=False)
+        elif LooseVersion(version) < '0.16.0':
             tm.assert_series_equal(result, expected, check_categorical=False)
         else:
             tm.assert_series_equal(result, expected)
@@ -125,8 +129,12 @@ class TestPickle():
             tm.assert_frame_equal(result, expected)
 
     def compare_frame_cat_onecol(self, result, expected, typ, version):
-        # Categorical.ordered is changed in < 0.16.0
-        if LooseVersion(version) < '0.16.0':
+        # Categorical dtype is added in 0.15.0
+        # ordered is changed in 0.16.0
+        if LooseVersion(version) < '0.15.0':
+            tm.assert_frame_equal(result, expected, check_dtype=False,
+                                  check_categorical=False)
+        elif LooseVersion(version) < '0.16.0':
             tm.assert_frame_equal(result, expected, check_categorical=False)
         else:
             tm.assert_frame_equal(result, expected)

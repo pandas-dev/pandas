@@ -80,6 +80,7 @@ def create_data():
                     [u'one', u'two', u'one', u'two', u'one',
                      u'two', u'one', u'two']])),
         names=[u'first', u'second']))
+
     series = dict(float=Series(data[u'A']),
                   int=Series(data[u'B']),
                   mixed=Series(data[u'E']),
@@ -135,6 +136,10 @@ def create_data():
                            items=[u'A', u'B', u'A']),
                  mixed_dup=mixed_dup_panel)
 
+    cat = dict(int8=Categorical(list('abcdefg')),
+               int16=Categorical(np.arange(1000)),
+               int32=Categorical(np.arange(10000)))
+
     return dict(series=series,
                 frame=frame,
                 panel=panel,
@@ -143,7 +148,8 @@ def create_data():
                 mi=mi,
                 sp_series=dict(float=_create_sp_series(),
                                ts=_create_sp_tsseries()),
-                sp_frame=dict(float=_create_sp_frame()))
+                sp_frame=dict(float=_create_sp_frame()),
+                cat=cat)
 
 
 def create_pickle_data():
