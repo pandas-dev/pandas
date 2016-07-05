@@ -2085,8 +2085,8 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(df.loc[[0, 2]], g_not_as.head(1))
         assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
 
-        empty_not_as = DataFrame(columns=df.columns, index=pd.Index(
-            [], dtype=df.index.dtype))
+        empty_not_as = DataFrame(columns=df.columns,
+                                 index=pd.Index([], dtype=df.index.dtype))
         empty_not_as['A'] = empty_not_as['A'].astype(df.A.dtype)
         empty_not_as['B'] = empty_not_as['B'].astype(df.B.dtype)
         assert_frame_equal(empty_not_as, g_not_as.head(0))
@@ -4549,6 +4549,15 @@ class TestGroupBy(tm.TestCase):
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
+    def test_groupby_with_single_column(self):
+        df = pd.DataFrame({'a': list('abssbab')})
+        tm.assert_frame_equal(df.groupby('a').get_group('a'), df.iloc[[0, 5]])
+        # GH 13530
+        exp = pd.DataFrame([], index=pd.Index(['a', 'b', 's'], name='a'))
+        tm.assert_frame_equal(df.groupby('a').count(), exp)
+        tm.assert_frame_equal(df.groupby('a').sum(), exp)
+        tm.assert_frame_equal(df.groupby('a').nth(1), exp)
+
     def test_groupby_with_small_elem(self):
         # GH 8542
         # length=2
@@ -4989,8 +4998,8 @@ class TestGroupBy(tm.TestCase):
         ge = DataFrame().groupby(level=0)
         se = Series().groupby(level=0)
 
-        e = Series(dtype='int64'
-                   )  # edge case, as this is usually considered float
+        # edge case, as this is usually considered float
+        e = Series(dtype='int64')
 
         assert_series_equal(e, ge.cumcount())
         assert_series_equal(e, se.cumcount())
