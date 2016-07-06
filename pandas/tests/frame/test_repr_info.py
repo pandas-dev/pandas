@@ -381,3 +381,8 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         # deep=True, and add on some GC overhead
         diff = df.memory_usage(deep=True).sum() - sys.getsizeof(df)
         self.assertTrue(abs(diff) < 100)
+
+    def test_info_empty_frame(self):
+        io = StringIO()
+        pd.DataFrame().info(buf=io)
+        assert (io.getvalue() == "<class 'pandas.core.frame.DataFrame'>\nIndex: 0 entries\nEmpty DataFrame")
