@@ -1469,3 +1469,34 @@ j,-inF"""
 
         out = self.read_csv(mmap_file, memory_map=True)
         tm.assert_frame_equal(out, expected)
+
+    def test_read_csv_utf_aliases():
+        # see gh issue 13549
+        engines = ['c', 'python', None]
+        path = 'test.csv'
+        expected = DataFrame({"A": [0, 1], "B": [2, 3]})
+        expected.to_csv(path, encoding='utf-8', index=False)
+        test_encodings = ['utf-8', 'utf_8', 'UTF_8', 'UTF-8']
+
+        for encoding in test_encodings:
+            for engine in engines:
+                out = pd.io.parsers.read_csv(
+                    path,
+                    engine=engine,
+                    encoding=encoding)
+                tm.assert_frame_equal(out, expected)
+
+        os.remove("test.csv")
+
+        expected.to_csv(path, encoding='utf-16', index=False)
+        test_encodings = ['utf-16', 'utf_16', 'UTF_16', 'UTF-16']
+
+        for encoding in test_encodings:
+            for engine in engines:
+                out = pd.io.parsers.read_csv(
+                    path,
+                    engine=engine,
+                    encoding=encoding)
+                tm.assert_frame_equal(out, expected)
+
+        os.remove("test.csv")
