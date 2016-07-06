@@ -1470,33 +1470,22 @@ j,-inF"""
         out = self.read_csv(mmap_file, memory_map=True)
         tm.assert_frame_equal(out, expected)
 
-    def test_read_csv_utf_aliases():
+    def test_read_csv_utf_aliases(self):
         # see gh issue 13549
-        engines = ['c', 'python', None]
         path = 'test.csv'
-        expected = DataFrame({"A": [0, 1], "B": [2, 3]})
-        expected.to_csv(path, encoding='utf-8', index=False)
-        test_encodings = ['utf-8', 'utf_8', 'UTF_8', 'UTF-8']
+        expected = pd.DataFrame({'A': [0, 1], 'B': [2, 3],
+                                 'multibyte_test': ['testing123', 'bananabis'],
+                                 'mb_nums': [154.868, 457.8798]})
 
-        for encoding in test_encodings:
-            for engine in engines:
-                out = pd.io.parsers.read_csv(
-                    path,
-                    engine=engine,
-                    encoding=encoding)
-                tm.assert_frame_equal(out, expected)
-
-        os.remove("test.csv")
-
-        expected.to_csv(path, encoding='utf-16', index=False)
-        test_encodings = ['utf-16', 'utf_16', 'UTF_16', 'UTF-16']
-
-        for encoding in test_encodings:
-            for engine in engines:
-                out = pd.io.parsers.read_csv(
-                    path,
-                    engine=engine,
-                    encoding=encoding)
-                tm.assert_frame_equal(out, expected)
+        for byte in [8, 16]:
+            expected.to_csv(path, encoding='utf-' + str(byte), index=False)
+            for fmt in ['utf-{0}', 'utf_{0}', 'UTF-{0}', 'UTF_{0}']:
+                encoding = fmt.format(byte)
+                for engine in ['c', 'python', None]:
+                    out = self.read_csv(
+                        path,
+                        engine=engine,
+                        encoding=encoding)
+                    tm.assert_frame_equal(out, expected)
 
         os.remove("test.csv")
