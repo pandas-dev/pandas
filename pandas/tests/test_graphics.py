@@ -1329,10 +1329,6 @@ class TestDataFramePlots(TestPlotBase):
                                      subplots=True, use_index=False)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        df = DataFrame({'x': [1, 2], 'y': [3, 4]})
-        with tm.assertRaises(TypeError):
-            df.plot.line(blarg=True)
-
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))
 
