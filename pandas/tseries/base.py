@@ -202,7 +202,7 @@ class DatetimeIndexOpsMixin(object):
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
-            return lib.isscalar(res) or type(res) == slice or np.any(res)
+            return lib.isscalar(res) or type(res) == slice or np.size(res)
         except (KeyError, TypeError, ValueError):
             return False
 
