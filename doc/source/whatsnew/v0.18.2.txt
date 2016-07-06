@@ -528,3 +528,5 @@ Bug Fixes
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
 - Bug in ``groupby`` with ``as_index=False`` returns all NaN's when grouping on multiple columns including a categorical one (:issue:`13204`)
+
+- Bug in ``test_graphics`` to pass the tests with matplotlib 1.9.2
