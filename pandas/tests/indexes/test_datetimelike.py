@@ -722,6 +722,17 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
                            dtype=object)
             self.assert_index_equal(idx.fillna('x'), exp)
 
+    def test_contains(self):
+        #GH13572
+        dates = ['2015-01-03', '2015-01-01', '2015-01-04', '2015-01-05', '2015-01-02']
+        monotonic = pd.to_datetime(sorted(dates))
+        non_monotonic = pd.to_datetime(['2015-01-03', '2015-01-01', '2015-01-04', '2015-01-05', '2015-01-02'])
+        for idx in [non_monotonic, monotonic]:
+            self.assertNotIn('2015-01-06', idx)
+            self.assertNotIn(pd.Timestamp('2015-01-06'), idx)
+            for dt in reversed(dates):
+                self.assertIn(dt, idx)
+                self.assertIn(pd.Timestamp(dt), idx)
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex
