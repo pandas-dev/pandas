@@ -1474,8 +1474,8 @@ j,-inF"""
         # see gh issue 13549
         path = 'test.csv'
         expected = DataFrame({'A': [0, 1], 'B': [2, 3],
-                                 'multibyte_test': ['testing123', 'bananabis'],
-                                 'mb_nums': [154.868, 457.8798]})
+                              'multibyte_test': ['testing123', 'bananabis'],
+                              'mb_nums': [154.868, 457.8798]})
 
         for byte in [8, 16]:
             expected.to_csv(path, encoding='utf-' + str(byte), index=False)
