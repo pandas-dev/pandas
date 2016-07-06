@@ -95,7 +95,7 @@ def _groupby_function(name, alias, npfunc, numeric_only=True,
     @Appender(_doc_template)
     @Appender(_local_template)
     def f(self):
-        self._set_selection_from_grouper()
+        self._set_group_selection()
         try:
             return self._cython_agg_general(alias, numeric_only=numeric_only)
         except AssertionError as e:
@@ -457,8 +457,21 @@ class _GroupBy(PandasObject, SelectionMixin):
         else:
             return self.obj[self._selection]
 
-    def _set_selection_from_grouper(self):
-        """ we may need create a selection if we have non-level groupers """
+    def _reset_group_selection(self):
+        """
+        Clear group based selection. Used for methods needing to return info on
+        each group regardless of whether a group selection was previously set.
+        """
+        if self._group_selection is not None:
+            self._group_selection = None
+            # GH12839 clear cached selection too when changing group selection
+            self._reset_cache('_selected_obj')
+
+    def _set_group_selection(self):
+        """
+        Create group based selection. Used when selection is not passed
+        directly but instead via a grouper.
+        """
         grp = self.grouper
         if self.as_index and getattr(grp, 'groupings', None) is not None and \
            self.obj.ndim > 1:
@@ -468,6 +481,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
             if len(groupers):
                 self._group_selection = ax.difference(Index(groupers)).tolist()
+                # GH12839 clear selected obj cache when group selection changes
+                self._reset_cache('_selected_obj')
 
     def _set_result_index_ordered(self, result):
         # set the result index on the passed values object and
@@ -511,7 +526,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         # need to setup the selection
         # as are not passed directly but in the grouper
-        self._set_selection_from_grouper()
+        self._set_group_selection()
 
         f = getattr(self._selected_obj, name)
         if not isinstance(f, types.MethodType):
@@ -979,7 +994,7 @@ class GroupBy(_GroupBy):
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
-            self._set_selection_from_grouper()
+            self._set_group_selection()
             f = lambda x: x.mean(axis=self.axis)
             return self._python_agg_general(f)
 
@@ -997,7 +1012,7 @@ class GroupBy(_GroupBy):
             raise
         except Exception:  # pragma: no cover
 
-            self._set_selection_from_grouper()
+            self._set_group_selection()
 
             def f(x):
                 if isinstance(x, np.ndarray):
@@ -1040,7 +1055,7 @@ class GroupBy(_GroupBy):
         if ddof == 1:
             return self._cython_agg_general('var')
         else:
-            self._set_selection_from_grouper()
+            self._set_group_selection()
             f = lambda x: x.var(ddof=ddof)
             return self._python_agg_general(f)
 
@@ -1217,7 +1232,7 @@ class GroupBy(_GroupBy):
             raise TypeError("n needs to be an int or a list/set/tuple of ints")
 
         nth_values = np.array(nth_values, dtype=np.intp)
-        self._set_selection_from_grouper()
+        self._set_group_selection()
 
         if not dropna:
             mask = np.in1d(self._cumcount_array(), nth_values) | \
@@ -1325,7 +1340,7 @@ class GroupBy(_GroupBy):
         dtype: int64
         """
 
-        self._set_selection_from_grouper()
+        self._set_group_selection()
 
         index = self._selected_obj.index
         cumcounts = self._cumcount_array(ascending=ascending)
@@ -1403,6 +1418,7 @@ class GroupBy(_GroupBy):
         0  1  2
         2  5  6
         """
+        self._reset_group_selection()
         mask = self._cumcount_array() < n
         return self._selected_obj[mask]
 
@@ -1429,6 +1445,7 @@ class GroupBy(_GroupBy):
         0  a  1
         2  b  1
         """
+        self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
 
