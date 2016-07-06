@@ -385,4 +385,6 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
     def test_info_empty_frame(self):
         io = StringIO()
         pd.DataFrame().info(buf=io)
-        assert (io.getvalue() == "<class 'pandas.core.frame.DataFrame'>\nIndex: 0 entries\nEmpty DataFrame")
+        assert (io.getvalue() == "<class 'pandas.core.frame.DataFrame'>\n" \
+                                  "Index: 0 entries\n" \
+                                  "Empty DataFrame")
