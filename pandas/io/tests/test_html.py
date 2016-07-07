@@ -748,6 +748,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         html_df = read_html(html_data, na_values=[0.285])[0]
         tm.assert_numpy_array_equal(raw_data, html_df.values)
 
+
 def _lang_enc(filename):
     return os.path.splitext(os.path.basename(filename))[0].split('_')
 
