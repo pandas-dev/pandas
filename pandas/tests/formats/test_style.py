@@ -8,11 +8,6 @@ from pandas import DataFrame
 from pandas.util.testing import TestCase
 import pandas.util.testing as tm
 
-# this is a mess. Getting failures on a python 2.7 build with
-# whenever we try to import jinja, whether it's installed or not.
-# so we're explicitly skipping that one *before* we try to import
-# jinja. We still need to export the imports as globals,
-# since importing Styler tries to import jinja2.
 job_name = os.environ.get('JOB_NAME', None)
 if job_name == '27_slow_nnet_LOCALE':
     raise SkipTest("No jinja")
@@ -22,7 +17,7 @@ try:
     import jinja2  # noqa
 except ImportError:
     raise SkipTest("No Jinja2")
-from pandas.formats.style import Styler  # noqa
+from pandas.formats.style import Styler, _get_level_lengths  # noqa
 
 
 class TestStyler(TestCase):
@@ -152,15 +147,24 @@ class TestStyler(TestCase):
                      {'class': 'col_heading level0 col0',
                       'display_value': 'A',
                       'type': 'th',
-                      'value': 'A'},
+                      'value': 'A',
+                      'is_visible': True,
+                      'attributes': ["colspan=1"],
+                      },
                      {'class': 'col_heading level0 col1',
                       'display_value': 'B',
                       'type': 'th',
-                      'value': 'B'},
+                      'value': 'B',
+                      'is_visible': True,
+                      'attributes': ["colspan=1"],
+                      },
                      {'class': 'col_heading level0 col2',
                       'display_value': 'C',
                       'type': 'th',
-                      'value': 'C'}]]
+                      'value': 'C',
+                      'is_visible': True,
+                      'attributes': ["colspan=1"],
+                      }]]
 
         self.assertEqual(result['head'], expected)
 
@@ -171,9 +175,11 @@ class TestStyler(TestCase):
 
         expected = [[{'class': 'blank', 'type': 'th', 'value': ''},
                      {'class': 'col_heading level0 col0', 'type': 'th',
-                      'value': 'B', 'display_value': 'B'},
+                      'value': 'B', 'display_value': 'B',
+                      'is_visible': True, 'attributes': ['colspan=1']},
                      {'class': 'col_heading level0 col1', 'type': 'th',
-                      'value': 'C', 'display_value': 'C'}],
+                      'value': 'C', 'display_value': 'C',
+                      'is_visible': True, 'attributes': ['colspan=1']}],
                     [{'class': 'col_heading level2 col0', 'type': 'th',
                       'value': 'A'},
                      {'class': 'blank', 'type': 'th', 'value': ''},
@@ -189,7 +195,9 @@ class TestStyler(TestCase):
         expected = [[{'class': 'blank', 'type': 'th', 'value': ''},
                      {'class': 'blank', 'type': 'th', 'value': ''},
                      {'class': 'col_heading level0 col0', 'type': 'th',
-                      'value': 'C', 'display_value': 'C'}],
+                      'value': 'C', 'display_value': 'C',
+                      'is_visible': True, 'attributes': ['colspan=1'],
+                      }],
                     [{'class': 'col_heading level2 col0', 'type': 'th',
                       'value': 'A'},
                      {'class': 'col_heading level2 col1', 'type': 'th',
@@ -580,6 +588,32 @@ class TestStyler(TestCase):
         df = pd.DataFrame([[1, 2], [3, 4]])
         with tm.assertRaises(ValueError):
             df.style._apply(f, axis=None)
+
+    def test_get_level_lengths(self):
+        index = pd.MultiIndex.from_product([['a', 'b'], [0, 1, 2]])
+        expected = {(0, 0): 3, (0, 3): 3, (1, 0): 1, (1, 1): 1, (1, 2): 1,
+                    (1, 3): 1, (1, 4): 1, (1, 5): 1}
+        result = _get_level_lengths(index)
+        self.assertDictEqual(result, expected)
+
+    def test_get_level_lengths_un_sorted(self):
+        index = pd.MultiIndex.from_arrays([
+            [1, 1, 2, 1],
+            ['a', 'b', 'b', 'd']
+        ])
+        expected = {(0, 0): 2, (0, 2): 1, (0, 3): 1,
+                    (1, 0): 1, (1, 1): 1, (1, 2): 1, (1, 3): 1}
+        result = _get_level_lengths(index)
+        self.assertDictEqual(result, expected)
+
+    def test_mi_sparse(self):
+        df = pd.DataFrame({'A': [1, 2, 3, 4]},
+                          index=pd.MultiIndex.from_product([['a', 'b'],
+                                                           [0, 1]]))
+        result = df.style.render()
+        assert 'rowspan' in result
+        result = df.T.style.render()
+        assert 'colspan' in result
 
 
 @tm.mplskip

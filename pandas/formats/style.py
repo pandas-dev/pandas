@@ -21,7 +21,8 @@ from pandas.types.common import is_float, is_string_like
 
 import numpy as np
 import pandas as pd
-from pandas.compat import lzip, range
+from pandas.compat import range
+import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 try:
     import matplotlib.pyplot as plt
@@ -110,7 +111,9 @@ class Styler(object):
             {% for r in head %}
             <tr>
                 {% for c in r %}
-                <{{c.type}} class="{{c.class}}">{{c.value}}
+                {% if c.is_visible != False %}
+                <{{c.type}} class="{{c.class}}" {{ c.attributes|join(" ") }}>{{c.value}}
+                {% endif %}
                 {% endfor %}
             </tr>
             {% endfor %}
@@ -119,8 +122,10 @@ class Styler(object):
             {% for r in body %}
             <tr>
                 {% for c in r %}
-                <{{c.type}} id="T_{{uuid}}{{c.id}}" class="{{c.class}}">
+                {% if c.is_visible != False %}
+                <{{c.type}} id="T_{{uuid}}{{c.id}}" class="{{c.class}}" {{ c.attributes|join(" ") }}>
                     {{ c.display_value }}
+                {% endif %}
                 {% endfor %}
             </tr>
             {% endfor %}
@@ -181,16 +186,19 @@ class Styler(object):
         BLANK_CLASS = "blank"
         BLANK_VALUE = ""
 
+        def format_attr(pair):
+            return "{key}={value}".format(**pair)
+
+        # for sparsifying a MultiIndex
+        idx_lengths = _get_level_lengths(self.index)
+        col_lengths = _get_level_lengths(self.columns)
+
         cell_context = dict()
 
         n_rlvls = self.data.index.nlevels
         n_clvls = self.data.columns.nlevels
         rlabels = self.data.index.tolist()
         clabels = self.data.columns.tolist()
-
-        idx_values = self.data.index.format(sparsify=False, adjoin=False,
-                                            names=False)
-        idx_values = lzip(*idx_values)
 
         if n_rlvls == 1:
             rlabels = [[x] for x in rlabels]
@@ -213,7 +221,13 @@ class Styler(object):
                 row_es.append({"type": "th",
                                "value": value,
                                "display_value": value,
-                               "class": " ".join(cs)})
+                               "class": " ".join(cs),
+                               "is_visible": _is_visible(c, r, col_lengths),
+                               "attributes": [
+                                   format_attr({"key": "colspan",
+                                                "value": col_lengths.get(
+                                                    (r, c), 1)})
+                               ]})
             head.append(row_es)
 
         if self.data.index.names and self.data.index.names != [None]:
@@ -236,12 +250,17 @@ class Styler(object):
 
         body = []
         for r, idx in enumerate(self.data.index):
-            cs = [ROW_HEADING_CLASS, "level%s" % c, "row%s" % r]
-            cs.extend(
-                cell_context.get("row_headings", {}).get(r, {}).get(c, []))
+            #  cs.extend(
+            #    cell_context.get("row_headings", {}).get(r, {}).get(c, []))
             row_es = [{"type": "th",
+                       "is_visible": _is_visible(r, c, idx_lengths),
+                       "attributes": [
+                           format_attr({"key": "rowspan",
+                                        "value": idx_lengths.get((c, r), 1)})
+                       ],
                        "value": rlabels[r][c],
-                       "class": " ".join(cs),
+                       "class": " ".join([ROW_HEADING_CLASS, "level%s" % c,
+                                          "row%s" % r]),
                        "display_value": rlabels[r][c]}
                       for c in range(len(rlabels[r]))]
 
@@ -891,6 +910,38 @@ class Styler(object):
                 extrema = data == data.min().min()
             return pd.DataFrame(np.where(extrema, attr, ''),
                                 index=data.index, columns=data.columns)
+
+
+def _is_visible(idx_row, idx_col, lengths):
+    """
+    Index -> {(idx_row, idx_col): bool})
+    """
+    return (idx_col, idx_row) in lengths
+
+
+def _get_level_lengths(index):
+    '''
+    Given an index, find the level lenght for each element.
+
+    Result is a dictionary of (level, inital_position): span
+    '''
+    sentinel = com.sentinel_factory()
+    levels = index.format(sparsify=sentinel, adjoin=False, names=False)
+
+    if index.nlevels == 1:
+        return {(0, i): 1 for i, value in enumerate(levels)}
+
+    lengths = {}
+
+    for i, lvl in enumerate(levels):
+        for j, row in enumerate(lvl):
+            if row != sentinel:
+                last_label = j
+                lengths[(i, last_label)] = 1
+            else:
+                lengths[(i, last_label)] += 1
+
+    return lengths
 
 
 def _maybe_wrap_formatter(formatter):
