@@ -694,6 +694,59 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
             with tm.assertRaises(TypeError):
                 read_html(self.spam_data, header=arg)
 
+    def test_converters(self):
+        # GH 13461
+        html_data = """<table>
+                        <thead>
+                            <th>Names</th>
+                            <th>C_l0_g0</th>
+                            <th>C_l0_g1</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <th>R_l0_g0</th>
+                            <td> 0.763</td>
+                            <td> 0.233</td>
+                            </tr>
+                            <tr>
+                            <th>R_l0_g1</th>
+                            <td> 0.244</td>
+                            <td> 0.285</td>
+                            </tr>
+                        </tbody>
+                    </table>"""
+        raw_data = np.array([[u'R_l0_g0', '0.763', 0.233],
+                             [u'R_l0_g1', '0.244', 0.285]], dtype=object)
+        html_df = read_html(html_data, converters={'C_l0_g0': str})[0]
+        tm.assert_numpy_array_equal(raw_data, html_df.values)
+
+    def test_na_values(self):
+        # GH 13461
+        html_data = """<table>
+                        <thead>
+                            <th>Names</th>
+                            <th>C_l0_g0</th>
+                            <th>C_l0_g1</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <th>R_l0_g0</th>
+                            <td> 0.763</td>
+                            <td> 0.233</td>
+                            </tr>
+                            <tr>
+                            <th>R_l0_g1</th>
+                            <td> 0.244</td>
+                            <td> 0.285</td>
+                            </tr>
+                        </tbody>
+                    </table>"""
+        raw_data = np.array([[u'R_l0_g0', 0.763, 0.233],
+                             [u'R_l0_g1', 0.244, np.nan]], dtype=object)
+        html_df = read_html(html_data, na_values=[0.285])[0]
+        tm.assert_numpy_array_equal(raw_data, html_df.values)
 
 def _lang_enc(filename):
     return os.path.splitext(os.path.basename(filename))[0].split('_')
