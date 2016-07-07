@@ -94,6 +94,23 @@ class TestSeriesSorting(TestData, tm.TestCase):
         assert_series_equal(sorted_series,
                             self.ts.reindex(self.ts.index[::-1]))
 
+        # compat on level
+        sorted_series = random_order.sort_index(level=0)
+        assert_series_equal(sorted_series, self.ts)
+
+        # compat on axis
+        sorted_series = random_order.sort_index(axis=0)
+        assert_series_equal(sorted_series, self.ts)
+
+        self.assertRaises(ValueError, lambda: random_order.sort_values(axis=1))
+
+        sorted_series = random_order.sort_index(level=0, axis=0)
+        assert_series_equal(sorted_series, self.ts)
+
+        self.assertRaises(ValueError,
+                          lambda: random_order.sort_index(level=0, axis=1))
+
+
     def test_sort_index_inplace(self):
 
         # For #11402
@@ -114,11 +131,8 @@ class TestSeriesSorting(TestData, tm.TestCase):
                       msg='sort_index() inplace should return None')
         assert_series_equal(random_order, self.ts)
 
-    def test_sort_API(self):
+    def test_sort_index_multiindex(self):
 
-        # API for 9816
-
-        # sortlevel
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         s = Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
@@ -126,22 +140,3 @@ class TestSeriesSorting(TestData, tm.TestCase):
         res = s.sort_index(level='A')
         assert_series_equal(backwards, res)
 
-        # sort_index
-        rindex = list(self.ts.index)
-        random.shuffle(rindex)
-
-        random_order = self.ts.reindex(rindex)
-        sorted_series = random_order.sort_index(level=0)
-        assert_series_equal(sorted_series, self.ts)
-
-        # compat on axis
-        sorted_series = random_order.sort_index(axis=0)
-        assert_series_equal(sorted_series, self.ts)
-
-        self.assertRaises(ValueError, lambda: random_order.sort_values(axis=1))
-
-        sorted_series = random_order.sort_index(level=0, axis=0)
-        assert_series_equal(sorted_series, self.ts)
-
-        self.assertRaises(ValueError,
-                          lambda: random_order.sort_index(level=0, axis=1))

@@ -118,6 +118,25 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         with assertRaisesRegexp(ValueError, msg):
             frame.sort_values(by=['A', 'B'], axis=0, ascending=[True] * 5)
 
+    def test_sort_values_inplace(self):
+        frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
+                          columns=['A', 'B', 'C', 'D'])
+
+        sorted_df = frame.copy()
+        sorted_df.sort_values(by='A', inplace=True)
+        expected = frame.sort_values(by='A')
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.copy()
+        sorted_df.sort_values(by='A', ascending=False, inplace=True)
+        expected = frame.sort_values(by='A', ascending=False)
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.copy()
+        sorted_df.sort_values(by=['A', 'B'], ascending=False, inplace=True)
+        expected = frame.sort_values(by=['A', 'B'], ascending=False)
+        assert_frame_equal(sorted_df, expected)
+
     def test_sort_index_categorical_index(self):
 
         df = (DataFrame({'A': np.arange(6, dtype='int64'),
@@ -348,25 +367,6 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         # also, Series!
         result = idf['C'].sort_index(ascending=[1, 0])
         assert_series_equal(result, expected['C'])
-
-    def test_sort_inplace(self):
-        frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
-                          columns=['A', 'B', 'C', 'D'])
-
-        sorted_df = frame.copy()
-        sorted_df.sort_values(by='A', inplace=True)
-        expected = frame.sort_values(by='A')
-        assert_frame_equal(sorted_df, expected)
-
-        sorted_df = frame.copy()
-        sorted_df.sort_values(by='A', ascending=False, inplace=True)
-        expected = frame.sort_values(by='A', ascending=False)
-        assert_frame_equal(sorted_df, expected)
-
-        sorted_df = frame.copy()
-        sorted_df.sort_values(by=['A', 'B'], ascending=False, inplace=True)
-        expected = frame.sort_values(by=['A', 'B'], ascending=False)
-        assert_frame_equal(sorted_df, expected)
 
     def test_sort_index_duplicates(self):
 
