@@ -137,6 +137,10 @@ class TestSeriesSorting(TestData, tm.TestCase):
         s = Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
 
+        # implicit sort_remaining=True
         res = s.sort_index(level='A')
         assert_series_equal(backwards, res)
 
+        # rows share same level='A': sort has no effect without remaining lvls
+        res = s.sort_index(level='A', sort_remaining=False)
+        assert_series_equal(s, res)
