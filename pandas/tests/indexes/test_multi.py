@@ -1750,12 +1750,12 @@ class TestMultiIndex(Base, tm.TestCase):
         exp_index2 = self.index.join(idx, level='second', how='left')
 
         self.assertTrue(target.equals(exp_index))
-        exp_indexer = np.array([0, 2, 4], dtype=np.int64)
-        tm.assert_numpy_array_equal(indexer, exp_indexer)
+        exp_indexer = np.array([0, 2, 4])
+        tm.assert_numpy_array_equal(indexer, exp_indexer, check_dtype=False)
 
         self.assertTrue(target2.equals(exp_index2))
-        exp_indexer2 = np.array([0, -1, 0, -1, 0, -1], dtype=np.int64)
-        tm.assert_numpy_array_equal(indexer2, exp_indexer2)
+        exp_indexer2 = np.array([0, -1, 0, -1, 0, -1])
+        tm.assert_numpy_array_equal(indexer2, exp_indexer2, check_dtype=False)
 
         assertRaisesRegexp(TypeError, "Fill method not supported",
                            self.index.reindex, self.index, method='pad',

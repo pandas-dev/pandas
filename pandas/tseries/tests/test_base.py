@@ -505,7 +505,8 @@ Freq: D"""
             ordered, indexer = idx.sort_values(return_indexer=True)
             self.assert_index_equal(ordered, idx)
             self.assert_numpy_array_equal(indexer,
-                                          np.array([0, 1, 2], dtype=np.int64))
+                                          np.array([0, 1, 2]),
+                                          check_dtype=False)
             self.assertEqual(ordered.freq, idx.freq)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
@@ -513,7 +514,8 @@ Freq: D"""
             expected = idx[::-1]
             self.assert_index_equal(ordered, expected)
             self.assert_numpy_array_equal(indexer,
-                                          np.array([2, 1, 0], dtype=np.int64))
+                                          np.array([2, 1, 0]),
+                                          check_dtype=False)
             self.assertEqual(ordered.freq, expected.freq)
             self.assertEqual(ordered.freq.n, -1)
 
@@ -550,16 +552,16 @@ Freq: D"""
             ordered, indexer = idx.sort_values(return_indexer=True)
             self.assert_index_equal(ordered, expected)
 
-            exp = np.array([0, 4, 3, 1, 2], dtype=np.int64)
-            self.assert_numpy_array_equal(indexer, exp)
+            exp = np.array([0, 4, 3, 1, 2])
+            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertIsNone(ordered.freq)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
             self.assert_index_equal(ordered, expected[::-1])
 
-            exp = np.array([2, 1, 3, 4, 0], dtype=np.int64)
-            self.assert_numpy_array_equal(indexer, exp)
+            exp = np.array([2, 1, 3, 4, 0])
+            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertIsNone(ordered.freq)
 
     def test_getitem(self):
@@ -1271,7 +1273,8 @@ Freq: D"""
             ordered, indexer = idx.sort_values(return_indexer=True)
             self.assert_index_equal(ordered, idx)
             self.assert_numpy_array_equal(indexer,
-                                          np.array([0, 1, 2], dtype=np.int64))
+                                          np.array([0, 1, 2]),
+                                          check_dtype=False)
             self.assertEqual(ordered.freq, idx.freq)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
@@ -1309,16 +1312,16 @@ Freq: D"""
             ordered, indexer = idx.sort_values(return_indexer=True)
             self.assert_index_equal(ordered, expected)
 
-            exp = np.array([0, 4, 3, 1, 2], dtype=np.int64)
-            self.assert_numpy_array_equal(indexer, exp)
+            exp = np.array([0, 4, 3, 1, 2])
+            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertIsNone(ordered.freq)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
             self.assert_index_equal(ordered, expected[::-1])
 
-            exp = np.array([2, 1, 3, 4, 0], dtype=np.int64)
-            self.assert_numpy_array_equal(indexer, exp)
+            exp = np.array([2, 1, 3, 4, 0])
+            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertIsNone(ordered.freq)
 
     def test_getitem(self):
@@ -2074,14 +2077,16 @@ Freq: Q-DEC"""
             ordered, indexer = idx.sort_values(return_indexer=True)
             self.assert_index_equal(ordered, idx)
             self.assert_numpy_array_equal(indexer,
-                                          np.array([0, 1, 2], dtype=np.int64))
+                                          np.array([0, 1, 2]),
+                                          check_dtype=False)
             _check_freq(ordered, idx)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
             self.assert_index_equal(ordered, idx[::-1])
             self.assert_numpy_array_equal(indexer,
-                                          np.array([2, 1, 0], dtype=np.int64))
+                                          np.array([2, 1, 0]),
+                                          check_dtype=False)
             _check_freq(ordered, idx[::-1])
 
         pidx = PeriodIndex(['2011', '2013', '2015', '2012',
@@ -2103,16 +2108,17 @@ Freq: Q-DEC"""
             ordered, indexer = idx.sort_values(return_indexer=True)
             self.assert_index_equal(ordered, expected)
 
-            exp = np.array([0, 4, 3, 1, 2], dtype=np.int64)
-            self.assert_numpy_array_equal(indexer, exp)
+            exp = np.array([0, 4, 3, 1, 2])
+            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             _check_freq(ordered, idx)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
             self.assert_index_equal(ordered, expected[::-1])
 
-            exp = np.array([2, 1, 3, 4, 0], dtype=np.int64)
-            self.assert_numpy_array_equal(indexer, exp)
+            exp = np.array([2, 1, 3, 4, 0])
+            self.assert_numpy_array_equal(indexer, exp,
+                                          check_dtype=False)
             _check_freq(ordered, idx)
 
         pidx = PeriodIndex(['2011', '2013', 'NaT', '2011'], name='pidx',
@@ -2148,7 +2154,8 @@ Freq: Q-DEC"""
             ordered, indexer = idx.sort_values(return_indexer=True)
             self.assert_index_equal(ordered, idx)
             self.assert_numpy_array_equal(indexer,
-                                          np.array([0, 1, 2], dtype=np.int64))
+                                          np.array([0, 1, 2]),
+                                          check_dtype=False)
             self.assertEqual(ordered.freq, idx.freq)
             self.assertEqual(ordered.freq, freq)
 
@@ -2157,7 +2164,8 @@ Freq: Q-DEC"""
             expected = idx[::-1]
             self.assert_index_equal(ordered, expected)
             self.assert_numpy_array_equal(indexer,
-                                          np.array([2, 1, 0], dtype=np.int64))
+                                          np.array([2, 1, 0]),
+                                          check_dtype=False)
             self.assertEqual(ordered.freq, expected.freq)
             self.assertEqual(ordered.freq, freq)
 
@@ -2191,16 +2199,16 @@ Freq: Q-DEC"""
             ordered, indexer = idx.sort_values(return_indexer=True)
             self.assert_index_equal(ordered, expected)
 
-            exp = np.array([0, 4, 3, 1, 2], dtype=np.int64)
-            self.assert_numpy_array_equal(indexer, exp)
+            exp = np.array([0, 4, 3, 1, 2])
+            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertEqual(ordered.freq, 'D')
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
             self.assert_index_equal(ordered, expected[::-1])
 
-            exp = np.array([2, 1, 3, 4, 0], dtype=np.int64)
-            self.assert_numpy_array_equal(indexer, exp)
+            exp = np.array([2, 1, 3, 4, 0])
+            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertEqual(ordered.freq, 'D')
 
     def test_getitem(self):

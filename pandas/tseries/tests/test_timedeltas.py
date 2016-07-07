@@ -1547,12 +1547,14 @@ class TestTimedeltaIndex(tm.TestCase):
         ordered, dexer = idx.sort_values(return_indexer=True)
         self.assertTrue(ordered.is_monotonic)
         self.assert_numpy_array_equal(dexer,
-                                      np.array([1, 2, 0], dtype=np.int64))
+                                      np.array([1, 2, 0]),
+                                      check_dtype=False)
 
         ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
         self.assertTrue(ordered[::-1].is_monotonic)
         self.assert_numpy_array_equal(dexer,
-                                      np.array([0, 2, 1], dtype=np.int64))
+                                      np.array([0, 2, 1]),
+                                      check_dtype=False)
 
     def test_insert(self):
 

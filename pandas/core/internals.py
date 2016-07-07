@@ -3085,7 +3085,7 @@ class BlockManager(PandasObject):
         # compute the orderings of our original data
         if len(self.blocks) > 1:
 
-            indexer = np.empty(len(self.axes[0]), dtype='int64')
+            indexer = np.empty(len(self.axes[0]), dtype=np.intp)
             i = 0
             for b in self.blocks:
                 for j in b.mgr_locs:

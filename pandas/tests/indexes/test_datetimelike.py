@@ -534,9 +534,9 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         # time indexing
         idx = pd.date_range('2000-01-01', periods=24, freq='H')
         tm.assert_numpy_array_equal(idx.get_loc(time(12)),
-                                    np.array([12], dtype=np.int64))
+                                    np.array([12]), check_dtype=False)
         tm.assert_numpy_array_equal(idx.get_loc(time(12, 30)),
-                                    np.array([], dtype=np.int64))
+                                    np.array([]), check_dtype=False)
         with tm.assertRaises(NotImplementedError):
             idx.get_loc(time(12, 30), method='pad')
 
@@ -587,7 +587,8 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
             ts = pd.Series(np.random.randn(n), index=idx)
             i = np.arange(start, n, step)
 
-            tm.assert_numpy_array_equal(ts.index.get_loc(key), i)
+            tm.assert_numpy_array_equal(ts.index.get_loc(key), i,
+                                        check_dtype=False)
             tm.assert_series_equal(ts[key], ts.iloc[i])
 
             left, right = ts.copy(), ts.copy()
