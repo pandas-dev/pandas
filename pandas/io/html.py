@@ -848,12 +848,12 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         input argument, the cell (not column) content, and return the
         transformed content.
 
-        .. versionadded:: 0.19.0
+        .. versionadded:: 0.18.2
 
     na_values : iterable, default None
         Custom NA values
 
-        .. versionadded:: 0.19.0
+        .. versionadded:: 0.18.2
 
     Returns
     -------
