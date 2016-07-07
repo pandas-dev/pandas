@@ -3407,7 +3407,7 @@ class NDFrameGroupBy(GroupBy):
                 # only coerce dates if we find at least 1 datetime
                 coerce = True if any([isinstance(x, Timestamp)
                                       for x in values]) else False
-                return (Series(values, index=key_index, name=self.name)
+                return (Series(values, index=key_index)
                         ._convert(datetime=True,
                                   coerce=coerce))
 

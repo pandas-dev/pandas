@@ -2584,6 +2584,16 @@ class TestGroupBy(tm.TestCase):
         result = self.df.groupby(['A', 'B'])['C'].apply(len)
         self.assertEqual(result.index.names[:2], ('A', 'B'))
 
+    def test_apply_frame_yield_constant(self):
+        # GH13568
+        result = self.df.groupby(['A', 'B']).apply(len)
+        self.assertTrue(isinstance(result, Series))
+        self.assertIsNone(result.name)
+
+        result = self.df.groupby(['A', 'B'])[['C', 'D']].apply(len)
+        self.assertTrue(isinstance(result, Series))
+        self.assertIsNone(result.name)
+
     def test_apply_frame_to_series(self):
         grouped = self.df.groupby(['A', 'B'])
         result = grouped.apply(len)
