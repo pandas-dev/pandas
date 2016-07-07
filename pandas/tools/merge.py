@@ -436,7 +436,8 @@ def merge_asof(left, right, on=None,
         # if we DO have duplicates, then
         # we cannot guarantee order
 
-        sorter = np.concatenate([groupby.indices[g] for g, _ in groupby])
+        sorter = com._ensure_platform_int(
+            np.concatenate([groupby.indices[g] for g, _ in groupby]))
         if len(result) != len(sorter):
             if check_duplicates:
                 raise AssertionError("invalid reverse grouping")

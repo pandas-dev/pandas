@@ -3754,11 +3754,11 @@ except:
 
 def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     cdef:
-        ndarray[int64_t] utc_dates, tt, result, trans, deltas, posn
+        ndarray[int64_t] utc_dates, tt, result, trans, deltas
         Py_ssize_t i, j, pos, n = len(vals)
-        int64_t v, offset
+        ndarray[Py_ssize_t] posn
+        int64_t v, offset, delta
         pandas_datetimestruct dts
-        Py_ssize_t trans_len
 
     if not have_pytz:
         import pytz
@@ -3790,7 +3790,6 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             if not len(tt):
                 return vals
 
-            trans_len = len(trans)
             posn = trans.searchsorted(tt, side='right')
             j = 0
             for i in range(n):
@@ -3826,18 +3825,19 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
 
     # Convert UTC to other timezone
     trans, deltas, typ = _get_dst_info(tz2)
-    trans_len = len(trans)
-
-    # if all NaT, return all NaT
-    if (utc_dates==NPY_NAT).all():
-        return utc_dates
 
     # use first non-NaT element
     # if all-NaT, return all-NaT
     if (result==NPY_NAT).all():
         return result
 
-    posn = trans.searchsorted(utc_dates[utc_dates!=NPY_NAT], side='right')
+    # if all NaT, return all NaT
+    tt = utc_dates[utc_dates!=NPY_NAT]
+    if not len(tt):
+        return utc_dates
+
+    posn = trans.searchsorted(tt, side='right')
+
     j = 0
     for i in range(n):
         v = utc_dates[i]
