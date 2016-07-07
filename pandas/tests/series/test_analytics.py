@@ -262,7 +262,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                 self.assertTrue((df.kurt() == 0).all())
 
     def test_argsort(self):
-        self._check_accum_op('argsort')
+        self._check_accum_op('argsort', check_dtype=False)
         argsorted = self.ts.argsort()
         self.assertTrue(issubclass(argsorted.dtype.type, np.integer))
 
@@ -289,8 +289,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         mexpected = np.argsort(s.values, kind='mergesort')
         qexpected = np.argsort(s.values, kind='quicksort')
 
-        self.assert_series_equal(mindexer, Series(mexpected))
-        self.assert_series_equal(qindexer, Series(qexpected))
+        self.assert_series_equal(mindexer, Series(mexpected),
+                                 check_dtype=False)
+        self.assert_series_equal(qindexer, Series(qexpected),
+                                 check_dtype=False)
         self.assertFalse(np.array_equal(qindexer, mindexer))
 
     def test_cumsum(self):
@@ -487,10 +489,11 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         except ImportError:
             pass
 
-    def _check_accum_op(self, name):
+    def _check_accum_op(self, name, check_dtype=True):
         func = getattr(np, name)
         self.assert_numpy_array_equal(func(self.ts).values,
-                                      func(np.array(self.ts)))
+                                      func(np.array(self.ts)),
+                                      check_dtype=check_dtype)
 
         # with missing values
         ts = self.ts.copy()
@@ -499,7 +502,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = func(ts)[1::2]
         expected = func(np.array(ts.valid()))
 
-        self.assert_numpy_array_equal(result.values, expected)
+        self.assert_numpy_array_equal(result.values, expected,
+                                      check_dtype=False)
 
     def test_compress(self):
         cond = [True, False, True, False, False]
@@ -1360,13 +1364,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertEqual(r, e)
 
         r = s.searchsorted([30])
-        e = np.array([2], dtype=np.int64)
+        e = np.array([2], dtype=np.intp)
         tm.assert_numpy_array_equal(r, e)
 
     def test_searchsorted_numeric_dtypes_vector(self):
         s = Series([1, 2, 90, 1000, 3e9])
         r = s.searchsorted([91, 2e6])
-        e = np.array([3, 4], dtype=np.int64)
+        e = np.array([3, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(r, e)
 
     def test_search_sorted_datetime64_scalar(self):
@@ -1380,14 +1384,14 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series(pd.date_range('20120101', periods=10, freq='2D'))
         v = [pd.Timestamp('20120102'), pd.Timestamp('20120104')]
         r = s.searchsorted(v)
-        e = np.array([1, 2], dtype=np.int64)
+        e = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(r, e)
 
     def test_searchsorted_sorter(self):
         # GH8490
         s = Series([3, 1, 2])
         r = s.searchsorted([0, 3], sorter=np.argsort(s))
-        e = np.array([0, 2], dtype=np.int64)
+        e = np.array([0, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(r, e)
 
     def test_is_unique(self):

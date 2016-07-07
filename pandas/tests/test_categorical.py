@@ -515,17 +515,20 @@ class TestCategorical(tm.TestCase):
     def test_argsort(self):
         c = Categorical([5, 3, 1, 4, 2], ordered=True)
 
-        expected = np.array([2, 4, 1, 3, 0], dtype=np.int64)
-        tm.assert_numpy_array_equal(c.argsort(ascending=True), expected)
+        expected = np.array([2, 4, 1, 3, 0])
+        tm.assert_numpy_array_equal(c.argsort(ascending=True), expected,
+                                    check_dtype=False)
 
         expected = expected[::-1]
-        tm.assert_numpy_array_equal(c.argsort(ascending=False), expected)
+        tm.assert_numpy_array_equal(c.argsort(ascending=False), expected,
+                                    check_dtype=False)
 
     def test_numpy_argsort(self):
         c = Categorical([5, 3, 1, 4, 2], ordered=True)
 
-        expected = np.array([2, 4, 1, 3, 0], dtype=np.int64)
-        tm.assert_numpy_array_equal(np.argsort(c), expected)
+        expected = np.array([2, 4, 1, 3, 0])
+        tm.assert_numpy_array_equal(np.argsort(c), expected,
+                                    check_dtype=False)
 
         msg = "the 'kind' parameter is not supported"
         tm.assertRaisesRegexp(ValueError, msg, np.argsort,
@@ -1505,7 +1508,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # Single item array
         res = c1.searchsorted(['bread'])
         chk = s1.searchsorted(['bread'])
-        exp = np.array([1], dtype=np.int64)
+        exp = np.array([1], dtype=np.intp)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
@@ -1514,21 +1517,21 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # np.array.searchsorted()
         res = c1.searchsorted('bread')
         chk = s1.searchsorted('bread')
-        exp = np.array([1], dtype=np.int64)
+        exp = np.array([1], dtype=np.intp)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
         # Searching for a value that is not present in the Categorical
         res = c1.searchsorted(['bread', 'eggs'])
         chk = s1.searchsorted(['bread', 'eggs'])
-        exp = np.array([1, 4], dtype=np.int64)
+        exp = np.array([1, 4], dtype=np.intp)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
         # Searching for a value that is not present, to the right
         res = c1.searchsorted(['bread', 'eggs'], side='right')
         chk = s1.searchsorted(['bread', 'eggs'], side='right')
-        exp = np.array([3, 4], dtype=np.int64)  # eggs before milk
+        exp = np.array([3, 4], dtype=np.intp)  # eggs before milk
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
@@ -1538,7 +1541,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         chk = s2.searchsorted(['bread', 'eggs'], side='right',
                               sorter=[0, 1, 2, 3, 5, 4])
         # eggs after donuts, after switching milk and donuts
-        exp = np.array([3, 5], dtype=np.int64)
+        exp = np.array([3, 5], dtype=np.intp)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
