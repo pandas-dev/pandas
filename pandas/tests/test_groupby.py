@@ -5934,49 +5934,49 @@ class TestGroupBy(tm.TestCase):
         result = _nargsort(items, kind='mergesort', ascending=True,
                            na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='first'
         result = _nargsort(items, kind='mergesort', ascending=True,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='last'
         result = _nargsort(items, kind='mergesort', ascending=False,
                            na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='first'
         result = _nargsort(items, kind='mergesort', ascending=False,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='last'
         result = _nargsort(items2, kind='mergesort', ascending=True,
                            na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='first'
         result = _nargsort(items2, kind='mergesort', ascending=True,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='last'
         result = _nargsort(items2, kind='mergesort', ascending=False,
                            na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='first'
         result = _nargsort(items2, kind='mergesort', ascending=False,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
     def test_datetime_count(self):
         df = DataFrame({'a': [1, 2, 3] * 2,
