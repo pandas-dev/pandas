@@ -165,6 +165,12 @@ class GbqConnector(object):
         from oauth2client.client import OAuth2WebServerFlow
         from oauth2client.file import Storage
         from oauth2client.tools import run_flow, argparser
+        from oauth2client.client import GoogleCredentials, ApplicationDefaultCredentialsError
+
+        try:
+            return GoogleCredentials.get_application_default()
+        except ApplicationDefaultCredentialsError:
+            pass
 
         flow = OAuth2WebServerFlow(
             client_id=('495642085510-k0tmvj2m941jhre2nbqka17vqpjfddtd'
