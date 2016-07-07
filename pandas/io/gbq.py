@@ -46,8 +46,12 @@ def _test_google_api_imports():
 
     try:
         import httplib2  # noqa
-        from apiclient.discovery import build  # noqa
-        from apiclient.errors import HttpError  # noqa
+        try:
+            from googleapiclient.discovery import build  # noqa
+            from googleapiclient.errors import HttpError  # noqa
+        except:
+            from apiclient.discovery import build  # noqa
+            from apiclient.errors import HttpError  # noqa
         from oauth2client.client import AccessTokenRefreshError  # noqa
         from oauth2client.client import OAuth2WebServerFlow  # noqa
         from oauth2client.file import Storage  # noqa
@@ -266,7 +270,10 @@ class GbqConnector(object):
 
     def get_service(self):
         import httplib2
-        from apiclient.discovery import build
+        try:
+            from googleapiclient.discovery import build
+        except:
+            from apiclient.discovery import build
 
         http = httplib2.Http()
         http = self.credentials.authorize(http)
@@ -315,7 +322,10 @@ class GbqConnector(object):
         raise StreamingInsertError
 
     def run_query(self, query):
-        from apiclient.errors import HttpError
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
         from oauth2client.client import AccessTokenRefreshError
 
         _check_google_client_version()
@@ -420,7 +430,10 @@ class GbqConnector(object):
         return schema, result_pages
 
     def load_data(self, dataframe, dataset_id, table_id, chunksize):
-        from apiclient.errors import HttpError
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
 
         job_id = uuid.uuid4().hex
         rows = []
@@ -474,7 +487,10 @@ class GbqConnector(object):
         self._print("\n")
 
     def verify_schema(self, dataset_id, table_id, schema):
-        from apiclient.errors import HttpError
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
 
         try:
             return (self.service.tables().get(
@@ -765,7 +781,10 @@ class _Table(GbqConnector):
 
     def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
                  private_key=None):
-        from apiclient.errors import HttpError
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
         self.http_error = HttpError
         self.dataset_id = dataset_id
         super(_Table, self).__init__(project_id, reauth, verbose, private_key)
@@ -865,7 +884,10 @@ class _Dataset(GbqConnector):
 
     def __init__(self, project_id, reauth=False, verbose=False,
                  private_key=None):
-        from apiclient.errors import HttpError
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
         self.http_error = HttpError
         super(_Dataset, self).__init__(project_id, reauth, verbose,
                                        private_key)
