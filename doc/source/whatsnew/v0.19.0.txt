@@ -43,7 +43,7 @@ Backwards incompatible API changes
 .. _whatsnew_0190.api:
 
 
-
+- Concating multiple objects will no longer result in automatically upcast to `float64`, and instead try to find the smallest `dtype` that would suffice (:issue:`13247`)
 
 
 

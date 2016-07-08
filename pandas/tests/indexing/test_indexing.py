@@ -4035,11 +4035,11 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         self.assertRaises(ValueError, f)
 
-        # these are coerced to float unavoidably (as its a list-like to begin)
+        # these are coerced to object unavoidably (as its a list-like to begin)
         df = DataFrame(columns=['A', 'B'])
         df.loc[3] = [6, 7]
         assert_frame_equal(df, DataFrame(
-            [[6, 7]], index=[3], columns=['A', 'B'], dtype='float64'))
+            [[6, 7]], index=[3], columns=['A', 'B'], dtype='object'))
 
     def test_partial_setting_with_datetimelike_dtype(self):
 
