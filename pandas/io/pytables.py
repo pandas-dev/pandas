@@ -276,7 +276,7 @@ def read_hdf(path_or_buf, key=None, **kwargs):
         path_or_buf : path (string), buffer, or path object (pathlib.Path or
             py._path.local.LocalPath) to read from
 
-            .. versionadded:: 0.18.2 support for pathlib, py.path.
+            .. versionadded:: 0.19.0 support for pathlib, py.path.
 
         key : group identifier in the store. Can be omitted a HDF file contains
             a single pandas object.

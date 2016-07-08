@@ -837,7 +837,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         Character to recognize as decimal point (e.g. use ',' for European
         data).
 
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
     Returns
     -------

@@ -378,7 +378,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _deepcopy_if_needed(self, orig, copy=False):
         """
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
         Make a copy of self if data coincides (in memory) with orig.
         Subclasses should override this if self._base is not an ndarray.
@@ -494,7 +494,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def where(self, cond, other=None):
         """
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from
@@ -813,7 +813,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             satisfied, the original data is used to create a new Index
             or the original Index is returned.
 
-            .. versionadded:: 0.18.2
+            .. versionadded:: 0.19.0
 
         """
 

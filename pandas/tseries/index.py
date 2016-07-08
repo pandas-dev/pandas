@@ -1857,7 +1857,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             - 'coerce' will return NaT if the timestamp can not be converted
               into the specified timezone
 
-            .. versionadded:: 0.18.2
+            .. versionadded:: 0.19.0
 
         infer_dst : boolean, default False (DEPRECATED)
             Attempt to infer fall dst-transition hours based on order

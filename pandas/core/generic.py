@@ -3642,7 +3642,7 @@ class NDFrame(PandasObject):
         The last row without any NaN is taken (or the last row without
         NaN considering only the subset of columns in the case of a DataFrame)
 
-        .. versionadded:: 0.18.2 For DataFrame
+        .. versionadded:: 0.19.0 For DataFrame
 
         If there is no good value, NaN is returned.
 

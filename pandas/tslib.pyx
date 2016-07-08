@@ -246,7 +246,7 @@ class Timestamp(_Timestamp):
     :func:`datetime.datetime` Parameters
     ------------------------------------
 
-    .. versionadded:: 0.18.2
+    .. versionadded:: 0.19.0
 
     year : int
     month : int
@@ -539,7 +539,7 @@ class Timestamp(_Timestamp):
             - 'coerce' will return NaT if the timestamp can not be converted
               into the specified timezone
 
-              .. versionadded:: 0.18.2
+              .. versionadded:: 0.19.0
 
         Returns
         -------
