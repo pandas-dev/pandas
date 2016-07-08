@@ -80,8 +80,10 @@ def _test_imports():
                 from apiclient.discovery import build  # noqa
                 from apiclient.errors import HttpError  # noqa
 
+            from oauth2client.client import GoogleCredentials  # noqa
             from oauth2client.client import OAuth2WebServerFlow  # noqa
             from oauth2client.client import AccessTokenRefreshError  # noqa
+            from oauth2client.client import ApplicationDefaultCredentialsError # noqa
 
             from oauth2client.file import Storage  # noqa
             from oauth2client.tools import run_flow  # noqa

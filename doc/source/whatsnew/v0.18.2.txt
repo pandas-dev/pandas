@@ -223,6 +223,7 @@ Other enhancements
 - A ``union_categorical`` function has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`)
 - ``eval``'s upcasting rules for ``float32`` types have been updated to be more consistent with NumPy's rules.  New behavior will not upcast to ``float64`` if you multiply a pandas ``float32`` object by a scalar float64. (:issue:`12388`)
 - ``Series`` has gained the properties ``.is_monotonic``, ``.is_monotonic_increasing``, ``.is_monotonic_decreasing``, similar to ``Index`` (:issue:`13336`)
+- The ``.get_credentials()`` method of ``GbqConnector`` can now first try to fetch the default credentials for Google Compute Engine without the need to run ``OAuth2WebServerFlow`` - if private_key is not provided (:issue:`13577`)
 
 .. _whatsnew_0182.api:
 
