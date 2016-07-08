@@ -313,7 +313,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
     def where(self, cond, other=None):
         """
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from

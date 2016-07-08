@@ -206,7 +206,7 @@ def union_categoricals(to_union):
     Combine list-like of Categoricals, unioning categories. All
     must have the same dtype, and none can be ordered.
 
-    .. versionadded 0.18.2
+    .. versionadded:: 0.19.0
 
     Parameters
     ----------

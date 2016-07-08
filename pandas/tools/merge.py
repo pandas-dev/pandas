@@ -182,7 +182,7 @@ def merge_ordered(left, right, on=None,
         * outer: use union of keys from both frames (SQL: full outer join)
         * inner: use intersection of keys from both frames (SQL: inner join)
 
-        .. versionadded 0.18.2
+        .. versionadded:: 0.19.0
 
     Examples
     --------
@@ -263,7 +263,7 @@ def merge_asof(left, right, on=None,
     Optionally perform group-wise merge. This searches for the nearest match
     on the 'on' key within the same group according to 'by'.
 
-    .. versionadded 0.18.2
+    .. versionadded:: 0.19.0
 
     Parameters
     ----------
