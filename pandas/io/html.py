@@ -611,10 +611,10 @@ def _expand_elements(body):
         body[ind] += empty * (lens_max - length)
 
 
-def _data_to_frame(data, header, index_col, skiprows,
-                   parse_dates, tupleize_cols, thousands,
-                   decimal, converters, na_values):
-    head, body, foot = data
+def _data_to_frame(**kwargs):
+    head, body, foot = kwargs.pop('data')
+    header = kwargs.pop('header')
+    kwargs['skiprows'] = _get_skiprows(kwargs['skiprows'])
 
     if head:
         body = [head] + body
@@ -628,11 +628,7 @@ def _data_to_frame(data, header, index_col, skiprows,
     # fill out elements of body that are "ragged"
     _expand_elements(body)
 
-    tp = TextParser(body, header=header, index_col=index_col,
-                    skiprows=_get_skiprows(skiprows),
-                    parse_dates=parse_dates, tupleize_cols=tupleize_cols,
-                    thousands=thousands, decimal=decimal,
-                    converters=converters, na_values=na_values)
+    tp = TextParser(body, header=header, **kwargs)
     df = tp.read()
     return df
 
@@ -717,9 +713,9 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, header, index_col, skiprows,
-           parse_dates, tupleize_cols, thousands, attrs, encoding,
-           decimal, converters, na_values):
+def _parse(flavor, io, match,
+           attrs, encoding,
+           **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
@@ -741,17 +737,7 @@ def _parse(flavor, io, match, header, index_col, skiprows,
     ret = []
     for table in tables:
         try:
-            ret.append(_data_to_frame(data=table,
-                                      header=header,
-                                      index_col=index_col,
-                                      skiprows=skiprows,
-                                      parse_dates=parse_dates,
-                                      tupleize_cols=tupleize_cols,
-                                      thousands=thousands,
-                                      decimal=decimal,
-                                      converters=converters,
-                                      na_values=na_values
-                                      ))
+            ret.append(_data_to_frame(data=table, **kwargs))
         except EmptyDataError:  # empty table
             continue
     return ret
@@ -760,7 +746,8 @@ def _parse(flavor, io, match, header, index_col, skiprows,
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
               tupleize_cols=False, thousands=',', encoding=None,
-              decimal='.', converters=None, na_values=None):
+              decimal='.', converters=None, na_values=None,
+              keep_default_na=True, squeeze=False, date_parser=None):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -848,12 +835,27 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         input argument, the cell (not column) content, and return the
         transformed content.
 
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
     na_values : iterable, default None
         Custom NA values
 
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
+
+    keep_default_na : bool, default True
+        If na_values are specified and keep_default_na is False the default NaN
+        values are overridden, otherwise they're appended to
+
+        .. versionadded:: 0.19.0
+
+    squeeze : boolean, default False
+        If the parsed data only contains one column then return a Series
+
+        .. versionadded:: 0.19.0
+
+    date_parser : function, default None
+
+        .. versionadded:: 0.19.0
 
     Returns
     -------
@@ -897,6 +899,10 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         raise ValueError('cannot skip rows starting from the end of the '
                          'data (you passed a negative value)')
     _validate_header_arg(header)
-    return _parse(flavor, io, match, header, index_col, skiprows,
-                  parse_dates, tupleize_cols, thousands, attrs, encoding,
-                  decimal, converters, na_values)
+    return _parse(flavor=flavor, io=io, match=match, header=header,
+                  index_col=index_col, skiprows=skiprows,
+                  parse_dates=parse_dates, tupleize_cols=tupleize_cols,
+                  thousands=thousands, attrs=attrs, encoding=encoding,
+                  decimal=decimal, converters=converters, na_values=na_values,
+                  keep_default_na=keep_default_na, squeeze=squeeze,
+                  date_parser=date_parser)

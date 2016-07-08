@@ -4,6 +4,7 @@ import glob
 import os
 import re
 import warnings
+from datetime import datetime
 
 try:
     from importlib import import_module
@@ -24,6 +25,7 @@ from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
 from pandas.io.common import URLError, urlopen, file_path_to_url
 from pandas.io.html import read_html
 from pandas.parser import CParserError
+from pandas.io.date_converters import parse_date_time
 
 import pandas.util.testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf, network
@@ -698,55 +700,110 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         # GH 13461
         html_data = """<table>
                         <thead>
-                            <th>Names</th>
-                            <th>C_l0_g0</th>
-                            <th>C_l0_g1</th>
+                            <th>a</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                            <th>R_l0_g0</th>
                             <td> 0.763</td>
-                            <td> 0.233</td>
                             </tr>
                             <tr>
-                            <th>R_l0_g1</th>
                             <td> 0.244</td>
-                            <td> 0.285</td>
                             </tr>
                         </tbody>
                     </table>"""
-        raw_data = np.array([[u'R_l0_g0', '0.763', 0.233],
-                             [u'R_l0_g1', '0.244', 0.285]], dtype=object)
-        html_df = read_html(html_data, converters={'C_l0_g0': str})[0]
-        tm.assert_numpy_array_equal(raw_data, html_df.values)
+
+        expected_df = DataFrame({'a': ['0.763', '0.244']})
+        html_df = read_html(html_data, converters={'a': str})[0]
+        tm.assert_frame_equal(expected_df, html_df)
 
     def test_na_values(self):
         # GH 13461
         html_data = """<table>
                         <thead>
-                            <th>Names</th>
-                            <th>C_l0_g0</th>
-                            <th>C_l0_g1</th>
+                            <th>a</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                            <th>R_l0_g0</th>
                             <td> 0.763</td>
-                            <td> 0.233</td>
                             </tr>
                             <tr>
-                            <th>R_l0_g1</th>
                             <td> 0.244</td>
-                            <td> 0.285</td>
                             </tr>
                         </tbody>
                     </table>"""
-        raw_data = np.array([[u'R_l0_g0', 0.763, 0.233],
-                             [u'R_l0_g1', 0.244, np.nan]], dtype=object)
-        html_df = read_html(html_data, na_values=[0.285])[0]
-        tm.assert_numpy_array_equal(raw_data, html_df.values)
+
+        expected_df = DataFrame({'a': [0.763, np.nan]})
+        html_df = read_html(html_data, na_values=[0.244])[0]
+        tm.assert_frame_equal(expected_df, html_df)
+
+    def test_keep_default_na(self):
+        html_data = """<table>
+                        <thead>
+                            <th>a</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <td> N/A</td>
+                            </tr>
+                            <tr>
+                            <td> NA</td>
+                            </tr>
+                        </tbody>
+                    </table>"""
+
+        expected_df = DataFrame({'a': ['N/A', 'NA']})
+        html_df = read_html(html_data, keep_default_na=False)[0]
+        tm.assert_frame_equal(expected_df, html_df)
+
+        expected_df = DataFrame({'a': [np.nan, np.nan]})
+        html_df = read_html(html_data, keep_default_na=True)[0]
+        tm.assert_frame_equal(expected_df, html_df)
+
+    def test_squeeze(self):
+        html_data = """<table>
+                        <thead>
+                            <th>a</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <td> 0.763</td>
+                            </tr>
+                        </tbody>
+                    </table>"""
+
+        expected_s = Series({0: 0.763}, name='a')
+        html_s = read_html(html_data, squeeze=True)[0]
+        tm.assert_series_equal(expected_s, html_s)
+
+    def test_date_parser(self):
+        html_data = """<table>
+                        <thead>
+                            <th>date</th>
+                            <th>time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <td> 2001-01-05</td>
+                            <td> 10:00:00</td>
+                            </tr>
+                            <tr>
+                            <td> 2001-01-05</td>
+                            <td> 00:00:00</td>
+                            </tr>
+                        </tbody>
+                    </table>"""
+
+        datecols = {'date_time': [0, 1]}
+        df = read_html(html_data, header=0,
+                       parse_dates=datecols,
+                       date_parser=parse_date_time)[0]
+        self.assertIn('date_time', df)
+        self.assertEqual(df.date_time.ix[0], datetime(2001, 1, 5, 10, 0, 0))
 
 
 def _lang_enc(filename):
