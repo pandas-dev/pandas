@@ -2239,8 +2239,12 @@ class Datetime64Formatter(GenericArrayFormatter):
         """ we by definition have DO NOT have a TZ """
 
         values = self.values
+
         if not isinstance(values, DatetimeIndex):
             values = DatetimeIndex(values)
+
+        if self.formatter is not None and callable(self.formatter):
+            return [self.formatter(x) for x in values]
 
         fmt_values = format_array_from_datetime(
             values.asi8.ravel(),
