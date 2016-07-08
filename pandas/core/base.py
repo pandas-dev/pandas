@@ -1001,7 +1001,7 @@ class IndexOpsMixin(object):
         Return boolean if values in the object are
         monotonic_increasing
 
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
         Returns
         -------
@@ -1017,7 +1017,7 @@ class IndexOpsMixin(object):
         Return boolean if values in the object are
         monotonic_decreasing
 
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
         Returns
         -------
