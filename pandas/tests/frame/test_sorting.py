@@ -76,8 +76,8 @@ class TestDataFrameSorting(tm.TestCase, TestData):
             frame.sort()
 
     def test_sort_values(self):
-        frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
-                          columns=['A', 'B', 'C', 'D'])
+        frame = DataFrame([[1, 1, 2], [3, 1, 0], [4, 5, 6]],
+                          index=[1, 2, 3], columns=list('ABC'))
 
         # by column
         sorted_df = frame.sort_values(by='A')
@@ -97,15 +97,16 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         sorted_df = frame.sort_values(by=['A'], ascending=[False])
         assert_frame_equal(sorted_df, expected)
 
-        # check for now
-        sorted_df = frame.sort_values(by='A')
-        assert_frame_equal(sorted_df, expected[::-1])
-        expected = frame.sort_values(by='A')
+        # multiple bys
+        sorted_df = frame.sort_values(by=['B', 'C'])
+        expected = frame.loc[[2, 1, 3]]
         assert_frame_equal(sorted_df, expected)
 
-        expected = frame.sort_values(by=['A', 'B'], ascending=False)
-        sorted_df = frame.sort_values(by=['A', 'B'])
+        sorted_df = frame.sort_values(by=['B', 'C'], ascending=False)
         assert_frame_equal(sorted_df, expected[::-1])
+
+        sorted_df = frame.sort_values(by=['B', 'A'], ascending=[True, False])
+        assert_frame_equal(sorted_df, expected)
 
         self.assertRaises(ValueError, lambda: frame.sort_values(
             by=['A', 'B'], axis=2, inplace=True))
