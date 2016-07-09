@@ -201,7 +201,7 @@ def _concat_categorical(to_concat, axis=0):
         return Categorical(concatted, rawcats)
 
 
-def union_categoricals(to_union):
+def union_categoricals(to_union, masks=None):
     """
     Combine list-like of Categoricals, unioning categories. All
     must have the same dtype, and none can be ordered.
@@ -211,6 +211,10 @@ def union_categoricals(to_union):
     Parameters
     ----------
     to_union : list-like of Categoricals
+    masks: list-like of boolean arrays, all of same shape
+        They indicate where to position the values: their shape will be the
+        shape of the returned array. If None, members of "to_union" will be
+        just concatenated.
 
     Returns
     -------
@@ -243,11 +247,17 @@ def union_categoricals(to_union):
     unique_cats = cats.append([c.categories for c in to_union[1:]]).unique()
     categories = Index(unique_cats)
 
-    new_codes = []
-    for c in to_union:
-        indexer = categories.get_indexer(c.categories)
-        new_codes.append(indexer.take(c.codes))
-    codes = np.concatenate(new_codes)
+    if masks is None:
+        new_codes = []
+        for c in to_union:
+            indexer = categories.get_indexer(c.categories)
+            new_codes.append(indexer.take(c.codes))
+        codes = np.concatenate(new_codes)
+    else:
+        codes = np.empty(shape=masks[0].shape, dtype=first.codes.dtype)
+        for c, mask in zip(to_union, masks):
+            indexer = categories.get_indexer(c.categories)
+            codes[mask] = indexer.take(c.codes)
     return Categorical(codes, categories=categories, ordered=False,
                        fastpath=True)
 

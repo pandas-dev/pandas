@@ -8,6 +8,7 @@ from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg)
 from pandas.core.config import get_option
 from pandas.indexes.base import Index, _index_shared_docs
+from pandas.types.concat import union_categoricals
 import pandas.core.base as base
 import pandas.core.common as com
 import pandas.core.missing as missing
@@ -574,6 +575,33 @@ class CategoricalIndex(Index, base.PandasDelegate):
         to_concat = [self._is_dtype_compat(c) for c in to_concat]
         codes = np.concatenate([c.codes for c in to_concat])
         return self._create_from_codes(codes, name=name)
+
+    def _join_non_unique(self, other, how='left', return_indexers=False):
+        """
+        Must be overridden because np.putmask() does not work on Categorical.
+        """
+
+        from pandas.tools.merge import _get_join_indexers
+
+        left_idx, right_idx = _get_join_indexers([self.values],
+                                                 [other._values], how=how,
+                                                 sort=True)
+
+        left_idx = com._ensure_platform_int(left_idx)
+        right_idx = com._ensure_platform_int(right_idx)
+
+        take_left = left_idx != -1
+
+        join_index = union_categoricals([self.values[left_idx[take_left]],
+                                         other._values[right_idx[~take_left]]],
+                                        masks=[take_left, ~take_left])
+
+        join_index = self._wrap_joined_index(join_index, other)
+
+        if return_indexers:
+            return join_index, left_idx, right_idx
+        else:
+            return join_index
 
     @classmethod
     def _add_comparison_methods(cls):
