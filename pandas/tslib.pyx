@@ -2615,7 +2615,7 @@ class Timedelta(_Timedelta):
 
         if value is None:
             if not len(kwargs):
-                raise ValueError("cannot construct a TimeDelta without a value/unit or descriptive keywords (days,seconds....)")
+                raise ValueError("cannot construct a Timedelta without a value/unit or descriptive keywords (days,seconds....)")
 
             def _to_py_int_float(v):
                 if is_integer_object(v):
@@ -2630,7 +2630,7 @@ class Timedelta(_Timedelta):
                 nano = kwargs.pop('nanoseconds',0)
                 value = convert_to_timedelta64(timedelta(**kwargs),'ns',False) + nano
             except TypeError as e:
-                raise ValueError("cannot construct a TimeDelta from the passed arguments, allowed keywords are "
+                raise ValueError("cannot construct a Timedelta from the passed arguments, allowed keywords are "
                                  "[weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds]")
 
         if isinstance(value, Timedelta):

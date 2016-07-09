@@ -137,12 +137,12 @@ class TestTimedeltas(tm.TestCase):
         self.assertRaises(ValueError, lambda: Timedelta('3.1415'))
 
         # invalid construction
-        tm.assertRaisesRegexp(ValueError, "cannot construct a TimeDelta",
+        tm.assertRaisesRegexp(ValueError, "cannot construct a Timedelta",
                               lambda: Timedelta())
         tm.assertRaisesRegexp(ValueError, "unit abbreviation w/o a number",
                               lambda: Timedelta('foo'))
         tm.assertRaisesRegexp(ValueError,
-                              "cannot construct a TimeDelta from the passed "
+                              "cannot construct a Timedelta from the passed "
                               "arguments, allowed keywords are ",
                               lambda: Timedelta(day=10))
 
