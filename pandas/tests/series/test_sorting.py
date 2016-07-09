@@ -110,7 +110,6 @@ class TestSeriesSorting(TestData, tm.TestCase):
         self.assertRaises(ValueError,
                           lambda: random_order.sort_index(level=0, axis=1))
 
-
     def test_sort_index_inplace(self):
 
         # For #11402
