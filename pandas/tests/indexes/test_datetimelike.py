@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import timedelta, time
+from datetime import timedelta, time, date, datetime
 
 import numpy as np
 
@@ -18,6 +18,9 @@ from .common import Base
 
 
 class DatetimeLike(Base):
+
+    def create_nonmonotonic_index(self):
+        return self.create_index()[[2, 0, 3, 4, 1]]
 
     def test_shift_identity(self):
 
@@ -63,6 +66,9 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
 
     def create_index(self):
         return date_range('20130101', periods=5)
+
+    def create_elem_outside_index(self):
+        return pd.Timestamp('20130106')
 
     def test_shift(self):
 
@@ -722,16 +728,36 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
             self.assert_index_equal(idx.fillna('x'), exp)
 
     def test_contains(self):
-        #GH13572
-        dates = ['2015-01-03', '2015-01-01', '2015-01-04', '2015-01-05', '2015-01-02']
-        monotonic = pd.to_datetime(sorted(dates))
-        non_monotonic = pd.to_datetime(['2015-01-03', '2015-01-01', '2015-01-04', '2015-01-05', '2015-01-02'])
-        for idx in [non_monotonic, monotonic]:
-            self.assertNotIn('2015-01-06', idx)
-            self.assertNotIn(pd.Timestamp('2015-01-06'), idx)
-            for dt in reversed(dates):
-                self.assertIn(dt, idx)
-                self.assertIn(pd.Timestamp(dt), idx)
+        # GH13572
+        monotonic = self.create_index()
+        ascending_nat_first = monotonic.insert(
+            0, pd.NaT)  # Not monotonic after inserting NaT
+        ascending_nat_last = monotonic.insert(5, pd.NaT)
+        non_monotonic = self.create_nonmonotonic_index()
+        non_monotonic_nat_first = non_monotonic.insert(0, pd.NaT)
+        non_monotonic_nat_last = non_monotonic.insert(5, pd.NaT)
+        idx_with_nat = [ascending_nat_first, ascending_nat_last,
+                        non_monotonic_nat_first, non_monotonic_nat_last]
+        idx_no_nat = [monotonic, non_monotonic]
+        for idx in idx_no_nat + idx_with_nat:
+            elem = self.create_elem_outside_index()
+            elem_str = str(elem)
+            elem_date_str = str(elem.date())
+            for e in [elem, elem_str, elem_date_str, elem.date(), elem.to_datetime()]:
+                self.assertNotIn(e, idx)
+            for elem in monotonic:
+                elem_str = str(elem)
+                elem_date_str = str(elem.date())
+                for e in [elem, elem_str, elem_date_str, elem.date(), elem.to_datetime()]:
+                    self.assertIn(e, idx)
+        nat_elems = [pd.NaT, None, float('nan'), np.nan]
+        for idx in idx_no_nat:
+            for nn in nat_elems:
+                self.assertNotIn(nn, idx)
+        for idx in idx_with_nat:
+            for nn in nat_elems:
+                self.assertIn(nn, idx)
+
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex
@@ -743,6 +769,9 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
     def create_index(self):
         return period_range('20130101', periods=5, freq='D')
+
+    def create_elem_outside_index(self):
+        return pd.Period('20130106')
 
     def test_astype(self):
         # GH 13149, GH 13209
@@ -928,6 +957,35 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         with self.assertRaises(AttributeError):
             DatetimeIndex([]).millisecond
 
+    def test_contains(self):
+        # GH13572
+        monotonic = self.create_index()
+        ascending_nat_first = monotonic.insert(
+            0, pd.NaT)  # Not monotonic after inserting NaT
+        ascending_nat_last = monotonic.insert(5, pd.NaT)
+        non_monotonic = self.create_nonmonotonic_index()
+        non_monotonic_nat_first = non_monotonic.insert(0, pd.NaT)
+        non_monotonic_nat_last = non_monotonic.insert(5, pd.NaT)
+        idx_with_nat = [ascending_nat_first, ascending_nat_last,
+                        non_monotonic_nat_first, non_monotonic_nat_last]
+        idx_no_nat = [monotonic, non_monotonic]
+        for idx in idx_no_nat + idx_with_nat:
+            elem = self.create_elem_outside_index()
+            elem_str = str(elem)
+            for e in [elem, elem_str]:
+                self.assertNotIn(e, idx)
+            for elem in monotonic:
+                elem_str = str(elem)
+                for e in [elem, elem_str]:
+                    self.assertIn(e, idx)
+        nat_elems = [pd.Period('NaT', freq='D')]
+        for idx in idx_no_nat:
+            for nn in nat_elems:
+                self.assertNotIn(nn, idx)
+        for idx in idx_with_nat:
+            for nn in nat_elems:
+                self.assertIn(nn, idx)
+
 
 class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     _holder = TimedeltaIndex
@@ -939,6 +997,9 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
     def create_index(self):
         return pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
+
+    def create_elem_outside_index(self):
+        return pd.Timedelta(days=5, hours=1)
 
     def test_shift(self):
         # test shift for TimedeltaIndex
@@ -1128,3 +1189,25 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         exp = pd.Index(
             [pd.Timedelta('1 day'), 'x', pd.Timedelta('3 day')], dtype=object)
         self.assert_index_equal(idx.fillna('x'), exp)
+
+    def test_contains(self):
+        # GH13572
+        monotonic = self.create_index()
+        ascending_nat_first = monotonic.insert(
+            0, pd.NaT)  # Not monotonic after inserting NaT
+        ascending_nat_last = monotonic.insert(5, pd.NaT)
+        non_monotonic = self.create_nonmonotonic_index()
+        non_monotonic_nat_first = non_monotonic.insert(0, pd.NaT)
+        non_monotonic_nat_last = non_monotonic.insert(5, pd.NaT)
+        idx_with_nat = [ascending_nat_first, ascending_nat_last,
+                        non_monotonic_nat_first, non_monotonic_nat_last]
+        idx_no_nat = [monotonic, non_monotonic]
+        for idx in idx_no_nat + idx_with_nat:
+            elem = self.create_elem_outside_index()
+            elem_str = str(elem)
+            for e in [elem, elem_str]:
+                self.assertNotIn(e, idx)
+            for elem in monotonic:
+                elem_str = str(elem)
+                for e in [elem, elem_str]:
+                    self.assertIn(e, idx)
