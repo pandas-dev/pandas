@@ -92,13 +92,14 @@ def _period_index_cmp(opname, nat_result=False):
                 result[mask] = nat_result
 
             return result
+        elif other is tslib.NaT:
+            result = np.empty(len(self.values), dtype=bool)
+            result.fill(nat_result)
         else:
             other = Period(other, freq=self.freq)
             func = getattr(self.values, opname)
             result = func(other.ordinal)
 
-        if other.ordinal == tslib.iNaT:
-            result.fill(nat_result)
         mask = self.values == tslib.iNaT
         if mask.any():
             result[mask] = nat_result
@@ -235,7 +236,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 data = _ensure_int64(data)
                 if freq is None:
                     raise ValueError('freq not specified')
-                data = np.array([Period(x, freq=freq).ordinal for x in data],
+                data = np.array([Period(x, freq=freq) for x in data],
                                 dtype=np.int64)
             except (TypeError, ValueError):
                 data = _ensure_object(data)
@@ -322,15 +323,18 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return self._box_func(tslib.iNaT)
 
     def __contains__(self, key):
-        if not isinstance(key, Period) or key.freq != self.freq:
-            if isinstance(key, compat.string_types):
-                try:
-                    self.get_loc(key)
-                    return True
-                except Exception:
-                    return False
+        if isinstance(key, Period):
+            if key.freq != self.freq:
+                return False
+            else:
+                return key.ordinal in self._engine
+        else:
+            try:
+                self.get_loc(key)
+                return True
+            except Exception:
+                return False
             return False
-        return key.ordinal in self._engine
 
     def __array_wrap__(self, result, context=None):
         """
@@ -622,17 +626,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
-        if other.ordinal == tslib.iNaT:
-            new_data = np.empty(len(self))
-            new_data.fill(np.nan)
-        else:
-            asi8 = self.asi8
-            new_data = asi8 - other.ordinal
+        asi8 = self.asi8
+        new_data = asi8 - other.ordinal
 
-            if self.hasnans:
-                mask = asi8 == tslib.iNaT
-                new_data = new_data.astype(np.float64)
-                new_data[mask] = np.nan
+        if self.hasnans:
+            mask = asi8 == tslib.iNaT
+            new_data = new_data.astype(np.float64)
+            new_data[mask] = np.nan
         # result must be Int64Index or Float64Index
         return Index(new_data, name=self.name)
 
@@ -740,8 +740,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 # we cannot construct the Period
                 # as we have an invalid type
                 raise KeyError(key)
+
             try:
-                return Index.get_loc(self, key.ordinal, method, tolerance)
+                ordinal = tslib.iNaT if key is tslib.NaT else key.ordinal
+                return Index.get_loc(self, ordinal, method, tolerance)
             except KeyError:
                 raise KeyError(key)
 
@@ -1044,8 +1046,7 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
 
     if is_start_per and is_end_per and start.freq != end.freq:
         raise ValueError('Start and end must have same freq')
-    if ((is_start_per and start.ordinal == tslib.iNaT) or
-            (is_end_per and end.ordinal == tslib.iNaT)):
+    if (start is tslib.NaT or end is tslib.NaT):
         raise ValueError('Start and end must not be NaT')
 
     if freq is None:
