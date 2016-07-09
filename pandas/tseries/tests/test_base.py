@@ -160,9 +160,11 @@ class TestDatetimeIndexOps(Ops):
             tm.assert_index_equal(rng.round(freq='H'), expected_rng)
             self.assertEqual(elt.round(freq='H'), expected_elt)
 
-            msg = "Could not evaluate foo"
-            tm.assertRaisesRegexp(ValueError, msg, rng.round, freq='foo')
-            tm.assertRaisesRegexp(ValueError, msg, elt.round, freq='foo')
+            msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+            with tm.assertRaisesRegexp(ValueError, msg):
+                rng.round(freq='foo')
+            with tm.assertRaisesRegexp(ValueError, msg):
+                elt.round(freq='foo')
 
             msg = "<MonthEnd> is a non-fixed frequency"
             tm.assertRaisesRegexp(ValueError, msg, rng.round, freq='M')
@@ -847,9 +849,11 @@ class TestTimedeltaIndexOps(Ops):
         tm.assert_index_equal(td.round(freq='H'), expected_rng)
         self.assertEqual(elt.round(freq='H'), expected_elt)
 
-        msg = "Could not evaluate foo"
-        tm.assertRaisesRegexp(ValueError, msg, td.round, freq='foo')
-        tm.assertRaisesRegexp(ValueError, msg, elt.round, freq='foo')
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
+            td.round(freq='foo')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            elt.round(freq='foo')
 
         msg = "<MonthEnd> is a non-fixed frequency"
         tm.assertRaisesRegexp(ValueError, msg, td.round, freq='M')

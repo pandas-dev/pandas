@@ -1388,16 +1388,14 @@ class TestTslib(tm.TestCase):
             result = stamp.round(freq=freq)
             self.assertEqual(result, expected)
 
-        for freq, expected in [
-            ('D', Timestamp('2000-01-05 00:00:00')),
-            ('H', Timestamp('2000-01-05 05:00:00')),
-            ('S', Timestamp('2000-01-05 05:09:15'))
-        ]:
+        for freq, expected in [('D', Timestamp('2000-01-05 00:00:00')),
+                               ('H', Timestamp('2000-01-05 05:00:00')),
+                               ('S', Timestamp('2000-01-05 05:09:15'))]:
             _check_round(freq, expected)
 
-        msg = "Could not evaluate"
-        tm.assertRaisesRegexp(ValueError, msg,
-                              stamp.round, 'foo')
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
+            stamp.round('foo')
 
 
 class TestTimestampOps(tm.TestCase):
