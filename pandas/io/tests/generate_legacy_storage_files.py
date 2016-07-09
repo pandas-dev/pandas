@@ -5,7 +5,7 @@ from pandas import (Series, DataFrame, Panel,
                     SparseSeries, SparseDataFrame,
                     Index, MultiIndex, bdate_range, to_msgpack,
                     date_range, period_range,
-                    Timestamp, Categorical, Period)
+                    Timestamp, NaT, Categorical, Period)
 from pandas.compat import u
 import os
 import sys
@@ -140,6 +140,13 @@ def create_data():
                int16=Categorical(np.arange(1000)),
                int32=Categorical(np.arange(10000)))
 
+    timestamp = dict(normal=Timestamp('2011-01-01'),
+                     nat=NaT,
+                     tz=Timestamp('2011-01-01', tz='US/Eastern'),
+                     freq=Timestamp('2011-01-01', offset='D'),
+                     both=Timestamp('2011-01-01', tz='Asia/Tokyo',
+                                    offset='M'))
+
     return dict(series=series,
                 frame=frame,
                 panel=panel,
@@ -149,7 +156,8 @@ def create_data():
                 sp_series=dict(float=_create_sp_series(),
                                ts=_create_sp_tsseries()),
                 sp_frame=dict(float=_create_sp_frame()),
-                cat=cat)
+                cat=cat,
+                timestamp=timestamp)
 
 
 def create_pickle_data():
