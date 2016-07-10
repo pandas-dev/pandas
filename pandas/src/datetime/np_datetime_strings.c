@@ -460,7 +460,7 @@ parse_iso_8601_datetime(char *str, int len,
         }
 
         /* Check the casting rule */
-        if (unit != -1 && !can_cast_datetime64_units(bestunit, unit,
+        if (!can_cast_datetime64_units(bestunit, unit,
                                                      casting)) {
             PyErr_Format(PyExc_TypeError, "Cannot parse \"%s\" as unit "
                          "'%s' using casting rule %s",
@@ -503,7 +503,7 @@ parse_iso_8601_datetime(char *str, int len,
         }
 
         /* Check the casting rule */
-        if (unit != -1 && !can_cast_datetime64_units(bestunit, unit,
+        if (!can_cast_datetime64_units(bestunit, unit,
                                                      casting)) {
             PyErr_Format(PyExc_TypeError, "Cannot parse \"%s\" as unit "
                          "'%s' using casting rule %s",
@@ -975,7 +975,7 @@ finish:
     }
 
     /* Check the casting rule */
-    if (unit != -1 && !can_cast_datetime64_units(bestunit, unit,
+    if (!can_cast_datetime64_units(bestunit, unit,
                                                  casting)) {
         PyErr_Format(PyExc_TypeError, "Cannot parse \"%s\" as unit "
                      "'%s' using casting rule %s",
@@ -1004,11 +1004,6 @@ int
 get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base)
 {
     int len = 0;
-
-    /* If no unit is provided, return the maximum length */
-    if (base == -1) {
-        return PANDAS_DATETIME_MAX_ISO8601_STRLEN;
-    }
 
     switch (base) {
         /* Generic units can only be used to represent NaT */
@@ -1146,28 +1141,13 @@ make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
         local = 0;
     }
 
-    /* Automatically detect a good unit */
-    if (base == -1) {
-        base = lossless_unit_from_datetimestruct(dts);
-        /*
-         * If there's a timezone, use at least minutes precision,
-         * and never split up hours and minutes by default
-         */
-        if ((base < PANDAS_FR_m && local) || base == PANDAS_FR_h) {
-            base = PANDAS_FR_m;
-        }
-        /* Don't split up dates by default */
-        else if (base < PANDAS_FR_D) {
-            base = PANDAS_FR_D;
-        }
-    }
     /*
      * Print weeks with the same precision as days.
      *
      * TODO: Could print weeks with YYYY-Www format if the week
      *       epoch is a Monday.
      */
-    else if (base == PANDAS_FR_W) {
+    if (base == PANDAS_FR_W) {
         base = PANDAS_FR_D;
     }
 
