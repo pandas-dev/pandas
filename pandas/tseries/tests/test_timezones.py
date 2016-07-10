@@ -1061,6 +1061,46 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         self.assert_numpy_array_equal(idx.hour,
                                       np.array([4, 4], dtype=np.int32))
 
+    def test_tzlocal(self):
+        # GH 13583
+        ts = Timestamp('2011-01-01', tz=dateutil.tz.tzlocal())
+        self.assertEqual(ts.tz, dateutil.tz.tzlocal())
+        self.assertTrue("tz='tzlocal()')" in repr(ts))
+
+        tz = tslib.maybe_get_tz('tzlocal()')
+        self.assertEqual(tz, dateutil.tz.tzlocal())
+
+        # get offset using normal datetime for test
+        offset = dateutil.tz.tzlocal().utcoffset(datetime(2011, 1, 1))
+        offset = offset.total_seconds() * 1000000000
+        self.assertEqual(ts.value + offset, Timestamp('2011-01-01').value)
+
+    def test_tz_localize_tzlocal(self):
+        # GH 13583
+        offset = dateutil.tz.tzlocal().utcoffset(datetime(2011, 1, 1))
+        offset = int(offset.total_seconds() * 1000000000)
+
+        dti = date_range(start='2001-01-01', end='2001-03-01')
+        dti2 = dti.tz_localize(dateutil.tz.tzlocal())
+        tm.assert_numpy_array_equal(dti2.asi8 + offset, dti.asi8)
+
+        dti = date_range(start='2001-01-01', end='2001-03-01',
+                         tz=dateutil.tz.tzlocal())
+        dti2 = dti.tz_localize(None)
+        tm.assert_numpy_array_equal(dti2.asi8 - offset, dti.asi8)
+
+    def test_tz_convert_tzlocal(self):
+        # GH 13583
+        # tz_convert doesn't affect to internal
+        dti = date_range(start='2001-01-01', end='2001-03-01', tz='UTC')
+        dti2 = dti.tz_convert(dateutil.tz.tzlocal())
+        tm.assert_numpy_array_equal(dti2.asi8, dti.asi8)
+
+        dti = date_range(start='2001-01-01', end='2001-03-01',
+                         tz=dateutil.tz.tzlocal())
+        dti2 = dti.tz_convert(None)
+        tm.assert_numpy_array_equal(dti2.asi8, dti.asi8)
+
 
 class TestTimeZoneCacheKey(tm.TestCase):
     def test_cache_keys_are_distinct_for_pytz_vs_dateutil(self):
