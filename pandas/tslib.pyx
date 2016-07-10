@@ -1595,7 +1595,9 @@ cpdef inline object maybe_get_tz(object tz):
     Otherwise, just return tz.
     """
     if isinstance(tz, string_types):
-        if tz.startswith('dateutil/'):
+        if tz == 'tzlocal()':
+            tz = _dateutil_tzlocal()
+        elif tz.startswith('dateutil/'):
             zone = tz[9:]
             tz = _dateutil_gettz(zone)
             # On Python 3 on Windows, the filename is not always set correctly.
@@ -3771,7 +3773,6 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         return np.array([], dtype=np.int64)
 
     # Convert to UTC
-
     if _get_zone(tz1) != 'UTC':
         utc_dates = np.empty(n, dtype=np.int64)
         if _is_tzlocal(tz1):
@@ -3825,7 +3826,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                               dts.min, dts.sec, dts.us, tz2)
                 delta = int(total_seconds(_get_utcoffset(tz2, dt))) * 1000000000
                 result[i] = v + delta
-            return result
+        return result
 
     # Convert UTC to other timezone
     trans, deltas, typ = _get_dst_info(tz2)
