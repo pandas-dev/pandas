@@ -1259,8 +1259,6 @@ class TestSeriesOperators(TestData, tm.TestCase):
         _check_op(arr, operator.floordiv)
 
     def test_series_frame_radd_bug(self):
-        import operator
-
         # GH 353
         vals = Series(tm.rands_array(5, 10))
         result = 'foo_' + vals
@@ -1273,7 +1271,78 @@ class TestSeriesOperators(TestData, tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         # really raise this time
-        self.assertRaises(TypeError, operator.add, datetime.now(), self.ts)
+        with tm.assertRaises(TypeError):
+            datetime.now() + self.ts
+
+        with tm.assertRaises(TypeError):
+            self.ts + datetime.now()
+
+    def test_series_radd_more(self):
+        data = [[1, 2, 3],
+                [1.1, 2.2, 3.3],
+                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+                 pd.NaT],
+                ['x', 'y', 1]]
+
+        for d in data:
+            for dtype in [None, object]:
+                s = Series(d, dtype=dtype)
+                with tm.assertRaises(TypeError):
+                    'foo_' + s
+
+        for dtype in [None, object]:
+            res = 1 + pd.Series([1, 2, 3], dtype=dtype)
+            exp = pd.Series([2, 3, 4], dtype=dtype)
+            tm.assert_series_equal(res, exp)
+            res = pd.Series([1, 2, 3], dtype=dtype) + 1
+            tm.assert_series_equal(res, exp)
+
+            res = np.nan + pd.Series([1, 2, 3], dtype=dtype)
+            exp = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
+            tm.assert_series_equal(res, exp)
+            res = pd.Series([1, 2, 3], dtype=dtype) + np.nan
+            tm.assert_series_equal(res, exp)
+
+            s = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+                           pd.Timedelta('3 days')], dtype=dtype)
+            exp = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
+                             pd.Timedelta('6 days')])
+            tm.assert_series_equal(pd.Timedelta('3 days') + s, exp)
+            tm.assert_series_equal(s + pd.Timedelta('3 days'), exp)
+
+        s = pd.Series(['x', np.nan, 'x'])
+        tm.assert_series_equal('a' + s, pd.Series(['ax', np.nan, 'ax']))
+        tm.assert_series_equal(s + 'a', pd.Series(['xa', np.nan, 'xa']))
+
+    def test_frame_radd_more(self):
+        data = [[1, 2, 3],
+                [1.1, 2.2, 3.3],
+                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+                 pd.NaT],
+                ['x', 'y', 1]]
+
+        for d in data:
+            for dtype in [None, object]:
+                s = DataFrame(d, dtype=dtype)
+                with tm.assertRaises(TypeError):
+                    'foo_' + s
+
+        for dtype in [None, object]:
+            res = 1 + pd.DataFrame([1, 2, 3], dtype=dtype)
+            exp = pd.DataFrame([2, 3, 4], dtype=dtype)
+            tm.assert_frame_equal(res, exp)
+            res = pd.DataFrame([1, 2, 3], dtype=dtype) + 1
+            tm.assert_frame_equal(res, exp)
+
+            res = np.nan + pd.DataFrame([1, 2, 3], dtype=dtype)
+            exp = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
+            tm.assert_frame_equal(res, exp)
+            res = pd.DataFrame([1, 2, 3], dtype=dtype) + np.nan
+            tm.assert_frame_equal(res, exp)
+
+        df = pd.DataFrame(['x', np.nan, 'x'])
+        tm.assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
+        tm.assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame
