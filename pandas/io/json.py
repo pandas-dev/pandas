@@ -25,7 +25,8 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             default_handler=None, lines=False):
 
     if lines and orient != 'records':
-            raise ValueError("'lines' keyword only valid when 'orient' is records")
+            raise ValueError(
+                "'lines' keyword only valid when 'orient' is records")
 
     if isinstance(obj, Series):
         s = SeriesWriter(
@@ -42,7 +43,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
 
     if lines and s[0] == '[' and s[-1] == ']':      # Determine we have a JSON
         s = s[1:-1]                                 # list to turn to lines
-        num_open_brackets_seen = 0;
+        num_open_brackets_seen = 0
         commas_to_replace = []
         for idx, char in enumerate(s):              # iter through to find all
             if char == ',':                         # commas that should be \n
