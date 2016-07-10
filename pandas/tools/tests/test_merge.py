@@ -1263,6 +1263,18 @@ class TestMerge(tm.TestCase):
         result = concat([pd.Series(x), pd.Series(y)], ignore_index=True)
         tm.assert_series_equal(result, pd.Series(x + y, dtype='object'))
 
+    def test_concat_tz_series_tzlocal(self):
+        # GH 13583
+        tm._skip_if_no_dateutil()
+        import dateutil
+        x = [pd.Timestamp('2011-01-01', tz=dateutil.tz.tzlocal()),
+             pd.Timestamp('2011-02-01', tz=dateutil.tz.tzlocal())]
+        y = [pd.Timestamp('2012-01-01', tz=dateutil.tz.tzlocal()),
+             pd.Timestamp('2012-02-01', tz=dateutil.tz.tzlocal())]
+        result = concat([pd.Series(x), pd.Series(y)], ignore_index=True)
+        tm.assert_series_equal(result, pd.Series(x + y))
+        self.assertEqual(result.dtype, 'datetime64[ns, tzlocal()]')
+
     def test_concat_period_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='D'))
