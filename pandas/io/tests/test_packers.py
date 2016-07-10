@@ -8,7 +8,7 @@ import sys
 from distutils.version import LooseVersion
 
 from pandas import compat
-from pandas.compat import u
+from pandas.compat import u, PY3
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, period_range, Index, Categorical)
 from pandas.core.common import PerformanceWarning
@@ -58,6 +58,19 @@ def check_arbitrary(a, b):
         assert_series_equal(a, b)
     elif isinstance(a, Index):
         assert_index_equal(a, b)
+    elif isinstance(a, Categorical):
+        # Temp,
+        # Categorical.categories is changed from str to bytes in PY3
+        # maybe the same as GH 13591
+        if PY3 and b.categories.inferred_type == 'string':
+            pass
+        else:
+            tm.assert_categorical_equal(a, b)
+    elif a is NaT:
+        assert b is NaT
+    elif isinstance(a, Timestamp):
+        assert a == b
+        assert a.freq == b.freq
     else:
         assert(a == b)
 
@@ -815,8 +828,8 @@ TestPackers
         for typ, v in self.minimum_structure.items():
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
-                assert kind in data[
-                    typ], '"{0}" not found in data["{1}"]'.format(kind, typ)
+                msg = '"{0}" not found in data["{1}"]'.format(kind, typ)
+                assert kind in data[typ], msg
 
     def compare(self, vf, version):
         # GH12277 encoding default used to be latin-1, now utf-8
@@ -839,8 +852,8 @@ TestPackers
 
                 # use a specific comparator
                 # if available
-                comparator = getattr(
-                    self, "compare_{typ}_{dt}".format(typ=typ, dt=dt), None)
+                comp_method = "compare_{typ}_{dt}".format(typ=typ, dt=dt)
+                comparator = getattr(self, comp_method, None)
                 if comparator is not None:
                     comparator(result, expected, typ, version)
                 else:
@@ -872,9 +885,8 @@ TestPackers
         n = 0
         for f in os.listdir(pth):
             # GH12142 0.17 files packed in P2 can't be read in P3
-            if (compat.PY3 and
-                    version.startswith('0.17.') and
-                    f.split('.')[-4][-1] == '2'):
+            if (compat.PY3 and version.startswith('0.17.') and
+               f.split('.')[-4][-1] == '2'):
                 continue
             vf = os.path.join(pth, f)
             try:

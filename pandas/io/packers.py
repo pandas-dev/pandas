@@ -481,12 +481,12 @@ def encode(obj):
             tz = obj.tzinfo
             if tz is not None:
                 tz = u(tz.zone)
-            offset = obj.offset
-            if offset is not None:
-                offset = u(offset.freqstr)
+            freq = obj.freq
+            if freq is not None:
+                freq = u(freq.freqstr)
             return {u'typ': u'timestamp',
                     u'value': obj.value,
-                    u'offset': offset,
+                    u'freq': freq,
                     u'tz': tz}
         if isinstance(obj, NaTType):
             return {u'typ': u'nat'}
@@ -556,7 +556,8 @@ def decode(obj):
     if typ is None:
         return obj
     elif typ == u'timestamp':
-        return Timestamp(obj[u'value'], tz=obj[u'tz'], offset=obj[u'offset'])
+        freq = obj[u'freq'] if 'freq' in obj else obj[u'offset']
+        return Timestamp(obj[u'value'], tz=obj[u'tz'], freq=freq)
     elif typ == u'nat':
         return NaT
     elif typ == u'period':

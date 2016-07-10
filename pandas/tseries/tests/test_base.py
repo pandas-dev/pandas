@@ -124,10 +124,11 @@ class TestDatetimeIndexOps(Ops):
 
     def test_numpy_minmax(self):
         dr = pd.date_range(start='2016-01-15', end='2016-01-20')
-        self.assertEqual(np.min(dr), Timestamp(
-            '2016-01-15 00:00:00', offset='D'))
-        self.assertEqual(np.max(dr), Timestamp(
-            '2016-01-20 00:00:00', offset='D'))
+
+        self.assertEqual(np.min(dr),
+                         Timestamp('2016-01-15 00:00:00', freq='D'))
+        self.assertEqual(np.max(dr),
+                         Timestamp('2016-01-20 00:00:00', freq='D'))
 
         errmsg = "the 'out' parameter is not supported"
         tm.assertRaisesRegexp(ValueError, errmsg, np.min, dr, out=0)
@@ -148,11 +149,11 @@ class TestDatetimeIndexOps(Ops):
             elt = rng[1]
 
             expected_rng = DatetimeIndex([
-                Timestamp('2016-01-01 00:00:00', tz=tz, offset='30T'),
-                Timestamp('2016-01-01 00:00:00', tz=tz, offset='30T'),
-                Timestamp('2016-01-01 01:00:00', tz=tz, offset='30T'),
-                Timestamp('2016-01-01 02:00:00', tz=tz, offset='30T'),
-                Timestamp('2016-01-01 02:00:00', tz=tz, offset='30T'),
+                Timestamp('2016-01-01 00:00:00', tz=tz, freq='30T'),
+                Timestamp('2016-01-01 00:00:00', tz=tz, freq='30T'),
+                Timestamp('2016-01-01 01:00:00', tz=tz, freq='30T'),
+                Timestamp('2016-01-01 02:00:00', tz=tz, freq='30T'),
+                Timestamp('2016-01-01 02:00:00', tz=tz, freq='30T'),
             ])
             expected_elt = expected_rng[1]
 
@@ -175,10 +176,10 @@ class TestDatetimeIndexOps(Ops):
                                 freq='30Min', tz=tz)
 
             expected_rng = DatetimeIndex([
-                Timestamp('2016-01-01 00:00:00', tz=tz, offset='30T'),
-                Timestamp('2016-01-01 00:00:00', tz=tz, offset='30T'),
-                Timestamp('2016-01-01 00:30:00', tz=tz, offset='30T'),
-                Timestamp('2016-01-01 00:30:00', tz=tz, offset='30T'),
+                Timestamp('2016-01-01 00:00:00', tz=tz, freq='30T'),
+                Timestamp('2016-01-01 00:00:00', tz=tz, freq='30T'),
+                Timestamp('2016-01-01 00:30:00', tz=tz, freq='30T'),
+                Timestamp('2016-01-01 00:30:00', tz=tz, freq='30T'),
             ])
 
             tm.assert_index_equal(rng.repeat(reps), expected_rng)
@@ -192,10 +193,10 @@ class TestDatetimeIndexOps(Ops):
                                 freq='30Min', tz=tz)
 
             expected_rng = DatetimeIndex([
-                Timestamp('2016-01-01 00:00:00', tz=tz, offset='30T'),
-                Timestamp('2016-01-01 00:00:00', tz=tz, offset='30T'),
-                Timestamp('2016-01-01 00:30:00', tz=tz, offset='30T'),
-                Timestamp('2016-01-01 00:30:00', tz=tz, offset='30T'),
+                Timestamp('2016-01-01 00:00:00', tz=tz, freq='30T'),
+                Timestamp('2016-01-01 00:00:00', tz=tz, freq='30T'),
+                Timestamp('2016-01-01 00:30:00', tz=tz, freq='30T'),
+                Timestamp('2016-01-01 00:30:00', tz=tz, freq='30T'),
             ])
 
             tm.assert_index_equal(np.repeat(rng, reps), expected_rng)

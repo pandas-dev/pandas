@@ -426,10 +426,10 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         # indexing
         result = s.iloc[0]
         self.assertEqual(result, Timestamp('2013-01-01 00:00:00-0500',
-                                           tz='US/Eastern', offset='D'))
+                                           tz='US/Eastern', freq='D'))
         result = s[0]
         self.assertEqual(result, Timestamp('2013-01-01 00:00:00-0500',
-                                           tz='US/Eastern', offset='D'))
+                                           tz='US/Eastern', freq='D'))
 
         result = s[Series([True, True, False], index=s.index)]
         assert_series_equal(result, s[0:2])

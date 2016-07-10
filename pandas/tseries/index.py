@@ -558,7 +558,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @property
     def _box_func(self):
-        return lambda x: Timestamp(x, offset=self.offset, tz=self.tz)
+        return lambda x: Timestamp(x, freq=self.offset, tz=self.tz)
 
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
@@ -1199,8 +1199,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         for i in range(chunks):
             start_i = i * chunksize
             end_i = min((i + 1) * chunksize, l)
-            converted = tslib.ints_to_pydatetime(
-                data[start_i:end_i], tz=self.tz, offset=self.offset, box=True)
+            converted = tslib.ints_to_pydatetime(data[start_i:end_i],
+                                                 tz=self.tz, freq=self.freq,
+                                                 box=True)
             for v in converted:
                 yield v
 

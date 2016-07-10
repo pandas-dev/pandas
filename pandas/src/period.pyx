@@ -24,7 +24,7 @@ cimport cython
 from datetime cimport *
 cimport util
 cimport lib
-from lib cimport is_null_datetimelike
+from lib cimport is_null_datetimelike, is_period
 import lib
 from pandas import tslib
 from tslib import Timedelta, Timestamp, iNaT, NaT
@@ -484,8 +484,11 @@ def extract_freq(ndarray[object] values):
 
     for i in range(n):
         p = values[i]
+
         try:
-            return p.freq
+            # now Timestamp / NaT has freq attr
+            if is_period(p):
+                return p.freq
         except AttributeError:
             pass
 
