@@ -443,6 +443,20 @@ Freq: D"""
             rng -= 1
             tm.assert_index_equal(rng, expected)
 
+    def test_sub_period(self):
+        # GH 13078
+        # not supported, check TypeError
+        p = pd.Period('2011-01-01', freq='D')
+
+        for freq in [None, 'D']:
+            idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=freq)
+
+            with tm.assertRaises(TypeError):
+                idx - p
+
+            with tm.assertRaises(TypeError):
+                p - idx
+
     def test_value_counts_unique(self):
         # GH 7735
         for tz in [None, 'UTC', 'Asia/Tokyo', 'US/Eastern']:
@@ -1158,6 +1172,20 @@ Freq: D"""
         result = dti - tdi  # name will be reset
         expected = DatetimeIndex(['20121231', pd.NaT, '20130101'])
         tm.assert_index_equal(result, expected)
+
+    def test_sub_period(self):
+        # GH 13078
+        # not supported, check TypeError
+        p = pd.Period('2011-01-01', freq='D')
+
+        for freq in [None, 'H']:
+            idx = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=freq)
+
+            with tm.assertRaises(TypeError):
+                idx - p
+
+            with tm.assertRaises(TypeError):
+                p - idx
 
     def test_addition_ops(self):
 
