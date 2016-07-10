@@ -22,6 +22,8 @@ class TestDataFrameSorting(tm.TestCase, TestData):
     _multiprocess_can_split_ = True
 
     def test_sort_index(self):
+        # GH13496
+
         frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
                           columns=['A', 'B', 'C', 'D'])
 
@@ -43,6 +45,9 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         result = unordered.sort_index(axis=1, ascending=False)
         expected = frame.ix[:, ::-1]
         assert_frame_equal(result, expected)
+
+    def test_sort_index_multiindex(self):
+        # GH13496
 
         # sort rows by specified level of multi-index
         mi = MultiIndex.from_tuples([[2, 1, 3], [1, 1, 1]], names=list('ABC'))

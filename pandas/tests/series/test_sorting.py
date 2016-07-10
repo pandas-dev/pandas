@@ -140,6 +140,7 @@ class TestSeriesSorting(TestData, tm.TestCase):
         res = s.sort_index(level='A')
         assert_series_equal(backwards, res)
 
+        # GH13496
         # rows share same level='A': sort has no effect without remaining lvls
         res = s.sort_index(level='A', sort_remaining=False)
         assert_series_equal(s, res)
