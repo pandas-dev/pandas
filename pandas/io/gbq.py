@@ -179,10 +179,10 @@ class GbqConnector(object):
             return None
         # Check if the application has rights to the BigQuery project
         bigquery_service = build('bigquery', 'v2', credentials=credentials)
-        job_collection = bigquery_service.jobs()
+        jobs = bigquery_service.jobs()
         job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
         try:
-            job_collection.insert(projectId=self.project_id, body=job_data).execute()
+            jobs.insert(projectId=self.project_id, body=job_data).execute()
         except (AccessTokenRefreshError, HttpError):
             return None
         return credentials
