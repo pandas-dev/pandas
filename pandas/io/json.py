@@ -184,7 +184,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.18.2
 
-    encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
+    encoding : str, default is 'utf-8'
+        The encoding to use to decode py3 bytes.
 
         .. versionadded:: 0.18.2
 
