@@ -439,6 +439,7 @@ Deprecations
 - ``buffer_lines`` has been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13360`)
 - ``as_recarray`` has been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13373`)
 - top-level ``pd.ordered_merge()`` has been renamed to ``pd.merge_ordered()`` and the original name will be removed in a future version (:issue:`13358`)
+- ``Timestamp`` ``offset`` option and property has been deprecated in favor of ``freq`` (:issue:`12160`)
 
 .. _whatsnew_0190.performance:
 

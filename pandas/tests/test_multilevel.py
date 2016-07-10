@@ -2365,7 +2365,7 @@ Thur,Lunch,Yes,51.51,17"""
                                      'a': np.arange(6, dtype='int64')},
                                     columns=['level_0', 'level_1', 'a'])
             expected['level_1'] = expected['level_1'].apply(
-                lambda d: pd.Timestamp(d, offset='D', tz=tz))
+                lambda d: pd.Timestamp(d, freq='D', tz=tz))
             assert_frame_equal(df.reset_index(), expected)
 
     def test_reset_index_period(self):

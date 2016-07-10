@@ -255,6 +255,21 @@ class TestTimestamp(tm.TestCase):
                            hour=1, minute=2, second=3, microsecond=999999)),
             repr(Timestamp('2015-11-12 01:02:03.999999')))
 
+    def test_constructor_offset_depr(self):
+        # GH 12160
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ts = Timestamp('2011-01-01', offset='D')
+        self.assertEqual(ts.freq, 'D')
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            self.assertEqual(ts.offset, 'D')
+
+        msg = "Can only specify freq or offset, not both"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Timestamp('2011-01-01', freq='D', offset='D')
+
     def test_conversion(self):
         # GH 9255
         ts = Timestamp('2000-01-01')
