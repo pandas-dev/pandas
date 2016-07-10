@@ -22,7 +22,10 @@ dumps = _json.dumps
 
 def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
-            default_handler=None):
+            default_handler=None, lines=False):
+
+    if lines and orient != 'records':
+            raise ValueError("'lines' keyword only valid when 'orient' is records")
 
     if isinstance(obj, Series):
         s = SeriesWriter(
@@ -36,6 +39,22 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             date_unit=date_unit, default_handler=default_handler).write()
     else:
         raise NotImplementedError("'obj' should be a Series or a DataFrame")
+
+    if lines and s[0] == '[' and s[-1] == ']':      # Determine we have a JSON
+        s = s[1:-1]                                 # list to turn to lines
+        num_open_brackets_seen = 0;
+        commas_to_replace = []
+        for idx, char in enumerate(s):              # iter through to find all
+            if char == ',':                         # commas that should be \n
+                if num_open_brackets_seen == 0:
+                    commas_to_replace.append(idx)
+            elif char == '{':
+                num_open_brackets_seen += 1
+            elif char == '}':
+                num_open_brackets_seen -= 1
+        s_arr = np.array(list(s))                  # Turn to an array to set
+        s_arr[commas_to_replace] = '\n'            # all commas at once.
+        s = ''.join(s_arr)
 
     if isinstance(path_or_buf, compat.string_types):
         with open(path_or_buf, 'w') as fh:
@@ -182,12 +201,12 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     lines : boolean, default False
         Read the file as a json object per line.
 
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
     encoding : str, default is 'utf-8'
         The encoding to use to decode py3 bytes.
 
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
     Returns
     -------
