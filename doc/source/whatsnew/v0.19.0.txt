@@ -445,6 +445,15 @@ Removal of prior version deprecations/changes
 - ``DataFrame.to_csv()`` has dropped the ``engine`` parameter, as was deprecated in 0.17.1 (:issue:`11274`, :issue:`13419`)
 
 
+
+.. _whatsnew_0190.prior_deprecations:
+
+Removal of prior version deprecations/changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- ``DataFrame.to_csv()`` has dropped the ``engine`` parameter (:issue:`11274`, :issue:`13419`)
+
+
 .. _whatsnew_0190.performance:
 
 Performance Improvements
