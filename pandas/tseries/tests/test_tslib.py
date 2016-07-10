@@ -255,6 +255,21 @@ class TestTimestamp(tm.TestCase):
                            hour=1, minute=2, second=3, microsecond=999999)),
             repr(Timestamp('2015-11-12 01:02:03.999999')))
 
+    def test_constructor_offset_depr(self):
+        # GH 12160
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ts = Timestamp('2011-01-01', offset='D')
+        self.assertEqual(ts.freq, 'D')
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            self.assertEqual(ts.offset, 'D')
+
+        msg = "Can only specify freq or offset, not both"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Timestamp('2011-01-01', offset='D', freq='D')
+
     def test_conversion(self):
         # GH 9255
         ts = Timestamp('2000-01-01')
@@ -312,13 +327,13 @@ class TestTimestamp(tm.TestCase):
                     self.assertNotIn(freq_repr, repr(date_tz))
                     self.assertEqual(date_tz, eval(repr(date_tz)))
 
-                    date_freq = Timestamp(date, offset=freq)
+                    date_freq = Timestamp(date, freq=freq)
                     self.assertIn(date, repr(date_freq))
                     self.assertNotIn(tz_repr, repr(date_freq))
                     self.assertIn(freq_repr, repr(date_freq))
                     self.assertEqual(date_freq, eval(repr(date_freq)))
 
-                    date_tz_freq = Timestamp(date, tz=tz, offset=freq)
+                    date_tz_freq = Timestamp(date, tz=tz, freq=freq)
                     self.assertIn(date, repr(date_tz_freq))
                     self.assertIn(tz_repr, repr(date_tz_freq))
                     self.assertIn(freq_repr, repr(date_tz_freq))

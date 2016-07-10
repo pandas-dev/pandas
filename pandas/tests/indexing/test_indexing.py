@@ -965,7 +965,7 @@ class TestIndexing(tm.TestCase):
         # indexing - fast_xs
         df = DataFrame({'a': date_range('2014-01-01', periods=10, tz='UTC')})
         result = df.iloc[5]
-        expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', offset='D')
+        expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', freq='D')
         self.assertEqual(result, expected)
 
         result = df.loc[5]

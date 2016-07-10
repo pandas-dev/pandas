@@ -33,7 +33,7 @@ def is_bool(object obj):
 def is_complex(object obj):
     return util.is_complex_object(obj)
 
-def is_period(object val):
+cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
 
@@ -538,9 +538,6 @@ def is_time_array(ndarray[object] values):
             return False
     return True
 
-def is_period(object o):
-    from pandas import Period
-    return isinstance(o,Period)
 
 def is_period_array(ndarray[object] values):
     cdef Py_ssize_t i, n = len(values)

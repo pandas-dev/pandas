@@ -46,6 +46,12 @@ class TestPickle():
         if typ.startswith('sp_'):
             comparator = getattr(tm, "assert_%s_equal" % typ)
             comparator(result, expected, exact_indices=False)
+        elif typ == 'timestamp':
+            if expected is pd.NaT:
+                assert result is pd.NaT
+            else:
+                tm.assert_equal(result, expected)
+                tm.assert_equal(result.freq, expected.freq)
         else:
             comparator = getattr(tm, "assert_%s_equal" %
                                  typ, tm.assert_almost_equal)
