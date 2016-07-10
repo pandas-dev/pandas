@@ -954,6 +954,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
+    def test_to_jsonl(self):
+        # GH9180
+        df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
+        self.assertEqual(result, expected)
+
 
 if __name__ == '__main__':
     import nose
