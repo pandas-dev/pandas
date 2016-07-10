@@ -291,6 +291,83 @@ class TestToNumeric(tm.TestCase):
         with self.assertRaisesRegexp(TypeError, "Invalid object type"):
             pd.to_numeric(s)
 
+    def test_downcast(self):
+        # see gh-13352
+        mixed_data = ['1', 2, 3]
+        int_data = [1, 2, 3]
+        date_data = np.array(['1970-01-02', '1970-01-03',
+                              '1970-01-04'], dtype='datetime64[D]')
+
+        invalid_downcast = 'unsigned-integer'
+        msg = 'invalid downcasting method provided'
+
+        smallest_int_dtype = np.dtype(np.typecodes['Integer'][0])
+        smallest_uint_dtype = np.dtype(np.typecodes['UnsignedInteger'][0])
+
+        # support below np.float32 is rare and far between
+        float_32_char = np.dtype(np.float32).char
+        smallest_float_dtype = float_32_char
+
+        for data in (mixed_data, int_data, date_data):
+            with self.assertRaisesRegexp(ValueError, msg):
+                pd.to_numeric(data, downcast=invalid_downcast)
+
+            expected = np.array([1, 2, 3], dtype=np.int64)
+
+            res = pd.to_numeric(data)
+            tm.assert_numpy_array_equal(res, expected)
+
+            res = pd.to_numeric(data, downcast=None)
+            tm.assert_numpy_array_equal(res, expected)
+
+            expected = np.array([1, 2, 3], dtype=smallest_int_dtype)
+
+            for signed_downcast in ('integer', 'signed'):
+                res = pd.to_numeric(data, downcast=signed_downcast)
+                tm.assert_numpy_array_equal(res, expected)
+
+            expected = np.array([1, 2, 3], dtype=smallest_uint_dtype)
+            res = pd.to_numeric(data, downcast='unsigned')
+            tm.assert_numpy_array_equal(res, expected)
+
+            expected = np.array([1, 2, 3], dtype=smallest_float_dtype)
+            res = pd.to_numeric(data, downcast='float')
+            tm.assert_numpy_array_equal(res, expected)
+
+        # if we can't successfully cast the given
+        # data to a numeric dtype, do not bother
+        # with the downcast parameter
+        data = ['foo', 2, 3]
+        expected = np.array(data, dtype=object)
+        res = pd.to_numeric(data, errors='ignore',
+                            downcast='unsigned')
+        tm.assert_numpy_array_equal(res, expected)
+
+        # cannot cast to an unsigned integer because
+        # we have a negative number
+        data = ['-1', 2, 3]
+        expected = np.array([-1, 2, 3], dtype=np.int64)
+        res = pd.to_numeric(data, downcast='unsigned')
+        tm.assert_numpy_array_equal(res, expected)
+
+        # cannot cast to an integer (signed or unsigned)
+        # because we have a float number
+        data = ['1.1', 2, 3]
+        expected = np.array([1.1, 2, 3], dtype=np.float64)
+
+        for downcast in ('integer', 'signed', 'unsigned'):
+            res = pd.to_numeric(data, downcast=downcast)
+            tm.assert_numpy_array_equal(res, expected)
+
+        # the smallest integer dtype need not be np.(u)int8
+        data = ['256', 257, 258]
+
+        for downcast, expected_dtype in zip(
+                ['integer', 'signed', 'unsigned'],
+                [np.int16, np.int16, np.uint16]):
+            expected = np.array([256, 257, 258], dtype=expected_dtype)
+            res = pd.to_numeric(data, downcast=downcast)
+            tm.assert_numpy_array_equal(res, expected)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
