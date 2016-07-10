@@ -80,8 +80,10 @@ def _test_imports():
                 from apiclient.discovery import build  # noqa
                 from apiclient.errors import HttpError  # noqa
 
+            from oauth2client.client import GoogleCredentials  # noqa
             from oauth2client.client import OAuth2WebServerFlow  # noqa
             from oauth2client.client import AccessTokenRefreshError  # noqa
+            from oauth2client.client import ApplicationDefaultCredentialsError # noqa
 
             from oauth2client.file import Storage  # noqa
             from oauth2client.tools import run_flow  # noqa
@@ -216,6 +218,11 @@ class TestGBQConnectorIntegration(tm.TestCase):
     def test_should_be_able_to_get_results_from_query(self):
         schema, pages = self.sut.run_query('SELECT 1')
         self.assertTrue(pages is not None)
+
+    def test_should_be_able_to_get_a_bigquery_service_from_default_credentials(self):
+        from oauth2client.client import GoogleCredentials
+        credentials = self.sut.get_application_default_credentials()
+        self.assertTrue(isinstance(credentials, (type(None), GoogleCredentials)))
 
 
 class TestGBQConnectorServiceAccountKeyPathIntegration(tm.TestCase):

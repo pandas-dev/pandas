@@ -159,7 +159,33 @@ class GbqConnector(object):
         if self.private_key:
             return self.get_service_account_credentials()
         else:
-            return self.get_user_account_credentials()
+            # Try to retrieve Application Default Credentials
+            credentials = self.get_application_default_credentials()
+            if not credentials:
+                credentials = self.get_user_account_credentials()
+            return credentials
+
+    def get_application_default_credentials(self):
+        from oauth2client.client import GoogleCredentials
+        from oauth2client.client import AccessTokenRefreshError
+        from oauth2client.client import ApplicationDefaultCredentialsError
+        from apiclient.discovery import build
+        from apiclient.errors import HttpError
+
+        credentials = None
+        try:
+            credentials = GoogleCredentials.get_application_default()
+        except ApplicationDefaultCredentialsError:
+            return None
+        # Check if the application has rights to the BigQuery project
+        bigquery_service = build('bigquery', 'v2', credentials=credentials)
+        job_collection = bigquery_service.jobs()
+        job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
+        try:
+            job_collection.insert(projectId=self.project_id, body=job_data).execute()
+        except (AccessTokenRefreshError, HttpError):
+            return None
+        return credentials
 
     def get_user_account_credentials(self):
         from oauth2client.client import OAuth2WebServerFlow
@@ -576,7 +602,9 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     https://developers.google.com/api-client-library/python/apis/bigquery/v2
 
     Authentication to the Google BigQuery service is via OAuth 2.0.
-    By default user account credentials are used. You will be asked to
+    By default "application default credentials" are used.
+    If default application credentials are not found or are restrictive -
+    User account credentials are used. You will be asked to
     grant permissions for product name 'pandas GBQ'. It is also posible
     to authenticate via service account credentials by using
     private_key parameter.
@@ -672,7 +700,9 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     https://developers.google.com/api-client-library/python/apis/bigquery/v2
 
     Authentication to the Google BigQuery service is via OAuth 2.0.
-    By default user account credentials are used. You will be asked to
+    By default "application default credentials" are used.
+    If default application credentials are not found or are restrictive -
+    User account credentials are used. You will be asked to
     grant permissions for product name 'pandas GBQ'. It is also posible
     to authenticate via service account credentials by using
     private_key parameter.

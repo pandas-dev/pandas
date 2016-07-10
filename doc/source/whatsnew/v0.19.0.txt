@@ -185,6 +185,8 @@ Using the anchoring suffix, you can also specify the day of month to use instead
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- The ``.get_credentials()`` method of ``GbqConnector`` can now first try to fetch the default credentials for Google Compute Engine without the need to run ``OAuth2WebServerFlow`` - if private_key is not provided (:issue:`13577`)
+
 - The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behaviour remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
 
 - ``Index`` now supports ``.str.extractall()`` which returns a ``DataFrame``, see :ref:`documentation here <text.extractall>` (:issue:`10008`, :issue:`13156`)
