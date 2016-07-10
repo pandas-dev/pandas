@@ -254,6 +254,7 @@ Other enhancements
 
 .. _whatsnew_0190.api:
 
+
 API changes
 ~~~~~~~~~~~
 
@@ -271,7 +272,7 @@ API changes
 - ``__setitem__`` will no longer apply a callable rhs as a function instead of storing it. Call ``where`` directly to get the previous behavior. (:issue:`13299`)
 - Passing ``Period`` with multiple frequencies to normal ``Index`` now returns ``Index`` with ``object`` dtype (:issue:`13664`)
 - ``PeriodIndex.fillna`` with ``Period`` has different freq now coerces to ``object`` dtype (:issue:`13664`)
-
+- The ``pd.read_json`` has gained support for reading json lines with ``lines`` option (:issue:`9180`)
 
 .. _whatsnew_0190.api.tolist:
 
