@@ -255,6 +255,18 @@ class TestTimestamp(tm.TestCase):
                            hour=1, minute=2, second=3, microsecond=999999)),
             repr(Timestamp('2015-11-12 01:02:03.999999')))
 
+    def test_constructor_fromordinal(self):
+        base = datetime.datetime(2000, 1, 1)
+
+        ts = Timestamp.fromordinal(base.toordinal(), freq='D')
+        self.assertEqual(base, ts)
+        self.assertEqual(ts.freq, 'D')
+        self.assertEqual(base.toordinal(), ts.toordinal())
+
+        ts = Timestamp.fromordinal(base.toordinal(), tz='US/Eastern')
+        self.assertEqual(pd.Timestamp('2000-01-01', tz='US/Eastern'), ts)
+        self.assertEqual(base.toordinal(), ts.toordinal())
+
     def test_constructor_offset_depr(self):
         # GH 12160
         with tm.assert_produces_warning(FutureWarning,
@@ -269,6 +281,21 @@ class TestTimestamp(tm.TestCase):
         msg = "Can only specify freq or offset, not both"
         with tm.assertRaisesRegexp(TypeError, msg):
             Timestamp('2011-01-01', offset='D', freq='D')
+
+    def test_constructor_offset_depr_fromordinal(self):
+        # GH 12160
+        base = datetime.datetime(2000, 1, 1)
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ts = Timestamp.fromordinal(base.toordinal(), offset='D')
+        self.assertEqual(pd.Timestamp('2000-01-01'), ts)
+        self.assertEqual(ts.freq, 'D')
+        self.assertEqual(base.toordinal(), ts.toordinal())
+
+        msg = "Can only specify freq or offset, not both"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Timestamp.fromordinal(base.toordinal(), offset='D', freq='D')
 
     def test_conversion(self):
         # GH 9255
