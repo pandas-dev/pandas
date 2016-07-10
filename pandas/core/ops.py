@@ -34,7 +34,7 @@ from pandas.core.common import (is_list_like, notnull, isnull,
 # methods
 
 
-def _create_methods(arith_method, radd_func, comp_method, bool_method,
+def _create_methods(arith_method, comp_method, bool_method,
                     use_numexpr, special=False, default_axis='columns'):
     # creates actual methods based upon arithmetic, comp and bool method
     # constructors.
@@ -55,14 +55,14 @@ def _create_methods(arith_method, radd_func, comp_method, bool_method,
                 return "__%s__" % x
     else:
         names = lambda x: x
-    radd_func = radd_func or operator.add
+
     # Inframe, all special methods have default_axis=None, flex methods have
     # default_axis set to the default (columns)
     # yapf: disable
     new_methods = dict(
         add=arith_method(operator.add, names('add'), op('+'),
                          default_axis=default_axis),
-        radd=arith_method(radd_func, names('radd'), op('+'),
+        radd=arith_method(lambda x, y: y + x, names('radd'), op('+'),
                           default_axis=default_axis),
         sub=arith_method(operator.sub, names('sub'), op('-'),
                          default_axis=default_axis),
@@ -149,7 +149,7 @@ def add_methods(cls, new_methods, force, select, exclude):
 
 # ----------------------------------------------------------------------
 # Arithmetic
-def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None,
+def add_special_arithmetic_methods(cls, arith_method=None,
                                    comp_method=None, bool_method=None,
                                    use_numexpr=True, force=False, select=None,
                                    exclude=None):
@@ -162,8 +162,6 @@ def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None,
     arith_method : function (optional)
         factory for special arithmetic methods, with op string:
         f(op, name, str_rep, default_axis=None, fill_zeros=None, **eval_kwargs)
-    radd_func :  function (optional)
-        Possible replacement for ``operator.add`` for compatibility
     comp_method : function, optional,
         factory for rich comparison - signature: f(op, name, str_rep)
     use_numexpr : bool, default True
@@ -176,12 +174,11 @@ def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None,
     exclude : iterable of strings (optional)
         if passed, will not set functions with names in exclude
     """
-    radd_func = radd_func or operator.add
 
     # in frame, special methods have default_axis = None, comp methods use
     # 'columns'
 
-    new_methods = _create_methods(arith_method, radd_func, comp_method,
+    new_methods = _create_methods(arith_method, comp_method,
                                   bool_method, use_numexpr, default_axis=None,
                                   special=True)
 
@@ -218,7 +215,7 @@ def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None,
                 exclude=exclude)
 
 
-def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None,
+def add_flex_arithmetic_methods(cls, flex_arith_method,
                                 flex_comp_method=None, flex_bool_method=None,
                                 use_numexpr=True, force=False, select=None,
                                 exclude=None):
@@ -231,9 +228,6 @@ def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None,
     flex_arith_method : function
         factory for special arithmetic methods, with op string:
         f(op, name, str_rep, default_axis=None, fill_zeros=None, **eval_kwargs)
-    radd_func :  function (optional)
-        Possible replacement for ``lambda x, y: operator.add(y, x)`` for
-        compatibility
     flex_comp_method : function, optional,
         factory for rich comparison - signature: f(op, name, str_rep)
     use_numexpr : bool, default True
@@ -246,9 +240,8 @@ def add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None,
     exclude : iterable of strings (optional)
         if passed, will not set functions with names in exclude
     """
-    radd_func = radd_func or (lambda x, y: operator.add(y, x))
     # in frame, default axis is 'columns', doesn't matter for series and panel
-    new_methods = _create_methods(flex_arith_method, radd_func,
+    new_methods = _create_methods(flex_arith_method,
                                   flex_comp_method, flex_bool_method,
                                   use_numexpr, default_axis='columns',
                                   special=False)
@@ -858,17 +851,6 @@ def _bool_method_SERIES(op, name, str_rep):
     return wrapper
 
 
-def _radd_compat(left, right):
-    radd = lambda x, y: y + x
-    # GH #353, NumPy 1.5.1 workaround
-    try:
-        output = radd(left, right)
-    except TypeError:
-        raise
-
-    return output
-
-
 _op_descriptions = {'add': {'op': '+',
                             'desc': 'Addition',
                             'reversed': False,
@@ -963,11 +945,9 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None, fill_zeros=None,
 
 
 series_flex_funcs = dict(flex_arith_method=_flex_method_SERIES,
-                         radd_func=_radd_compat,
                          flex_comp_method=_comp_method_SERIES)
 
 series_special_funcs = dict(arith_method=_arith_method_SERIES,
-                            radd_func=_radd_compat,
                             comp_method=_comp_method_SERIES,
                             bool_method=_bool_method_SERIES)
 
@@ -1209,11 +1189,9 @@ def _comp_method_FRAME(func, name, str_rep, masker=False):
 
 
 frame_flex_funcs = dict(flex_arith_method=_arith_method_FRAME,
-                        radd_func=_radd_compat,
                         flex_comp_method=_flex_comp_method_FRAME)
 
 frame_special_funcs = dict(arith_method=_arith_method_FRAME,
-                           radd_func=_radd_compat,
                            comp_method=_comp_method_FRAME,
                            bool_method=_arith_method_FRAME)
 

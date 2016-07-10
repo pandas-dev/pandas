@@ -7,7 +7,6 @@ with float64 data
 
 import numpy as np
 import warnings
-import operator
 
 from pandas.compat.numpy import function as nv
 from pandas.core.common import isnull, _values_from_object, _maybe_match_name
@@ -803,7 +802,7 @@ ops.add_flex_arithmetic_methods(SparseSeries, use_numexpr=False,
 # overwrite basic arithmetic to use SparseSeries version
 # force methods to overwrite previous definitions.
 ops.add_special_arithmetic_methods(SparseSeries, _arith_method,
-                                   radd_func=operator.add, comp_method=None,
+                                   comp_method=None,
                                    bool_method=None, use_numexpr=False,
                                    force=True)
 
