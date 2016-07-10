@@ -1466,6 +1466,7 @@ with optional parameters:
 - ``force_ascii`` : force encoded string to be ASCII, default True.
 - ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
 - ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serializable object.
+- ``lines`` : If ``records`` orient, then will write each record per line as json.
 
 Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datetime`` objects will be converted based on the ``date_format`` and ``date_unit`` parameters.
 
@@ -1656,6 +1657,8 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
   None. By default the timestamp precision will be detected, if this is not desired
   then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to
   seconds, milliseconds, microseconds or nanoseconds respectively.
+- ``lines`` : reads file as one json object per line.
+- ``encoding`` : The encoding to use to decode py3 bytes.
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 
@@ -1844,6 +1847,23 @@ into a flat table.
                           {'name': 'Cuyahoga', 'population': 1337}]}]
 
    json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
+
+Line delimited json
+'''''''''''''''''''
+
+.. versionadded:: 0.19.0
+
+pandas is able to read and write line-delimited jsaon files that are common in data preocessing pipelines
+using Hadoop or Spark.
+
+.. ipython:: python
+
+  from pandas.io.json import read_json
+  jsonl = '''{"a":1,"b":2}
+             {"a":3,"b":4}'''
+  df = read_json(jsonl, lines=True)
+  df
+  df.to_json(orient='records', lines=True)
 
 HTML
 ----

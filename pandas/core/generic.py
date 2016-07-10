@@ -1065,7 +1065,7 @@ class NDFrame(PandasObject):
             suitable format for JSON. Should receive a single argument which is
             the object to convert and return a serialisable object.
         lines : boolean, defalut False
-            If 'orient' is 'records' write out json to jsaon lines format. Will
+            If 'orient' is 'records' write out line delimited json format. Will
             throw ValueError if incorrect 'orient' since others are not list
             like.
 
