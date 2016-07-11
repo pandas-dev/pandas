@@ -491,6 +491,7 @@ Bug Fixes
 - Bug in ``PeriodIndex`` construction returning a ``float64`` index in some circumstances (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not changing its ``freq`` appropriately when empty (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not retaining its type or name with an empty ``DataFrame`` appropriately when empty (:issue:`13212`)
+- Bug in ``groupby(..).apply(..)`` when the passed function returns scalar values per group (:issue:`13468`).
 - Bug in ``groupby(..).resample(..)`` where passing some keywords would raise an exception (:issue:`13235`)
 - Bug in ``.tz_convert`` on a tz-aware ``DateTimeIndex`` that relied on index being sorted for correct results (:issue:`13306`)
 - Bug in ``.tz_localize`` with ``dateutil.tz.tzlocal`` may return incorrect result (:issue:`13583`)
