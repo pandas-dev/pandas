@@ -27,7 +27,8 @@ from pandas.core.common import (is_list_like, notnull, isnull,
                                 is_integer_dtype, is_categorical_dtype,
                                 is_object_dtype, is_timedelta64_dtype,
                                 is_datetime64_dtype, is_datetime64tz_dtype,
-                                is_bool_dtype, PerformanceWarning, ABCSeries)
+                                is_bool_dtype, PerformanceWarning,
+                                ABCSeries, ABCIndex)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -664,6 +665,22 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
     return wrapper
 
 
+def _comp_method_OBJECT_ARRAY(op, x, y):
+    if isinstance(y, list):
+        y = lib.list_to_object_array(y)
+    if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
+        if not is_object_dtype(y.dtype):
+            y = y.astype(np.object_)
+
+        if isinstance(y, (ABCSeries, ABCIndex)):
+            y = y.values
+
+        result = lib.vec_compare(x, y, op)
+    else:
+        result = lib.scalar_compare(x, y, op)
+    return result
+
+
 def _comp_method_SERIES(op, name, str_rep, masker=False):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -680,16 +697,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             return op(y, x)
 
         if is_object_dtype(x.dtype):
-            if isinstance(y, list):
-                y = lib.list_to_object_array(y)
-
-            if isinstance(y, (np.ndarray, ABCSeries)):
-                if not is_object_dtype(y.dtype):
-                    result = lib.vec_compare(x, y.astype(np.object_), op)
-                else:
-                    result = lib.vec_compare(x, y, op)
-            else:
-                result = lib.scalar_compare(x, y, op)
+            result = _comp_method_OBJECT_ARRAY(op, x, y)
         else:
 
             # we want to compare like types
@@ -713,12 +721,11 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                     (not isscalar(y) and needs_i8_conversion(y))):
 
                 if isscalar(y):
+                    mask = isnull(x)
                     y = _index.convert_scalar(x, _values_from_object(y))
                 else:
+                    mask = isnull(x) | isnull(y)
                     y = y.view('i8')
-
-                mask = isnull(x)
-
                 x = x.view('i8')
 
             try:
