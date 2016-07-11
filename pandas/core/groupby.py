@@ -3403,11 +3403,14 @@ class NDFrameGroupBy(GroupBy):
 
                 return self._reindex_output(result)
 
+            # values are not series or array-like but scalars
             else:
                 # only coerce dates if we find at least 1 datetime
                 coerce = True if any([isinstance(x, Timestamp)
                                       for x in values]) else False
-                return (Series(values, index=key_index, name=self.name)
+                # self.name not passed through to Series as the result
+                # should not take the name of original selection of columns
+                return (Series(values, index=key_index)
                         ._convert(datetime=True,
                                   coerce=coerce))
 
