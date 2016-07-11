@@ -768,12 +768,12 @@ def scalar_compare(ndarray[object] values, object val, object op):
         raise ValueError('Unrecognized operator')
 
     result = np.empty(n, dtype=bool).view(np.uint8)
-    isnull_val = _checknull(val)
+    isnull_val = checknull(val)
 
     if flag == cpython.Py_NE:
         for i in range(n):
             x = values[i]
-            if _checknull(x):
+            if checknull(x):
                 result[i] = True
             elif isnull_val:
                 result[i] = True
@@ -785,7 +785,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
     elif flag == cpython.Py_EQ:
         for i in range(n):
             x = values[i]
-            if _checknull(x):
+            if checknull(x):
                 result[i] = False
             elif isnull_val:
                 result[i] = False
@@ -798,7 +798,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
     else:
         for i in range(n):
             x = values[i]
-            if _checknull(x):
+            if checknull(x):
                 result[i] = False
             elif isnull_val:
                 result[i] = False
@@ -864,7 +864,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
             x = left[i]
             y = right[i]
 
-            if _checknull(x) or _checknull(y):
+            if checknull(x) or checknull(y):
                 result[i] = True
             else:
                 result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
@@ -873,7 +873,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
             x = left[i]
             y = right[i]
 
-            if _checknull(x) or _checknull(y):
+            if checknull(x) or checknull(y):
                 result[i] = False
             else:
                 result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
