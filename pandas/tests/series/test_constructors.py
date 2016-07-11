@@ -252,6 +252,24 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         expected = Series(index=Index([None]))
         assert_series_equal(s, expected)
 
+    def test_constructor_pass_nan_nat(self):
+        # GH 13467
+        exp = Series([np.nan, np.nan], dtype=np.float64)
+        self.assertEqual(exp.dtype, np.float64)
+        tm.assert_series_equal(Series([np.nan, np.nan]), exp)
+        tm.assert_series_equal(Series(np.array([np.nan, np.nan])), exp)
+
+        exp = Series([pd.NaT, pd.NaT])
+        self.assertEqual(exp.dtype, 'datetime64[ns]')
+        tm.assert_series_equal(Series([pd.NaT, pd.NaT]), exp)
+        tm.assert_series_equal(Series(np.array([pd.NaT, pd.NaT])), exp)
+
+        tm.assert_series_equal(Series([pd.NaT, np.nan]), exp)
+        tm.assert_series_equal(Series(np.array([pd.NaT, np.nan])), exp)
+
+        tm.assert_series_equal(Series([np.nan, pd.NaT]), exp)
+        tm.assert_series_equal(Series(np.array([np.nan, pd.NaT])), exp)
+
     def test_constructor_cast(self):
         self.assertRaises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
 
@@ -688,8 +706,9 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         td = Series([np.timedelta64(300000000), pd.NaT])
         self.assertEqual(td.dtype, 'timedelta64[ns]')
 
+        # because iNaT is int, not coerced to timedelta
         td = Series([np.timedelta64(300000000), tslib.iNaT])
-        self.assertEqual(td.dtype, 'timedelta64[ns]')
+        self.assertEqual(td.dtype, 'object')
 
         td = Series([np.timedelta64(300000000), np.nan])
         self.assertEqual(td.dtype, 'timedelta64[ns]')

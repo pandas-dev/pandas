@@ -180,6 +180,207 @@ class TestTypeInference(tm.TestCase):
         index = Index(dates)
         self.assertEqual(index.inferred_type, 'datetime64')
 
+    def test_infer_dtype_datetime(self):
+
+        arr = np.array([pd.Timestamp('2011-01-01'),
+                        pd.Timestamp('2011-01-02')])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+        arr = np.array([np.datetime64('2011-01-01'),
+                        np.datetime64('2011-01-01')], dtype=object)
+        self.assertEqual(pd.lib.infer_dtype(arr), 'datetime64')
+
+        arr = np.array([datetime(2011, 1, 1), datetime(2012, 2, 1)])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+        # starts with nan
+        for n in [pd.NaT, np.nan]:
+            arr = np.array([n, pd.Timestamp('2011-01-02')])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+            arr = np.array([n, np.datetime64('2011-01-02')])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'datetime64')
+
+            arr = np.array([n, datetime(2011, 1, 1)])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+            arr = np.array([n, pd.Timestamp('2011-01-02'), n])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+            arr = np.array([n, np.datetime64('2011-01-02'), n])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'datetime64')
+
+            arr = np.array([n, datetime(2011, 1, 1), n])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+        # different type of nat
+        arr = np.array([np.timedelta64('nat'),
+                        np.datetime64('2011-01-02')], dtype=object)
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+        arr = np.array([np.datetime64('2011-01-02'),
+                        np.timedelta64('nat')], dtype=object)
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+        # mixed datetime
+        arr = np.array([datetime(2011, 1, 1),
+                        pd.Timestamp('2011-01-02')])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+        # should be datetime?
+        arr = np.array([np.datetime64('2011-01-01'),
+                        pd.Timestamp('2011-01-02')])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+        arr = np.array([pd.Timestamp('2011-01-02'),
+                        np.datetime64('2011-01-01')])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+        arr = np.array([np.nan, pd.Timestamp('2011-01-02'), 1])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed-integer')
+
+        arr = np.array([np.nan, pd.Timestamp('2011-01-02'), 1.1])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+        arr = np.array([np.nan, '2011-01-01', pd.Timestamp('2011-01-02')])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+    def test_infer_dtype_timedelta(self):
+
+        arr = np.array([pd.Timedelta('1 days'),
+                        pd.Timedelta('2 days')])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+        arr = np.array([np.timedelta64(1, 'D'),
+                        np.timedelta64(2, 'D')], dtype=object)
+        self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+        arr = np.array([timedelta(1), timedelta(2)])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+        # starts with nan
+        for n in [pd.NaT, np.nan]:
+            arr = np.array([n, pd.Timedelta('1 days')])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+            arr = np.array([n, np.timedelta64(1, 'D')])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+            arr = np.array([n, timedelta(1)])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+            arr = np.array([n, pd.Timedelta('1 days'), n])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+            arr = np.array([n, np.timedelta64(1, 'D'), n])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+            arr = np.array([n, timedelta(1), n])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+        # different type of nat
+        arr = np.array([np.datetime64('nat'), np.timedelta64(1, 'D')],
+                       dtype=object)
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+        arr = np.array([np.timedelta64(1, 'D'), np.datetime64('nat')],
+                       dtype=object)
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+    def test_infer_dtype_all_nan_nat_like(self):
+        arr = np.array([np.nan, np.nan])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'floating')
+
+        # nan and None mix are result in mixed
+        arr = np.array([np.nan, np.nan, None])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+        arr = np.array([None, np.nan, np.nan])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+        # pd.NaT
+        arr = np.array([pd.NaT])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+        arr = np.array([pd.NaT, np.nan])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+        arr = np.array([np.nan, pd.NaT])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+        arr = np.array([np.nan, pd.NaT, np.nan])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+        arr = np.array([None, pd.NaT, None])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'datetime')
+
+        # np.datetime64(nat)
+        arr = np.array([np.datetime64('nat')])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'datetime64')
+
+        for n in [np.nan, pd.NaT, None]:
+            arr = np.array([n, np.datetime64('nat'), n])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'datetime64')
+
+            arr = np.array([pd.NaT, n, np.datetime64('nat'), n])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'datetime64')
+
+        arr = np.array([np.timedelta64('nat')], dtype=object)
+        self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+        for n in [np.nan, pd.NaT, None]:
+            arr = np.array([n, np.timedelta64('nat'), n])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+            arr = np.array([pd.NaT, n, np.timedelta64('nat'), n])
+            self.assertEqual(pd.lib.infer_dtype(arr), 'timedelta')
+
+        # datetime / timedelta mixed
+        arr = np.array([pd.NaT, np.datetime64('nat'),
+                        np.timedelta64('nat'), np.nan])
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+        arr = np.array([np.timedelta64('nat'), np.datetime64('nat')],
+                       dtype=object)
+        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+
+    def test_is_datetimelike_array_all_nan_nat_like(self):
+        arr = np.array([np.nan, pd.NaT, np.datetime64('nat')])
+        self.assertTrue(pd.lib.is_datetime_array(arr))
+        self.assertTrue(pd.lib.is_datetime64_array(arr))
+        self.assertFalse(pd.lib.is_timedelta_array(arr))
+        self.assertFalse(pd.lib.is_timedelta64_array(arr))
+        self.assertFalse(pd.lib.is_timedelta_or_timedelta64_array(arr))
+
+        arr = np.array([np.nan, pd.NaT, np.timedelta64('nat')])
+        self.assertFalse(pd.lib.is_datetime_array(arr))
+        self.assertFalse(pd.lib.is_datetime64_array(arr))
+        self.assertTrue(pd.lib.is_timedelta_array(arr))
+        self.assertTrue(pd.lib.is_timedelta64_array(arr))
+        self.assertTrue(pd.lib.is_timedelta_or_timedelta64_array(arr))
+
+        arr = np.array([np.nan, pd.NaT, np.datetime64('nat'),
+                        np.timedelta64('nat')])
+        self.assertFalse(pd.lib.is_datetime_array(arr))
+        self.assertFalse(pd.lib.is_datetime64_array(arr))
+        self.assertFalse(pd.lib.is_timedelta_array(arr))
+        self.assertFalse(pd.lib.is_timedelta64_array(arr))
+        self.assertFalse(pd.lib.is_timedelta_or_timedelta64_array(arr))
+
+        arr = np.array([np.nan, pd.NaT])
+        self.assertTrue(pd.lib.is_datetime_array(arr))
+        self.assertTrue(pd.lib.is_datetime64_array(arr))
+        self.assertTrue(pd.lib.is_timedelta_array(arr))
+        self.assertTrue(pd.lib.is_timedelta64_array(arr))
+        self.assertTrue(pd.lib.is_timedelta_or_timedelta64_array(arr))
+
+        arr = np.array([np.nan, np.nan], dtype=object)
+        self.assertFalse(pd.lib.is_datetime_array(arr))
+        self.assertFalse(pd.lib.is_datetime64_array(arr))
+        self.assertFalse(pd.lib.is_timedelta_array(arr))
+        self.assertFalse(pd.lib.is_timedelta64_array(arr))
+        self.assertFalse(pd.lib.is_timedelta_or_timedelta64_array(arr))
+
     def test_date(self):
 
         dates = [date(2012, 1, x) for x in range(1, 20)]
@@ -243,6 +444,13 @@ class TestTypeInference(tm.TestCase):
 
         result = lib.infer_dtype(Series(arr))
         self.assertEqual(result, 'categorical')
+
+    def test_is_period(self):
+        self.assertTrue(lib.is_period(pd.Period('2011-01', freq='M')))
+        self.assertFalse(lib.is_period(pd.PeriodIndex(['2011-01'], freq='M')))
+        self.assertFalse(lib.is_period(pd.Timestamp('2011-01')))
+        self.assertFalse(lib.is_period(1))
+        self.assertFalse(lib.is_period(np.nan))
 
 
 class TestConvert(tm.TestCase):
@@ -436,6 +644,7 @@ class TestParseSQL(tm.TestCase):
         expected = np.array([int8_na, 2, 3, 10, 15], dtype=np.int8)
         result = lib.downcast_int64(arr, na_values)
         self.assert_numpy_array_equal(result, expected)
+
 
 if __name__ == '__main__':
     import nose
