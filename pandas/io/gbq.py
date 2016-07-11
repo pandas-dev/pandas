@@ -160,12 +160,14 @@ class GbqConnector(object):
             return self.get_service_account_credentials()
         else:
             # Try to retrieve Application Default Credentials
-            credentials = self.get_application_default_credentials()
+            project_id = self.project_id
+            credentials = self.get_application_default_credentials(project_id)
             if not credentials:
                 credentials = self.get_user_account_credentials()
             return credentials
 
-    def get_application_default_credentials(self):
+    @staticmethod
+    def get_application_default_credentials(project_id):
         from oauth2client.client import GoogleCredentials
         from oauth2client.client import AccessTokenRefreshError
         from oauth2client.client import ApplicationDefaultCredentialsError
@@ -182,8 +184,8 @@ class GbqConnector(object):
         jobs = bigquery_service.jobs()
         job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
         try:
-            jobs.insert(projectId=self.project_id, body=job_data).execute()
-        except (AccessTokenRefreshError, HttpError):
+            jobs.insert(projectId=project_id, body=job_data).execute()
+        except (AccessTokenRefreshError, HttpError, TypeError):
             return None
         return credentials
 

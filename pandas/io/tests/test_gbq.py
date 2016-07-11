@@ -189,6 +189,20 @@ def test_generate_bq_schema_deprecated():
         df = make_mixed_dataframe_v2(10)
         gbq.generate_bq_schema(df)
 
+def google_credentials_import():
+    try:
+        from oauth2client.client import GoogleCredentials
+        return GoogleCredentials
+    except ImportError:
+        return type(None)
+
+def test_should_be_able_to_get_credentials_from_default_credentials():
+    GoogleCredentials = google_credentials_import()
+    connector = gbq.GbqConnector
+    credentials = connector.get_application_default_credentials(PROJECT_ID)
+    valid_types = (type(None), GoogleCredentials)
+    assert isinstance(credentials, valid_types)
+
 
 class TestGBQConnectorIntegration(tm.TestCase):
 
@@ -218,12 +232,6 @@ class TestGBQConnectorIntegration(tm.TestCase):
     def test_should_be_able_to_get_results_from_query(self):
         schema, pages = self.sut.run_query('SELECT 1')
         self.assertTrue(pages is not None)
-
-    def test_should_be_able_to_get_credentials_from_default_credentials(self):
-        from oauth2client.client import GoogleCredentials
-        credentials = self.sut.get_application_default_credentials()
-        valid_types = (type(None), GoogleCredentials)
-        self.assertTrue(isinstance(credentials, valid_types))
 
 
 class TestGBQConnectorServiceAccountKeyPathIntegration(tm.TestCase):
