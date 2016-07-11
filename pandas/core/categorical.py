@@ -228,8 +228,8 @@ class Categorical(PandasObject):
     __array_priority__ = 1000
     _typ = 'categorical'
 
-    def __init__(self, values, categories=None, ordered=False, name=None,
-                 fastpath=False, levels=None):
+    def __init__(self, values, categories=None, ordered=False,
+                 name=None, fastpath=False):
 
         if fastpath:
             # fast path
@@ -244,17 +244,6 @@ class Categorical(PandasObject):
                    "of the categorical instead (e.g. 'Series(cat, "
                    "name=\"something\")'")
             warn(msg, UserWarning, stacklevel=2)
-
-        # TODO: Remove after deprecation period in 2017/ after 0.18
-        if levels is not None:
-            warn("Creating a 'Categorical' with 'levels' is deprecated, use "
-                 "'categories' instead", FutureWarning, stacklevel=2)
-            if categories is None:
-                categories = levels
-            else:
-                raise ValueError("Cannot pass in both 'categories' and "
-                                 "(deprecated) 'levels', use only "
-                                 "'categories'", stacklevel=2)
 
         # sanitize input
         if is_categorical_dtype(values):
@@ -579,21 +568,6 @@ class Categorical(PandasObject):
 
     categories = property(fget=_get_categories, fset=_set_categories,
                           doc=_categories_doc)
-
-    def _set_levels(self, levels):
-        """ set new levels (deprecated, use "categories") """
-        warn("Assigning to 'levels' is deprecated, use 'categories'",
-             FutureWarning, stacklevel=2)
-        self.categories = levels
-
-    def _get_levels(self):
-        """ Gets the levels (deprecated, use "categories") """
-        warn("Accessing 'levels' is deprecated, use 'categories'",
-             FutureWarning, stacklevel=2)
-        return self.categories
-
-    # TODO: Remove after deprecation period in 2017/ after 0.18
-    levels = property(fget=_get_levels, fset=_set_levels)
 
     _ordered = None
 

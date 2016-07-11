@@ -1559,18 +1559,6 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
             res = cat.labels
         self.assert_numpy_array_equal(res, exp)
 
-    def test_deprecated_levels(self):
-        # TODO: levels is deprecated and should be removed in 0.18 or 2017,
-        # whatever is earlier
-        cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        exp = cat.categories
-        with tm.assert_produces_warning(FutureWarning):
-            res = cat.levels
-        self.assert_index_equal(res, exp)
-        with tm.assert_produces_warning(FutureWarning):
-            res = pd.Categorical([1, 2, 3, np.nan], levels=[1, 2, 3])
-        self.assert_index_equal(res.categories, exp)
-
     def test_removed_names_produces_warning(self):
 
         # 10482
