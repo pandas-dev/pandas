@@ -1853,15 +1853,15 @@ Line delimited json
 
 .. versionadded:: 0.19.0
 
-pandas is able to read and write line-delimited jsaon files that are common in data preocessing pipelines
+pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
 
 .. ipython:: python
 
-  from pandas.io.json import read_json
+  import pandas as pd
   jsonl = '''{"a":1,"b":2}
              {"a":3,"b":4}'''
-  df = read_json(jsonl, lines=True)
+  df = pd.read_json(jsonl, lines=True)
   df
   df.to_json(orient='records', lines=True)
 
