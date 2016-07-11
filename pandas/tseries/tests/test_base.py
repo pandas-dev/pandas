@@ -458,6 +458,32 @@ Freq: D"""
             with tm.assertRaises(TypeError):
                 p - idx
 
+    def test_comp_nat(self):
+        left = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT,
+                                 pd.Timestamp('2011-01-03')])
+        right = pd.DatetimeIndex([pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')])
+
+        for l, r in [(left, right), (left.asobject, right.asobject)]:
+            result = l == r
+            expected = np.array([False, False, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = l != r
+            expected = np.array([True, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(l == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == r, expected)
+
+            expected = np.array([True, True, True])
+            tm.assert_numpy_array_equal(l != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != l, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(l < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > l, expected)
+
     def test_value_counts_unique(self):
         # GH 7735
         for tz in [None, 'UTC', 'Asia/Tokyo', 'US/Eastern']:
@@ -1237,6 +1263,32 @@ Freq: D"""
         result = td + dt
         expected = Timestamp('20130102')
         self.assertEqual(result, expected)
+
+    def test_comp_nat(self):
+        left = pd.TimedeltaIndex([pd.Timedelta('1 days'), pd.NaT,
+                                 pd.Timedelta('3 days')])
+        right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
+
+        for l, r in [(left, right), (left.asobject, right.asobject)]:
+            result = l == r
+            expected = np.array([False, False, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = l != r
+            expected = np.array([True, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(l == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == r, expected)
+
+            expected = np.array([True, True, True])
+            tm.assert_numpy_array_equal(l != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != l, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(l < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > l, expected)
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -2038,6 +2090,32 @@ Freq: Q-DEC"""
         tm.assert_index_equal(result, expected)
         rng -= 1
         tm.assert_index_equal(rng, expected)
+
+    def test_comp_nat(self):
+        left = pd.PeriodIndex([pd.Period('2011-01-01'), pd.NaT,
+                               pd.Period('2011-01-03')])
+        right = pd.PeriodIndex([pd.NaT, pd.NaT, pd.Period('2011-01-03')])
+
+        for l, r in [(left, right), (left.asobject, right.asobject)]:
+            result = l == r
+            expected = np.array([False, False, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = l != r
+            expected = np.array([True, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(l == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == r, expected)
+
+            expected = np.array([True, True, True])
+            tm.assert_numpy_array_equal(l != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != l, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(l < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > l, expected)
 
     def test_value_counts_unique(self):
         # GH 7735

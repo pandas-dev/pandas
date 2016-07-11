@@ -31,6 +31,7 @@ from pandas.core.common import (isnull, array_equivalent,
                                 is_list_like, is_bool_dtype,
                                 is_integer_dtype, is_float_dtype,
                                 needs_i8_conversion)
+from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.strings import StringAccessorMixin
 
 from pandas.core.config import get_option
@@ -3182,8 +3183,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 if needs_i8_conversion(self) and needs_i8_conversion(other):
                     return self._evaluate_compare(other, op)
 
-                func = getattr(self.values, op)
-                result = func(np.asarray(other))
+                if is_object_dtype(self) and self.nlevels == 1:
+                    # don't pass MultiIndex
+                    result = _comp_method_OBJECT_ARRAY(op, self.values, other)
+                else:
+                    result = op(self.values, np.asarray(other))
 
                 # technically we could support bool dtyped Index
                 # for now just return the indexing array directly
@@ -3196,12 +3200,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
             return _evaluate_compare
 
-        cls.__eq__ = _make_compare('__eq__')
-        cls.__ne__ = _make_compare('__ne__')
-        cls.__lt__ = _make_compare('__lt__')
-        cls.__gt__ = _make_compare('__gt__')
-        cls.__le__ = _make_compare('__le__')
-        cls.__ge__ = _make_compare('__ge__')
+        cls.__eq__ = _make_compare(operator.eq)
+        cls.__ne__ = _make_compare(operator.ne)
+        cls.__lt__ = _make_compare(operator.lt)
+        cls.__gt__ = _make_compare(operator.gt)
+        cls.__le__ = _make_compare(operator.le)
+        cls.__ge__ = _make_compare(operator.ge)
 
     @classmethod
     def _add_numericlike_set_methods_disabled(cls):

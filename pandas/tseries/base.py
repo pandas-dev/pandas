@@ -142,7 +142,7 @@ class DatetimeIndexOpsMixin(object):
             other = type(self)(other)
 
         # compare
-        result = getattr(self.asi8, op)(other.asi8)
+        result = op(self.asi8, other.asi8)
 
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly

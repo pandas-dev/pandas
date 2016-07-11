@@ -36,7 +36,7 @@ def _td_index_cmp(opname, nat_result=False):
 
     def wrapper(self, other):
         func = getattr(super(TimedeltaIndex, self), opname)
-        if _is_convertible_to_td(other):
+        if _is_convertible_to_td(other) or other is tslib.NaT:
             other = _to_m8(other)
             result = func(other)
             if com.isnull(other):

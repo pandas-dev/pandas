@@ -980,24 +980,97 @@ class TestSeriesOperators(TestData, tm.TestCase):
             self.assertRaises(TypeError, lambda: x <= y)
 
     def test_more_na_comparisons(self):
-        left = Series(['a', np.nan, 'c'])
-        right = Series(['a', np.nan, 'd'])
+        for dtype in [None, object]:
+            left = Series(['a', np.nan, 'c'], dtype=dtype)
+            right = Series(['a', np.nan, 'd'], dtype=dtype)
 
-        result = left == right
-        expected = Series([True, False, False])
-        assert_series_equal(result, expected)
+            result = left == right
+            expected = Series([True, False, False])
+            assert_series_equal(result, expected)
 
-        result = left != right
-        expected = Series([False, True, True])
-        assert_series_equal(result, expected)
+            result = left != right
+            expected = Series([False, True, True])
+            assert_series_equal(result, expected)
 
-        result = left == np.nan
-        expected = Series([False, False, False])
-        assert_series_equal(result, expected)
+            result = left == np.nan
+            expected = Series([False, False, False])
+            assert_series_equal(result, expected)
 
-        result = left != np.nan
-        expected = Series([True, True, True])
-        assert_series_equal(result, expected)
+            result = left != np.nan
+            expected = Series([True, True, True])
+            assert_series_equal(result, expected)
+
+    def test_nat_comparisons(self):
+        data = [([pd.Timestamp('2011-01-01'), pd.NaT,
+                  pd.Timestamp('2011-01-03')],
+                 [pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')]),
+
+                ([pd.Timedelta('1 days'), pd.NaT,
+                  pd.Timedelta('3 days')],
+                 [pd.NaT, pd.NaT, pd.Timedelta('3 days')]),
+
+                ([pd.Period('2011-01', freq='M'), pd.NaT,
+                  pd.Period('2011-03', freq='M')],
+                 [pd.NaT, pd.NaT, pd.Period('2011-03', freq='M')])]
+
+        # add lhs / rhs switched data
+        data = data + [(r, l) for l, r in data]
+
+        for l, r in data:
+            for dtype in [None, object]:
+                left = Series(l, dtype=dtype)
+
+                # Series, Index
+                for right in [Series(r, dtype=dtype), Index(r, dtype=dtype)]:
+                    expected = Series([False, False, True])
+                    assert_series_equal(left == right, expected)
+
+                    expected = Series([True, True, False])
+                    assert_series_equal(left != right, expected)
+
+                    expected = Series([False, False, False])
+                    assert_series_equal(left < right, expected)
+
+                    expected = Series([False, False, False])
+                    assert_series_equal(left > right, expected)
+
+                    expected = Series([False, False, True])
+                    assert_series_equal(left >= right, expected)
+
+                    expected = Series([False, False, True])
+                    assert_series_equal(left <= right, expected)
+
+    def test_nat_comparisons_scalar(self):
+        data = [[pd.Timestamp('2011-01-01'), pd.NaT,
+                 pd.Timestamp('2011-01-03')],
+
+                [pd.Timedelta('1 days'), pd.NaT, pd.Timedelta('3 days')],
+
+                [pd.Period('2011-01', freq='M'), pd.NaT,
+                 pd.Period('2011-03', freq='M')]]
+
+        for l in data:
+            for dtype in [None, object]:
+                left = Series(l, dtype=dtype)
+
+                expected = Series([False, False, False])
+                assert_series_equal(left == pd.NaT, expected)
+                assert_series_equal(pd.NaT == left, expected)
+
+                expected = Series([True, True, True])
+                assert_series_equal(left != pd.NaT, expected)
+                assert_series_equal(pd.NaT != left, expected)
+
+                expected = Series([False, False, False])
+                assert_series_equal(left < pd.NaT, expected)
+                assert_series_equal(pd.NaT > left, expected)
+                assert_series_equal(left <= pd.NaT, expected)
+                assert_series_equal(pd.NaT >= left, expected)
+
+                assert_series_equal(left > pd.NaT, expected)
+                assert_series_equal(pd.NaT < left, expected)
+                assert_series_equal(left >= pd.NaT, expected)
+                assert_series_equal(pd.NaT <= left, expected)
 
     def test_comparison_different_length(self):
         a = Series(['a', 'b', 'c'])
