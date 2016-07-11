@@ -713,9 +713,7 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match,
-           attrs, encoding,
-           **kwargs):
+def _parse(flavor, io, match, attrs, encoding, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
