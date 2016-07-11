@@ -615,6 +615,9 @@ Removal of prior version deprecations/changes
 
   Now legacy time rules raises ``ValueError``. For the list of currently supported offsets, see :ref:`here <timeseries.alias>`
 
+- The ``tquery`` and ``uquery`` functions in the ``pandas.io.sql`` module are removed (:issue:`5950`).
+
+
 .. _whatsnew_0190.performance:
 
 Performance Improvements
