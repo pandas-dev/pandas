@@ -129,7 +129,8 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         expected = frame.reindex(columns=['B', 'A', 'C'])
         assert_frame_equal(sorted_df, expected)
 
-        sorted_df = frame.sort_values(by=[1, 3], axis=1, ascending=[True, False])
+        sorted_df = frame.sort_values(by=[1, 3], axis=1,
+                                      ascending=[True, False])
         assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.sort_values(by=[1, 3], axis=1, ascending=False)
