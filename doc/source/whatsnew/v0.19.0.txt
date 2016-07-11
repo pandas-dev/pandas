@@ -267,6 +267,8 @@ API changes
 - ``.filter()`` enforces mutual exclusion of the keyword arguments. (:issue:`12399`)
 - ``PeridIndex`` can now accept ``list`` and ``array`` which contains ``pd.NaT`` (:issue:`13430`)
 - ``__setitem__`` will no longer apply a callable rhs as a function instead of storing it. Call ``where`` directly to get the previous behavior. (:issue:`13299`)
+- Passing ``Period`` with multiple frequencies to normal ``Index`` now returns ``Index`` with ``object`` dtype (:issue:`13664`)
+- ``PeriodIndex.fillna`` with ``Period`` has different freq now coerces to ``object`` dtype (:issue:`13664`)
 
 
 .. _whatsnew_0190.api.tolist:
@@ -600,7 +602,6 @@ Bug Fixes
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
 - Bug in ``.unstack`` with ``Categorical`` dtype resets ``.ordered`` to ``True`` (:issue:`13249`)
 - Clean some compile time warnings in datetime parsing (:issue:`13607`)
-
 
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
 - Bug in ``groupby`` where ``apply`` returns different result depending on whether first result is ``None`` or not (:issue:`12824`)
