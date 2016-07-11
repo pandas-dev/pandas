@@ -41,8 +41,9 @@ _shared_doc_kwargs = dict(
     axes='keywords for axes', klass='NDFrame',
     axes_single_arg='int or labels for object',
     args_transpose='axes to permute (int or label for object)',
-    optional_by="""by : str or list of str
-        Name or list of names which refer to the axis items.""")
+    optional_by="""
+        by : str or list of str
+            Name or list of names which refer to the axis items.""")
 
 
 def is_dictlike(x):
