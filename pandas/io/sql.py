@@ -8,7 +8,6 @@ from __future__ import print_function, division
 from datetime import datetime, date, time
 
 import warnings
-import traceback
 import re
 import numpy as np
 
@@ -18,7 +17,7 @@ from pandas.types.dtypes import DatetimeTZDtype
 from pandas.types.common import (is_list_like,
                                  is_datetime64tz_dtype)
 
-from pandas.compat import (lzip, map, zip, raise_with_traceback,
+from pandas.compat import (map, zip, raise_with_traceback,
                            string_types, text_type)
 from pandas.core.api import DataFrame, Series
 from pandas.core.base import PandasObject
