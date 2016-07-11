@@ -41,6 +41,7 @@ class TestnanopsDataFrame(tm.TestCase):
 
         self.arr_inf = self.arr_float * np.inf
         self.arr_float_inf = np.vstack([self.arr_float, self.arr_inf])
+        self.arr_float_neg_inf = -1 * self.arr_float_inf
         self.arr_float1_inf = np.vstack([self.arr_float1, self.arr_inf])
         self.arr_inf_float1 = np.vstack([self.arr_inf, self.arr_float1])
         self.arr_inf_inf = np.vstack([self.arr_inf, self.arr_inf])
@@ -234,7 +235,7 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def check_funs(self, testfunc, targfunc, allow_complex=True,
                    allow_all_nan=True, allow_str=True, allow_date=True,
-                   allow_tdelta=True, allow_obj=True, **kwargs):
+                   allow_tdelta=True, allow_obj=True, allow_inf=True, **kwargs):
         self.check_fun(testfunc, targfunc, 'arr_float', **kwargs)
         self.check_fun(testfunc, targfunc, 'arr_float_nan', 'arr_float',
                        **kwargs)
@@ -287,6 +288,10 @@ class TestnanopsDataFrame(tm.TestCase):
                                    allow_complex=allow_complex)
             self.check_fun(testfunc, targfunc, 'arr_obj', **kwargs)
 
+        if allow_inf:
+            self.check_fun(testfunc, targfunc, 'arr_float_inf', **kwargs)
+            self.check_fun(testfunc, targfunc, 'arr_float_neg_inf', **kwargs)
+
     def check_funs_ddof(self,
                         testfunc,
                         targfunc,
@@ -295,7 +300,7 @@ class TestnanopsDataFrame(tm.TestCase):
                         allow_str=True,
                         allow_date=False,
                         allow_tdelta=False,
-                        allow_obj=True, ):
+                        allow_obj=True):
         for ddof in range(3):
             try:
                 self.check_funs(testfunc, targfunc, allow_complex,
