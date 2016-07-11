@@ -843,15 +843,6 @@ cdef _tz_format(object obj, object zone):
     except:
         return ', tz=%s' % zone
 
-def is_timestamp_array(ndarray[object] values):
-    cdef int i, n = len(values)
-    if n == 0:
-        return False
-    for i in range(n):
-        if not is_timestamp(values[i]):
-            return False
-    return True
-
 
 cpdef object get_value_box(ndarray arr, object loc):
     cdef:
@@ -957,6 +948,7 @@ cdef str _NDIM_STRING = "ndim"
 # (see Timestamp class above). This will serve as a C extension type that
 # shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
+
     cdef readonly:
         int64_t value, nanosecond
         object freq       # frequency reference
