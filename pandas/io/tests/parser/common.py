@@ -1357,7 +1357,7 @@ j,-inF"""
         with tm.assert_produces_warning(
                 FutureWarning, check_stacklevel=False):
             result = self.read_csv(StringIO(data), compact_ints=True,
-                                use_unsigned=False)
+                                   use_unsigned=False)
             tm.assert_frame_equal(result, expected)
 
         expected = DataFrame({
@@ -1369,7 +1369,7 @@ j,-inF"""
         with tm.assert_produces_warning(
                 FutureWarning, check_stacklevel=False):
             result = self.read_csv(StringIO(data), compact_ints=True,
-                                use_unsigned=True)
+                                   use_unsigned=True)
             tm.assert_frame_equal(result, expected)
 
     def test_compact_ints_as_recarray(self):
@@ -1408,7 +1408,8 @@ j,-inF"""
             data = 'a,b\n1,a\n2,b'
             expected = np.array([(1, 'a'), (2, 'b')],
                                 dtype=[('a', '<i8'), ('b', 'O')])
-            result = self.read_csv(StringIO(data), as_recarray=True, index_col=0)
+            result = self.read_csv(
+                StringIO(data), as_recarray=True, index_col=0)
             tm.assert_numpy_array_equal(result, expected)
 
         # respects names
@@ -1418,7 +1419,7 @@ j,-inF"""
             expected = np.array([(1, 'a'), (2, 'b')],
                                 dtype=[('a', '<i8'), ('b', 'O')])
             result = self.read_csv(StringIO(data), names=['a', 'b'],
-                                header=None, as_recarray=True)
+                                   header=None, as_recarray=True)
             tm.assert_numpy_array_equal(result, expected)
 
         # header order is respected even though it conflicts
@@ -1436,7 +1437,8 @@ j,-inF"""
                 FutureWarning, check_stacklevel=False):
             data = 'a\n1'
             expected = np.array([(1,)], dtype=[('a', '<i8')])
-            result = self.read_csv(StringIO(data), as_recarray=True, squeeze=True)
+            result = self.read_csv(
+                StringIO(data), as_recarray=True, squeeze=True)
             tm.assert_numpy_array_equal(result, expected)
 
         # does data conversions before doing recarray conversion
@@ -1447,7 +1449,7 @@ j,-inF"""
             expected = np.array([(2, 'a'), (3, 'b')],
                                 dtype=[('a', '<i8'), ('b', 'O')])
             result = self.read_csv(StringIO(data), as_recarray=True,
-                                converters={'a': conv})
+                                   converters={'a': conv})
             tm.assert_numpy_array_equal(result, expected)
 
         # filters by usecols before doing recarray conversion
@@ -1456,7 +1458,7 @@ j,-inF"""
             data = 'a,b\n1,a\n2,b'
             expected = np.array([(1,), (2,)], dtype=[('a', '<i8')])
             result = self.read_csv(StringIO(data), as_recarray=True,
-                                usecols=['a'])
+                                   usecols=['a'])
             tm.assert_numpy_array_equal(result, expected)
 
     def test_memory_map(self):
