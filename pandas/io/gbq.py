@@ -168,13 +168,25 @@ class GbqConnector(object):
 
     @staticmethod
     def get_application_default_credentials(project_id):
-        from oauth2client.client import GoogleCredentials
-        from oauth2client.client import AccessTokenRefreshError
-        from oauth2client.client import ApplicationDefaultCredentialsError
-        from apiclient.discovery import build
-        from apiclient.errors import HttpError
-
+        """
+        Given a project_id tries to retrieve the 
+        "default application credentials"
+        Could be useful for running code on Google Cloud Platform
+        """
         credentials = None
+        try:
+            from oauth2client.client import GoogleCredentials
+            from oauth2client.client import AccessTokenRefreshError
+            from oauth2client.client import ApplicationDefaultCredentialsError
+            try:
+                from googleapiclient.discovery import build
+                from googleapiclient.errors import HttpError
+            except:
+                from apiclient.discovery import build
+                from apiclient.errors import HttpError
+        except ImportError:
+            return None
+
         try:
             credentials = GoogleCredentials.get_application_default()
         except ApplicationDefaultCredentialsError:

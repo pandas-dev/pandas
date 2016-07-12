@@ -83,7 +83,8 @@ def _test_imports():
             from oauth2client.client import GoogleCredentials  # noqa
             from oauth2client.client import OAuth2WebServerFlow  # noqa
             from oauth2client.client import AccessTokenRefreshError  # noqa
-            from oauth2client.client import ApplicationDefaultCredentialsError  # noqa
+            from oauth2client.client import \
+            ApplicationDefaultCredentialsError  # noqa
 
             from oauth2client.file import Storage  # noqa
             from oauth2client.tools import run_flow  # noqa
@@ -137,7 +138,8 @@ def _test_imports():
         oauth2client_v1 = False
 
     try:
-        from oauth2client.service_account import ServiceAccountCredentials  # noqa
+        from oauth2client.service_account import \
+        ServiceAccountCredentials  # noqa
     except ImportError:
         oauth2client_v2 = False
 
@@ -159,7 +161,8 @@ def clean_gbq_environment(private_key=None):
     for i in range(1, 10):
         if DATASET_ID + str(i) in dataset.datasets():
             dataset_id = DATASET_ID + str(i)
-            table = gbq._Table(PROJECT_ID, dataset_id, private_key=private_key)
+            table = gbq._Table(PROJECT_ID, dataset_id, 
+                               private_key=private_key)
             for j in range(1, 20):
                 if TABLE_ID + str(j) in dataset.tables(dataset_id):
                     table.delete(TABLE_ID + str(j))
