@@ -1282,6 +1282,14 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = s.idxmin()
         self.assertEqual(result, 1.1)
 
+        # Infinite values
+        # GH 13595
+        s = pd.Series([1, 2, np.inf])
+        result = s.idxmax()
+        self.assertEqual(result, 2)
+        result = s.idxmax(skipna=False)
+        self.assertEqual(result, 2)
+
     def test_numpy_argmax(self):
 
         # argmax is aliased to idxmax
