@@ -179,10 +179,6 @@ class join_dataframe_index_multi(object):
             self.df_multi = DataFrame(np.random.randn(len(self.index2), 4), index=self.index2, columns=['A', 'B', 'C', 'D'])
         except:
             pass
-        try:
-            self.DataFrame = DataMatrix
-        except:
-            pass
         self.df = pd.DataFrame({'data1': np.random.randn(100000), 'data2': np.random.randn(100000), 'key1': self.key1, 'key2': self.key2, })
         self.df_key1 = pd.DataFrame(np.random.randn(len(self.level1), 4), index=self.level1, columns=['A', 'B', 'C', 'D'])
         self.df_key2 = pd.DataFrame(np.random.randn(len(self.level2), 4), index=self.level2, columns=['A', 'B', 'C', 'D'])
@@ -208,10 +204,6 @@ class join_dataframe_index_single_key_bigger(object):
             self.index2 = MultiIndex(levels=[self.level1, self.level2], labels=[self.label1, self.label2])
             self.index3 = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)], labels=[np.arange(10).repeat(10000), np.tile(np.arange(100).repeat(100), 10), np.tile(np.tile(np.arange(100), 100), 10)])
             self.df_multi = DataFrame(np.random.randn(len(self.index2), 4), index=self.index2, columns=['A', 'B', 'C', 'D'])
-        except:
-            pass
-        try:
-            self.DataFrame = DataMatrix
         except:
             pass
         self.df = pd.DataFrame({'data1': np.random.randn(100000), 'data2': np.random.randn(100000), 'key1': self.key1, 'key2': self.key2, })
@@ -241,10 +233,6 @@ class join_dataframe_index_single_key_bigger_sort(object):
             self.df_multi = DataFrame(np.random.randn(len(self.index2), 4), index=self.index2, columns=['A', 'B', 'C', 'D'])
         except:
             pass
-        try:
-            self.DataFrame = DataMatrix
-        except:
-            pass
         self.df = pd.DataFrame({'data1': np.random.randn(100000), 'data2': np.random.randn(100000), 'key1': self.key1, 'key2': self.key2, })
         self.df_key1 = pd.DataFrame(np.random.randn(len(self.level1), 4), index=self.level1, columns=['A', 'B', 'C', 'D'])
         self.df_key2 = pd.DataFrame(np.random.randn(len(self.level2), 4), index=self.level2, columns=['A', 'B', 'C', 'D'])
@@ -270,10 +258,6 @@ class join_dataframe_index_single_key_small(object):
             self.index2 = MultiIndex(levels=[self.level1, self.level2], labels=[self.label1, self.label2])
             self.index3 = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)], labels=[np.arange(10).repeat(10000), np.tile(np.arange(100).repeat(100), 10), np.tile(np.tile(np.arange(100), 100), 10)])
             self.df_multi = DataFrame(np.random.randn(len(self.index2), 4), index=self.index2, columns=['A', 'B', 'C', 'D'])
-        except:
-            pass
-        try:
-            self.DataFrame = DataMatrix
         except:
             pass
         self.df = pd.DataFrame({'data1': np.random.randn(100000), 'data2': np.random.randn(100000), 'key1': self.key1, 'key2': self.key2, })
