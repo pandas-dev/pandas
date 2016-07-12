@@ -549,4 +549,5 @@ Bug Fixes
 - Bug in ``groupby`` with ``as_index=False`` returns all NaN's when grouping on multiple columns including a categorical one (:issue:`13204`)
 
 - Bug where ``pd.read_gbq()`` could throw ``ImportError: No module named discovery`` as a result of a naming conflict with another python package called apiclient  (:issue:`13454`)
->>>>>>> 65849d3c9feea395d6e6a124f7a3b11ecdb943cb
+
+- Bug in ``pd.read_csv()``, where aliases for utf-xx (e.g. UTF-xx, UTF_xx, utf_xx) raised ``UnicodeDecodeError`` (:issue:`13549`)
