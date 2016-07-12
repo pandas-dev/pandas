@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=E1101
 
-from datetime import datetime
 import datetime as dt
 import os
-import warnings
-import nose
 import struct
 import sys
+import warnings
+from datetime import datetime
 from distutils.version import LooseVersion
 
+import nose
 import numpy as np
 
 import pandas as pd
+import pandas.util.testing as tm
+from pandas import compat
 from pandas.compat import iterkeys
 from pandas.core.frame import DataFrame, Series
 from pandas.types.common import is_categorical_dtype
+from pandas.tslib import NaT
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)
-import pandas.util.testing as tm
-from pandas.tslib import NaT
-from pandas import compat
 
 
 class TestStata(tm.TestCase):
@@ -1112,6 +1112,58 @@ class TestStata(tm.TestCase):
                 from_frame = parsed.iloc[pos:pos + chunksize, :]
                 tm.assert_frame_equal(from_frame, chunk, check_dtype=False)
                 pos += chunksize
+
+    def test_write_variable_labels(self):
+        # GH 13631, add support for writing variable labels
+        original = pd.DataFrame({'a': [1, 2, 3, 4],
+                                 'b': [1.0, 3.0, 27.0, 81.0],
+                                 'c': ['Atlanta', 'Birmingham',
+                                       'Cincinnati', 'Detroit']})
+        original.index.name = 'index'
+        variable_labels = {'a': 'City Rank', 'b': 'City Exponent', 'c': 'City'}
+        with tm.ensure_clean() as path:
+            original.to_stata(path, variable_labels=variable_labels)
+            with StataReader(path) as sr:
+                read_labels = sr.variable_labels()
+            expected_labels = {'index': '',
+                               'a': 'City Rank',
+                               'b': 'City Exponent',
+                               'c': 'City'}
+            tm.assert_equal(read_labels, expected_labels)
+
+        variable_labels['index'] = 'The Index'
+        with tm.ensure_clean() as path:
+            original.to_stata(path, variable_labels=variable_labels)
+            with StataReader(path) as sr:
+                read_labels = sr.variable_labels()
+            tm.assert_equal(read_labels, variable_labels)
+
+    def test_write_variable_label_errors(self):
+        original = pd.DataFrame({'a': [1, 2, 3, 4],
+                                 'b': [1.0, 3.0, 27.0, 81.0],
+                                 'c': ['Atlanta', 'Birmingham',
+                                       'Cincinnati', 'Detroit']})
+        values = [u'\u03A1', u'\u0391',
+                  u'\u039D', u'\u0394',
+                  u'\u0391', u'\u03A3']
+
+        variable_labels_utf8 = {'a': 'City Rank',
+                                'b': 'City Exponent',
+                                'c': u''.join(values)}
+
+        with tm.assertRaises(ValueError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path, variable_labels=variable_labels_utf8)
+
+        variable_labels_long = {'a': 'City Rank',
+                                'b': 'City Exponent',
+                                'c': 'A very, very, very long variable label '
+                                     'that is too long for Stata which means '
+                                     'that it has more than 80 characters'}
+
+        with tm.assertRaises(ValueError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path, variable_labels=variable_labels_long)
 
 
 if __name__ == '__main__':
