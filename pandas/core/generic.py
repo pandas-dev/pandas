@@ -3916,16 +3916,20 @@ class NDFrame(PandasObject):
 
     def asfreq(self, freq, method=None, how=None, normalize=False):
         """
-        Convert all TimeSeries inside to specified frequency using DateOffset
-        objects. Optionally provide fill method to pad/backfill missing values.
+        Convert TimeSeries to specified frequency.
+
+        Optionally provide filling method to pad/backfill missing values.
 
         Parameters
         ----------
         freq : DateOffset object, or string
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill method
+        method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
+            Method to use for filling holes in reindexed Series (note this
+            does not fill NaNs that already were present):
+
+            * 'pad' / 'ffill': propagate last valid observation forward to next
+              valid
+            * 'backfill' / 'bfill': use NEXT valid observation to fill
         how : {'start', 'end'}, default end
             For PeriodIndex only, see PeriodIndex.asfreq
         normalize : bool, default False
