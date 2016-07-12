@@ -178,6 +178,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Attempt to infer fall dst-transition hours based on order
     name : object
         Name to be stored in the index
+
+    To know more about the frequency strings (offset aliases), please visit this
+    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
     """
 
     _typ = 'datetimeindex'
@@ -2071,6 +2074,9 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     -----
     2 of start, end, or periods must be specified
 
+    To know more about the frequency strings (offset aliases), please visit this
+    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+
     Returns
     -------
     rng : DatetimeIndex
@@ -2110,6 +2116,9 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     Notes
     -----
     2 of start, end, or periods must be specified
+
+    To know more about the frequency strings (offset aliases), please visit this
+    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
 
     Returns
     -------
@@ -2161,6 +2170,9 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     Notes
     -----
     2 of start, end, or periods must be specified
+
+    To know more about the frequency strings (offset aliases), please visit this
+    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
 
     Returns
     -------
