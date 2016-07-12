@@ -74,8 +74,8 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
             value = arg.astype('timedelta64[{0}]'.format(
                 unit)).astype('timedelta64[ns]', copy=False)
         else:
-            value = tslib.array_to_timedelta64(
-                _ensure_object(arg), unit=unit, errors=errors)
+            value = tslib.array_to_timedelta64(_ensure_object(arg),
+                                               unit=unit, errors=errors)
             value = value.astype('timedelta64[ns]', copy=False)
 
         if box:

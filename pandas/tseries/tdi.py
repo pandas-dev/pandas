@@ -35,16 +35,20 @@ def _td_index_cmp(opname, nat_result=False):
     """
 
     def wrapper(self, other):
+        msg = "cannot compare a TimedeltaIndex with type {0}"
         func = getattr(super(TimedeltaIndex, self), opname)
         if _is_convertible_to_td(other) or other is tslib.NaT:
-            other = _to_m8(other)
+            try:
+                other = _to_m8(other)
+            except ValueError:
+                # failed to parse as timedelta
+                raise TypeError(msg.format(type(other)))
             result = func(other)
             if com.isnull(other):
                 result.fill(nat_result)
         else:
             if not com.is_list_like(other):
-                raise TypeError("cannot compare a TimedeltaIndex with type "
-                                "{0}".format(type(other)))
+                raise TypeError(msg.format(type(other)))
 
             other = TimedeltaIndex(other).values
             result = func(other)

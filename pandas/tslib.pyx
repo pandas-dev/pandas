@@ -2912,10 +2912,17 @@ class Timedelta(_Timedelta):
             if not self._validate_ops_compat(other):
                 return NotImplemented
 
-            other = Timedelta(other)
             if other is NaT:
                 return NaT
+
+            try:
+                other = Timedelta(other)
+            except ValueError:
+                # failed to parse as timedelta
+                return NotImplemented
+
             return Timedelta(op(self.value, other.value), unit='ns')
+
         f.__name__ = name
         return f
 
