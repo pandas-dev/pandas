@@ -3,6 +3,7 @@
 import csv
 import os
 import platform
+from io import BytesIO
 
 import re
 import sys
@@ -1474,18 +1475,11 @@ j,-inF"""
 
     def test_read_csv_utf_aliases(self):
         # see gh issue 13549
-        path = 'test.csv'
-        expected = DataFrame({'A': [0, 1], 'B': [2, 3],
-                              'multibyte_test': ['testing123', 'bananabis'],
-                              'mb_nums': [154.868, 457.8798]})
-        with tm.ensure_clean(path) as path:
-            for byte in [8, 16]:
-                expected.to_csv(path, encoding='utf-' + str(byte), index=False)
-                for fmt in ['utf-{0}', 'utf_{0}', 'UTF-{0}', 'UTF_{0}']:
-                    encoding = fmt.format(byte)
-                    for engine in ['c', 'python', None]:
-                        result = self.read_csv(
-                            path,
-                            engine=engine,
-                            encoding=encoding)
-                        tm.assert_frame_equal(result, expected)
+        expected = pd.DataFrame({'mb_num': [4.8], 'multibyte': ['test']})
+        for byte in [8, 16]:
+            expected.to_csv(path, encoding='utf-' + str(byte), index=False)
+            for fmt in ['utf-{0}', 'utf_{0}', 'UTF-{0}', 'UTF_{0}']:
+                encoding = fmt.format(byte)
+                data = 'mb_num,multibyte\n4.8,test'.encode(encoding)
+                result = self.read_csv(BytesIO(data), encoding=encoding)
+                tm.assert_frame_equal(result, expected)
