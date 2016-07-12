@@ -980,24 +980,97 @@ class TestSeriesOperators(TestData, tm.TestCase):
             self.assertRaises(TypeError, lambda: x <= y)
 
     def test_more_na_comparisons(self):
-        left = Series(['a', np.nan, 'c'])
-        right = Series(['a', np.nan, 'd'])
+        for dtype in [None, object]:
+            left = Series(['a', np.nan, 'c'], dtype=dtype)
+            right = Series(['a', np.nan, 'd'], dtype=dtype)
 
-        result = left == right
-        expected = Series([True, False, False])
-        assert_series_equal(result, expected)
+            result = left == right
+            expected = Series([True, False, False])
+            assert_series_equal(result, expected)
 
-        result = left != right
-        expected = Series([False, True, True])
-        assert_series_equal(result, expected)
+            result = left != right
+            expected = Series([False, True, True])
+            assert_series_equal(result, expected)
 
-        result = left == np.nan
-        expected = Series([False, False, False])
-        assert_series_equal(result, expected)
+            result = left == np.nan
+            expected = Series([False, False, False])
+            assert_series_equal(result, expected)
 
-        result = left != np.nan
-        expected = Series([True, True, True])
-        assert_series_equal(result, expected)
+            result = left != np.nan
+            expected = Series([True, True, True])
+            assert_series_equal(result, expected)
+
+    def test_nat_comparisons(self):
+        data = [([pd.Timestamp('2011-01-01'), pd.NaT,
+                  pd.Timestamp('2011-01-03')],
+                 [pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')]),
+
+                ([pd.Timedelta('1 days'), pd.NaT,
+                  pd.Timedelta('3 days')],
+                 [pd.NaT, pd.NaT, pd.Timedelta('3 days')]),
+
+                ([pd.Period('2011-01', freq='M'), pd.NaT,
+                  pd.Period('2011-03', freq='M')],
+                 [pd.NaT, pd.NaT, pd.Period('2011-03', freq='M')])]
+
+        # add lhs / rhs switched data
+        data = data + [(r, l) for l, r in data]
+
+        for l, r in data:
+            for dtype in [None, object]:
+                left = Series(l, dtype=dtype)
+
+                # Series, Index
+                for right in [Series(r, dtype=dtype), Index(r, dtype=dtype)]:
+                    expected = Series([False, False, True])
+                    assert_series_equal(left == right, expected)
+
+                    expected = Series([True, True, False])
+                    assert_series_equal(left != right, expected)
+
+                    expected = Series([False, False, False])
+                    assert_series_equal(left < right, expected)
+
+                    expected = Series([False, False, False])
+                    assert_series_equal(left > right, expected)
+
+                    expected = Series([False, False, True])
+                    assert_series_equal(left >= right, expected)
+
+                    expected = Series([False, False, True])
+                    assert_series_equal(left <= right, expected)
+
+    def test_nat_comparisons_scalar(self):
+        data = [[pd.Timestamp('2011-01-01'), pd.NaT,
+                 pd.Timestamp('2011-01-03')],
+
+                [pd.Timedelta('1 days'), pd.NaT, pd.Timedelta('3 days')],
+
+                [pd.Period('2011-01', freq='M'), pd.NaT,
+                 pd.Period('2011-03', freq='M')]]
+
+        for l in data:
+            for dtype in [None, object]:
+                left = Series(l, dtype=dtype)
+
+                expected = Series([False, False, False])
+                assert_series_equal(left == pd.NaT, expected)
+                assert_series_equal(pd.NaT == left, expected)
+
+                expected = Series([True, True, True])
+                assert_series_equal(left != pd.NaT, expected)
+                assert_series_equal(pd.NaT != left, expected)
+
+                expected = Series([False, False, False])
+                assert_series_equal(left < pd.NaT, expected)
+                assert_series_equal(pd.NaT > left, expected)
+                assert_series_equal(left <= pd.NaT, expected)
+                assert_series_equal(pd.NaT >= left, expected)
+
+                assert_series_equal(left > pd.NaT, expected)
+                assert_series_equal(pd.NaT < left, expected)
+                assert_series_equal(left >= pd.NaT, expected)
+                assert_series_equal(pd.NaT <= left, expected)
 
     def test_comparison_different_length(self):
         a = Series(['a', 'b', 'c'])
@@ -1259,8 +1332,6 @@ class TestSeriesOperators(TestData, tm.TestCase):
         _check_op(arr, operator.floordiv)
 
     def test_series_frame_radd_bug(self):
-        import operator
-
         # GH 353
         vals = Series(tm.rands_array(5, 10))
         result = 'foo_' + vals
@@ -1273,7 +1344,78 @@ class TestSeriesOperators(TestData, tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         # really raise this time
-        self.assertRaises(TypeError, operator.add, datetime.now(), self.ts)
+        with tm.assertRaises(TypeError):
+            datetime.now() + self.ts
+
+        with tm.assertRaises(TypeError):
+            self.ts + datetime.now()
+
+    def test_series_radd_more(self):
+        data = [[1, 2, 3],
+                [1.1, 2.2, 3.3],
+                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+                 pd.NaT],
+                ['x', 'y', 1]]
+
+        for d in data:
+            for dtype in [None, object]:
+                s = Series(d, dtype=dtype)
+                with tm.assertRaises(TypeError):
+                    'foo_' + s
+
+        for dtype in [None, object]:
+            res = 1 + pd.Series([1, 2, 3], dtype=dtype)
+            exp = pd.Series([2, 3, 4], dtype=dtype)
+            tm.assert_series_equal(res, exp)
+            res = pd.Series([1, 2, 3], dtype=dtype) + 1
+            tm.assert_series_equal(res, exp)
+
+            res = np.nan + pd.Series([1, 2, 3], dtype=dtype)
+            exp = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
+            tm.assert_series_equal(res, exp)
+            res = pd.Series([1, 2, 3], dtype=dtype) + np.nan
+            tm.assert_series_equal(res, exp)
+
+            s = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+                           pd.Timedelta('3 days')], dtype=dtype)
+            exp = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
+                             pd.Timedelta('6 days')])
+            tm.assert_series_equal(pd.Timedelta('3 days') + s, exp)
+            tm.assert_series_equal(s + pd.Timedelta('3 days'), exp)
+
+        s = pd.Series(['x', np.nan, 'x'])
+        tm.assert_series_equal('a' + s, pd.Series(['ax', np.nan, 'ax']))
+        tm.assert_series_equal(s + 'a', pd.Series(['xa', np.nan, 'xa']))
+
+    def test_frame_radd_more(self):
+        data = [[1, 2, 3],
+                [1.1, 2.2, 3.3],
+                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+                 pd.NaT],
+                ['x', 'y', 1]]
+
+        for d in data:
+            for dtype in [None, object]:
+                s = DataFrame(d, dtype=dtype)
+                with tm.assertRaises(TypeError):
+                    'foo_' + s
+
+        for dtype in [None, object]:
+            res = 1 + pd.DataFrame([1, 2, 3], dtype=dtype)
+            exp = pd.DataFrame([2, 3, 4], dtype=dtype)
+            tm.assert_frame_equal(res, exp)
+            res = pd.DataFrame([1, 2, 3], dtype=dtype) + 1
+            tm.assert_frame_equal(res, exp)
+
+            res = np.nan + pd.DataFrame([1, 2, 3], dtype=dtype)
+            exp = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
+            tm.assert_frame_equal(res, exp)
+            res = pd.DataFrame([1, 2, 3], dtype=dtype) + np.nan
+            tm.assert_frame_equal(res, exp)
+
+        df = pd.DataFrame(['x', np.nan, 'x'])
+        tm.assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
+        tm.assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame

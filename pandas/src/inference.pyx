@@ -33,7 +33,7 @@ def is_bool(object obj):
 def is_complex(object obj):
     return util.is_complex_object(obj)
 
-def is_period(object val):
+cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
 
@@ -103,6 +103,7 @@ def infer_dtype(object _values):
         Py_ssize_t i, n
         object val
         ndarray values
+        bint seen_pdnat = False, seen_val = False
 
     if isinstance(_values, np.ndarray):
         values = _values
@@ -141,15 +142,32 @@ def infer_dtype(object _values):
     values = values.ravel()
 
     # try to use a valid value
-    for i in range(n):
-       val = util.get_value_1d(values, i)
-       if not is_null_datetimelike(val):
-           break
+    for i from 0 <= i < n:
+        val = util.get_value_1d(values, i)
 
-    if util.is_datetime64_object(val) or val is NaT:
+        # do not use is_nul_datetimelike to keep
+        # np.datetime64('nat') and np.timedelta64('nat')
+        if util._checknull(val):
+            pass
+        elif val is NaT:
+            seen_pdnat = True
+        else:
+            seen_val = True
+            break
+
+    # if all values are nan/NaT
+    if seen_val is False and seen_pdnat is True:
+        return 'datetime'
+        # float/object nan is handled in latter logic
+
+    if util.is_datetime64_object(val):
         if is_datetime64_array(values):
             return 'datetime64'
         elif is_timedelta_or_timedelta64_array(values):
+            return 'timedelta'
+
+    elif is_timedelta(val):
+        if is_timedelta_or_timedelta64_array(values):
             return 'timedelta'
 
     elif util.is_integer_object(val):
@@ -200,17 +218,15 @@ def infer_dtype(object _values):
         if is_bytes_array(values):
             return 'bytes'
 
-    elif is_timedelta(val):
-        if is_timedelta_or_timedelta64_array(values):
-            return 'timedelta'
-
     elif is_period(val):
         if is_period_array(values):
             return 'period'
 
     for i in range(n):
         val = util.get_value_1d(values, i)
-        if util.is_integer_object(val):
+        if (util.is_integer_object(val) and
+            not util.is_timedelta64_object(val) and
+            not util.is_datetime64_object(val)):
             return 'mixed-integer'
 
     return 'mixed'
@@ -237,9 +253,12 @@ def is_possible_datetimelike_array(object arr):
            return False
     return seen_datetime or seen_timedelta
 
+
 cdef inline bint is_null_datetimelike(v):
     # determine if we have a null for a timedelta/datetime (or integer versions)x
     if util._checknull(v):
+        return True
+    elif v is NaT:
         return True
     elif util.is_timedelta64_object(v):
         return v.view('int64') == iNaT
@@ -247,9 +266,32 @@ cdef inline bint is_null_datetimelike(v):
         return v.view('int64') == iNaT
     elif util.is_integer_object(v):
         return v == iNaT
+    return False
+
+
+cdef inline bint is_null_datetime64(v):
+    # determine if we have a null for a datetime (or integer versions)x,
+    # excluding np.timedelta64('nat')
+    if util._checknull(v):
+        return True
     elif v is NaT:
         return True
+    elif util.is_datetime64_object(v):
+        return v.view('int64') == iNaT
     return False
+
+
+cdef inline bint is_null_timedelta64(v):
+    # determine if we have a null for a timedelta (or integer versions)x,
+    # excluding np.datetime64('nat')
+    if util._checknull(v):
+        return True
+    elif v is NaT:
+        return True
+    elif util.is_timedelta64_object(v):
+        return v.view('int64') == iNaT
+    return False
+
 
 cdef inline bint is_datetime(object o):
     return PyDateTime_Check(o)
@@ -420,7 +462,7 @@ def is_datetime_array(ndarray[object] values):
     # return False for all nulls
     for i in range(n):
         v = values[i]
-        if is_null_datetimelike(v):
+        if is_null_datetime64(v):
             # we are a regular null
             if util._checknull(v):
                null_count += 1
@@ -437,7 +479,7 @@ def is_datetime64_array(ndarray values):
     # return False for all nulls
     for i in range(n):
         v = values[i]
-        if is_null_datetimelike(v):
+        if is_null_datetime64(v):
             # we are a regular null
             if util._checknull(v):
                 null_count += 1
@@ -481,7 +523,7 @@ def is_timedelta_array(ndarray values):
         return False
     for i in range(n):
         v = values[i]
-        if is_null_datetimelike(v):
+        if is_null_timedelta64(v):
             # we are a regular null
             if util._checknull(v):
                 null_count += 1
@@ -496,7 +538,7 @@ def is_timedelta64_array(ndarray values):
         return False
     for i in range(n):
         v = values[i]
-        if is_null_datetimelike(v):
+        if is_null_timedelta64(v):
             # we are a regular null
             if util._checknull(v):
                 null_count += 1
@@ -512,7 +554,7 @@ def is_timedelta_or_timedelta64_array(ndarray values):
         return False
     for i in range(n):
         v = values[i]
-        if is_null_datetimelike(v):
+        if is_null_timedelta64(v):
             # we are a regular null
             if util._checknull(v):
                 null_count += 1
@@ -538,9 +580,6 @@ def is_time_array(ndarray[object] values):
             return False
     return True
 
-def is_period(object o):
-    from pandas import Period
-    return isinstance(o,Period)
 
 def is_period_array(ndarray[object] values):
     cdef Py_ssize_t i, n = len(values)

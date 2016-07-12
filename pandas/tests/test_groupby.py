@@ -354,6 +354,35 @@ class TestGroupBy(tm.TestCase):
                                          names=['A', 'B']))
         assert_frame_equal(result, expected)
 
+    def test_group_selection_cache(self):
+        # GH 12839 nth, head, and tail should return same result consistently
+        df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+        expected = df.iloc[[0, 2]].set_index('A')
+
+        g = df.groupby('A')
+        result1 = g.head(n=2)
+        result2 = g.nth(0)
+        assert_frame_equal(result1, df)
+        assert_frame_equal(result2, expected)
+
+        g = df.groupby('A')
+        result1 = g.tail(n=2)
+        result2 = g.nth(0)
+        assert_frame_equal(result1, df)
+        assert_frame_equal(result2, expected)
+
+        g = df.groupby('A')
+        result1 = g.nth(0)
+        result2 = g.head(n=2)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, df)
+
+        g = df.groupby('A')
+        result1 = g.nth(0)
+        result2 = g.tail(n=2)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, df)
+
     def test_grouper_index_types(self):
         # related GH5375
         # groupby misbehaving when using a Floatlike index
@@ -2554,6 +2583,16 @@ class TestGroupBy(tm.TestCase):
     def test_apply_series_yield_constant(self):
         result = self.df.groupby(['A', 'B'])['C'].apply(len)
         self.assertEqual(result.index.names[:2], ('A', 'B'))
+
+    def test_apply_frame_yield_constant(self):
+        # GH13568
+        result = self.df.groupby(['A', 'B']).apply(len)
+        self.assertTrue(isinstance(result, Series))
+        self.assertIsNone(result.name)
+
+        result = self.df.groupby(['A', 'B'])[['C', 'D']].apply(len)
+        self.assertTrue(isinstance(result, Series))
+        self.assertIsNone(result.name)
 
     def test_apply_frame_to_series(self):
         grouped = self.df.groupby(['A', 'B'])
@@ -5905,49 +5944,49 @@ class TestGroupBy(tm.TestCase):
         result = _nargsort(items, kind='mergesort', ascending=True,
                            na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='first'
         result = _nargsort(items, kind='mergesort', ascending=True,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='last'
         result = _nargsort(items, kind='mergesort', ascending=False,
                            na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='first'
         result = _nargsort(items, kind='mergesort', ascending=False,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='last'
         result = _nargsort(items2, kind='mergesort', ascending=True,
                            na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='first'
         result = _nargsort(items2, kind='mergesort', ascending=True,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='last'
         result = _nargsort(items2, kind='mergesort', ascending=False,
                            na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='first'
         result = _nargsort(items2, kind='mergesort', ascending=False,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
     def test_datetime_count(self):
         df = DataFrame({'a': [1, 2, 3] * 2,
@@ -6116,7 +6155,7 @@ class TestGroupBy(tm.TestCase):
                 # bit a of hack to make sure the cythonized shift
                 # is equivalent to pre 0.17.1 behavior
                 if op == 'shift':
-                    gb._set_selection_from_grouper()
+                    gb._set_group_selection()
 
                 for (op, args), targop in ops:
                     if op != 'shift' and 'int' not in gb_target:

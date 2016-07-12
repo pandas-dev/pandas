@@ -1133,7 +1133,7 @@ fill/interpolate missing data:
 Merging AsOf
 ~~~~~~~~~~~~
 
-.. versionadded:: 0.18.2
+.. versionadded:: 0.19.0
 
 A :func:`merge_asof` is similar to an ordered left-join except that we match on nearest key rather than equal keys. For each row in the ``left`` DataFrame, we select the last row in the ``right`` DataFrame whose ``on`` key is less than the left's key. Both DataFrames must be sorted by the key.
 

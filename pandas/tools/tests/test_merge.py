@@ -91,8 +91,8 @@ class TestMerge(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_numpy_array_equal(ls, exp_ls)
-        self.assert_numpy_array_equal(rs, exp_rs)
+        self.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        self.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_cython_right_outer_join(self):
         left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
@@ -117,8 +117,8 @@ class TestMerge(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_numpy_array_equal(ls, exp_ls)
-        self.assert_numpy_array_equal(rs, exp_rs)
+        self.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        self.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_cython_inner_join(self):
         left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
@@ -141,8 +141,8 @@ class TestMerge(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_numpy_array_equal(ls, exp_ls)
-        self.assert_numpy_array_equal(rs, exp_rs)
+        self.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        self.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_left_outer_join(self):
         joined_key2 = merge(self.df, self.df2, on='key2')
@@ -1262,6 +1262,18 @@ class TestMerge(tm.TestCase):
         y = [pd.Period('2011-03', freq='M'), pd.Period('2011-04', freq='M')]
         result = concat([pd.Series(x), pd.Series(y)], ignore_index=True)
         tm.assert_series_equal(result, pd.Series(x + y, dtype='object'))
+
+    def test_concat_tz_series_tzlocal(self):
+        # GH 13583
+        tm._skip_if_no_dateutil()
+        import dateutil
+        x = [pd.Timestamp('2011-01-01', tz=dateutil.tz.tzlocal()),
+             pd.Timestamp('2011-02-01', tz=dateutil.tz.tzlocal())]
+        y = [pd.Timestamp('2012-01-01', tz=dateutil.tz.tzlocal()),
+             pd.Timestamp('2012-02-01', tz=dateutil.tz.tzlocal())]
+        result = concat([pd.Series(x), pd.Series(y)], ignore_index=True)
+        tm.assert_series_equal(result, pd.Series(x + y))
+        self.assertEqual(result.dtype, 'datetime64[ns, tzlocal()]')
 
     def test_concat_period_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))

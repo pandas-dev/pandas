@@ -142,7 +142,7 @@ class DatetimeIndexOpsMixin(object):
             other = type(self)(other)
 
         # compare
-        result = getattr(self.asi8, op)(other.asi8)
+        result = op(self.asi8, other.asi8)
 
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
@@ -747,7 +747,7 @@ class DatetimeIndexOpsMixin(object):
 
     def where(self, cond, other=None):
         """
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from

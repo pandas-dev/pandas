@@ -182,7 +182,7 @@ def merge_ordered(left, right, on=None,
         * outer: use union of keys from both frames (SQL: full outer join)
         * inner: use intersection of keys from both frames (SQL: inner join)
 
-        .. versionadded 0.18.2
+        .. versionadded:: 0.19.0
 
     Examples
     --------
@@ -263,7 +263,7 @@ def merge_asof(left, right, on=None,
     Optionally perform group-wise merge. This searches for the nearest match
     on the 'on' key within the same group according to 'by'.
 
-    .. versionadded 0.18.2
+    .. versionadded:: 0.19.0
 
     Parameters
     ----------
@@ -436,7 +436,8 @@ def merge_asof(left, right, on=None,
         # if we DO have duplicates, then
         # we cannot guarantee order
 
-        sorter = np.concatenate([groupby.indices[g] for g, _ in groupby])
+        sorter = com._ensure_platform_int(
+            np.concatenate([groupby.indices[g] for g, _ in groupby]))
         if len(result) != len(sorter):
             if check_duplicates:
                 raise AssertionError("invalid reverse grouping")

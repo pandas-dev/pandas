@@ -31,6 +31,7 @@ from pandas.core.common import (isnull, array_equivalent,
                                 is_list_like, is_bool_dtype,
                                 is_integer_dtype, is_float_dtype,
                                 needs_i8_conversion)
+from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.strings import StringAccessorMixin
 
 from pandas.core.config import get_option
@@ -242,8 +243,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     # don't support boolean explicity ATM
                     pass
                 elif inferred != 'string':
-                    if (inferred.startswith('datetime') or
-                            tslib.is_timestamp_array(subarr)):
+                    if inferred.startswith('datetime'):
 
                         if (lib.is_datetime_with_singletz_array(subarr) or
                                 'tz' in kwargs):
@@ -378,7 +378,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _deepcopy_if_needed(self, orig, copy=False):
         """
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
         Make a copy of self if data coincides (in memory) with orig.
         Subclasses should override this if self._base is not an ndarray.
@@ -494,7 +494,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def where(self, cond, other=None):
         """
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from
@@ -813,7 +813,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             satisfied, the original data is used to create a new Index
             or the original Index is returned.
 
-            .. versionadded:: 0.18.2
+            .. versionadded:: 0.19.0
 
         """
 
@@ -3182,8 +3182,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 if needs_i8_conversion(self) and needs_i8_conversion(other):
                     return self._evaluate_compare(other, op)
 
-                func = getattr(self.values, op)
-                result = func(np.asarray(other))
+                if is_object_dtype(self) and self.nlevels == 1:
+                    # don't pass MultiIndex
+                    result = _comp_method_OBJECT_ARRAY(op, self.values, other)
+                else:
+                    result = op(self.values, np.asarray(other))
 
                 # technically we could support bool dtyped Index
                 # for now just return the indexing array directly
@@ -3196,12 +3199,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
             return _evaluate_compare
 
-        cls.__eq__ = _make_compare('__eq__')
-        cls.__ne__ = _make_compare('__ne__')
-        cls.__lt__ = _make_compare('__lt__')
-        cls.__gt__ = _make_compare('__gt__')
-        cls.__le__ = _make_compare('__le__')
-        cls.__ge__ = _make_compare('__ge__')
+        cls.__eq__ = _make_compare(operator.eq)
+        cls.__ne__ = _make_compare(operator.ne)
+        cls.__lt__ = _make_compare(operator.lt)
+        cls.__gt__ = _make_compare(operator.gt)
+        cls.__le__ = _make_compare(operator.le)
+        cls.__ge__ = _make_compare(operator.ge)
 
     @classmethod
     def _add_numericlike_set_methods_disabled(cls):
