@@ -81,7 +81,7 @@
         {"environment_type": "virtualenv", "pytables": ""},
         // On conda&win32, install libpython
         {"sys_platform": "(?!win32).*", "libpython": ""},
-        {"sys_platform": "win32", "libpython": null},
+        {"environment_type": "conda", "sys_platform": "win32", "libpython": null},
         {"environment_type": "(?!conda).*", "libpython": ""}
     ],
     "include": [],
