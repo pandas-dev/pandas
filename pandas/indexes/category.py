@@ -569,26 +569,17 @@ class CategoricalIndex(Index, base.PandasDelegate):
         codes = np.concatenate((codes[:loc], code, codes[loc:]))
         return self._create_from_codes(codes)
 
-    def append(self, other):
+    def _append_same_dtype(self, to_concat, name):
         """
-        Append a collection of CategoricalIndex options together
-
-        Parameters
-        ----------
-        other : Index or list/tuple of indices
-
-        Returns
-        -------
-        appended : Index
-
-        Raises
-        ------
+        Concatenate to_concat which has the same class
         ValueError if other is not in the categories
         """
-        to_concat, name = self._ensure_compat_append(other)
         to_concat = [self._is_dtype_compat(c) for c in to_concat]
         codes = np.concatenate([c.codes for c in to_concat])
-        return self._create_from_codes(codes, name=name)
+        result = self._create_from_codes(codes, name=name)
+        # if name is None, _create_from_codes sets self.name
+        result.name = name
+        return result
 
     @classmethod
     def _add_comparison_methods(cls):

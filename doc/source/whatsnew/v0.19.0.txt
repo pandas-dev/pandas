@@ -1356,6 +1356,13 @@ Bug Fixes
 - Bug in ``DatetimeIndex``, which did not honour the ``copy=True`` (:issue:`13205`)
 - Bug in ``DatetimeIndex.is_normalized`` returns incorrectly for normalized date_range in case of local timezones (:issue:`13459`)
 
+- Bug in ``pd.concat`` and ``.append`` may coerces ``datetime64`` and ``timedelta`` to ``object`` dtype containing python built-in ``datetime`` or ``timedelta`` rather than ``Timestamp`` or ``Timedelta`` (:issue:`13626`)
+- Bug in ``PeriodIndex.append`` may raises ``AttributeError`` when the result is ``object`` dtype (:issue:`13221`)
+- Bug in ``CategoricalIndex.append`` may accept normal ``list`` (:issue:`13626`)
+- Bug in ``pd.concat`` and ``.append`` with the same timezone get reset to UTC (:issue:`7795`)
+- Bug in ``Series`` and ``DataFrame`` ``.append`` raises ``AmbiguousTimeError`` if data contains datetime near DST boundary (:issue:`13626`)
+
+
 - Bug in ``DataFrame.to_csv()`` in which float values were being quoted even though quotations were specified for non-numeric values only (:issue:`12922`, :issue:`13259`)
 - Bug in ``DataFrame.describe()`` raising ``ValueError`` with only boolean columns (:issue:`13898`)
 - Bug in ``MultiIndex`` slicing where extra elements were returned when level is non-unique (:issue:`12896`)

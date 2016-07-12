@@ -4384,14 +4384,20 @@ class DataFrame(NDFrame):
                 raise TypeError('Can only append a Series if ignore_index=True'
                                 ' or if the Series has a name')
 
-            index = None if other.name is None else [other.name]
+            if other.name is None:
+                index = None
+            else:
+                # other must have the same index name as self, otherwise
+                # index name will be reset
+                index = Index([other.name], name=self.index.name)
+
             combined_columns = self.columns.tolist() + self.columns.union(
                 other.index).difference(self.columns).tolist()
             other = other.reindex(combined_columns, copy=False)
             other = DataFrame(other.values.reshape((1, len(other))),
-                              index=index, columns=combined_columns)
+                              index=index,
+                              columns=combined_columns)
             other = other._convert(datetime=True, timedelta=True)
-
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):

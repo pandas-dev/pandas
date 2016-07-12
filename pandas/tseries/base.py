@@ -26,6 +26,7 @@ import pandas.lib as lib
 from pandas.core.index import Index
 from pandas.indexes.base import _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
+import pandas.types.concat as _concat
 import pandas.tseries.frequencies as frequencies
 import pandas.algos as _algos
 
@@ -794,6 +795,23 @@ class DatetimeIndexOpsMixin(object):
         # display as values, not quoted
         result = result.replace("'", "")
         return result
+
+    def _append_same_dtype(self, to_concat, name):
+        """
+        Concatenate to_concat which has the same class
+        """
+        attribs = self._get_attributes_dict()
+        attribs['name'] = name
+
+        if not isinstance(self, ABCPeriodIndex):
+            # reset freq
+            attribs['freq'] = None
+
+        if getattr(self, 'tz', None) is not None:
+            return _concat._concat_datetimetz(to_concat, name)
+        else:
+            new_data = np.concatenate([c.asi8 for c in to_concat])
+        return self._simple_new(new_data, **attribs)
 
 
 def _ensure_datetimelike_to_i8(other):
