@@ -571,11 +571,11 @@ class TestSeriesOperators(TestData, tm.TestCase):
         td2 / td1
 
         # ## datetime64 ###
-        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'), Timestamp(
-            '20120103')])
+        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
+                      Timestamp('20120103')])
         dt1.iloc[2] = np.nan
-        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'), Timestamp(
-            '20120104')])
+        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
+                      Timestamp('20120104')])
         ops = ['__add__', '__mul__', '__floordiv__', '__truediv__', '__div__',
                '__pow__', '__radd__', '__rmul__', '__rfloordiv__',
                '__rtruediv__', '__rdiv__', '__rpow__']
@@ -607,9 +607,10 @@ class TestSeriesOperators(TestData, tm.TestCase):
         ops = ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__',
                '__rmul__', '__rfloordiv__', '__rtruediv__', '__rdiv__',
                '__rpow__']
-        dt1 = Series(
-            date_range('2000-01-01 09:00:00', periods=5,
-                       tz='US/Eastern'), name='foo')
+
+        tz = 'US/Eastern'
+        dt1 = Series(date_range('2000-01-01 09:00:00', periods=5,
+                                tz=tz), name='foo')
         dt2 = dt1.copy()
         dt2.iloc[2] = np.nan
         td1 = Series(timedelta_range('1 days 1 min', periods=5, freq='H'))
@@ -618,58 +619,48 @@ class TestSeriesOperators(TestData, tm.TestCase):
         run_ops(ops, dt1, td1)
 
         result = dt1 + td1[0]
-        expected = (
-            dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt2 + td2[0]
-        expected = (
-            dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         # odd numpy behavior with scalar timedeltas
         if not _np_version_under1p8:
             result = td1[0] + dt1
-            expected = (
-                dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize('US/Eastern')
-            assert_series_equal(result, expected)
+            exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
+            assert_series_equal(result, exp)
 
             result = td2[0] + dt2
-            expected = (
-                dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize('US/Eastern')
-            assert_series_equal(result, expected)
+            exp = (dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize(tz)
+            assert_series_equal(result, exp)
 
         result = dt1 - td1[0]
-        expected = (
-            dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
         self.assertRaises(TypeError, lambda: td1[0] - dt1)
 
         result = dt2 - td2[0]
-        expected = (
-            dt2.dt.tz_localize(None) - td2[0]).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt2.dt.tz_localize(None) - td2[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
         self.assertRaises(TypeError, lambda: td2[0] - dt2)
 
         result = dt1 + td1
-        expected = (
-            dt1.dt.tz_localize(None) + td1).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt1.dt.tz_localize(None) + td1).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt2 + td2
-        expected = (
-            dt2.dt.tz_localize(None) + td2).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt2.dt.tz_localize(None) + td2).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt1 - td1
-        expected = (
-            dt1.dt.tz_localize(None) - td1).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt1.dt.tz_localize(None) - td1).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt2 - td2
-        expected = (
-            dt2.dt.tz_localize(None) - td2).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt2.dt.tz_localize(None) - td2).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         self.assertRaises(TypeError, lambda: td1 - dt1)
         self.assertRaises(TypeError, lambda: td2 - dt2)
@@ -1555,3 +1546,12 @@ class TestSeriesOperators(TestData, tm.TestCase):
         df['expected'] = df['date'] - df.index.to_series()
         df['result'] = df['date'] - df.index
         assert_series_equal(df['result'], df['expected'], check_names=False)
+
+    def test_dti_tz_convert_to_utc(self):
+        base = pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'],
+                                tz='UTC')
+        idx1 = base.tz_convert('Asia/Tokyo')[:2]
+        idx2 = base.tz_convert('US/Eastern')[1:]
+
+        res = Series([1, 2], index=idx1) + Series([1, 1], index=idx2)
+        assert_series_equal(res, Series([np.nan, 3, np.nan], index=base))
