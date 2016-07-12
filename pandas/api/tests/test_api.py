@@ -58,11 +58,10 @@ class TestPDApi(Base, tm.TestCase):
 
     # these are already deprecated; awaiting removal
     deprecated_classes = ['SparsePanel', 'TimeSeries', 'WidePanel',
-                          'SparseTimeSeries']
+                          'SparseTimeSeries', 'Panel', 'Panel4D']
 
     # these should be deperecated in the future
-    deprecated_classes_in_future = ['Panel', 'Panel4D',
-                                    'SparseList', 'Term']
+    deprecated_classes_in_future = ['SparseList', 'Term']
 
     # these should be removed from top-level namespace
     remove_classes_from_top_level_namespace = ['Expr']
