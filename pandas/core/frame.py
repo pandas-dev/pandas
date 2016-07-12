@@ -818,7 +818,6 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    @deprecate_kwarg(old_arg_name='outtype', new_arg_name='orient')
     def to_dict(self, orient='dict'):
         """Convert DataFrame to dictionary.
 
