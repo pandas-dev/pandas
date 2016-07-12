@@ -436,6 +436,19 @@ Deprecations
 - top-level ``pd.ordered_merge()`` has been renamed to ``pd.merge_ordered()`` and the original name will be removed in a future version (:issue:`13358`)
 - ``Timestamp.offset`` property (and named arg in the constructor), has been deprecated in favor of ``freq`` (:issue:`12160`)
 
+<<<<<<< HEAD
+=======
+
+.. _whatsnew_0190.prior_deprecations:
+
+Removal of prior version deprecations/changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- ``DataFrame.to_csv()`` has dropped the ``engine`` parameter, as was deprecated in 0.17.1 (:issue:`11274`, :issue:`13419`)
+- ``DataFrame.to_dict()`` has dropped the ``outtype`` parameter in favor of ``orient`` (:issue:`13627`, :issue:`8486`)
+
+
+>>>>>>> 7c357d2... CLN: Removed outtype in DataFrame.to_dict (#13627)
 .. _whatsnew_0190.performance:
 
 Performance Improvements
