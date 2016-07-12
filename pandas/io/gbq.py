@@ -167,7 +167,7 @@ class GbqConnector(object):
             return credentials
 
     @staticmethod
-    def get_application_default_credentials(project_id):
+    def get_application_default_credentials(project_id):  # pragma: no cover
         """
         Given a project_id tries to retrieve the
         "default application credentials"
