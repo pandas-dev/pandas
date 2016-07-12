@@ -124,7 +124,7 @@ else
     echo "pip installs"
     REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.pip"
     if [ -e ${REQ} ]; then
-        pip install --upgrade -r $REQ
+        pip install --pre --upgrade -r $REQ
     fi
 
     # remove any installed pandas package
