@@ -436,15 +436,6 @@ Deprecations
 - top-level ``pd.ordered_merge()`` has been renamed to ``pd.merge_ordered()`` and the original name will be removed in a future version (:issue:`13358`)
 - ``Timestamp.offset`` property (and named arg in the constructor), has been deprecated in favor of ``freq`` (:issue:`12160`)
 
-
-.. _whatsnew_0190.prior_deprecations:
-
-Removal of prior version deprecations/changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-- ``DataFrame.to_csv()`` has dropped the ``engine`` parameter, as was deprecated in 0.17.1 (:issue:`11274`, :issue:`13419`)
-
-
 .. _whatsnew_0190.performance:
 
 Performance Improvements
@@ -484,18 +475,14 @@ Bug Fixes
 
 - Bug in ``Series.str.extractall()`` with ``str`` index raises ``ValueError``  (:issue:`13156`)
 - Bug in ``Series.str.extractall()`` with single group and quantifier  (:issue:`13382`)
+
 - Bug in ``DatetimeIndex`` and ``Period`` subtraction raises ``ValueError`` or ``AttributeError`` rather than ``TypeError`` (:issue:`13078`)
-- Bug in ``Index`` and ``Series`` created with ``NaN`` and ``NaT`` mixed data may not have ``datetime64`` dtype  (:issue:`13324`)
-- Bug in ``Index`` and ``Series`` may ignore ``np.datetime64('nat')`` and ``np.timdelta64('nat')`` to infer dtype (:issue:`13324`)
 - Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``PeriodIndex`` construction returning a ``float64`` index in some circumstances (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not changing its ``freq`` appropriately when empty (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not retaining its type or name with an empty ``DataFrame`` appropriately when empty (:issue:`13212`)
-- Bug in ``groupby(..).apply(..)`` when the passed function returns scalar values per group (:issue:`13468`).
 - Bug in ``groupby(..).resample(..)`` where passing some keywords would raise an exception (:issue:`13235`)
 - Bug in ``.tz_convert`` on a tz-aware ``DateTimeIndex`` that relied on index being sorted for correct results (:issue:`13306`)
-- Bug in ``.tz_localize`` with ``dateutil.tz.tzlocal`` may return incorrect result (:issue:`13583`)
-- Bug in ``DatetimeTZDtype`` dtype with ``dateutil.tz.tzlocal`` cannot be regarded as valid dtype (:issue:`13583`)
 - Bug in ``pd.read_hdf()`` where attempting to load an HDF file with a single dataset, that had one or more categorical columns, failed unless the key argument was set to the name of the dataset. (:issue:`13231`)
 - Bug in ``.rolling()`` that allowed a negative integer window in contruction of the ``Rolling()`` object, but would later fail on aggregation (:issue:`13383`)
 
@@ -529,8 +516,6 @@ Bug Fixes
 - Bug in extension dtype creation where the created types were not is/identical (:issue:`13285`)
 
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
-- Bug in ``Series`` comparison may output incorrect result if rhs contains ``NaT`` (:issue:`9005`)
-- Bug in ``Series`` and ``Index`` comparison may output incorrect result if it contains ``NaT`` with ``object`` dtype (:issue:`13592`)
 - Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
 - Bug in ``Peirod`` and ``Series`` or ``Index`` comparison raises ``TypeError`` (:issue:`13200`)
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
