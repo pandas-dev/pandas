@@ -169,7 +169,7 @@ class GbqConnector(object):
     @staticmethod
     def get_application_default_credentials(project_id):
         """
-        Given a project_id tries to retrieve the 
+        Given a project_id tries to retrieve the
         "default application credentials"
         Could be useful for running code on Google Cloud Platform
         """
