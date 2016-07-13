@@ -843,7 +843,7 @@ class MultiIndex(Index):
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
         for i in range(1, len(arrays)):
-            if len(arrays[i]) != len(arrays[i-1]):
+            if len(arrays[i]) != len(arrays[i - 1]):
                 raise ValueError('all arrays must be same length')
 
         cats = [Categorical.from_array(arr, ordered=True) for arr in arrays]
