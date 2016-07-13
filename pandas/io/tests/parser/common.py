@@ -3,7 +3,6 @@
 import csv
 import os
 import platform
-from io import BytesIO
 
 import re
 import sys
