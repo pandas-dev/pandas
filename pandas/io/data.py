@@ -19,7 +19,9 @@ from pandas.compat import(
 )
 import pandas.compat as compat
 from pandas import Panel, DataFrame, Series, read_csv, concat, to_datetime, DatetimeIndex, DateOffset
-from pandas.core.common import is_list_like, PandasError
+
+from pandas.types.common import is_list_like
+from pandas.core.common import PandasError
 from pandas.io.common import urlopen, ZipFile, urlencode
 from pandas.tseries.offsets import MonthEnd
 from pandas.util.testing import _network_error_classes

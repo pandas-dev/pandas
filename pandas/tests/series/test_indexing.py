@@ -7,16 +7,14 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
+from pandas.types.common import is_integer, is_scalar
 from pandas import Index, Series, DataFrame, isnull, date_range
 from pandas.core.index import MultiIndex
 from pandas.core.indexing import IndexingError
 from pandas.tseries.index import Timestamp
 from pandas.tseries.tdi import Timedelta
-import pandas.core.common as com
 
 import pandas.core.datetools as datetools
-import pandas.lib as lib
-
 from pandas.compat import lrange, range
 from pandas import compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
@@ -375,7 +373,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_getitem_unordered_dup(self):
         obj = Series(lrange(5), index=['c', 'a', 'a', 'b', 'b'])
-        self.assertTrue(lib.isscalar(obj['c']))
+        self.assertTrue(is_scalar(obj['c']))
         self.assertEqual(obj['c'], 0)
 
     def test_getitem_dups_with_missing(self):
@@ -1174,23 +1172,23 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s = pd.Series([1, 2, 3])
         w = s.where(s > 1, 'X')
 
-        self.assertFalse(com.is_integer(w[0]))
-        self.assertTrue(com.is_integer(w[1]))
-        self.assertTrue(com.is_integer(w[2]))
+        self.assertFalse(is_integer(w[0]))
+        self.assertTrue(is_integer(w[1]))
+        self.assertTrue(is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
         self.assertTrue(w.dtype == 'object')
 
         w = s.where(s > 1, ['X', 'Y', 'Z'])
-        self.assertFalse(com.is_integer(w[0]))
-        self.assertTrue(com.is_integer(w[1]))
-        self.assertTrue(com.is_integer(w[2]))
+        self.assertFalse(is_integer(w[0]))
+        self.assertTrue(is_integer(w[1]))
+        self.assertTrue(is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
         self.assertTrue(w.dtype == 'object')
 
         w = s.where(s > 1, np.array(['X', 'Y', 'Z']))
-        self.assertFalse(com.is_integer(w[0]))
-        self.assertTrue(com.is_integer(w[1]))
-        self.assertTrue(com.is_integer(w[2]))
+        self.assertFalse(is_integer(w[0]))
+        self.assertTrue(is_integer(w[1]))
+        self.assertTrue(is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
         self.assertTrue(w.dtype == 'object')
 

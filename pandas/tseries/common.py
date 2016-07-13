@@ -3,19 +3,21 @@ datetimelike delegation
 """
 
 import numpy as np
+
+from pandas.types.common import (_NS_DTYPE, _TD_DTYPE,
+                                 is_period_arraylike,
+                                 is_datetime_arraylike, is_integer_dtype,
+                                 is_datetime64_dtype, is_datetime64tz_dtype,
+                                 is_timedelta64_dtype, is_categorical_dtype,
+                                 is_list_like)
+
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
-from pandas.core import common as com
 from pandas.tseries.index import DatetimeIndex
 from pandas._period import IncompatibleFrequency    # flake8: noqa
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas import tslib
 from pandas.core.algorithms import take_1d
-from pandas.core.common import (_NS_DTYPE, _TD_DTYPE, is_period_arraylike,
-                                is_datetime_arraylike, is_integer_dtype,
-                                is_list_like,
-                                is_datetime64_dtype, is_datetime64tz_dtype,
-                                is_timedelta64_dtype, is_categorical_dtype)
 
 
 def is_datetimelike(data):
@@ -129,7 +131,7 @@ class Properties(PandasDelegate, NoNewAttributesMixin):
         method = getattr(self.values, name)
         result = method(*args, **kwargs)
 
-        if not com.is_list_like(result):
+        if not is_list_like(result):
             return result
 
         result = Series(result, index=self.index, name=self.name)

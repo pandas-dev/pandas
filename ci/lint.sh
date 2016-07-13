@@ -8,7 +8,7 @@ RET=0
 
 if [ "$LINT" ]; then
     echo "Linting"
-    for path in 'core' 'indexes' 'types' 'formats' 'io' 'stats' 'compat' 'sparse' 'tools' 'tseries' 'tests' 'computation' 'util'
+    for path in 'api' 'core' 'indexes' 'types' 'formats' 'io' 'stats' 'compat' 'sparse' 'tools' 'tseries' 'tests' 'computation' 'util'
     do
         echo "linting -> pandas/$path"
         flake8 pandas/$path --filename '*.py'
