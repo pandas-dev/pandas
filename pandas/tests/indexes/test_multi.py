@@ -632,6 +632,13 @@ class TestMultiIndex(Base, tm.TestCase):
 
         tm.assert_index_equal(result, result2)
 
+    def test_from_arrays_different_lengths(self):
+        # GH13599
+        idx1 = [1, 2, 3]
+        idx2 = ['a', 'b']
+        assertRaisesRegexp(ValueError, '^all arrays must be same length$',
+                            pd.MultiIndex.from_arrays, [idx1, idx2])
+
     def test_from_product(self):
 
         first = ['foo', 'bar', 'buz']
