@@ -567,7 +567,7 @@ DateOffset objects
 ------------------
 
 In the preceding examples, we created DatetimeIndex objects at various
-frequencies by passing in :ref: `frequency strings <timeseries.offset_aliases>`
+frequencies by passing in :ref:`frequency strings <timeseries.offset_aliases>`
 like 'M', 'W', and 'BM to the ``freq`` keyword. Under the hood, these frequency
 strings are being translated into an instance of pandas ``DateOffset``,
 which represents a regular frequency increment. Specific offset logic like

@@ -272,8 +272,8 @@ def rolling_count(arg, window, **kwargs):
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
     return ensure_compat('rolling', 'count', arg, window=window, **kwargs)
 
@@ -525,8 +525,8 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
     return ensure_compat('rolling',
                          'quantile',
@@ -577,8 +577,8 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
     return ensure_compat('rolling',
                          'apply',
@@ -652,8 +652,8 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
     func = 'mean' if mean else 'sum'
     return ensure_compat('rolling',
@@ -720,8 +720,8 @@ def expanding_count(arg, freq=None):
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
     return ensure_compat('expanding', 'count', arg, freq=freq)
 
@@ -751,8 +751,8 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None):
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
     return ensure_compat('expanding',
                          'quantile',
@@ -837,8 +837,8 @@ def expanding_apply(arg, func, min_periods=1, freq=None,
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
     return ensure_compat('expanding',
                          'apply',

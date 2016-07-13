@@ -179,8 +179,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     name : object
         Name to be stored in the index
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
 
     _typ = 'datetimeindex'
@@ -2074,8 +2074,8 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     -----
     2 of start, end, or periods must be specified
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Returns
     -------
@@ -2117,8 +2117,8 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     -----
     2 of start, end, or periods must be specified
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Returns
     -------
@@ -2171,8 +2171,8 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     -----
     2 of start, end, or periods must be specified
 
-    To know more about the frequency strings (offset aliases), please visit this
-    link - http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases.
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Returns
     -------
