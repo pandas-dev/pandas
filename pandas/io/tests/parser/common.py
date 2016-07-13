@@ -1476,7 +1476,6 @@ j,-inF"""
         # see gh issue 13549
         expected = pd.DataFrame({'mb_num': [4.8], 'multibyte': ['test']})
         for byte in [8, 16]:
-            expected.to_csv(path, encoding='utf-' + str(byte), index=False)
             for fmt in ['utf-{0}', 'utf_{0}', 'UTF-{0}', 'UTF_{0}']:
                 encoding = fmt.format(byte)
                 data = 'mb_num,multibyte\n4.8,test'.encode(encoding)
