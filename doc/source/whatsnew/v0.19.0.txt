@@ -443,6 +443,7 @@ Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - ``DataFrame.to_csv()`` has dropped the ``engine`` parameter, as was deprecated in 0.17.1 (:issue:`11274`, :issue:`13419`)
+- ``DataFrame.to_dict()`` has dropped the ``outtype`` parameter in favor of ``orient`` (:issue:`13627`, :issue:`8486`)
 
 
 .. _whatsnew_0190.performance:
@@ -535,6 +536,7 @@ Bug Fixes
 - Bug in ``Peirod`` and ``Series`` or ``Index`` comparison raises ``TypeError`` (:issue:`13200`)
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
 - Bug in ``.unstack`` with ``Categorical`` dtype resets ``.ordered`` to ``True`` (:issue:`13249`)
+- Clean some compile time warnings in datetime parsing (:issue:`13607`)
 
 
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
@@ -543,7 +545,7 @@ Bug Fixes
 - Bug in ``.to_html``, ``.to_latex`` and ``.to_string`` silently ignore custom datetime formatter passed through the ``formatters`` key word (:issue:`10690`)
 
 - Bug in ``pd.to_numeric`` when ``errors='coerce'`` and input contains non-hashable objects (:issue:`13324`)
-
+- Bug in invalid ``Timedelta`` arithmetic and comparison may raise ``ValueError`` rather than ``TypeError`` (:issue:`13624`)
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
 - Bug in ``groupby`` with ``as_index=False`` returns all NaN's when grouping on multiple columns including a categorical one (:issue:`13204`)

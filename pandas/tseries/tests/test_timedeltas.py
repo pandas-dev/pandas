@@ -472,6 +472,21 @@ class TestTimedeltas(tm.TestCase):
         self.assertTrue(td.__mul__(other) is NotImplemented)
         self.assertTrue(td.__floordiv__(td) is NotImplemented)
 
+    def test_ops_error_str(self):
+        # GH 13624
+        td = Timedelta('1 day')
+
+        for l, r in [(td, 'a'), ('a', td)]:
+
+            with tm.assertRaises(TypeError):
+                l + r
+
+            with tm.assertRaises(TypeError):
+                l > r
+
+            self.assertFalse(l == r)
+            self.assertTrue(l != r)
+
     def test_fields(self):
         def check(value):
             # that we are int/long like
@@ -1431,6 +1446,23 @@ class TestTimedeltaIndex(tm.TestCase):
             result = idx1 != idx2
             expected = np.array([True, True, True, True, True, False])
             self.assert_numpy_array_equal(result, expected)
+
+    def test_ops_error_str(self):
+        # GH 13624
+        tdi = TimedeltaIndex(['1 day', '2 days'])
+
+        for l, r in [(tdi, 'a'), ('a', tdi)]:
+            with tm.assertRaises(TypeError):
+                l + r
+
+            with tm.assertRaises(TypeError):
+                l > r
+
+            with tm.assertRaises(TypeError):
+                l == r
+
+            with tm.assertRaises(TypeError):
+                l != r
 
     def test_map(self):
 
