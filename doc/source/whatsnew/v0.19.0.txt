@@ -536,6 +536,7 @@ Bug Fixes
 - Bug in ``Peirod`` and ``Series`` or ``Index`` comparison raises ``TypeError`` (:issue:`13200`)
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
 - Bug in ``.unstack`` with ``Categorical`` dtype resets ``.ordered`` to ``True`` (:issue:`13249`)
+- Clean some compile time warnings in datetime parsing (:issue:`13607`)
 
 
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)

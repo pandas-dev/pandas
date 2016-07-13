@@ -450,7 +450,7 @@ static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue, si
 
 static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts, JSONTypeContext *tc, void *outValue, size_t *_outLen)
 {
-  int base = ((PyObjectEncoder*) tc->encoder)->datetimeUnit;
+  PANDAS_DATETIMEUNIT base = ((PyObjectEncoder*) tc->encoder)->datetimeUnit;
 
   if (((PyObjectEncoder*) tc->encoder)->datetimeIso)
   {
