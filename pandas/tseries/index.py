@@ -6,13 +6,25 @@ from datetime import time, datetime
 from datetime import timedelta
 import numpy as np
 from pandas.core.base import _shared_docs
-from pandas.core.common import (_INT64_DTYPE, _NS_DTYPE, _maybe_box,
-                                _values_from_object, ABCSeries,
-                                DatetimeTZDtype, PerformanceWarning,
-                                is_datetimetz, is_datetime64_dtype,
-                                is_datetime64_ns_dtype, is_dtype_equal,
-                                is_float, is_integer, is_integer_dtype,
-                                is_object_dtype, is_string_dtype)
+
+from pandas.types.common import (_NS_DTYPE, _INT64_DTYPE,
+                                 is_object_dtype, is_datetime64_dtype,
+                                 is_datetimetz, is_dtype_equal,
+                                 is_integer, is_float,
+                                 is_integer_dtype,
+                                 is_datetime64_ns_dtype,
+                                 is_bool_dtype,
+                                 is_string_dtype,
+                                 is_list_like,
+                                 is_scalar,
+                                 _ensure_int64)
+from pandas.types.generic import ABCSeries
+from pandas.types.dtypes import DatetimeTZDtype
+from pandas.types.missing import isnull
+
+import pandas.types.concat as _concat
+from pandas.core.common import (_values_from_object, _maybe_box,
+                                PerformanceWarning)
 
 from pandas.core.index import Index, Int64Index, Float64Index
 from pandas.indexes.base import _index_shared_docs
@@ -27,7 +39,6 @@ from pandas.tseries.timedeltas import to_timedelta
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 import pandas.core.common as com
-import pandas.types.concat as _concat
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
 
@@ -87,7 +98,7 @@ def _dt_index_cmp(opname, nat_result=False):
                 isinstance(other, compat.string_types)):
             other = _to_m8(other, tz=self.tz)
             result = func(other)
-            if com.isnull(other):
+            if isnull(other):
                 result.fill(nat_result)
         else:
             if isinstance(other, list):
@@ -109,7 +120,7 @@ def _dt_index_cmp(opname, nat_result=False):
             result[self._isnan] = nat_result
 
         # support of bool dtype indexers
-        if com.is_bool_dtype(result):
+        if is_bool_dtype(result):
             return result
         return Index(result)
 
@@ -277,7 +288,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                  ambiguous=ambiguous)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
-            if lib.isscalar(data):
+            if is_scalar(data):
                 raise ValueError('DatetimeIndex() must be called with a '
                                  'collection of some kind, %s was passed'
                                  % repr(data))
@@ -537,7 +548,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 index = _generate_regular_range(start, end, periods, offset)
 
             if tz is not None and getattr(index, 'tz', None) is None:
-                index = tslib.tz_localize_to_utc(com._ensure_int64(index), tz,
+                index = tslib.tz_localize_to_utc(_ensure_int64(index), tz,
                                                  ambiguous=ambiguous)
                 index = index.view(_NS_DTYPE)
 
@@ -601,7 +612,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return cls(values, name=name, freq=freq, tz=tz,
                        dtype=dtype, **kwargs).values
         elif not is_datetime64_dtype(values):
-            values = com._ensure_int64(values).view(_NS_DTYPE)
+            values = _ensure_int64(values).view(_NS_DTYPE)
 
         result = object.__new__(cls)
         result._data = values
@@ -1683,7 +1694,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def dtype(self):
         if self.tz is None:
             return _NS_DTYPE
-        return com.DatetimeTZDtype('ns', self.tz)
+        return DatetimeTZDtype('ns', self.tz)
 
     @property
     def is_all_dates(self):
@@ -1787,9 +1798,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             if loc in (0, -len(self), -1, len(self) - 1):
                 freq = self.freq
         else:
-            if com.is_list_like(loc):
+            if is_list_like(loc):
                 loc = lib.maybe_indices_to_slice(
-                    com._ensure_int64(np.array(loc)), len(self))
+                    _ensure_int64(np.array(loc)), len(self))
             if isinstance(loc, slice) and loc.step in (1, None):
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq

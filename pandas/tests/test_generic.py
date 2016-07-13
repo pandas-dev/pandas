@@ -7,12 +7,12 @@ import numpy as np
 from numpy import nan
 import pandas as pd
 
+from pandas.types.common import is_scalar
 from pandas import (Index, Series, DataFrame, Panel, isnull,
                     date_range, period_range, Panel4D)
 from pandas.core.index import MultiIndex
 
 import pandas.formats.printing as printing
-import pandas.lib as lib
 
 from pandas.compat import range, zip, PY3
 from pandas import compat
@@ -53,7 +53,7 @@ class Generic(object):
         if isinstance(shape, int):
             shape = tuple([shape] * self._ndim)
         if value is not None:
-            if lib.isscalar(value):
+            if is_scalar(value):
                 if value == 'empty':
                     arr = None
 

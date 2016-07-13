@@ -1,6 +1,12 @@
 import numpy as np
 import pandas.lib as lib
 
+from pandas.types.common import (is_number,
+                                 is_numeric_dtype,
+                                 is_datetime_or_timedelta_dtype,
+                                 _ensure_object)
+from pandas.types.cast import _possibly_downcast_to_dtype
+
 import pandas as pd
 from pandas.compat import reduce
 from pandas.core.index import Index
@@ -141,7 +147,7 @@ def to_numeric(arg, errors='raise', downcast=None):
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype='O')
     elif np.isscalar(arg):
-        if com.is_number(arg):
+        if is_number(arg):
             return arg
         is_scalar = True
         values = np.array([arg], dtype='O')
@@ -151,14 +157,13 @@ def to_numeric(arg, errors='raise', downcast=None):
         values = arg
 
     try:
-        if com.is_numeric_dtype(values):
+        if is_numeric_dtype(values):
             pass
-        elif com.is_datetime_or_timedelta_dtype(values):
+        elif is_datetime_or_timedelta_dtype(values):
             values = values.astype(np.int64)
         else:
-            values = com._ensure_object(values)
+            values = _ensure_object(values)
             coerce_numeric = False if errors in ('ignore', 'raise') else True
-
             values = lib.maybe_convert_numeric(values, set(),
                                                coerce_numeric=coerce_numeric)
 
@@ -168,7 +173,7 @@ def to_numeric(arg, errors='raise', downcast=None):
 
     # attempt downcast only if the data has been successfully converted
     # to a numerical dtype and if a downcast method has been specified
-    if downcast is not None and com.is_numeric_dtype(values):
+    if downcast is not None and is_numeric_dtype(values):
         typecodes = None
 
         if downcast in ('integer', 'signed'):
@@ -189,7 +194,7 @@ def to_numeric(arg, errors='raise', downcast=None):
             # from smallest to largest
             for dtype in typecodes:
                 if np.dtype(dtype).itemsize < values.dtype.itemsize:
-                    values = com._possibly_downcast_to_dtype(
+                    values = _possibly_downcast_to_dtype(
                         values, dtype)
 
                     # successful conversion

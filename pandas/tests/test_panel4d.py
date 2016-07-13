@@ -6,12 +6,12 @@ import nose
 
 import numpy as np
 
+from pandas.types.common import is_float_dtype
 from pandas import Series, Index, isnull, notnull
 from pandas.core.datetools import bday
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.core.series import remove_na
-import pandas.core.common as com
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_panel4d_equal,
@@ -595,7 +595,7 @@ class CheckIndexing(object):
         self.assertEqual(res.get_value('l4', 'ItemE', 'foo', 'bar'), 1.5)
 
         res3 = self.panel4d.set_value('l4', 'ItemE', 'foobar', 'baz', 5)
-        self.assertTrue(com.is_float_dtype(res3['l4'].values))
+        self.assertTrue(is_float_dtype(res3['l4'].values))
 
 
 class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,

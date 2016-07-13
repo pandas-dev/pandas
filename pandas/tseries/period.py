@@ -1,6 +1,24 @@
 # pylint: disable=E1101,E1103,W0232
 from datetime import datetime, timedelta
 import numpy as np
+
+
+from pandas.core import common as com
+from pandas.types.common import (is_integer,
+                                 is_float,
+                                 is_object_dtype,
+                                 is_integer_dtype,
+                                 is_float_dtype,
+                                 is_scalar,
+                                 is_timedelta64_dtype,
+                                 is_bool_dtype,
+                                 _ensure_int64,
+                                 _ensure_object)
+
+from pandas.types.generic import ABCSeries
+from pandas.types.missing import isnull
+
+
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
@@ -17,15 +35,10 @@ from pandas._period import (Period, IncompatibleFrequency,
 from pandas.core.base import _shared_docs
 from pandas.indexes.base import _index_shared_docs
 
-import pandas.core.common as com
-from pandas.core.common import (
-    _maybe_box, _values_from_object, ABCSeries, is_float, is_integer,
-    is_integer_dtype, is_object_dtype, isnull)
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, cache_readonly, Substitution
 from pandas.lib import Timedelta
-import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.missing as missing
 from pandas.compat import zip, u
@@ -209,7 +222,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _from_arraylike(cls, data, freq, tz):
         if not isinstance(data, (np.ndarray, PeriodIndex,
                                  DatetimeIndex, Int64Index)):
-            if lib.isscalar(data) or isinstance(data, Period):
+            if is_scalar(data) or isinstance(data, Period):
                 raise ValueError('PeriodIndex() must be called with a '
                                  'collection of some kind, %s was passed'
                                  % repr(data))
@@ -219,13 +232,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 data = list(data)
 
             try:
-                data = com._ensure_int64(data)
+                data = _ensure_int64(data)
                 if freq is None:
                     raise ValueError('freq not specified')
                 data = np.array([Period(x, freq=freq).ordinal for x in data],
                                 dtype=np.int64)
             except (TypeError, ValueError):
-                data = com._ensure_object(data)
+                data = _ensure_object(data)
 
                 if freq is None:
                     freq = period.extract_freq(data)
@@ -242,7 +255,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                                                     base1, base2, 1)
             else:
 
-                if freq is None and com.is_object_dtype(data):
+                if freq is None and is_object_dtype(data):
                     # must contain Period instance and thus extract ordinals
                     freq = period.extract_freq(data)
                     data = period.extract_ordinals(data, freq)
@@ -256,9 +269,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                         data = dt64arr_to_periodarr(data, freq, tz)
                     else:
                         try:
-                            data = com._ensure_int64(data)
+                            data = _ensure_int64(data)
                         except (TypeError, ValueError):
-                            data = com._ensure_object(data)
+                            data = _ensure_object(data)
                             data = period.extract_ordinals(data, freq)
 
         return data, freq
@@ -266,9 +279,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
 
-        if not com.is_integer_dtype(values):
+        if not is_integer_dtype(values):
             values = np.array(values, copy=False)
-            if (len(values) > 0 and com.is_float_dtype(values)):
+            if (len(values) > 0 and is_float_dtype(values)):
                 raise TypeError("PeriodIndex can't take floats")
             else:
                 return PeriodIndex(values, name=name, freq=freq, **kwargs)
@@ -339,7 +352,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                     # from here because numpy catches.
                     raise ValueError(msg.format(func.__name__))
 
-        if com.is_bool_dtype(result):
+        if is_bool_dtype(result):
             return result
         return PeriodIndex(result, freq=self.freq, name=self.name)
 
@@ -580,9 +593,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
         elif isinstance(other, np.ndarray):
-            if com.is_integer_dtype(other):
+            if is_integer_dtype(other):
                 return other
-            elif com.is_timedelta64_dtype(other):
+            elif is_timedelta64_dtype(other):
                 offset = frequencies.to_offset(self.freq)
                 if isinstance(offset, offsets.Tick):
                     nanos = tslib._delta_to_nanoseconds(other)
@@ -657,10 +670,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        s = _values_from_object(series)
+        s = com._values_from_object(series)
         try:
-            return _maybe_box(self, super(PeriodIndex, self).get_value(s, key),
-                              series, key)
+            return com._maybe_box(self,
+                                  super(PeriodIndex, self).get_value(s, key),
+                                  series, key)
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
@@ -683,16 +697,16 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                     return series[key]
                 elif grp == freqn:
                     key = Period(asdt, freq=self.freq).ordinal
-                    return _maybe_box(self, self._engine.get_value(s, key),
-                                      series, key)
+                    return com._maybe_box(self, self._engine.get_value(s, key),
+                                          series, key)
                 else:
                     raise KeyError(key)
             except TypeError:
                 pass
 
             key = Period(key, self.freq).ordinal
-            return _maybe_box(self, self._engine.get_value(s, key),
-                              series, key)
+            return com._maybe_box(self, self._engine.get_value(s, key),
+                                  series, key)
 
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         if hasattr(target, 'freq') and target.freq != self.freq:
@@ -849,7 +863,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def __getitem__(self, key):
         getitem = self._data.__getitem__
-        if lib.isscalar(key):
+        if is_scalar(key):
             val = getitem(key)
             return Period(ordinal=val, freq=self.freq)
         else:

@@ -13,21 +13,25 @@ import datetime
 from pandas import compat, lib, tslib
 import pandas.index as _index
 from pandas.util.decorators import Appender
-import pandas.core.common as com
 import pandas.computation.expressions as expressions
 from pandas.lib import isscalar
 from pandas.tslib import iNaT
 from pandas.compat import bind_method
 import pandas.core.missing as missing
 import pandas.algos as _algos
-from pandas.core.common import (is_list_like, notnull, isnull,
-                                _values_from_object, _maybe_match_name,
-                                needs_i8_conversion, is_datetimelike_v_numeric,
-                                is_integer_dtype, is_categorical_dtype,
-                                is_object_dtype, is_timedelta64_dtype,
-                                is_datetime64_dtype, is_datetime64tz_dtype,
-                                is_bool_dtype, PerformanceWarning,
-                                ABCSeries, ABCIndex)
+from pandas.core.common import (_values_from_object, _maybe_match_name,
+                                PerformanceWarning)
+from pandas.types.missing import notnull, isnull
+from pandas.types.common import (needs_i8_conversion,
+                                 is_datetimelike_v_numeric,
+                                 is_integer_dtype, is_categorical_dtype,
+                                 is_object_dtype, is_timedelta64_dtype,
+                                 is_datetime64_dtype, is_datetime64tz_dtype,
+                                 is_bool_dtype, is_datetimetz,
+                                 is_list_like,
+                                 _ensure_object)
+from pandas.types.cast import _maybe_upcast_putmask
+from pandas.types.generic import ABCSeries, ABCIndex
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -446,7 +450,7 @@ class _TimeOp(_Op):
             supplied_dtype = values.dtype
         inferred_type = supplied_dtype or lib.infer_dtype(values)
         if (inferred_type in ('datetime64', 'datetime', 'date', 'time') or
-                com.is_datetimetz(inferred_type)):
+                is_datetimetz(inferred_type)):
             # if we have a other of timedelta, but use pd.NaT here we
             # we are in the wrong path
             if (supplied_dtype is None and other is not None and
@@ -463,7 +467,7 @@ class _TimeOp(_Op):
                   hasattr(ovalues, 'tz')):
                 values = pd.DatetimeIndex(values)
             # datetime array with tz
-            elif com.is_datetimetz(values):
+            elif is_datetimetz(values):
                 if isinstance(values, ABCSeries):
                     values = values._values
             elif not (isinstance(values, (np.ndarray, ABCSeries)) and
@@ -625,7 +629,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                 "{op}".format(typ=type(x).__name__,
                                               op=str_rep))
 
-            result, changed = com._maybe_upcast_putmask(result, ~mask, np.nan)
+            result, changed = _maybe_upcast_putmask(result, ~mask, np.nan)
 
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result
@@ -820,8 +824,8 @@ def _bool_method_SERIES(op, name, str_rep):
                 if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
                     result = op(x, y)  # when would this be hit?
                 else:
-                    x = com._ensure_object(x)
-                    y = com._ensure_object(y)
+                    x = _ensure_object(x)
+                    y = _ensure_object(y)
                     result = lib.vec_binop(x, y, op)
             else:
                 try:
@@ -1095,7 +1099,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                                 "objects of type {x} and {y}".format(
                                     op=name, x=type(x), y=type(y)))
 
-            result, changed = com._maybe_upcast_putmask(result, ~mask, np.nan)
+            result, changed = _maybe_upcast_putmask(result, ~mask, np.nan)
             result = result.reshape(x.shape)
 
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
@@ -1220,7 +1224,7 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
             result = np.empty(len(x), dtype=x.dtype)
             mask = notnull(x)
             result[mask] = op(x[mask], y)
-            result, changed = com._maybe_upcast_putmask(result, ~mask, np.nan)
+            result, changed = _maybe_upcast_putmask(result, ~mask, np.nan)
 
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result

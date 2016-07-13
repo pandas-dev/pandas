@@ -13,6 +13,25 @@ from pandas.compat import(
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat.numpy import _np_version_under1p8
+
+from pandas.types.common import (_DATELIKE_DTYPES,
+                                 is_numeric_dtype,
+                                 is_timedelta64_dtype, is_datetime64_dtype,
+                                 is_categorical_dtype,
+                                 is_datetime_or_timedelta_dtype,
+                                 is_bool, is_integer_dtype,
+                                 is_complex_dtype,
+                                 is_bool_dtype,
+                                 is_scalar,
+                                 _ensure_float64,
+                                 _ensure_platform_int,
+                                 _ensure_int64,
+                                 _ensure_object,
+                                 _ensure_float)
+from pandas.types.cast import _possibly_downcast_to_dtype
+from pandas.types.missing import isnull, notnull, _maybe_fill
+
+from pandas.core.common import _values_from_object, AbstractMethodError
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.categorical import Categorical
@@ -30,14 +49,7 @@ from pandas.util.validators import validate_kwargs
 
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
-                               notnull, _DATELIKE_DTYPES, is_numeric_dtype,
-                               is_timedelta64_dtype, is_datetime64_dtype,
-                               is_categorical_dtype, _values_from_object,
-                               is_datetime_or_timedelta_dtype, is_bool,
-                               is_bool_dtype, AbstractMethodError,
-                               _maybe_fill)
-from pandas.core.config import option_context, is_callable
+from pandas.core.config import option_context
 import pandas.lib as lib
 from pandas.lib import Timestamp
 import pandas.tslib as tslib
@@ -662,7 +674,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         # resolve functions to their callable functions prior, this
         # wouldn't be needed
         if args or kwargs:
-            if is_callable(func):
+            if callable(func):
 
                 @wraps(func)
                 def f(g):
@@ -752,7 +764,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         else:
             dtype = obj.dtype
 
-        if not lib.isscalar(result):
+        if not is_scalar(result):
             result = _possibly_downcast_to_dtype(result, dtype)
 
         return result
@@ -817,7 +829,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                 # since we are masking, make sure that we have a float object
                 values = result
                 if is_numeric_dtype(values.dtype):
-                    values = com.ensure_float(values)
+                    values = _ensure_float(values)
 
                 output[name] = self._try_cast(values[mask], result)
 
@@ -1595,7 +1607,7 @@ class BaseGrouper(object):
 
         """
         ids, _, ngroup = self.group_info
-        ids = com._ensure_platform_int(ids)
+        ids = _ensure_platform_int(ids)
         out = np.bincount(ids[ids != -1], minlength=ngroup or None)
         return Series(out, index=self.result_index, dtype='int64')
 
@@ -1631,7 +1643,7 @@ class BaseGrouper(object):
         comp_ids, obs_group_ids = self._get_compressed_labels()
 
         ngroups = len(obs_group_ids)
-        comp_ids = com._ensure_int64(comp_ids)
+        comp_ids = _ensure_int64(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
     def _get_compressed_labels(self):
@@ -1671,7 +1683,7 @@ class BaseGrouper(object):
 
         name_list = []
         for ping, labels in zip(self.groupings, self.recons_labels):
-            labels = com._ensure_platform_int(labels)
+            labels = _ensure_platform_int(labels)
             levels = ping.group_index.take(labels)
 
             name_list.append(levels)
@@ -1780,11 +1792,11 @@ class BaseGrouper(object):
             values = values.view('int64')
             is_numeric = True
         elif is_bool_dtype(values.dtype):
-            values = _algos.ensure_float64(values)
-        elif com.is_integer_dtype(values):
+            values = _ensure_float64(values)
+        elif is_integer_dtype(values):
             values = values.astype('int64', copy=False)
-        elif is_numeric and not com.is_complex_dtype(values):
-            values = _algos.ensure_float64(values)
+        elif is_numeric and not is_complex_dtype(values):
+            values = _ensure_float64(values)
         else:
             values = values.astype(object)
 
@@ -1793,7 +1805,7 @@ class BaseGrouper(object):
                 kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
-                values = _algos.ensure_float64(values)
+                values = _ensure_float64(values)
                 func, dtype_str = self._get_cython_function(
                     kind, how, values, is_numeric)
             else:
@@ -1821,7 +1833,7 @@ class BaseGrouper(object):
             result = self._transform(
                 result, accum, values, labels, func, is_numeric)
 
-        if com.is_integer_dtype(result):
+        if is_integer_dtype(result):
             if len(result[result == tslib.iNaT]) > 0:
                 result = result.astype('float64')
                 result[result == tslib.iNaT] = np.nan
@@ -1834,7 +1846,7 @@ class BaseGrouper(object):
                         result, (counts > 0).view(np.uint8))
                 except ValueError:
                     result = lib.row_bool_subset_object(
-                        com._ensure_object(result),
+                        _ensure_object(result),
                         (counts > 0).view(np.uint8))
             else:
                 result = result[counts > 0]
@@ -1996,7 +2008,7 @@ def generate_bins_generic(values, binner, closed):
 class BinGrouper(BaseGrouper):
 
     def __init__(self, bins, binlabels, filter_empty=False, mutated=False):
-        self.bins = com._ensure_int64(bins)
+        self.bins = _ensure_int64(bins)
         self.binlabels = _ensure_index(binlabels)
         self._filter_empty_groups = filter_empty
         self.mutated = mutated
@@ -2061,7 +2073,7 @@ class BinGrouper(BaseGrouper):
         obs_group_ids = np.arange(ngroups)
         rep = np.diff(np.r_[0, self.bins])
 
-        rep = com._ensure_platform_int(rep)
+        rep = _ensure_platform_int(rep)
         if ngroups == len(self.bins):
             comp_ids = np.repeat(np.arange(ngroups), rep)
         else:
@@ -2449,7 +2461,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
 def _is_label_like(val):
     return (isinstance(val, compat.string_types) or
-            (val is not None and lib.isscalar(val)))
+            (val is not None and is_scalar(val)))
 
 
 def _convert_grouper(axis, grouper):
@@ -2671,7 +2683,7 @@ class SeriesGroupBy(GroupBy):
             results[name] = obj.aggregate(func)
 
         if isinstance(list(compat.itervalues(results))[0],
-                      com.ABCDataFrame):
+                      DataFrame):
 
             # let higher level handle
             if _level:
@@ -2870,9 +2882,9 @@ class SeriesGroupBy(GroupBy):
                 'val.dtype must be object, got %s' % val.dtype
             val, _ = algos.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
-            isnull = lambda a: a == -1
+            _isnull = lambda a: a == -1
         else:
-            isnull = com.isnull
+            _isnull = isnull
 
         ids, val = ids[sorter], val[sorter]
 
@@ -2882,7 +2894,7 @@ class SeriesGroupBy(GroupBy):
         inc = np.r_[1, val[1:] != val[:-1]]
 
         # 1st item of each group is a new unique observation
-        mask = isnull(val)
+        mask = _isnull(val)
         if dropna:
             inc[idx] = 1
             inc[mask] = 0
@@ -2998,8 +3010,8 @@ class SeriesGroupBy(GroupBy):
             mi = MultiIndex(levels=levels, labels=labels, names=names,
                             verify_integrity=False)
 
-            if com.is_integer_dtype(out):
-                out = com._ensure_int64(out)
+            if is_integer_dtype(out):
+                out = _ensure_int64(out)
             return Series(out, index=mi, name=self.name)
 
         # for compat. with algos.value_counts need to ensure every
@@ -3029,8 +3041,8 @@ class SeriesGroupBy(GroupBy):
         mi = MultiIndex(levels=levels, labels=labels, names=names,
                         verify_integrity=False)
 
-        if com.is_integer_dtype(out):
-            out = com._ensure_int64(out)
+        if is_integer_dtype(out):
+            out = _ensure_int64(out)
         return Series(out, index=mi, name=self.name)
 
     def count(self):
@@ -3039,7 +3051,7 @@ class SeriesGroupBy(GroupBy):
         val = self.obj.get_values()
 
         mask = (ids != -1) & ~isnull(val)
-        ids = com._ensure_platform_int(ids)
+        ids = _ensure_platform_int(ids)
         out = np.bincount(ids[mask], minlength=ngroups or None)
 
         return Series(out,
@@ -3616,7 +3628,7 @@ class NDFrameGroupBy(GroupBy):
                 pass
 
             # interpret the result of the filter
-            if is_bool(res) or (lib.isscalar(res) and isnull(res)):
+            if is_bool(res) or (is_scalar(res) and isnull(res)):
                 if res and notnull(res):
                     indices.append(self._get_index(name))
             else:
@@ -3813,7 +3825,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         """ Compute count of group, excluding missing values """
         from functools import partial
         from pandas.lib import count_level_2d
-        from pandas.core.common import _isnull_ndarraylike as isnull
+        from pandas.types.missing import _isnull_ndarraylike as isnull
 
         data, _ = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
@@ -3934,7 +3946,7 @@ class DataSplitter(object):
 
     def __init__(self, data, labels, ngroups, axis=0):
         self.data = data
-        self.labels = com._ensure_int64(labels)
+        self.labels = _ensure_int64(labels)
         self.ngroups = ngroups
 
         self.axis = axis
@@ -4115,7 +4127,7 @@ def get_group_index(labels, shape, sort, xnull):
     def maybe_lift(lab, size):  # pormote nan values
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
 
-    labels = map(com._ensure_int64, labels)
+    labels = map(_ensure_int64, labels)
     if not xnull:
         labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
 
@@ -4331,9 +4343,9 @@ def _get_group_index_sorter(group_index, ngroups):
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
     if alpha + beta * ngroups < count * np.log(count):
-        sorter, _ = _algos.groupsort_indexer(com._ensure_int64(group_index),
+        sorter, _ = _algos.groupsort_indexer(_ensure_int64(group_index),
                                              ngroups)
-        return com._ensure_platform_int(sorter)
+        return _ensure_platform_int(sorter)
     else:
         return group_index.argsort(kind='mergesort')
 
@@ -4348,7 +4360,7 @@ def _compress_group_index(group_index, sort=True):
     size_hint = min(len(group_index), _hash._SIZE_HINT_LIMIT)
     table = _hash.Int64HashTable(size_hint)
 
-    group_index = com._ensure_int64(group_index)
+    group_index = _ensure_int64(group_index)
 
     # note, group labels come out ascending (ie, 1,2,3 etc)
     comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
@@ -4390,7 +4402,7 @@ def _groupby_indices(values):
         _, counts = _hash.value_count_scalar64(codes, False)
     else:
         reverse, codes, counts = _algos.group_labels(
-            _values_from_object(com._ensure_object(values)))
+            _values_from_object(_ensure_object(values)))
 
     return _algos.groupby_indices(reverse, codes, counts)
 

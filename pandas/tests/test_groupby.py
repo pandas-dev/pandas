@@ -5,7 +5,8 @@ import nose
 from datetime import datetime
 from numpy import nan
 
-from pandas import date_range, bdate_range, Timestamp
+from pandas.types.common import _ensure_platform_int
+from pandas import date_range, bdate_range, Timestamp, isnull
 from pandas.core.index import Index, MultiIndex, CategoricalIndex
 from pandas.core.api import Categorical, DataFrame
 from pandas.core.common import UnsupportedFunctionCall
@@ -163,9 +164,9 @@ class TestGroupBy(tm.TestCase):
         grouped['B'].nth(0)
 
         self.df.loc[self.df['A'] == 'foo', 'B'] = np.nan
-        self.assertTrue(com.isnull(grouped['B'].first()['foo']))
-        self.assertTrue(com.isnull(grouped['B'].last()['foo']))
-        self.assertTrue(com.isnull(grouped['B'].nth(0)['foo']))
+        self.assertTrue(isnull(grouped['B'].first()['foo']))
+        self.assertTrue(isnull(grouped['B'].last()['foo']))
+        self.assertTrue(isnull(grouped['B'].nth(0)['foo']))
 
         # v0.14.0 whatsnew
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
@@ -1079,8 +1080,9 @@ class TestGroupBy(tm.TestCase):
         grp = df.groupby('id')['val']
 
         values = np.repeat(grp.mean().values,
-                           com._ensure_platform_int(grp.count().values))
+                           _ensure_platform_int(grp.count().values))
         expected = pd.Series(values, index=df.index, name='val')
+
         result = grp.transform(np.mean)
         assert_series_equal(result, expected)
 

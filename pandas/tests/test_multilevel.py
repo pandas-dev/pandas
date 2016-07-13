@@ -10,6 +10,7 @@ import numpy as np
 from pandas.core.index import Index, MultiIndex
 from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
 
+from pandas.types.common import is_float_dtype, is_integer_dtype
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assertRaisesRegexp)
 import pandas.core.common as com
@@ -787,8 +788,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = DataFrame(np.random.randn(8, 3), columns=['A', 'B', 'C'],
                        index=index)
         deleveled = df.reset_index()
-        self.assertTrue(com.is_integer_dtype(deleveled['prm1']))
-        self.assertTrue(com.is_float_dtype(deleveled['prm2']))
+        self.assertTrue(is_integer_dtype(deleveled['prm1']))
+        self.assertTrue(is_float_dtype(deleveled['prm2']))
 
     def test_reset_index_with_drop(self):
         deleveled = self.ymd.reset_index(drop=True)

@@ -10,8 +10,19 @@ from distutils.version import LooseVersion
 
 import sys
 
+from pandas.types.missing import isnull, notnull
+from pandas.types.common import (is_categorical_dtype,
+                                 is_float_dtype,
+                                 is_period_arraylike,
+                                 is_integer_dtype,
+                                 is_datetimetz,
+                                 is_integer,
+                                 is_float,
+                                 is_numeric_dtype,
+                                 is_datetime64_dtype,
+                                 is_timedelta64_dtype)
+
 from pandas.core.base import PandasObject
-from pandas.core.common import isnull, notnull, is_numeric_dtype
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, reduce, u,
@@ -194,7 +205,7 @@ class SeriesFormatter(object):
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
-        if com.is_categorical_dtype(self.tr_series.dtype):
+        if is_categorical_dtype(self.tr_series.dtype):
             level_info = self.tr_series._values._repr_categories_info()
             if footer:
                 footer += "\n"
@@ -316,12 +327,12 @@ class TableFormatter(object):
 
     def _get_formatter(self, i):
         if isinstance(self.formatters, (list, tuple)):
-            if com.is_integer(i):
+            if is_integer(i):
                 return self.formatters[i]
             else:
                 return None
         else:
-            if com.is_integer(i) and i not in self.columns:
+            if is_integer(i) and i not in self.columns:
                 i = self.columns[i]
             return self.formatters.get(i, None)
 
@@ -1646,7 +1657,7 @@ class ExcelFormatter(object):
     def _format_value(self, val):
         if lib.checknull(val):
             val = self.na_rep
-        elif com.is_float(val):
+        elif is_float(val):
             if lib.isposinf_scalar(val):
                 val = self.inf_rep
             elif lib.isneginf_scalar(val):
@@ -1867,19 +1878,19 @@ class ExcelFormatter(object):
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.'):
 
-    if com.is_categorical_dtype(values):
+    if is_categorical_dtype(values):
         fmt_klass = CategoricalArrayFormatter
-    elif com.is_float_dtype(values.dtype):
+    elif is_float_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
-    elif com.is_period_arraylike(values):
+    elif is_period_arraylike(values):
         fmt_klass = PeriodArrayFormatter
-    elif com.is_integer_dtype(values.dtype):
+    elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
-    elif com.is_datetimetz(values):
+    elif is_datetimetz(values):
         fmt_klass = Datetime64TZFormatter
-    elif com.is_datetime64_dtype(values.dtype):
+    elif is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif com.is_timedelta64_dtype(values.dtype):
+    elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
     else:
         fmt_klass = GenericArrayFormatter
@@ -1949,14 +1960,14 @@ class GenericArrayFormatter(object):
         if isinstance(vals, Index):
             vals = vals._values
 
-        is_float = lib.map_infer(vals, com.is_float) & notnull(vals)
-        leading_space = is_float.any()
+        is_float_type = lib.map_infer(vals, is_float) & notnull(vals)
+        leading_space = is_float_type.any()
 
         fmt_values = []
         for i, v in enumerate(vals):
-            if not is_float[i] and leading_space:
+            if not is_float_type[i] and leading_space:
                 fmt_values.append(' %s' % _format(v))
-            elif is_float[i]:
+            elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
                 fmt_values.append(' %s' % _format(v))

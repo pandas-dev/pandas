@@ -6,7 +6,7 @@ from __future__ import division
 
 import warnings
 import numpy as np
-from pandas import lib
+from pandas.types.common import is_scalar
 from pandas.core.api import DataFrame, Series
 from pandas.util.decorators import Substitution, Appender
 
@@ -226,7 +226,7 @@ def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
             aargs += ','
 
         def f(a, b):
-            if lib.isscalar(b):
+            if is_scalar(b):
                 return "{a}={b}".format(a=a, b=b)
             return "{a}=<{b}>".format(a=a, b=type(b).__name__)
         aargs = ','.join([f(a, b) for a, b in kwds.items() if b is not None])

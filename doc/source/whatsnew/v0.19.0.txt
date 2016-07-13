@@ -10,6 +10,7 @@ users upgrade to this version.
 Highlights include:
 
 - :func:`merge_asof` for asof-style time-series joining, see :ref:`here <whatsnew_0190.enhancements.asof_merge>`
+- pandas development api, see :ref:`here <whatsnew_0190.dev_api>`
 
 .. contents:: What's new in v0.18.2
     :local:
@@ -19,6 +20,25 @@ Highlights include:
 
 New features
 ~~~~~~~~~~~~
+
+.. _whatsnew_0190.dev_api:
+
+pandas development API
+^^^^^^^^^^^^^^^^^^^^^^
+
+As part of making pandas APi more uniform and accessible in the future, we have created a standard
+sub-package of pandas, ``pandas.api`` to hold public API's. We are starting by exposing type
+introspection functions in ``pandas.api.types``. More sub-packages and officially sanctioned API's
+will be published in future versions of pandas.
+
+The following are now part of this API:
+
+.. ipython:: python
+
+   import pprint
+   from pandas.api import types
+   funcs = [ f for f in dir(types) if not f.startswith('_') ]
+   pprint.pprint(funcs)
 
 .. _whatsnew_0190.enhancements.asof_merge:
 
@@ -227,7 +247,7 @@ Other enhancements
 - Consistent with the Python API, ``pd.read_csv()`` will now interpret ``+inf`` as positive infinity (:issue:`13274`)
 - The ``DataFrame`` constructor will now respect key ordering if a list of ``OrderedDict`` objects are passed in (:issue:`13304`)
 - ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
-- A top-level function :func:`union_categorical` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`)
+- A function :func:`union_categorical` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`)
 - ``Series`` has gained the properties ``.is_monotonic``, ``.is_monotonic_increasing``, ``.is_monotonic_decreasing``, similar to ``Index`` (:issue:`13336`)
 
 .. _whatsnew_0190.api:
