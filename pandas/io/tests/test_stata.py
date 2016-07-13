@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from pandas.compat import iterkeys
 from pandas.core.frame import DataFrame, Series
-from pandas.core.common import is_categorical_dtype
+from pandas.types.common import is_categorical_dtype
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)

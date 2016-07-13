@@ -11,10 +11,17 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
+from pandas.types.common import (is_list_like,
+                                 is_integer,
+                                 is_number,
+                                 is_hashable,
+                                 is_iterator)
+from pandas.types.missing import isnull, notnull
+
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 from pandas.core.base import PandasObject
-import pandas.core.common as com
-from pandas.core.common import AbstractMethodError
+
+from pandas.core.common import AbstractMethodError, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series, remove_na
@@ -161,7 +168,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         if colormap is not None:
             warnings.warn("'color' and 'colormap' cannot be used "
                           "simultaneously. Using 'color'")
-        colors = list(color) if com.is_list_like(color) else color
+        colors = list(color) if is_list_like(color) else color
     else:
         if color_type == 'default':
             # need to call list() on the result to copy so we don't
@@ -336,7 +343,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
 
-    mask = com.notnull(df)
+    mask = notnull(df)
 
     marker = _get_marker_compat(marker)
 
@@ -980,7 +987,7 @@ class MPLPlot(object):
                           "simultaneously. Using 'color'")
 
         if 'color' in self.kwds and self.style is not None:
-            if com.is_list_like(self.style):
+            if is_list_like(self.style):
                 styles = self.style
             else:
                 styles = [self.style]
@@ -1001,7 +1008,7 @@ class MPLPlot(object):
 
         # TODO: unused?
         # if self.sort_columns:
-        #     columns = com._try_sort(data.columns)
+        #     columns = _try_sort(data.columns)
         # else:
         #     columns = data.columns
 
@@ -1099,13 +1106,13 @@ class MPLPlot(object):
         Return result axes
         """
         if self.subplots:
-            if self.layout is not None and not com.is_list_like(self.ax):
+            if self.layout is not None and not is_list_like(self.ax):
                 return self.axes.reshape(*self.layout)
             else:
                 return self.axes
         else:
             sec_true = isinstance(self.secondary_y, bool) and self.secondary_y
-            all_sec = (com.is_list_like(self.secondary_y) and
+            all_sec = (is_list_like(self.secondary_y) and
                        len(self.secondary_y) == self.nseries)
             if (sec_true or all_sec):
                 # if all data is plotted on secondary, return right axes
@@ -1322,7 +1329,7 @@ class MPLPlot(object):
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
-        mask = com.isnull(y)
+        mask = isnull(y)
         if mask.any():
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
@@ -1463,8 +1470,8 @@ class MPLPlot(object):
             err = np.atleast_2d(evalues)
             err = np.tile(err, (self.nseries, 1))
 
-        elif com.is_list_like(err):
-            if com.is_iterator(err):
+        elif is_list_like(err):
+            if is_iterator(err):
                 err = np.atleast_2d(list(err))
             else:
                 # raw error values
@@ -1486,7 +1493,7 @@ class MPLPlot(object):
             if len(err) == 1:
                 err = np.tile(err, (self.nseries, 1))
 
-        elif com.is_number(err):
+        elif is_number(err):
             err = np.tile([err], (self.nseries, len(self.data)))
 
         else:
@@ -1543,9 +1550,9 @@ class PlanePlot(MPLPlot):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + ' requires and x and y column')
-        if com.is_integer(x) and not self.data.columns.holds_integer():
+        if is_integer(x) and not self.data.columns.holds_integer():
             x = self.data.columns[x]
-        if com.is_integer(y) and not self.data.columns.holds_integer():
+        if is_integer(y) and not self.data.columns.holds_integer():
             y = self.data.columns[y]
         self.x = x
         self.y = y
@@ -1569,7 +1576,7 @@ class ScatterPlot(PlanePlot):
             # the handling of this argument later
             s = 20
         super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
-        if com.is_integer(c) and not self.data.columns.holds_integer():
+        if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
         self.c = c
 
@@ -1577,7 +1584,7 @@ class ScatterPlot(PlanePlot):
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
 
-        c_is_column = com.is_hashable(c) and c in self.data.columns
+        c_is_column = is_hashable(c) and c in self.data.columns
 
         # plot a colorbar only if a colormap is provided or necessary
         cb = self.kwds.pop('colorbar', self.colormap or c_is_column)
@@ -1629,7 +1636,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, **kwargs):
         super(HexBinPlot, self).__init__(data, x, y, **kwargs)
-        if com.is_integer(C) and not self.data.columns.holds_integer():
+        if is_integer(C) and not self.data.columns.holds_integer():
             C = self.data.columns[C]
         self.C = C
 
@@ -1912,9 +1919,9 @@ class BarPlot(MPLPlot):
         self.ax_pos = self.tick_pos - self.tickoffset
 
     def _args_adjust(self):
-        if com.is_list_like(self.bottom):
+        if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
-        if com.is_list_like(self.left):
+        if is_list_like(self.left):
             self.left = np.array(self.left)
 
     @classmethod
@@ -2027,18 +2034,18 @@ class HistPlot(LinePlot):
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
-        if com.is_integer(self.bins):
+        if is_integer(self.bins):
             # create common bin edge
             values = (self.data._convert(datetime=True)._get_numeric_data())
             values = np.ravel(values)
-            values = values[~com.isnull(values)]
+            values = values[~isnull(values)]
 
             hist, self.bins = np.histogram(
                 values, bins=self.bins,
                 range=self.kwds.get('range', None),
                 weights=self.kwds.get('weights', None))
 
-        if com.is_list_like(self.bottom):
+        if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
 
     @classmethod
@@ -2046,7 +2053,7 @@ class HistPlot(LinePlot):
               stacking_id=None, **kwds):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
-        y = y[~com.isnull(y)]
+        y = y[~isnull(y)]
 
         base = np.zeros(len(bins) - 1)
         bottom = bottom + \
@@ -2411,7 +2418,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 msg = "{0} requires either y column or 'subplots=True'"
                 raise ValueError(msg.format(kind))
             elif y is not None:
-                if com.is_integer(y) and not data.columns.holds_integer():
+                if is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
                 # converted to series actually. copy to not modify
                 data = data[y].copy()
@@ -2420,12 +2427,12 @@ def _plot(data, x=None, y=None, subplots=False,
     else:
         if isinstance(data, DataFrame):
             if x is not None:
-                if com.is_integer(x) and not data.columns.holds_integer():
+                if is_integer(x) and not data.columns.holds_integer():
                     x = data.columns[x]
                 data = data.set_index(x)
 
             if y is not None:
-                if com.is_integer(y) and not data.columns.holds_integer():
+                if is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
                 label = kwds['label'] if 'label' in kwds else y
                 series = data[y].copy()  # Don't modify
@@ -2434,7 +2441,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
                         (isinstance(kwds[kw], string_types) or
-                            com.is_integer(kwds[kw])):
+                            is_integer(kwds[kw])):
                         try:
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
@@ -2897,7 +2904,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                           layout=layout)
     _axes = _flatten(axes)
 
-    for i, col in enumerate(com._try_sort(data.columns)):
+    for i, col in enumerate(_try_sort(data.columns)):
         ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
@@ -3345,7 +3352,7 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
     if ax is None:
         fig = plt.figure(**fig_kw)
     else:
-        if com.is_list_like(ax):
+        if is_list_like(ax):
             ax = _flatten(ax)
             if layout is not None:
                 warnings.warn("When passing multiple axes, layout keyword is "
@@ -3487,7 +3494,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
 
 
 def _flatten(axes):
-    if not com.is_list_like(axes):
+    if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, Index)):
         return axes.ravel()

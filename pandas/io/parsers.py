@@ -2,20 +2,22 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
-from pandas.compat import (range, lrange, StringIO, lzip, zip,
-                           string_types, map, OrderedDict)
-from pandas import compat
 from collections import defaultdict
 import re
 import csv
 import warnings
+import datetime
 
 import numpy as np
 
+from pandas import compat
+from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
+from pandas.types.common import (is_integer, _ensure_object,
+                                 is_list_like, is_integer_dtype,
+                                 is_float,
+                                 is_scalar)
 from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
-import datetime
-import pandas.core.common as com
 from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
@@ -326,11 +328,11 @@ def _validate_nrows(nrows):
     msg = "'nrows' must be an integer"
 
     if nrows is not None:
-        if com.is_float(nrows):
+        if is_float(nrows):
             if int(nrows) != nrows:
                 raise ValueError(msg)
             nrows = int(nrows)
-        elif not com.is_integer(nrows):
+        elif not is_integer(nrows):
             raise ValueError(msg)
 
     return nrows
@@ -873,7 +875,7 @@ class TextFileReader(BaseIterator):
         # handle skiprows; this is internally handled by the
         # c-engine, so only need for python parsers
         if engine != 'c':
-            if com.is_integer(skiprows):
+            if is_integer(skiprows):
                 skiprows = lrange(skiprows)
             skiprows = set() if skiprows is None else set(skiprows)
 
@@ -965,7 +967,7 @@ def _validate_parse_dates_arg(parse_dates):
            "for the 'parse_dates' parameter")
 
     if parse_dates is not None:
-        if lib.isscalar(parse_dates):
+        if is_scalar(parse_dates):
             if not lib.is_bool(parse_dates):
                 raise TypeError(msg)
 
@@ -1025,8 +1027,8 @@ class ParserBase(object):
                 is_sequence = isinstance(self.index_col, (list, tuple,
                                                           np.ndarray))
                 if not (is_sequence and
-                        all(map(com.is_integer, self.index_col)) or
-                        com.is_integer(self.index_col)):
+                        all(map(is_integer, self.index_col)) or
+                        is_integer(self.index_col)):
                     raise ValueError("index_col must only contain row numbers "
                                      "when specifying a multi-index header")
 
@@ -1051,7 +1053,7 @@ class ParserBase(object):
             name = self.index_names[i]
             j = self.index_col[i]
 
-            if lib.isscalar(self.parse_dates):
+            if is_scalar(self.parse_dates):
                 return (j == self.parse_dates) or (name == self.parse_dates)
             else:
                 return (j in self.parse_dates) or (name in self.parse_dates)
@@ -1285,7 +1287,7 @@ class ParserBase(object):
             mask = lib.ismember(values, na_values)
             na_count = mask.sum()
             if na_count > 0:
-                if com.is_integer_dtype(values):
+                if is_integer_dtype(values):
                     values = values.astype(np.float64)
                 np.putmask(values, mask, np.nan)
             return values, na_count
@@ -1411,10 +1413,10 @@ class CParserWrapper(ParserBase):
         usecols = self.usecols
 
         def _set(x):
-            if usecols and com.is_integer(x):
+            if usecols and is_integer(x):
                 x = list(usecols)[x]
 
-            if not com.is_integer(x):
+            if not is_integer(x):
                 x = names.index(x)
 
             self._reader.set_noconvert(x)
@@ -1794,7 +1796,7 @@ class PythonParser(ParserBase):
         noconvert_columns = set()
 
         def _set(x):
-            if com.is_integer(x):
+            if is_integer(x):
                 noconvert_columns.add(x)
             else:
                 noconvert_columns.add(self.columns.index(x))
@@ -1958,7 +1960,7 @@ class PythonParser(ParserBase):
 
     def _to_recarray(self, data, columns):
         dtypes = []
-        o = OrderedDict()
+        o = compat.OrderedDict()
 
         # use the columns to "order" the keys
         # in the unordered 'data' dictionary
@@ -2443,7 +2445,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
 
             try:
                 return tools._to_datetime(
-                    com._ensure_object(strs),
+                    _ensure_object(strs),
                     utc=None,
                     box=False,
                     dayfirst=dayfirst,
@@ -2496,7 +2498,7 @@ def _process_date_conversion(data_dict, converter, parse_spec,
     if isinstance(parse_spec, list):
         # list of column lists
         for colspec in parse_spec:
-            if lib.isscalar(colspec):
+            if is_scalar(colspec):
                 if isinstance(colspec, int) and colspec not in data_dict:
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
@@ -2573,7 +2575,7 @@ def _clean_na_values(na_values, keep_default_na=True):
             (k, _floatify_na_values(v)) for k, v in na_values.items()  # noqa
         ])
     else:
-        if not com.is_list_like(na_values):
+        if not is_list_like(na_values):
             na_values = [na_values]
         na_values = _stringify_na_values(na_values)
         if keep_default_na:
@@ -2626,7 +2628,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
         if not isinstance(dtype, dict):
             dtype = defaultdict(lambda: dtype)
         # Convert column indexes to column names.
-        dtype = dict((columns[k] if com.is_integer(k) else k, v)
+        dtype = dict((columns[k] if is_integer(k) else k, v)
                      for k, v in compat.iteritems(dtype))
 
     if index_col is None or index_col is False:

@@ -10,12 +10,13 @@ from functools import wraps
 import numpy as np
 import pandas as pd
 
+from pandas.types.common import is_float_dtype
 from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
 from pandas.core.nanops import nanall, nanany
 from pandas.core.panel import Panel
 from pandas.core.series import remove_na
-import pandas.core.common as com
+
 from pandas.formats.printing import pprint_thing
 from pandas import compat
 from pandas.compat import range, lrange, StringIO, OrderedDict, signature
@@ -903,7 +904,7 @@ class CheckIndexing(object):
         self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
 
         res3 = self.panel.set_value('ItemE', 'foobar', 'baz', 5)
-        self.assertTrue(com.is_float_dtype(res3['ItemE'].values))
+        self.assertTrue(is_float_dtype(res3['ItemE'].values))
         with tm.assertRaisesRegexp(TypeError,
                                    "There must be an argument for each axis"
                                    " plus the value provided"):

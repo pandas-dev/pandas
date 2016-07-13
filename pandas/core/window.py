@@ -11,6 +11,15 @@ import warnings
 import numpy as np
 from collections import defaultdict
 
+from pandas.types.generic import ABCSeries, ABCDataFrame
+from pandas.types.common import (is_integer,
+                                 is_bool,
+                                 is_float_dtype,
+                                 is_integer_dtype,
+                                 needs_i8_conversion,
+                                 is_timedelta64_dtype,
+                                 is_list_like,
+                                 _ensure_float64)
 import pandas as pd
 from pandas.lib import isscalar
 from pandas.core.base import (PandasObject, SelectionMixin,
@@ -64,10 +73,10 @@ class _Window(PandasObject, SelectionMixin):
         return Window
 
     def validate(self):
-        if self.center is not None and not com.is_bool(self.center):
+        if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
         if self.min_periods is not None and not \
-           com.is_integer(self.min_periods):
+           is_integer(self.min_periods):
             raise ValueError("min_periods must be an integer")
 
     def _convert_freq(self, how=None):
@@ -75,7 +84,7 @@ class _Window(PandasObject, SelectionMixin):
 
         obj = self._selected_obj
         if (self.freq is not None and
-                isinstance(obj, (com.ABCSeries, com.ABCDataFrame))):
+                isinstance(obj, (ABCSeries, ABCDataFrame))):
             if how is not None:
                 warnings.warn("The how kw argument is deprecated and removed "
                               "in a future version. You can resample prior "
@@ -111,7 +120,7 @@ class _Window(PandasObject, SelectionMixin):
         self = self._shallow_copy(subset)
         self._reset_cache()
         if subset.ndim == 2:
-            if isscalar(key) and key in subset or com.is_list_like(key):
+            if isscalar(key) and key in subset or is_list_like(key):
                 self._selection = key
         return self
 
@@ -150,11 +159,11 @@ class _Window(PandasObject, SelectionMixin):
 
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
-        if com.is_float_dtype(values.dtype):
-            values = com._ensure_float64(values)
-        elif com.is_integer_dtype(values.dtype):
-            values = com._ensure_float64(values)
-        elif com.needs_i8_conversion(values.dtype):
+        if is_float_dtype(values.dtype):
+            values = _ensure_float64(values)
+        elif is_integer_dtype(values.dtype):
+            values = _ensure_float64(values)
+        elif needs_i8_conversion(values.dtype):
             raise NotImplementedError("ops for {action} for this "
                                       "dtype {dtype} are not "
                                       "implemented".format(
@@ -162,7 +171,7 @@ class _Window(PandasObject, SelectionMixin):
                                           dtype=values.dtype))
         else:
             try:
-                values = com._ensure_float64(values)
+                values = _ensure_float64(values)
             except (ValueError, TypeError):
                 raise TypeError("cannot handle this type -> {0}"
                                 "".format(values.dtype))
@@ -184,7 +193,7 @@ class _Window(PandasObject, SelectionMixin):
 
             # coerce if necessary
             if block is not None:
-                if com.is_timedelta64_dtype(block.values.dtype):
+                if is_timedelta64_dtype(block.values.dtype):
                     result = pd.to_timedelta(
                         result.ravel(), unit='ns').values.reshape(result.shape)
 
@@ -345,7 +354,7 @@ class Window(_Window):
         window = self._get_window()
         if isinstance(window, (list, tuple, np.ndarray)):
             return com._asarray_tuplesafe(window).astype(float)
-        elif com.is_integer(window):
+        elif is_integer(window):
             import scipy.signal as sig
 
             # the below may pop from kwargs
@@ -543,7 +552,7 @@ class _Rolling(_Window):
                 def func(arg, window, min_periods=None):
                     minp = check_minp(min_periods, window)
                     # GH #12373: rolling functions error on float32 data
-                    return cfunc(com._ensure_float64(arg),
+                    return cfunc(_ensure_float64(arg),
                                  window, minp, **kwargs)
 
             # calculation function
@@ -586,7 +595,7 @@ class _Rolling_and_Expanding(_Rolling):
         results = []
         for b in blocks:
 
-            if com.needs_i8_conversion(b.values):
+            if needs_i8_conversion(b.values):
                 result = b.notnull().astype(int)
             else:
                 try:
@@ -850,7 +859,7 @@ class Rolling(_Rolling_and_Expanding):
 
     def validate(self):
         super(Rolling, self).validate()
-        if not com.is_integer(self.window):
+        if not is_integer(self.window):
             raise ValueError("window must be an integer")
         elif self.window < 0:
             raise ValueError("window must be non-negative")
@@ -1484,7 +1493,7 @@ def _get_center_of_mass(com, span, halflife, alpha):
 
 
 def _offset(window, center):
-    if not com.is_integer(window):
+    if not is_integer(window):
         window = len(window)
     offset = (window - 1) / 2. if center else 0
     try:

@@ -3,9 +3,9 @@ from pandas.compat import range
 from pandas import compat
 import numpy as np
 
+from pandas.types.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
 from pandas.tseries.tools import to_datetime, normalize_date
-from pandas.core.common import (ABCSeries, ABCDatetimeIndex, ABCPeriod,
-                                AbstractMethodError)
+from pandas.core.common import AbstractMethodError
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday

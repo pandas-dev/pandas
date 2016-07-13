@@ -1,7 +1,8 @@
 import numpy as np
 
 from pandas import compat
-from pandas.core.common import isnull, array_equivalent, is_dtype_equal
+from pandas.types.missing import isnull, array_equivalent
+from pandas.types.common import is_dtype_equal
 
 cdef NUMERIC_TYPES = (
     bool,
@@ -145,8 +146,15 @@ cpdef assert_almost_equal(a, b,
 
         if na != nb:
             from pandas.util.testing import raise_assert_detail
+
+            # if we have a small diff set, print it
+            if abs(na-nb) < 10:
+                r = list(set(a) ^ set(b))
+            else:
+                r = None
+
             raise_assert_detail(obj, '{0} length are different'.format(obj),
-                                na, nb)
+                                na, nb, r)
 
         for i in xrange(len(a)):
             try:
