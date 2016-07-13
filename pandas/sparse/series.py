@@ -8,8 +8,11 @@ with float64 data
 import numpy as np
 import warnings
 
+from pandas.types.missing import isnull
+from pandas.types.common import is_scalar
+from pandas.core.common import _values_from_object, _maybe_match_name
+
 from pandas.compat.numpy import function as nv
-from pandas.core.common import isnull, _values_from_object, _maybe_match_name
 from pandas.core.index import Index, _ensure_index, InvalidIndexError
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
@@ -18,7 +21,6 @@ from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.index as _index
-import pandas.lib as lib
 from pandas.util.decorators import Appender
 
 from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray,
@@ -54,7 +56,7 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
             return _sparse_series_op(self, other, op, name)
         elif isinstance(other, DataFrame):
             return NotImplemented
-        elif lib.isscalar(other):
+        elif is_scalar(other):
             if isnull(other) or isnull(self.fill_value):
                 new_fill_value = np.nan
             else:

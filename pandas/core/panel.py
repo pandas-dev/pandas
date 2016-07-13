@@ -8,17 +8,21 @@ import warnings
 
 import numpy as np
 
+from pandas.types.cast import (_infer_dtype_from_scalar,
+                               _possibly_cast_item)
+from pandas.types.common import (is_integer, is_list_like,
+                                 is_string_like, is_scalar)
+from pandas.types.missing import notnull
+
 import pandas.computation.expressions as expressions
 import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.core.missing as missing
 from pandas import compat
-from pandas import lib
 from pandas.compat import (map, zip, range, u, OrderedDict, OrderedDefaultdict)
 from pandas.compat.numpy import function as nv
 from pandas.core.categorical import Categorical
-from pandas.core.common import (PandasError, _try_sort, _default_index,
-                                _infer_dtype_from_scalar, is_list_like)
+from pandas.core.common import PandasError, _try_sort, _default_index
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -168,7 +172,7 @@ class Panel(NDFrame):
             mgr = self._init_matrix(data, passed_axes, dtype=dtype, copy=copy)
             copy = False
             dtype = None
-        elif lib.isscalar(data) and all(x is not None for x in passed_axes):
+        elif is_scalar(data) and all(x is not None for x in passed_axes):
             if dtype is None:
                 dtype, data = _infer_dtype_from_scalar(data)
             values = np.empty([len(x) for x in passed_axes], dtype=dtype)
@@ -552,7 +556,7 @@ class Panel(NDFrame):
             made_bigger = not np.array_equal(axes[0], self._info_axis)
             # how to make this logic simpler?
             if made_bigger:
-                com._possibly_cast_item(result, args[0], likely_dtype)
+                _possibly_cast_item(result, args[0], likely_dtype)
 
             return result.set_value(*args)
 
@@ -582,7 +586,7 @@ class Panel(NDFrame):
                                  'object was {1}'.format(
                                      shape[1:], tuple(map(int, value.shape))))
             mat = np.asarray(value)
-        elif lib.isscalar(value):
+        elif is_scalar(value):
             dtype, value = _infer_dtype_from_scalar(value)
             mat = np.empty(shape[1:], dtype=dtype)
             mat.fill(value)
@@ -653,7 +657,7 @@ class Panel(NDFrame):
         """
         nv.validate_round(args, kwargs)
 
-        if com.is_integer(decimals):
+        if is_integer(decimals):
             result = np.apply_along_axis(np.round, 0, self.values)
             return self._wrap_result(result, axis=0)
         raise TypeError("decimals must be an integer")
@@ -687,7 +691,7 @@ class Panel(NDFrame):
         axis = self._get_axis_number(axis)
 
         values = self.values
-        mask = com.notnull(values)
+        mask = notnull(values)
 
         for ax in reversed(sorted(set(range(self._AXIS_LEN)) - set([axis]))):
             mask = mask.sum(ax)
@@ -711,7 +715,7 @@ class Panel(NDFrame):
             return self._combine_panel(other, func)
         elif isinstance(other, DataFrame):
             return self._combine_frame(other, func, axis=axis)
-        elif lib.isscalar(other):
+        elif is_scalar(other):
             return self._combine_const(other, func)
         else:
             raise NotImplementedError("%s is not supported in combine "
@@ -924,7 +928,7 @@ class Panel(NDFrame):
 
         if filter_observations:
             # shaped like the return DataFrame
-            mask = com.notnull(self.values).all(axis=0)
+            mask = notnull(self.values).all(axis=0)
             # size = mask.sum()
             selector = mask.ravel()
         else:
@@ -1218,7 +1222,7 @@ class Panel(NDFrame):
         # check if a list of axes was passed in instead as a
         # single *args element
         if (len(args) == 1 and hasattr(args[0], '__iter__') and
-                not com.is_string_like(args[0])):
+                not is_string_like(args[0])):
             axes = args[0]
         else:
             axes = args

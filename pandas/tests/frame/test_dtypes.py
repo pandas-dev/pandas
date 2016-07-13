@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-
 from datetime import timedelta
 
 import numpy as np
-
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
                     compat, option_context)
 from pandas.compat import u
-from pandas.core import common as com
+from pandas.types.dtypes import DatetimeTZDtype
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
@@ -84,8 +82,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         tzframe.iloc[1, 2] = pd.NaT
         result = tzframe.dtypes.sort_index()
         expected = Series([np.dtype('datetime64[ns]'),
-                           com.DatetimeTZDtype('datetime64[ns, US/Eastern]'),
-                           com.DatetimeTZDtype('datetime64[ns, CET]')],
+                           DatetimeTZDtype('datetime64[ns, US/Eastern]'),
+                           DatetimeTZDtype('datetime64[ns, CET]')],
                           ['A', 'B', 'C'])
 
         assert_series_equal(result, expected)

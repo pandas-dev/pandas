@@ -16,7 +16,7 @@ for dependency in hard_dependencies:
 
 if missing_dependencies:
     raise ImportError("Missing required dependencies {0}".format(missing_dependencies))
-
+del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
 from pandas.compat.numpy import *

@@ -17,6 +17,9 @@ from pandas import (DataFrame, Index, Series, notnull, isnull,
                     date_range)
 import pandas as pd
 
+from pandas.types.common import (is_float_dtype,
+                                 is_integer,
+                                 is_scalar)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_numpy_array_equal,
                                  assert_series_equal,
@@ -26,7 +29,6 @@ from pandas.util.testing import (assert_almost_equal,
 from pandas.core.indexing import IndexingError
 
 import pandas.util.testing as tm
-import pandas.lib as lib
 
 from pandas.tests.frame.common import TestData
 
@@ -1419,15 +1421,15 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         # set an allowable datetime64 type
         from pandas import tslib
         df.ix['b', 'timestamp'] = tslib.iNaT
-        self.assertTrue(com.isnull(df.ix['b', 'timestamp']))
+        self.assertTrue(isnull(df.ix['b', 'timestamp']))
 
         # allow this syntax
         df.ix['c', 'timestamp'] = nan
-        self.assertTrue(com.isnull(df.ix['c', 'timestamp']))
+        self.assertTrue(isnull(df.ix['c', 'timestamp']))
 
         # allow this syntax
         df.ix['d', :] = nan
-        self.assertTrue(com.isnull(df.ix['c', :]).all() == False)  # noqa
+        self.assertTrue(isnull(df.ix['c', :]).all() == False)  # noqa
 
         # as of GH 3216 this will now work!
         # try to set with a list like item
@@ -1619,7 +1621,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         res = self.frame.copy()
         res3 = res.set_value('foobar', 'baz', 5)
-        self.assertTrue(com.is_float_dtype(res3['baz']))
+        self.assertTrue(is_float_dtype(res3['baz']))
         self.assertTrue(isnull(res3['baz'].drop(['foobar'])).all())
         self.assertRaises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
 
@@ -1662,7 +1664,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                                    (int, np.integer)))
 
         result = self.frame.ix[self.frame.index[5], 'E']
-        self.assertTrue(com.is_integer(result))
+        self.assertTrue(is_integer(result))
 
     def test_irow(self):
         df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2))
@@ -2268,7 +2270,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                 d = df[k].values
                 c = cond[k].reindex(df[k].index).fillna(False).values
 
-                if lib.isscalar(other):
+                if is_scalar(other):
                     o = other
                 else:
                     if isinstance(other, np.ndarray):

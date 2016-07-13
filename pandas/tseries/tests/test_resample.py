@@ -11,10 +11,11 @@ import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
 from pandas import (Series, DataFrame, Panel, Index, isnull,
                     notnull, Timestamp)
+
+from pandas.types.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.core.base import SpecificationError
-from pandas.core.common import (ABCSeries, ABCDataFrame,
-                                UnsupportedFunctionCall)
+from pandas.core.common import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.frequencies import to_offset

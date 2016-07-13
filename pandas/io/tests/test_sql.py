@@ -31,11 +31,12 @@ import pandas as pd
 
 from datetime import datetime, date, time
 
+from pandas.types.common import (is_object_dtype, is_datetime64_dtype,
+                                 is_datetime64tz_dtype)
 from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import StringIO, range, lrange, string_types
-from pandas.core import common as com
 from pandas.core.datetools import format as date_format
 
 import pandas.io.sql as sql
@@ -1275,7 +1276,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         def check(col):
             # check that a column is either datetime64[ns]
             # or datetime64[ns, UTC]
-            if com.is_datetime64_dtype(col.dtype):
+            if is_datetime64_dtype(col.dtype):
 
                 # "2000-01-01 00:00:00-08:00" should convert to
                 # "2000-01-01 08:00:00"
@@ -1285,7 +1286,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 # "2000-06-01 07:00:00"
                 self.assertEqual(col[1], Timestamp('2000-06-01 07:00:00'))
 
-            elif com.is_datetime64tz_dtype(col.dtype):
+            elif is_datetime64tz_dtype(col.dtype):
                 self.assertTrue(str(col.dt.tz) == 'UTC')
 
                 # "2000-01-01 00:00:00-08:00" should convert to
@@ -1311,9 +1312,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
         # Postgrsql server version difference
         col = df.DateColWithTz
-        self.assertTrue(com.is_object_dtype(col.dtype) or
-                        com.is_datetime64_dtype(col.dtype) or
-                        com.is_datetime64tz_dtype(col.dtype),
+        self.assertTrue(is_object_dtype(col.dtype) or
+                        is_datetime64_dtype(col.dtype) or
+                        is_datetime64tz_dtype(col.dtype),
                         "DateCol loaded with incorrect type -> {0}"
                         .format(col.dtype))
 
@@ -1327,7 +1328,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                                               self.conn, chunksize=1)),
                        ignore_index=True)
         col = df.DateColWithTz
-        self.assertTrue(com.is_datetime64tz_dtype(col.dtype),
+        self.assertTrue(is_datetime64tz_dtype(col.dtype),
                         "DateCol loaded with incorrect type -> {0}"
                         .format(col.dtype))
         self.assertTrue(str(col.dt.tz) == 'UTC')

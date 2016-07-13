@@ -7,11 +7,11 @@ from datetime import datetime
 
 import numpy as np
 
+from pandas.types.common import is_list_like, is_scalar
 import pandas as pd
 from pandas.compat import PY3, string_types, text_type
 import pandas.core.common as com
 from pandas.formats.printing import pprint_thing, pprint_thing_encoded
-import pandas.lib as lib
 from pandas.core.base import StringMixin
 from pandas.computation.common import _ensure_decoded, _result_type_many
 from pandas.computation.scope import _DEFAULT_GLOBALS
@@ -100,7 +100,7 @@ class Term(StringMixin):
 
     @property
     def isscalar(self):
-        return lib.isscalar(self._value)
+        return is_scalar(self._value)
 
     @property
     def type(self):
@@ -229,7 +229,7 @@ def _in(x, y):
     try:
         return x.isin(y)
     except AttributeError:
-        if com.is_list_like(x):
+        if is_list_like(x):
             try:
                 return y.isin(x)
             except AttributeError:
@@ -244,7 +244,7 @@ def _not_in(x, y):
     try:
         return ~x.isin(y)
     except AttributeError:
-        if com.is_list_like(x):
+        if is_list_like(x):
             try:
                 return ~y.isin(x)
             except AttributeError:

@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.compat as compat
-import pandas.core.common as com
+from pandas.types.common import is_object_dtype, is_datetimetz
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta)
@@ -517,7 +517,7 @@ class TestIndexOps(Ops):
                     continue
 
                 # special assign to the numpy array
-                if com.is_datetimetz(o):
+                if is_datetimetz(o):
                     if isinstance(o, DatetimeIndex):
                         v = o.asi8
                         v[0:2] = pd.tslib.iNaT
@@ -982,8 +982,8 @@ class TestIndexOps(Ops):
             res = o.memory_usage()
             res_deep = o.memory_usage(deep=True)
 
-            if (com.is_object_dtype(o) or (isinstance(o, Series) and
-                                           com.is_object_dtype(o.index))):
+            if (is_object_dtype(o) or (isinstance(o, Series) and
+                                       is_object_dtype(o.index))):
                 # if there are objects, only deep will pick them up
                 self.assertTrue(res_deep > res)
             else:

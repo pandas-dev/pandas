@@ -12,8 +12,7 @@ from numpy.random import randint
 
 from pandas.compat import range, u
 import pandas.compat as compat
-from pandas import (Index, Series, DataFrame, isnull, MultiIndex)
-import pandas.core.common as com
+from pandas import (Index, Series, DataFrame, isnull, MultiIndex, notnull)
 
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
@@ -1350,7 +1349,7 @@ class TestStringMethods(tm.TestCase):
         values = Series(['foo', 'fooo', 'fooooo', np.nan, 'fooooooo'])
 
         result = values.str.len()
-        exp = values.map(lambda x: len(x) if com.notnull(x) else NA)
+        exp = values.map(lambda x: len(x) if notnull(x) else NA)
         tm.assert_series_equal(result, exp)
 
         # mixed
@@ -1368,7 +1367,7 @@ class TestStringMethods(tm.TestCase):
             'fooooooo')])
 
         result = values.str.len()
-        exp = values.map(lambda x: len(x) if com.notnull(x) else NA)
+        exp = values.map(lambda x: len(x) if notnull(x) else NA)
         tm.assert_series_equal(result, exp)
 
     def test_findall(self):

@@ -2,12 +2,14 @@
 Quantilization functions and related stuff
 """
 
+from pandas.types.missing import isnull
+from pandas.types.common import (is_float, is_integer,
+                                 is_scalar)
+
 from pandas.core.api import Series
 from pandas.core.categorical import Categorical
 import pandas.core.algorithms as algos
-import pandas.core.common as com
 import pandas.core.nanops as nanops
-import pandas.lib as lib
 from pandas.compat import zip
 
 import numpy as np
@@ -80,7 +82,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
     if not np.iterable(bins):
-        if lib.isscalar(bins) and bins < 1:
+        if is_scalar(bins) and bins < 1:
             raise ValueError("`bins` should be a positive integer.")
         try:  # for array-like
             sz = x.size
@@ -164,7 +166,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3], dtype=int64)
     """
-    if com.is_integer(q):
+    if is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
     else:
         quantiles = q
@@ -194,7 +196,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
     if include_lowest:
         ids[x == bins[0]] = 1
 
-    na_mask = com.isnull(x) | (ids == len(bins)) | (ids == 0)
+    na_mask = isnull(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
 
     if labels is not False:
@@ -264,7 +266,7 @@ def _format_label(x, precision=3):
     fmt_str = '%%.%dg' % precision
     if np.isinf(x):
         return str(x)
-    elif com.is_float(x):
+    elif is_float(x):
         frac, whole = np.modf(x)
         sgn = '-' if x < 0 else ''
         whole = abs(whole)

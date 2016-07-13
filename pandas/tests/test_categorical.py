@@ -8,12 +8,17 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
+from pandas.types.dtypes import CategoricalDtype
+from pandas.types.common import (is_categorical_dtype,
+                                 is_object_dtype,
+                                 is_float_dtype,
+                                 is_integer_dtype)
+
 import pandas as pd
 import pandas.compat as compat
-import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas import (Categorical, Index, Series, DataFrame, PeriodIndex,
-                    Timestamp, CategoricalIndex)
+                    Timestamp, CategoricalIndex, isnull)
 from pandas.compat import range, lrange, u, PY3
 from pandas.core.config import option_context
 
@@ -195,18 +200,18 @@ class TestCategorical(tm.TestCase):
 
         # This should result in integer categories, not float!
         cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        self.assertTrue(com.is_integer_dtype(cat.categories))
+        self.assertTrue(is_integer_dtype(cat.categories))
 
         # https://github.com/pydata/pandas/issues/3678
         cat = pd.Categorical([np.nan, 1, 2, 3])
-        self.assertTrue(com.is_integer_dtype(cat.categories))
+        self.assertTrue(is_integer_dtype(cat.categories))
 
         # this should result in floats
         cat = pd.Categorical([np.nan, 1, 2., 3])
-        self.assertTrue(com.is_float_dtype(cat.categories))
+        self.assertTrue(is_float_dtype(cat.categories))
 
         cat = pd.Categorical([np.nan, 1., 2., 3.])
-        self.assertTrue(com.is_float_dtype(cat.categories))
+        self.assertTrue(is_float_dtype(cat.categories))
 
         # Deprecating NaNs in categoires (GH #10748)
         # preserve int as far as possible by converting to object if NaN is in
@@ -214,23 +219,23 @@ class TestCategorical(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning):
             cat = pd.Categorical([np.nan, 1, 2, 3],
                                  categories=[np.nan, 1, 2, 3])
-        self.assertTrue(com.is_object_dtype(cat.categories))
+        self.assertTrue(is_object_dtype(cat.categories))
 
         # This doesn't work -> this would probably need some kind of "remember
         # the original type" feature to try to cast the array interface result
         # to...
 
         # vals = np.asarray(cat[cat.notnull()])
-        # self.assertTrue(com.is_integer_dtype(vals))
+        # self.assertTrue(is_integer_dtype(vals))
         with tm.assert_produces_warning(FutureWarning):
             cat = pd.Categorical([np.nan, "a", "b", "c"],
                                  categories=[np.nan, "a", "b", "c"])
-        self.assertTrue(com.is_object_dtype(cat.categories))
+        self.assertTrue(is_object_dtype(cat.categories))
         # but don't do it for floats
         with tm.assert_produces_warning(FutureWarning):
             cat = pd.Categorical([np.nan, 1., 2., 3.],
                                  categories=[np.nan, 1., 2., 3.])
-        self.assertTrue(com.is_float_dtype(cat.categories))
+        self.assertTrue(is_float_dtype(cat.categories))
 
         # corner cases
         cat = pd.Categorical([1])
@@ -552,7 +557,7 @@ class TestCategorical(tm.TestCase):
         cat = Categorical(labels, categories, fastpath=True)
         repr(cat)
 
-        self.assert_numpy_array_equal(com.isnull(cat), labels == -1)
+        self.assert_numpy_array_equal(isnull(cat), labels == -1)
 
     def test_categories_none(self):
         factor = Categorical(['a', 'b', 'b', 'a',
@@ -2076,15 +2081,15 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         result = df.dtypes
         expected = Series(
-            [np.dtype('int32'), com.CategoricalDtype()], index=['value', 'D'])
+            [np.dtype('int32'), CategoricalDtype()], index=['value', 'D'])
         tm.assert_series_equal(result, expected)
 
         df['E'] = s
         str(df)
 
         result = df.dtypes
-        expected = Series([np.dtype('int32'), com.CategoricalDtype(),
-                           com.CategoricalDtype()],
+        expected = Series([np.dtype('int32'), CategoricalDtype(),
+                           CategoricalDtype()],
                           index=['value', 'D', 'E'])
         tm.assert_series_equal(result, expected)
 
@@ -3234,7 +3239,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # frame
         res_df = df.iloc[2:4, :]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         # row
         res_row = df.iloc[2, :]
@@ -3244,7 +3249,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # col
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(com.is_categorical_dtype(res_col))
+        self.assertTrue(is_categorical_dtype(res_col))
 
         # single value
         res_val = df.iloc[2, 0]
@@ -3254,7 +3259,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # frame
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         # row
         res_row = df.loc["j", :]
@@ -3264,7 +3269,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(com.is_categorical_dtype(res_col))
+        self.assertTrue(is_categorical_dtype(res_col))
 
         # single value
         res_val = df.loc["j", "cats"]
@@ -3275,7 +3280,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # res_df = df.ix["j":"k",[0,1]] # doesn't work?
         res_df = df.ix["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         # row
         res_row = df.ix["j", :]
@@ -3285,7 +3290,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # col
         res_col = df.ix[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(com.is_categorical_dtype(res_col))
+        self.assertTrue(is_categorical_dtype(res_col))
 
         # single value
         res_val = df.ix["j", 0]
@@ -3318,23 +3323,23 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         res_df = df.iloc[slice(2, 4)]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         res_df = df.iloc[[2, 3]]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(com.is_categorical_dtype(res_col))
+        self.assertTrue(is_categorical_dtype(res_col))
 
         res_df = df.iloc[:, slice(0, 2)]
         tm.assert_frame_equal(res_df, df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         res_df = df.iloc[:, [0, 1]]
         tm.assert_frame_equal(res_df, df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
     def test_slicing_doc_examples(self):
 
@@ -4114,7 +4119,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         s = self.cat['value_group']
         expected = s
         tm.assert_series_equal(s.astype('category'), expected)
-        tm.assert_series_equal(s.astype(com.CategoricalDtype()), expected)
+        tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
         self.assertRaises(ValueError, lambda: s.astype('float64'))
 
         cat = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
@@ -4139,10 +4144,10 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # valid conversion
         for valid in [lambda x: x.astype('category'),
-                      lambda x: x.astype(com.CategoricalDtype()),
+                      lambda x: x.astype(CategoricalDtype()),
                       lambda x: x.astype('object').astype('category'),
                       lambda x: x.astype('object').astype(
-                          com.CategoricalDtype())
+                          CategoricalDtype())
                       ]:
 
             result = valid(s)

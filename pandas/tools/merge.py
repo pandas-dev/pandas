@@ -12,6 +12,21 @@ import pandas.compat as compat
 from pandas import (Categorical, DataFrame, Series,
                     Index, MultiIndex, Timedelta)
 from pandas.core.frame import _merge_doc
+from pandas.types.generic import ABCSeries
+from pandas.types.common import (is_datetime64tz_dtype,
+                                 is_datetime64_dtype,
+                                 needs_i8_conversion,
+                                 is_int64_dtype,
+                                 is_integer,
+                                 is_int_or_datetime_dtype,
+                                 is_dtype_equal,
+                                 is_bool,
+                                 is_list_like,
+                                 _ensure_int64,
+                                 _ensure_platform_int,
+                                 _ensure_object)
+from pandas.types.missing import na_value_for_dtype
+
 from pandas.core.generic import NDFrame
 from pandas.core.index import (_get_combined_index,
                                _ensure_index, _get_consensus_names,
@@ -19,18 +34,10 @@ from pandas.core.index import (_get_combined_index,
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
-from pandas.core.common import (ABCSeries, is_dtype_equal,
-                                is_datetime64_dtype,
-                                is_int64_dtype,
-                                is_integer,
-                                is_bool,
-                                is_list_like,
-                                needs_i8_conversion)
 
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.types.concat as _concat
-from pandas.types.api import na_value_for_dtype
 
 import pandas.algos as _algos
 import pandas.hashtable as _hash
@@ -436,7 +443,7 @@ def merge_asof(left, right, on=None,
         # if we DO have duplicates, then
         # we cannot guarantee order
 
-        sorter = com._ensure_platform_int(
+        sorter = _ensure_platform_int(
             np.concatenate([groupby.indices[g] for g, _ in groupby]))
         if len(result) != len(sorter):
             if check_duplicates:
@@ -1111,8 +1118,8 @@ def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = _algos.left_outer_join(
-        com._ensure_int64(left_key),
-        com._ensure_int64(right_key),
+        _ensure_int64(left_key),
+        _ensure_int64(right_key),
         count, sort=sort)
 
     return left_indexer, right_indexer
@@ -1158,18 +1165,17 @@ _join_functions = {
 
 
 def _factorize_keys(lk, rk, sort=True):
-    if com.is_datetime64tz_dtype(lk) and com.is_datetime64tz_dtype(rk):
+    if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
         lk = lk.values
         rk = rk.values
-
-    if com.is_int_or_datetime_dtype(lk) and com.is_int_or_datetime_dtype(rk):
+    if is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = _hash.Int64Factorizer
-        lk = com._ensure_int64(com._values_from_object(lk))
-        rk = com._ensure_int64(com._values_from_object(rk))
+        lk = _ensure_int64(com._values_from_object(lk))
+        rk = _ensure_int64(com._values_from_object(rk))
     else:
         klass = _hash.Factorizer
-        lk = com._ensure_object(lk)
-        rk = com._ensure_object(rk)
+        lk = _ensure_object(lk)
+        rk = _ensure_object(rk)
 
     rizer = klass(max(len(lk), len(rk)))
 
@@ -1208,10 +1214,10 @@ def _sort_labels(uniques, left, right):
     reverse_indexer = np.empty(len(sorter), dtype=np.int64)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
 
-    new_left = reverse_indexer.take(com._ensure_platform_int(left))
+    new_left = reverse_indexer.take(_ensure_platform_int(left))
     np.putmask(new_left, left == -1, -1)
 
-    new_right = reverse_indexer.take(com._ensure_platform_int(right))
+    new_right = reverse_indexer.take(_ensure_platform_int(right))
     np.putmask(new_right, right == -1, -1)
 
     return new_left, new_right

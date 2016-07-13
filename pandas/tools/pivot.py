@@ -1,6 +1,7 @@
 # pylint: disable=E1103
 
 
+from pandas.types.common import is_list_like, is_scalar
 from pandas import Series, DataFrame
 from pandas.core.index import MultiIndex, Index
 from pandas.core.groupby import Grouper
@@ -9,7 +10,6 @@ from pandas.tools.util import cartesian_product
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
-import pandas.lib as lib
 import numpy as np
 
 
@@ -95,7 +95,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     values_passed = values is not None
     if values_passed:
-        if com.is_list_like(values):
+        if is_list_like(values):
             values_multi = True
             values = list(values)
         else:
@@ -361,7 +361,7 @@ def _generate_marginal_results_without_values(
 def _convert_by(by):
     if by is None:
         by = []
-    elif (lib.isscalar(by) or
+    elif (is_scalar(by) or
           isinstance(by, (np.ndarray, Index, Series, Grouper)) or
           hasattr(by, '__call__')):
         by = [by]

@@ -10,7 +10,7 @@ import numpy as np
 from pandas import (notnull, DataFrame, Series, MultiIndex, date_range,
                     Timestamp, compat)
 import pandas as pd
-import pandas.core.common as com
+from pandas.types.dtypes import CategoricalDtype
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm
@@ -45,8 +45,8 @@ class TestDataFrameApply(tm.TestCase, TestData):
                         'c1': ['C', 'C', 'D', 'D']})
         df = df.apply(lambda ts: ts.astype('category'))
         self.assertEqual(df.shape, (4, 2))
-        self.assertTrue(isinstance(df['c0'].dtype, com.CategoricalDtype))
-        self.assertTrue(isinstance(df['c1'].dtype, com.CategoricalDtype))
+        self.assertTrue(isinstance(df['c0'].dtype, CategoricalDtype))
+        self.assertTrue(isinstance(df['c1'].dtype, CategoricalDtype))
 
     def test_apply_mixed_datetimelike(self):
         # mixed datetimelike

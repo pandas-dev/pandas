@@ -12,11 +12,21 @@ import itertools
 import warnings
 import os
 
+from pandas.types.common import (is_list_like,
+                                 is_categorical_dtype,
+                                 is_timedelta64_dtype,
+                                 is_datetime64tz_dtype,
+                                 is_datetime64_dtype,
+                                 _ensure_object,
+                                 _ensure_int64,
+                                 _ensure_platform_int)
+from pandas.types.missing import array_equivalent
+
 import numpy as np
 
 import pandas as pd
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index)
+                    MultiIndex, Int64Index, isnull)
 from pandas.core import config
 from pandas.io.common import _stringify_path
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
@@ -32,7 +42,6 @@ from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
 from pandas.core.index import _ensure_index
-import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
 from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
@@ -1677,7 +1686,7 @@ class IndexCol(StringMixin):
             new_metadata = self.metadata
             cur_metadata = handler.read_metadata(self.cname)
             if new_metadata is not None and cur_metadata is not None \
-                    and not com.array_equivalent(new_metadata, cur_metadata):
+                    and not array_equivalent(new_metadata, cur_metadata):
                 raise ValueError("cannot append a categorical with "
                                  "different categories to the existing")
 
@@ -2566,7 +2575,7 @@ class GenericFixed(Fixed):
         empty_array = self._is_empty_array(value.shape)
         transposed = False
 
-        if com.is_categorical_dtype(value):
+        if is_categorical_dtype(value):
             raise NotImplementedError('Cannot store a category dtype in '
                                       'a HDF5 dataset that uses format='
                                       '"fixed". Use format="table".')
@@ -2621,12 +2630,12 @@ class GenericFixed(Fixed):
             if empty_array:
                 self.write_array_empty(key, value)
             else:
-                if com.is_datetime64_dtype(value.dtype):
+                if is_datetime64_dtype(value.dtype):
                     self._handle.create_array(
                         self.group, key, value.view('i8'))
                     getattr(
                         self.group, key)._v_attrs.value_type = 'datetime64'
-                elif com.is_datetime64tz_dtype(value.dtype):
+                elif is_datetime64tz_dtype(value.dtype):
                     # store as UTC
                     # with a zone
                     self._handle.create_array(self.group, key,
@@ -2635,7 +2644,7 @@ class GenericFixed(Fixed):
                     node = getattr(self.group, key)
                     node._v_attrs.tz = _get_tz(value.tz)
                     node._v_attrs.value_type = 'datetime64'
-                elif com.is_timedelta64_dtype(value.dtype):
+                elif is_timedelta64_dtype(value.dtype):
                     self._handle.create_array(
                         self.group, key, value.view('i8'))
                     getattr(
@@ -3756,8 +3765,8 @@ class LegacyTable(Table):
         if len(unique(key)) == len(key):
 
             sorter, _ = algos.groupsort_indexer(
-                com._ensure_int64(key), np.prod(N))
-            sorter = com._ensure_platform_int(sorter)
+                _ensure_int64(key), np.prod(N))
+            sorter = _ensure_platform_int(sorter)
 
             # create the objs
             for c in self.values_axes:
@@ -3802,7 +3811,7 @@ class LegacyTable(Table):
                 unique_tuples = _asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
-                indexer = com._ensure_platform_int(indexer)
+                indexer = _ensure_platform_int(indexer)
 
                 new_index = long_index.take(indexer)
                 new_values = lp.values.take(indexer, axis=0)
@@ -3903,7 +3912,7 @@ class AppendableTable(LegacyTable):
 
                 # figure the mask: only do if we can successfully process this
                 # column, otherwise ignore the mask
-                mask = com.isnull(a.data).all(axis=0)
+                mask = isnull(a.data).all(axis=0)
                 if isinstance(mask, np.ndarray):
                     masks.append(mask.astype('u1', copy=False))
 
@@ -4522,7 +4531,7 @@ def _convert_string_array(data, encoding, itemsize=None):
 
     # create the sized dtype
     if itemsize is None:
-        itemsize = lib.max_len_string_array(com._ensure_object(data.ravel()))
+        itemsize = lib.max_len_string_array(_ensure_object(data.ravel()))
 
     data = np.asarray(data, dtype="S%d" % itemsize)
     return data
@@ -4551,7 +4560,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
 
-        itemsize = lib.max_len_string_array(com._ensure_object(data))
+        itemsize = lib.max_len_string_array(_ensure_object(data))
         if compat.PY3:
             dtype = "U{0}".format(itemsize)
         else:
@@ -4619,7 +4628,7 @@ class Selection(object):
         self.terms = None
         self.coordinates = None
 
-        if com.is_list_like(where):
+        if is_list_like(where):
 
             # see if we have a passed coordinate like
             try:

@@ -222,6 +222,7 @@ def test_duplicated_with_nas():
     expected = trues + trues
     assert (np.array_equal(result, expected))
 
+
 if __name__ == '__main__':
     import nose
 

@@ -8,10 +8,11 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 
+from pandas.types.common import is_categorical_dtype, is_datetime64tz_dtype
 from pandas import Index, Series, isnull, date_range, period_range
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
-import pandas.core.common as com
+
 import pandas.lib as lib
 
 from pandas.compat import lrange, range, zip, OrderedDict, long
@@ -144,11 +145,11 @@ class TestSeriesConstructors(TestData, tm.TestCase):
             ValueError, lambda: Series(pd.Categorical([1, 2, 3]),
                                        dtype='int64'))
         cat = Series(pd.Categorical([1, 2, 3]), dtype='category')
-        self.assertTrue(com.is_categorical_dtype(cat))
-        self.assertTrue(com.is_categorical_dtype(cat.dtype))
+        self.assertTrue(is_categorical_dtype(cat))
+        self.assertTrue(is_categorical_dtype(cat.dtype))
         s = Series([1, 2, 3], dtype='category')
-        self.assertTrue(com.is_categorical_dtype(s))
-        self.assertTrue(com.is_categorical_dtype(s.dtype))
+        self.assertTrue(is_categorical_dtype(s))
+        self.assertTrue(is_categorical_dtype(s.dtype))
 
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3, ), dtype=float)
@@ -429,7 +430,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         s = Series(dr)
         self.assertTrue(s.dtype.name == 'datetime64[ns, US/Eastern]')
         self.assertTrue(s.dtype == 'datetime64[ns, US/Eastern]')
-        self.assertTrue(com.is_datetime64tz_dtype(s.dtype))
+        self.assertTrue(is_datetime64tz_dtype(s.dtype))
         self.assertTrue('datetime64[ns, US/Eastern]' in str(s))
 
         # export

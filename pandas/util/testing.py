@@ -23,11 +23,14 @@ from numpy.testing.decorators import slow     # noqa
 import numpy as np
 
 import pandas as pd
-from pandas.core.common import (is_sequence, array_equivalent,
-                                is_list_like, is_datetimelike_v_numeric,
-                                is_datetimelike_v_object,
-                                is_number, is_bool,
-                                needs_i8_conversion, is_categorical_dtype)
+from pandas.types.missing import array_equivalent
+from pandas.types.common import (is_datetimelike_v_numeric,
+                                 is_datetimelike_v_object,
+                                 is_number, is_bool,
+                                 needs_i8_conversion,
+                                 is_categorical_dtype,
+                                 is_sequence,
+                                 is_list_like)
 from pandas.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 
@@ -1001,17 +1004,20 @@ def assert_categorical_equal(left, right, check_dtype=True,
     assert_attr_equal('ordered', left, right, obj=obj)
 
 
-def raise_assert_detail(obj, message, left, right):
+def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
 
+    if diff is not None:
+        diff = "\n[diff]: {diff}".format(diff=diff)
+
     msg = """{0} are different
 
 {1}
 [left]:  {2}
-[right]: {3}""".format(obj, message, left, right)
+[right]: {3}{4}""".format(obj, message, left, right, diff)
     raise AssertionError(msg)
 
 

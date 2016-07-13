@@ -14,6 +14,10 @@ import numpy as np
 import sys
 import struct
 from dateutil.relativedelta import relativedelta
+
+from pandas.types.common import (is_categorical_dtype, is_datetime64_dtype,
+                                 _ensure_object)
+
 from pandas.core.base import StringMixin
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
@@ -24,7 +28,7 @@ from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
     zip, BytesIO
 from pandas.util.decorators import Appender
 import pandas as pd
-import pandas.core.common as com
+
 from pandas.io.common import get_filepath_or_buffer, BaseIterator
 from pandas.lib import max_len_string_array, infer_dtype
 from pandas.tslib import NaT, Timestamp
@@ -358,7 +362,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
 
     def parse_dates_safe(dates, delta=False, year=False, days=False):
         d = {}
-        if com.is_datetime64_dtype(dates.values):
+        if is_datetime64_dtype(dates.values):
             if delta:
                 delta = dates - stata_epoch
                 d['delta'] = delta.values.astype(
@@ -396,7 +400,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
     index = dates.index
     if bad_loc.any():
         dates = Series(dates)
-        if com.is_datetime64_dtype(dates):
+        if is_datetime64_dtype(dates):
             dates[bad_loc] = to_datetime(stata_epoch)
         else:
             dates[bad_loc] = stata_epoch
@@ -1746,7 +1750,7 @@ def _dtype_to_stata_type(dtype, column):
     elif dtype.type == np.object_:  # try to coerce it to the biggest string
                                     # not memory efficient, what else could we
                                     # do?
-        itemsize = max_len_string_array(com._ensure_object(column.values))
+        itemsize = max_len_string_array(_ensure_object(column.values))
         return chr(max(itemsize, 1))
     elif dtype == np.float64:
         return chr(255)
@@ -1784,7 +1788,7 @@ def _dtype_to_default_stata_fmt(dtype, column):
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
             raise ValueError('Writing general object arrays is not supported')
-        itemsize = max_len_string_array(com._ensure_object(column.values))
+        itemsize = max_len_string_array(_ensure_object(column.values))
         if itemsize > 244:
             raise ValueError(excessive_string_length_error % column.name)
         return "%" + str(max(itemsize, 1)) + "s"
@@ -1880,7 +1884,7 @@ class StataWriter(StataParser):
         """Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int"""
 
-        is_cat = [com.is_categorical_dtype(data[col]) for col in data]
+        is_cat = [is_categorical_dtype(data[col]) for col in data]
         self._is_col_cat = is_cat
         self._value_labels = []
         if not any(is_cat):

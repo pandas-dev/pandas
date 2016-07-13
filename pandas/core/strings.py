@@ -1,14 +1,19 @@
 import numpy as np
 
 from pandas.compat import zip
-from pandas.core.common import (isnull, notnull, _values_from_object,
-                                is_bool_dtype,
-                                is_list_like, is_categorical_dtype,
-                                is_object_dtype, is_string_like)
+from pandas.types.generic import ABCSeries, ABCIndex
+from pandas.types.missing import isnull, notnull
+from pandas.types.common import (is_bool_dtype,
+                                 is_categorical_dtype,
+                                 is_object_dtype,
+                                 is_string_like,
+                                 is_list_like,
+                                 is_scalar)
+from pandas.core.common import _values_from_object
+
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
-from pandas.types import api as gt
 from pandas.util.decorators import Appender, deprecate_kwarg
 import re
 import pandas.lib as lib
@@ -152,7 +157,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
     if not len(arr):
         return np.ndarray(0, dtype=dtype)
 
-    if isinstance(arr, gt.ABCSeries):
+    if isinstance(arr, ABCSeries):
         arr = arr.values
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
@@ -343,7 +348,7 @@ def str_repeat(arr, repeats):
     -------
     repeated : Series/Index of objects
     """
-    if lib.isscalar(repeats):
+    if is_scalar(repeats):
 
         def rep(x):
             try:
@@ -696,7 +701,7 @@ def str_extractall(arr, pat, flags=0):
     if regex.groups == 0:
         raise ValueError("pattern contains no capture groups")
 
-    if isinstance(arr, gt.ABCIndex):
+    if isinstance(arr, ABCIndex):
         arr = arr.to_series().reset_index(drop=True)
 
     names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
@@ -1538,7 +1543,7 @@ class StringMethods(NoNewAttributesMixin):
         return self.pad(width, side='left', fillchar=fillchar)
 
     def zfill(self, width):
-        """"
+        """
         Filling left side of strings in the Series/Index with 0.
         Equivalent to :meth:`str.zfill`.
 
@@ -1820,7 +1825,7 @@ class StringAccessorMixin(object):
     def _make_str_accessor(self):
         from pandas.core.index import Index
 
-        if (isinstance(self, gt.ABCSeries) and
+        if (isinstance(self, ABCSeries) and
                 not ((is_categorical_dtype(self.dtype) and
                       is_object_dtype(self.values.categories)) or
                      (is_object_dtype(self.dtype)))):

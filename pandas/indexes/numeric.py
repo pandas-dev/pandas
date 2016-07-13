@@ -3,13 +3,15 @@ import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
 
+from pandas.types.common import (is_dtype_equal, pandas_dtype,
+                                 is_float_dtype, is_object_dtype,
+                                 is_integer_dtype, is_scalar)
+from pandas.types.missing import array_equivalent, isnull
+from pandas.core.common import _values_from_object
+
 from pandas import compat
 from pandas.indexes.base import Index, InvalidIndexError, _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
-import pandas.core.common as com
-from pandas.core.common import (is_dtype_equal, isnull, pandas_dtype,
-                                is_float_dtype, is_object_dtype,
-                                is_integer_dtype)
 import pandas.indexes.base as ibase
 
 
@@ -164,8 +166,8 @@ class Int64Index(NumericIndex):
         if self.is_(other):
             return True
 
-        return com.array_equivalent(com._values_from_object(self),
-                                    com._values_from_object(other))
+        return array_equivalent(_values_from_object(self),
+                                _values_from_object(other))
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
@@ -287,17 +289,17 @@ class Float64Index(NumericIndex):
 
     def get_value(self, series, key):
         """ we always want to get an index value, never a value """
-        if not lib.isscalar(key):
+        if not is_scalar(key):
             raise InvalidIndexError
 
         from pandas.core.indexing import maybe_droplevels
         from pandas.core.series import Series
 
-        k = com._values_from_object(key)
+        k = _values_from_object(key)
         loc = self.get_loc(k)
-        new_values = com._values_from_object(series)[loc]
+        new_values = _values_from_object(series)[loc]
 
-        if lib.isscalar(new_values) or new_values is None:
+        if is_scalar(new_values) or new_values is None:
             return new_values
 
         new_index = self[loc]

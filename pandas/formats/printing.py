@@ -2,9 +2,9 @@
 printing tools
 """
 
+from pandas.types.inference import is_sequence
 from pandas import compat
 from pandas.compat import u
-import pandas.core.common as com
 from pandas.core.config import get_option
 
 
@@ -213,7 +213,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
           _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_dict(thing, _nest_lvl, quote_strings=True,
                               max_seq_items=max_seq_items)
-    elif (com.is_sequence(thing) and
+    elif (is_sequence(thing) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
                              quote_strings=quote_strings,

@@ -4326,10 +4326,10 @@ class TestSeriesPeriod(tm.TestCase):
         series = Series([0, 1000, 2000, iNaT], dtype='period[D]')
 
         val = series[3]
-        self.assertTrue(com.isnull(val))
+        self.assertTrue(isnull(val))
 
         series[2] = val
-        self.assertTrue(com.isnull(series[2]))
+        self.assertTrue(isnull(series[2]))
 
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')

@@ -10,6 +10,7 @@ from pandas.compat import lrange, zip
 from pandas import compat
 import numpy as np
 
+from pandas.types.common import is_list_like, is_scalar
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel
@@ -18,7 +19,6 @@ from pandas.util.decorators import deprecate
 
 import pandas.core.common as com
 import pandas.core.ops as ops
-import pandas.lib as lib
 
 
 class SparsePanelAxis(object):
@@ -186,7 +186,7 @@ class SparsePanel(Panel):
         key = self._get_axis(axis)[i]
 
         # xs cannot handle a non-scalar key, so just reindex here
-        if com.is_list_like(key):
+        if is_list_like(key):
             return self.reindex(**{self._get_axis_name(axis): key})
 
         return self.xs(key, axis=axis)
@@ -393,7 +393,7 @@ class SparsePanel(Panel):
             return self._combineFrame(other, func, axis=axis)
         elif isinstance(other, Panel):
             return self._combinePanel(other, func)
-        elif lib.isscalar(other):
+        elif is_scalar(other):
             new_frames = dict((k, func(v, other))
                               for k, v in self.iteritems())
             return self._new_like(new_frames)

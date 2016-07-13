@@ -3,12 +3,12 @@
 from numpy import nan
 import numpy as np
 
+from pandas.types.common import _ensure_int64
 from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 import pandas.lib as lib
 import pandas.algos as algos
-from pandas.core import common as com
 
 
 def test_series_grouper():
@@ -90,8 +90,8 @@ def test_group_ohlc():
         bins = np.array([6, 12, 20])
         out = np.zeros((3, 4), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
-        labels = com._ensure_int64(np.repeat(np.arange(3),
-                                             np.diff(np.r_[0, bins])))
+        labels = _ensure_int64(np.repeat(np.arange(3),
+                                         np.diff(np.r_[0, bins])))
 
         func = getattr(algos, 'group_ohlc_%s' % dtype)
         func(out, counts, obj[:, None], labels)

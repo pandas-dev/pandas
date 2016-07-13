@@ -12,6 +12,28 @@ from pandas.lib import Timestamp, Timedelta, is_datetime_array
 from pandas.compat import range, u
 from pandas.compat.numpy import function as nv
 from pandas import compat
+
+
+from pandas.types.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
+from pandas.types.missing import isnull, array_equivalent
+from pandas.types.common import (_ensure_int64, _ensure_object,
+                                 _ensure_platform_int,
+                                 is_datetimetz,
+                                 is_integer,
+                                 is_float,
+                                 is_dtype_equal,
+                                 is_object_dtype,
+                                 is_categorical_dtype,
+                                 is_bool_dtype,
+                                 is_integer_dtype, is_float_dtype,
+                                 needs_i8_conversion,
+                                 is_iterator, is_list_like,
+                                 is_scalar)
+from pandas.types.cast import _coerce_indexer_dtype
+from pandas.core.common import (is_bool_indexer,
+                                _values_from_object,
+                                _asarray_tuplesafe)
+
 from pandas.core.base import (PandasObject, FrozenList, FrozenNDArray,
                               IndexOpsMixin)
 import pandas.core.base as base
@@ -22,15 +44,6 @@ import pandas.types.concat as _concat
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
 from pandas.formats.printing import pprint_thing
-from pandas.core.common import (isnull, array_equivalent,
-                                is_object_dtype, is_datetimetz, ABCSeries,
-                                ABCPeriodIndex, ABCMultiIndex,
-                                _values_from_object, is_float, is_integer,
-                                is_iterator, is_categorical_dtype,
-                                _ensure_object, _ensure_int64, is_bool_indexer,
-                                is_list_like, is_bool_dtype,
-                                is_integer_dtype, is_float_dtype,
-                                needs_i8_conversion)
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.strings import StringAccessorMixin
 
@@ -223,7 +236,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
                 subarr = data.astype('object')
             else:
-                subarr = com._asarray_tuplesafe(data, dtype=object)
+                subarr = _asarray_tuplesafe(data, dtype=object)
 
             # _asarray_tuplesafe does not always copy underlying data,
             # so need to make sure that this happens
@@ -264,7 +277,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         elif hasattr(data, '__array__'):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name,
                          **kwargs)
-        elif data is None or lib.isscalar(data):
+        elif data is None or is_scalar(data):
             cls._scalar_data_error(data)
         else:
             if (tupleize_cols and isinstance(data, list) and data and
@@ -284,7 +297,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                         # python2 - MultiIndex fails on mixed types
                         pass
             # other iterable of some kind
-            subarr = com._asarray_tuplesafe(data, dtype=object)
+            subarr = _asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     """
@@ -539,7 +552,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
 
         if not isinstance(data, (np.ndarray, Index)):
-            if data is None or lib.isscalar(data):
+            if data is None or is_scalar(data):
                 cls._scalar_data_error(data)
 
             # other iterable of some kind
@@ -841,7 +854,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             return DatetimeIndex(self.values)
 
     def _assert_can_do_setop(self, other):
-        if not com.is_list_like(other):
+        if not is_list_like(other):
             raise TypeError('Input must be Index or array-like')
         return True
 
@@ -1325,7 +1338,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         getitem = self._data.__getitem__
         promote = self._shallow_copy
 
-        if lib.isscalar(key):
+        if is_scalar(key):
             return getitem(key)
 
         if isinstance(key, slice):
@@ -1338,7 +1351,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         key = _values_from_object(key)
         result = getitem(key)
-        if not lib.isscalar(result):
+        if not is_scalar(result):
             return promote(result)
         else:
             return result
@@ -1426,7 +1439,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = com._ensure_platform_int(indices)
+        indices = _ensure_platform_int(indices)
         if self._can_hold_na:
             taken = self._assert_take_fillable(self.values, indices,
                                                allow_fill=allow_fill,
@@ -1442,7 +1455,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _assert_take_fillable(self, values, indices, allow_fill=True,
                               fill_value=None, na_value=np.nan):
         """ Internal method to handle NA filling of take """
-        indices = com._ensure_platform_int(indices)
+        indices = _ensure_platform_int(indices)
 
         # only fill if we are passing a non-None fill_value
         if allow_fill and fill_value is not None:
@@ -1491,7 +1504,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _assert_can_do_op(self, value):
         """ Check value is valid for scalar op """
-        if not lib.isscalar(value):
+        if not is_scalar(value):
             msg = "'value' must be a scalar, passed: {0}"
             raise TypeError(msg.format(type(value).__name__))
 
@@ -1706,7 +1719,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return result.argsort(*args, **kwargs)
 
     def __add__(self, other):
-        if com.is_list_like(other):
+        if is_list_like(other):
             warnings.warn("using '+' to provide set union with Indexes is "
                           "deprecated, use '|' or .union()", FutureWarning,
                           stacklevel=2)
@@ -1783,7 +1796,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if len(self) == 0:
             return other._get_consensus_name(self)
 
-        if not com.is_dtype_equal(self.dtype, other.dtype):
+        if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
             return this.union(other)
@@ -1866,7 +1879,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if self.equals(other):
             return self._get_consensus_name(other)
 
-        if not com.is_dtype_equal(self.dtype, other.dtype):
+        if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
             return this.intersection(other)
@@ -2028,7 +2041,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
-        if isinstance(s, Index) and lib.isscalar(key):
+        if isinstance(s, Index) and is_scalar(key):
             try:
                 return s[key]
             except (IndexError, ValueError):
@@ -2061,7 +2074,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 raise e1
         except TypeError:
             # python 3
-            if lib.isscalar(key):  # pragma: no cover
+            if is_scalar(key):  # pragma: no cover
                 raise IndexError(key)
             raise InvalidIndexError(key)
 
@@ -2137,7 +2150,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             return pself.get_indexer(ptarget, method=method, limit=limit,
                                      tolerance=tolerance)
 
-        if not com.is_dtype_equal(self.dtype, target.dtype):
+        if not is_dtype_equal(self.dtype, target.dtype):
             this = self.astype(object)
             target = target.astype(object)
             return this.get_indexer(target, method=method, limit=limit,
@@ -2161,7 +2174,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
             indexer = self._engine.get_indexer(target._values)
 
-        return com._ensure_platform_int(indexer)
+        return _ensure_platform_int(indexer)
 
     def _convert_tolerance(self, tolerance):
         # override this method on subclasses
@@ -2443,7 +2456,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if len(missing):
             l = np.arange(len(indexer))
 
-            missing = com._ensure_platform_int(missing)
+            missing = _ensure_platform_int(missing)
             missing_labels = target.take(missing)
             missing_indexer = _ensure_int64(l[~check])
             cur_labels = self.take(indexer[check])._values
@@ -2541,7 +2554,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 result = x, z, y
             return result
 
-        if not com.is_dtype_equal(self.dtype, other.dtype):
+        if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
             return this.join(other, how=how, return_indexers=return_indexers)
@@ -2637,8 +2650,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                                  [other._values], how=how,
                                                  sort=True)
 
-        left_idx = com._ensure_platform_int(left_idx)
-        right_idx = com._ensure_platform_int(right_idx)
+        left_idx = _ensure_platform_int(left_idx)
+        right_idx = _ensure_platform_int(right_idx)
 
         join_index = self.values.take(left_idx)
         mask = left_idx == -1
@@ -2850,9 +2863,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                                  kind=kind)
 
         # return a slice
-        if not lib.isscalar(start_slice):
+        if not is_scalar(start_slice):
             raise AssertionError("Start slice bound is non-scalar")
-        if not lib.isscalar(end_slice):
+        if not is_scalar(end_slice):
             raise AssertionError("End slice bound is non-scalar")
 
         return slice(start_slice, end_slice, step)
@@ -3483,7 +3496,7 @@ def _get_na_value(dtype):
 
 
 def _ensure_frozen(array_like, categories, copy=False):
-    array_like = com._coerce_indexer_dtype(array_like, categories)
+    array_like = _coerce_indexer_dtype(array_like, categories)
     array_like = array_like.view(FrozenNDArray)
     if copy:
         array_like = array_like.copy()

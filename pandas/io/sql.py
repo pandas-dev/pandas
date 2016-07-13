@@ -13,13 +13,15 @@ import re
 import numpy as np
 
 import pandas.lib as lib
-import pandas.core.common as com
+from pandas.types.missing import isnull
+from pandas.types.dtypes import DatetimeTZDtype
+from pandas.types.common import (is_list_like,
+                                 is_datetime64tz_dtype)
+
 from pandas.compat import (lzip, map, zip, raise_with_traceback,
                            string_types, text_type)
 from pandas.core.api import DataFrame, Series
-from pandas.core.common import isnull
 from pandas.core.base import PandasObject
-from pandas.types.api import DatetimeTZDtype
 from pandas.tseries.tools import to_datetime
 
 from contextlib import contextmanager
@@ -90,7 +92,7 @@ def _handle_date_column(col, format=None):
             # parse dates as timestamp
             format = 's' if format is None else format
             return to_datetime(col, errors='coerce', unit=format, utc=True)
-        elif com.is_datetime64tz_dtype(col):
+        elif is_datetime64tz_dtype(col):
             # coerce to UTC timezone
             # GH11216
             return (to_datetime(col, errors='coerce')
@@ -123,7 +125,7 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.iteritems():
-        if com.is_datetime64tz_dtype(df_col):
+        if is_datetime64tz_dtype(df_col):
             data_frame[col_name] = _handle_date_column(df_col)
 
     return data_frame
@@ -876,7 +878,7 @@ class SQLTable(PandasObject):
                    for name, typ, is_index in column_names_and_types]
 
         if self.keys is not None:
-            if not com.is_list_like(self.keys):
+            if not is_list_like(self.keys):
                 keys = [self.keys]
             else:
                 keys = self.keys
@@ -1465,7 +1467,7 @@ class SQLiteTable(SQLTable):
                             for cname, ctype, _ in column_names_and_types]
 
         if self.keys is not None and len(self.keys):
-            if not com.is_list_like(self.keys):
+            if not is_list_like(self.keys):
                 keys = [self.keys]
             else:
                 keys = self.keys

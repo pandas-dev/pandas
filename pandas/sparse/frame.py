@@ -10,13 +10,15 @@ from pandas.compat import lmap
 from pandas import compat
 import numpy as np
 
+from pandas.types.missing import isnull, notnull
+from pandas.types.common import _ensure_platform_int
+
+from pandas.core.common import _try_sort
 from pandas.compat.numpy import function as nv
-from pandas.core.common import isnull, _try_sort
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.series import Series
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
-import pandas.core.common as com
 import pandas.core.algorithms as algos
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays)
@@ -520,7 +522,7 @@ class SparseDataFrame(DataFrame):
             return SparseDataFrame(index=index, columns=self.columns)
 
         indexer = self.index.get_indexer(index, method, limit=limit)
-        indexer = com._ensure_platform_int(indexer)
+        indexer = _ensure_platform_int(indexer)
         mask = indexer == -1
         need_mask = mask.any()
 
@@ -546,7 +548,7 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise TypeError('Reindex by level not supported for sparse')
 
-        if com.notnull(fill_value):
+        if notnull(fill_value):
             raise NotImplementedError("'fill_value' argument is not supported")
 
         if limit:

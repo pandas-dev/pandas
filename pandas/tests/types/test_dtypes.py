@@ -4,13 +4,14 @@ from itertools import product
 import nose
 import numpy as np
 from pandas import Series, Categorical, date_range
-import pandas.core.common as com
-from pandas.types.api import CategoricalDtype
-from pandas.core.common import (is_categorical_dtype,
-                                is_categorical, DatetimeTZDtype,
-                                is_datetime64tz_dtype, is_datetimetz,
-                                is_dtype_equal, is_datetime64_ns_dtype,
-                                is_datetime64_dtype)
+
+from pandas.types.dtypes import CategoricalDtype
+from pandas.types.common import (is_categorical_dtype,
+                                 is_categorical, DatetimeTZDtype,
+                                 is_datetime64tz_dtype, is_datetimetz,
+                                 is_dtype_equal, is_datetime64_ns_dtype,
+                                 is_datetime64_dtype,
+                                 _coerce_to_dtype)
 import pandas.util.testing as tm
 
 _multiprocess_can_split_ = True
@@ -124,9 +125,9 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
         self.assertTrue(issubclass(type(a), type(b)))
 
     def test_coerce_to_dtype(self):
-        self.assertEqual(com._coerce_to_dtype('datetime64[ns, US/Eastern]'),
+        self.assertEqual(_coerce_to_dtype('datetime64[ns, US/Eastern]'),
                          DatetimeTZDtype('ns', 'US/Eastern'))
-        self.assertEqual(com._coerce_to_dtype('datetime64[ns, Asia/Tokyo]'),
+        self.assertEqual(_coerce_to_dtype('datetime64[ns, Asia/Tokyo]'),
                          DatetimeTZDtype('ns', 'Asia/Tokyo'))
 
     def test_compat(self):

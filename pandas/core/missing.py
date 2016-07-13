@@ -5,10 +5,15 @@ Routines for filling missing data
 import numpy as np
 from distutils.version import LooseVersion
 
-import pandas.core.common as com
 import pandas.algos as algos
 import pandas.lib as lib
 from pandas.compat import range, string_types
+from pandas.types.common import (is_numeric_v_string_like,
+                                 is_float_dtype, is_datetime64_dtype,
+                                 is_integer_dtype, _ensure_float64,
+                                 is_scalar,
+                                 _DATELIKE_DTYPES)
+from pandas.types.missing import isnull
 
 
 def mask_missing(arr, values_to_mask):
@@ -24,7 +29,7 @@ def mask_missing(arr, values_to_mask):
     except Exception:
         values_to_mask = np.array(values_to_mask, dtype=object)
 
-    na_mask = com.isnull(values_to_mask)
+    na_mask = isnull(values_to_mask)
     nonna = values_to_mask[~na_mask]
 
     mask = None
@@ -32,28 +37,28 @@ def mask_missing(arr, values_to_mask):
         if mask is None:
 
             # numpy elementwise comparison warning
-            if com.is_numeric_v_string_like(arr, x):
+            if is_numeric_v_string_like(arr, x):
                 mask = False
             else:
                 mask = arr == x
 
             # if x is a string and arr is not, then we get False and we must
             # expand the mask to size arr.shape
-            if lib.isscalar(mask):
+            if is_scalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
 
             # numpy elementwise comparison warning
-            if com.is_numeric_v_string_like(arr, x):
+            if is_numeric_v_string_like(arr, x):
                 mask |= False
             else:
                 mask |= arr == x
 
     if na_mask.any():
         if mask is None:
-            mask = com.isnull(arr)
+            mask = isnull(arr)
         else:
-            mask |= com.isnull(arr)
+            mask |= isnull(arr)
 
     return mask
 
@@ -110,7 +115,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     """
     # Treat the original, non-scipy methods first.
 
-    invalid = com.isnull(yvalues)
+    invalid = isnull(yvalues)
     valid = ~invalid
 
     if not valid.any():
@@ -442,12 +447,12 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
     if dtype is None:
         dtype = values.dtype
     _method = None
-    if com.is_float_dtype(values):
+    if is_float_dtype(values):
         _method = getattr(algos, 'pad_inplace_%s' % dtype.name, None)
-    elif dtype in com._DATELIKE_DTYPES or com.is_datetime64_dtype(values):
+    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
         _method = _pad_1d_datetime
-    elif com.is_integer_dtype(values):
-        values = com._ensure_float64(values)
+    elif is_integer_dtype(values):
+        values = _ensure_float64(values)
         _method = algos.pad_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.pad_inplace_object
@@ -456,7 +461,7 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for pad_1d [%s]' % dtype.name)
 
     if mask is None:
-        mask = com.isnull(values)
+        mask = isnull(values)
     mask = mask.view(np.uint8)
     _method(values, mask, limit=limit)
     return values
@@ -467,12 +472,12 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
     if dtype is None:
         dtype = values.dtype
     _method = None
-    if com.is_float_dtype(values):
+    if is_float_dtype(values):
         _method = getattr(algos, 'backfill_inplace_%s' % dtype.name, None)
-    elif dtype in com._DATELIKE_DTYPES or com.is_datetime64_dtype(values):
+    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
         _method = _backfill_1d_datetime
-    elif com.is_integer_dtype(values):
-        values = com._ensure_float64(values)
+    elif is_integer_dtype(values):
+        values = _ensure_float64(values)
         _method = algos.backfill_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.backfill_inplace_object
@@ -481,7 +486,7 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for backfill_1d [%s]' % dtype.name)
 
     if mask is None:
-        mask = com.isnull(values)
+        mask = isnull(values)
     mask = mask.view(np.uint8)
 
     _method(values, mask, limit=limit)
@@ -493,12 +498,12 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
     if dtype is None:
         dtype = values.dtype
     _method = None
-    if com.is_float_dtype(values):
+    if is_float_dtype(values):
         _method = getattr(algos, 'pad_2d_inplace_%s' % dtype.name, None)
-    elif dtype in com._DATELIKE_DTYPES or com.is_datetime64_dtype(values):
+    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
         _method = _pad_2d_datetime
-    elif com.is_integer_dtype(values):
-        values = com._ensure_float64(values)
+    elif is_integer_dtype(values):
+        values = _ensure_float64(values)
         _method = algos.pad_2d_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.pad_2d_inplace_object
@@ -507,7 +512,7 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for pad_2d [%s]' % dtype.name)
 
     if mask is None:
-        mask = com.isnull(values)
+        mask = isnull(values)
     mask = mask.view(np.uint8)
 
     if np.all(values.shape):
@@ -523,12 +528,12 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
     if dtype is None:
         dtype = values.dtype
     _method = None
-    if com.is_float_dtype(values):
+    if is_float_dtype(values):
         _method = getattr(algos, 'backfill_2d_inplace_%s' % dtype.name, None)
-    elif dtype in com._DATELIKE_DTYPES or com.is_datetime64_dtype(values):
+    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
         _method = _backfill_2d_datetime
-    elif com.is_integer_dtype(values):
-        values = com._ensure_float64(values)
+    elif is_integer_dtype(values):
+        values = _ensure_float64(values)
         _method = algos.backfill_2d_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.backfill_2d_inplace_object
@@ -537,7 +542,7 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for backfill_2d [%s]' % dtype.name)
 
     if mask is None:
-        mask = com.isnull(values)
+        mask = isnull(values)
     mask = mask.view(np.uint8)
 
     if np.all(values.shape):
@@ -570,22 +575,22 @@ def fill_zeros(result, x, y, name, fill):
 
     mask the nan's from x
     """
-    if fill is None or com.is_float_dtype(result):
+    if fill is None or is_float_dtype(result):
         return result
 
     if name.startswith(('r', '__r')):
         x, y = y, x
 
-    is_typed_variable = (hasattr(y, 'dtype') or hasattr(y, 'type'))
-    is_scalar = lib.isscalar(y)
+    is_variable_type = (hasattr(y, 'dtype') or hasattr(y, 'type'))
+    is_scalar_type = is_scalar(y)
 
-    if not is_typed_variable and not is_scalar:
+    if not is_variable_type and not is_scalar_type:
         return result
 
-    if is_scalar:
+    if is_scalar_type:
         y = np.array(y)
 
-    if com.is_integer_dtype(y):
+    if is_integer_dtype(y):
 
         if (y == 0).any():
 

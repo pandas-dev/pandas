@@ -5,6 +5,7 @@ import nose
 import numpy as np
 import pytz
 
+from pandas.types.dtypes import DatetimeTZDtype
 from pandas import (Index, Series, DataFrame, isnull, Timestamp)
 
 from pandas import DatetimeIndex, to_datetime, NaT
@@ -17,7 +18,6 @@ import pandas.tseries.tools as tools
 from pytz import NonExistentTimeError
 
 import pandas.util.testing as tm
-from pandas.types.api import DatetimeTZDtype
 from pandas.util.testing import assert_frame_equal, set_timezone
 from pandas.compat import lrange, zip
 
