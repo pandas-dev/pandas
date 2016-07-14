@@ -4419,44 +4419,6 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             invalid.dt
         self.assertFalse(hasattr(invalid, 'str'))
 
-    def test_pickle_v0_14_1(self):
-
-        # we have the name warning
-        # 10482
-        with tm.assert_produces_warning(UserWarning):
-            cat = pd.Categorical(values=['a', 'b', 'c'],
-                                 categories=['a', 'b', 'c', 'd'],
-                                 name='foobar', ordered=False)
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'categorical_0_14_1.pickle')
-        # This code was executed once on v0.14.1 to generate the pickle:
-        #
-        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-        #                   name='foobar')
-        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-        #
-        self.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-    def test_pickle_v0_15_2(self):
-        # ordered -> _ordered
-        # GH 9347
-
-        # we have the name warning
-        # 10482
-        with tm.assert_produces_warning(UserWarning):
-            cat = pd.Categorical(values=['a', 'b', 'c'],
-                                 categories=['a', 'b', 'c', 'd'],
-                                 name='foobar', ordered=False)
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'categorical_0_15_2.pickle')
-        # This code was executed once on v0.15.2 to generate the pickle:
-        #
-        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-        #                   name='foobar')
-        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-        #
-        self.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
     def test_concat_categorical(self):
         # See GH 10177
         df1 = pd.DataFrame(
