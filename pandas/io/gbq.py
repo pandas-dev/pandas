@@ -160,33 +160,30 @@ class GbqConnector(object):
             return self.get_service_account_credentials()
         else:
             # Try to retrieve Application Default Credentials
-            project_id = self.project_id
-            credentials = self.get_application_default_credentials(project_id)
+            credentials = self.get_application_default_credentials()
             if not credentials:
                 credentials = self.get_user_account_credentials()
             return credentials
 
-    @staticmethod
-    def get_application_default_credentials(project_id):  # pragma: no cover
+    def get_application_default_credentials(self):
         """
-        Given a project_id tries to retrieve the
-        "default application credentials"
+        This method tries to retrieve the "default application credentials"
         Could be useful for running code on Google Cloud Platform
         """
-        credentials = None
+        from oauth2client.client import AccessTokenRefreshError
+        try:
+            from googleapiclient.discovery import build
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.discovery import build
+            from apiclient.errors import HttpError
         try:
             from oauth2client.client import GoogleCredentials
-            from oauth2client.client import AccessTokenRefreshError
             from oauth2client.client import ApplicationDefaultCredentialsError
-            try:
-                from googleapiclient.discovery import build
-                from googleapiclient.errors import HttpError
-            except:
-                from apiclient.discovery import build
-                from apiclient.errors import HttpError
         except ImportError:
             return None
 
+        credentials = None
         try:
             credentials = GoogleCredentials.get_application_default()
         except ApplicationDefaultCredentialsError:
@@ -196,7 +193,7 @@ class GbqConnector(object):
         jobs = bigquery_service.jobs()
         job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
         try:
-            jobs.insert(projectId=project_id, body=job_data).execute()
+            jobs.insert(projectId=self.project_id, body=job_data).execute()
         except (AccessTokenRefreshError, HttpError, TypeError):
             return None
         return credentials
@@ -616,12 +613,14 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     https://developers.google.com/api-client-library/python/apis/bigquery/v2
 
     Authentication to the Google BigQuery service is via OAuth 2.0.
-    By default "application default credentials" are used.
-    If default application credentials are not found or are restrictive -
-    User account credentials are used. You will be asked to
-    grant permissions for product name 'pandas GBQ'. It is also posible
-    to authenticate via service account credentials by using
-    private_key parameter.
+    If "private_key" is not provided:
+        By default "application default credentials" are used [new behavior]
+        If default application credentials are not found or are restrictive -
+        User account credentials are used. In this case - you will be asked to
+        grant permissions for product name 'pandas GBQ'.
+    If "private_key" is provided:
+        It is also posible to authenticate via service account credentials
+        by using this parameter.
 
     Parameters
     ----------
@@ -713,13 +712,14 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     Documentation is available at
     https://developers.google.com/api-client-library/python/apis/bigquery/v2
 
-    Authentication to the Google BigQuery service is via OAuth 2.0.
-    By default "application default credentials" are used.
-    If default application credentials are not found or are restrictive -
-    User account credentials are used. You will be asked to
-    grant permissions for product name 'pandas GBQ'. It is also posible
-    to authenticate via service account credentials by using
-    private_key parameter.
+    If "private_key" is not provided:
+        By default "application default credentials" are used [new behavior]
+        If default application credentials are not found or are restrictive -
+        User account credentials are used. In this case - you will be asked to
+        grant permissions for product name 'pandas GBQ'.
+    If "private_key" is provided:
+        It is also posible to authenticate via service account credentials
+        by using this parameter.
 
     Parameters
     ----------
