@@ -1413,6 +1413,12 @@ class TestIndex(Base, tm.TestCase):
         with tm.assertRaises(IndexError):
             idx.take(np.array([1, -5]))
 
+    def test_reshape_raise(self):
+        msg = "reshaping is not supported"
+        idx = pd.Index([0, 1, 2])
+        tm.assertRaisesRegexp(NotImplementedError, msg,
+                              idx.reshape, idx.shape)
+
     def test_reindex_preserves_name_if_target_is_list_or_ndarray(self):
         # GH6552
         idx = pd.Index([0, 1, 2])

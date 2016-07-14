@@ -4058,13 +4058,40 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         msg = "the 'axis' parameter is not supported"
         tm.assertRaisesRegexp(ValueError, msg, np.repeat, cat, 2, axis=1)
 
-    def test_numpy_reshape(self):
-        cat = pd.Categorical(["a", "b"], categories=["a", "b"])
-        self.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
+    def test_reshape(self):
+        cat = pd.Categorical([], categories=["a", "b"])
+        tm.assert_produces_warning(FutureWarning, cat.reshape, 0)
 
-        msg = "the 'order' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.reshape,
-                              cat, cat.shape, order='F')
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical([], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape(0), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical([], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape((5, -1)), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape(cat.shape), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape(cat.size), cat)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "can only specify one unknown dimension"
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            tm.assertRaisesRegexp(ValueError, msg, cat.reshape, (-2, -1))
+
+    def test_numpy_reshape(self):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            self.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "the 'order' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, np.reshape,
+                                  cat, cat.shape, order='F')
 
     def test_na_actions(self):
 
