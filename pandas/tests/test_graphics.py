@@ -1330,7 +1330,8 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
-        with tm.assertRaises(TypeError):
+        # mpl >= 1.5.2 (or slightly below) throw AttributError
+        with tm.assertRaises((TypeError, AttributeError)):
             df.plot.line(blarg=True)
 
         df = DataFrame(np.random.rand(10, 3),
