@@ -576,7 +576,7 @@ void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
 }
 
 PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj) {
-    return ((PyDatetimeScalarObject *) obj)->obmeta.base;
+    return (PANDAS_DATETIMEUNIT)((PyDatetimeScalarObject *) obj)->obmeta.base;
 }
 
 
