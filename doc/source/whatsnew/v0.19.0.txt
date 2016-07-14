@@ -256,6 +256,7 @@ API changes
 ~~~~~~~~~~~
 
 
+- ``Index.reshape`` will raise a ``NotImplementedError`` exception when called (:issue: `12882`)
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
 - ``eval``'s upcasting rules for ``float32`` types have been updated to be more consistent with NumPy's rules.  New behavior will not upcast to ``float64`` if you multiply a pandas ``float32`` object by a scalar float64. (:issue:`12388`)
 - An ``UnsupportedFunctionCall`` error is now raised if NumPy ufuncs like ``np.mean`` are called on groupby or resample objects (:issue:`12811`)
@@ -449,6 +450,8 @@ Furthermore:
 
 Deprecations
 ^^^^^^^^^^^^
+- ``Categorical.reshape`` has been deprecated and will be removed in a subsequent release (:issue:`12882`)
+- ``Series.reshape`` has been deprecated and will be removed in a subsequent release (:issue:`12882`)
 
 - ``compact_ints`` and ``use_unsigned`` have been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13320`)
 - ``buffer_lines`` has been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13360`)
