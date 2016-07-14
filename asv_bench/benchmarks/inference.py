@@ -143,12 +143,12 @@ class to_numeric(object):
 
     param_names = ['data', 'downcast']
     params = [
-        [(['1'] * N / 2) + ([2] * N / 2),
-         (['-1'] * N / 2) + ([2] * N / 2),
-         np.repeat(np.array('1970-01-01', '1970-01-02',
+        [(['1'] * (N / 2)) + ([2] * (N / 2)),
+         (['-1'] * (N / 2)) + ([2] * (N / 2)),
+         np.repeat(np.array(['1970-01-01', '1970-01-02'],
                             dtype='datetime64[D]'), N),
-         (['1.1'] * N / 2) + ([2] * N / 2),
-         ([1] * N / 2) + ([2] * N / 2),
+         (['1.1'] * (N / 2)) + ([2] * (N / 2)),
+         ([1] * (N / 2)) + ([2] * (N / 2)),
          np.repeat(np.int32(1), N)],
         [None, 'integer', 'signed', 'unsigned', 'float'],
     ]
