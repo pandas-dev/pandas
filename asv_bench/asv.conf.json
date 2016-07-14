@@ -77,11 +77,11 @@
         // On conda install pytables, otherwise tables
         {"environment_type": "conda", "tables": ""},
         {"environment_type": "conda", "pytables": null},
-        {"environment_type": "virtualenv", "tables": null},
-        {"environment_type": "virtualenv", "pytables": ""},
+        {"environment_type": "(?!conda).*", "tables": null},
+        {"environment_type": "(?!conda).*", "pytables": ""},
         // On conda&win32, install libpython
         {"sys_platform": "(?!win32).*", "libpython": ""},
-        {"sys_platform": "win32", "libpython": null},
+        {"environment_type": "conda", "sys_platform": "win32", "libpython": null},
         {"environment_type": "(?!conda).*", "libpython": ""}
     ],
     "include": [],
