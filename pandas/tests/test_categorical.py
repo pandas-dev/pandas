@@ -8,12 +8,17 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
+from pandas.types.dtypes import CategoricalDtype
+from pandas.types.common import (is_categorical_dtype,
+                                 is_object_dtype,
+                                 is_float_dtype,
+                                 is_integer_dtype)
+
 import pandas as pd
 import pandas.compat as compat
-import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas import (Categorical, Index, Series, DataFrame, PeriodIndex,
-                    Timestamp, CategoricalIndex)
+                    Timestamp, CategoricalIndex, isnull)
 from pandas.compat import range, lrange, u, PY3
 from pandas.core.config import option_context
 
@@ -195,18 +200,18 @@ class TestCategorical(tm.TestCase):
 
         # This should result in integer categories, not float!
         cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        self.assertTrue(com.is_integer_dtype(cat.categories))
+        self.assertTrue(is_integer_dtype(cat.categories))
 
         # https://github.com/pydata/pandas/issues/3678
         cat = pd.Categorical([np.nan, 1, 2, 3])
-        self.assertTrue(com.is_integer_dtype(cat.categories))
+        self.assertTrue(is_integer_dtype(cat.categories))
 
         # this should result in floats
         cat = pd.Categorical([np.nan, 1, 2., 3])
-        self.assertTrue(com.is_float_dtype(cat.categories))
+        self.assertTrue(is_float_dtype(cat.categories))
 
         cat = pd.Categorical([np.nan, 1., 2., 3.])
-        self.assertTrue(com.is_float_dtype(cat.categories))
+        self.assertTrue(is_float_dtype(cat.categories))
 
         # Deprecating NaNs in categoires (GH #10748)
         # preserve int as far as possible by converting to object if NaN is in
@@ -214,23 +219,23 @@ class TestCategorical(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning):
             cat = pd.Categorical([np.nan, 1, 2, 3],
                                  categories=[np.nan, 1, 2, 3])
-        self.assertTrue(com.is_object_dtype(cat.categories))
+        self.assertTrue(is_object_dtype(cat.categories))
 
         # This doesn't work -> this would probably need some kind of "remember
         # the original type" feature to try to cast the array interface result
         # to...
 
         # vals = np.asarray(cat[cat.notnull()])
-        # self.assertTrue(com.is_integer_dtype(vals))
+        # self.assertTrue(is_integer_dtype(vals))
         with tm.assert_produces_warning(FutureWarning):
             cat = pd.Categorical([np.nan, "a", "b", "c"],
                                  categories=[np.nan, "a", "b", "c"])
-        self.assertTrue(com.is_object_dtype(cat.categories))
+        self.assertTrue(is_object_dtype(cat.categories))
         # but don't do it for floats
         with tm.assert_produces_warning(FutureWarning):
             cat = pd.Categorical([np.nan, 1., 2., 3.],
                                  categories=[np.nan, 1., 2., 3.])
-        self.assertTrue(com.is_float_dtype(cat.categories))
+        self.assertTrue(is_float_dtype(cat.categories))
 
         # corner cases
         cat = pd.Categorical([1])
@@ -515,17 +520,20 @@ class TestCategorical(tm.TestCase):
     def test_argsort(self):
         c = Categorical([5, 3, 1, 4, 2], ordered=True)
 
-        expected = np.array([2, 4, 1, 3, 0], dtype=np.int64)
-        tm.assert_numpy_array_equal(c.argsort(ascending=True), expected)
+        expected = np.array([2, 4, 1, 3, 0])
+        tm.assert_numpy_array_equal(c.argsort(ascending=True), expected,
+                                    check_dtype=False)
 
         expected = expected[::-1]
-        tm.assert_numpy_array_equal(c.argsort(ascending=False), expected)
+        tm.assert_numpy_array_equal(c.argsort(ascending=False), expected,
+                                    check_dtype=False)
 
     def test_numpy_argsort(self):
         c = Categorical([5, 3, 1, 4, 2], ordered=True)
 
-        expected = np.array([2, 4, 1, 3, 0], dtype=np.int64)
-        tm.assert_numpy_array_equal(np.argsort(c), expected)
+        expected = np.array([2, 4, 1, 3, 0])
+        tm.assert_numpy_array_equal(np.argsort(c), expected,
+                                    check_dtype=False)
 
         msg = "the 'kind' parameter is not supported"
         tm.assertRaisesRegexp(ValueError, msg, np.argsort,
@@ -549,7 +557,7 @@ class TestCategorical(tm.TestCase):
         cat = Categorical(labels, categories, fastpath=True)
         repr(cat)
 
-        self.assert_numpy_array_equal(com.isnull(cat), labels == -1)
+        self.assert_numpy_array_equal(isnull(cat), labels == -1)
 
     def test_categories_none(self):
         factor = Categorical(['a', 'b', 'b', 'a',
@@ -1505,7 +1513,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # Single item array
         res = c1.searchsorted(['bread'])
         chk = s1.searchsorted(['bread'])
-        exp = np.array([1], dtype=np.int64)
+        exp = np.array([1], dtype=np.intp)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
@@ -1514,21 +1522,21 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # np.array.searchsorted()
         res = c1.searchsorted('bread')
         chk = s1.searchsorted('bread')
-        exp = np.array([1], dtype=np.int64)
+        exp = np.array([1], dtype=np.intp)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
         # Searching for a value that is not present in the Categorical
         res = c1.searchsorted(['bread', 'eggs'])
         chk = s1.searchsorted(['bread', 'eggs'])
-        exp = np.array([1, 4], dtype=np.int64)
+        exp = np.array([1, 4], dtype=np.intp)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
         # Searching for a value that is not present, to the right
         res = c1.searchsorted(['bread', 'eggs'], side='right')
         chk = s1.searchsorted(['bread', 'eggs'], side='right')
-        exp = np.array([3, 4], dtype=np.int64)  # eggs before milk
+        exp = np.array([3, 4], dtype=np.intp)  # eggs before milk
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
@@ -1538,7 +1546,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         chk = s2.searchsorted(['bread', 'eggs'], side='right',
                               sorter=[0, 1, 2, 3, 5, 4])
         # eggs after donuts, after switching milk and donuts
-        exp = np.array([3, 5], dtype=np.int64)
+        exp = np.array([3, 5], dtype=np.intp)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
@@ -1550,18 +1558,6 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         with tm.assert_produces_warning(FutureWarning):
             res = cat.labels
         self.assert_numpy_array_equal(res, exp)
-
-    def test_deprecated_levels(self):
-        # TODO: levels is deprecated and should be removed in 0.18 or 2017,
-        # whatever is earlier
-        cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        exp = cat.categories
-        with tm.assert_produces_warning(FutureWarning):
-            res = cat.levels
-        self.assert_index_equal(res, exp)
-        with tm.assert_produces_warning(FutureWarning):
-            res = pd.Categorical([1, 2, 3, np.nan], levels=[1, 2, 3])
-        self.assert_index_equal(res.categories, exp)
 
     def test_removed_names_produces_warning(self):
 
@@ -2073,15 +2069,15 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         result = df.dtypes
         expected = Series(
-            [np.dtype('int32'), com.CategoricalDtype()], index=['value', 'D'])
+            [np.dtype('int32'), CategoricalDtype()], index=['value', 'D'])
         tm.assert_series_equal(result, expected)
 
         df['E'] = s
         str(df)
 
         result = df.dtypes
-        expected = Series([np.dtype('int32'), com.CategoricalDtype(),
-                           com.CategoricalDtype()],
+        expected = Series([np.dtype('int32'), CategoricalDtype(),
+                           CategoricalDtype()],
                           index=['value', 'D', 'E'])
         tm.assert_series_equal(result, expected)
 
@@ -3231,7 +3227,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # frame
         res_df = df.iloc[2:4, :]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         # row
         res_row = df.iloc[2, :]
@@ -3241,7 +3237,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # col
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(com.is_categorical_dtype(res_col))
+        self.assertTrue(is_categorical_dtype(res_col))
 
         # single value
         res_val = df.iloc[2, 0]
@@ -3251,7 +3247,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # frame
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         # row
         res_row = df.loc["j", :]
@@ -3261,7 +3257,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(com.is_categorical_dtype(res_col))
+        self.assertTrue(is_categorical_dtype(res_col))
 
         # single value
         res_val = df.loc["j", "cats"]
@@ -3272,7 +3268,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # res_df = df.ix["j":"k",[0,1]] # doesn't work?
         res_df = df.ix["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         # row
         res_row = df.ix["j", :]
@@ -3282,7 +3278,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # col
         res_col = df.ix[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(com.is_categorical_dtype(res_col))
+        self.assertTrue(is_categorical_dtype(res_col))
 
         # single value
         res_val = df.ix["j", 0]
@@ -3315,23 +3311,23 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         res_df = df.iloc[slice(2, 4)]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         res_df = df.iloc[[2, 3]]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(com.is_categorical_dtype(res_col))
+        self.assertTrue(is_categorical_dtype(res_col))
 
         res_df = df.iloc[:, slice(0, 2)]
         tm.assert_frame_equal(res_df, df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         res_df = df.iloc[:, [0, 1]]
         tm.assert_frame_equal(res_df, df)
-        self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
+        self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
     def test_slicing_doc_examples(self):
 
@@ -4050,13 +4046,40 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         msg = "the 'axis' parameter is not supported"
         tm.assertRaisesRegexp(ValueError, msg, np.repeat, cat, 2, axis=1)
 
-    def test_numpy_reshape(self):
-        cat = pd.Categorical(["a", "b"], categories=["a", "b"])
-        self.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
+    def test_reshape(self):
+        cat = pd.Categorical([], categories=["a", "b"])
+        tm.assert_produces_warning(FutureWarning, cat.reshape, 0)
 
-        msg = "the 'order' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.reshape,
-                              cat, cat.shape, order='F')
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical([], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape(0), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical([], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape((5, -1)), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape(cat.shape), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape(cat.size), cat)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "can only specify one unknown dimension"
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            tm.assertRaisesRegexp(ValueError, msg, cat.reshape, (-2, -1))
+
+    def test_numpy_reshape(self):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            self.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "the 'order' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, np.reshape,
+                                  cat, cat.shape, order='F')
 
     def test_na_actions(self):
 
@@ -4111,7 +4134,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         s = self.cat['value_group']
         expected = s
         tm.assert_series_equal(s.astype('category'), expected)
-        tm.assert_series_equal(s.astype(com.CategoricalDtype()), expected)
+        tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
         self.assertRaises(ValueError, lambda: s.astype('float64'))
 
         cat = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
@@ -4136,10 +4159,10 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # valid conversion
         for valid in [lambda x: x.astype('category'),
-                      lambda x: x.astype(com.CategoricalDtype()),
+                      lambda x: x.astype(CategoricalDtype()),
                       lambda x: x.astype('object').astype('category'),
                       lambda x: x.astype('object').astype(
-                          com.CategoricalDtype())
+                          CategoricalDtype())
                       ]:
 
             result = valid(s)
@@ -4395,44 +4418,6 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                 AttributeError, "Can only use .dt accessor with datetimelike"):
             invalid.dt
         self.assertFalse(hasattr(invalid, 'str'))
-
-    def test_pickle_v0_14_1(self):
-
-        # we have the name warning
-        # 10482
-        with tm.assert_produces_warning(UserWarning):
-            cat = pd.Categorical(values=['a', 'b', 'c'],
-                                 categories=['a', 'b', 'c', 'd'],
-                                 name='foobar', ordered=False)
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'categorical_0_14_1.pickle')
-        # This code was executed once on v0.14.1 to generate the pickle:
-        #
-        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-        #                   name='foobar')
-        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-        #
-        self.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-    def test_pickle_v0_15_2(self):
-        # ordered -> _ordered
-        # GH 9347
-
-        # we have the name warning
-        # 10482
-        with tm.assert_produces_warning(UserWarning):
-            cat = pd.Categorical(values=['a', 'b', 'c'],
-                                 categories=['a', 'b', 'c', 'd'],
-                                 name='foobar', ordered=False)
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'categorical_0_15_2.pickle')
-        # This code was executed once on v0.15.2 to generate the pickle:
-        #
-        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-        #                   name='foobar')
-        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-        #
-        self.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
     def test_concat_categorical(self):
         # See GH 10177

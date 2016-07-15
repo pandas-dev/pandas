@@ -12,6 +12,7 @@ import pandas.index as _index
 import pandas.lib as lib
 import pandas.tslib as tslib
 
+from pandas.types.common import is_datetime64_ns_dtype
 import pandas as pd
 import pandas.compat as compat
 import pandas.core.common as com
@@ -2282,7 +2283,7 @@ class TestToDatetime(tm.TestCase):
         i = pd.DatetimeIndex([
             '2000-01-01 08:00:00+00:00'
         ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
-        self.assertFalse(com.is_datetime64_ns_dtype(i))
+        self.assertFalse(is_datetime64_ns_dtype(i))
 
         # tz coerceion
         result = pd.to_datetime(i, errors='coerce')
@@ -3884,36 +3885,36 @@ class TestDatetime64(tm.TestCase):
         self.assertEqual(dti.is_month_start[0], 1)
 
         tests = [
-            (Timestamp('2013-06-01', offset='M').is_month_start, 1),
-            (Timestamp('2013-06-01', offset='BM').is_month_start, 0),
-            (Timestamp('2013-06-03', offset='M').is_month_start, 0),
-            (Timestamp('2013-06-03', offset='BM').is_month_start, 1),
-            (Timestamp('2013-02-28', offset='Q-FEB').is_month_end, 1),
-            (Timestamp('2013-02-28', offset='Q-FEB').is_quarter_end, 1),
-            (Timestamp('2013-02-28', offset='Q-FEB').is_year_end, 1),
-            (Timestamp('2013-03-01', offset='Q-FEB').is_month_start, 1),
-            (Timestamp('2013-03-01', offset='Q-FEB').is_quarter_start, 1),
-            (Timestamp('2013-03-01', offset='Q-FEB').is_year_start, 1),
-            (Timestamp('2013-03-31', offset='QS-FEB').is_month_end, 1),
-            (Timestamp('2013-03-31', offset='QS-FEB').is_quarter_end, 0),
-            (Timestamp('2013-03-31', offset='QS-FEB').is_year_end, 0),
-            (Timestamp('2013-02-01', offset='QS-FEB').is_month_start, 1),
-            (Timestamp('2013-02-01', offset='QS-FEB').is_quarter_start, 1),
-            (Timestamp('2013-02-01', offset='QS-FEB').is_year_start, 1),
-            (Timestamp('2013-06-30', offset='BQ').is_month_end, 0),
-            (Timestamp('2013-06-30', offset='BQ').is_quarter_end, 0),
-            (Timestamp('2013-06-30', offset='BQ').is_year_end, 0),
-            (Timestamp('2013-06-28', offset='BQ').is_month_end, 1),
-            (Timestamp('2013-06-28', offset='BQ').is_quarter_end, 1),
-            (Timestamp('2013-06-28', offset='BQ').is_year_end, 0),
-            (Timestamp('2013-06-30', offset='BQS-APR').is_month_end, 0),
-            (Timestamp('2013-06-30', offset='BQS-APR').is_quarter_end, 0),
-            (Timestamp('2013-06-30', offset='BQS-APR').is_year_end, 0),
-            (Timestamp('2013-06-28', offset='BQS-APR').is_month_end, 1),
-            (Timestamp('2013-06-28', offset='BQS-APR').is_quarter_end, 1),
-            (Timestamp('2013-03-29', offset='BQS-APR').is_year_end, 1),
-            (Timestamp('2013-11-01', offset='AS-NOV').is_year_start, 1),
-            (Timestamp('2013-10-31', offset='AS-NOV').is_year_end, 1),
+            (Timestamp('2013-06-01', freq='M').is_month_start, 1),
+            (Timestamp('2013-06-01', freq='BM').is_month_start, 0),
+            (Timestamp('2013-06-03', freq='M').is_month_start, 0),
+            (Timestamp('2013-06-03', freq='BM').is_month_start, 1),
+            (Timestamp('2013-02-28', freq='Q-FEB').is_month_end, 1),
+            (Timestamp('2013-02-28', freq='Q-FEB').is_quarter_end, 1),
+            (Timestamp('2013-02-28', freq='Q-FEB').is_year_end, 1),
+            (Timestamp('2013-03-01', freq='Q-FEB').is_month_start, 1),
+            (Timestamp('2013-03-01', freq='Q-FEB').is_quarter_start, 1),
+            (Timestamp('2013-03-01', freq='Q-FEB').is_year_start, 1),
+            (Timestamp('2013-03-31', freq='QS-FEB').is_month_end, 1),
+            (Timestamp('2013-03-31', freq='QS-FEB').is_quarter_end, 0),
+            (Timestamp('2013-03-31', freq='QS-FEB').is_year_end, 0),
+            (Timestamp('2013-02-01', freq='QS-FEB').is_month_start, 1),
+            (Timestamp('2013-02-01', freq='QS-FEB').is_quarter_start, 1),
+            (Timestamp('2013-02-01', freq='QS-FEB').is_year_start, 1),
+            (Timestamp('2013-06-30', freq='BQ').is_month_end, 0),
+            (Timestamp('2013-06-30', freq='BQ').is_quarter_end, 0),
+            (Timestamp('2013-06-30', freq='BQ').is_year_end, 0),
+            (Timestamp('2013-06-28', freq='BQ').is_month_end, 1),
+            (Timestamp('2013-06-28', freq='BQ').is_quarter_end, 1),
+            (Timestamp('2013-06-28', freq='BQ').is_year_end, 0),
+            (Timestamp('2013-06-30', freq='BQS-APR').is_month_end, 0),
+            (Timestamp('2013-06-30', freq='BQS-APR').is_quarter_end, 0),
+            (Timestamp('2013-06-30', freq='BQS-APR').is_year_end, 0),
+            (Timestamp('2013-06-28', freq='BQS-APR').is_month_end, 1),
+            (Timestamp('2013-06-28', freq='BQS-APR').is_quarter_end, 1),
+            (Timestamp('2013-03-29', freq='BQS-APR').is_year_end, 1),
+            (Timestamp('2013-11-01', freq='AS-NOV').is_year_start, 1),
+            (Timestamp('2013-10-31', freq='AS-NOV').is_year_end, 1),
             (Timestamp('2012-02-01').days_in_month, 29),
             (Timestamp('2013-02-01').days_in_month, 28)]
 

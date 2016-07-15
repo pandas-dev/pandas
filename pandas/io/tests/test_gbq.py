@@ -73,8 +73,12 @@ def _test_imports():
 
     if _SETUPTOOLS_INSTALLED:
         try:
-            from apiclient.discovery import build  # noqa
-            from apiclient.errors import HttpError  # noqa
+            try:
+                from googleapiclient.discovery import build  # noqa
+                from googleapiclient.errors import HttpError  # noqa
+            except:
+                from apiclient.discovery import build  # noqa
+                from apiclient.errors import HttpError  # noqa
 
             from oauth2client.client import OAuth2WebServerFlow  # noqa
             from oauth2client.client import AccessTokenRefreshError  # noqa
@@ -279,6 +283,17 @@ class TestGBQConnectorServiceAccountKeyContentsIntegration(tm.TestCase):
 class GBQUnitTests(tm.TestCase):
     def setUp(self):
         test_requirements()
+
+    def test_import_google_api_python_client(self):
+        if compat.PY2:
+            with tm.assertRaises(ImportError):
+                from googleapiclient.discovery import build  # noqa
+                from googleapiclient.errors import HttpError  # noqa
+            from apiclient.discovery import build  # noqa
+            from apiclient.errors import HttpError  # noqa
+        else:
+            from googleapiclient.discovery import build  # noqa
+            from googleapiclient.errors import HttpError  # noqa
 
     def test_should_return_bigquery_integers_as_python_floats(self):
         result = gbq._parse_entry(1, 'INTEGER')

@@ -12,12 +12,12 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
+from pandas.types.common import is_list_like
 from pandas.io.common import (EmptyDataError, _is_url, urlopen,
                               parse_url, _validate_header_arg)
 from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
-from pandas.core import common as com
 from pandas import Series
 from pandas.core.common import AbstractMethodError
 from pandas.formats.printing import pprint_thing
@@ -107,7 +107,7 @@ def _get_skiprows(skiprows):
     """
     if isinstance(skiprows, slice):
         return lrange(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
-    elif isinstance(skiprows, numbers.Integral) or com.is_list_like(skiprows):
+    elif isinstance(skiprows, numbers.Integral) or is_list_like(skiprows):
         return skiprows
     elif skiprows is None:
         return 0
@@ -837,7 +837,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         Character to recognize as decimal point (e.g. use ',' for European
         data).
 
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
     Returns
     -------

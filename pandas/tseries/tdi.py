@@ -2,11 +2,20 @@
 
 from datetime import timedelta
 import numpy as np
-from pandas.core.common import (ABCSeries, _TD_DTYPE, _maybe_box,
-                                _values_from_object, isnull,
-                                is_integer, is_float, is_integer_dtype,
-                                is_object_dtype, is_timedelta64_dtype,
-                                is_timedelta64_ns_dtype)
+from pandas.types.common import (_TD_DTYPE,
+                                 is_integer, is_float,
+                                 is_bool_dtype,
+                                 is_list_like,
+                                 is_scalar,
+                                 is_integer_dtype,
+                                 is_object_dtype,
+                                 is_timedelta64_dtype,
+                                 is_timedelta64_ns_dtype,
+                                 _ensure_int64)
+from pandas.types.missing import isnull
+from pandas.types.generic import ABCSeries
+from pandas.core.common import _maybe_box, _values_from_object
+
 from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u
@@ -35,16 +44,20 @@ def _td_index_cmp(opname, nat_result=False):
     """
 
     def wrapper(self, other):
+        msg = "cannot compare a TimedeltaIndex with type {0}"
         func = getattr(super(TimedeltaIndex, self), opname)
-        if _is_convertible_to_td(other):
-            other = _to_m8(other)
+        if _is_convertible_to_td(other) or other is tslib.NaT:
+            try:
+                other = _to_m8(other)
+            except ValueError:
+                # failed to parse as timedelta
+                raise TypeError(msg.format(type(other)))
             result = func(other)
-            if com.isnull(other):
+            if isnull(other):
                 result.fill(nat_result)
         else:
-            if not com.is_list_like(other):
-                raise TypeError("cannot compare a TimedeltaIndex with type "
-                                "{0}".format(type(other)))
+            if not is_list_like(other):
+                raise TypeError(msg.format(type(other)))
 
             other = TimedeltaIndex(other).values
             result = func(other)
@@ -62,7 +75,7 @@ def _td_index_cmp(opname, nat_result=False):
             result[self._isnan] = nat_result
 
         # support of bool dtype indexers
-        if com.is_bool_dtype(result):
+        if is_bool_dtype(result):
             return result
         return Index(result)
 
@@ -171,7 +184,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             data = to_timedelta(data, unit=unit, box=False)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
-            if lib.isscalar(data):
+            if is_scalar(data):
                 raise ValueError('TimedeltaIndex() must be called with a '
                                  'collection of some kind, %s was passed'
                                  % repr(data))
@@ -257,7 +270,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if values.dtype == np.object_:
             values = tslib.array_to_timedelta64(values)
         if values.dtype != _TD_DTYPE:
-            values = com._ensure_int64(values).view(_TD_DTYPE)
+            values = _ensure_int64(values).view(_TD_DTYPE)
 
         result = object.__new__(cls)
         result._data = values
@@ -901,9 +914,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             if loc in (0, -len(self), -1, len(self) - 1):
                 freq = self.freq
         else:
-            if com.is_list_like(loc):
+            if is_list_like(loc):
                 loc = lib.maybe_indices_to_slice(
-                    com._ensure_int64(np.array(loc)), len(self))
+                    _ensure_int64(np.array(loc)), len(self))
             if isinstance(loc, slice) and loc.step in (1, None):
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq

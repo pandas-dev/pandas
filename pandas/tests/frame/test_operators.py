@@ -417,10 +417,11 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
             # ndim >= 3
             ndim_5 = np.ones(self.frame.shape + (3, 4, 5))
-            with assertRaisesRegexp(ValueError, 'shape'):
+            msg = "Unable to coerce to Series/DataFrame"
+            with assertRaisesRegexp(ValueError, msg):
                 f(self.frame, ndim_5)
 
-            with assertRaisesRegexp(ValueError, 'shape'):
+            with assertRaisesRegexp(ValueError, msg):
                 getattr(self.frame, op)(ndim_5)
 
         # res_add = self.frame.add(self.frame)
@@ -581,8 +582,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             # scalar
             assert_frame_equal(f(0), o(df, 0))
             # NAs
+            msg = "Unable to coerce to Series/DataFrame"
             assert_frame_equal(f(np.nan), o(df, np.nan))
-            with assertRaisesRegexp(ValueError, 'shape'):
+            with assertRaisesRegexp(ValueError, msg):
                 f(ndim_5)
 
         # Series
@@ -661,6 +663,17 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         result = df1.ne(df2)
         exp = DataFrame({'col': [False, True, False]})
         assert_frame_equal(result, exp)
+
+    def test_dti_tz_convert_to_utc(self):
+        base = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
+                                 '2011-01-03'], tz='UTC')
+        idx1 = base.tz_convert('Asia/Tokyo')[:2]
+        idx2 = base.tz_convert('US/Eastern')[1:]
+
+        df1 = DataFrame({'A': [1, 2]}, index=idx1)
+        df2 = DataFrame({'A': [1, 1]}, index=idx2)
+        exp = DataFrame({'A': [np.nan, 3, np.nan]}, index=base)
+        assert_frame_equal(df1 + df2, exp)
 
     def test_arith_flex_series(self):
         df = self.simple
@@ -1175,6 +1188,53 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_frame_equal(df, expected)
         assert_frame_equal(df2, expected)
         self.assertIs(df._data, df2._data)
+
+    def test_alignment_non_pandas(self):
+        index = ['A', 'B', 'C']
+        columns = ['X', 'Y', 'Z']
+        df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
+
+        align = pd.core.ops._align_method_FRAME
+
+        for val in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3], dtype=np.intp)]:
+
+            tm.assert_series_equal(align(df, val, 'index'),
+                                   Series([1, 2, 3], index=df.index))
+            tm.assert_series_equal(align(df, val, 'columns'),
+                                   Series([1, 2, 3], index=df.columns))
+
+        # length mismatch
+        msg = 'Unable to coerce to Series, length must be 3: given 2'
+        for val in [[1, 2], (1, 2), np.array([1, 2])]:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                align(df, val, 'index')
+
+            with tm.assertRaisesRegexp(ValueError, msg):
+                align(df, val, 'columns')
+
+        val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        tm.assert_frame_equal(align(df, val, 'index'),
+                              DataFrame(val, index=df.index,
+                                        columns=df.columns))
+        tm.assert_frame_equal(align(df, val, 'columns'),
+                              DataFrame(val, index=df.index,
+                                        columns=df.columns))
+
+        # shape mismatch
+        msg = 'Unable to coerce to DataFrame, shape must be'
+        val = np.array([[1, 2, 3], [4, 5, 6]])
+        with tm.assertRaisesRegexp(ValueError, msg):
+            align(df, val, 'index')
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            align(df, val, 'columns')
+
+        val = np.zeros((3, 3, 3))
+        with tm.assertRaises(ValueError):
+            align(df, val, 'index')
+        with tm.assertRaises(ValueError):
+            align(df, val, 'columns')
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

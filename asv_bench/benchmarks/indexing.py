@@ -19,24 +19,6 @@ class dataframe_getitem_scalar(object):
         self.df[self.col][self.idx]
 
 
-class datamatrix_getitem_scalar(object):
-    goal_time = 0.2
-
-    def setup(self):
-        try:
-            self.klass = DataMatrix
-        except:
-            self.klass = DataFrame
-        self.index = tm.makeStringIndex(1000)
-        self.columns = tm.makeStringIndex(30)
-        self.df = self.klass(np.random.rand(1000, 30), index=self.index, columns=self.columns)
-        self.idx = self.index[100]
-        self.col = self.columns[10]
-
-    def time_datamatrix_getitem_scalar(self):
-        self.df[self.col][self.idx]
-
-
 class series_get_value(object):
     goal_time = 0.2
 
@@ -498,5 +480,3 @@ class float_loc(object):
 
     def time_float_loc(self):
         self.ind.get_loc(0)
-
-

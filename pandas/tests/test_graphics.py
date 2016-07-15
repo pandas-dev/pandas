@@ -9,6 +9,7 @@ import warnings
 
 from datetime import datetime, date
 
+from pandas.types.common import is_list_like
 import pandas as pd
 from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
                     bdate_range)
@@ -16,7 +17,6 @@ from pandas.compat import (range, lrange, StringIO, lmap, lzip, u, zip,
                            iteritems, OrderedDict, PY3)
 from pandas.util.decorators import cache_readonly
 from pandas.formats.printing import pprint_thing
-import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
                                  assert_is_valid_plot_return_object, slow)
@@ -157,7 +157,7 @@ class TestPlotBase(tm.TestCase):
         """
         from matplotlib.collections import Collection
         if not isinstance(collections,
-                          Collection) and not com.is_list_like(collections):
+                          Collection) and not is_list_like(collections):
             collections = [collections]
 
         for patch in collections:
@@ -242,7 +242,7 @@ class TestPlotBase(tm.TestCase):
         expected : str or list-like which has the same length as texts
             expected text label, or its list
         """
-        if not com.is_list_like(texts):
+        if not is_list_like(texts):
             self.assertEqual(texts.get_text(), expected)
         else:
             labels = [t.get_text() for t in texts]
@@ -1330,7 +1330,8 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
-        with tm.assertRaises(TypeError):
+        # mpl >= 1.5.2 (or slightly below) throw AttributError
+        with tm.assertRaises((TypeError, AttributeError)):
             df.plot.line(blarg=True)
 
         df = DataFrame(np.random.rand(10, 3),

@@ -6,12 +6,17 @@ import warnings
 
 import numpy as np
 
+from pandas.types.generic import ABCSeries
+from pandas.types.common import (is_integer,
+                                 is_period_arraylike,
+                                 is_timedelta64_dtype,
+                                 is_datetime64_dtype)
+
 import pandas.core.algorithms as algos
 from pandas.core.algorithms import unique
 from pandas.tseries.offsets import DateOffset
 from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
-import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas.tslib import Timedelta
@@ -255,8 +260,8 @@ def get_freq_code(freqstr):
         freqstr = (freqstr.rule_code, freqstr.n)
 
     if isinstance(freqstr, tuple):
-        if (com.is_integer(freqstr[0]) and
-                com.is_integer(freqstr[1])):
+        if (is_integer(freqstr[0]) and
+                is_integer(freqstr[1])):
             # e.g., freqstr = (2000, 1)
             return freqstr
         else:
@@ -265,13 +270,13 @@ def get_freq_code(freqstr):
                 code = _period_str_to_code(freqstr[0])
                 stride = freqstr[1]
             except:
-                if com.is_integer(freqstr[1]):
+                if is_integer(freqstr[1]):
                     raise
                 code = _period_str_to_code(freqstr[1])
                 stride = freqstr[0]
             return code, stride
 
-    if com.is_integer(freqstr):
+    if is_integer(freqstr):
         return (freqstr, 1)
 
     base, stride = _base_and_stride(freqstr)
@@ -843,16 +848,16 @@ def infer_freq(index, warn=True):
     """
     import pandas as pd
 
-    if isinstance(index, com.ABCSeries):
+    if isinstance(index, ABCSeries):
         values = index._values
-        if not (com.is_datetime64_dtype(values) or
-                com.is_timedelta64_dtype(values) or
+        if not (is_datetime64_dtype(values) or
+                is_timedelta64_dtype(values) or
                 values.dtype == object):
             raise TypeError("cannot infer freq from a non-convertible "
                             "dtype on a Series of {0}".format(index.dtype))
         index = values
 
-    if com.is_period_arraylike(index):
+    if is_period_arraylike(index):
         raise TypeError("PeriodIndex given. Check the `freq` attribute "
                         "instead of using infer_freq.")
     elif isinstance(index, pd.TimedeltaIndex):

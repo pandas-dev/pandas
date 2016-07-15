@@ -3,9 +3,9 @@ from pandas.compat import range
 from pandas import compat
 import numpy as np
 
+from pandas.types.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
 from pandas.tseries.tools import to_datetime, normalize_date
-from pandas.core.common import (ABCSeries, ABCDatetimeIndex, ABCPeriod,
-                                AbstractMethodError)
+from pandas.core.common import AbstractMethodError
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
@@ -1258,7 +1258,7 @@ class SemiMonthEnd(SemiMonthOffset):
     Two DateOffset's per month repeating on the last
     day of the month and day_of_month.
 
-    .. versionadded:: 0.18.2
+    .. versionadded:: 0.19.0
 
     Parameters
     ----------
@@ -1317,7 +1317,7 @@ class SemiMonthBegin(SemiMonthOffset):
     Two DateOffset's per month repeating on the first
     day of the month and day_of_month.
 
-    .. versionadded:: 0.18.2
+    .. versionadded:: 0.19.0
 
     Parameters
     ----------

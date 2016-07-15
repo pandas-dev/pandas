@@ -7,6 +7,22 @@ import types
 from pandas import compat, lib
 from pandas.compat import u
 
+from pandas.types.generic import ABCSeries, ABCIndexClass, ABCCategoricalIndex
+from pandas.types.missing import isnull, notnull
+from pandas.types.cast import (_possibly_infer_to_datetimelike,
+                               _coerce_indexer_dtype)
+from pandas.types.dtypes import CategoricalDtype
+from pandas.types.common import (_ensure_int64,
+                                 _ensure_object,
+                                 _ensure_platform_int,
+                                 is_dtype_equal,
+                                 is_datetimelike,
+                                 is_categorical_dtype,
+                                 is_integer_dtype, is_bool,
+                                 is_list_like, is_sequence,
+                                 is_scalar)
+from pandas.core.common import is_null_slice
+
 from pandas.core.algorithms import factorize, take_1d
 from pandas.core.base import (PandasObject, PandasDelegate,
                               NoNewAttributesMixin, _shared_docs)
@@ -16,13 +32,6 @@ from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 
-from pandas.core.common import (
-    ABCSeries, ABCIndexClass, ABCCategoricalIndex, isnull, notnull,
-    is_dtype_equal, is_categorical_dtype, is_integer_dtype,
-    _possibly_infer_to_datetimelike, is_list_like,
-    is_sequence, is_null_slice, is_bool, _ensure_object, _ensure_int64,
-    _coerce_indexer_dtype)
-from pandas.types.api import CategoricalDtype
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 
@@ -64,7 +73,7 @@ def _cat_compare_op(op):
         # With cat[0], for example, being ``np.int64(1)`` by the time it gets
         # into this function would become ``np.array(1)``.
         other = lib.item_from_zerodim(other)
-        if lib.isscalar(other):
+        if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
                 return getattr(self._codes, op)(i)
@@ -219,8 +228,8 @@ class Categorical(PandasObject):
     __array_priority__ = 1000
     _typ = 'categorical'
 
-    def __init__(self, values, categories=None, ordered=False, name=None,
-                 fastpath=False, levels=None):
+    def __init__(self, values, categories=None, ordered=False,
+                 name=None, fastpath=False):
 
         if fastpath:
             # fast path
@@ -235,17 +244,6 @@ class Categorical(PandasObject):
                    "of the categorical instead (e.g. 'Series(cat, "
                    "name=\"something\")'")
             warn(msg, UserWarning, stacklevel=2)
-
-        # TODO: Remove after deprecation period in 2017/ after 0.18
-        if levels is not None:
-            warn("Creating a 'Categorical' with 'levels' is deprecated, use "
-                 "'categories' instead", FutureWarning, stacklevel=2)
-            if categories is None:
-                categories = levels
-            else:
-                raise ValueError("Cannot pass in both 'categories' and "
-                                 "(deprecated) 'levels', use only "
-                                 "'categories'", stacklevel=2)
 
         # sanitize input
         if is_categorical_dtype(values):
@@ -348,7 +346,7 @@ class Categorical(PandasObject):
             If copy is set to False and dtype is categorical, the original
             object is returned.
 
-            .. versionadded:: 0.18.2
+            .. versionadded:: 0.19.0
 
         """
         if is_categorical_dtype(dtype):
@@ -374,11 +372,28 @@ class Categorical(PandasObject):
 
     def reshape(self, new_shape, *args, **kwargs):
         """
-        An ndarray-compatible method that returns
-        `self` because categorical instances cannot
-        actually be reshaped.
+        DEPRECATED: calling this method will raise an error in a
+        future release.
+
+        An ndarray-compatible method that returns `self` because
+        `Categorical` instances cannot actually be reshaped.
+
+        Parameters
+        ----------
+        new_shape : int or tuple of ints
+            A 1-D array of integers that correspond to the new
+            shape of the `Categorical`. For more information on
+            the parameter, please refer to `np.reshape`.
         """
+        warn("reshape is deprecated and will raise "
+             "in a subsequent release", FutureWarning, stacklevel=2)
+
         nv.validate_reshape(args, kwargs)
+
+        # while the 'new_shape' parameter has no effect,
+        # we should still enforce valid shape parameters
+        np.reshape(self.codes, new_shape)
+
         return self
 
     @property
@@ -553,21 +568,6 @@ class Categorical(PandasObject):
 
     categories = property(fget=_get_categories, fset=_set_categories,
                           doc=_categories_doc)
-
-    def _set_levels(self, levels):
-        """ set new levels (deprecated, use "categories") """
-        warn("Assigning to 'levels' is deprecated, use 'categories'",
-             FutureWarning, stacklevel=2)
-        self.categories = levels
-
-    def _get_levels(self):
-        """ Gets the levels (deprecated, use "categories") """
-        warn("Accessing 'levels' is deprecated, use 'categories'",
-             FutureWarning, stacklevel=2)
-        return self.categories
-
-    # TODO: Remove after deprecation period in 2017/ after 0.18
-    levels = property(fget=_get_levels, fset=_set_levels)
 
     _ordered = None
 
@@ -968,7 +968,7 @@ class Categorical(PandasObject):
         if codes.ndim > 1:
             raise NotImplementedError("Categorical with ndim > 1.")
         if np.prod(codes.shape) and (periods != 0):
-            codes = np.roll(codes, com._ensure_platform_int(periods), axis=0)
+            codes = np.roll(codes, _ensure_platform_int(periods), axis=0)
             if periods > 0:
                 codes[:periods] = -1
             else:
@@ -1148,7 +1148,7 @@ class Categorical(PandasObject):
         counts : Series
         """
         from numpy import bincount
-        from pandas.core.common import isnull
+        from pandas.types.missing import isnull
         from pandas.core.series import Series
         from pandas.core.index import CategoricalIndex
 
@@ -1182,7 +1182,7 @@ class Categorical(PandasObject):
             Index if datetime / periods
         """
         # if we are a datetime and period index, return Index to keep metadata
-        if com.is_datetimelike(self.categories):
+        if is_datetimelike(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
         return np.array(self)
 
@@ -1933,7 +1933,7 @@ def _convert_to_list_like(list_like):
     if (is_sequence(list_like) or isinstance(list_like, tuple) or
             isinstance(list_like, types.GeneratorType)):
         return list(list_like)
-    elif lib.isscalar(list_like):
+    elif is_scalar(list_like):
         return [list_like]
     else:
         # is this reached?

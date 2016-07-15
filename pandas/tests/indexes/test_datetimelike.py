@@ -534,9 +534,9 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         # time indexing
         idx = pd.date_range('2000-01-01', periods=24, freq='H')
         tm.assert_numpy_array_equal(idx.get_loc(time(12)),
-                                    np.array([12], dtype=np.int64))
+                                    np.array([12]), check_dtype=False)
         tm.assert_numpy_array_equal(idx.get_loc(time(12, 30)),
-                                    np.array([], dtype=np.int64))
+                                    np.array([]), check_dtype=False)
         with tm.assertRaises(NotImplementedError):
             idx.get_loc(time(12, 30), method='pad')
 
@@ -587,7 +587,8 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
             ts = pd.Series(np.random.randn(n), index=idx)
             i = np.arange(start, n, step)
 
-            tm.assert_numpy_array_equal(ts.index.get_loc(key), i)
+            tm.assert_numpy_array_equal(ts.index.get_loc(key), i,
+                                        check_dtype=False)
             tm.assert_series_equal(ts[key], ts.iloc[i])
 
             left, right = ts.copy(), ts.copy()
@@ -740,14 +741,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         result = idx.astype(object)
         expected = Index([Period('2016-05-16', freq='D')] +
                          [Period(NaT, freq='D')] * 3, dtype='object')
-        # Hack because of lack of support for Period null checking (GH12759)
-        tm.assert_index_equal(result[:1], expected[:1])
-        result_arr = np.asarray([p.ordinal for p in result], dtype=np.int64)
-        expected_arr = np.asarray([p.ordinal for p in expected],
-                                  dtype=np.int64)
-        tm.assert_numpy_array_equal(result_arr, expected_arr)
-        # TODO: When GH12759 is resolved, change the above hack to:
-        # tm.assert_index_equal(result, expected)         # now, it raises.
+        tm.assert_index_equal(result, expected)
 
         result = idx.astype(int)
         expected = Int64Index([16937] + [-9223372036854775808] * 3,

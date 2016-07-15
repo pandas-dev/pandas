@@ -6,6 +6,9 @@ import itertools
 import warnings
 from datetime import datetime
 
+from pandas.types.common import (is_integer_dtype,
+                                 is_float_dtype,
+                                 is_scalar)
 from pandas.compat import range, lrange, lzip, StringIO, lmap, map
 from pandas.tslib import NaT
 from numpy import nan
@@ -22,7 +25,7 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_attr_equal, slow)
 from pandas.formats.printing import pprint_thing
-from pandas import concat, lib
+from pandas import concat
 from pandas.core.common import PerformanceWarning
 
 import pandas.util.testing as tm
@@ -200,7 +203,7 @@ class TestIndexing(tm.TestCase):
                     return
 
                 try:
-                    if lib.isscalar(rs) and lib.isscalar(xp):
+                    if is_scalar(rs) and is_scalar(xp):
                         self.assertEqual(rs, xp)
                     elif xp.ndim == 1:
                         assert_series_equal(rs, xp)
@@ -775,7 +778,7 @@ class TestIndexing(tm.TestCase):
         # this is not an exhaustive case
 
         def compare(result, expected):
-            if lib.isscalar(expected):
+            if is_scalar(expected):
                 self.assertEqual(result, expected)
             else:
                 self.assertTrue(expected.equals(result))
@@ -965,7 +968,7 @@ class TestIndexing(tm.TestCase):
         # indexing - fast_xs
         df = DataFrame({'a': date_range('2014-01-01', periods=10, tz='UTC')})
         result = df.iloc[5]
-        expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', offset='D')
+        expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', freq='D')
         self.assertEqual(result, expected)
 
         result = df.loc[5]
@@ -2888,8 +2891,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                               columns=['foo', 'bar', 'baz'])
 
             assert_frame_equal(left, right)
-            self.assertTrue(com.is_integer_dtype(left['foo']))
-            self.assertTrue(com.is_integer_dtype(left['baz']))
+            self.assertTrue(is_integer_dtype(left['foo']))
+            self.assertTrue(is_integer_dtype(left['baz']))
 
         left = DataFrame(np.arange(6, dtype='int64').reshape(2, 3) / 10.0,
                          index=list('ab'),
@@ -2900,8 +2903,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                           columns=['foo', 'bar', 'baz'])
 
         assert_frame_equal(left, right)
-        self.assertTrue(com.is_float_dtype(left['foo']))
-        self.assertTrue(com.is_float_dtype(left['baz']))
+        self.assertTrue(is_float_dtype(left['foo']))
+        self.assertTrue(is_float_dtype(left['baz']))
 
     def test_setitem_iloc(self):
 

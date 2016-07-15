@@ -137,12 +137,12 @@ class TestTimedeltas(tm.TestCase):
         self.assertRaises(ValueError, lambda: Timedelta('3.1415'))
 
         # invalid construction
-        tm.assertRaisesRegexp(ValueError, "cannot construct a TimeDelta",
+        tm.assertRaisesRegexp(ValueError, "cannot construct a Timedelta",
                               lambda: Timedelta())
         tm.assertRaisesRegexp(ValueError, "unit abbreviation w/o a number",
                               lambda: Timedelta('foo'))
         tm.assertRaisesRegexp(ValueError,
-                              "cannot construct a TimeDelta from the passed "
+                              "cannot construct a Timedelta from the passed "
                               "arguments, allowed keywords are ",
                               lambda: Timedelta(day=10))
 
@@ -471,6 +471,21 @@ class TestTimedeltas(tm.TestCase):
         self.assertTrue(td.__truediv__(other) is NotImplemented)
         self.assertTrue(td.__mul__(other) is NotImplemented)
         self.assertTrue(td.__floordiv__(td) is NotImplemented)
+
+    def test_ops_error_str(self):
+        # GH 13624
+        td = Timedelta('1 day')
+
+        for l, r in [(td, 'a'), ('a', td)]:
+
+            with tm.assertRaises(TypeError):
+                l + r
+
+            with tm.assertRaises(TypeError):
+                l > r
+
+            self.assertFalse(l == r)
+            self.assertTrue(l != r)
 
     def test_fields(self):
         def check(value):
@@ -1432,6 +1447,23 @@ class TestTimedeltaIndex(tm.TestCase):
             expected = np.array([True, True, True, True, True, False])
             self.assert_numpy_array_equal(result, expected)
 
+    def test_ops_error_str(self):
+        # GH 13624
+        tdi = TimedeltaIndex(['1 day', '2 days'])
+
+        for l, r in [(tdi, 'a'), ('a', tdi)]:
+            with tm.assertRaises(TypeError):
+                l + r
+
+            with tm.assertRaises(TypeError):
+                l > r
+
+            with tm.assertRaises(TypeError):
+                l == r
+
+            with tm.assertRaises(TypeError):
+                l != r
+
     def test_map(self):
 
         rng = timedelta_range('1 day', periods=10)
@@ -1547,12 +1579,14 @@ class TestTimedeltaIndex(tm.TestCase):
         ordered, dexer = idx.sort_values(return_indexer=True)
         self.assertTrue(ordered.is_monotonic)
         self.assert_numpy_array_equal(dexer,
-                                      np.array([1, 2, 0], dtype=np.int64))
+                                      np.array([1, 2, 0]),
+                                      check_dtype=False)
 
         ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
         self.assertTrue(ordered[::-1].is_monotonic)
         self.assert_numpy_array_equal(dexer,
-                                      np.array([0, 2, 1], dtype=np.int64))
+                                      np.array([0, 2, 1]),
+                                      check_dtype=False)
 
     def test_insert(self):
 

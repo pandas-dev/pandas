@@ -10,8 +10,19 @@ from distutils.version import LooseVersion
 
 import sys
 
+from pandas.types.missing import isnull, notnull
+from pandas.types.common import (is_categorical_dtype,
+                                 is_float_dtype,
+                                 is_period_arraylike,
+                                 is_integer_dtype,
+                                 is_datetimetz,
+                                 is_integer,
+                                 is_float,
+                                 is_numeric_dtype,
+                                 is_datetime64_dtype,
+                                 is_timedelta64_dtype)
+
 from pandas.core.base import PandasObject
-from pandas.core.common import isnull, notnull, is_numeric_dtype
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, reduce, u,
@@ -30,7 +41,6 @@ import numpy as np
 
 import itertools
 import csv
-import warnings
 
 common_docstring = """
     Parameters
@@ -195,7 +205,7 @@ class SeriesFormatter(object):
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
-        if com.is_categorical_dtype(self.tr_series.dtype):
+        if is_categorical_dtype(self.tr_series.dtype):
             level_info = self.tr_series._values._repr_categories_info()
             if footer:
                 footer += "\n"
@@ -317,12 +327,12 @@ class TableFormatter(object):
 
     def _get_formatter(self, i):
         if isinstance(self.formatters, (list, tuple)):
-            if com.is_integer(i):
+            if is_integer(i):
                 return self.formatters[i]
             else:
                 return None
         else:
-            if com.is_integer(i) and i not in self.columns:
+            if is_integer(i) and i not in self.columns:
                 i = self.columns[i]
             return self.formatters.get(i, None)
 
@@ -1326,15 +1336,10 @@ class CSVFormatter(object):
                  float_format=None, cols=None, header=True, index=True,
                  index_label=None, mode='w', nanRep=None, encoding=None,
                  compression=None, quoting=None, line_terminator='\n',
-                 chunksize=None, engine=None, tupleize_cols=False,
-                 quotechar='"', date_format=None, doublequote=True,
-                 escapechar=None, decimal='.'):
+                 chunksize=None, tupleize_cols=False, quotechar='"',
+                 date_format=None, doublequote=True, escapechar=None,
+                 decimal='.'):
 
-        if engine is not None:
-            warnings.warn("'engine' keyword is deprecated and will be "
-                          "removed in a future version", FutureWarning,
-                          stacklevel=3)
-        self.engine = engine  # remove for 0.18
         self.obj = obj
 
         if path_or_buf is None:
@@ -1368,11 +1373,6 @@ class CSVFormatter(object):
         self.line_terminator = line_terminator
 
         self.date_format = date_format
-
-        # GH3457
-        if not self.obj.columns.is_unique and engine == 'python':
-            raise NotImplementedError("columns.is_unique == False not "
-                                      "supported with engine='python'")
 
         self.tupleize_cols = tupleize_cols
         self.has_mi_columns = (isinstance(obj.columns, MultiIndex) and
@@ -1430,108 +1430,6 @@ class CSVFormatter(object):
         if not index:
             self.nlevels = 0
 
-    # original python implem. of df.to_csv
-    # invoked by df.to_csv(engine=python)
-    def _helper_csv(self, writer, na_rep=None, cols=None, header=True,
-                    index=True, index_label=None, float_format=None,
-                    date_format=None):
-        if cols is None:
-            cols = self.columns
-
-        has_aliases = isinstance(header, (tuple, list, np.ndarray, Index))
-        if has_aliases or header:
-            if index:
-                # should write something for index label
-                if index_label is not False:
-                    if index_label is None:
-                        if isinstance(self.obj.index, MultiIndex):
-                            index_label = []
-                            for i, name in enumerate(self.obj.index.names):
-                                if name is None:
-                                    name = ''
-                                index_label.append(name)
-                        else:
-                            index_label = self.obj.index.name
-                            if index_label is None:
-                                index_label = ['']
-                            else:
-                                index_label = [index_label]
-                    elif not isinstance(index_label,
-                                        (list, tuple, np.ndarray, Index)):
-                        # given a string for a DF with Index
-                        index_label = [index_label]
-
-                    encoded_labels = list(index_label)
-                else:
-                    encoded_labels = []
-
-                if has_aliases:
-                    if len(header) != len(cols):
-                        raise ValueError(('Writing %d cols but got %d aliases'
-                                          % (len(cols), len(header))))
-                    else:
-                        write_cols = header
-                else:
-                    write_cols = cols
-                encoded_cols = list(write_cols)
-
-                writer.writerow(encoded_labels + encoded_cols)
-            else:
-                encoded_cols = list(cols)
-                writer.writerow(encoded_cols)
-
-        if date_format is None:
-            date_formatter = lambda x: Timestamp(x)._repr_base
-        else:
-
-            def strftime_with_nulls(x):
-                x = Timestamp(x)
-                if notnull(x):
-                    return x.strftime(date_format)
-
-            date_formatter = lambda x: strftime_with_nulls(x)
-
-        data_index = self.obj.index
-
-        if isinstance(self.obj.index, PeriodIndex):
-            data_index = self.obj.index.to_timestamp()
-
-        if isinstance(data_index, DatetimeIndex) and date_format is not None:
-            data_index = Index([date_formatter(x) for x in data_index])
-
-        values = self.obj.copy()
-        values.index = data_index
-        values.columns = values.columns.to_native_types(
-            na_rep=na_rep, float_format=float_format, date_format=date_format,
-            quoting=self.quoting)
-        values = values[cols]
-
-        series = {}
-        for k, v in compat.iteritems(values._series):
-            series[k] = v._values
-
-        nlevels = getattr(data_index, 'nlevels', 1)
-        for j, idx in enumerate(data_index):
-            row_fields = []
-            if index:
-                if nlevels == 1:
-                    row_fields = [idx]
-                else:  # handle MultiIndex
-                    row_fields = list(idx)
-            for i, col in enumerate(cols):
-                val = series[col][j]
-                if lib.checknull(val):
-                    val = na_rep
-
-                if float_format is not None and com.is_float(val):
-                    val = float_format % val
-                elif isinstance(val, (np.datetime64, Timestamp)):
-                    val = date_formatter(val)
-
-                row_fields.append(val)
-
-            writer.writerow(row_fields)
-
     def save(self):
         # create the writer & save
         if hasattr(self.path_or_buf, 'write'):
@@ -1555,17 +1453,7 @@ class CSVFormatter(object):
             else:
                 self.writer = csv.writer(f, **writer_kwargs)
 
-            if self.engine == 'python':
-                # to be removed in 0.13
-                self._helper_csv(self.writer, na_rep=self.na_rep,
-                                 float_format=self.float_format,
-                                 cols=self.cols, header=self.header,
-                                 index=self.index,
-                                 index_label=self.index_label,
-                                 date_format=self.date_format)
-
-            else:
-                self._save()
+            self._save()
 
         finally:
             if close:
@@ -1769,7 +1657,7 @@ class ExcelFormatter(object):
     def _format_value(self, val):
         if lib.checknull(val):
             val = self.na_rep
-        elif com.is_float(val):
+        elif is_float(val):
             if lib.isposinf_scalar(val):
                 val = self.inf_rep
             elif lib.isneginf_scalar(val):
@@ -1990,19 +1878,19 @@ class ExcelFormatter(object):
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.'):
 
-    if com.is_categorical_dtype(values):
+    if is_categorical_dtype(values):
         fmt_klass = CategoricalArrayFormatter
-    elif com.is_float_dtype(values.dtype):
+    elif is_float_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
-    elif com.is_period_arraylike(values):
+    elif is_period_arraylike(values):
         fmt_klass = PeriodArrayFormatter
-    elif com.is_integer_dtype(values.dtype):
+    elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
-    elif com.is_datetimetz(values):
+    elif is_datetimetz(values):
         fmt_klass = Datetime64TZFormatter
-    elif com.is_datetime64_dtype(values.dtype):
+    elif is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif com.is_timedelta64_dtype(values.dtype):
+    elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
     else:
         fmt_klass = GenericArrayFormatter
@@ -2072,14 +1960,14 @@ class GenericArrayFormatter(object):
         if isinstance(vals, Index):
             vals = vals._values
 
-        is_float = lib.map_infer(vals, com.is_float) & notnull(vals)
-        leading_space = is_float.any()
+        is_float_type = lib.map_infer(vals, is_float) & notnull(vals)
+        leading_space = is_float_type.any()
 
         fmt_values = []
         for i, v in enumerate(vals):
-            if not is_float[i] and leading_space:
+            if not is_float_type[i] and leading_space:
                 fmt_values.append(' %s' % _format(v))
-            elif is_float[i]:
+            elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
                 fmt_values.append(' %s' % _format(v))
@@ -2239,8 +2127,12 @@ class Datetime64Formatter(GenericArrayFormatter):
         """ we by definition have DO NOT have a TZ """
 
         values = self.values
+
         if not isinstance(values, DatetimeIndex):
             values = DatetimeIndex(values)
+
+        if self.formatter is not None and callable(self.formatter):
+            return [self.formatter(x) for x in values]
 
         fmt_values = format_array_from_datetime(
             values.asi8.ravel(),

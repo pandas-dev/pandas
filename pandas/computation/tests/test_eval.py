@@ -13,6 +13,7 @@ from nose.tools import assert_raises
 from numpy.random import randn, rand, randint
 import numpy as np
 
+from pandas.types.common import is_list_like, is_scalar
 import pandas as pd
 from pandas.core import common as com
 from pandas import DataFrame, Series, Panel, date_range
@@ -200,7 +201,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
                                                                 binop=binop,
                                                                 cmp2=cmp2)
-        scalar_with_in_notin = (lib.isscalar(rhs) and (cmp1 in skip_these or
+        scalar_with_in_notin = (is_scalar(rhs) and (cmp1 in skip_these or
                                                       cmp2 in skip_these))
         if scalar_with_in_notin:
             with tm.assertRaises(TypeError):
@@ -253,7 +254,7 @@ class TestEvalNumexprPandas(tm.TestCase):
 
     def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = 'lhs {0} rhs'.format(cmp1)
-        if cmp1 in ('in', 'not in') and not com.is_list_like(rhs):
+        if cmp1 in ('in', 'not in') and not is_list_like(rhs):
             self.assertRaises(TypeError, pd.eval, ex, engine=self.engine,
                               parser=self.parser, local_dict={'lhs': lhs,
                                                               'rhs': rhs})
@@ -331,7 +332,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         expected = self.get_expected_pow_result(lhs, rhs)
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
 
-        if (lib.isscalar(lhs) and lib.isscalar(rhs) and
+        if (is_scalar(lhs) and is_scalar(rhs) and
                 _is_py3_complex_incompat(result, expected)):
             self.assertRaises(AssertionError, tm.assert_numpy_array_equal,
                               result, expected)
@@ -364,16 +365,16 @@ class TestEvalNumexprPandas(tm.TestCase):
         skip_these = 'in', 'not in'
         ex = '~(lhs {0} rhs)'.format(cmp1)
 
-        if lib.isscalar(rhs) and cmp1 in skip_these:
+        if is_scalar(rhs) and cmp1 in skip_these:
             self.assertRaises(TypeError, pd.eval, ex, engine=self.engine,
                               parser=self.parser, local_dict={'lhs': lhs,
                                                               'rhs': rhs})
         else:
             # compound
-            if lib.isscalar(lhs) and lib.isscalar(rhs):
+            if is_scalar(lhs) and is_scalar(rhs):
                 lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
             expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
-            if lib.isscalar(expected):
+            if is_scalar(expected):
                 expected = not expected
             else:
                 expected = ~expected
@@ -643,17 +644,17 @@ class TestEvalNumexprPandas(tm.TestCase):
         x = 1
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, 1)
-        self.assertTrue(lib.isscalar(result))
+        self.assertTrue(is_scalar(result))
 
         x = 1.5
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, 1.5)
-        self.assertTrue(lib.isscalar(result))
+        self.assertTrue(is_scalar(result))
 
         x = False
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, False)
-        self.assertTrue(lib.isscalar(result))
+        self.assertTrue(is_scalar(result))
 
         x = np.array([1])
         result = pd.eval('x', engine=self.engine, parser=self.parser)

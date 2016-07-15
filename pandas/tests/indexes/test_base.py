@@ -203,6 +203,49 @@ class TestIndex(Base, tm.TestCase):
             result = pd.Index(ArrayLike(array))
             self.assert_index_equal(result, expected)
 
+    def test_index_ctor_infer_nan_nat(self):
+        # GH 13467
+        exp = pd.Float64Index([np.nan, np.nan])
+        self.assertEqual(exp.dtype, np.float64)
+        tm.assert_index_equal(Index([np.nan, np.nan]), exp)
+        tm.assert_index_equal(Index(np.array([np.nan, np.nan])), exp)
+
+        exp = pd.DatetimeIndex([pd.NaT, pd.NaT])
+        self.assertEqual(exp.dtype, 'datetime64[ns]')
+        tm.assert_index_equal(Index([pd.NaT, pd.NaT]), exp)
+        tm.assert_index_equal(Index(np.array([pd.NaT, pd.NaT])), exp)
+
+        exp = pd.DatetimeIndex([pd.NaT, pd.NaT])
+        self.assertEqual(exp.dtype, 'datetime64[ns]')
+
+        for data in [[pd.NaT, np.nan], [np.nan, pd.NaT],
+                     [np.nan, np.datetime64('nat')],
+                     [np.datetime64('nat'), np.nan]]:
+            tm.assert_index_equal(Index(data), exp)
+            tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
+
+        exp = pd.TimedeltaIndex([pd.NaT, pd.NaT])
+        self.assertEqual(exp.dtype, 'timedelta64[ns]')
+
+        for data in [[np.nan, np.timedelta64('nat')],
+                     [np.timedelta64('nat'), np.nan],
+                     [pd.NaT, np.timedelta64('nat')],
+                     [np.timedelta64('nat'), pd.NaT]]:
+
+            tm.assert_index_equal(Index(data), exp)
+            tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
+
+        # mixed np.datetime64/timedelta64 nat results in object
+        data = [np.datetime64('nat'), np.timedelta64('nat')]
+        exp = pd.Index(data, dtype=object)
+        tm.assert_index_equal(Index(data), exp)
+        tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
+
+        data = [np.timedelta64('nat'), np.datetime64('nat')]
+        exp = pd.Index(data, dtype=object)
+        tm.assert_index_equal(Index(data), exp)
+        tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
+
     def test_index_ctor_infer_periodindex(self):
         xp = period_range('2012-1-1', freq='M', periods=3)
         rs = Index(xp)
@@ -1369,6 +1412,12 @@ class TestIndex(Base, tm.TestCase):
 
         with tm.assertRaises(IndexError):
             idx.take(np.array([1, -5]))
+
+    def test_reshape_raise(self):
+        msg = "reshaping is not supported"
+        idx = pd.Index([0, 1, 2])
+        tm.assertRaisesRegexp(NotImplementedError, msg,
+                              idx.reshape, idx.shape)
 
     def test_reindex_preserves_name_if_target_is_list_or_ndarray(self):
         # GH6552
