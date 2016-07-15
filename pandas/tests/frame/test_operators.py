@@ -1196,7 +1196,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
         align = pd.core.ops._align_method_FRAME
 
-        for val in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3])]:
+        for val in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3], dtype=np.intp)]:
 
             tm.assert_series_equal(align(df, val, 'index'),
                                    Series([1, 2, 3], index=df.index))

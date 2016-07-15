@@ -109,6 +109,17 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         result = Series(range(10), dtype='int64')
         assert_series_equal(result, expected)
 
+    def test_constructor_list_like(self):
+
+        # make sure that we are coercing different
+        # list-likes to standard dtypes and not
+        # platform specific
+        expected = Series([1, 2, 3], dtype='int64')
+        for obj in [[1, 2, 3], (1, 2, 3),
+                    np.array([1, 2, 3], dtype='int64')]:
+            result = Series(obj, index=[0, 1, 2])
+            assert_series_equal(result, expected)
+
     def test_constructor_generator(self):
         gen = (i for i in range(10))
 
