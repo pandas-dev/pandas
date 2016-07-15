@@ -506,6 +506,7 @@ Removal of prior version deprecations/changes
 
 - ``DataFrame.to_csv()`` has dropped the ``engine`` parameter, as was deprecated in 0.17.1 (:issue:`11274`, :issue:`13419`)
 - ``DataFrame.to_dict()`` has dropped the ``outtype`` parameter in favor of ``orient`` (:issue:`13627`, :issue:`8486`)
+- ``pd.Categorical`` has dropped the ``levels`` attribute in favour of ``categories`` (:issue:`8376`)
 
 
 .. _whatsnew_0190.performance:

@@ -1559,18 +1559,6 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
             res = cat.labels
         self.assert_numpy_array_equal(res, exp)
 
-    def test_deprecated_levels(self):
-        # TODO: levels is deprecated and should be removed in 0.18 or 2017,
-        # whatever is earlier
-        cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        exp = cat.categories
-        with tm.assert_produces_warning(FutureWarning):
-            res = cat.levels
-        self.assert_index_equal(res, exp)
-        with tm.assert_produces_warning(FutureWarning):
-            res = pd.Categorical([1, 2, 3, np.nan], levels=[1, 2, 3])
-        self.assert_index_equal(res.categories, exp)
-
     def test_removed_names_produces_warning(self):
 
         # 10482
@@ -4430,44 +4418,6 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                 AttributeError, "Can only use .dt accessor with datetimelike"):
             invalid.dt
         self.assertFalse(hasattr(invalid, 'str'))
-
-    def test_pickle_v0_14_1(self):
-
-        # we have the name warning
-        # 10482
-        with tm.assert_produces_warning(UserWarning):
-            cat = pd.Categorical(values=['a', 'b', 'c'],
-                                 categories=['a', 'b', 'c', 'd'],
-                                 name='foobar', ordered=False)
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'categorical_0_14_1.pickle')
-        # This code was executed once on v0.14.1 to generate the pickle:
-        #
-        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-        #                   name='foobar')
-        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-        #
-        self.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-    def test_pickle_v0_15_2(self):
-        # ordered -> _ordered
-        # GH 9347
-
-        # we have the name warning
-        # 10482
-        with tm.assert_produces_warning(UserWarning):
-            cat = pd.Categorical(values=['a', 'b', 'c'],
-                                 categories=['a', 'b', 'c', 'd'],
-                                 name='foobar', ordered=False)
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'categorical_0_15_2.pickle')
-        # This code was executed once on v0.15.2 to generate the pickle:
-        #
-        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-        #                   name='foobar')
-        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-        #
-        self.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
     def test_concat_categorical(self):
         # See GH 10177
