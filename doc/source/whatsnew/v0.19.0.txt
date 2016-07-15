@@ -534,7 +534,7 @@ Bug Fixes
 - Bug when passing a not-default-indexed ``Series`` as ``xerr`` or ``yerr`` in ``.plot()`` (:issue:`11858`)
 - Bug in matplotlib ``AutoDataFormatter``; this restores the second scaled formatting and re-adds micro-second scaled formatting (:issue:`13131`)
 - Bug in selection from a ``HDFStore`` with a fixed format and ``start`` and/or ``stop`` specified will now return the selected range (:issue:`8287`)
-
+- Bug in ``Series`` construction from a tuple of integers on windows not returning default dtype (int64) (:issue:`13646`)
 
 - Bug in ``.groupby(..).resample(..)`` when the same object is called multiple times (:issue:`13174`)
 - Bug in ``.to_records()`` when index name is a unicode string (:issue:`13172`)
