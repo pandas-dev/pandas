@@ -2820,7 +2820,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr = data.copy()
         return subarr
 
-    elif isinstance(data, list) and len(data) > 0:
+    elif isinstance(data, (list, tuple)) and len(data) > 0:
         if dtype is not None:
             try:
                 subarr = _try_cast(data, False)
