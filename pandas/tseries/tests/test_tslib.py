@@ -1224,6 +1224,13 @@ class TestTimestampNsOperations(tm.TestCase):
             self.assertIs(left - right, pd.NaT)
             self.assertIs(right - left, pd.NaT)
 
+        # int addition / subtraction
+        for (left, right) in [(pd.NaT, 2), (pd.NaT, 0), (pd.NaT, -3)]:
+            self.assertIs(right + left, pd.NaT)
+            self.assertIs(left + right, pd.NaT)
+            self.assertIs(left - right, pd.NaT)
+            self.assertIs(right - left, pd.NaT)
+
     def test_nat_arithmetic_index(self):
         # GH 11718
 

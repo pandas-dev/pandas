@@ -741,14 +741,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         result = idx.astype(object)
         expected = Index([Period('2016-05-16', freq='D')] +
                          [Period(NaT, freq='D')] * 3, dtype='object')
-        # Hack because of lack of support for Period null checking (GH12759)
-        tm.assert_index_equal(result[:1], expected[:1])
-        result_arr = np.asarray([p.ordinal for p in result], dtype=np.int64)
-        expected_arr = np.asarray([p.ordinal for p in expected],
-                                  dtype=np.int64)
-        tm.assert_numpy_array_equal(result_arr, expected_arr)
-        # TODO: When GH12759 is resolved, change the above hack to:
-        # tm.assert_index_equal(result, expected)         # now, it raises.
+        tm.assert_index_equal(result, expected)
 
         result = idx.astype(int)
         expected = Int64Index([16937] + [-9223372036854775808] * 3,
