@@ -235,12 +235,14 @@ class Timestamp(_Timestamp):
     ----------
     ts_input : datetime-like, str, int, float
         Value to be converted to Timestamp
-    offset : str, DateOffset
+    freq : str, DateOffset
         Offset which Timestamp will have
     tz : string, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : string
         numpy unit used for conversion, if ts_input is int or float
+    offset : str, DateOffset
+        Deprecated, use freq
 
     The other two forms mimic the parameters from ``datetime.datetime``. They
     can be passed by either position or keyword, but not both mixed together.
@@ -262,8 +264,21 @@ class Timestamp(_Timestamp):
 
     @classmethod
     def fromordinal(cls, ordinal, freq=None, tz=None, offset=None):
-        """ passed an ordinal, translate and convert to a ts
-            note: by definition there cannot be any tz info on the ordinal itself """
+        """
+        passed an ordinal, translate and convert to a ts
+        note: by definition there cannot be any tz info on the ordinal itself
+
+        Parameters
+        ----------
+        ordinal : int
+            date corresponding to a proleptic Gregorian ordinal
+        freq : str, DateOffset
+            Offset which Timestamp will have
+        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will have.
+        offset : str, DateOffset
+            Deprecated, use freq
+        """
         return cls(datetime.fromordinal(ordinal), freq=freq, tz=tz, offset=offset)
 
     @classmethod
