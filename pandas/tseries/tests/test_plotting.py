@@ -95,19 +95,16 @@ class TestTSPlot(tm.TestCase):
 
     @slow
     def test_tsplot(self):
-        from pandas.tseries.plotting import tsplot
         import matplotlib.pyplot as plt
 
         ax = plt.gca()
         ts = tm.makeTimeSeries()
 
-        f = lambda *args, **kwds: tsplot(s, plt.Axes.plot, *args, **kwds)
-
         for s in self.period_ser:
-            _check_plot_works(f, s.index.freq, ax=ax, series=s)
+            _check_plot_works(s.plot, ax=ax)
 
         for s in self.datetime_ser:
-            _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
+            _check_plot_works(s.plot, ax=ax)
 
         for s in self.period_ser:
             _check_plot_works(s.plot, ax=ax)
@@ -645,27 +642,35 @@ class TestTSPlot(tm.TestCase):
         self.assertEqual(axes[2].get_yaxis().get_ticks_position(), 'right')
 
     def test_mixed_freq_regular_first(self):
-        import matplotlib.pyplot as plt  # noqa
         s1 = tm.makeTimeSeries()
         s2 = s1[[0, 5, 10, 11, 12, 13, 14, 15]]
+        self.assertIsNone(s2.index.freq)
 
-        # it works!
-        s1.plot()
-
-        ax2 = s2.plot(style='g')
-        lines = ax2.get_lines()
-        idx1 = PeriodIndex(lines[0].get_xdata())
-        idx2 = PeriodIndex(lines[1].get_xdata())
+        # the result has PeriodIndex axis
+        ax1 = s1.plot()
+        lines1 = ax1.get_lines()
+        idx1 = PeriodIndex(lines1[0].get_xdata())
         self.assertTrue(idx1.equals(s1.index.to_period('B')))
-        self.assertTrue(idx2.equals(s2.index.to_period('B')))
-        left, right = ax2.get_xlim()
+        left, right = ax1.get_xlim()
         pidx = s1.index.to_period()
         self.assertEqual(left, pidx[0].ordinal)
         self.assertEqual(right, pidx[-1].ordinal)
 
+        # because s2 doesn't have freq, the result has x_compat axis
+        ax2 = s2.plot(style='g')
+        lines2 = ax2.get_lines()
+
+        exp = s1.index.to_pydatetime()
+        tm.assert_numpy_array_equal(lines2[0].get_xdata(), exp)
+        tm.assert_numpy_array_equal(lines2[1].get_xdata(),
+                                    s2.index.to_pydatetime())
+        left, right = ax2.get_xlim()
+        from matplotlib.dates import date2num
+        self.assertEqual(left, date2num(exp[0]))
+        self.assertEqual(right, date2num(exp[-1]))
+
     @slow
     def test_mixed_freq_irregular_first(self):
-        import matplotlib.pyplot as plt  # noqa
         s1 = tm.makeTimeSeries()
         s2 = s1[[0, 5, 10, 11, 12, 13, 14, 15]]
         s2.plot(style='g')
@@ -677,22 +682,33 @@ class TestTSPlot(tm.TestCase):
         x2 = lines[1].get_xdata()
         tm.assert_numpy_array_equal(x2, s1.index.asobject.values)
 
-    def test_mixed_freq_regular_first_df(self):
+    def test_aaamixed_freq_regular_first_df(self):
         # GH 9852
-        import matplotlib.pyplot as plt  # noqa
         s1 = tm.makeTimeSeries().to_frame()
         s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15], :]
-        ax = s1.plot()
-        ax2 = s2.plot(style='g', ax=ax)
-        lines = ax2.get_lines()
-        idx1 = PeriodIndex(lines[0].get_xdata())
-        idx2 = PeriodIndex(lines[1].get_xdata())
+
+        # the result has PeriodIndex axis
+        ax1 = s1.plot()
+        lines1 = ax1.get_lines()
+        idx1 = PeriodIndex(lines1[0].get_xdata())
         self.assertTrue(idx1.equals(s1.index.to_period('B')))
-        self.assertTrue(idx2.equals(s2.index.to_period('B')))
-        left, right = ax2.get_xlim()
+        left, right = ax1.get_xlim()
         pidx = s1.index.to_period()
         self.assertEqual(left, pidx[0].ordinal)
         self.assertEqual(right, pidx[-1].ordinal)
+
+        # because s2 doesn't have freq, the result has x_compat axis
+        ax2 = s2.plot(style='g', ax=ax1)
+        lines2 = ax2.get_lines()
+
+        exp = s1.index.to_pydatetime()
+        tm.assert_numpy_array_equal(lines2[0].get_xdata(), exp)
+        tm.assert_numpy_array_equal(lines2[1].get_xdata(),
+                                    s2.index.to_pydatetime())
+        left, right = ax2.get_xlim()
+        from matplotlib.dates import date2num
+        self.assertEqual(left, date2num(exp[0]))
+        self.assertEqual(right, date2num(exp[-1]))
 
     @slow
     def test_mixed_freq_irregular_first_df(self):
