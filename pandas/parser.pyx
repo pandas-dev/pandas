@@ -165,7 +165,7 @@ cdef extern from "parser/tokenizer.h":
 
         void *skipset
         int64_t skip_first_N_rows
-        int skip_footer
+        int skipfooter
         double (*converter)(const char *, char **, char, char, char, int) nogil
 
         #  error handling
@@ -270,7 +270,7 @@ cdef class TextReader:
         kh_str_t *true_set
 
     cdef public:
-        int leading_cols, table_width, skip_footer, buffer_lines
+        int leading_cols, table_width, skipfooter, buffer_lines
         object allow_leading_cols
         object delimiter, converters, delim_whitespace
         object na_values
@@ -338,7 +338,7 @@ cdef class TextReader:
                   low_memory=False,
                   buffer_lines=None,
                   skiprows=None,
-                  skip_footer=0,
+                  skipfooter=0,
                   verbose=False,
                   mangle_dupe_cols=True,
                   tupleize_cols=False,
@@ -418,7 +418,7 @@ cdef class TextReader:
         if skiprows is not None:
             self._make_skiprow_set()
 
-        self.skip_footer = skip_footer
+        self.skipfooter = skipfooter
 
         # suboptimal
         if usecols is not None:
@@ -426,7 +426,7 @@ cdef class TextReader:
             self.usecols = set(usecols)
 
         # XXX
-        if skip_footer > 0:
+        if skipfooter > 0:
             self.parser.error_bad_lines = 0
             self.parser.warn_bad_lines = 0
 
@@ -912,8 +912,8 @@ cdef class TextReader:
             if buffered_lines < irows:
                 self._tokenize_rows(irows - buffered_lines)
 
-            if self.skip_footer > 0:
-                raise ValueError('skip_footer can only be used to read '
+            if self.skipfooter > 0:
+                raise ValueError('skipfooter can only be used to read '
                                  'the whole file')
         else:
             with nogil:
@@ -926,7 +926,7 @@ cdef class TextReader:
 
             if status < 0:
                 raise_parser_error('Error tokenizing data', self.parser)
-            footer = self.skip_footer
+            footer = self.skipfooter
 
         if self.parser_start == self.parser.lines:
             raise StopIteration

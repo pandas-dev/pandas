@@ -473,7 +473,7 @@ class ExcelFile(object):
                                     parse_dates=parse_dates,
                                     date_parser=date_parser,
                                     skiprows=skiprows,
-                                    skip_footer=skip_footer,
+                                    skipfooter=skip_footer,
                                     squeeze=squeeze,
                                     **kwds)
 
