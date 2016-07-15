@@ -1587,17 +1587,16 @@ class TestPeriodIndexOps(Ops):
         result = idx.asobject
         self.assertTrue(isinstance(result, Index))
         self.assertEqual(result.dtype, object)
+        tm.assert_index_equal(result, expected)
         for i in [0, 1, 3]:
-            self.assertTrue(result[i], expected[i])
-        self.assertTrue(result[2].ordinal, pd.tslib.iNaT)
-        self.assertTrue(result[2].freq, 'D')
+            self.assertEqual(result[i], expected[i])
+        self.assertIs(result[2], pd.NaT)
         self.assertEqual(result.name, expected.name)
 
         result_list = idx.tolist()
         for i in [0, 1, 3]:
-            self.assertTrue(result_list[i], expected_list[i])
-        self.assertTrue(result_list[2].ordinal, pd.tslib.iNaT)
-        self.assertTrue(result_list[2].freq, 'D')
+            self.assertEqual(result_list[i], expected_list[i])
+        self.assertIs(result_list[2], pd.NaT)
 
     def test_minmax(self):
 
@@ -1623,18 +1622,15 @@ class TestPeriodIndexOps(Ops):
             # Return NaT
             obj = PeriodIndex([], freq='M')
             result = getattr(obj, op)()
-            self.assertEqual(result.ordinal, tslib.iNaT)
-            self.assertEqual(result.freq, 'M')
+            self.assertIs(result, tslib.NaT)
 
             obj = PeriodIndex([pd.NaT], freq='M')
             result = getattr(obj, op)()
-            self.assertEqual(result.ordinal, tslib.iNaT)
-            self.assertEqual(result.freq, 'M')
+            self.assertIs(result, tslib.NaT)
 
             obj = PeriodIndex([pd.NaT, pd.NaT, pd.NaT], freq='M')
             result = getattr(obj, op)()
-            self.assertEqual(result.ordinal, tslib.iNaT)
-            self.assertEqual(result.freq, 'M')
+            self.assertIs(result, tslib.NaT)
 
     def test_numpy_minmax(self):
         pr = pd.period_range(start='2016-01-15', end='2016-01-20')
@@ -1735,9 +1731,9 @@ dtype: object"""
 2   2013
 dtype: object"""
 
-        exp6 = """0   2011-01-01 09:00
-1   2012-02-01 10:00
-2                NaT
+        exp6 = """0    2011-01-01 09:00
+1    2012-02-01 10:00
+2                 NaT
 dtype: object"""
 
         exp7 = """0   2013Q1

@@ -1097,7 +1097,10 @@ cdef class _Timestamp(datetime):
             return Timestamp(self.value + other_int, tz=self.tzinfo, freq=self.freq)
 
         elif is_integer_object(other):
-            if self.freq is None:
+            if self is NaT:
+                # to be compat with Period
+                return NaT
+            elif self.freq is None:
                 raise ValueError("Cannot add integral value to Timestamp "
                                  "without freq.")
             return Timestamp((self.freq * other).apply(self), freq=self.freq)
