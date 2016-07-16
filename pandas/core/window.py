@@ -312,9 +312,6 @@ class Window(_Window):
     * ``gaussian`` (needs std)
     * ``general_gaussian`` (needs power, width)
     * ``slepian`` (needs width).
-
-    To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 """
 
     def validate(self):
