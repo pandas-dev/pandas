@@ -1010,14 +1010,15 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
 
-    if diff is not None:
-        diff = "\n[diff]: {diff}".format(diff=diff)
-
     msg = """{0} are different
 
 {1}
 [left]:  {2}
-[right]: {3}{4}""".format(obj, message, left, right, diff)
+[right]: {3}""".format(obj, message, left, right)
+
+    if diff is not None:
+        msg = msg + "\n[diff]: {diff}".format(diff=diff)
+
     raise AssertionError(msg)
 
 
