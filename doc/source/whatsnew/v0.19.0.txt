@@ -731,4 +731,4 @@ Bug Fixes
 - Bug in ``Index.union`` returns an incorrect result with a named empty index (:issue:`13432`)
 - Bugs in ``Index.difference`` and ``DataFrame.join`` raise in Python3 when using mixed-integer indexes (:issue:`13432`, :issue:`12814`)
 
--Bug in ``MultiIndex.from_arrays`` didn't check for arrays lengths (:issue:`13599`)
+-Bug in ``MultiIndex.from_arrays`` didn't check for input array lengths (:issue:`13599`)
