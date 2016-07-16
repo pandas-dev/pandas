@@ -167,9 +167,9 @@ def execute(sql, con, cur=None, params=None):
     Results Iterable
     """
     if cur is None:
-        pandas_sql = pandasSQL_builder(con)
+        pandas_sql = _pandasSQL_builder(con)
     else:
-        pandas_sql = pandasSQL_builder(cur, is_cursor=True)
+        pandas_sql = _pandasSQL_builder(cur, is_cursor=True)
     args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
 
@@ -427,7 +427,7 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     read_sql
 
     """
-    pandas_sql = pandasSQL_builder(con)
+    pandas_sql = _pandasSQL_builder(con)
     return pandas_sql.read_query(
         sql, index_col=index_col, params=params, coerce_float=coerce_float,
         parse_dates=parse_dates, chunksize=chunksize)
@@ -492,7 +492,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     read_sql_query : Read SQL query into a DataFrame
 
     """
-    pandas_sql = pandasSQL_builder(con)
+    pandas_sql = _pandasSQL_builder(con)
 
     if isinstance(pandas_sql, SQLiteDatabase):
         return pandas_sql.read_query(
@@ -560,7 +560,7 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
-    pandas_sql = pandasSQL_builder(con, schema=schema, flavor=flavor)
+    pandas_sql = _pandasSQL_builder(con, schema=schema, flavor=flavor)
 
     if isinstance(frame, Series):
         frame = frame.to_frame()
@@ -597,7 +597,7 @@ def has_table(table_name, con, flavor='sqlite', schema=None):
     -------
     boolean
     """
-    pandas_sql = pandasSQL_builder(con, flavor=flavor, schema=schema)
+    pandas_sql = _pandasSQL_builder(con, flavor=flavor, schema=schema)
     return pandas_sql.has_table(table_name)
 
 table_exists = has_table
@@ -626,8 +626,8 @@ def _engine_builder(con):
     return con
 
 
-def pandasSQL_builder(con, flavor=None, schema=None, meta=None,
-                      is_cursor=False):
+def _pandasSQL_builder(con, flavor=None, schema=None, meta=None,
+                       is_cursor=False):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters
@@ -1716,5 +1716,5 @@ def get_schema(frame, name, flavor='sqlite', keys=None, con=None, dtype=None):
 
     """
 
-    pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
+    pandas_sql = _pandasSQL_builder(con=con, flavor=flavor)
     return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)
