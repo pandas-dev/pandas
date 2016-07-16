@@ -28,7 +28,7 @@ class TestPDApi(Base, tm.TestCase):
 
     # these are optionally imported based on testing
     # & need to be ignored
-    ignored = ['tests', 'rpy', 'sandbox', 'locale']
+    ignored = ['tests', 'rpy', 'locale']
 
     # top-level sub-packages
     lib = ['api', 'compat', 'computation', 'core',
