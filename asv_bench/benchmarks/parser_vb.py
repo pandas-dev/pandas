@@ -115,9 +115,9 @@ class read_csv_vb(object):
 
 
 class read_csv_categorical(object):
-    def setup(self):
-        goal_time = 0.2
+    goal_time = 0.2
 
+    def setup(self):
         N = 100000
         group1 = ['aaaaaaaa', 'bbbbbbb', 'cccccccc', 'dddddddd', 'eeeeeeee']
         df = DataFrame({'a': np.random.choice(group1, N).astype('object'),

@@ -211,19 +211,49 @@ one,two
                                  'c': [3.4, 3.4, 4.5]})
         tm.assert_frame_equal(actual, expected)
 
+        actual = self.read_csv(StringIO(data), dtype={1: 'category'})
+        tm.assert_frame_equal(actual, expected)
+
+        # unsorted
+        data = """a,b,c
+1,b,3.4
+1,b,3.4
+2,a,4.5"""
+        expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
+                                 'b': Categorical.from_codes([0, 0, 1],
+                                                             ['b', 'a']),
+                                 'c': Categorical(['3.4', '3.4', '4.5'])})
+        actual = self.read_csv(StringIO(data), dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
+        # missing
+        data = """a,b,c
+1,b,3.4
+1,nan,3.4
+2,a,4.5"""
+        expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
+                                 'b': Categorical.from_codes([0, -1, 1],
+                                                             ['b', 'a']),
+                                 'c': Categorical(['3.4', '3.4', '4.5'])})
+        actual = self.read_csv(StringIO(data), dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
     def test_categorical_dtype_encoding(self):
         # GH 10153
-        cases = [
-            ('unicode_series.csv', 'latin-1'),
-            ('utf16_ex.txt', 'utf-16')
-        ]
+        pth = tm.get_data_path('unicode_series.csv')
+        encoding = 'latin-1'
+        expected = self.read_csv(pth, header=None, encoding=encoding)
+        actual = self.read_csv(pth, header=None, encoding=encoding,
+                               dtype={1: 'category'})
+        actual[1] = actual[1].astype(object)
+        tm.assert_frame_equal(actual, expected)
 
-        for f, encoding in cases:
-            pth = tm.get_data_path(f)
-            expected = self.read_csv(pth, header=None, encoding=encoding)
-            result = self.read_csv(pth, header=None, encoding=encoding, dtype='category')
-            result = result.apply(lambda x: x.astype(object))
-            tm.assert_frame_equal(actual, expected)
+        pth = tm.get_data_path('utf16_ex.txt')
+        encoding = 'utf-16'
+        expected = self.read_table(pth, encoding=encoding)
+        actual = self.read_table(pth, encoding=encoding, dtype='category')
+        actual = actual.apply(lambda x: x.astype(object))
+        tm.assert_frame_equal(actual, expected)
 
     def test_pass_dtype_as_recarray(self):
         if compat.is_platform_windows() and self.low_memory:

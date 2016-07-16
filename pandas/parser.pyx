@@ -1527,8 +1527,9 @@ cdef _categorical_convert(parser_t *parser, int col,
 
     lines = line_end - line_start
     codes = np.empty(lines, dtype=np.int64)
+
     # factorize parsed values, creating a hash table
-    # bytes -> category
+    # bytes -> category code
     with nogil:
         table = kh_init_str()
         coliter_setup(&it, parser, col, line_start)
@@ -1554,24 +1555,20 @@ cdef _categorical_convert(parser_t *parser, int col,
             codes[i] = table.vals[k]
 
     # parse and box categories to python strings
-    i = 0
     result = np.empty(table.n_occupied, dtype=np.object_)
     if path == ENCODED:
         for k in range(table.n_buckets):
             if kh_exist_str(table, k):
                 size = strlen(table.keys[k])
-                result[i] = PyUnicode_Decode(table.keys[k], size, encoding, errors)
-                i += 1
+                result[table.vals[k]] = PyUnicode_Decode(table.keys[k], size, encoding, errors)
     elif path == UTF8:
         for k in range(table.n_buckets):
             if kh_exist_str(table, k):
-                result[i] = PyUnicode_FromString(table.keys[k])
-                i += 1
+                result[table.vals[k]] = PyUnicode_FromString(table.keys[k])
     elif path == CSTRING:
         for k in range(table.n_buckets):
             if kh_exist_str(table, k):
-                result[i] = PyBytes_FromString(table.keys[k])
-                i += 1
+                result[table.vals[k]] = PyBytes_FromString(table.keys[k])
 
     kh_destroy_str(table)
     return np.asarray(codes), result, na_count

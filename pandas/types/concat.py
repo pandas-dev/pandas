@@ -240,6 +240,7 @@ def union_categoricals(to_union, sort_categories=False):
         Emmpty list of categoricals passed
     """
     from pandas import Index, Categorical
+    from pandas.core.algorithms import take_1d
 
     if len(to_union) == 0:
         raise ValueError('No Categoricals to union')
