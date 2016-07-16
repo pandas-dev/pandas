@@ -1511,13 +1511,18 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, verify_integrity=False):
+    def append(self, to_append, ignore_index=False, verify_integrity=False):
         """
         Concatenate two or more Series.
 
         Parameters
         ----------
         to_append : Series or list/tuple of Series
+        ignore_index : boolean, default False
+            If True, do not use the index labels.
+
+            .. versionadded: 0.19.0
+
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
 
@@ -1548,6 +1553,17 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         5    6
         dtype: int64
 
+        With `ignore_index` set to True:
+
+        >>> s1.append(s2, ignore_index=True)
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        5    6
+        dtype: int64
+
         With `verify_integrity` set to True:
 
         >>> s1.append(s2, verify_integrity=True)
@@ -1561,7 +1577,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             to_concat = [self] + to_append
         else:
             to_concat = [self, to_append]
-        return concat(to_concat, ignore_index=False,
+        return concat(to_concat, ignore_index=ignore_index,
                       verify_integrity=verify_integrity)
 
     def _binop(self, other, func, level=None, fill_value=None):
