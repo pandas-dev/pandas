@@ -1965,8 +1965,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         return this._shallow_copy(the_diff, name=result_name)
 
-    diff = deprecate('diff', difference)
-
     def symmetric_difference(self, other, result_name=None):
         """
         Compute the symmetric difference of two Index objects.
