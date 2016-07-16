@@ -195,6 +195,14 @@ default of the index) in a DataFrame.
 :func:`read_csv` has improved support for duplicate column names
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. ipython:: python
+   :suppress:
+
+   from pandas.compat import StringIO
+
+.. _whatsnew_0190.enhancements.read_csv_dupe_col_names_support:
+
+
 :ref:`Duplicate column names <io.dupe_names>` are now supported in :func:`read_csv` whether
 they are in the file or passed in as the ``names`` parameter (:issue:`7160`, :issue:`9424`)
 
@@ -221,6 +229,44 @@ New behaviour:
 .. ipython :: python
 
    In [2]: pd.read_csv(StringIO(data), names=names)
+
+
+.. _whatsnew_0190.enhancements.read_csv_categorical:
+
+:func:`read_csv` supports parsing `Categorical` directly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :func:`read_csv` function now supports parsing a `Categorical` column when
+specified as a dtype (:issue:`10153`).  Depending on the structure of the data,
+this can result in a faster parse time and lower memory usage, compared to
+converting to `Categorical` after parsing.
+
+.. ipython :: python
+
+   data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
+
+   pd.read_csv(StringIO(data))
+   pd.read_csv(StringIO(data)).dtypes
+   pd.read_csv(StringIO(data), dtype='category').dtypes
+
+Individual columns can be parsed as a `Categorical` using a dict specification
+
+.. ipython :: python
+
+   pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
+
+.. note::
+
+   The resulting categories will always be parsed as string (object dtype).
+   Numeric categories can be converted using the :func:`pd.to_numeric` function.
+
+   .. ipython :: python
+
+      df = pd.read_csv(StringIO(data), dtype='category')
+      df.dtypes
+      df['col3']
+      df['col3'].cat.categories = pd.to_numeric(df['col3'].cat.categories)
+      df['col3']
 
 .. _whatsnew_0190.enhancements.semi_month_offsets:
 

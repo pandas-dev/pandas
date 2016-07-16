@@ -191,9 +191,9 @@ one,two
 1,a,3.4
 1,a,3.4
 2,b,4.5"""
-        expected = pd.DataFrame({'a': Categorical([1, 1, 2]),
+        expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
                                  'b': Categorical(['a', 'a', 'b']),
-                                 'c': Categorical([3.4, 3.4, 4.5])})
+                                 'c': Categorical(['3.4', '3.4', '4.5'])})
         actual = self.read_csv(StringIO(data), dtype='category')
         tm.assert_frame_equal(actual, expected)
 
@@ -204,6 +204,26 @@ one,two
                                                       'b': 'category',
                                                       'c': CategoricalDtype()})
         tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype={'b': 'category'})
+        expected = pd.DataFrame({'a': [1, 1, 2],
+                                 'b': Categorical(['a', 'a', 'b']),
+                                 'c': [3.4, 3.4, 4.5]})
+        tm.assert_frame_equal(actual, expected)
+
+    def test_categorical_dtype_encoding(self):
+        # GH 10153
+        cases = [
+            ('unicode_series.csv', 'latin-1'),
+            ('utf16_ex.txt', 'utf-16')
+        ]
+
+        for f, encoding in cases:
+            pth = tm.get_data_path(f)
+            expected = self.read_csv(pth, header=None, encoding=encoding)
+            result = self.read_csv(pth, header=None, encoding=encoding, dtype='category')
+            result = result.apply(lambda x: x.astype(object))
+            tm.assert_frame_equal(actual, expected)
 
     def test_pass_dtype_as_recarray(self):
         if compat.is_platform_windows() and self.low_memory:
