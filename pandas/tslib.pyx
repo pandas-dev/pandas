@@ -2507,20 +2507,19 @@ cdef class _Timedelta(timedelta):
         """
         compute the components
         """
-        cdef int64_t sfrac, ifrac, ivalue = self.value
-        cdef float64_t frac
+        cdef int64_t sfrac, ifrac, frac, ivalue = self.value
 
         if self.is_populated:
             return
 
         # put frac in seconds
-        frac = float(ivalue)/1e9
+        frac = ivalue/(1000*1000*1000)
         if frac < 0:
             self._sign = -1
 
             # even fraction
-            if int(-frac/86400) != -frac/86400.0:
-                self._d = int(-frac/86400.0+1)
+            if (-frac % 86400) != 0:
+                self._d = -frac/86400 + 1
                 frac += 86400*self._d
             else:
                 frac = -frac
@@ -2529,39 +2528,37 @@ cdef class _Timedelta(timedelta):
             self._d = 0
 
         if frac >= 86400:
-            self._d += int(frac / 86400)
+            self._d += frac / 86400
             frac   -= self._d * 86400
 
         if frac >= 3600:
-            self._h  = int(frac / 3600)
+            self._h  = frac / 3600
             frac    -= self._h * 3600
         else:
             self._h = 0
 
         if frac >= 60:
-            self._m = int(frac / 60)
+            self._m = frac / 60
             frac   -= self._m * 60
         else:
             self._m = 0
 
         if frac >= 0:
-            self._s = int(frac)
+            self._s = frac
             frac   -= self._s
         else:
             self._s = 0
 
-        if frac != 0:
+        sfrac = (self._h*3600 + self._m*60 + self._s)*(1000*1000*1000)
+        if self._sign < 0:
+            ifrac = ivalue + self._d*DAY_NS - sfrac
+        else:
+            ifrac = ivalue - (self._d*DAY_NS + sfrac)
 
-            # reset so we don't lose precision
-            sfrac = int((self._h*3600 + self._m*60 + self._s)*1e9)
-            if self._sign < 0:
-                ifrac = ivalue + self._d*DAY_NS - sfrac
-            else:
-                ifrac = ivalue - (self._d*DAY_NS + sfrac)
-
-            self._ms = int(ifrac/1e6)
+        if ifrac != 0:
+            self._ms = ifrac/(1000*1000)
             ifrac -= self._ms*1000*1000
-            self._us = int(ifrac/1e3)
+            self._us = ifrac/1000
             ifrac -= self._us*1000
             self._ns = ifrac
         else:
