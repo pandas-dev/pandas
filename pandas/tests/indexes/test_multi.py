@@ -637,7 +637,7 @@ class TestMultiIndex(Base, tm.TestCase):
         idx1 = [1, 2, 3]
         idx2 = ['a', 'b']
         assertRaisesRegexp(ValueError, '^all arrays must be same length$',
-            MultiIndex.from_arrays, [idx1, idx2])
+                MultiIndex.from_arrays, [idx1, idx2])
 
     def test_from_product(self):
 
