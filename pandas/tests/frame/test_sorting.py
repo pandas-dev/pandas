@@ -125,7 +125,7 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         expected = frame.reindex(columns=['C', 'B', 'A'])
         assert_frame_equal(sorted_df, expected)
 
-        sorted_df = frame.sort_values(by=[1, 2], axis=1)
+        sorted_df = frame.sort_values(by=[1, 2], axis='columns')
         expected = frame.reindex(columns=['B', 'A', 'C'])
         assert_frame_equal(sorted_df, expected)
 
@@ -148,6 +148,11 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         sorted_df = frame.copy()
         sorted_df.sort_values(by='A', inplace=True)
         expected = frame.sort_values(by='A')
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.copy()
+        sorted_df.sort_values(by=1, axis=1, inplace=True)
+        expected = frame.sort_values(by=1, axis=1)
         assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
@@ -194,6 +199,10 @@ class TestDataFrameSorting(tm.TestCase, TestData):
              'B': [5, 4, 5, 5, nan, 9, 2]},
             index=[2, 5, 4, 6, 1, 0, 3])
         sorted_df = df.sort_values(['A'], na_position='first', ascending=False)
+        assert_frame_equal(sorted_df, expected)
+
+        expected = df.reindex(columns=['B', 'A'])
+        sorted_df = df.sort_values(by=1, axis=1, na_position='first')
         assert_frame_equal(sorted_df, expected)
 
         # na_position='last', order
