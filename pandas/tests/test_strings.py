@@ -1603,6 +1603,18 @@ class TestStringMethods(tm.TestCase):
                                    "fillchar must be a character, not int"):
             result = values.str.pad(5, fillchar=5)
 
+    def test_pad_width(self):
+
+        values = Series(['1', '22', 'a', 'bb'])
+
+        result = values.str.pad(5, side='left', fillchar='0')
+        expected = Series(['00001', '00022', '0000a', '000bb'])
+        tm.assert_almost_equal(result, expected)
+
+        with tm.assertRaisesRegexp(TypeError,
+                                   "width must be of integer type, not*"):
+            result = values.str.pad('f', fillchar='0')
+
     def test_translate(self):
 
         def _check(result, expected):

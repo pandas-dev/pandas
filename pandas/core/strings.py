@@ -914,6 +914,10 @@ def str_pad(arr, width, side='left', fillchar=' '):
     if len(fillchar) != 1:
         raise TypeError('fillchar must be a character, not str')
 
+    if not isinstance(width, compat.integer_types):
+        msg = 'width must be of integer type, not {0}'
+        raise TypeError(msg.format(type(width).__name__))
+
     if side == 'left':
         f = lambda x: x.rjust(width, fillchar)
     elif side == 'right':
