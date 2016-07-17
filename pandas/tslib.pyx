@@ -3028,7 +3028,7 @@ cdef inline bint is_timedelta(object o):
 
 def array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
     """ convert an ndarray to an array of ints that are timedeltas
-        force conversion if coerce = True,
+        force conversion if errors = 'coerce',
         else will raise if cannot convert """
     cdef:
         Py_ssize_t i, n
