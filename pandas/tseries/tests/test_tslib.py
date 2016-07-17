@@ -7,7 +7,8 @@ import pandas._period as period
 import datetime
 
 import pandas as pd
-from pandas.core.api import Timestamp, Series, Timedelta, Period, to_datetime
+from pandas.core.api import (Timestamp, Index, Series, Timedelta, Period,
+                             to_datetime)
 from pandas.tslib import get_timezone
 from pandas._period import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range, DatetimeIndex
@@ -698,14 +699,19 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                                                     yearfirst=yearfirst)
             result2 = to_datetime(date_str, yearfirst=yearfirst)
             result3 = to_datetime([date_str], yearfirst=yearfirst)
+            # result5 is used below
             result4 = to_datetime(np.array([date_str], dtype=object),
                                   yearfirst=yearfirst)
-            result6 = DatetimeIndex([date_str], yearfirst=yearfirst)[0]
-            self.assertEqual(result1, expected)
-            self.assertEqual(result2, expected)
-            self.assertEqual(result3, expected)
-            self.assertEqual(result4, expected)
-            self.assertEqual(result6, expected)
+            result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
+            # result7 is used below
+            result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
+            result9 = DatetimeIndex(Series([date_str]), yearfirst=yearfirst)
+
+            for res in [result1, result2]:
+                self.assertEqual(res, expected)
+            for res in [result3, result4, result6, result8, result9]:
+                exp = DatetimeIndex([pd.Timestamp(expected)])
+                tm.assert_index_equal(res, exp)
 
             # these really need to have yearfist, but we don't support
             if not yearfirst:
@@ -893,9 +899,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 
         for date_str, expected in compat.iteritems(cases):
             result1, _, _ = tools.parse_time_string(date_str, freq='M')
-            result2 = tools._to_datetime(date_str, freq='M')
             self.assertEqual(result1, expected)
-            self.assertEqual(result2, expected)
 
     def test_parsers_quarterly_with_freq(self):
         msg = ('Incorrect quarterly string is given, quarter '

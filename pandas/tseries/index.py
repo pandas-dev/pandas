@@ -292,55 +292,32 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 raise ValueError('DatetimeIndex() must be called with a '
                                  'collection of some kind, %s was passed'
                                  % repr(data))
-
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
                 data = list(data)
-
             data = np.asarray(data, dtype='O')
+        elif isinstance(data, ABCSeries):
+            data = data._values
 
-            # try a few ways to make it datetime64
-            if lib.is_string_array(data):
-                data = tslib.parse_str_array_to_datetime(data, freq=freq,
-                                                         dayfirst=dayfirst,
-                                                         yearfirst=yearfirst)
-            else:
-                data = tools.to_datetime(data, errors='raise')
-                data.offset = freq
-                if isinstance(data, DatetimeIndex):
-                    if name is not None:
-                        data.name = name
-
-                    if tz is not None:
-
-                        # we might already be localized to this tz
-                        # so passing the same tz is ok
-                        # however any other tz is a no-no
-                        if data.tz is None:
-                            return data.tz_localize(tz, ambiguous=ambiguous)
-                        elif str(tz) != str(data.tz):
-                            raise TypeError("Already tz-aware, use tz_convert "
-                                            "to convert.")
-
-                    return data._deepcopy_if_needed(ref_to_data, copy)
-
-        if issubclass(data.dtype.type, compat.string_types):
-            data = tslib.parse_str_array_to_datetime(data, freq=freq,
-                                                     dayfirst=dayfirst,
-                                                     yearfirst=yearfirst)
+        # data must be Index or np.ndarray here
+        if not (is_datetime64_dtype(data) or is_datetimetz(data) or
+                is_integer_dtype(data)):
+            data = tools.to_datetime(data, dayfirst=dayfirst,
+                                     yearfirst=yearfirst)
 
         if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
-            if isinstance(data, ABCSeries):
-                data = data._values
+
             if isinstance(data, DatetimeIndex):
                 if tz is None:
                     tz = data.tz
-
+                elif data.tz is None:
+                    data = data.tz_localize(tz, ambiguous=ambiguous)
                 else:
                     # the tz's must match
                     if str(tz) != str(data.tz):
-                        raise TypeError("Already tz-aware, use tz_convert "
-                                        "to convert.")
+                        msg = ('data is already tz-aware {0}, unable to '
+                               'set specified tz: {1}')
+                        raise TypeError(msg.format(data.tz, tz))
 
                 subarr = data.values
 
@@ -356,35 +333,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             if isinstance(data, Int64Index):
                 raise TypeError('cannot convert Int64Index->DatetimeIndex')
             subarr = data.view(_NS_DTYPE)
-        else:
-            if isinstance(data, (ABCSeries, Index)):
-                values = data._values
-            else:
-                values = data
-
-            if lib.is_string_array(values):
-                subarr = tslib.parse_str_array_to_datetime(
-                    values, freq=freq, dayfirst=dayfirst, yearfirst=yearfirst)
-            else:
-                try:
-                    subarr = tools.to_datetime(data, box=False)
-
-                    # make sure that we have a index/ndarray like (and not a
-                    # Series)
-                    if isinstance(subarr, ABCSeries):
-                        subarr = subarr._values
-                        if subarr.dtype == np.object_:
-                            subarr = tools._to_datetime(subarr, box=False)
-
-                except ValueError:
-                    # tz aware
-                    subarr = tools._to_datetime(data, box=False, utc=True)
-
-                # we may not have been able to convert
-                if not (is_datetimetz(subarr) or
-                        np.issubdtype(subarr.dtype, np.datetime64)):
-                    raise ValueError('Unable to convert %s to datetime dtype'
-                                     % str(data))
 
         if isinstance(subarr, DatetimeIndex):
             if tz is None:
@@ -399,27 +347,21 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     ints = subarr.view('i8')
                     subarr = tslib.tz_localize_to_utc(ints, tz,
                                                       ambiguous=ambiguous)
-
                 subarr = subarr.view(_NS_DTYPE)
 
         subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)
-
-        # if dtype is provided, coerce here
         if dtype is not None:
-
             if not is_dtype_equal(subarr.dtype, dtype):
-
+                # dtype must be coerced to DatetimeTZDtype above
                 if subarr.tz is not None:
                     raise ValueError("cannot localize from non-UTC data")
-                dtype = DatetimeTZDtype.construct_from_string(dtype)
-                subarr = subarr.tz_localize(dtype.tz)
 
         if verify_integrity and len(subarr) > 0:
             if freq is not None and not freq_infer:
                 inferred = subarr.inferred_freq
                 if inferred != freq.freqstr:
-                    on_freq = cls._generate(subarr[0], None, len(
-                        subarr), None, freq, tz=tz, ambiguous=ambiguous)
+                    on_freq = cls._generate(subarr[0], None, len(subarr), None,
+                                            freq, tz=tz, ambiguous=ambiguous)
                     if not np.array_equal(subarr.asi8, on_freq.asi8):
                         raise ValueError('Inferred frequency {0} from passed '
                                          'dates does not conform to passed '
@@ -563,7 +505,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             index = index[1:]
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
-
         index = cls._simple_new(index, name=name, freq=offset, tz=tz)
         return index
 
@@ -669,7 +610,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             xdr = generate_range(offset=offset, start=_CACHE_START,
                                  end=_CACHE_END)
 
-            arr = tools._to_datetime(list(xdr), box=False)
+            arr = tools.to_datetime(list(xdr), box=False)
 
             cachedRange = DatetimeIndex._simple_new(arr)
             cachedRange.offset = offset
