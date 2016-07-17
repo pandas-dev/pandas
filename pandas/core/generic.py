@@ -5504,7 +5504,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
                        mask_a, mask_b):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
-    @Appender("Return cumulative {0} over requested axis.".format(name) +
+    @Appender("Return {0} over requested axis.".format(desc) +
               _cnum_doc)
     def cum_func(self, axis=None, skipna=True, *args, **kwargs):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
