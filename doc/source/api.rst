@@ -380,6 +380,7 @@ Reindexing / Selection / Label manipulation
    Series.reindex
    Series.reindex_like
    Series.rename
+   Series.rename_axis
    Series.reset_index
    Series.sample
    Series.select
@@ -889,6 +890,7 @@ Reindexing / Selection / Label manipulation
    DataFrame.reindex_axis
    DataFrame.reindex_like
    DataFrame.rename
+   DataFrame.rename_axis
    DataFrame.reset_index
    DataFrame.sample
    DataFrame.select
