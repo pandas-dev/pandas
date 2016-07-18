@@ -8,7 +8,8 @@ from pandas.types.common import (is_bool_dtype,
                                  is_object_dtype,
                                  is_string_like,
                                  is_list_like,
-                                 is_scalar)
+                                 is_scalar,
+                                 is_integer)
 from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
@@ -914,7 +915,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
     if len(fillchar) != 1:
         raise TypeError('fillchar must be a character, not str')
 
-    if not isinstance(width, compat.integer_types):
+    if not is_integer(width):
         msg = 'width must be of integer type, not {0}'
         raise TypeError(msg.format(type(width).__name__))
 

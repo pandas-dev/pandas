@@ -1605,13 +1605,12 @@ class TestStringMethods(tm.TestCase):
 
     def test_pad_width(self):
         values = Series(['1', '22', 'a', 'bb'])
-        string_methods = Series.str(values)
+        s = Series(values)
 
-        for f_name, f in Series.str.__dict__.items():
-            if f_name in ['center', 'ljust', 'rjust', 'zfill', 'pad']:
-                with tm.assertRaisesRegexp(TypeError,
-                                           "width must be of integer type,*"):
-                    f(string_methods, 'f')
+        for f in ['center', 'ljust', 'rjust', 'zfill', 'pad']:
+            with tm.assertRaisesRegexp(TypeError,
+                                       "width must be of integer type, not*"):
+                getattr(s.str, f)('f')
 
     def test_translate(self):
 
