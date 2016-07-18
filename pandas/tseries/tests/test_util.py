@@ -21,7 +21,8 @@ class TestPivotAnnual(tm.TestCase):
         rng = date_range('1/1/2000', '12/31/2004', freq='D')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
-        annual = pivot_annual(ts, 'D')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            annual = pivot_annual(ts, 'D')
 
         doy = ts.index.dayofyear
         doy[(~isleapyear(ts.index.year)) & (doy >= 60)] += 1
@@ -53,7 +54,8 @@ class TestPivotAnnual(tm.TestCase):
         hoy[~isleapyear(ts_hourly.index.year) & (hoy >= 1416)] += 24
         hoy += 1
 
-        annual = pivot_annual(ts_hourly)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            annual = pivot_annual(ts_hourly)
 
         ts_hourly = ts_hourly.astype(float)
         for i in [1, 1416, 1417, 1418, 1439, 1440, 1441, 8784]:
@@ -78,7 +80,8 @@ class TestPivotAnnual(tm.TestCase):
         rng = date_range('1/1/2000', '12/31/2004', freq='M')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
-        annual = pivot_annual(ts, 'M')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            annual = pivot_annual(ts, 'M')
 
         month = ts.index.month
         for i in range(1, 13):
