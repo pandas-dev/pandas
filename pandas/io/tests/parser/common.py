@@ -52,7 +52,8 @@ bar2,12,13,14,15
         utf8 = codecs.lookup('utf-8')
         # stream must be binary UTF8
         stream = codecs.StreamRecoder(
-            handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter)
+            handle, utf8.encode, utf8.decode, codec.streamreader,
+            codec.streamwriter)
         if compat.PY3:
             msg = "'utf-8' codec can't decode byte"
         else:
