@@ -249,6 +249,13 @@ Other enhancements
 - ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
 - A function :func:`union_categorical` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`)
 - ``Series`` has gained the properties ``.is_monotonic``, ``.is_monotonic_increasing``, ``.is_monotonic_decreasing``, similar to ``Index`` (:issue:`13336`)
+- ``DataFrame`` has gained support to re-order the columns based on the values in a row using ``df.sort_values(by='index_label', axis=1)`` (:issue:`10806`)
+
+  .. ipython:: python
+
+     df = pd.DataFrame({'A': [2, 7], 'B': [3, 5], 'C': [4, 8]},
+                       index=['row1', 'row2'])
+     df.sort_values(by='row2', axis=1)
 
 .. _whatsnew_0190.api:
 
