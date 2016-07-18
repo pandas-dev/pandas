@@ -141,11 +141,14 @@ def _mpl_ge_1_5_0():
     except ImportError:
         return False
 
-if _mpl_ge_1_5_0():
+try:
+    _CYCLER_INSTALLED = True
     # Compat with mp 1.5, which uses cycler.
     import cycler
     colors = mpl_stylesheet.pop('axes.color_cycle')
     mpl_stylesheet['axes.prop_cycle'] = cycler.cycler('color', colors)
+except ImportError:
+    _CYCLER_INSTALLED = False
 
 
 def _get_standard_kind(kind):
@@ -891,7 +894,6 @@ class MPLPlot(object):
         self.by = by
 
         self.kind = kind
-
         self.sort_columns = sort_columns
 
         self.subplots = subplots
@@ -966,7 +968,9 @@ class MPLPlot(object):
 
         self.table = table
 
-        self.kwds = kwds
+        # init and validatecycler keyword
+        # ToDo: _validate_color_arg may change kwds to list
+        self.kwds = self._init_cyclic_option(kwds)
 
         self._validate_color_args()
 
@@ -1000,6 +1004,60 @@ class MPLPlot(object):
                         " use one or the other or pass 'style' "
                         "without a color symbol")
 
+    def _init_cyclic_option(self, kwds):
+        """
+        Convert passed kwds to cycler instance
+        """
+        if not _CYCLER_INSTALLED:
+            return kwds
+
+        option = {}
+        for key, value in compat.iteritems(kwds):
+            if isinstance(value, cycler.Cycler):
+                cycler_keys = value.keys
+                if len(cycler_keys) > 1:
+                    msg = ("cycler should only contain "
+                           "passed keyword '{0}': {1}")
+                    raise ValueError(msg.format(key, value))
+                if key not in cycler_keys:
+                    msg = ("cycler must contain "
+                           "passed keyword '{0}': {1}")
+                    raise ValueError(msg.format(key, value))
+
+            elif isinstance(value, list):
+                # instanciate cycler
+                # to do: check mpl kwds which should handle list as it is
+                cycler_value = cycler.cycler(key, value)
+                value = cycler_value
+
+            option[key] = value
+        return option
+
+    def _get_cyclic_option(self, kwds, num):
+        """
+        Get num-th element of cycler contained in passed kwds.
+        """
+        if not _CYCLER_INSTALLED:
+            return kwds
+
+        option = {}
+        for key, value in compat.iteritems(kwds):
+            if isinstance(value, cycler.Cycler):
+                # cycler() will implicitly loop, cycler will not
+                # cycler 0.10 or later is required
+                for i, v in enumerate(value()):
+                    if i == num:
+                        try:
+                            option[key] = v[key]
+                        except KeyError:
+                            msg = ("cycler doesn't contain required "
+                                   "key '{0}': {1}")
+                            raise ValueError(msg.format(key, value))
+                        break
+            else:
+                option[key] = value
+        return option
+
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
             data = self.data
@@ -1020,6 +1078,9 @@ class MPLPlot(object):
 
     @property
     def nseries(self):
+        """
+        Number of columns to be plotted. If data is a Series, return 1.
+        """
         if self.data.ndim == 1:
             return 1
         else:
@@ -1168,6 +1229,7 @@ class MPLPlot(object):
             self._apply_axis_properties(ax.xaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
+
         elif self.orientation == 'horizontal':
             if self._need_to_set_index:
                 yticklabels = [labels.get(y, '') for y in ax.get_yticks()]
@@ -1703,8 +1765,10 @@ class LinePlot(MPLPlot):
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
+
             kwds = self.kwds.copy()
             style, kwds = self._apply_style_colors(colors, kwds, i, label)
+            kwds = self._get_cyclic_option(kwds, i)
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
@@ -1836,13 +1900,20 @@ class AreaPlot(LinePlot):
         if self.logy or self.loglog:
             raise ValueError("Log-y scales are not supported in area plot")
 
+    # kwds should not be passed to line
+    _fill_only_kwds = ['hatch']
+
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None,
               stacking_id=None, is_errorbar=False, **kwds):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(y))
         y_values = cls._get_stacked_values(ax, stacking_id, y, kwds['label'])
-        lines = MPLPlot._plot(ax, x, y_values, style=style, **kwds)
+
+        line_kwds = kwds.copy()
+        for attr in cls._fill_only_kwds:
+            line_kwds.pop(attr, None)
+        lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
 
         # get data from the line to get coordinates for fill_between
         xdata, y_values = lines[0].get_data(orig=False)
@@ -1945,6 +2016,8 @@ class BarPlot(MPLPlot):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % ncolors]
+
+            kwds = self._get_cyclic_option(kwds, i)
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
@@ -2071,6 +2144,7 @@ class HistPlot(LinePlot):
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
+            kwds = self._get_cyclic_option(kwds, i)
 
             label = pprint_thing(label)
             kwds['label'] = label
@@ -2187,6 +2261,7 @@ class PiePlot(MPLPlot):
                 ax.set_ylabel(label)
 
             kwds = self.kwds.copy()
+            kwds = self._get_cyclic_option(kwds, i)
 
             def blank_labeler(label, value):
                 if value == 0:
@@ -2327,6 +2402,7 @@ class BoxPlot(LinePlot):
             for i, (label, y) in enumerate(self._iter_data()):
                 ax = self._get_ax(i)
                 kwds = self.kwds.copy()
+                kwds = self._get_cyclic_option(kwds, i)
 
                 ret, bp = self._plot(ax, y, column_num=i,
                                      return_type=self.return_type, **kwds)
@@ -2339,6 +2415,7 @@ class BoxPlot(LinePlot):
             y = self.data.values.T
             ax = self._get_ax(0)
             kwds = self.kwds.copy()
+            kwds = self._get_cyclic_option(kwds, 0)
 
             ret, bp = self._plot(ax, y, column_num=0,
                                  return_type=self.return_type, **kwds)

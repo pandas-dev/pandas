@@ -2098,6 +2098,40 @@ class TestDataFramePlots(TestPlotBase):
             self.assertEqual(result, [1] * 5)
 
     @slow
+    def test_bar_hatches(self):
+        df = DataFrame(rand(4, 3))
+
+        ax = df.plot.bar()
+        result = [p._hatch for p in ax.patches]
+        self.assertEqual(result, [None] * 12)
+        tm.close()
+
+        ax = df.plot.bar(hatch='*')
+        result = [p._hatch for p in ax.patches]
+        self.assertEqual(result, ['*'] * 12)
+        tm.close()
+
+        from cycler import cycler
+        ax = df.plot.bar(hatch=cycler('hatch', ['*', '+', '//']))
+        result = [p._hatch for p in ax.patches[:4]]
+        self.assertEqual(result, ['*'] * 4)
+        result = [p._hatch for p in ax.patches[4:8]]
+        self.assertEqual(result, ['+'] * 4)
+        result = [p._hatch for p in ax.patches[8:]]
+        self.assertEqual(result, ['//'] * 4)
+        tm.close()
+
+        # length mismatch, loops implicitly
+        ax = df.plot.bar(hatch=cycler('hatch', ['*', '+']))
+        result = [p._hatch for p in ax.patches[:4]]
+        self.assertEqual(result, ['*'] * 4)
+        result = [p._hatch for p in ax.patches[4:8]]
+        self.assertEqual(result, ['+'] * 4)
+        result = [p._hatch for p in ax.patches[8:]]
+        self.assertEqual(result, ['*'] * 4)
+        tm.close()
+
+    @slow
     def test_bar_nan(self):
         df = DataFrame({'A': [10, np.nan, 20],
                         'B': [5, 10, 20],
@@ -2954,6 +2988,10 @@ class TestDataFramePlots(TestPlotBase):
             self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
+    def _get_polycollection(self, ax):
+        from matplotlib.collections import PolyCollection
+        return [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+
     @slow
     def test_area_colors(self):
         from matplotlib import cm
@@ -2964,7 +3002,7 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = df.plot.area(color=custom_colors)
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
-        poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+        poly = self._get_polycollection(ax)
         self._check_colors(poly, facecolors=custom_colors)
 
         handles, labels = ax.get_legend_handles_labels()
@@ -2978,7 +3016,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.area(colormap='jet')
         jet_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
         self._check_colors(ax.get_lines(), linecolors=jet_colors)
-        poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+        poly = self._get_polycollection(ax)
         self._check_colors(poly, facecolors=jet_colors)
 
         handles, labels = ax.get_legend_handles_labels()
@@ -2991,7 +3029,7 @@ class TestDataFramePlots(TestPlotBase):
         # When stacked=False, alpha is set to 0.5
         ax = df.plot.area(colormap=cm.jet, stacked=False)
         self._check_colors(ax.get_lines(), linecolors=jet_colors)
-        poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+        poly = self._get_polycollection(ax)
         jet_with_alpha = [(c[0], c[1], c[2], 0.5) for c in jet_colors]
         self._check_colors(poly, facecolors=jet_with_alpha)
 
@@ -3000,6 +3038,38 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(handles[:len(jet_colors)], linecolors=jet_colors)
         for h in handles:
             self.assertEqual(h.get_alpha(), 0.5)
+
+    @slow
+    def test_area_hatches(self):
+        df = DataFrame(rand(4, 3))
+
+        ax = df.plot.area(stacked=False)
+        result = [x._hatch for x in self._get_polycollection(ax)]
+        self.assertEqual(result, [None] * 3)
+        tm.close()
+
+        ax = df.plot.area(hatch='*', stacked=False)
+        result = [x._hatch for x in self._get_polycollection(ax)]
+        self.assertEqual(result, ['*'] * 3)
+        tm.close()
+
+        from cycler import cycler
+        ax = df.plot.area(hatch=cycler('hatch', ['*', '+', '//']),
+                          stacked=False)
+        poly = self._get_polycollection(ax)
+        self.assertEqual(poly[0]._hatch, '*')
+        self.assertEqual(poly[1]._hatch, '+')
+        self.assertEqual(poly[2]._hatch, '//')
+        tm.close()
+
+        # length mismatch, loops implicitly
+        ax = df.plot.area(hatch=cycler('hatch', ['*', '+']),
+                          stacked=False)
+        poly = self._get_polycollection(ax)
+        self.assertEqual(poly[0]._hatch, '*')
+        self.assertEqual(poly[1]._hatch, '+')
+        self.assertEqual(poly[2]._hatch, '*')
+        tm.close()
 
     @slow
     def test_hist_colors(self):
