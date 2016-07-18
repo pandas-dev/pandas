@@ -1757,6 +1757,33 @@ class TestStringMethods(tm.TestCase):
                                    "fillchar must be a character, not int"):
             result = values.str.rjust(5, fillchar=1)
 
+    def test_center_ljust_rjust_width(self):
+        values = Series(['a', 'bb', 'ccc', NA, 'eeeee'])
+
+        result = values.str.center(4, fillchar='X')
+        expected = Series(['XaXX', 'XbbX', 'cccX', NA, 'eeeee'])
+        tm.assert_almost_equal(result, expected)
+
+        result = values.str.ljust(4, fillchar='X')
+        expected = Series(['aXXX', 'bbXX', 'cccX', NA, 'eeeee'])
+        tm.assert_almost_equal(result, expected)
+
+        result = values.str.rjust(4, fillchar='X')
+        expected = Series(['XXXa', 'XXbb', 'Xccc', NA, 'eeeee'])
+        tm.assert_almost_equal(result, expected)
+
+        with tm.assertRaisesRegexp(TypeError,
+                                   "width must be of integer type, not*"):
+            result = values.str.center('f', fillchar='X')
+
+        with tm.assertRaisesRegexp(TypeError,
+                                   "width must be of integer type, not*"):
+            result = values.str.ljust('f', fillchar='X')
+
+        with tm.assertRaisesRegexp(TypeError,
+                                   "width must be of integer type, not*"):
+            result = values.str.rjust('f', fillchar='X')
+
     def test_zfill(self):
         values = Series(['1', '22', 'aaa', '333', '45678'])
 
@@ -1778,6 +1805,17 @@ class TestStringMethods(tm.TestCase):
         result = values.str.zfill(5)
         expected = Series(['00001', np.nan, '00aaa', np.nan, '45678'])
         tm.assert_series_equal(result, expected)
+
+    def test_zfill_width(self):
+        values = Series(['1', '22', 'ccc', NA, 'eeeee'])
+
+        result = values.str.zfill(5)
+        expected = Series(['00001', '00022', '00ccc', NA, 'eeeee'])
+        tm.assert_almost_equal(result, expected)
+
+        with tm.assertRaisesRegexp(TypeError,
+                                   "width must be of integer type, not*"):
+            result = values.str.zfill('f')
 
     def test_split(self):
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
