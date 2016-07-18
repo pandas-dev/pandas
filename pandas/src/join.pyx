@@ -193,11 +193,12 @@ def left_outer_asof_join(ndarray[int64_t] left, ndarray[int64_t] right,
                         diff = left_val - right_val
 
                         # do we allow exact matches
-                        if allow_exact_matches and diff > tol:
-                            right_indexer[indexer] = -1
-                            continue
+                        if allow_exact_matches:
+                            if diff > tol:
+                                right_indexer[indexer] = -1
+                                continue
                         elif not allow_exact_matches:
-                            if diff >= tol:
+                            if diff >= tol or lc == rc:
                                 right_indexer[indexer] = -1
                                 continue
 
@@ -220,13 +221,14 @@ def left_outer_asof_join(ndarray[int64_t] left, ndarray[int64_t] right,
                         diff = left_val - right_val
 
                         # do we allow exact matches
-                        if allow_exact_matches and diff > tol:
-                            right_indexer[indexer] = -1
-                            continue
+                        if allow_exact_matches:
+                            if diff > tol:
+                                right_indexer[indexer] = -1
+                                continue
 
                         # we don't allow exact matches
                         elif not allow_exact_matches:
-                            if diff >= tol or not right_pos:
+                            if diff >= tol or lc == rc:
                                 right_indexer[indexer] = -1
                             else:
                                 right_indexer[indexer] = right_pos - 1
