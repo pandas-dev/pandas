@@ -614,3 +614,5 @@ Bug Fixes
 - Bug in ``groupby`` with ``as_index=False`` returns all NaN's when grouping on multiple columns including a categorical one (:issue:`13204`)
 
 - Bug where ``pd.read_gbq()`` could throw ``ImportError: No module named discovery`` as a result of a naming conflict with another python package called apiclient  (:issue:`13454`)
+
+- Bug when calling ``Series.argmax`` with infinite values (:issue:`13595`)
