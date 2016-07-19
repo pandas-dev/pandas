@@ -432,7 +432,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
         d = parse_dates_safe(dates, year=True)
         conv_dates = d.year
     else:
-        raise ValueError("fmt %s not understood" % fmt)
+        raise ValueError("Format %s is not a known Stata date format" % fmt)
 
     conv_dates = Series(conv_dates, dtype=np.float64)
     missing_value = struct.unpack('<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0]
@@ -1709,7 +1709,7 @@ def _convert_datetime_to_stata_type(fmt):
                "%tq", "th", "%th", "ty", "%ty"]:
         return np.float64  # Stata expects doubles for SIFs
     else:
-        raise ValueError("fmt %s not understood" % fmt)
+        raise NotImplementedError("Format %s not implemented" % fmt)
 
 
 def _maybe_convert_to_int_keys(convert_dates, varlist):
@@ -1721,9 +1721,8 @@ def _maybe_convert_to_int_keys(convert_dates, varlist):
             new_dict.update({varlist.index(key): convert_dates[key]})
         else:
             if not isinstance(key, int):
-                raise ValueError(
-                    "convert_dates key is not in varlist and is not an int"
-                )
+                raise ValueError("convert_dates key must be a "
+                                 "column or an integer")
             new_dict.update({key: convert_dates[key]})
     return new_dict
 
@@ -1763,8 +1762,7 @@ def _dtype_to_stata_type(dtype, column):
     elif dtype == np.int8:
         return chr(251)
     else:  # pragma : no cover
-        raise ValueError("Data type %s not currently understood. "
-                         "Please report an error to the developers." % dtype)
+        raise NotImplementedError("Data type %s not supported." % dtype)
 
 
 def _dtype_to_default_stata_fmt(dtype, column):
@@ -1801,35 +1799,36 @@ def _dtype_to_default_stata_fmt(dtype, column):
     elif dtype == np.int8 or dtype == np.int16:
         return "%8.0g"
     else:  # pragma : no cover
-        raise ValueError("Data type %s not currently understood. "
-                         "Please report an error to the developers." % dtype)
+        raise NotImplementedError("Data type %s not supported." % dtype)
 
 
 class StataWriter(StataParser):
     """
-    A class for writing Stata binary dta files from array-like objects
+    A class for writing Stata binary dta files
 
     Parameters
     ----------
-    fname : file path or buffer
-        Where to save the dta file.
-    data : array-like
-        Array-like input to save. Pandas objects are also accepted.
+    fname : str or buffer
+        String path of file-like object
+    data : DataFrame
+        Input to save
     convert_dates : dict
-        Dictionary mapping column of datetime types to the stata internal
-        format that you want to use for the dates. Options are
-        'tc', 'td', 'tm', 'tw', 'th', 'tq', 'ty'. Column can be either a
-        number or a name.
+        Dictionary mapping columns containing datetime types to stata internal
+        format to use when wirting the dates. Options are 'tc', 'td', 'tm',
+        'tw', 'th', 'tq', 'ty'. Column can be either an integer or a name.
+        Datetime columns that do not have a conversion type specified will be
+        converted to 'tc'. Raises NotImplementedError if a datetime column has
+        timezone information
+    write_index : bool
+        Write the index to Stata dataset.
     encoding : str
-        Default is latin-1. Note that Stata does not support unicode.
+        Default is latin-1. Unicode is not supported
     byteorder : str
-        Can be ">", "<", "little", or "big". The default is None which uses
-        `sys.byteorder`
+        Can be ">", "<", "little", or "big". default is `sys.byteorder`
     time_stamp : datetime
-        A date time to use when writing the file.  Can be None, in which
-        case the current time is used.
+        A datetime to use as file creation date.  Default is the current time
     dataset_label : str
-        A label for the data set.  Should be 80 characters or smaller.
+        A label for the data set.  Must be 80 characters or smaller.
 
     .. versionadded:: 0.19.0
 
@@ -1842,6 +1841,17 @@ class StataWriter(StataParser):
     writer : StataWriter instance
         The StataWriter instance has a write_file method, which will
         write the file to the given `fname`.
+
+    Raises
+    ------
+    NotImplementedError
+        * If datetimes contain timezone information
+    ValueError
+        * Columns listed in convert_dates are noth either datetime64[ns]
+          or datetime.datetime
+        * Column dtype is not representable in Stata
+        * Column listed in convert_dates is not in DataFrame
+        * Categorical label contains more than 32,000 characters
 
     Examples
     --------
@@ -1861,7 +1871,7 @@ class StataWriter(StataParser):
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None):
         super(StataWriter, self).__init__(encoding)
-        self._convert_dates = convert_dates
+        self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
         self._time_stamp = time_stamp
         self._data_label = data_label
@@ -2041,15 +2051,22 @@ class StataWriter(StataParser):
         self.varlist = data.columns.tolist()
 
         dtypes = data.dtypes
-        if self._convert_dates is not None:
-            self._convert_dates = _maybe_convert_to_int_keys(
-                self._convert_dates, self.varlist
+
+        # Ensure all date columns are converted
+        for col in data:
+            if col in self._convert_dates:
+                continue
+            if is_datetime64_dtype(data[col]):
+                self._convert_dates[col] = 'tc'
+
+        self._convert_dates = _maybe_convert_to_int_keys(self._convert_dates,
+                                                         self.varlist)
+        for key in self._convert_dates:
+            new_type = _convert_datetime_to_stata_type(
+                self._convert_dates[key]
             )
-            for key in self._convert_dates:
-                new_type = _convert_datetime_to_stata_type(
-                    self._convert_dates[key]
-                )
-                dtypes[key] = np.dtype(new_type)
+            dtypes[key] = np.dtype(new_type)
+
         self.typlist = []
         self.fmtlist = []
         for col, dtype in dtypes.iteritems():

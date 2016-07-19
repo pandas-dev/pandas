@@ -1473,31 +1473,42 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        fname : file path or buffer
-            Where to save the dta file.
+        fname : str or buffer
+            String path of file-like object
         convert_dates : dict
-            Dictionary mapping column of datetime types to the stata internal
-            format that you want to use for the dates. Options are
-            'tc', 'td', 'tm', 'tw', 'th', 'tq', 'ty'. Column can be either a
-            number or a name.
+            Dictionary mapping columns containing datetime types to stata internal
+            format to use when wirting the dates. Options are 'tc', 'td', 'tm',
+            'tw', 'th', 'tq', 'ty'. Column can be either an integer or a name.
+            Datetime columns that do not have a conversion type specified will be
+            converted to 'tc'. Raises NotImplementedError if a datetime column has
+            timezone information
         write_index : bool
             Write the index to Stata dataset.
         encoding : str
-            Default is latin-1. Note that Stata does not support unicode.
+            Default is latin-1. Unicode is not supported
         byteorder : str
-            Can be ">", "<", "little", or "big". The default is None which uses
-            `sys.byteorder`
+            Can be ">", "<", "little", or "big". default is `sys.byteorder`
         time_stamp : datetime
-            A date time to use when writing the file.  Can be None, in which
-            case the current time is used.
+            A datetime to use as file creation date.  Default is the current time
         dataset_label : str
-            A label for the data set.  Should be 80 characters or smaller.
+            A label for the data set.  Must be 80 characters or smaller.
 
         .. versionadded:: 0.19.0
 
         variable_labels : dict
-            Dictionary containing columns as keys and variable labels as
-            values. Each label must be 80 characters or smaller.
+            Dictionary containing columns as keys and variable labels as values.
+            Each label must be 80 characters or smaller.
+
+        Raises
+        ------
+        NotImplementedError
+            * If datetimes contain timezone information
+            * Column dtype is not representable in Stata
+        ValueError
+            * Columns listed in convert_dates are noth either datetime64[ns]
+              or datetime.datetime
+            * Column listed in convert_dates is not in DataFrame
+            * Categorical label contains more than 32,000 characters
 
         Examples
         --------
