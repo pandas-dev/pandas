@@ -39,6 +39,27 @@ class TestSeriesCombine(TestData, tm.TestCase):
         result = pieces[0].append(pieces[1:])
         assert_series_equal(result, self.ts)
 
+    def test_append_duplicates(self):
+        # GH 13677
+        s1 = pd.Series([1, 2, 3])
+        s2 = pd.Series([4, 5, 6])
+        exp = pd.Series([1, 2, 3, 4, 5, 6], index=[0, 1, 2, 0, 1, 2])
+        tm.assert_series_equal(s1.append(s2), exp)
+        tm.assert_series_equal(pd.concat([s1, s2]), exp)
+
+        # the result must have RangeIndex
+        exp = pd.Series([1, 2, 3, 4, 5, 6])
+        tm.assert_series_equal(s1.append(s2, ignore_index=True),
+                               exp, check_index_type=True)
+        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True),
+                               exp, check_index_type=True)
+
+        msg = 'Indexes have overlapping values:'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s1.append(s2, verify_integrity=True)
+        with tm.assertRaisesRegexp(ValueError, msg):
+            pd.concat([s1, s2], verify_integrity=True)
+
     def test_combine_first(self):
         values = tm.makeIntIndex(20).values.astype(float)
         series = Series(values, index=tm.makeIntIndex(20))

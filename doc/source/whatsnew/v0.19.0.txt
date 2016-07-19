@@ -249,6 +249,7 @@ Other enhancements
 - ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
 - A function :func:`union_categorical` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`)
 - ``Series`` has gained the properties ``.is_monotonic``, ``.is_monotonic_increasing``, ``.is_monotonic_decreasing``, similar to ``Index`` (:issue:`13336`)
+- ``Series.append`` now supports ``ignore_index`` option (:issue:`13677`)
 
 .. _whatsnew_0190.api:
 
