@@ -752,7 +752,7 @@ calculate significantly slower and will raise a ``PerformanceWarning``
    rng + BQuarterEnd()
 
 
-.. _timeseries.alias:
+.. _timeseries.custombusinessdays:
 
 Custom Business Days (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -953,6 +953,8 @@ You can use keyword arguments suported by either ``BusinessHour`` and ``CustomBu
     # Monday is skipped because it's a holiday, business hour starts from 10:00
     dt + bhour_mon * 2
 
+.. _timeseries.alias:
+
 Offset Aliases
 ~~~~~~~~~~~~~~
 
@@ -1102,48 +1104,6 @@ it is rolled forward to the next anchor point.
 
    pd.Timestamp('2014-01-01') + MonthBegin(n=0)
    pd.Timestamp('2014-01-31') + MonthEnd(n=0)
-
-.. _timeseries.legacyaliases:
-
-Legacy Aliases
-~~~~~~~~~~~~~~
-Note that prior to v0.8.0, time rules had a slightly different look. These are
-deprecated in v0.17.0, and removed in future version.
-
-.. csv-table::
-    :header: "Legacy Time Rule", "Offset Alias"
-    :widths: 15, 65
-
-    "WEEKDAY", "B"
-    "EOM", "BM"
-    "W\@MON", "W\-MON"
-    "W\@TUE", "W\-TUE"
-    "W\@WED", "W\-WED"
-    "W\@THU", "W\-THU"
-    "W\@FRI", "W\-FRI"
-    "W\@SAT", "W\-SAT"
-    "W\@SUN", "W\-SUN"
-    "Q\@JAN", "BQ\-JAN"
-    "Q\@FEB", "BQ\-FEB"
-    "Q\@MAR", "BQ\-MAR"
-    "A\@JAN", "BA\-JAN"
-    "A\@FEB", "BA\-FEB"
-    "A\@MAR", "BA\-MAR"
-    "A\@APR", "BA\-APR"
-    "A\@MAY", "BA\-MAY"
-    "A\@JUN", "BA\-JUN"
-    "A\@JUL", "BA\-JUL"
-    "A\@AUG", "BA\-AUG"
-    "A\@SEP", "BA\-SEP"
-    "A\@OCT", "BA\-OCT"
-    "A\@NOV", "BA\-NOV"
-    "A\@DEC", "BA\-DEC"
-
-
-As you can see, legacy quarterly and annual frequencies are business quarters
-and business year ends. Please also note the legacy time rule for milliseconds
-``ms`` versus the new offset alias for month start ``MS``. This means that
-offset alias parsing is case sensitive.
 
 .. _timeseries.holiday:
 

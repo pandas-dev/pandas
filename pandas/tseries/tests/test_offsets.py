@@ -23,7 +23,7 @@ from pandas.core.datetools import (bday, BDay, CDay, BQuarterEnd, BMonthEnd,
 
 from pandas.core.series import Series
 from pandas.tseries.frequencies import (_offset_map, get_freq_code,
-                                        _get_freq_str)
+                                        _get_freq_str, _INVALID_FREQ_ERROR)
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache
 from pandas.tseries.tools import parse_time_string, DateParseError
 import pandas.tseries.offsets as offsets
@@ -4531,8 +4531,11 @@ class TestOffsetNames(tm.TestCase):
 
 
 def test_get_offset():
-    assertRaisesRegexp(ValueError, "rule.*GIBBERISH", get_offset, 'gibberish')
-    assertRaisesRegexp(ValueError, "rule.*QS-JAN-B", get_offset, 'QS-JAN-B')
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        get_offset('gibberish')
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        get_offset('QS-JAN-B')
+
     pairs = [
         ('B', BDay()), ('b', BDay()), ('bm', BMonthEnd()),
         ('Bm', BMonthEnd()), ('W-MON', Week(weekday=0)),
@@ -4558,10 +4561,8 @@ def test_get_offset():
 def test_get_offset_legacy():
     pairs = [('w@Sat', Week(weekday=5))]
     for name, expected in pairs:
-        with tm.assert_produces_warning(FutureWarning):
-            offset = get_offset(name)
-        assert offset == expected, ("Expected %r to yield %r (actual: %r)" %
-                                    (name, expected, offset))
+        with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+            get_offset(name)
 
 
 class TestParseTimeString(tm.TestCase):
@@ -4595,16 +4596,14 @@ def test_get_standard_freq():
     assert fstr == get_standard_freq('1w')
     assert fstr == get_standard_freq(('W', 1))
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = get_standard_freq('WeEk')
-    assert fstr == result
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        get_standard_freq('WeEk')
 
     fstr = get_standard_freq('5Q')
     assert fstr == get_standard_freq('5q')
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = get_standard_freq('5QuarTer')
-    assert fstr == result
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        get_standard_freq('5QuarTer')
 
     assert fstr == get_standard_freq(('q', 5))
 

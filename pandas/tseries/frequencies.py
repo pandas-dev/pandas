@@ -1,5 +1,5 @@
 from datetime import timedelta
-from pandas.compat import range, long, zip
+from pandas.compat import long, zip
 from pandas import compat
 import re
 import warnings
@@ -356,34 +356,6 @@ def get_period_alias(offset_str):
     """ alias to closest period strings BQ->Q etc"""
     return _offset_to_period_map.get(offset_str, None)
 
-_rule_aliases = {
-    # Legacy rules that will continue to map to their original values
-    # essentially for the rest of time
-    'WEEKDAY': 'B',
-    'EOM': 'BM',
-    'W@MON': 'W-MON',
-    'W@TUE': 'W-TUE',
-    'W@WED': 'W-WED',
-    'W@THU': 'W-THU',
-    'W@FRI': 'W-FRI',
-    'W@SAT': 'W-SAT',
-    'W@SUN': 'W-SUN',
-    'Q@JAN': 'BQ-JAN',
-    'Q@FEB': 'BQ-FEB',
-    'Q@MAR': 'BQ-MAR',
-    'A@JAN': 'BA-JAN',
-    'A@FEB': 'BA-FEB',
-    'A@MAR': 'BA-MAR',
-    'A@APR': 'BA-APR',
-    'A@MAY': 'BA-MAY',
-    'A@JUN': 'BA-JUN',
-    'A@JUL': 'BA-JUL',
-    'A@AUG': 'BA-AUG',
-    'A@SEP': 'BA-SEP',
-    'A@OCT': 'BA-OCT',
-    'A@NOV': 'BA-NOV',
-    'A@DEC': 'BA-DEC',
-}
 
 _lite_rule_alias = {
     'W': 'W-SUN',
@@ -401,17 +373,6 @@ _lite_rule_alias = {
     'ns': 'N'
 }
 
-# TODO: Can this be killed?
-for _i, _weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
-    for _iweek in range(4):
-        _name = 'WOM-%d%s' % (_iweek + 1, _weekday)
-        _rule_aliases[_name.replace('-', '@')] = _name
-
-# Note that _rule_aliases is not 1:1 (d[BA]==d[A@DEC]), and so traversal
-# order matters when constructing an inverse. we pick one. #2331
-# Used in get_legacy_offset_name
-_legacy_reverse_map = dict((v, k) for k, v in
-                           reversed(sorted(compat.iteritems(_rule_aliases))))
 
 _name_to_offset_map = {'days': Day(1),
                        'hours': Hour(1),
@@ -420,6 +381,9 @@ _name_to_offset_map = {'days': Day(1),
                        'milliseconds': Milli(1),
                        'microseconds': Micro(1),
                        'nanoseconds': Nano(1)}
+
+
+_INVALID_FREQ_ERROR = "Invalid frequency: {0}"
 
 
 def to_offset(freqstr):
@@ -460,7 +424,7 @@ def to_offset(freqstr):
                     else:
                         delta = delta + offset
         except Exception:
-            raise ValueError("Could not evaluate %s" % freqstr)
+            raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
 
     else:
         delta = None
@@ -479,10 +443,10 @@ def to_offset(freqstr):
                 else:
                     delta = delta + offset
         except Exception:
-            raise ValueError("Could not evaluate %s" % freqstr)
+            raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
 
     if delta is None:
-        raise ValueError('Unable to understand %s as a frequency' % freqstr)
+        raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
 
     return delta
 
@@ -526,9 +490,6 @@ def get_base_alias(freqstr):
 _dont_uppercase = set(('MS', 'ms'))
 
 
-_LEGACY_FREQ_WARNING = 'Freq "{0}" is deprecated, use "{1}" as alternative.'
-
-
 def get_offset(name):
     """
     Return DateOffset object associated with rule name
@@ -539,27 +500,9 @@ def get_offset(name):
     """
     if name not in _dont_uppercase:
         name = name.upper()
-
-        if name in _rule_aliases:
-            new = _rule_aliases[name]
-            warnings.warn(_LEGACY_FREQ_WARNING.format(name, new),
-                          FutureWarning, stacklevel=2)
-            name = new
-        elif name.lower() in _rule_aliases:
-            new = _rule_aliases[name.lower()]
-            warnings.warn(_LEGACY_FREQ_WARNING.format(name, new),
-                          FutureWarning, stacklevel=2)
-            name = new
-
         name = _lite_rule_alias.get(name, name)
         name = _lite_rule_alias.get(name.lower(), name)
-
     else:
-        if name in _rule_aliases:
-            new = _rule_aliases[name]
-            warnings.warn(_LEGACY_FREQ_WARNING.format(name, new),
-                          FutureWarning, stacklevel=2)
-            name = new
         name = _lite_rule_alias.get(name, name)
 
     if name not in _offset_map:
@@ -571,7 +514,7 @@ def get_offset(name):
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError):
             # bad prefix or suffix
-            raise ValueError('Bad rule name requested: %s.' % name)
+            raise ValueError(_INVALID_FREQ_ERROR.format(name))
         # cache
         _offset_map[name] = offset
     # do not return cache because it's mutable
@@ -593,17 +536,6 @@ def get_offset_name(offset):
     msg = "get_offset_name(offset) is deprecated. Use offset.freqstr instead"
     warnings.warn(msg, FutureWarning, stacklevel=2)
     return offset.freqstr
-
-
-def get_legacy_offset_name(offset):
-    """
-    Return the pre pandas 0.8.0 name for the date offset
-    """
-
-    # This only used in test_timeseries_legacy.py
-
-    name = offset.name
-    return _legacy_reverse_map.get(name, name)
 
 
 def get_standard_freq(freq):
@@ -796,36 +728,18 @@ _period_alias_dict = _period_alias_dictionary()
 
 
 def _period_str_to_code(freqstr):
-    # hack
-    if freqstr in _rule_aliases:
-        new = _rule_aliases[freqstr]
-        warnings.warn(_LEGACY_FREQ_WARNING.format(freqstr, new),
-                      FutureWarning, stacklevel=3)
-        freqstr = new
     freqstr = _lite_rule_alias.get(freqstr, freqstr)
 
     if freqstr not in _dont_uppercase:
         lower = freqstr.lower()
-        if lower in _rule_aliases:
-            new = _rule_aliases[lower]
-            warnings.warn(_LEGACY_FREQ_WARNING.format(lower, new),
-                          FutureWarning, stacklevel=3)
-            freqstr = new
         freqstr = _lite_rule_alias.get(lower, freqstr)
 
+    if freqstr not in _dont_uppercase:
+        freqstr = freqstr.upper()
     try:
-        if freqstr not in _dont_uppercase:
-            freqstr = freqstr.upper()
         return _period_code_map[freqstr]
     except KeyError:
-        try:
-            alias = _period_alias_dict[freqstr]
-            warnings.warn(_LEGACY_FREQ_WARNING.format(freqstr, alias),
-                          FutureWarning, stacklevel=3)
-        except KeyError:
-            raise ValueError("Unknown freqstr: %s" % freqstr)
-
-        return _period_code_map[alias]
+        raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
 
 
 def infer_freq(index, warn=True):
