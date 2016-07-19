@@ -1046,7 +1046,12 @@ class TimeGrouper(Grouper):
         l = []
         for key, group in grouper.get_iterator(self.ax):
             l.extend([key] * len(group))
-        grouper = binner.__class__(l, freq=binner.freq, name=binner.name)
+
+        if isinstance(self.ax, PeriodIndex):
+            grouper = binner.__class__(l, freq=binner.freq, name=binner.name)
+        else:
+            # resampling causes duplicated values, specifying freq is invalid
+            grouper = binner.__class__(l, name=binner.name)
 
         # since we may have had to sort
         # may need to reorder groups here

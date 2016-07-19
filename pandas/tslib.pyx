@@ -852,13 +852,6 @@ cdef inline bint _cmp_nat_dt(_NaT lhs, _Timestamp rhs, int op) except -1:
     return _nat_scalar_rules[op]
 
 
-cdef _tz_format(object obj, object zone):
-    try:
-        return obj.strftime(' %%Z, tz=%s' % zone)
-    except:
-        return ', tz=%s' % zone
-
-
 cpdef object get_value_box(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
@@ -1642,14 +1635,6 @@ cdef inline _check_dts_bounds(pandas_datetimestruct *dts):
 
         raise OutOfBoundsDatetime('Out of bounds nanosecond timestamp: %s' % fmt)
 
-# elif isinstance(ts, _Timestamp):
-#     tmp = ts
-#     obj.value = (<_Timestamp> ts).value
-#     obj.dtval =
-# elif isinstance(ts, object):
-#     # If all else fails
-#     obj.value = _dtlike_to_datetime64(ts, &obj.dts)
-#     obj.dtval = _dts_to_pydatetime(&obj.dts)
 
 def datetime_to_datetime64(ndarray[object] values):
     cdef:
@@ -1689,7 +1674,7 @@ def datetime_to_datetime64(ndarray[object] values):
 cdef:
     set _not_datelike_strings = set(['a','A','m','M','p','P','t','T'])
 
-cpdef object _does_string_look_like_datetime(object date_string):
+cpdef bint _does_string_look_like_datetime(object date_string):
     if date_string.startswith('0'):
         # Strings starting with 0 are more consistent with a
         # date-like string than a number
@@ -1827,8 +1812,14 @@ def parse_datetime_string(object date_string, object freq=None,
     except ValueError:
         pass
 
-    dt = parse_date(date_string, default=_DEFAULT_DATETIME,
-                    dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+    try:
+        dt = parse_date(date_string, default=_DEFAULT_DATETIME,
+                        dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+    except TypeError:
+        # following may be raised from dateutil
+        # TypeError: 'NoneType' object is not iterable
+        raise ValueError('Given date string not likely a datetime.')
+
     return dt
 
 
@@ -2214,7 +2205,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
 
 
 cpdef array_to_datetime(ndarray[object] values, errors='raise',
-                        dayfirst=False, yearfirst=False, freq=None,
+                        dayfirst=False, yearfirst=False,
                         format=None, utc=None,
                         require_iso8601=False):
     cdef:
@@ -2343,7 +2334,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
                     try:
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
-                                                      yearfirst=yearfirst, freq=freq)
+                                                      yearfirst=yearfirst)
                     except Exception:
                         if is_coerce:
                             iresult[i] = NPY_NAT
@@ -2423,7 +2414,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
                 try:
                     oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
-                                                    yearfirst=yearfirst, freq=freq)
+                                                    yearfirst=yearfirst)
                     _pydatetime_to_dts(oresult[i], &dts)
                     _check_dts_bounds(&dts)
                 except Exception:
@@ -2438,28 +2429,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         return oresult
 
-def parse_str_array_to_datetime(ndarray values, dayfirst=False,
-                                yearfirst=False, object freq=None):
-    """Shortcut to parse str array for quicker DatetimeIndex construction"""
-    cdef:
-        Py_ssize_t i, n = len(values)
-        object val, py_dt
-        ndarray[int64_t] iresult
-        _TSObject _ts
-
-    iresult = np.empty(n, dtype='i8')
-
-    for i in range(n):
-        val = values[i]
-        try:
-            py_dt = parse_datetime_string(val, dayfirst=dayfirst,
-                                          yearfirst=yearfirst, freq=freq)
-        except Exception:
-            raise ValueError
-        _ts = convert_to_tsobject(py_dt, None, None, 0, 0)
-        iresult[i] = _ts.value
-
-    return iresult
 
 # Similar to Timestamp/datetime, this is a construction requirement for timedeltas
 # we need to do object instantiation in python
