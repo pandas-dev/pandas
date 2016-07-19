@@ -252,6 +252,8 @@ Other enhancements
 - ``Series.append`` now supports the ``ignore_index`` option (:issue:`13677`)
 - ``.to_stata()`` and ```StataWriter`` can now write variable labels to Stata dta files using a dictionary to make column names to labels (:issue:`13535`, :issue:`13536`)
 
+- ``to_stata`` and ```StataWriter`` can now write variable labels to Stata dta files using a dictionary to make column names to labels (:issue:`13535`, :issue:`13535`)
+
 .. _whatsnew_0190.api:
 
 API changes
