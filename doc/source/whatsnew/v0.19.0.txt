@@ -310,6 +310,7 @@ Other enhancements
 - ``Series`` has gained the properties ``.is_monotonic``, ``.is_monotonic_increasing``, ``.is_monotonic_decreasing``, similar to ``Index`` (:issue:`13336`)
 - ``Series.append`` now supports the ``ignore_index`` option (:issue:`13677`)
 - ``.to_stata()`` and ``StataWriter`` can now write variable labels to Stata dta files using a dictionary to make column names to labels (:issue:`13535`, :issue:`13536`)
+- ``.to_stata()`` and ``StataWriter`` will automatically convert ``datetime64[ns]`` columns to Stata format ``%tc``, rather than raising a ``ValueError`` (:issue:`12259`)
 
 .. _whatsnew_0190.api:
 
