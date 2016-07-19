@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=E1101,E1103,W0232
 
-import os
 import sys
 from datetime import datetime
 from distutils.version import LooseVersion
@@ -2906,54 +2905,41 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_series_equal(res, exp)
 
     def test_value_counts_with_nan(self):
-        # https://github.com/pydata/pandas/issues/9443
+        # see gh-9443
 
+        # sanity check
         s = pd.Series(["a", "b", "a"], dtype="category")
-        tm.assert_series_equal(
-            s.value_counts(dropna=True),
-            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
-        tm.assert_series_equal(
-            s.value_counts(dropna=False),
-            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
-
-        s = pd.Series(["a", "b", None, "a", None, None], dtype="category")
-        tm.assert_series_equal(
-            s.value_counts(dropna=True),
-            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
-        tm.assert_series_equal(
-            s.value_counts(dropna=False),
-            pd.Series([3, 2, 1], index=pd.CategoricalIndex([np.nan, "a", "b"])))
-        # When we aren't sorting by counts, and np.nan isn't a
-        # category, it should be last.
-        tm.assert_series_equal(
-            s.value_counts(dropna=False, sort=False),
-            pd.Series([2, 1, 3],
-                      index=pd.CategoricalIndex(["a", "b", np.nan])))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            s = pd.Series(pd.Categorical(["a", "b", "a"],
-                                         categories=["a", "b", np.nan]))
-
-        # internal categories are different because of NaN
         exp = pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"]))
-        tm.assert_series_equal(s.value_counts(dropna=True), exp,
-                               check_categorical=False)
-        exp = pd.Series([2, 1, 0],
-                        index=pd.CategoricalIndex(["a", "b", np.nan]))
-        tm.assert_series_equal(s.value_counts(dropna=False), exp,
-                               check_categorical=False)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            s = pd.Series(pd.Categorical(["a", "b", None, "a", None, None],
-                                         categories=["a", "b", np.nan]))
+        res = s.value_counts(dropna=True)
+        tm.assert_series_equal(res, exp)
 
-        exp = pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"]))
-        tm.assert_series_equal(s.value_counts(dropna=True), exp,
-                               check_categorical=False)
-        exp = pd.Series([3, 2, 1],
-                        index=pd.CategoricalIndex([np.nan, "a", "b"]))
-        tm.assert_series_equal(s.value_counts(dropna=False), exp,
-                               check_categorical=False)
+        res = s.value_counts(dropna=True)
+        tm.assert_series_equal(res, exp)
+
+        # same Series via two different constructions --> same behaviour
+        series = [
+            pd.Series(["a", "b", None, "a", None, None], dtype="category"),
+            pd.Series(pd.Categorical(["a", "b", None, "a", None, None],
+                                     categories=["a", "b"]))
+        ]
+
+        for s in series:
+            # None is a NaN value, so we exclude its count here
+            exp = pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"]))
+            res = s.value_counts(dropna=True)
+            tm.assert_series_equal(res, exp)
+
+            # we don't exclude the count of None and sort by counts
+            exp = pd.Series([3, 2, 1], index=pd.CategoricalIndex([np.nan, "a", "b"]))
+            res = s.value_counts(dropna=False)
+            tm.assert_series_equal(res, exp)
+
+            # When we aren't sorting by counts, and np.nan isn't a
+            # category, it should be last.
+            exp = pd.Series([2, 1, 3], index=pd.CategoricalIndex(["a", "b", np.nan]))
+            res = s.value_counts(dropna=False, sort=False)
+            tm.assert_series_equal(res, exp)
 
     def test_groupby(self):
 
@@ -4113,16 +4099,11 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         res = df.dropna()
         tm.assert_frame_equal(res, df_exp_drop_all)
 
-        # make sure that fillna takes both missing values and NA categories
-        # into account
-        c = Categorical(["a", "b", np.nan])
-        with tm.assert_produces_warning(FutureWarning):
-            c.set_categories(["a", "b", np.nan], rename=True, inplace=True)
-
-        c[0] = np.nan
+        # make sure that fillna takes missing values into account
+        c = Categorical([np.nan, "b", np.nan], categories=["a", "b"])
         df = pd.DataFrame({"cats": c, "vals": [1, 2, 3]})
 
-        cat_exp = Categorical(["a", "b", "a"], categories=["a", "b", np.nan])
+        cat_exp = Categorical(["a", "b", "a"], categories=["a", "b"])
         df_exp = pd.DataFrame({"cats": cat_exp, "vals": [1, 2, 3]})
 
         res = df.fillna("a")
