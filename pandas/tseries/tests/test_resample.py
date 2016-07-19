@@ -168,6 +168,13 @@ class TestResampleAPI(tm.TestCase):
                                             check_stacklevel=False):
                 self.assertIsInstance(getattr(r, op)(2), pd.Series)
 
+        # IPython introspection shouldn't trigger warning GH 13618
+        for op in ['_repr_json', '_repr_latex',
+                   '_ipython_canary_method_should_not_exist_']:
+            r = self.series.resample('H')
+            with tm.assert_produces_warning(None):
+                getattr(r, op, None)
+
         # getitem compat
         df = self.series.to_frame('foo')
 

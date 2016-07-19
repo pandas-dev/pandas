@@ -639,7 +639,7 @@ Bug Fixes
 - Bug in ``pd.to_datetime()`` when passing invalid datatypes (e.g. bool); will now respect the ``errors`` keyword (:issue:`13176`)
 - Bug in ``pd.to_datetime()`` which overflowed on ``int8``, and ``int16`` dtypes (:issue:`13451`)
 - Bug in extension dtype creation where the created types were not is/identical (:issue:`13285`)
-
+- Bug in ``.resample(..)`` where incorrect warnings were triggered by IPython introspection (:issue:`13618`)
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``Series`` comparison may output incorrect result if rhs contains ``NaT`` (:issue:`9005`)
 - Bug in ``Series`` and ``Index`` comparison may output incorrect result if it contains ``NaT`` with ``object`` dtype (:issue:`13592`)
