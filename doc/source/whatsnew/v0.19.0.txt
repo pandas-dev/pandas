@@ -567,6 +567,8 @@ Performance Improvements
 - Improved performance of ``DataFrameGroupBy.transform`` (:issue:`12737`)
 - Improved performance of ``Index.difference`` (:issue:`12044`)
 - Improved performance of datetime string parsing in ``DatetimeIndex`` (:issue:`13692`)
+- Improved performance of hashing ``Period`` (:issue:`12817`)
+
 
 .. _whatsnew_0190.bug_fixes:
 
