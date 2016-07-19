@@ -245,10 +245,10 @@ def test_period_str_to_code():
         assert isinstance(aliases, list)
         assert (frequencies._period_str_to_code(freq) == expected)
 
+        msg = frequencies._INVALID_FREQ_ERROR
         for alias in aliases:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                assert (frequencies._period_str_to_code(alias) == expected)
+            with tm.assertRaisesRegexp(ValueError, msg):
+                frequencies._period_str_to_code(alias)
 
     _assert_depr("M", 3000, ["MTH", "MONTH", "MONTHLY"])
 
@@ -699,8 +699,9 @@ class TestFrequencyInference(tm.TestCase):
             s = Series(period_range('2013', periods=10, freq=freq))
             self.assertRaises(TypeError, lambda: frequencies.infer_freq(s))
         for freq in ['Y']:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
+
+            msg = frequencies._INVALID_FREQ_ERROR
+            with tm.assertRaisesRegexp(ValueError, msg):
                 s = Series(period_range('2013', periods=10, freq=freq))
             self.assertRaises(TypeError, lambda: frequencies.infer_freq(s))
 
@@ -715,17 +716,23 @@ class TestFrequencyInference(tm.TestCase):
         self.assertEqual(inferred, 'D')
 
     def test_legacy_offset_warnings(self):
-        for k, v in compat.iteritems(frequencies._rule_aliases):
-            with tm.assert_produces_warning(FutureWarning):
-                result = frequencies.get_offset(k)
-            exp = frequencies.get_offset(v)
-            self.assertEqual(result, exp)
+        freqs = ['WEEKDAY', 'EOM', 'W@MON', 'W@TUE', 'W@WED', 'W@THU',
+                 'W@FRI', 'W@SAT', 'W@SUN', 'Q@JAN', 'Q@FEB', 'Q@MAR',
+                 'A@JAN', 'A@FEB', 'A@MAR', 'A@APR', 'A@MAY', 'A@JUN',
+                 'A@JUL', 'A@AUG', 'A@SEP', 'A@OCT', 'A@NOV', 'A@DEC',
+                 'WOM@1MON', 'WOM@2MON', 'WOM@3MON', 'WOM@4MON',
+                 'WOM@1TUE', 'WOM@2TUE', 'WOM@3TUE', 'WOM@4TUE',
+                 'WOM@1WED', 'WOM@2WED', 'WOM@3WED', 'WOM@4WED',
+                 'WOM@1THU', 'WOM@2THU', 'WOM@3THU', 'WOM@4THU'
+                 'WOM@1FRI', 'WOM@2FRI', 'WOM@3FRI', 'WOM@4FRI']
 
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                idx = date_range('2011-01-01', periods=5, freq=k)
-            exp = date_range('2011-01-01', periods=5, freq=v)
-            self.assert_index_equal(idx, exp)
+        msg = frequencies._INVALID_FREQ_ERROR
+        for freq in freqs:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                frequencies.get_offset(freq)
+
+            with tm.assertRaisesRegexp(ValueError, msg):
+                date_range('2011-01-01', periods=5, freq=freq)
 
 
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT',

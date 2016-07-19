@@ -451,13 +451,16 @@ class TestPeriodProperties(tm.TestCase):
                  "L": ["MILLISECOND", "MILLISECONDLY", "millisecond"],
                  "U": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
                  "N": ["NANOSECOND", "NANOSECONDLY", "nanosecond"]}
+
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
         for exp, freqs in iteritems(cases):
             for freq in freqs:
+                with self.assertRaisesRegexp(ValueError, msg):
+                    Period('2016-03-01 09:00', freq=freq)
 
-                with tm.assert_produces_warning(FutureWarning,
-                                                check_stacklevel=False):
-                    res = pd.Period('2016-03-01 09:00', freq=freq)
-                self.assertEqual(res, Period('2016-03-01 09:00', freq=exp))
+                # check supported freq-aliases still works
+                p = Period('2016-03-01 09:00', freq=exp)
+                tm.assertIsInstance(p, Period)
 
     def test_repr(self):
         p = Period('Jan-2000')
@@ -659,18 +662,20 @@ class TestPeriodProperties(tm.TestCase):
 
     def test_properties_weekly_legacy(self):
         # Test properties on Periods with daily frequency.
-        with tm.assert_produces_warning(FutureWarning):
-            w_date = Period(freq='WK', year=2007, month=1, day=7)
-        #
+        w_date = Period(freq='W', year=2007, month=1, day=7)
         self.assertEqual(w_date.year, 2007)
         self.assertEqual(w_date.quarter, 1)
         self.assertEqual(w_date.month, 1)
         self.assertEqual(w_date.week, 1)
         self.assertEqual((w_date - 1).week, 52)
         self.assertEqual(w_date.days_in_month, 31)
-        with tm.assert_produces_warning(FutureWarning):
-            exp = Period(freq='WK', year=2012, month=2, day=1)
+
+        exp = Period(freq='W', year=2012, month=2, day=1)
         self.assertEqual(exp.days_in_month, 29)
+
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
+            Period(freq='WK', year=2007, month=1, day=7)
 
     def test_properties_daily(self):
         # Test properties on Periods with daily frequency.
@@ -819,10 +824,11 @@ class TestPeriodProperties(tm.TestCase):
         self.assertEqual(initial.asfreq(freq="M", how="S"),
                          Period('2013-01', 'M'))
 
-        with self.assertRaisesRegexp(ValueError, "Unknown freqstr"):
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
             initial.asfreq(freq="MS", how="S")
 
-        with tm.assertRaisesRegexp(ValueError, "Unknown freqstr: MS"):
+        with tm.assertRaisesRegexp(ValueError, msg):
             pd.Period('2013-01', 'MS')
 
         self.assertTrue(_period_code_map.get("MS") is None)
@@ -1122,123 +1128,28 @@ class TestFreqConversion(tm.TestCase):
 
         self.assertEqual(ival_W.asfreq('W'), ival_W)
 
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
+            ival_W.asfreq('WK')
+
     def test_conv_weekly_legacy(self):
         # frequency conversion tests: from Weekly Frequency
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
+            Period(freq='WK', year=2007, month=1, day=1)
 
-        with tm.assert_produces_warning(FutureWarning):
-            ival_W = Period(freq='WK', year=2007, month=1, day=1)
-
-        with tm.assert_produces_warning(FutureWarning):
-            ival_WSUN = Period(freq='WK', year=2007, month=1, day=7)
-        with tm.assert_produces_warning(FutureWarning):
-            ival_WSAT = Period(freq='WK-SAT', year=2007, month=1, day=6)
-        with tm.assert_produces_warning(FutureWarning):
-            ival_WFRI = Period(freq='WK-FRI', year=2007, month=1, day=5)
-        with tm.assert_produces_warning(FutureWarning):
-            ival_WTHU = Period(freq='WK-THU', year=2007, month=1, day=4)
-        with tm.assert_produces_warning(FutureWarning):
-            ival_WWED = Period(freq='WK-WED', year=2007, month=1, day=3)
-        with tm.assert_produces_warning(FutureWarning):
-            ival_WTUE = Period(freq='WK-TUE', year=2007, month=1, day=2)
-        with tm.assert_produces_warning(FutureWarning):
-            ival_WMON = Period(freq='WK-MON', year=2007, month=1, day=1)
-
-        ival_WSUN_to_D_start = Period(freq='D', year=2007, month=1, day=1)
-        ival_WSUN_to_D_end = Period(freq='D', year=2007, month=1, day=7)
-        ival_WSAT_to_D_start = Period(freq='D', year=2006, month=12, day=31)
-        ival_WSAT_to_D_end = Period(freq='D', year=2007, month=1, day=6)
-        ival_WFRI_to_D_start = Period(freq='D', year=2006, month=12, day=30)
-        ival_WFRI_to_D_end = Period(freq='D', year=2007, month=1, day=5)
-        ival_WTHU_to_D_start = Period(freq='D', year=2006, month=12, day=29)
-        ival_WTHU_to_D_end = Period(freq='D', year=2007, month=1, day=4)
-        ival_WWED_to_D_start = Period(freq='D', year=2006, month=12, day=28)
-        ival_WWED_to_D_end = Period(freq='D', year=2007, month=1, day=3)
-        ival_WTUE_to_D_start = Period(freq='D', year=2006, month=12, day=27)
-        ival_WTUE_to_D_end = Period(freq='D', year=2007, month=1, day=2)
-        ival_WMON_to_D_start = Period(freq='D', year=2006, month=12, day=26)
-        ival_WMON_to_D_end = Period(freq='D', year=2007, month=1, day=1)
-
-        with tm.assert_produces_warning(FutureWarning):
-            ival_W_end_of_year = Period(freq='WK', year=2007, month=12, day=31)
-        with tm.assert_produces_warning(FutureWarning):
-            ival_W_end_of_quarter = Period(freq='WK', year=2007, month=3,
-                                           day=31)
-        with tm.assert_produces_warning(FutureWarning):
-            ival_W_end_of_month = Period(freq='WK', year=2007, month=1, day=31)
-        ival_W_to_A = Period(freq='A', year=2007)
-        ival_W_to_Q = Period(freq='Q', year=2007, quarter=1)
-        ival_W_to_M = Period(freq='M', year=2007, month=1)
-
-        if Period(freq='D', year=2007, month=12, day=31).weekday == 6:
-            ival_W_to_A_end_of_year = Period(freq='A', year=2007)
-        else:
-            ival_W_to_A_end_of_year = Period(freq='A', year=2008)
-
-        if Period(freq='D', year=2007, month=3, day=31).weekday == 6:
-            ival_W_to_Q_end_of_quarter = Period(freq='Q', year=2007, quarter=1)
-        else:
-            ival_W_to_Q_end_of_quarter = Period(freq='Q', year=2007, quarter=2)
-
-        if Period(freq='D', year=2007, month=1, day=31).weekday == 6:
-            ival_W_to_M_end_of_month = Period(freq='M', year=2007, month=1)
-        else:
-            ival_W_to_M_end_of_month = Period(freq='M', year=2007, month=2)
-
-        ival_W_to_B_start = Period(freq='B', year=2007, month=1, day=1)
-        ival_W_to_B_end = Period(freq='B', year=2007, month=1, day=5)
-        ival_W_to_D_start = Period(freq='D', year=2007, month=1, day=1)
-        ival_W_to_D_end = Period(freq='D', year=2007, month=1, day=7)
-        ival_W_to_H_start = Period(freq='H', year=2007, month=1, day=1, hour=0)
-        ival_W_to_H_end = Period(freq='H', year=2007, month=1, day=7, hour=23)
-        ival_W_to_T_start = Period(freq='Min', year=2007, month=1, day=1,
-                                   hour=0, minute=0)
-        ival_W_to_T_end = Period(freq='Min', year=2007, month=1, day=7,
-                                 hour=23, minute=59)
-        ival_W_to_S_start = Period(freq='S', year=2007, month=1, day=1, hour=0,
-                                   minute=0, second=0)
-        ival_W_to_S_end = Period(freq='S', year=2007, month=1, day=7, hour=23,
-                                 minute=59, second=59)
-
-        self.assertEqual(ival_W.asfreq('A'), ival_W_to_A)
-        self.assertEqual(ival_W_end_of_year.asfreq('A'),
-                         ival_W_to_A_end_of_year)
-        self.assertEqual(ival_W.asfreq('Q'), ival_W_to_Q)
-        self.assertEqual(ival_W_end_of_quarter.asfreq('Q'),
-                         ival_W_to_Q_end_of_quarter)
-        self.assertEqual(ival_W.asfreq('M'), ival_W_to_M)
-        self.assertEqual(ival_W_end_of_month.asfreq('M'),
-                         ival_W_to_M_end_of_month)
-
-        self.assertEqual(ival_W.asfreq('B', 'S'), ival_W_to_B_start)
-        self.assertEqual(ival_W.asfreq('B', 'E'), ival_W_to_B_end)
-
-        self.assertEqual(ival_W.asfreq('D', 'S'), ival_W_to_D_start)
-        self.assertEqual(ival_W.asfreq('D', 'E'), ival_W_to_D_end)
-
-        self.assertEqual(ival_WSUN.asfreq('D', 'S'), ival_WSUN_to_D_start)
-        self.assertEqual(ival_WSUN.asfreq('D', 'E'), ival_WSUN_to_D_end)
-        self.assertEqual(ival_WSAT.asfreq('D', 'S'), ival_WSAT_to_D_start)
-        self.assertEqual(ival_WSAT.asfreq('D', 'E'), ival_WSAT_to_D_end)
-        self.assertEqual(ival_WFRI.asfreq('D', 'S'), ival_WFRI_to_D_start)
-        self.assertEqual(ival_WFRI.asfreq('D', 'E'), ival_WFRI_to_D_end)
-        self.assertEqual(ival_WTHU.asfreq('D', 'S'), ival_WTHU_to_D_start)
-        self.assertEqual(ival_WTHU.asfreq('D', 'E'), ival_WTHU_to_D_end)
-        self.assertEqual(ival_WWED.asfreq('D', 'S'), ival_WWED_to_D_start)
-        self.assertEqual(ival_WWED.asfreq('D', 'E'), ival_WWED_to_D_end)
-        self.assertEqual(ival_WTUE.asfreq('D', 'S'), ival_WTUE_to_D_start)
-        self.assertEqual(ival_WTUE.asfreq('D', 'E'), ival_WTUE_to_D_end)
-        self.assertEqual(ival_WMON.asfreq('D', 'S'), ival_WMON_to_D_start)
-        self.assertEqual(ival_WMON.asfreq('D', 'E'), ival_WMON_to_D_end)
-
-        self.assertEqual(ival_W.asfreq('H', 'S'), ival_W_to_H_start)
-        self.assertEqual(ival_W.asfreq('H', 'E'), ival_W_to_H_end)
-        self.assertEqual(ival_W.asfreq('Min', 'S'), ival_W_to_T_start)
-        self.assertEqual(ival_W.asfreq('Min', 'E'), ival_W_to_T_end)
-        self.assertEqual(ival_W.asfreq('S', 'S'), ival_W_to_S_start)
-        self.assertEqual(ival_W.asfreq('S', 'E'), ival_W_to_S_end)
-
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertEqual(ival_W.asfreq('WK'), ival_W)
+        with self.assertRaisesRegexp(ValueError, msg):
+            Period(freq='WK-SAT', year=2007, month=1, day=6)
+        with self.assertRaisesRegexp(ValueError, msg):
+            Period(freq='WK-FRI', year=2007, month=1, day=5)
+        with self.assertRaisesRegexp(ValueError, msg):
+            Period(freq='WK-THU', year=2007, month=1, day=4)
+        with self.assertRaisesRegexp(ValueError, msg):
+            Period(freq='WK-WED', year=2007, month=1, day=3)
+        with self.assertRaisesRegexp(ValueError, msg):
+            Period(freq='WK-TUE', year=2007, month=1, day=2)
+        with self.assertRaisesRegexp(ValueError, msg):
+            Period(freq='WK-MON', year=2007, month=1, day=1)
 
     def test_conv_business(self):
         # frequency conversion tests: from Business Frequency"
@@ -2894,10 +2805,13 @@ class TestPeriodIndex(tm.TestCase):
             prng = rng.to_period()
             self.assertEqual(prng.freq, 'M')
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            rng = date_range('01-Jan-2012', periods=8, freq='EOM')
+        rng = date_range('01-Jan-2012', periods=8, freq='M')
         prng = rng.to_period()
         self.assertEqual(prng.freq, 'M')
+
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
+            date_range('01-Jan-2012', periods=8, freq='EOM')
 
     def test_multiples(self):
         result1 = Period('1989', freq='2A')
