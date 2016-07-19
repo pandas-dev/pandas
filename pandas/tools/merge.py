@@ -1209,16 +1209,12 @@ def _sort_labels(uniques, left, right):
         # tuplesafe
         uniques = Index(uniques).values
 
-    sorter = uniques.argsort()
+    l = len(left)
+    labels = np.concatenate([left, right])
 
-    reverse_indexer = np.empty(len(sorter), dtype=np.int64)
-    reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-    new_left = reverse_indexer.take(_ensure_platform_int(left))
-    np.putmask(new_left, left == -1, -1)
-
-    new_right = reverse_indexer.take(_ensure_platform_int(right))
-    np.putmask(new_right, right == -1, -1)
+    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
+    new_labels = _ensure_int64(new_labels)
+    new_left, new_right = new_labels[:l], new_labels[l:]
 
     return new_left, new_right
 

@@ -3210,6 +3210,18 @@ class TestGroupBy(tm.TestCase):
         expected = df.groupby(df[0]).mean()
         assert_frame_equal(result, expected)
 
+    def test_groupby_mixed_type_columns(self):
+        # GH 13432, unorderable types in py3
+        df = DataFrame([[0, 1, 2]], columns=['A', 'B', 0])
+        expected = DataFrame([[1, 2]], columns=['B', 0],
+                             index=Index([0], name='A'))
+
+        result = df.groupby('A').first()
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby('A').sum()
+        tm.assert_frame_equal(result, expected)
+
     def test_cython_grouper_series_bug_noncontig(self):
         arr = np.empty((100, 100))
         arr.fill(np.nan)

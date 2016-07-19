@@ -287,6 +287,45 @@ class Base(object):
             self.assertEqual(result.name, 'foo')
             self.assert_index_equal(result, Index([ind[0]], name='foo'))
 
+    def test_get_unique_index(self):
+        for ind in self.indices.values():
+
+            # MultiIndex tested separately
+            if not len(ind) or isinstance(ind, MultiIndex):
+                continue
+
+            idx = ind[[0] * 5]
+            idx_unique = ind[[0]]
+            # We test against `idx_unique`, so first we make sure it's unique
+            # and doesn't contain nans.
+            self.assertTrue(idx_unique.is_unique)
+            try:
+                self.assertFalse(idx_unique.hasnans)
+            except NotImplementedError:
+                pass
+
+            for dropna in [False, True]:
+                result = idx._get_unique_index(dropna=dropna)
+                self.assert_index_equal(result, idx_unique)
+
+            # nans:
+
+            if not ind._can_hold_na:
+                continue
+
+            vals = ind.values[[0] * 5]
+            vals[0] = np.nan
+            vals_unique = vals[:2]
+            idx_nan = ind._shallow_copy(vals)
+            idx_unique_nan = ind._shallow_copy(vals_unique)
+            self.assertTrue(idx_unique_nan.is_unique)
+
+            for dropna, expected in zip([False, True],
+                                        [idx_unique_nan, idx_unique]):
+                for i in [idx_nan, idx_unique_nan]:
+                    result = i._get_unique_index(dropna=dropna)
+                    self.assert_index_equal(result, expected)
+
     def test_sort(self):
         for ind in self.indices.values():
             self.assertRaises(TypeError, ind.sort)

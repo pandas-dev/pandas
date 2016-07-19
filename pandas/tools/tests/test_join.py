@@ -536,6 +536,23 @@ class TestJoin(tm.TestCase):
         joined = left.join(right, on='key', sort=False)
         self.assert_index_equal(joined.index, pd.Index(lrange(4)))
 
+    def test_join_mixed_non_unique_index(self):
+        # GH 12814, unorderable types in py3 with a non-unique index
+        df1 = DataFrame({'a': [1, 2, 3, 4]}, index=[1, 2, 3, 'a'])
+        df2 = DataFrame({'b': [5, 6, 7, 8]}, index=[1, 3, 3, 4])
+        result = df1.join(df2)
+        expected = DataFrame({'a': [1, 2, 3, 3, 4],
+                              'b': [5, np.nan, 6, 7, np.nan]},
+                             index=[1, 2, 3, 3, 'a'])
+        tm.assert_frame_equal(result, expected)
+
+        df3 = DataFrame({'a': [1, 2, 3, 4]}, index=[1, 2, 2, 'a'])
+        df4 = DataFrame({'b': [5, 6, 7, 8]}, index=[1, 2, 3, 4])
+        result = df3.join(df4)
+        expected = DataFrame({'a': [1, 2, 3, 4], 'b': [5, 6, 6, np.nan]},
+                             index=[1, 2, 2, 'a'])
+        tm.assert_frame_equal(result, expected)
+
     def test_mixed_type_join_with_suffix(self):
         # GH #916
         df = DataFrame(np.random.randn(20, 6),
