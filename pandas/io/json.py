@@ -17,7 +17,30 @@ from pandas.formats.printing import pprint_thing
 loads = _json.loads
 dumps = _json.dumps
 
+
 # interface to/from
+def _convert_to_line_delimits(s):
+    """Helper function that converts json lists to line delimited json."""
+
+    # Determine we have a JSON list to turn to lines otherwise just return the
+    # json object, only lists can
+    if not s[0] == '[' and s[-1] == ']':
+        return s
+    s = s[1:-1]
+    num_open_brackets_seen = 0
+    commas_to_replace = []
+    for idx, char in enumerate(s):              # iter through to find all
+        if char == ',':                         # commas that should be \n
+            if num_open_brackets_seen == 0:
+                commas_to_replace.append(idx)
+        elif char == '{':
+            num_open_brackets_seen += 1
+        elif char == '}':
+            num_open_brackets_seen -= 1
+    s_arr = np.array(list(s))                  # Turn to an array to set
+    s_arr[commas_to_replace] = '\n'            # all commas at once.
+    s = ''.join(s_arr)
+    return s
 
 
 def to_json(path_or_buf, obj, orient=None, date_format='epoch',
@@ -41,21 +64,8 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
     else:
         raise NotImplementedError("'obj' should be a Series or a DataFrame")
 
-    if lines and s[0] == '[' and s[-1] == ']':      # Determine we have a JSON
-        s = s[1:-1]                                 # list to turn to lines
-        num_open_brackets_seen = 0
-        commas_to_replace = []
-        for idx, char in enumerate(s):              # iter through to find all
-            if char == ',':                         # commas that should be \n
-                if num_open_brackets_seen == 0:
-                    commas_to_replace.append(idx)
-            elif char == '{':
-                num_open_brackets_seen += 1
-            elif char == '}':
-                num_open_brackets_seen -= 1
-        s_arr = np.array(list(s))                  # Turn to an array to set
-        s_arr[commas_to_replace] = '\n'            # all commas at once.
-        s = ''.join(s_arr)
+    if lines:
+        s = _convert_to_line_delimits(s)
 
     if isinstance(path_or_buf, compat.string_types):
         with open(path_or_buf, 'w') as fh:
