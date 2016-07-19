@@ -47,6 +47,11 @@ bar2,12,13,14,15
             self.read_csv(StringIO(data), decimal='')
 
     def test_bad_stream_exception(self):
+        # Issue 13652:
+        # This test validates that both python engine
+        # and C engine will raise UnicodeDecodeError instead of
+        # c engine raising CParserError and swallowing exception
+        # that caused read to fail.
         handle = open(self.csv_shiftjs, "rb")
         codec = codecs.lookup("utf-8")
         utf8 = codecs.lookup('utf-8')
@@ -60,6 +65,7 @@ bar2,12,13,14,15
             msg = "'utf8' codec can't decode byte"
         with tm.assertRaisesRegexp(UnicodeDecodeError, msg):
             self.read_csv(stream)
+        stream.close()
 
     def test_read_csv(self):
         if not compat.PY3:
