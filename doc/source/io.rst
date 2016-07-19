@@ -1859,8 +1859,10 @@ using Hadoop or Spark.
 .. ipython:: python
 
   import pandas as pd
-  jsonl = '''{"a":1,"b":2}
-             {"a":3,"b":4}'''
+  jsonl = '''
+      {"a":1,"b":2}
+      {"a":3,"b":4}
+  '''
   df = pd.read_json(jsonl, lines=True)
   df
   df.to_json(orient='records', lines=True)
