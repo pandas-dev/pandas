@@ -3952,6 +3952,9 @@ class NDFrame(PandasObject):
         Returns
         -------
         converted : type of caller
+
+        To learn more about the frequency strings, please see `this link
+        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
         """
         from pandas.tseries.resample import asfreq
         return asfreq(self, freq, method=method, how=how, normalize=normalize)
@@ -4022,6 +4025,9 @@ class NDFrame(PandasObject):
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0
 
+
+        To learn more about the offset strings, please see `this link
+        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
         Examples
         --------
