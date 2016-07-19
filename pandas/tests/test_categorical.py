@@ -808,13 +808,12 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         cat2.set_ordered(False, inplace=True)
         self.assertFalse(cat2.ordered)
 
-        # deperecated in v0.16.0
-        with tm.assert_produces_warning(FutureWarning):
-            cat.ordered = False
-            self.assertFalse(cat.ordered)
-        with tm.assert_produces_warning(FutureWarning):
+        # removed in 0.19.0
+        msg = "can\'t set attribute"
+        with tm.assertRaisesRegexp(AttributeError, msg):
             cat.ordered = True
-            self.assertTrue(cat.ordered)
+        with tm.assertRaisesRegexp(AttributeError, msg):
+            cat.ordered = False
 
     def test_set_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)

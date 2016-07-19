@@ -508,6 +508,7 @@ Removal of prior version deprecations/changes
 - The ``pd.sandbox`` module has been removed in favor of the external library ``pandas-qt`` (:issue:`13670`)
 - ``DataFrame.to_csv()`` has dropped the ``engine`` parameter, as was deprecated in 0.17.1 (:issue:`11274`, :issue:`13419`)
 - ``DataFrame.to_dict()`` has dropped the ``outtype`` parameter in favor of ``orient`` (:issue:`13627`, :issue:`8486`)
+- ``pd.Categorical`` has dropped setting of the ``ordered`` attribute directly in favor of the ``set_ordered`` method (:issue:`13671`)
 - ``pd.Categorical`` has dropped the ``levels`` attribute in favour of ``categories`` (:issue:`8376`)
 
 - Removal of the legacy time rules (offset aliases), deprecated since 0.17.0 (this has been alias since 0.8.0) (:issue:`13590`)

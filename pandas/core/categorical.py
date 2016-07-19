@@ -571,12 +571,6 @@ class Categorical(PandasObject):
 
     _ordered = None
 
-    def _set_ordered(self, value):
-        """ Sets the ordered attribute to the boolean value """
-        warn("Setting 'ordered' directly is deprecated, use 'set_ordered'",
-             FutureWarning, stacklevel=2)
-        self.set_ordered(value, inplace=True)
-
     def set_ordered(self, value, inplace=False):
         """
         Sets the ordered attribute to the boolean value
@@ -624,7 +618,7 @@ class Categorical(PandasObject):
         """ Gets the ordered attribute """
         return self._ordered
 
-    ordered = property(fget=_get_ordered, fset=_set_ordered)
+    ordered = property(fget=_get_ordered)
 
     def set_categories(self, new_categories, ordered=None, rename=False,
                        inplace=False):
