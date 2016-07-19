@@ -1848,6 +1848,8 @@ into a flat table.
 
    json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
 
+.. _io.jsonl:
+
 Line delimited json
 '''''''''''''''''''
 
@@ -1858,7 +1860,6 @@ using Hadoop or Spark.
 
 .. ipython:: python
 
-  import pandas as pd
   jsonl = '''
       {"a":1,"b":2}
       {"a":3,"b":4}
