@@ -31,7 +31,7 @@ from pandas.types.common import (needs_i8_conversion,
                                  is_list_like,
                                  _ensure_object)
 from pandas.types.cast import _maybe_upcast_putmask
-from pandas.types.generic import ABCSeries, ABCIndex
+from pandas.types.generic import ABCSeries, ABCIndex, ABCPeriodIndex
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -773,6 +773,15 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             if (not lib.isscalar(lib.item_from_zerodim(other)) and
                     len(self) != len(other)):
                 raise ValueError('Lengths must match to compare')
+
+            if isinstance(other, ABCPeriodIndex):
+                # temp workaround until fixing GH 13637
+                # tested in test_nat_comparisons
+                # (pandas.tests.series.test_operators.TestSeriesOperators)
+                return self._constructor(na_op(self.values,
+                                               other.asobject.values),
+                                         index=self.index)
+
             return self._constructor(na_op(self.values, np.asarray(other)),
                                      index=self.index).__finalize__(self)
         elif isinstance(other, pd.Categorical):
