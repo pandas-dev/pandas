@@ -1144,7 +1144,7 @@ class NDFrame(PandasObject):
         return packers.to_msgpack(path_or_buf, self, encoding=encoding,
                                   **kwargs)
 
-    def to_sql(self, name, con, flavor='sqlite', schema=None, if_exists='fail',
+    def to_sql(self, name, con, flavor=None, schema=None, if_exists='fail',
                index=True, index_label=None, chunksize=None, dtype=None):
         """
         Write records stored in a DataFrame to a SQL database.
@@ -1155,12 +1155,11 @@ class NDFrame(PandasObject):
             Name of SQL table
         con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
             Using SQLAlchemy makes it possible to use any DB supported by that
-            library.
-            If a DBAPI2 object, only sqlite3 is supported.
-        flavor : {'sqlite', 'mysql'}, default 'sqlite'
-            The flavor of SQL to use. Ignored when using SQLAlchemy engine.
-            'mysql' is deprecated and will be removed in future versions, but
-            it will be further supported through SQLAlchemy engines.
+            library. If a DBAPI2 object, only sqlite3 is supported.
+        flavor : 'sqlite', default None
+            DEPRECATED: this parameter will be removed in a future version,
+            as 'sqlite' is the only supported option if SQLAlchemy is not
+            installed.
         schema : string, default None
             Specify the schema (if database flavor supports this). If None, use
             default schema.
