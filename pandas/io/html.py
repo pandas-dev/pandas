@@ -745,7 +745,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
               tupleize_cols=False, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
-              keep_default_na=True, squeeze=False, date_parser=None):
+              keep_default_na=True):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -846,15 +846,6 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.19.0
 
-    squeeze : boolean, default False
-        If the parsed data only contains one column then return a Series
-
-        .. versionadded:: 0.19.0
-
-    date_parser : function, default None
-
-        .. versionadded:: 0.19.0
-
     Returns
     -------
     dfs : list of DataFrames
@@ -902,5 +893,4 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
                   parse_dates=parse_dates, tupleize_cols=tupleize_cols,
                   thousands=thousands, attrs=attrs, encoding=encoding,
                   decimal=decimal, converters=converters, na_values=na_values,
-                  keep_default_na=keep_default_na, squeeze=squeeze,
-                  date_parser=date_parser)
+                  keep_default_na=keep_default_na)
