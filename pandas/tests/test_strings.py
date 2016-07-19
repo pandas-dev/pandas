@@ -1906,45 +1906,6 @@ class TestStringMethods(tm.TestCase):
 
     def test_split_to_dataframe(self):
         s = Series(['nosplit', 'alsonosplit'])
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.str.split('_', return_type='frame')
-
-        exp = DataFrame({0: Series(['nosplit', 'alsonosplit'])})
-        tm.assert_frame_equal(result, exp)
-
-        s = Series(['some_equal_splits', 'with_no_nans'])
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.str.split('_', return_type='frame')
-        exp = DataFrame({0: ['some', 'with'],
-                         1: ['equal', 'no'],
-                         2: ['splits', 'nans']})
-        tm.assert_frame_equal(result, exp)
-
-        s = Series(['some_unequal_splits', 'one_of_these_things_is_not'])
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.str.split('_', return_type='frame')
-        exp = DataFrame({0: ['some', 'one'],
-                         1: ['unequal', 'of'],
-                         2: ['splits', 'these'],
-                         3: [NA, 'things'],
-                         4: [NA, 'is'],
-                         5: [NA, 'not']})
-        tm.assert_frame_equal(result, exp)
-
-        s = Series(['some_splits', 'with_index'], index=['preserve', 'me'])
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.str.split('_', return_type='frame')
-        exp = DataFrame({0: ['some', 'with'], 1: ['splits', 'index']},
-                        index=['preserve', 'me'])
-        tm.assert_frame_equal(result, exp)
-
-        with tm.assertRaisesRegexp(ValueError, "expand must be"):
-            with tm.assert_produces_warning(FutureWarning):
-                s.str.split('_', return_type="some_invalid_type")
-
-    def test_split_to_dataframe_expand(self):
-        s = Series(['nosplit', 'alsonosplit'])
         result = s.str.split('_', expand=True)
         exp = DataFrame({0: Series(['nosplit', 'alsonosplit'])})
         tm.assert_frame_equal(result, exp)
@@ -1973,8 +1934,7 @@ class TestStringMethods(tm.TestCase):
         tm.assert_frame_equal(result, exp)
 
         with tm.assertRaisesRegexp(ValueError, "expand must be"):
-            with tm.assert_produces_warning(FutureWarning):
-                s.str.split('_', return_type="some_invalid_type")
+            s.str.split('_', expand="not_a_boolean")
 
     def test_split_to_multiindex_expand(self):
         idx = Index(['nosplit', 'alsonosplit'])
@@ -1999,8 +1959,7 @@ class TestStringMethods(tm.TestCase):
         self.assertEqual(result.nlevels, 6)
 
         with tm.assertRaisesRegexp(ValueError, "expand must be"):
-            with tm.assert_produces_warning(FutureWarning):
-                idx.str.split('_', return_type="some_invalid_type")
+            idx.str.split('_', expand="not_a_boolean")
 
     def test_rsplit_to_dataframe_expand(self):
         s = Series(['nosplit', 'alsonosplit'])
