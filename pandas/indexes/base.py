@@ -224,7 +224,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     pass
 
             # maybe coerce to a sub-class
-            from pandas.tseries.period import PeriodIndex
+            from pandas.tseries.period import (PeriodIndex,
+                                               IncompatibleFrequency)
             if isinstance(data, PeriodIndex):
                 return PeriodIndex(data, copy=copy, name=name, **kwargs)
             if issubclass(data.dtype.type, np.integer):
@@ -265,13 +266,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                             return DatetimeIndex(subarr, copy=copy, name=name,
                                                  **kwargs)
 
-                    elif (inferred.startswith('timedelta') or
-                          lib.is_timedelta_array(subarr)):
+                    elif inferred.startswith('timedelta'):
                         from pandas.tseries.tdi import TimedeltaIndex
                         return TimedeltaIndex(subarr, copy=copy, name=name,
                                               **kwargs)
                     elif inferred == 'period':
-                        return PeriodIndex(subarr, name=name, **kwargs)
+                        try:
+                            return PeriodIndex(subarr, name=name, **kwargs)
+                        except IncompatibleFrequency:
+                            pass
             return cls._simple_new(subarr, name)
 
         elif hasattr(data, '__array__'):
@@ -865,6 +868,16 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         else:
             result_name = self.name if self.name == other.name else None
         return other, result_name
+
+    def _convert_for_op(self, value):
+        """ Convert value to be insertable to ndarray """
+        return value
+
+    def _assert_can_do_op(self, value):
+        """ Check value is valid for scalar op """
+        if not lib.isscalar(value):
+            msg = "'value' must be a scalar, passed: {0}"
+            raise TypeError(msg.format(type(value).__name__))
 
     @property
     def nlevels(self):
@@ -1507,16 +1520,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             return self._isnan.any()
         else:
             return False
-
-    def _convert_for_op(self, value):
-        """ Convert value to be insertable to ndarray """
-        return value
-
-    def _assert_can_do_op(self, value):
-        """ Check value is valid for scalar op """
-        if not is_scalar(value):
-            msg = "'value' must be a scalar, passed: {0}"
-            raise TypeError(msg.format(type(value).__name__))
 
     def putmask(self, mask, value):
         """

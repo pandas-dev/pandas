@@ -119,10 +119,10 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
     def test_construction_index_with_mixed_timezones(self):
         # GH 11488
         # no tz results in DatetimeIndex
-        result = Index(
-            [Timestamp('2011-01-01'), Timestamp('2011-01-02')], name='idx')
-        exp = DatetimeIndex(
-            [Timestamp('2011-01-01'), Timestamp('2011-01-02')], name='idx')
+        result = Index([Timestamp('2011-01-01'),
+                        Timestamp('2011-01-02')], name='idx')
+        exp = DatetimeIndex([Timestamp('2011-01-01'),
+                             Timestamp('2011-01-02')], name='idx')
         self.assert_index_equal(result, exp, exact=True)
         self.assertTrue(isinstance(result, DatetimeIndex))
         self.assertIsNone(result.tz)
@@ -295,9 +295,9 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
                                 Timestamp('2011-01-02 10:00',
                                           tz='Asia/Tokyo')],
                                name='idx')
-        exp = DatetimeIndex(
-            [Timestamp('2011-01-01 10:00'), Timestamp('2011-01-02 10:00')
-             ], tz='Asia/Tokyo', name='idx')
+        exp = DatetimeIndex([Timestamp('2011-01-01 10:00'),
+                             Timestamp('2011-01-02 10:00')],
+                            tz='Asia/Tokyo', name='idx')
         self.assert_index_equal(result, exp, exact=True)
         self.assertTrue(isinstance(result, DatetimeIndex))
 
@@ -337,6 +337,17 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
             DatetimeIndex([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='US/Eastern', name='idx')
+
+    def test_construction_base_constructor(self):
+        arr = [pd.Timestamp('2011-01-01'), pd.NaT, pd.Timestamp('2011-01-03')]
+        tm.assert_index_equal(pd.Index(arr), pd.DatetimeIndex(arr))
+        tm.assert_index_equal(pd.Index(np.array(arr)),
+                              pd.DatetimeIndex(np.array(arr)))
+
+        arr = [np.nan, pd.NaT, pd.Timestamp('2011-01-03')]
+        tm.assert_index_equal(pd.Index(arr), pd.DatetimeIndex(arr))
+        tm.assert_index_equal(pd.Index(np.array(arr)),
+                              pd.DatetimeIndex(np.array(arr)))
 
     def test_astype(self):
         # GH 13149, GH 13209
@@ -699,12 +710,11 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
                             pd.Timestamp('2011-01-01 11:00')], dtype=object)
             self.assert_index_equal(idx.fillna('x'), exp)
 
-            idx = pd.DatetimeIndex(
-                ['2011-01-01 09:00', pd.NaT, '2011-01-01 11:00'], tz=tz)
+            idx = pd.DatetimeIndex(['2011-01-01 09:00', pd.NaT,
+                                    '2011-01-01 11:00'], tz=tz)
 
-            exp = pd.DatetimeIndex(
-                ['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'
-                 ], tz=tz)
+            exp = pd.DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00',
+                                    '2011-01-01 11:00'], tz=tz)
             self.assert_index_equal(
                 idx.fillna(pd.Timestamp('2011-01-01 10:00', tz=tz)), exp)
 
@@ -733,6 +743,26 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
     def create_index(self):
         return period_range('20130101', periods=5, freq='D')
+
+    def test_construction_base_constructor(self):
+        # GH 13664
+        arr = [pd.Period('2011-01', freq='M'), pd.NaT,
+               pd.Period('2011-03', freq='M')]
+        tm.assert_index_equal(pd.Index(arr), pd.PeriodIndex(arr))
+        tm.assert_index_equal(pd.Index(np.array(arr)),
+                              pd.PeriodIndex(np.array(arr)))
+
+        arr = [np.nan, pd.NaT, pd.Period('2011-03', freq='M')]
+        tm.assert_index_equal(pd.Index(arr), pd.PeriodIndex(arr))
+        tm.assert_index_equal(pd.Index(np.array(arr)),
+                              pd.PeriodIndex(np.array(arr)))
+
+        arr = [pd.Period('2011-01', freq='M'), pd.NaT,
+               pd.Period('2011-03', freq='D')]
+        tm.assert_index_equal(pd.Index(arr), pd.Index(arr, dtype=object))
+
+        tm.assert_index_equal(pd.Index(np.array(arr)),
+                              pd.Index(np.array(arr), dtype=object))
 
     def test_astype(self):
         # GH 13149, GH 13209
@@ -874,7 +904,6 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         self.assertEqual(res.freqstr, 'D')
 
     def test_period_index_indexer(self):
-
         # GH4125
         idx = pd.period_range('2002-01', '2003-12', freq='M')
         df = pd.DataFrame(pd.np.random.randn(24, 10), index=idx)
@@ -886,12 +915,11 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
     def test_fillna_period(self):
         # GH 11343
-        idx = pd.PeriodIndex(
-            ['2011-01-01 09:00', pd.NaT, '2011-01-01 11:00'], freq='H')
+        idx = pd.PeriodIndex(['2011-01-01 09:00', pd.NaT,
+                              '2011-01-01 11:00'], freq='H')
 
-        exp = pd.PeriodIndex(
-            ['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'
-             ], freq='H')
+        exp = pd.PeriodIndex(['2011-01-01 09:00', '2011-01-01 10:00',
+                              '2011-01-01 11:00'], freq='H')
         self.assert_index_equal(
             idx.fillna(pd.Period('2011-01-01 10:00', freq='H')), exp)
 
@@ -899,10 +927,11 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
                         pd.Period('2011-01-01 11:00', freq='H')], dtype=object)
         self.assert_index_equal(idx.fillna('x'), exp)
 
-        with tm.assertRaisesRegexp(
-                ValueError,
-                'Input has different freq=D from PeriodIndex\\(freq=H\\)'):
-            idx.fillna(pd.Period('2011-01-01', freq='D'))
+        exp = pd.Index([pd.Period('2011-01-01 09:00', freq='H'),
+                        pd.Period('2011-01-01', freq='D'),
+                        pd.Period('2011-01-01 11:00', freq='H')], dtype=object)
+        self.assert_index_equal(idx.fillna(pd.Period('2011-01-01', freq='D')),
+                                exp)
 
     def test_no_millisecond_field(self):
         with self.assertRaises(AttributeError):
@@ -922,6 +951,17 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
     def create_index(self):
         return pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
+
+    def test_construction_base_constructor(self):
+        arr = [pd.Timedelta('1 days'), pd.NaT, pd.Timedelta('3 days')]
+        tm.assert_index_equal(pd.Index(arr), pd.TimedeltaIndex(arr))
+        tm.assert_index_equal(pd.Index(np.array(arr)),
+                              pd.TimedeltaIndex(np.array(arr)))
+
+        arr = [np.nan, pd.NaT, pd.Timedelta('1 days')]
+        tm.assert_index_equal(pd.Index(arr), pd.TimedeltaIndex(arr))
+        tm.assert_index_equal(pd.Index(np.array(arr)),
+                              pd.TimedeltaIndex(np.array(arr)))
 
     def test_shift(self):
         # test shift for TimedeltaIndex
