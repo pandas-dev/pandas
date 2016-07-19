@@ -566,6 +566,7 @@ Performance Improvements
 - Improved performance of float64 hash table operations, fixing some very slow indexing and groupby operations in python 3 (:issue:`13166`, :issue:`13334`)
 - Improved performance of ``DataFrameGroupBy.transform`` (:issue:`12737`)
 - Improved performance of ``Index.difference`` (:issue:`12044`)
+- Improved performance of datetime string parsing in ``DatetimeIndex`` (:issue:`13692`)
 
 .. _whatsnew_0190.bug_fixes:
 
@@ -631,6 +632,7 @@ Bug Fixes
 - Bug in checking for any null objects in a ``TimedeltaIndex``, which always returned ``True`` (:issue:`13603`)
 
 
+
 - Bug in ``Series`` arithmetic raises ``TypeError`` if it contains datetime-like as ``object`` dtype (:issue:`13043`)
 
 
@@ -654,6 +656,8 @@ Bug Fixes
 
 - Bug in ``pd.to_numeric`` when ``errors='coerce'`` and input contains non-hashable objects (:issue:`13324`)
 - Bug in invalid ``Timedelta`` arithmetic and comparison may raise ``ValueError`` rather than ``TypeError`` (:issue:`13624`)
+- Bug in invalid datetime parsing in ``to_datetime`` and ``DatetimeIndex`` may raise ``TypeError`` rather than ``ValueError`` (:issue:`11169`, :issue:`11287`)
+- Bug in ``Index`` created with tz-aware ``Timestamp`` and mismatched ``tz`` option incorrectly coerces timezone (:issue:`13692`)
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
 - Bug in ``groupby`` with ``as_index=False`` returns all NaN's when grouping on multiple columns including a categorical one (:issue:`13204`)

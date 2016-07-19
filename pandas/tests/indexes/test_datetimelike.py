@@ -170,16 +170,6 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         self.assert_index_equal(result, exp, exact=True)
         self.assertFalse(isinstance(result, DatetimeIndex))
 
-        # passing tz results in DatetimeIndex
-        result = Index([Timestamp('2011-01-01 10:00'),
-                        Timestamp('2011-01-02 10:00', tz='US/Eastern')],
-                       tz='Asia/Tokyo', name='idx')
-        exp = DatetimeIndex([Timestamp('2011-01-01 19:00'),
-                             Timestamp('2011-01-03 00:00')],
-                            tz='Asia/Tokyo', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-
         # length = 1
         result = Index([Timestamp('2011-01-01')], name='idx')
         exp = DatetimeIndex([Timestamp('2011-01-01')], name='idx')
@@ -253,17 +243,6 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         self.assert_index_equal(result, exp, exact=True)
         self.assertFalse(isinstance(result, DatetimeIndex))
 
-        # passing tz results in DatetimeIndex
-        result = Index([pd.NaT, Timestamp('2011-01-01 10:00'),
-                        pd.NaT, Timestamp('2011-01-02 10:00',
-                                          tz='US/Eastern')],
-                       tz='Asia/Tokyo', name='idx')
-        exp = DatetimeIndex([pd.NaT, Timestamp('2011-01-01 19:00'),
-                             pd.NaT, Timestamp('2011-01-03 00:00')],
-                            tz='Asia/Tokyo', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-
         # all NaT
         result = Index([pd.NaT, pd.NaT], name='idx')
         exp = DatetimeIndex([pd.NaT, pd.NaT], name='idx')
@@ -323,12 +302,13 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         self.assertTrue(isinstance(result, DatetimeIndex))
 
         # tz mismatch affecting to tz-aware raises TypeError/ValueError
+
         with tm.assertRaises(ValueError):
             DatetimeIndex([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           name='idx')
 
-        with tm.assertRaises(TypeError):
+        with tm.assertRaisesRegexp(TypeError, 'data is already tz-aware'):
             DatetimeIndex([Timestamp('2011-01-01 10:00'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='Asia/Tokyo', name='idx')
@@ -337,6 +317,13 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
             DatetimeIndex([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='US/Eastern', name='idx')
+
+        with tm.assertRaisesRegexp(TypeError, 'data is already tz-aware'):
+            # passing tz should results in DatetimeIndex, then mismatch raises
+            # TypeError
+            Index([pd.NaT, Timestamp('2011-01-01 10:00'),
+                   pd.NaT, Timestamp('2011-01-02 10:00', tz='US/Eastern')],
+                  tz='Asia/Tokyo', name='idx')
 
     def test_construction_base_constructor(self):
         arr = [pd.Timestamp('2011-01-01'), pd.NaT, pd.Timestamp('2011-01-03')]

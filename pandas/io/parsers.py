@@ -2440,7 +2440,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
             strs = _concat_date_cols(date_cols)
 
             try:
-                return tools._to_datetime(
+                return tools.to_datetime(
                     _ensure_object(strs),
                     utc=None,
                     box=False,

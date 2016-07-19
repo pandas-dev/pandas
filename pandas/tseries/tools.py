@@ -295,22 +295,12 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1 loop, best of 3: 471 ms per loop
 
     """
-    return _to_datetime(arg, errors=errors, dayfirst=dayfirst,
-                        yearfirst=yearfirst,
-                        utc=utc, box=box, format=format, exact=exact,
-                        unit=unit, infer_datetime_format=infer_datetime_format)
 
-
-def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
-                 utc=None, box=True, format=None, exact=True,
-                 unit=None, freq=None, infer_datetime_format=False):
-    """
-    Same as to_datetime, but accept freq for
-    DatetimeIndex internal construction
-    """
     from pandas.tseries.index import DatetimeIndex
 
-    def _convert_listlike(arg, box, format, name=None):
+    tz = 'utc' if utc else None
+
+    def _convert_listlike(arg, box, format, name=None, tz=tz):
 
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype='O')
@@ -319,8 +309,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         if is_datetime64_ns_dtype(arg):
             if box and not isinstance(arg, DatetimeIndex):
                 try:
-                    return DatetimeIndex(arg, tz='utc' if utc else None,
-                                         name=name)
+                    return DatetimeIndex(arg, tz=tz, name=name)
                 except ValueError:
                     pass
 
@@ -328,7 +317,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         elif is_datetime64tz_dtype(arg):
             if not isinstance(arg, DatetimeIndex):
-                return DatetimeIndex(arg, tz='utc' if utc else None)
+                return DatetimeIndex(arg, tz=tz, name=name)
             if utc:
                 arg = arg.tz_convert(None).tz_localize('UTC')
             return arg
@@ -344,8 +333,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                     from pandas import Index
                     return Index(result)
 
-                return DatetimeIndex(result, tz='utc' if utc else None,
-                                     name=name)
+                return DatetimeIndex(result, tz=tz, name=name)
             return result
         elif getattr(arg, 'ndim', 1) > 1:
             raise TypeError('arg must be a string, datetime, list, tuple, '
@@ -382,8 +370,8 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 # fallback
                 if result is None:
                     try:
-                        result = tslib.array_strptime(
-                            arg, format, exact=exact, errors=errors)
+                        result = tslib.array_strptime(arg, format, exact=exact,
+                                                      errors=errors)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
                             raise
@@ -404,14 +392,11 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                     utc=utc,
                     dayfirst=dayfirst,
                     yearfirst=yearfirst,
-                    freq=freq,
                     require_iso8601=require_iso8601
                 )
 
             if is_datetime64_dtype(result) and box:
-                result = DatetimeIndex(result,
-                                       tz='utc' if utc else None,
-                                       name=name)
+                result = DatetimeIndex(result, tz=tz, name=name)
             return result
 
         except ValueError as e:
