@@ -1467,7 +1467,7 @@ class DataFrame(NDFrame):
 
     def to_stata(self, fname, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
-                 data_label=None):
+                 data_label=None, variable_labels=None):
         """
         A class for writing Stata binary dta files from array-like objects
 
@@ -1480,11 +1480,24 @@ class DataFrame(NDFrame):
             format that you want to use for the dates. Options are
             'tc', 'td', 'tm', 'tw', 'th', 'tq', 'ty'. Column can be either a
             number or a name.
+        write_index : bool
+            Write the index to Stata dataset.
         encoding : str
             Default is latin-1. Note that Stata does not support unicode.
         byteorder : str
             Can be ">", "<", "little", or "big". The default is None which uses
             `sys.byteorder`
+        time_stamp : datetime
+            A date time to use when writing the file.  Can be None, in which
+            case the current time is used.
+        dataset_label : str
+            A label for the data set.  Should be 80 characters or smaller.
+
+        .. versionadded:: 0.19.0
+
+        variable_labels : dict
+            Dictionary containing columns as keys and variable labels as
+            values. Each label must be 80 characters or smaller.
 
         Examples
         --------
@@ -1500,7 +1513,8 @@ class DataFrame(NDFrame):
         writer = StataWriter(fname, self, convert_dates=convert_dates,
                              encoding=encoding, byteorder=byteorder,
                              time_stamp=time_stamp, data_label=data_label,
-                             write_index=write_index)
+                             write_index=write_index,
+                             variable_labels=variable_labels)
         writer.write_file()
 
     @Appender(fmt.docstring_to_string, indents=1)

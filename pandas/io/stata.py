@@ -1059,7 +1059,7 @@ class StataReader(StataParser, BaseIterator):
         self.lbllist = self._get_lbllist()
 
         self.path_or_buf.seek(self._seek_variable_labels)
-        self.vlblist = self._get_vlblist()
+        self._variable_labels = self._get_variable_labels()
 
     # Get data type information, works for versions 117-118.
     def _get_dtypes(self, seek_vartypes):
@@ -1127,7 +1127,7 @@ class StataReader(StataParser, BaseIterator):
         return [self._null_terminate(self.path_or_buf.read(b))
                 for i in range(self.nvar)]
 
-    def _get_vlblist(self):
+    def _get_variable_labels(self):
         if self.format_version == 118:
             vlblist = [self._decode(self.path_or_buf.read(321))
                        for i in range(self.nvar)]
@@ -1242,7 +1242,7 @@ class StataReader(StataParser, BaseIterator):
 
         self.lbllist = self._get_lbllist()
 
-        self.vlblist = self._get_vlblist()
+        self._variable_labels = self._get_variable_labels()
 
         # ignore expansion fields (Format 105 and later)
         # When reading, read five bytes; the last four bytes now tell you
@@ -1306,11 +1306,11 @@ class StataReader(StataParser, BaseIterator):
         while True:
             if self.format_version >= 117:
                 if self.path_or_buf.read(5) == b'</val':  # <lbl>
-                    break  # end of variable label table
+                    break  # end of value label table
 
             slength = self.path_or_buf.read(4)
             if not slength:
-                break  # end of variable label table (format < 117)
+                break  # end of value label table (format < 117)
             if self.format_version <= 117:
                 labname = self._null_terminate(self.path_or_buf.read(33))
             else:
@@ -1666,7 +1666,7 @@ class StataReader(StataParser, BaseIterator):
         """Returns variable labels as a dict, associating each variable name
         with corresponding label
         """
-        return dict(zip(self.varlist, self.vlblist))
+        return dict(zip(self.varlist, self._variable_labels))
 
     def value_labels(self):
         """Returns a dict, associating each variable name a dict, associating
@@ -1696,7 +1696,7 @@ def _set_endianness(endianness):
 
 def _pad_bytes(name, length):
     """
-    Takes a char string and pads it wih null bytes until it's length chars
+    Takes a char string and pads it with null bytes until it's length chars
     """
     return name + "\x00" * (length - len(name))
 
@@ -1831,6 +1831,12 @@ class StataWriter(StataParser):
     dataset_label : str
         A label for the data set.  Should be 80 characters or smaller.
 
+    .. versionadded:: 0.19.0
+
+    variable_labels : dict
+        Dictionary containing columns as keys and variable labels as values.
+        Each label must be 80 characters or smaller.
+
     Returns
     -------
     writer : StataWriter instance
@@ -1853,12 +1859,13 @@ class StataWriter(StataParser):
 
     def __init__(self, fname, data, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
-                 data_label=None):
+                 data_label=None, variable_labels=None):
         super(StataWriter, self).__init__(encoding)
         self._convert_dates = convert_dates
         self._write_index = write_index
         self._time_stamp = time_stamp
         self._data_label = data_label
+        self._variable_labels = variable_labels
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
 
@@ -2135,11 +2142,29 @@ class StataWriter(StataParser):
             else:  # Default is empty label
                 self._write(_pad_bytes("", 33))
 
-    def _write_variable_labels(self, labels=None):
-        nvar = self.nvar
-        if labels is None:
-            for i in range(nvar):
-                self._write(_pad_bytes("", 81))
+    def _write_variable_labels(self):
+        # Missing labels are 80 blank characters plus null termination
+        blank = _pad_bytes('', 81)
+
+        if self._variable_labels is None:
+            for i in range(self.nvar):
+                self._write(blank)
+            return
+
+        for col in self.data:
+            if col in self._variable_labels:
+                label = self._variable_labels[col]
+                if len(label) > 80:
+                    raise ValueError('Variable labels must be 80 characters '
+                                     'or fewer')
+                is_latin1 = all(ord(c) < 256 for c in label)
+                if not is_latin1:
+                    raise ValueError('Variable labels must contain only '
+                                     'characters that can be encoded in '
+                                     'Latin-1')
+                self._write(_pad_bytes(label, 81))
+            else:
+                self._write(blank)
 
     def _prepare_data(self):
         data = self.data
