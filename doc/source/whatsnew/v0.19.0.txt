@@ -309,7 +309,7 @@ Other enhancements
 - A function :func:`union_categorical` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`)
 - ``Series`` has gained the properties ``.is_monotonic``, ``.is_monotonic_increasing``, ``.is_monotonic_decreasing``, similar to ``Index`` (:issue:`13336`)
 - ``Series.append`` now supports the ``ignore_index`` option (:issue:`13677`)
-- ``.to_stata()`` and ```StataWriter`` can now write variable labels to Stata dta files using a dictionary to make column names to labels (:issue:`13535`, :issue:`13536`)
+- ``.to_stata()`` and ``StataWriter`` can now write variable labels to Stata dta files using a dictionary to make column names to labels (:issue:`13535`, :issue:`13536`)
 
 .. _whatsnew_0190.api:
 
@@ -317,7 +317,7 @@ API changes
 ~~~~~~~~~~~
 
 
-- ``Index.reshape`` will raise a ``NotImplementedError`` exception when called (:issue: `12882`)
+- ``Index.reshape`` will raise a ``NotImplementedError`` exception when called (:issue:`12882`)
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
 - ``eval``'s upcasting rules for ``float32`` types have been updated to be more consistent with NumPy's rules.  New behavior will not upcast to ``float64`` if you multiply a pandas ``float32`` object by a scalar float64. (:issue:`12388`)
 - An ``UnsupportedFunctionCall`` error is now raised if NumPy ufuncs like ``np.mean`` are called on groupby or resample objects (:issue:`12811`)
@@ -330,7 +330,7 @@ API changes
 - ``__setitem__`` will no longer apply a callable rhs as a function instead of storing it. Call ``where`` directly to get the previous behavior. (:issue:`13299`)
 - Passing ``Period`` with multiple frequencies to normal ``Index`` now returns ``Index`` with ``object`` dtype (:issue:`13664`)
 - ``PeriodIndex.fillna`` with ``Period`` has different freq now coerces to ``object`` dtype (:issue:`13664`)
-
+- More informative exceptions are passed through the csv parser. The exception type would now be the original exception type instead of ``CParserError``. (:issue:`13652`)
 
 .. _whatsnew_0190.api.tolist:
 
@@ -595,7 +595,6 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 - The ``pd.sandbox`` module has been removed in favor of the external library ``pandas-qt`` (:issue:`13670`)
 - ``DataFrame.to_csv()`` has dropped the ``engine`` parameter, as was deprecated in 0.17.1 (:issue:`11274`, :issue:`13419`)
 - ``DataFrame.to_dict()`` has dropped the ``outtype`` parameter in favor of ``orient`` (:issue:`13627`, :issue:`8486`)
@@ -689,8 +688,8 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` with ``engine='python'`` when reading from a ``tempfile.TemporaryFile`` on Windows with Python 3 (:issue:`13398`)
 - Bug in ``pd.read_csv()`` that prevents ``usecols`` kwarg from accepting single-byte unicode strings (:issue:`13219`)
 - Bug in ``pd.read_csv()`` that prevents ``usecols`` from being an empty set (:issue:`13402`)
-- Bug in ``pd.read_csv()`` with ``engine=='c'`` in which null ``quotechar`` was not accepted even though ``quoting`` was specified as ``None`` (:issue:`13411`)
-- Bug in ``pd.read_csv()`` with ``engine=='c'`` in which fields were not properly cast to float when quoting was specified as non-numeric (:issue:`13411`)
+- Bug in ``pd.read_csv()`` with ``engine='c'`` in which null ``quotechar`` was not accepted even though ``quoting`` was specified as ``None`` (:issue:`13411`)
+- Bug in ``pd.read_csv()`` with ``engine='c'`` in which fields were not properly cast to float when quoting was specified as non-numeric (:issue:`13411`)
 - Bug in ``pd.pivot_table()`` where ``margins_name`` is ignored when ``aggfunc`` is a list (:issue:`13354`)
 - Bug in ``pd.Series.str.zfill``, ``center``, ``ljust``, ``rjust``, and ``pad`` when passing non-integers, did not raise ``TypeError`` (:issue:`13598`)
 - Bug in checking for any null objects in a ``TimedeltaIndex``, which always returned ``True`` (:issue:`13603`)
