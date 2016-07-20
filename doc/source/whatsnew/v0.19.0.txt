@@ -3,16 +3,17 @@
 v0.19.0 (August ??, 2016)
 -------------------------
 
-This is a major release from 0.18.2 and includes a small number of API changes, several new features,
+This is a major release from 0.18.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
 Highlights include:
 
 - :func:`merge_asof` for asof-style time-series joining, see :ref:`here <whatsnew_0190.enhancements.asof_merge>`
+- ``.rolling()`` are now time-series aware, see :ref:`here <whatsnew_0190.enhancements.rolling_ts>`
 - pandas development api, see :ref:`here <whatsnew_0190.dev_api>`
 
-.. contents:: What's new in v0.18.2
+.. contents:: What's new in v0.19.0
     :local:
     :backlinks: none
 
@@ -130,6 +131,64 @@ that forward filling happens automatically taking the most recent non-NaN value.
 
 This returns a merged DataFrame with the entries in the same order as the original left
 passed DataFrame (``trades`` in this case), with the fields of the ``quotes`` merged.
+
+.. _whatsnew_0190.enhancements.rolling_ts:
+
+``.rolling()`` are now time-series aware
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``.rolling()`` objects are now time-series aware and can accept a time-series offset (or convertible) for the ``window`` argument (:issue:`13327`, :issue:`12995`)
+See the full documentation :ref:`here <stats.moments.ts>`.
+
+.. ipython:: python
+
+   dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+                      index=pd.date_range('20130101 09:00:00', periods=5, freq='s'))
+   dft
+
+This is a regular frequency index. Using an integer window parameter works to roll along the window frequency.
+
+.. ipython:: python
+
+   dft.rolling(2).sum()
+   dft.rolling(2, min_periods=1).sum()
+
+Specifying an offset allows a more intuitive specification of the rolling frequency.
+
+.. ipython:: python
+
+   dft.rolling('2s').sum()
+
+Using a non-regular, but still monotonic index, rolling with an integer window does not impart any special calculation.
+
+.. ipython:: python
+
+
+   dft = DataFrame({'B': [0, 1, 2, np.nan, 4]},
+                   index = pd.Index([pd.Timestamp('20130101 09:00:00'),
+                                     pd.Timestamp('20130101 09:00:02'),
+                                     pd.Timestamp('20130101 09:00:03'),
+                                     pd.Timestamp('20130101 09:00:05'),
+                                     pd.Timestamp('20130101 09:00:06')],
+                                    name='foo'))
+
+   dft
+   dft.rolling(2).sum()
+
+Using the time-specification generates variable windows for this sparse data.
+
+.. ipython:: python
+
+   dft.rolling('2s').sum()
+
+Furthermore, we now allow an optional ``on`` parameter to specify a column (rather than the
+default of the index) in a DataFrame.
+
+.. ipython:: python
+
+   dft = dft.reset_index()
+   dft
+   dft.rolling('2s', on='foo').sum()
 
 .. _whatsnew_0190.enhancements.read_csv_dupe_col_names_support:
 
