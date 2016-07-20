@@ -1520,6 +1520,16 @@ class TestTimeSeries(tm.TestCase):
                                   (rng3, expected3), (rng4, expected4)]:
                 tm.assert_index_equal(rng, expected)
 
+    def test_dti_constructor_small_int(self):
+        # GH 13721
+        exp = DatetimeIndex(['1970-01-01 00:00:00.00000000',
+                             '1970-01-01 00:00:00.00000001',
+                             '1970-01-01 00:00:00.00000002'])
+
+        for dtype in [np.int64, np.int32, np.int16, np.int8]:
+            arr = np.array([0, 10, 20], dtype=dtype)
+            tm.assert_index_equal(DatetimeIndex(arr), exp)
+
     def test_normalize(self):
         rng = date_range('1/1/2000 9:30', periods=10, freq='D')
 

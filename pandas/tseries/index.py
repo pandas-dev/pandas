@@ -329,9 +329,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     subarr = tslib.cast_to_nanoseconds(data)
                 else:
                     subarr = data
-        elif data.dtype == _INT64_DTYPE:
+        else:
+            # must be integer dtype otherwise
             if isinstance(data, Int64Index):
                 raise TypeError('cannot convert Int64Index->DatetimeIndex')
+            if data.dtype != _INT64_DTYPE:
+                data = data.astype(np.int64)
             subarr = data.view(_NS_DTYPE)
 
         if isinstance(subarr, DatetimeIndex):
