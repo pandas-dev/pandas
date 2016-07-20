@@ -602,6 +602,7 @@ Removal of prior version deprecations/changes
 - ``pd.Categorical`` has dropped setting of the ``ordered`` attribute directly in favor of the ``set_ordered`` method (:issue:`13671`)
 - ``pd.Categorical`` has dropped the ``levels`` attribute in favour of ``categories`` (:issue:`8376`)
 - ``DataFrame.to_sql()`` has dropped the ``mysql`` option for the ``flavor`` parameter (:issue:`13611`)
+- ``pd.Index`` has dropped the ``diff`` method in favour of ``difference`` (:issue:`13669`)
 
 - Removal of the legacy time rules (offset aliases), deprecated since 0.17.0 (this has been alias since 0.8.0) (:issue:`13590`)
 
