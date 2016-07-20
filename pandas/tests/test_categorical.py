@@ -97,18 +97,9 @@ class TestCategorical(tm.TestCase):
         factor = Categorical.from_array(arr, ordered=False)
         self.assertFalse(factor.ordered)
 
-        if compat.PY3:
-            self.assertRaises(
-                TypeError, lambda: Categorical.from_array(arr, ordered=True))
-        else:
-            # this however will raise as cannot be sorted (on PY3 or older
-            # numpies)
-            if LooseVersion(np.__version__) < "1.10":
-                self.assertRaises(
-                    TypeError,
-                    lambda: Categorical.from_array(arr, ordered=True))
-            else:
-                Categorical.from_array(arr, ordered=True)
+        # this however will raise as cannot be sorted
+        self.assertRaises(
+            TypeError, lambda: Categorical.from_array(arr, ordered=True))
 
     def test_is_equal_dtype(self):
 
