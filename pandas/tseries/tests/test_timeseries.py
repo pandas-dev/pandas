@@ -4389,6 +4389,8 @@ class TestTimestamp(tm.TestCase):
         result = Timestamp('NaT')
         self.assertIs(result, NaT)
 
+        self.assertTrue(isnull(Timestamp('nat')))
+
     def test_roundtrip(self):
 
         # test value to string and back conversions
