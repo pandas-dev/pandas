@@ -727,7 +727,7 @@ cdef class _Period(object):
                             (type(self).__name__, type(other).__name__))
 
     def __hash__(self):
-        return hash((self.ordinal, self.freq))
+        return hash((self.ordinal, self.freqstr))
 
     def _add_delta(self, other):
         if isinstance(other, (timedelta, np.timedelta64, offsets.Tick, Timedelta)):
