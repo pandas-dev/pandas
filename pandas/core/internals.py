@@ -1490,7 +1490,7 @@ class NonConsolidatableMixIn(object):
         if isinstance(new, np.ndarray) and len(new) == len(mask):
             new = new[mask]
 
-        mask = mask.reshape(new_values.shape)
+        mask = _safe_reshape(mask, new_values.shape)
         new_values[mask] = new
         new_values = self._try_coerce_result(new_values)
         return [self.make_block(values=new_values)]
