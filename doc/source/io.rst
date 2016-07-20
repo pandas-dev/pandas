@@ -2043,9 +2043,8 @@ Reading HTML Content
 
 .. warning::
 
-   We **highly encourage** you to read the :ref:`HTML parsing gotchas
-   <html-gotchas>` regarding the issues surrounding the
-   BeautifulSoup4/html5lib/lxml parsers.
+   We **highly encourage** you to read the :ref:`HTML Table Parsing<faq.html>`
+   regarding the issues surrounding the BeautifulSoup4/html5lib/lxml parsers.
 
 .. versionadded:: 0.12.0
 

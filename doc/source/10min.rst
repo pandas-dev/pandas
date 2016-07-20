@@ -810,4 +810,4 @@ If you are trying an operation and you see an exception like:
 
 See :ref:`Comparisons<basics.compare>` for an explanation and what to do.
 
-See :ref:`Gotchas<gotchas>` as well.
+See :ref:`FAQ<faq>` as well.
