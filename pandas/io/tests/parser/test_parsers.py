@@ -44,6 +44,7 @@ class BaseParser(CommentTests, CompressionTests,
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
+        self.csv_shiftjs = os.path.join(self.dirpath, 'sauron.SHIFT_JIS.csv')
 
 
 class TestCParserHighMemory(BaseParser, CParserTests, tm.TestCase):
