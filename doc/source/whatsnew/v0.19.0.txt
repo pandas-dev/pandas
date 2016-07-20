@@ -330,7 +330,7 @@ API changes
 - ``__setitem__`` will no longer apply a callable rhs as a function instead of storing it. Call ``where`` directly to get the previous behavior. (:issue:`13299`)
 - Passing ``Period`` with multiple frequencies to normal ``Index`` now returns ``Index`` with ``object`` dtype (:issue:`13664`)
 - ``PeriodIndex.fillna`` with ``Period`` has different freq now coerces to ``object`` dtype (:issue:`13664`)
-
+- More informative exceptions are passed through the parser. The exception type would now be the original exception type instead of ``CParserError``. (:issue `13652`)
 
 .. _whatsnew_0190.api.tolist:
 

@@ -10,7 +10,9 @@ import warnings
 from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
 from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString, PyBytes_Check,
-                      PyUnicode_Check, PyUnicode_AsUTF8String)
+                      PyUnicode_Check, PyUnicode_AsUTF8String,
+                      PyErr_Occurred, PyErr_Fetch)
+from cpython.ref cimport PyObject, Py_XDECREF
 from io.common import CParserError, DtypeWarning, EmptyDataError
 
 
@@ -1878,6 +1880,17 @@ cdef kh_float64_t* kset_float64_from_list(values) except NULL:
 
 
 cdef raise_parser_error(object base, parser_t *parser):
+    cdef:
+        object old_exc
+        PyObject *type, *value, *traceback
+    if PyErr_Occurred():
+        PyErr_Fetch(&type, &value, &traceback);
+        Py_XDECREF(type)
+        Py_XDECREF(traceback)
+        if value != NULL:
+            old_exc = <object> value
+            Py_XDECREF(value)
+            raise old_exc
     message = '%s. C error: ' % base
     if parser.error_msg != NULL:
         if PY3:
