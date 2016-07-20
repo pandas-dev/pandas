@@ -5,7 +5,6 @@ import numpy as np
 from numpy.random import RandomState
 from numpy import nan
 import datetime
-
 from pandas import Series, Categorical, CategoricalIndex, Index
 import pandas as pd
 
@@ -116,6 +115,19 @@ class TestSafeSort(tm.TestCase):
         labels = [0, 1, 2, 3, 0, -1, 1]
         result, result_labels = algos.safe_sort(values, labels)
         expected = np.array([0, 1, 'a', 'b'], dtype=object)
+        expected_labels = np.array([3, 1, 0, 2, 3, -1, 1])
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+    def test_unsortable(self):
+        # GH 13714
+        arr = np.array([1, 2, datetime.datetime.now(), 0, 3], dtype=object)
+        if compat.PY2 and not pd._np_version_under1p10:
+            # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
+            with tm.assert_produces_warning(RuntimeWarning):
+                tm.assertRaises(TypeError, algos.safe_sort, arr)
+        else:
+            tm.assertRaises(TypeError, algos.safe_sort, arr)
 
     def test_exceptions(self):
         with tm.assertRaisesRegexp(TypeError,
