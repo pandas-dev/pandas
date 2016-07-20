@@ -1,3 +1,5 @@
+import warnings
+
 from pandas.compat import lrange
 import numpy as np
 from pandas.types.common import _ensure_platform_int
@@ -7,6 +9,8 @@ import pandas.core.nanops as nanops
 
 def pivot_annual(series, freq=None):
     """
+    Deprecated. Use ``pivot_table`` instead.
+
     Group a series by years, taking leap years into account.
 
     The output has as many rows as distinct years in the original series,
@@ -35,6 +39,10 @@ def pivot_annual(series, freq=None):
     -------
     annual : DataFrame
     """
+
+    msg = "pivot_annual is deprecated. Use pivot_table instead"
+    warnings.warn(msg, FutureWarning)
+
     index = series.index
     year = index.year
     years = nanops.unique1d(year)
