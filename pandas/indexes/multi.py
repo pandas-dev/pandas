@@ -848,6 +848,12 @@ class MultiIndex(Index):
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
 
+        # Check if lengths of all arrays are equal or not,
+        # raise ValueError, if not
+        for i in range(1, len(arrays)):
+            if len(arrays[i]) != len(arrays[i - 1]):
+                raise ValueError('all arrays must be same length')
+
         cats = [Categorical.from_array(arr, ordered=True) for arr in arrays]
         levels = [c.categories for c in cats]
         labels = [c.codes for c in cats]
