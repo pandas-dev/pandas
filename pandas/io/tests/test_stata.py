@@ -11,17 +11,16 @@ from distutils.version import LooseVersion
 
 import nose
 import numpy as np
-
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import compat
 from pandas.compat import iterkeys
 from pandas.core.frame import DataFrame, Series
-from pandas.types.common import is_categorical_dtype
-from pandas.tslib import NaT
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)
+from pandas.tslib import NaT
+from pandas.types.common import is_categorical_dtype
 
 
 class TestStata(tm.TestCase):
@@ -1165,6 +1164,52 @@ class TestStata(tm.TestCase):
             with tm.ensure_clean() as path:
                 original.to_stata(path, variable_labels=variable_labels_long)
 
+    def test_default_date_conversion(self):
+        # GH 12259
+        dates = [dt.datetime(1999, 12, 31, 12, 12, 12, 12000),
+                 dt.datetime(2012, 12, 21, 12, 21, 12, 21000),
+                 dt.datetime(1776, 7, 4, 7, 4, 7, 4000)]
+        original = pd.DataFrame({'nums': [1.0, 2.0, 3.0],
+                                 'strs': ['apple', 'banana', 'cherry'],
+                                 'dates': dates})
+
+        with tm.ensure_clean() as path:
+            original.to_stata(path, write_index=False)
+            reread = read_stata(path, convert_dates=True)
+            tm.assert_frame_equal(original, reread)
+
+            original.to_stata(path,
+                              write_index=False,
+                              convert_dates={'dates': 'tc'})
+            direct = read_stata(path, convert_dates=True)
+            tm.assert_frame_equal(reread, direct)
+
+    def test_unsupported_type(self):
+        original = pd.DataFrame({'a': [1 + 2j, 2 + 4j]})
+
+        with tm.assertRaises(NotImplementedError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path)
+
+    def test_unsupported_datetype(self):
+        dates = [dt.datetime(1999, 12, 31, 12, 12, 12, 12000),
+                 dt.datetime(2012, 12, 21, 12, 21, 12, 21000),
+                 dt.datetime(1776, 7, 4, 7, 4, 7, 4000)]
+        original = pd.DataFrame({'nums': [1.0, 2.0, 3.0],
+                                 'strs': ['apple', 'banana', 'cherry'],
+                                 'dates': dates})
+
+        with tm.assertRaises(NotImplementedError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path, convert_dates={'dates': 'tC'})
+
+        dates = pd.date_range('1-1-1990', periods=3, tz='Asia/Hong_Kong')
+        original = pd.DataFrame({'nums': [1.0, 2.0, 3.0],
+                                 'strs': ['apple', 'banana', 'cherry'],
+                                 'dates': dates})
+        with tm.assertRaises(NotImplementedError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
