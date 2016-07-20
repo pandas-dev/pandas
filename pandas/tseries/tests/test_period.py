@@ -462,6 +462,19 @@ class TestPeriodProperties(tm.TestCase):
                 p = Period('2016-03-01 09:00', freq=exp)
                 tm.assertIsInstance(p, Period)
 
+    def test_hash(self):
+        self.assertEqual(hash(Period('2011-01', freq='M')),
+                         hash(Period('2011-01', freq='M')))
+
+        self.assertNotEqual(hash(Period('2011-01-01', freq='D')),
+                            hash(Period('2011-01', freq='M')))
+
+        self.assertNotEqual(hash(Period('2011-01', freq='3M')),
+                            hash(Period('2011-01', freq='2M')))
+
+        self.assertNotEqual(hash(Period('2011-01', freq='M')),
+                            hash(Period('2011-02', freq='M')))
+
     def test_repr(self):
         p = Period('Jan-2000')
         self.assertIn('2000-01', repr(p))
