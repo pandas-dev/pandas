@@ -2022,6 +2022,9 @@ class NDFrame(PandasObject):
             Sort ascending vs. descending
         inplace : bool, default False
             if True, perform operation in-place
+        sort_remaining : bool, default True
+            if true and sorting by level and index is multilevel, sort by other
+            levels too (in order) after sorting by specified level
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
              Choice of sorting algorithm. See also ndarray.np.sort for more
              information.  `mergesort` is the only stable algorithm. For
@@ -2029,9 +2032,6 @@ class NDFrame(PandasObject):
              column or label.
         na_position : {'first', 'last'}, default 'last'
              `first` puts NaNs at the beginning, `last` puts NaNs at the end
-        sort_remaining : bool, default True
-            if true and sorting by level and index is multilevel, sort by other
-            levels too (in order) after sorting by specified level
 
         Returns
         -------
