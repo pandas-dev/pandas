@@ -7,22 +7,49 @@ import numpy as np
 
 import pandas.json as _json
 from pandas.tslib import iNaT
-from pandas.compat import long, u
+from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, _get_handle
 from pandas.core.common import AbstractMethodError
 from pandas.formats.printing import pprint_thing
 
 loads = _json.loads
 dumps = _json.dumps
 
+
 # interface to/from
+def _convert_to_line_delimits(s):
+    """Helper function that converts json lists to line delimited json."""
+
+    # Determine we have a JSON list to turn to lines otherwise just return the
+    # json object, only lists can
+    if not s[0] == '[' and s[-1] == ']':
+        return s
+    s = s[1:-1]
+    num_open_brackets_seen = 0
+    commas_to_replace = []
+    for idx, char in enumerate(s):              # iter through to find all
+        if char == ',':                         # commas that should be \n
+            if num_open_brackets_seen == 0:
+                commas_to_replace.append(idx)
+        elif char == '{':
+            num_open_brackets_seen += 1
+        elif char == '}':
+            num_open_brackets_seen -= 1
+    s_arr = np.array(list(s))                  # Turn to an array to set
+    s_arr[commas_to_replace] = '\n'            # all commas at once.
+    s = ''.join(s_arr)
+    return s
 
 
 def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
-            default_handler=None):
+            default_handler=None, lines=False):
+
+    if lines and orient != 'records':
+            raise ValueError(
+                "'lines' keyword only valid when 'orient' is records")
 
     if isinstance(obj, Series):
         s = SeriesWriter(
@@ -36,6 +63,9 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             date_unit=date_unit, default_handler=default_handler).write()
     else:
         raise NotImplementedError("'obj' should be a Series or a DataFrame")
+
+    if lines:
+        s = _convert_to_line_delimits(s)
 
     if isinstance(path_or_buf, compat.string_types):
         with open(path_or_buf, 'w') as fh:
@@ -105,7 +135,8 @@ class FrameWriter(Writer):
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
-              numpy=False, precise_float=False, date_unit=None):
+              numpy=False, precise_float=False, date_unit=None, encoding=None,
+              lines=False):
     """
     Convert a JSON string to pandas object
 
@@ -178,13 +209,23 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         is to try and detect the correct precision, but if this is not desired
         then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,
         milliseconds, microseconds or nanoseconds respectively.
+    lines : boolean, default False
+        Read the file as a json object per line.
+
+        .. versionadded:: 0.19.0
+
+    encoding : str, default is 'utf-8'
+        The encoding to use to decode py3 bytes.
+
+        .. versionadded:: 0.19.0
 
     Returns
     -------
     result : Series or DataFrame
     """
 
-    filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf)
+    filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
+                                                      encoding=encoding)
     if isinstance(filepath_or_buffer, compat.string_types):
         try:
             exists = os.path.exists(filepath_or_buffer)
@@ -195,7 +236,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             exists = False
 
         if exists:
-            with open(filepath_or_buffer, 'r') as fh:
+            with _get_handle(filepath_or_buffer, 'r', encoding=encoding) as fh:
                 json = fh.read()
         else:
             json = filepath_or_buffer
@@ -203,6 +244,12 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         json = filepath_or_buffer.read()
     else:
         json = filepath_or_buffer
+
+    if lines:
+        # If given a json lines file, we break the string into lines, add
+        # commas and put it in a json list to make a valid json object.
+        lines = list(StringIO(json.strip()))
+        json = u'[' + u','.join(lines) + u']'
 
     obj = None
     if typ == 'frame':
