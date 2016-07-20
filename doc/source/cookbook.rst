@@ -679,6 +679,19 @@ The :ref:`Pivot <reshaping.pivot>` docs.
                        'Employed' : lambda x : sum(x),
                        'Grade' : lambda x : sum(x) / len(x)})
 
+`Plot pandas DataFrame with year over year data
+<http://stackoverflow.com/questions/30379789/plot-pandas-data-frame-with-year-over-year-data>`__
+
+To create year and month crosstabulation:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'value': np.random.randn(36)},
+                     index=pd.date_range('2011-01-01', freq='M', periods=36))
+
+   pd.pivot_table(df, index=df.index.month, columns=df.index.year,
+                  values='value', aggfunc='sum')
+
 Apply
 *****
 

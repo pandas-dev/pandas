@@ -589,7 +589,7 @@ Deprecations
 - ``as_recarray`` has been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13373`)
 - top-level ``pd.ordered_merge()`` has been renamed to ``pd.merge_ordered()`` and the original name will be removed in a future version (:issue:`13358`)
 - ``Timestamp.offset`` property (and named arg in the constructor), has been deprecated in favor of ``freq`` (:issue:`12160`)
-
+- ``pivot_annual`` is deprecated. Use ``pivot_table`` as alternative, an example is :ref:`here <cookbook.pivot>` (:issue:`736`)
 
 .. _whatsnew_0190.prior_deprecations:
 
