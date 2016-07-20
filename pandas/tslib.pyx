@@ -546,6 +546,10 @@ class Timestamp(_Timestamp):
     def is_year_end(self):
         return self._get_start_end_field('is_year_end')
 
+    @property
+    def is_leap_year(self):
+        return bool(is_leapyear(self.year))
+
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
@@ -753,6 +757,10 @@ class NaTType(_NaT):
         # GH 10939
         return np.nan
 
+    @property
+    def is_leap_year(self):
+        return False
+
     def __rdiv__(self, other):
         return _nat_rdivide_op(self, other)
 
@@ -771,7 +779,8 @@ class NaTType(_NaT):
 
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek', 'weekday_name']
+          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek',
+          'weekday_name']
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
@@ -4431,6 +4440,8 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
                 out[i] = days_in_month(dts)
         return out
+    elif field == 'is_leap_year':
+        return _isleapyear_arr(get_date_field(dtindex, 'Y'))
 
     raise ValueError("Field %s not supported" % field)
 
@@ -4821,8 +4832,18 @@ def dates_normalized(ndarray[int64_t] stamps, tz=None):
 # Some general helper functions
 #----------------------------------------------------------------------
 
-def isleapyear(int64_t year):
-    return is_leapyear(year)
+
+cpdef _isleapyear_arr(ndarray years):
+    cdef:
+        ndarray[int8_t] out
+
+    # to make NaT result as False
+    out = np.zeros(len(years), dtype='int8')
+    out[np.logical_or(years % 400 == 0,
+                      np.logical_and(years % 4 == 0,
+                                     years % 100 > 0))] = 1
+    return out.view(bool)
+
 
 def monthrange(int64_t year, int64_t month):
     cdef:

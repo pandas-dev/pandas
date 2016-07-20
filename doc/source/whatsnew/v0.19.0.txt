@@ -347,6 +347,8 @@ API changes
 - ``astype()`` will now accept a dict of column name to data types mapping as the ``dtype`` argument. (:issue:`12086`)
 - The ``pd.read_json`` and ``DataFrame.to_json`` has gained support for reading and writing json lines with ``lines`` option see :ref:`Line delimited json <io.jsonl>` (:issue:`9180`)
 - ``pd.Timedelta(None)`` is now accepted and will return ``NaT``, mirroring ``pd.Timestamp`` (:issue:`13687`)
+- ``Timestamp``, ``Period``, ``DatetimeIndex``, ``PeriodIndex`` and ``.dt`` accessor have ``.is_leap_year`` property to check whether the date belongs to a leap year. (:issue:`13727`)
+
 
 .. _whatsnew_0190.api.tolist:
 
@@ -609,7 +611,9 @@ Deprecations
 - ``as_recarray`` has been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13373`)
 - top-level ``pd.ordered_merge()`` has been renamed to ``pd.merge_ordered()`` and the original name will be removed in a future version (:issue:`13358`)
 - ``Timestamp.offset`` property (and named arg in the constructor), has been deprecated in favor of ``freq`` (:issue:`12160`)
-- ``pivot_annual`` is deprecated. Use ``pivot_table`` as alternative, an example is :ref:`here <cookbook.pivot>` (:issue:`736`)
+- ``pd.tseries.util.pivot_annual`` is deprecated. Use ``pivot_table`` as alternative, an example is :ref:`here <cookbook.pivot>` (:issue:`736`)
+- ``pd.tseries.util.isleapyear`` has been deprecated and will be removed in a subsequent release. Datetime-likes now have a ``.is_leap_year`` property. (:issue:`13727`)
+
 
 .. _whatsnew_0190.prior_deprecations:
 
