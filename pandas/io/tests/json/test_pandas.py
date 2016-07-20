@@ -989,7 +989,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         examples = []
         for dtype in ['category', object]:
             for val in values:
-                examples.append(pandas.Series(val, dtype=dtype))
+                examples.append(Series(val, dtype=dtype))
 
         def roundtrip(s, encoding='latin-1'):
             with ensure_clean('test.json') as path:
