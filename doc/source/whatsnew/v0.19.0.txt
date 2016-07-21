@@ -313,6 +313,15 @@ Other enhancements
 - ``Series.append`` now supports the ``ignore_index`` option (:issue:`13677`)
 - ``.to_stata()`` and ``StataWriter`` can now write variable labels to Stata dta files using a dictionary to make column names to labels (:issue:`13535`, :issue:`13536`)
 - ``.to_stata()`` and ``StataWriter`` will automatically convert ``datetime64[ns]`` columns to Stata format ``%tc``, rather than raising a ``ValueError`` (:issue:`12259`)
+- ``DataFrame`` has gained support to re-order the columns based on the values
+  in a row using ``df.sort_values(by='...', axis=1)`` (:issue:`10806`)
+
+  .. ipython:: python
+
+     df = pd.DataFrame({'A': [2, 7], 'B': [3, 5], 'C': [4, 8]},
+                       index=['row1', 'row2'])
+     df.sort_values(by='row2', axis=1)
+
 
 .. _whatsnew_0190.api:
 

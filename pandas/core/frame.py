@@ -101,7 +101,7 @@ from pandas.core.config import get_option
 
 _shared_doc_kwargs = dict(
     axes='index, columns', klass='DataFrame',
-    axes_single_arg="{0, 1, 'index', 'columns'}",
+    axes_single_arg="{0 or 'index', 1 or 'columns'}",
     optional_by="""
         by : str or list of str
             Name or list of names which refer to the axis items.""")
@@ -3184,9 +3184,8 @@ class DataFrame(NDFrame):
                     kind='quicksort', na_position='last'):
 
         axis = self._get_axis_number(axis)
+        other_axis = 0 if axis == 1 else 1
 
-        if axis != 0:
-            raise ValueError('When sorting by column, axis must be 0 (rows)')
         if not isinstance(by, list):
             by = [by]
         if is_sequence(ascending) and len(by) != len(ascending):
@@ -3202,7 +3201,7 @@ class DataFrame(NDFrame):
 
             keys = []
             for x in by:
-                k = self[x].values
+                k = self.xs(x, axis=other_axis).values
                 if k.ndim == 2:
                     raise ValueError('Cannot sort by duplicate column %s' %
                                      str(x))
@@ -3214,7 +3213,7 @@ class DataFrame(NDFrame):
             from pandas.core.groupby import _nargsort
 
             by = by[0]
-            k = self[by].values
+            k = self.xs(by, axis=other_axis).values
             if k.ndim == 2:
 
                 # try to be helpful
