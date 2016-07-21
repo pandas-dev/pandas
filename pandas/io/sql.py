@@ -8,7 +8,6 @@ from __future__ import print_function, division
 from datetime import datetime, date, time
 
 import warnings
-import traceback
 import re
 import numpy as np
 
@@ -18,7 +17,7 @@ from pandas.types.dtypes import DatetimeTZDtype
 from pandas.types.common import (is_list_like,
                                  is_datetime64tz_dtype)
 
-from pandas.compat import (lzip, map, zip, raise_with_traceback,
+from pandas.compat import (map, zip, raise_with_traceback,
                            string_types, text_type)
 from pandas.core.api import DataFrame, Series
 from pandas.core.base import PandasObject
@@ -190,125 +189,6 @@ def execute(sql, con, cur=None, params=None):
         pandas_sql = pandasSQL_builder(cur, is_cursor=True)
     args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
-
-
-# -----------------------------------------------------------------------------
-# -- Deprecated tquery and uquery
-
-def _safe_fetch(cur):
-    try:
-        result = cur.fetchall()
-        if not isinstance(result, list):
-            result = list(result)
-        return result
-    except Exception as e:  # pragma: no cover
-        excName = e.__class__.__name__
-        if excName == 'OperationalError':
-            return []
-
-
-def tquery(sql, con=None, cur=None, retry=True):
-    """
-    DEPRECATED. Returns list of tuples corresponding to each row in given sql
-    query.
-
-    If only one column selected, then plain list is returned.
-
-    To obtain the same result in the future, you can use the following:
-
-    >>> execute(sql, con, params).fetchall()
-
-    Parameters
-    ----------
-    sql: string
-        SQL query to be executed
-    con: DBAPI2 connection, default: None
-    cur: deprecated, cursor is obtained from connection, default: None
-    retry: boolean value to specify whether to retry after failure
-        default: True
-
-    Returns
-    -------
-    Results Iterable
-
-    """
-    warnings.warn(
-        "tquery is deprecated, and will be removed in future versions. "
-        "You can use ``execute(...).fetchall()`` instead.",
-        FutureWarning, stacklevel=2)
-
-    cur = execute(sql, con, cur=cur)
-    result = _safe_fetch(cur)
-
-    if con is not None:
-        try:
-            cur.close()
-            con.commit()
-        except Exception as e:
-            excName = e.__class__.__name__
-            if excName == 'OperationalError':  # pragma: no cover
-                print('Failed to commit, may need to restart interpreter')
-            else:
-                raise
-
-            traceback.print_exc()
-            if retry:
-                return tquery(sql, con=con, retry=False)
-
-    if result and len(result[0]) == 1:
-        # python 3 compat
-        result = list(lzip(*result)[0])
-    elif result is None:  # pragma: no cover
-        result = []
-
-    return result
-
-
-def uquery(sql, con=None, cur=None, retry=True, params=None):
-    """
-    DEPRECATED. Does the same thing as tquery, but instead of returning
-    results, it returns the number of rows affected.  Good for update queries.
-
-    To obtain the same result in the future, you can use the following:
-
-    >>> execute(sql, con).rowcount
-
-    Parameters
-    ----------
-    sql: string
-        SQL query to be executed
-    con: DBAPI2 connection, default: None
-    cur: deprecated, cursor is obtained from connection, default: None
-    retry: boolean value to specify whether to retry after failure
-        default: True
-    params: list or tuple, optional, default: None
-        List of parameters to pass to execute method.
-
-    Returns
-    -------
-    Number of affected rows
-
-    """
-    warnings.warn(
-        "uquery is deprecated, and will be removed in future versions. "
-        "You can use ``execute(...).rowcount`` instead.",
-        FutureWarning, stacklevel=2)
-
-    cur = execute(sql, con, cur=cur, params=params)
-
-    result = cur.rowcount
-    try:
-        con.commit()
-    except Exception as e:
-        excName = e.__class__.__name__
-        if excName != 'OperationalError':
-            raise
-
-        traceback.print_exc()
-        if retry:
-            print('Looks like your connection failed, reconnecting...')
-            return uquery(sql, con, retry=False)
-    return result
 
 
 # -----------------------------------------------------------------------------
