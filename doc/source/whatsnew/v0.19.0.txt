@@ -597,6 +597,8 @@ Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - The ``pd.sandbox`` module has been removed in favor of the external library ``pandas-qt`` (:issue:`13670`)
+- The ``pandas.io.data`` and ``pandas.io.wb`` modules are removed in favor of
+  the `pandas-datareader package <https://github.com/pydata/pandas-datareader>`__ (:issue:`13724`).
 - ``DataFrame.to_csv()`` has dropped the ``engine`` parameter, as was deprecated in 0.17.1 (:issue:`11274`, :issue:`13419`)
 - ``DataFrame.to_dict()`` has dropped the ``outtype`` parameter in favor of ``orient`` (:issue:`13627`, :issue:`8486`)
 - ``pd.Categorical`` has dropped setting of the ``ordered`` attribute directly in favor of the ``set_ordered`` method (:issue:`13671`)
