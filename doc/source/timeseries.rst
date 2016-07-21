@@ -567,11 +567,11 @@ DateOffset objects
 ------------------
 
 In the preceding examples, we created DatetimeIndex objects at various
-frequencies by passing in frequency strings like 'M', 'W', and 'BM to the
-``freq`` keyword. Under the hood, these frequency strings are being translated
-into an instance of pandas ``DateOffset``, which represents a regular
-frequency increment. Specific offset logic like "month", "business day", or
-"one hour" is represented in its various subclasses.
+frequencies by passing in :ref:`frequency strings <timeseries.offset_aliases>`
+like 'M', 'W', and 'BM to the ``freq`` keyword. Under the hood, these frequency
+strings are being translated into an instance of pandas ``DateOffset``,
+which represents a regular frequency increment. Specific offset logic like
+"month", "business day", or "one hour" is represented in its various subclasses.
 
 .. csv-table::
     :header: "Class name", "Description"
@@ -953,7 +953,7 @@ You can use keyword arguments suported by either ``BusinessHour`` and ``CustomBu
     # Monday is skipped because it's a holiday, business hour starts from 10:00
     dt + bhour_mon * 2
 
-.. _timeseries.alias:
+.. _timeseries.offset_aliases:
 
 Offset Aliases
 ~~~~~~~~~~~~~~
