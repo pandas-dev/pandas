@@ -1070,17 +1070,6 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         create_sql = sql.get_schema(self.test_frame1, 'test')
         self.assertTrue('CREATE' in create_sql)
 
-    def test_tquery(self):
-        with tm.assert_produces_warning(FutureWarning):
-            iris_results = sql.tquery("SELECT * FROM iris", con=self.conn)
-        row = iris_results[0]
-        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
-
-    def test_uquery(self):
-        with tm.assert_produces_warning(FutureWarning):
-            rows = sql.uquery("SELECT * FROM iris LIMIT 1", con=self.conn)
-        self.assertEqual(rows, -1)
-
     def _get_sqlite_column_type(self, schema, column):
 
         for col in schema.split('\n'):
@@ -2091,6 +2080,15 @@ def format_query(sql, *args):
     return sql % tuple(processed_args)
 
 
+def tquery(query, con=None, cur=None):
+    """Replace removed sql.tquery function"""
+    res = sql.execute(query, con=con, cur=cur).fetchall()
+    if res is None:
+        return None
+    else:
+        return list(res)
+
+
 def _skip_if_no_pymysql():
     try:
         import pymysql  # noqa
@@ -2120,7 +2118,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
         for idx, row in frame.iterrows():
             fmt_sql = format_query(ins, *row)
-            sql.tquery(fmt_sql, cur=cur)
+            tquery(fmt_sql, cur=cur)
 
         self.conn.commit()
 
@@ -2200,7 +2198,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         self.conn.close()
         try:
             sys.stdout = StringIO()
-            self.assertRaises(Exception, sql.tquery, "select * from test",
+            self.assertRaises(Exception, tquery, "select * from test",
                               con=self.conn)
         finally:
             sys.stdout = sys.__stdout__
@@ -2231,42 +2229,6 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         expected.index = Index(lrange(len(frame2))) + 10
         expected.index.name = 'Idx'
         tm.assert_frame_equal(expected, result)
-
-    def test_tquery(self):
-        frame = tm.makeTimeDataFrame()
-        sql.to_sql(frame, name='test_table', con=self.conn, index=False)
-        result = sql.tquery("select A from test_table", self.conn)
-        expected = Series(frame.A.values, frame.index)  # not to have name
-        result = Series(result, frame.index)
-        tm.assert_series_equal(result, expected)
-
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(sql.DatabaseError, sql.tquery,
-                              'select * from blah', con=self.conn)
-
-            self.assertRaises(sql.DatabaseError, sql.tquery,
-                              'select * from blah', con=self.conn, retry=True)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    def test_uquery(self):
-        frame = tm.makeTimeDataFrame()
-        sql.to_sql(frame, name='test_table', con=self.conn, index=False)
-        stmt = 'INSERT INTO test_table VALUES(2.314, -123.1, 1.234, 2.3)'
-        self.assertEqual(sql.uquery(stmt, con=self.conn), 1)
-
-        try:
-            sys.stdout = StringIO()
-
-            self.assertRaises(sql.DatabaseError, sql.tquery,
-                              'insert into blah values (1)', con=self.conn)
-
-            self.assertRaises(sql.DatabaseError, sql.tquery,
-                              'insert into blah values (1)', con=self.conn,
-                              retry=True)
-        finally:
-            sys.stdout = sys.__stdout__
 
     def test_keyword_as_column_names(self):
         df = DataFrame({'From': np.ones(5)})
@@ -2324,22 +2286,22 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         # test if_exists='replace'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,
                    if_exists='replace', index=False)
-        self.assertEqual(sql.tquery(sql_select, con=self.conn),
+        self.assertEqual(tquery(sql_select, con=self.conn),
                          [(1, 'A'), (2, 'B')])
         sql.to_sql(frame=df_if_exists_2, con=self.conn, name=table_name,
                    if_exists='replace', index=False)
-        self.assertEqual(sql.tquery(sql_select, con=self.conn),
+        self.assertEqual(tquery(sql_select, con=self.conn),
                          [(3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
 
         # test if_exists='append'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,
                    if_exists='fail', index=False)
-        self.assertEqual(sql.tquery(sql_select, con=self.conn),
+        self.assertEqual(tquery(sql_select, con=self.conn),
                          [(1, 'A'), (2, 'B')])
         sql.to_sql(frame=df_if_exists_2, con=self.conn, name=table_name,
                    if_exists='append', index=False)
-        self.assertEqual(sql.tquery(sql_select, con=self.conn),
+        self.assertEqual(tquery(sql_select, con=self.conn),
                          [(1, 'A'), (2, 'B'), (3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
 
@@ -2445,7 +2407,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
         for idx, row in frame.iterrows():
             fmt_sql = format_query(ins, *row)
-            sql.tquery(fmt_sql, cur=cur)
+            tquery(fmt_sql, cur=cur)
 
         self.conn.commit()
 
@@ -2554,7 +2516,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         self.conn.close()
         try:
             sys.stdout = StringIO()
-            self.assertRaises(Exception, sql.tquery, "select * from test",
+            self.assertRaises(Exception, tquery, "select * from test",
                               con=self.conn)
         finally:
             sys.stdout = sys.__stdout__
@@ -2603,58 +2565,6 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         expected.index.names = result.index.names
         tm.assert_frame_equal(expected, result)
 
-    def test_tquery(self):
-        try:
-            import pymysql  # noqa
-        except ImportError:
-            raise nose.SkipTest("no pymysql")
-        frame = tm.makeTimeDataFrame()
-        drop_sql = "DROP TABLE IF EXISTS test_table"
-        cur = self.conn.cursor()
-        cur.execute(drop_sql)
-        sql.to_sql(frame, name='test_table',
-                   con=self.conn, index=False)
-        result = sql.tquery("select A from test_table", self.conn)
-        expected = Series(frame.A.values, frame.index)  # not to have name
-        result = Series(result, frame.index)
-        tm.assert_series_equal(result, expected)
-
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(sql.DatabaseError, sql.tquery,
-                              'select * from blah', con=self.conn)
-
-            self.assertRaises(sql.DatabaseError, sql.tquery,
-                              'select * from blah', con=self.conn, retry=True)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    def test_uquery(self):
-        try:
-            import pymysql  # noqa
-        except ImportError:
-            raise nose.SkipTest("no pymysql")
-        frame = tm.makeTimeDataFrame()
-        drop_sql = "DROP TABLE IF EXISTS test_table"
-        cur = self.conn.cursor()
-        cur.execute(drop_sql)
-        sql.to_sql(frame, name='test_table',
-                   con=self.conn, index=False)
-        stmt = 'INSERT INTO test_table VALUES(2.314, -123.1, 1.234, 2.3)'
-        self.assertEqual(sql.uquery(stmt, con=self.conn), 1)
-
-        try:
-            sys.stdout = StringIO()
-
-            self.assertRaises(sql.DatabaseError, sql.tquery,
-                              'insert into blah values (1)', con=self.conn)
-
-            self.assertRaises(sql.DatabaseError, sql.tquery,
-                              'insert into blah values (1)', con=self.conn,
-                              retry=True)
-        finally:
-            sys.stdout = sys.__stdout__
-
     def test_keyword_as_column_names(self):
         _skip_if_no_pymysql()
         df = DataFrame({'From': np.ones(5)})
@@ -2698,22 +2608,22 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         # test if_exists='replace'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,
                    if_exists='replace', index=False)
-        self.assertEqual(sql.tquery(sql_select, con=self.conn),
+        self.assertEqual(tquery(sql_select, con=self.conn),
                          [(1, 'A'), (2, 'B')])
         sql.to_sql(frame=df_if_exists_2, con=self.conn, name=table_name,
                    if_exists='replace', index=False)
-        self.assertEqual(sql.tquery(sql_select, con=self.conn),
+        self.assertEqual(tquery(sql_select, con=self.conn),
                          [(3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
 
         # test if_exists='append'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,
                    if_exists='fail', index=False)
-        self.assertEqual(sql.tquery(sql_select, con=self.conn),
+        self.assertEqual(tquery(sql_select, con=self.conn),
                          [(1, 'A'), (2, 'B')])
         sql.to_sql(frame=df_if_exists_2, con=self.conn, name=table_name,
                    if_exists='append', index=False)
-        self.assertEqual(sql.tquery(sql_select, con=self.conn),
+        self.assertEqual(tquery(sql_select, con=self.conn),
                          [(1, 'A'), (2, 'B'), (3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
 
