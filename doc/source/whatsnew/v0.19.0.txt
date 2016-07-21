@@ -527,9 +527,12 @@ Previous Behavior:
 
 New Behavior:
 
+These result in ``pd.NaT`` without providing ``freq`` option.
+
 .. ipython:: python
 
    pd.Period('NaT')
+   pd.Period(None)
 
 
 To be compat with ``Period`` addition and subtraction, ``pd.NaT`` now supports addition and subtraction with ``int``. Previously it raises ``ValueError``.
@@ -548,6 +551,7 @@ New Behavior:
 
    pd.NaT + 1
    pd.NaT - 1
+
 
 .. _whatsnew_0190.api.difference:
 
@@ -701,6 +705,8 @@ Bug Fixes
 
 - Bug in ``Series`` arithmetic raises ``TypeError`` if it contains datetime-like as ``object`` dtype (:issue:`13043`)
 
+- Bug ``Series.isnull`` and ``Series.notnull`` ignore ``Period('NaT')``  (:issue:`13737`)
+- Bug ``Series.fillna`` and ``Series.dropna`` don't affect to ``Period('NaT')``  (:issue:`13737`)
 
 - Bug in ``pd.to_datetime()`` when passing invalid datatypes (e.g. bool); will now respect the ``errors`` keyword (:issue:`13176`)
 - Bug in ``pd.to_datetime()`` which overflowed on ``int8``, and ``int16`` dtypes (:issue:`13451`)
