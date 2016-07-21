@@ -1204,7 +1204,7 @@ class TestStata(tm.TestCase):
             with tm.ensure_clean() as path:
                 original.to_stata(path, convert_dates={'dates': 'tC'})
 
-        dates = pd.date_range('1-1-1990',periods=3,tz='Asia/Hong_Kong')
+        dates = pd.date_range('1-1-1990', periods=3, tz='Asia/Hong_Kong')
         original = pd.DataFrame({'nums': [1.0, 2.0, 3.0],
                                  'strs': ['apple', 'banana', 'cherry'],
                                  'dates': dates})

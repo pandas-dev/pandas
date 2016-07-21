@@ -25,7 +25,7 @@ Statistics and Machine Learning
 -------------------------------
 
 `Statsmodels <http://www.statsmodels.org/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Statsmodels is the prominent python "statistics and econometrics library" and it has
 a long-standing special relationship with pandas. Statsmodels provides powerful statistics,
@@ -78,7 +78,7 @@ more advanced types of plots then those offered by pandas.
 
 The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <https://github.com/trifacta/vega>`__
 (that in turn, leverages `d3 <http://d3js.org/>`__) to create
-plots. Although functional, as of Summer 2016 the Vincent project has not been updated 
+plots. Although functional, as of Summer 2016 the Vincent project has not been updated
 in over two years and is `unlikely to receive further updates <https://github.com/wrobstory/vincent#2015-08-12-update>`__.
 
 `IPython Vega <https://github.com/vega/ipyvega>`__
@@ -130,7 +130,7 @@ qgrid is "an interactive grid for sorting and filtering
 DataFrames in IPython Notebook" built with SlickGrid.
 
 `Spyder <https://github.com/spyder-ide/spyder/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Spyder is a cross-platform Qt-based open-source Python IDE with
 editing, testing, debugging, and introspection features.
