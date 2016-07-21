@@ -667,6 +667,156 @@ class TestValueCounts(tm.TestCase):
             tm.assert_series_equal(result, expected)
 
 
+class TestDuplicated(tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_duplicated_with_nas(self):
+        keys = np.array([0, 1, np.nan, 0, 2, np.nan], dtype=object)
+
+        result = algos.duplicated(keys)
+        expected = np.array([False, False, False, True, False, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.duplicated(keys, keep='first')
+        expected = np.array([False, False, False, True, False, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.duplicated(keys, keep='last')
+        expected = np.array([True, False, True, False, False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.duplicated(keys, keep=False)
+        expected = np.array([True, False, True, True, False, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        keys = np.empty(8, dtype=object)
+        for i, t in enumerate(zip([0, 0, np.nan, np.nan] * 2,
+                                  [0, np.nan, 0, np.nan] * 2)):
+            keys[i] = t
+
+        result = algos.duplicated(keys)
+        falses = [False] * 4
+        trues = [True] * 4
+        expected = np.array(falses + trues)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.duplicated(keys, keep='last')
+        expected = np.array(trues + falses)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.duplicated(keys, keep=False)
+        expected = np.array(trues + trues)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_numeric_object_likes(self):
+        cases = [np.array([1, 2, 1, 5, 3,
+                           2, 4, 1, 5, 6]),
+                 np.array([1.1, 2.2, 1.1, np.nan, 3.3,
+                           2.2, 4.4, 1.1, np.nan, 6.6]),
+                 np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
+                           2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j]),
+                 np.array(['a', 'b', 'a', 'e', 'c',
+                           'b', 'd', 'a', 'e', 'f'], dtype=object)]
+
+        exp_first = np.array([False, False, True, False, False,
+                              True, False, True, True, False])
+        exp_last = np.array([True, True, True, True, False,
+                             False, False, False, False, False])
+        exp_false = exp_first | exp_last
+
+        for case in cases:
+            res_first = algos.duplicated(case, keep='first')
+            tm.assert_numpy_array_equal(res_first, exp_first)
+
+            res_last = algos.duplicated(case, keep='last')
+            tm.assert_numpy_array_equal(res_last, exp_last)
+
+            res_false = algos.duplicated(case, keep=False)
+            tm.assert_numpy_array_equal(res_false, exp_false)
+
+            # index
+            for idx in [pd.Index(case), pd.Index(case, dtype='category')]:
+                res_first = idx.duplicated(keep='first')
+                tm.assert_numpy_array_equal(res_first, exp_first)
+
+                res_last = idx.duplicated(keep='last')
+                tm.assert_numpy_array_equal(res_last, exp_last)
+
+                res_false = idx.duplicated(keep=False)
+                tm.assert_numpy_array_equal(res_false, exp_false)
+
+            # series
+            for s in [pd.Series(case), pd.Series(case, dtype='category')]:
+                res_first = s.duplicated(keep='first')
+                tm.assert_series_equal(res_first, pd.Series(exp_first))
+
+                res_last = s.duplicated(keep='last')
+                tm.assert_series_equal(res_last, pd.Series(exp_last))
+
+                res_false = s.duplicated(keep=False)
+                tm.assert_series_equal(res_false, pd.Series(exp_false))
+
+    def test_datetime_likes(self):
+
+        dt = ['2011-01-01', '2011-01-02', '2011-01-01', 'NaT', '2011-01-03',
+              '2011-01-02', '2011-01-04', '2011-01-01', 'NaT', '2011-01-06']
+        td = ['1 days', '2 days', '1 days', 'NaT', '3 days',
+              '2 days', '4 days', '1 days', 'NaT', '6 days']
+
+        cases = [np.array([pd.Timestamp(d) for d in dt]),
+                 np.array([pd.Timestamp(d, tz='US/Eastern') for d in dt]),
+                 np.array([pd.Period(d, freq='D') for d in dt]),
+                 np.array([np.datetime64(d) for d in dt]),
+                 np.array([pd.Timedelta(d) for d in td])]
+
+        exp_first = np.array([False, False, True, False, False,
+                              True, False, True, True, False])
+        exp_last = np.array([True, True, True, True, False,
+                             False, False, False, False, False])
+        exp_false = exp_first | exp_last
+
+        for case in cases:
+            print(case)
+            res_first = algos.duplicated(case, keep='first')
+            tm.assert_numpy_array_equal(res_first, exp_first)
+
+            res_last = algos.duplicated(case, keep='last')
+            tm.assert_numpy_array_equal(res_last, exp_last)
+
+            res_false = algos.duplicated(case, keep=False)
+            tm.assert_numpy_array_equal(res_false, exp_false)
+
+            # index
+            for idx in [pd.Index(case), pd.Index(case, dtype='category')]:
+                res_first = idx.duplicated(keep='first')
+                tm.assert_numpy_array_equal(res_first, exp_first)
+
+                res_last = idx.duplicated(keep='last')
+                tm.assert_numpy_array_equal(res_last, exp_last)
+
+                res_false = idx.duplicated(keep=False)
+                tm.assert_numpy_array_equal(res_false, exp_false)
+
+            # series
+            for s in [pd.Series(case), pd.Series(case, dtype='category')]:
+                res_first = s.duplicated(keep='first')
+                tm.assert_series_equal(res_first, pd.Series(exp_first))
+
+                res_last = s.duplicated(keep='last')
+                tm.assert_series_equal(res_last, pd.Series(exp_last))
+
+                res_false = s.duplicated(keep=False)
+                tm.assert_series_equal(res_false, pd.Series(exp_false))
+
+    def test_unique_index(self):
+        cases = [pd.Index([1, 2, 3]), pd.RangeIndex(0, 3)]
+        for case in cases:
+            self.assertTrue(case.is_unique)
+            tm.assert_numpy_array_equal(case.duplicated(),
+                                        np.array([False, False, False]))
+
+
 class GroupVarTestMixin(object):
 
     def test_group_var_generic_1d(self):

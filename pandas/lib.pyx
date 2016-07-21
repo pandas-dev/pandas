@@ -1394,46 +1394,6 @@ def fast_zip_fillna(list ndarrays, fill_value=pandas_null):
     return result
 
 
-def duplicated(ndarray[object] values, object keep='first'):
-    cdef:
-        Py_ssize_t i, n
-        dict seen = dict()
-        object row
-
-    n = len(values)
-    cdef ndarray[uint8_t] result = np.zeros(n, dtype=np.uint8)
-
-    if keep == 'last':
-        for i from n > i >= 0:
-            row = values[i]
-            if row in seen:
-                result[i] = 1
-            else:
-                seen[row] = i
-                result[i] = 0
-    elif keep == 'first':
-        for i from 0 <= i < n:
-            row = values[i]
-            if row in seen:
-                result[i] = 1
-            else:
-                seen[row] = i
-                result[i] = 0
-    elif keep is False:
-        for i from 0 <= i < n:
-            row = values[i]
-            if row in seen:
-                result[i] = 1
-                result[seen[row]] = 1
-            else:
-                seen[row] = i
-                result[i] = 0
-    else:
-        raise ValueError('keep must be either "first", "last" or False')
-
-    return result.view(np.bool_)
-
-
 def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
