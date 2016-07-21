@@ -1959,6 +1959,35 @@ Specify an HTML attribute
    dfs2 = read_html(url, attrs={'class': 'sortable'})
    print(np.array_equal(dfs1[0], dfs2[0]))  # Should be True
 
+Specify values that should be converted to NaN
+
+.. code-block:: python
+
+   dfs = read_html(url, na_values=['No Acquirer'])
+
+.. versionadded:: 0.19
+
+Specify whether to keep the default set of NaN values
+
+.. code-block:: python
+
+   dfs = read_html(url, keep_default_na=False)
+
+.. versionadded:: 0.19
+
+Specify converters for columns. This is useful for numerical text data that has
+leading zeros.  By default columns that are numerical are cast to numeric
+types and the leading zeros are lost.  To avoid this, we can convert these
+columns to strings.
+
+.. code-block:: python
+
+   url_mcc = 'https://en.wikipedia.org/wiki/Mobile_country_code'
+   dfs = read_html(url_mcc, match='Telekom Albania', header=0, converters={'MNC':
+   str})
+
+.. versionadded:: 0.19
+
 Use some combination of the above
 
 .. code-block:: python
