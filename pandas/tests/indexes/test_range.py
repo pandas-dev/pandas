@@ -315,6 +315,16 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertTrue(index.is_monotonic_increasing)
         self.assertTrue(index.is_monotonic_decreasing)
 
+        index = RangeIndex(2, 1)
+        self.assertTrue(index.is_monotonic)
+        self.assertTrue(index.is_monotonic_increasing)
+        self.assertTrue(index.is_monotonic_decreasing)
+
+        index = RangeIndex(1, 1)
+        self.assertTrue(index.is_monotonic)
+        self.assertTrue(index.is_monotonic_increasing)
+        self.assertTrue(index.is_monotonic_decreasing)
+
     def test_equals(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
                        (RangeIndex(0), RangeIndex(1, -1, 3)),
