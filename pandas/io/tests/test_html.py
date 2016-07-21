@@ -694,6 +694,72 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
             with tm.assertRaises(TypeError):
                 read_html(self.spam_data, header=arg)
 
+    def test_converters(self):
+        # GH 13461
+        html_data = """<table>
+                        <thead>
+                            <th>a</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <td> 0.763</td>
+                            </tr>
+                            <tr>
+                            <td> 0.244</td>
+                            </tr>
+                        </tbody>
+                    </table>"""
+
+        expected_df = DataFrame({'a': ['0.763', '0.244']})
+        html_df = read_html(html_data, converters={'a': str})[0]
+        tm.assert_frame_equal(expected_df, html_df)
+
+    def test_na_values(self):
+        # GH 13461
+        html_data = """<table>
+                        <thead>
+                            <th>a</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <td> 0.763</td>
+                            </tr>
+                            <tr>
+                            <td> 0.244</td>
+                            </tr>
+                        </tbody>
+                    </table>"""
+
+        expected_df = DataFrame({'a': [0.763, np.nan]})
+        html_df = read_html(html_data, na_values=[0.244])[0]
+        tm.assert_frame_equal(expected_df, html_df)
+
+    def test_keep_default_na(self):
+        html_data = """<table>
+                        <thead>
+                            <th>a</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <td> N/A</td>
+                            </tr>
+                            <tr>
+                            <td> NA</td>
+                            </tr>
+                        </tbody>
+                    </table>"""
+
+        expected_df = DataFrame({'a': ['N/A', 'NA']})
+        html_df = read_html(html_data, keep_default_na=False)[0]
+        tm.assert_frame_equal(expected_df, html_df)
+
+        expected_df = DataFrame({'a': [np.nan, np.nan]})
+        html_df = read_html(html_data, keep_default_na=True)[0]
+        tm.assert_frame_equal(expected_df, html_df)
+
 
 def _lang_enc(filename):
     return os.path.splitext(os.path.basename(filename))[0].split('_')
