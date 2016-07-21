@@ -8,6 +8,11 @@ from pandas import DataFrame
 from pandas.util.testing import TestCase
 import pandas.util.testing as tm
 
+# Getting failures on a python 2.7 build with
+# whenever we try to import jinja, whether it's installed or not.
+# so we're explicitly skipping that one *before* we try to import
+# jinja. We still need to export the imports as globals,
+# since importing Styler tries to import jinja2.
 job_name = os.environ.get('JOB_NAME', None)
 if job_name == '27_slow_nnet_LOCALE':
     raise SkipTest("No jinja")
@@ -143,7 +148,8 @@ class TestStyler(TestCase):
         df = pd.DataFrame({'A': [1, 2], 'B': [3, 4], 'C': [5, 6]})
         result = df.style._translate()
 
-        expected = [[{'class': 'blank', 'type': 'th', 'value': ''},
+        expected = [[{'class': 'blank level0', 'type': 'th', 'value': '',
+                      'is_visible': True, 'display_value': ''},
                      {'class': 'col_heading level0 col0',
                       'display_value': 'A',
                       'type': 'th',
@@ -173,14 +179,15 @@ class TestStyler(TestCase):
         df = pd.DataFrame({'A': [1, 2], 'B': [3, 4], 'C': [5, 6]})
         result = df.set_index('A').style._translate()
 
-        expected = [[{'class': 'blank', 'type': 'th', 'value': ''},
+        expected = [[{'class': 'blank level0', 'type': 'th', 'value': '',
+                      'display_value': '', 'is_visible': True},
                      {'class': 'col_heading level0 col0', 'type': 'th',
                       'value': 'B', 'display_value': 'B',
                       'is_visible': True, 'attributes': ['colspan=1']},
                      {'class': 'col_heading level0 col1', 'type': 'th',
                       'value': 'C', 'display_value': 'C',
                       'is_visible': True, 'attributes': ['colspan=1']}],
-                    [{'class': 'col_heading level2 col0', 'type': 'th',
+                    [{'class': 'index_name level0', 'type': 'th',
                       'value': 'A'},
                      {'class': 'blank', 'type': 'th', 'value': ''},
                      {'class': 'blank', 'type': 'th', 'value': ''}]]
@@ -192,17 +199,20 @@ class TestStyler(TestCase):
         df = pd.DataFrame({'A': [1, 2], 'B': [3, 4], 'C': [5, 6]})
         result = df.set_index(['A', 'B']).style._translate()
 
-        expected = [[{'class': 'blank', 'type': 'th', 'value': ''},
-                     {'class': 'blank', 'type': 'th', 'value': ''},
-                     {'class': 'col_heading level0 col0', 'type': 'th',
-                      'value': 'C', 'display_value': 'C',
-                      'is_visible': True, 'attributes': ['colspan=1'],
-                      }],
-                    [{'class': 'col_heading level2 col0', 'type': 'th',
-                      'value': 'A'},
-                     {'class': 'col_heading level2 col1', 'type': 'th',
-                      'value': 'B'},
-                     {'class': 'blank', 'type': 'th', 'value': ''}]]
+        expected = [[
+            {'class': 'blank', 'type': 'th', 'value': '',
+             'display_value': '', 'is_visible': True},
+            {'class': 'blank level0', 'type': 'th', 'value': '',
+             'display_value': '', 'is_visible': True},
+            {'class': 'col_heading level0 col0', 'type': 'th',
+             'value': 'C', 'display_value': 'C',
+             'is_visible': True, 'attributes': ['colspan=1'],
+             }],
+            [{'class': 'index_name level0', 'type': 'th',
+              'value': 'A'},
+             {'class': 'index_name level1', 'type': 'th',
+              'value': 'B'},
+             {'class': 'blank', 'type': 'th', 'value': ''}]]
 
         self.assertEqual(result['head'], expected)
 
@@ -594,7 +604,7 @@ class TestStyler(TestCase):
         expected = {(0, 0): 3, (0, 3): 3, (1, 0): 1, (1, 1): 1, (1, 2): 1,
                     (1, 3): 1, (1, 4): 1, (1, 5): 1}
         result = _get_level_lengths(index)
-        self.assertDictEqual(result, expected)
+        tm.assert_dict_equal(result, expected)
 
     def test_get_level_lengths_un_sorted(self):
         index = pd.MultiIndex.from_arrays([
@@ -604,16 +614,120 @@ class TestStyler(TestCase):
         expected = {(0, 0): 2, (0, 2): 1, (0, 3): 1,
                     (1, 0): 1, (1, 1): 1, (1, 2): 1, (1, 3): 1}
         result = _get_level_lengths(index)
-        self.assertDictEqual(result, expected)
+        tm.assert_dict_equal(result, expected)
 
     def test_mi_sparse(self):
-        df = pd.DataFrame({'A': [1, 2, 3, 4]},
-                          index=pd.MultiIndex.from_product([['a', 'b'],
+        df = pd.DataFrame({'A': [1, 2]},
+                          index=pd.MultiIndex.from_arrays([['a', 'a'],
                                                            [0, 1]]))
-        result = df.style.render()
-        assert 'rowspan' in result
-        result = df.T.style.render()
-        assert 'colspan' in result
+        result = df.style._translate()
+        body_0 = result['body'][0][0]
+        expected_0 = {
+            "value": "a", "display_value": "a", "is_visible": True,
+            "type": "th", "attributes": ["rowspan=2"],
+            "class": "row_heading level0 row0",
+        }
+        tm.assert_dict_equal(body_0, expected_0)
+
+        body_1 = result['body'][0][1]
+        expected_1 = {
+            "value": 0, "display_value": 0, "is_visible": True,
+            "type": "th", "attributes": ["rowspan=1"],
+            "class": "row_heading level1 row0",
+        }
+        tm.assert_dict_equal(body_1, expected_1)
+
+        body_10 = result['body'][1][0]
+        expected_10 = {
+            "value": 'a', "display_value": 'a', "is_visible": False,
+            "type": "th", "attributes": ["rowspan=1"],
+            "class": "row_heading level0 row1",
+        }
+        tm.assert_dict_equal(body_10, expected_10)
+
+        head = result['head'][0]
+        expected = [
+            {'type': 'th', 'class': 'blank', 'value': '',
+             'is_visible': True, "display_value": ''},
+            {'type': 'th', 'class': 'blank level0', 'value': '',
+             'is_visible': True, 'display_value': ''},
+            {'attributes': ['colspan=1'], 'class': 'col_heading level0 col0',
+             'is_visible': True, 'type': 'th', 'value': 'A',
+             'display_value': 'A'}]
+        self.assertEqual(head, expected)
+
+    def test_mi_sparse_disabled(self):
+        with pd.option_context('display.multi_sparse', False):
+            df = pd.DataFrame({'A': [1, 2]},
+                              index=pd.MultiIndex.from_arrays([['a', 'a'],
+                                                              [0, 1]]))
+            result = df.style._translate()
+        body = result['body']
+        for row in body:
+            self.assertEqual(row[0]['attributes'], ['rowspan=1'])
+
+    def test_mi_sparse_index_names(self):
+        df = pd.DataFrame({'A': [1, 2]}, index=pd.MultiIndex.from_arrays(
+            [['a', 'a'], [0, 1]],
+            names=['idx_level_0', 'idx_level_1'])
+        )
+        result = df.style._translate()
+        head = result['head'][1]
+        expected = [{
+            'class': 'index_name level0', 'value': 'idx_level_0',
+            'type': 'th'},
+            {'class': 'index_name level1', 'value': 'idx_level_1',
+             'type': 'th'},
+            {'class': 'blank', 'value': '', 'type': 'th'}]
+
+        self.assertEqual(head, expected)
+
+    def test_mi_sparse_column_names(self):
+        df = pd.DataFrame(
+            np.arange(16).reshape(4, 4),
+            index=pd.MultiIndex.from_arrays(
+                [['a', 'a', 'b', 'a'], [0, 1, 1, 2]],
+                names=['idx_level_0', 'idx_level_1']),
+            columns=pd.MultiIndex.from_arrays(
+                [['C1', 'C1', 'C2', 'C2'], [1, 0, 1, 0]],
+                names=['col_0', 'col_1']
+            )
+        )
+        result = df.style._translate()
+        head = result['head'][1]
+        expected = [
+            {'class': 'blank', 'value': '', 'display_value': '',
+             'type': 'th', 'is_visible': True},
+            {'class': 'index_name level1', 'value': 'col_1',
+             'display_value': 'col_1', 'is_visible': True, 'type': 'th'},
+            {'attributes': ['colspan=1'],
+             'class': 'col_heading level1 col0',
+             'display_value': 1,
+             'is_visible': True,
+             'type': 'th',
+             'value': 1},
+            {'attributes': ['colspan=1'],
+             'class': 'col_heading level1 col1',
+             'display_value': 0,
+             'is_visible': True,
+             'type': 'th',
+             'value': 0},
+
+            {'attributes': ['colspan=1'],
+             'class': 'col_heading level1 col2',
+             'display_value': 1,
+             'is_visible': True,
+             'type': 'th',
+             'value': 1},
+
+            {'attributes': ['colspan=1'],
+             'class': 'col_heading level1 col3',
+             'display_value': 0,
+             'is_visible': True,
+             'type': 'th',
+             'value': 0},
+        ]
+        self.assertEqual(head, expected)
 
 
 @tm.mplskip

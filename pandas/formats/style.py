@@ -22,6 +22,7 @@ from pandas.types.common import is_float, is_string_like
 import numpy as np
 import pandas as pd
 from pandas.compat import range
+from pandas.core.config import get_option
 import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 try:
@@ -80,6 +81,24 @@ class Styler(object):
     to automatically render itself. Otherwise call Styler.render to get
     the genterated HTML.
 
+    CSS classes are attached to the generated HTML
+
+    * Index and Column names include ``index_name`` and ``level<k>``
+      where `k` is its level in a MultiIndex
+    * Index label cells include
+
+      * ``row_heading``
+      * ``row<n>`` where `n` is the numeric position of the row
+      * ``level<k>`` where `k` is the level in a MultiIndex
+
+    * Column label cells include
+      * ``col_heading``
+      * ``col<n>`` where `n` is the numeric position of the column
+      * ``evel<k>`` where `k` is the level in a MultiIndex
+
+    * Blank cells include ``blank``
+    * Data cells include ``data``
+
     See Also
     --------
     pandas.DataFrame.style
@@ -112,7 +131,8 @@ class Styler(object):
             <tr>
                 {% for c in r %}
                 {% if c.is_visible != False %}
-                <{{c.type}} class="{{c.class}}" {{ c.attributes|join(" ") }}>{{c.value}}
+                <{{c.type}} class="{{c.class}}" {{ c.attributes|join(" ") }}>
+                  {{c.value}}
                 {% endif %}
                 {% endfor %}
             </tr>
@@ -123,7 +143,8 @@ class Styler(object):
             <tr>
                 {% for c in r %}
                 {% if c.is_visible != False %}
-                <{{c.type}} id="T_{{uuid}}{{c.id}}" class="{{c.class}}" {{ c.attributes|join(" ") }}>
+                <{{c.type}} id="T_{{uuid}}{{c.id}}"
+                 class="{{c.class}}" {{ c.attributes|join(" ") }}>
                     {{ c.display_value }}
                 {% endif %}
                 {% endfor %}
@@ -153,7 +174,7 @@ class Styler(object):
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
-            precision = pd.options.display.precision
+            precision = get_option('display.precision')
         self.precision = precision
         self.table_attributes = table_attributes
         # display_funcs maps (row, col) -> formatting function
@@ -182,6 +203,8 @@ class Styler(object):
         uuid = self.uuid or str(uuid1()).replace("-", "_")
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
+        INDEX_NAME_CLASS = "index_name"
+
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
         BLANK_VALUE = ""
@@ -210,9 +233,24 @@ class Styler(object):
         head = []
 
         for r in range(n_clvls):
+            # Blank for Index columns...
             row_es = [{"type": "th",
                        "value": BLANK_VALUE,
-                       "class": " ".join([BLANK_CLASS])}] * n_rlvls
+                       "display_value": BLANK_VALUE,
+                       "is_visible": True,
+                       "class": " ".join([BLANK_CLASS])}] * (n_rlvls - 1)
+
+            # ... except maybe the last for columns.names
+            name = self.data.columns.names[r]
+            cs = [BLANK_CLASS if name is None else INDEX_NAME_CLASS,
+                  "level%s" % r]
+            name = BLANK_VALUE if name is None else name
+            row_es.append({"type": "th",
+                           "value": name,
+                           "display_value": name,
+                           "class": " ".join(cs),
+                           "is_visible": True})
+
             for c in range(len(clabels[0])):
                 cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
                 cs.extend(cell_context.get(
@@ -230,13 +268,14 @@ class Styler(object):
                                ]})
             head.append(row_es)
 
-        if self.data.index.names and self.data.index.names != [None]:
+        if self.data.index.names and not all(x is None
+                                             for x in self.data.index.names):
             index_header_row = []
 
             for c, name in enumerate(self.data.index.names):
-                cs = [COL_HEADING_CLASS,
-                      "level%s" % (n_clvls + 1),
-                      "col%s" % c]
+                cs = [INDEX_NAME_CLASS,
+                      "level%s" % c]
+                name = '' if name is None else name
                 index_header_row.append({"type": "th", "value": name,
                                          "class": " ".join(cs)})
 
@@ -920,11 +959,11 @@ def _is_visible(idx_row, idx_col, lengths):
 
 
 def _get_level_lengths(index):
-    '''
+    """
     Given an index, find the level lenght for each element.
 
     Result is a dictionary of (level, inital_position): span
-    '''
+    """
     sentinel = com.sentinel_factory()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
 
@@ -935,7 +974,9 @@ def _get_level_lengths(index):
 
     for i, lvl in enumerate(levels):
         for j, row in enumerate(lvl):
-            if row != sentinel:
+            if not get_option('display.multi_sparse'):
+                lengths[(i, j)] = 1
+            elif row != sentinel:
                 last_label = j
                 lengths[(i, last_label)] = 1
             else:
