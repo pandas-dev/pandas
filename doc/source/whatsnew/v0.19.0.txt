@@ -622,7 +622,7 @@ Removal of prior version deprecations/changes
      pandas/tseries/frequencies.py:465: FutureWarning: Freq "W@MON" is deprecated, use "W-MON" as alternative.
      Out[2]: DatetimeIndex(['2016-07-04', '2016-07-11', '2016-07-18'], dtype='datetime64[ns]', freq='W-MON')
 
-  Now legacy time rules raises ``ValueError``. For the list of currently supported offsets, see :ref:`here <timeseries.alias>`
+  Now legacy time rules raises ``ValueError``. For the list of currently supported offsets, see :ref:`here <timeseries.offset_aliases>`
 
 - The ``tquery`` and ``uquery`` functions in the ``pandas.io.sql`` module are removed (:issue:`5950`).
 

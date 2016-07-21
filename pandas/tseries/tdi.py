@@ -110,6 +110,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         the 'left', 'right', or both sides (None)
     name : object
         Name to be stored in the index
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
 
     _typ = 'timedeltaindex'
@@ -1014,6 +1017,9 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
     Returns
     -------
     rng : TimedeltaIndex
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
     return TimedeltaIndex(start=start, end=end, periods=periods,
                           freq=freq, name=name,
