@@ -4294,6 +4294,36 @@ class TestSeriesPeriod(tm.TestCase):
         exp = Series(period_range('1/1/2000', periods=10))
         tm.assert_series_equal(s, exp)
 
+    def test_isnull(self):
+        # GH 13737
+        s = Series([pd.Period('2011-01', freq='M'),
+                    pd.Period('NaT', freq='M')])
+        tm.assert_series_equal(s.isnull(), Series([False, True]))
+        tm.assert_series_equal(s.notnull(), Series([True, False]))
+
+    def test_fillna(self):
+        # GH 13737
+        s = Series([pd.Period('2011-01', freq='M'),
+                    pd.Period('NaT', freq='M')])
+
+        res = s.fillna(pd.Period('2012-01', freq='M'))
+        exp = Series([pd.Period('2011-01', freq='M'),
+                      pd.Period('2012-01', freq='M')])
+        tm.assert_series_equal(res, exp)
+        self.assertEqual(res.dtype, 'object')
+
+        res = s.fillna('XXX')
+        exp = Series([pd.Period('2011-01', freq='M'), 'XXX'])
+        tm.assert_series_equal(res, exp)
+        self.assertEqual(res.dtype, 'object')
+
+    def test_dropna(self):
+        # GH 13737
+        s = Series([pd.Period('2011-01', freq='M'),
+                    pd.Period('NaT', freq='M')])
+        tm.assert_series_equal(s.dropna(),
+                               Series([pd.Period('2011-01', freq='M')]))
+
     def test_series_comparison_scalars(self):
         val = pd.Period('2000-01-04', freq='D')
         result = self.series > val
