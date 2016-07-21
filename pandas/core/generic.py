@@ -1979,7 +1979,8 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------%(optional_by)s
-        axis : %(axes)s to direct sorting, default 0
+        axis : %(axes_single_arg)s, default 0
+            Axis to direct sorting
         ascending : bool or list of bool, default True
              Sort ascending vs. descending. Specify list for multiple sort
              orders.  If this is a list of bools, must match the length of
