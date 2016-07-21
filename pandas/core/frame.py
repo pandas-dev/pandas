@@ -1492,12 +1492,11 @@ class DataFrame(NDFrame):
             A datetime to use as file creation date.  Default is the current time
         dataset_label : str
             A label for the data set.  Must be 80 characters or smaller.
-
-        .. versionadded:: 0.19.0
-
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as values.
             Each label must be 80 characters or smaller.
+
+            .. versionadded:: 0.19.0
 
         Raises
         ------
