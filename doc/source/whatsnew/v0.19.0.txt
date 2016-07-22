@@ -12,6 +12,7 @@ Highlights include:
 - :func:`merge_asof` for asof-style time-series joining, see :ref:`here <whatsnew_0190.enhancements.asof_merge>`
 - ``.rolling()`` are now time-series aware, see :ref:`here <whatsnew_0190.enhancements.rolling_ts>`
 - pandas development api, see :ref:`here <whatsnew_0190.dev_api>`
+- :func:`read_csv` now supports parsing ``Categorical`` data, see :ref:`here <whatsnew_0190.enhancements.read_csv_categorical>`
 
 .. contents:: What's new in v0.19.0
     :local:
@@ -233,15 +234,15 @@ New behaviour:
 
 .. _whatsnew_0190.enhancements.read_csv_categorical:
 
-:func:`read_csv` supports parsing `Categorical` directly
+:func:`read_csv` supports parsing ``Categorical`` directly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :func:`read_csv` function now supports parsing a `Categorical` column when
+The :func:`read_csv` function now supports parsing a ``Categorical`` column when
 specified as a dtype (:issue:`10153`).  Depending on the structure of the data,
-this can result in a faster parse time and lower memory usage, compared to
-converting to `Categorical` after parsing.
+this can result in a faster parse time and lower memory usage compared to
+converting to ``Categorical`` after parsing.  See the io :ref:`docs here <io.categorical>`
 
-.. ipython :: python
+.. ipython:: python
 
    data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
 
@@ -249,18 +250,20 @@ converting to `Categorical` after parsing.
    pd.read_csv(StringIO(data)).dtypes
    pd.read_csv(StringIO(data), dtype='category').dtypes
 
-Individual columns can be parsed as a `Categorical` using a dict specification
+Individual columns can be parsed as a ``Categorical`` using a dict specification
 
-.. ipython :: python
+.. ipython:: python
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
 
 .. note::
 
    The resulting categories will always be parsed as string (object dtype).
-   Numeric categories can be converted using the :func:`pd.to_numeric` function.
+   If the categories are numeric they can be converted using the
+   :func:`pd.to_numeric` function, or as appropriate, another converter
+   such as :func:`pd.to_datetime`.
 
-   .. ipython :: python
+   .. ipython:: python
 
       df = pd.read_csv(StringIO(data), dtype='category')
       df.dtypes

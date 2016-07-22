@@ -500,12 +500,14 @@ worth trying.
    data that was read in. It is important to note that the overall column will be
    marked with a ``dtype`` of ``object``, which is used for columns with mixed dtypes.
 
+.. _io.categorical:
+
 Specifying Categorical dtype
 ''''''''''''''''''''''''''''
 
 .. versionadded:: 0.19.0
 
-`Categorical` columns can be parsed directly by specifying `dtype='category'`
+``Categorical`` columns can be parsed directly by specifying ``dtype='category'``
 
 .. ipython :: python
 
@@ -515,25 +517,26 @@ Specifying Categorical dtype
    pd.read_csv(StringIO(data)).dtypes
    pd.read_csv(StringIO(data), dtype='category').dtypes
 
-Individual columns can be parsed as a `Categorical` using a dict specification
+Individual columns can be parsed as a ``Categorical`` using a dict specification
 
-.. ipython :: python
+.. ipython:: python
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
 
 .. note::
 
    The resulting categories will always be parsed as string (object dtype).
-   Numeric categories can be converted using the :func:`pd.to_numeric` function.
+   If the categories are numeric they can be converted using the
+   :func:`pd.to_numeric` function, or as appropriate, another converter
+   such as :func:`pd.to_datetime`.
 
-   .. ipython :: python
+   .. ipython:: python
 
       df = pd.read_csv(StringIO(data), dtype='category')
       df.dtypes
       df['col3']
       df['col3'].cat.categories = pd.to_numeric(df['col3'].cat.categories)
       df['col3']
->>>>>>> undo type inference add docs and asv
 
 
 Naming and Using Columns

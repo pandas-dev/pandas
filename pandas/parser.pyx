@@ -1173,7 +1173,7 @@ cdef class TextReader:
         elif dtype.kind == 'U':
             width = dtype.itemsize
             if width > 0:
-                raise NotImplementedError("the dtype %s is not supported for parsing" % dtype)
+                raise TypeError("the dtype %s is not supported for parsing" % dtype)
 
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
@@ -1187,10 +1187,10 @@ cdef class TextReader:
         elif is_object_dtype(dtype):
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
+        elif is_datetime64_dtype(dtype):
+            raise TypeError("the dtype %s is not supported for parsing, "
+                            "pass this column using parse_dates instead" % dtype)
         else:
-            if is_datetime64_dtype(dtype):
-                 raise TypeError("the dtype %s is not supported for parsing, "
-                                 "pass this column using parse_dates instead" % dtype)
             raise TypeError("the dtype %s is not supported for parsing" % dtype)
 
     cdef _string_convert(self, Py_ssize_t i, int start, int end,

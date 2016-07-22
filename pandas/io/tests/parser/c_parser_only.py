@@ -136,6 +136,11 @@ nan 2
                               dtype={'A': 'timedelta64', 'B': 'float64'},
                               index_col=0)
 
+            # valid but unsupported - fixed width unicode string
+            self.assertRaises(TypeError, self.read_csv, path,
+                              dtype={'A': 'U8'},
+                              index_col=0)
+
         # see gh-12048: empty frame
         actual = self.read_csv(StringIO('A,B'), dtype=str)
         expected = DataFrame({'A': [], 'B': []}, index=[], dtype=str)
@@ -254,6 +259,23 @@ one,two
         actual = self.read_table(pth, encoding=encoding, dtype='category')
         actual = actual.apply(lambda x: x.astype(object))
         tm.assert_frame_equal(actual, expected)
+
+    def test_categorical_dtype_chunksize(self):
+        # GH 10153
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        expecteds = [pd.DataFrame({'a': [1, 1],
+                                   'b': Categorical(['a', 'b'])}),
+                     pd.DataFrame({'a': [1, 2],
+                                   'b': Categorical(['b', 'c'])})]
+        actuals = self.read_csv(StringIO(data), dtype={'b':'category'},
+                                chunksize=2)
+
+        for actual, expected in zip(actuals, expecteds):
+            tm.assert_frame_equal(actual, expected)
 
     def test_pass_dtype_as_recarray(self):
         if compat.is_platform_windows() and self.low_memory:
