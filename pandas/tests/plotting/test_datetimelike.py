@@ -14,12 +14,18 @@ from pandas.tseries.resample import DatetimeIndex
 from pandas.util.testing import assert_series_equal, ensure_clean, slow
 import pandas.util.testing as tm
 
-from pandas.tests.test_graphics import _skip_if_no_scipy_gaussian_kde
+from pandas.tests.plotting.common import (TestPlotBase,
+                                          _skip_if_no_scipy_gaussian_kde)
+
+
+""" Test cases for time series specific (freq conversion, etc) """
 
 
 @tm.mplskip
-class TestTSPlot(tm.TestCase):
+class TestTSPlot(TestPlotBase):
+
     def setUp(self):
+        TestPlotBase.setUp(self)
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
         idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
         self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
