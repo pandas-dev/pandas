@@ -271,7 +271,7 @@ one,two
                                    'b': Categorical(['a', 'b'])}),
                      pd.DataFrame({'a': [1, 2],
                                    'b': Categorical(['b', 'c'])})]
-        actuals = self.read_csv(StringIO(data), dtype={'b':'category'},
+        actuals = self.read_csv(StringIO(data), dtype={'b': 'category'},
                                 chunksize=2)
 
         for actual, expected in zip(actuals, expecteds):
