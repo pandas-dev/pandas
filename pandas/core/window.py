@@ -1239,11 +1239,12 @@ class Expanding(_Rolling_and_Expanding):
 
     def _get_window(self, other=None):
         obj = self._selected_obj
+        obj_len = obj.shape[self.axis]
         if other is None:
-            return (max(obj.shape[self.axis], self.min_periods) if self.min_periods
-                    else obj.shape[self.axis])
-        return (max((obj.shape[self.axis] + obj.shape[self.axis]), self.min_periods)
-                if self.min_periods else (obj.shape[self.axis] + obj.shape[self.axis]))
+            return (max(obj_len, self.min_periods) if self.min_periods
+                    else obj_len)
+        return (max((obj_len + obj_len), self.min_periods)
+                if self.min_periods else (obj_len + obj_len))
 
     @Substitution(name='expanding')
     @Appender(SelectionMixin._see_also_template)
