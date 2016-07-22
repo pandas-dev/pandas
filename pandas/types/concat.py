@@ -6,6 +6,7 @@ import numpy as np
 import pandas.tslib as tslib
 from pandas import compat
 from pandas.compat import map
+from pandas.core.algorithms import take_1d
 from .common import (is_categorical_dtype,
                      is_sparse,
                      is_datetimetz,
@@ -254,10 +255,15 @@ def union_categoricals(to_union):
 
     new_codes = []
     for c in to_union:
-        indexer = categories.get_indexer(c.categories)
-        new_codes.append(indexer.take(c.codes))
-    codes = np.concatenate(new_codes)
-    return Categorical(codes, categories=categories, ordered=False,
+        if len(c.categories) > 0:
+            indexer = categories.get_indexer(c.categories)
+            new_codes.append(take_1d(indexer, c.codes, fill_value=-1))
+        else:
+            # must be all NaN
+            new_codes.append(c.codes)
+
+    new_codes = np.concatenate(new_codes)
+    return Categorical(new_codes, categories=categories, ordered=False,
                        fastpath=True)
 
 
