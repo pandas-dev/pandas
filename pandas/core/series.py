@@ -1525,7 +1525,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, ignore_index=False, verify_integrity=False):
+    def append(self, to_append, ignore_index=False, verify_integrity=False,
+               union_categoricals=False):
         """
         Concatenate two or more Series.
 
@@ -1539,6 +1540,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
+        union_categoricals : bool, default False
+            If True, use union_categoricals rule to concat category dtype.
+            If False, category dtype is kept if both categories are identical,
+            otherwise results in object dtype.
 
         Returns
         -------
@@ -1592,7 +1597,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         else:
             to_concat = [self, to_append]
         return concat(to_concat, ignore_index=ignore_index,
-                      verify_integrity=verify_integrity)
+                      verify_integrity=verify_integrity,
+                      union_categoricals=union_categoricals)
 
     def _binop(self, other, func, level=None, fill_value=None):
         """

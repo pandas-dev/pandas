@@ -675,12 +675,57 @@ be lexsorted, use ``sort_categories=True`` argument.
 
     union_categoricals([a, b], sort_categories=True)
 
-.. note::
+``union_categoricals`` also works with the "easy" case of combining two
+categoricals of the same categories and order information
+(e.g. what you could also ``append`` for).
 
-   In addition to the "easy" case of combining two categoricals of the same
-   categories and order information (e.g. what you could also ``append`` for),
-   ``union_categoricals`` only works with unordered categoricals and will
-   raise if any are ordered.
+.. ipython:: python
+
+    a = pd.Categorical(["a", "b"], ordered=True)
+    b = pd.Categorical(["a", "b", "a"], ordered=True)
+    union_categoricals([a, b])
+
+The below raises ``TypeError`` because the categories are ordered and not identical.
+
+.. code-block:: ipython
+
+   In [1]: a = pd.Categorical(["a", "b"], ordered=True)
+   In [2]: b = pd.Categorical(["a", "b", "c"], ordered=True)
+   In [3]: union_categoricals([a, b])
+   Out[3]:
+   TypeError: to union ordered Categoricals, all categories must be the same
+
+.. _categorical.concat:
+
+Concatenation
+~~~~~~~~~~~~~
+
+This section describes concatenations specific to ``category`` dtype. See :ref:`Concatenating objects<merging.concat>` for general description.
+
+By default, ``Series`` or ``DataFrame`` concatenation which contains different
+categories results in ``object`` dtype.
+
+.. ipython:: python
+
+   s1 = pd.Series(['a', 'b'], dtype='category')
+   s2 = pd.Series(['b', 'c'], dtype='category')
+   pd.concat([s1, s2])
+
+Specifying ``union_categoricals=True`` allows to concat categories following
+``union_categoricals`` rule.
+
+.. ipython:: python
+
+   pd.concat([s1, s2], union_categoricals=True)
+
+Following table summarizes the results of ``Categoricals`` related concatenations.
+
+| arg1         | arg2                                                              | default     | ``union_categoricals=True`` |
+|---------|-------------------------------------------|---------|------------------------------|
+| category | category (identical categories) | category | category |
+| category | category (different categories, both not ordered) | object (dtype is inferred) | category |
+| category | category (different categories, either one is ordered) | object (dtype is inferred) | object (dtype is inferred) |
+| category | not category | object (dtype is inferred) | object (dtype is inferred)
 
 Getting Data In/Out
 -------------------

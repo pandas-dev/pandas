@@ -1269,7 +1269,7 @@ def _get_join_keys(llab, rlab, shape, sort):
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            keys=None, levels=None, names=None, verify_integrity=False,
-           copy=True):
+           union_categoricals=False, copy=True):
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes. Can also add a layer of hierarchical indexing on the
@@ -1290,9 +1290,12 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     join_axes : list of Index objects
         Specific indexes to use for the other n - 1 axes instead of performing
         inner/outer set logic
-    verify_integrity : boolean, default False
-        Check whether the new concatenated axis contains duplicates. This can
-        be very expensive relative to the actual data concatenation
+    ignore_index : boolean, default False
+        If True, do not use the index values along the concatenation axis. The
+        resulting axis will be labeled 0, ..., n - 1. This is useful if you are
+        concatenating objects where the concatenation axis does not have
+        meaningful indexing information. Note the index values on the other
+        axes are still respected in the join.
     keys : sequence, default None
         If multiple levels passed, should contain tuples. Construct
         hierarchical index using the passed keys as the outermost level
@@ -1301,12 +1304,13 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         MultiIndex. Otherwise they will be inferred from the keys
     names : list, default None
         Names for the levels in the resulting hierarchical index
-    ignore_index : boolean, default False
-        If True, do not use the index values along the concatenation axis. The
-        resulting axis will be labeled 0, ..., n - 1. This is useful if you are
-        concatenating objects where the concatenation axis does not have
-        meaningful indexing information. Note the index values on the other
-        axes are still respected in the join.
+    verify_integrity : boolean, default False
+        Check whether the new concatenated axis contains duplicates. This can
+        be very expensive relative to the actual data concatenation
+    union_categoricals : boolean, default False
+        If True, use ``union_categoricals`` to concat category dtype.
+        If False, category dtype is kept if both categories are identical,
+        otherwise results in object dtype.
     copy : boolean, default True
         If False, do not copy data unnecessarily
 
@@ -1322,6 +1326,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
                        ignore_index=ignore_index, join=join,
                        keys=keys, levels=levels, names=names,
                        verify_integrity=verify_integrity,
+                       union_categoricals=union_categoricals,
                        copy=copy)
     return op.get_result()
 
@@ -1333,7 +1338,8 @@ class _Concatenator(object):
 
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
                  keys=None, levels=None, names=None,
-                 ignore_index=False, verify_integrity=False, copy=True):
+                 ignore_index=False, verify_integrity=False,
+                 union_categoricals=False, copy=True):
         if isinstance(objs, (NDFrame, compat.string_types)):
             raise TypeError('first argument must be an iterable of pandas '
                             'objects, you passed an object of type '
@@ -1459,6 +1465,7 @@ class _Concatenator(object):
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
+        self.union_categoricals = union_categoricals
         self.copy = copy
 
         self.new_axes = self._get_new_axes()
@@ -1476,7 +1483,8 @@ class _Concatenator(object):
                     values = [x._values for x in non_empties]
                 else:
                     values = [x._values for x in self.objs]
-                new_data = _concat._concat_compat(values)
+                new_data = _concat._concat_compat(
+                    values, union_categoricals=self.union_categoricals)
 
                 name = com._consensus_name_attr(self.objs)
                 cons = _concat._get_series_result_type(new_data)
@@ -1512,10 +1520,9 @@ class _Concatenator(object):
 
                 mgrs_indexers.append((obj._data, indexers))
 
-            new_data = concatenate_block_managers(mgrs_indexers,
-                                                  self.new_axes,
-                                                  concat_axis=self.axis,
-                                                  copy=self.copy)
+            new_data = concatenate_block_managers(
+                mgrs_indexers, self.new_axes, concat_axis=self.axis,
+                union_categoricals=self.union_categoricals, copy=self.copy)
             if not self.copy:
                 new_data._consolidate_inplace()
 

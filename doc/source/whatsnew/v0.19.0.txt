@@ -15,6 +15,8 @@ Highlights include:
 
 - :func:`merge_asof` for asof-style time-series joining, see :ref:`here <whatsnew_0190.enhancements.asof_merge>`
 - ``.rolling()`` are now time-series aware, see :ref:`here <whatsnew_0190.enhancements.rolling_ts>`
+- :func:`read_csv` now supports parsing ``Categorical`` data, see :ref:`here <whatsnew_0190.enhancements.read_csv_categorical>`
+- A function :func:`union_categorical` has been added for combining categoricals, see :ref:`here <whatsnew_0190.enhancements.union_categoricals>`
 - pandas development api, see :ref:`here <whatsnew_0190.dev_api>`
 - ``PeriodIndex`` now has its own ``period`` dtype, and changed to be more consistent with other ``Index`` classes. See :ref:`here <whatsnew_0190.api.period>`
 - Sparse data structures now gained enhanced support of ``int`` and ``bool`` dtypes, see :ref:`here <whatsnew_0190.sparse>`
@@ -277,6 +279,37 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
       df['col3'].cat.categories = pd.to_numeric(df['col3'].cat.categories)
       df['col3']
 
+.. _whatsnew_0190.enhancements.union_categoricals:
+
+Categorical Concatenation
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- A function :func:`union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`:13763`, issue:`13846`)
+
+.. ipython:: python
+
+    from pandas.types.concat import union_categoricals
+    a = pd.Categorical(["b", "c"])
+    b = pd.Categorical(["a", "b"])
+    union_categoricals([a, b])
+
+- ``concat`` and ``append`` now can concat unordered ``category`` dtypes using ``union_categorical`` internally. (:issue:`13524`)
+
+  By default, different categories results in ``object`` dtype.
+
+  .. ipython:: python
+
+    s1 = pd.Series(['a', 'b'], dtype='category')
+    s2 = pd.Series(['b', 'c'], dtype='category')
+    pd.concat([s1, s2])
+
+  Specifying ``union_categoricals=True`` allows to concat categories following
+  ``union_categoricals`` rule.
+
+  .. ipython:: python
+
+    pd.concat([s1, s2], union_categoricals=True)
+
 .. _whatsnew_0190.enhancements.semi_month_offsets:
 
 Semi-Month Offsets
@@ -448,7 +481,6 @@ Other enhancements
 - ``DataFrame`` has gained the ``.asof()`` method to return the last non-NaN values according to the selected subset (:issue:`13358`)
 - The ``DataFrame`` constructor will now respect key ordering if a list of ``OrderedDict`` objects are passed in (:issue:`13304`)
 - ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
-- A function :func:`union_categorical` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`:13763`, :issue:`13846`)
 - ``Series`` has gained the properties ``.is_monotonic``, ``.is_monotonic_increasing``, ``.is_monotonic_decreasing``, similar to ``Index`` (:issue:`13336`)
 - ``DataFrame.to_sql()`` now allows a single value as the SQL type for all columns (:issue:`11886`).
 - ``Series.append`` now supports the ``ignore_index`` option (:issue:`13677`)

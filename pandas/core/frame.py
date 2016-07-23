@@ -4322,7 +4322,8 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False, verify_integrity=False):
+    def append(self, other, ignore_index=False, verify_integrity=False,
+               union_categoricals=False):
         """
         Append rows of `other` to the end of this frame, returning a new
         object. Columns not in this frame are added as new columns.
@@ -4335,6 +4336,10 @@ class DataFrame(NDFrame):
             If True, do not use the index labels.
         verify_integrity : boolean, default False
             If True, raise ValueError on creating index with duplicates.
+        union_categoricals : bool, default False
+            If True, use union_categoricals rule to concat category dtype.
+            If False, category dtype is kept if both categories are identical,
+            otherwise results in object dtype.
 
         Returns
         -------
@@ -4411,7 +4416,8 @@ class DataFrame(NDFrame):
         else:
             to_concat = [self, other]
         return concat(to_concat, ignore_index=ignore_index,
-                      verify_integrity=verify_integrity)
+                      verify_integrity=verify_integrity,
+                      union_categoricals=union_categoricals)
 
     def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
              sort=False):
