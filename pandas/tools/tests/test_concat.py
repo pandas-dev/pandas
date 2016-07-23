@@ -889,6 +889,59 @@ class TestConcatenate(ConcatenateBase):
         with tm.assertRaises(ValueError):
             union_categoricals([])
 
+    def test_union_categoricals_nan(self):
+        # GH 13759
+        res = union_categoricals([pd.Categorical([1, 2, np.nan]),
+                                  pd.Categorical([3, 2, np.nan])])
+        exp = Categorical([1, 2, np.nan, 3, 2, np.nan])
+        tm.assert_categorical_equal(res, exp)
+
+        res = union_categoricals([pd.Categorical(['A', 'B']),
+                                  pd.Categorical(['B', 'B', np.nan])])
+        exp = Categorical(['A', 'B', 'B', 'B', np.nan])
+        tm.assert_categorical_equal(res, exp)
+
+        val1 = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-03-01'),
+                pd.NaT]
+        val2 = [pd.NaT, pd.Timestamp('2011-01-01'),
+                pd.Timestamp('2011-02-01')]
+
+        res = union_categoricals([pd.Categorical(val1), pd.Categorical(val2)])
+        exp = Categorical(val1 + val2,
+                          categories=[pd.Timestamp('2011-01-01'),
+                                      pd.Timestamp('2011-03-01'),
+                                      pd.Timestamp('2011-02-01')])
+        tm.assert_categorical_equal(res, exp)
+
+        # all NaN
+        res = union_categoricals([pd.Categorical([np.nan, np.nan]),
+                                  pd.Categorical(['X'])])
+        exp = Categorical([np.nan, np.nan, 'X'])
+        tm.assert_categorical_equal(res, exp)
+
+        res = union_categoricals([pd.Categorical([np.nan, np.nan]),
+                                  pd.Categorical([np.nan, np.nan])])
+        exp = Categorical([np.nan, np.nan, np.nan, np.nan])
+        tm.assert_categorical_equal(res, exp)
+
+    def test_union_categoricals_empty(self):
+        # GH 13759
+        res = union_categoricals([pd.Categorical([]),
+                                  pd.Categorical([])])
+        exp = Categorical([])
+        tm.assert_categorical_equal(res, exp)
+
+        res = union_categoricals([pd.Categorical([]),
+                                  pd.Categorical([1.0])])
+        exp = Categorical([1.0])
+        tm.assert_categorical_equal(res, exp)
+
+        # to make dtype equal
+        nanc = pd.Categorical(np.array([np.nan], dtype=np.float64))
+        res = union_categoricals([nanc,
+                                  pd.Categorical([])])
+        tm.assert_categorical_equal(res, nanc)
+
     def test_concat_bug_1719(self):
         ts1 = tm.makeTimeSeries()
         ts2 = tm.makeTimeSeries()[::2]
