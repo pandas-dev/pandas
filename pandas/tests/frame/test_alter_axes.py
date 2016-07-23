@@ -415,15 +415,20 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                               pd.Index(['bar', 'foo'], name='name'))
         self.assertEqual(renamed.index.name, renamer.index.name)
 
-        # MultiIndex
+    def test_rename_multiindex(self):
+
         tuples_index = [('foo1', 'bar1'), ('foo2', 'bar2')]
         tuples_columns = [('fizz1', 'buzz1'), ('fizz2', 'buzz2')]
         index = MultiIndex.from_tuples(tuples_index, names=['foo', 'bar'])
         columns = MultiIndex.from_tuples(
             tuples_columns, names=['fizz', 'buzz'])
-        renamer = DataFrame([(0, 0), (1, 1)], index=index, columns=columns)
-        renamed = renamer.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
-                                 columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'})
+        df = DataFrame([(0, 0), (1, 1)], index=index, columns=columns)
+
+        #
+        # without specifying level -> accross all levels
+
+        renamed = df.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
+                            columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'})
         new_index = MultiIndex.from_tuples([('foo3', 'bar1'),
                                             ('foo2', 'bar3')],
                                            names=['foo', 'bar'])
@@ -432,8 +437,58 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                                              names=['fizz', 'buzz'])
         self.assert_index_equal(renamed.index, new_index)
         self.assert_index_equal(renamed.columns, new_columns)
-        self.assertEqual(renamed.index.names, renamer.index.names)
-        self.assertEqual(renamed.columns.names, renamer.columns.names)
+        self.assertEqual(renamed.index.names, df.index.names)
+        self.assertEqual(renamed.columns.names, df.columns.names)
+
+        #
+        # with specifying a level (GH13766)
+
+        # dict
+        new_columns = MultiIndex.from_tuples([('fizz3', 'buzz1'),
+                                              ('fizz2', 'buzz2')],
+                                             names=['fizz', 'buzz'])
+        renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
+                            level=0)
+        self.assert_index_equal(renamed.columns, new_columns)
+        renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
+                            level='fizz')
+        self.assert_index_equal(renamed.columns, new_columns)
+
+        new_columns = MultiIndex.from_tuples([('fizz1', 'buzz1'),
+                                              ('fizz2', 'buzz3')],
+                                             names=['fizz', 'buzz'])
+        renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
+                            level=1)
+        self.assert_index_equal(renamed.columns, new_columns)
+        renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
+                            level='buzz')
+        self.assert_index_equal(renamed.columns, new_columns)
+
+        # function
+        func = str.upper
+        new_columns = MultiIndex.from_tuples([('FIZZ1', 'buzz1'),
+                                              ('FIZZ2', 'buzz2')],
+                                             names=['fizz', 'buzz'])
+        renamed = df.rename(columns=func, level=0)
+        self.assert_index_equal(renamed.columns, new_columns)
+        renamed = df.rename(columns=func, level='fizz')
+        self.assert_index_equal(renamed.columns, new_columns)
+
+        new_columns = MultiIndex.from_tuples([('fizz1', 'BUZZ1'),
+                                              ('fizz2', 'BUZZ2')],
+                                             names=['fizz', 'buzz'])
+        renamed = df.rename(columns=func, level=1)
+        self.assert_index_equal(renamed.columns, new_columns)
+        renamed = df.rename(columns=func, level='buzz')
+        self.assert_index_equal(renamed.columns, new_columns)
+
+        # index
+        new_index = MultiIndex.from_tuples([('foo3', 'bar1'),
+                                            ('foo2', 'bar2')],
+                                           names=['foo', 'bar'])
+        renamed = df.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
+                            level=0)
+        self.assert_index_equal(renamed.index, new_index)
 
     def test_rename_nocopy(self):
         renamed = self.frame.rename(columns={'C': 'foo'}, copy=False)
