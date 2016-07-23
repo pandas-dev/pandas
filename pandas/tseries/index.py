@@ -1964,7 +1964,8 @@ def _generate_regular_range(start, end, periods, offset):
             b = Timestamp(start).value
             # cannot just use e = Timestamp(end) + 1 because arange breaks when
             # stride is too large, see GH10887
-            e = b + (Timestamp(end).value - b) // stride * stride + stride // 2
+            e = (b + (Timestamp(end).value - b) // stride * stride +
+                 stride // 2 + 1)
             # end.tz == start.tz by this point due to _generate implementation
             tz = start.tz
         elif start is not None:

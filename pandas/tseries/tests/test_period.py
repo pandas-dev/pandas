@@ -1573,6 +1573,15 @@ class TestPeriodIndex(tm.TestCase):
         self.assertRaises(ValueError, period_range, '2007-1-1', periods=500,
                           freq='X')
 
+    def test_constructor_nano(self):
+        idx = period_range(start=Period(ordinal=1, freq='N'),
+                           end=Period(ordinal=4, freq='N'), freq='N')
+        exp = PeriodIndex([Period(ordinal=1, freq='N'),
+                           Period(ordinal=2, freq='N'),
+                           Period(ordinal=3, freq='N'),
+                           Period(ordinal=4, freq='N')], freq='N')
+        tm.assert_index_equal(idx, exp)
+
     def test_constructor_arrays_negative_year(self):
         years = np.arange(1960, 2000, dtype=np.int64).repeat(4)
         quarters = np.tile(np.array([1, 2, 3, 4], dtype=np.int64), 40)
