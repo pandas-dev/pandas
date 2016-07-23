@@ -231,8 +231,9 @@ def union_categoricals(to_union):
     Raises
     ------
     TypeError
-        If any of the categoricals are ordered or all do not
-        have the same dtype
+        - all inputs do not have the same dtype
+        - all inputs do not have the same ordered property
+        - all inputs are ordered and their categories are not identical
     ValueError
         Emmpty list of categoricals passed
     """
@@ -242,12 +243,26 @@ def union_categoricals(to_union):
         raise ValueError('No Categoricals to union')
 
     first = to_union[0]
-    if any(c.ordered for c in to_union):
-        raise TypeError("Can only combine unordered Categoricals")
 
     if not all(is_dtype_equal(c.categories.dtype, first.categories.dtype)
                for c in to_union):
         raise TypeError("dtype of categories must be the same")
+
+    if all(first.is_dtype_equal(other) for other in to_union[1:]):
+        return Categorical(np.concatenate([c.codes for c in to_union]),
+                           categories=first.categories, ordered=first.ordered,
+                           fastpath=True)
+    elif all(not c.ordered for c in to_union):
+        # not ordered
+        pass
+    else:
+        # to show a proper error message
+        if all(c.ordered for c in to_union):
+            msg = ("to union ordered Categoricals, "
+                   "all categories must be the same")
+            raise TypeError(msg)
+        else:
+            raise TypeError('Categorical.ordered must be the same')
 
     cats = first.categories
     unique_cats = cats.append([c.categories for c in to_union[1:]]).unique()
