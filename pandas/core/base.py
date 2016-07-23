@@ -6,7 +6,7 @@ from pandas.compat import builtins
 import numpy as np
 
 from pandas.types.missing import isnull
-from pandas.types.generic import ABCDataFrame, ABCSeries, ABCIndex
+from pandas.types.generic import ABCDataFrame, ABCSeries, ABCIndexClass
 from pandas.types.common import (_ensure_object, is_object_dtype,
                                  is_list_like, is_scalar)
 
@@ -299,7 +299,7 @@ class SelectionMixin(object):
     @property
     def _selection_list(self):
         if not isinstance(self._selection, (list, tuple, ABCSeries,
-                                            ABCIndex, np.ndarray)):
+                                            ABCIndexClass, np.ndarray)):
             return [self._selection]
         return self._selection
 
@@ -330,7 +330,7 @@ class SelectionMixin(object):
         if self._selection is not None:
             raise Exception('Column(s) %s already selected' % self._selection)
 
-        if isinstance(key, (list, tuple, ABCSeries, ABCIndex,
+        if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
