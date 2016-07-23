@@ -310,6 +310,7 @@ Other enhancements
 - ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
 - A function :func:`union_categorical` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`)
 - ``Series`` has gained the properties ``.is_monotonic``, ``.is_monotonic_increasing``, ``.is_monotonic_decreasing``, similar to ``Index`` (:issue:`13336`)
+- ``DataFrame.to_sql `` now allows a single value as the SQL type for all columns (:issue:`11886`).
 - ``Series.append`` now supports the ``ignore_index`` option (:issue:`13677`)
 - ``.to_stata()`` and ``StataWriter`` can now write variable labels to Stata dta files using a dictionary to make column names to labels (:issue:`13535`, :issue:`13536`)
 - ``.to_stata()`` and ``StataWriter`` will automatically convert ``datetime64[ns]`` columns to Stata format ``%tc``, rather than raising a ``ValueError`` (:issue:`12259`)
@@ -321,7 +322,6 @@ Other enhancements
      df = pd.DataFrame({'A': [2, 7], 'B': [3, 5], 'C': [4, 8]},
                        index=['row1', 'row2'])
      df.sort_values(by='row2', axis=1)
-
 
 .. _whatsnew_0190.api:
 
