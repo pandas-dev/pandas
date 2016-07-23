@@ -3769,6 +3769,22 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result2, expected)
         assert_frame_equal(result3, expected)
 
+    def test_getitem_numeric_column_names(self):
+        # GH #13731
+        df = DataFrame({0: list('abcd') * 2,
+                        2: np.random.randn(8),
+                        4: np.random.randn(8),
+                        6: np.random.randn(8)})
+        result = df.groupby(0)[df.columns[1:3]].mean()
+        result2 = df.groupby(0)[2, 4].mean()
+        result3 = df.groupby(0)[[2, 4]].mean()
+
+        expected = df.ix[:, [0, 2, 4]].groupby(0).mean()
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+        assert_frame_equal(result3, expected)
+
     def test_agg_multiple_functions_maintain_order(self):
         # GH #610
         funcs = [('mean', np.mean), ('max', np.max), ('min', np.min)]
