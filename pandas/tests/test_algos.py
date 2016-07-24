@@ -4,7 +4,7 @@ from pandas.compat import range
 import numpy as np
 from numpy.random import RandomState
 from numpy import nan
-import datetime
+from datetime import datetime
 from pandas import Series, Categorical, CategoricalIndex, Index
 import pandas as pd
 
@@ -121,7 +121,7 @@ class TestSafeSort(tm.TestCase):
 
     def test_unsortable(self):
         # GH 13714
-        arr = np.array([1, 2, datetime.datetime.now(), 0, 3], dtype=object)
+        arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
         if compat.PY2 and not pd._np_version_under1p10:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
             with tm.assert_produces_warning(RuntimeWarning):
@@ -556,6 +556,18 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(algos.value_counts(dt), exp_dt)
         # TODO same for (timedelta)
 
+    def test_value_counts_datetime_outofbounds(self):
+        # GH 13663
+        s = pd.Series([datetime(3000, 1, 1), datetime(5000, 1, 1),
+                       datetime(5000, 1, 1), datetime(6000, 1, 1),
+                       datetime(3000, 1, 1), datetime(3000, 1, 1)])
+        res = s.value_counts()
+
+        exp_index = pd.Index([datetime(3000, 1, 1), datetime(5000, 1, 1),
+                              datetime(6000, 1, 1)], dtype=object)
+        exp = pd.Series([3, 2, 1], index=exp_index)
+        tm.assert_series_equal(res, exp)
+
     def test_categorical(self):
         s = Series(pd.Categorical(list('aaabbc')))
         result = s.value_counts()
@@ -818,7 +830,7 @@ def test_rank():
 def test_pad_backfill_object_segfault():
 
     old = np.array([], dtype='O')
-    new = np.array([datetime.datetime(2010, 12, 31)], dtype='O')
+    new = np.array([datetime(2010, 12, 31)], dtype='O')
 
     result = _algos.pad_object(old, new)
     expected = np.array([-1], dtype=np.int64)

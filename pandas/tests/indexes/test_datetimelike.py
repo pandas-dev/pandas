@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import timedelta, time
+from datetime import datetime, timedelta, time
 
 import numpy as np
 
@@ -12,7 +12,7 @@ from pandas import (DatetimeIndex, Float64Index, Index, Int64Index,
 import pandas.util.testing as tm
 
 import pandas as pd
-from pandas.lib import Timestamp
+from pandas.tslib import Timestamp, OutOfBoundsDatetime
 
 from .common import Base
 
@@ -335,6 +335,18 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         tm.assert_index_equal(pd.Index(arr), pd.DatetimeIndex(arr))
         tm.assert_index_equal(pd.Index(np.array(arr)),
                               pd.DatetimeIndex(np.array(arr)))
+
+    def test_construction_outofbounds(self):
+        # GH 13663
+        dates = [datetime(3000, 1, 1), datetime(4000, 1, 1),
+                 datetime(5000, 1, 1), datetime(6000, 1, 1)]
+        exp = Index(dates, dtype=object)
+        # coerces to object
+        tm.assert_index_equal(Index(dates), exp)
+
+        with tm.assertRaises(OutOfBoundsDatetime):
+            # can't create DatetimeIndex
+            DatetimeIndex(dates)
 
     def test_astype(self):
         # GH 13149, GH 13209
