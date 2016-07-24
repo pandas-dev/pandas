@@ -1837,6 +1837,47 @@ class TestMixedIntIndex(Base, tm.TestCase):
         self.assertEqual(idx.all(), idx.values.all())
         self.assertEqual(idx.any(), idx.values.any())
 
+    def test_dropna(self):
+        # GH 6194
+        for dtype in [None, object, 'category']:
+            idx = pd.Index([1, 2, 3], dtype=dtype)
+            tm.assert_index_equal(idx.dropna(), idx)
+
+            idx = pd.Index([1., 2., 3.], dtype=dtype)
+            tm.assert_index_equal(idx.dropna(), idx)
+            nanidx = pd.Index([1., 2., np.nan, 3.], dtype=dtype)
+            tm.assert_index_equal(nanidx.dropna(), idx)
+
+            idx = pd.Index(['A', 'B', 'C'], dtype=dtype)
+            tm.assert_index_equal(idx.dropna(), idx)
+            nanidx = pd.Index(['A', np.nan, 'B', 'C'], dtype=dtype)
+            tm.assert_index_equal(nanidx.dropna(), idx)
+
+            tm.assert_index_equal(nanidx.dropna(how='any'), idx)
+            tm.assert_index_equal(nanidx.dropna(how='all'), idx)
+
+        idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'])
+        tm.assert_index_equal(idx.dropna(), idx)
+        nanidx = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
+                                   '2011-01-03', pd.NaT])
+        tm.assert_index_equal(nanidx.dropna(), idx)
+
+        idx = pd.TimedeltaIndex(['1 days', '2 days', '3 days'])
+        tm.assert_index_equal(idx.dropna(), idx)
+        nanidx = pd.TimedeltaIndex([pd.NaT, '1 days', '2 days',
+                                   '3 days', pd.NaT])
+        tm.assert_index_equal(nanidx.dropna(), idx)
+
+        idx = pd.PeriodIndex(['2012-02', '2012-04', '2012-05'], freq='M')
+        tm.assert_index_equal(idx.dropna(), idx)
+        nanidx = pd.PeriodIndex(['2012-02', '2012-04', 'NaT', '2012-05'],
+                                freq='M')
+        tm.assert_index_equal(nanidx.dropna(), idx)
+
+        msg = "invalid how option: xxx"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            pd.Index([1, 2, 3]).dropna(how='xxx')
+
 
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index

@@ -259,6 +259,40 @@ Using the anchoring suffix, you can also specify the day of month to use instead
 
     pd.date_range('2015-01-01', freq='SM-14', periods=4)
 
+.. _whatsnew_0190.enhancements.index:
+
+New Index methods
+^^^^^^^^^^^^^^^^^
+
+Following methods and options are added to ``Index`` to be more consistent with ``Series`` and ``DataFrame``.
+
+- ``Index`` now supports the ``.where()`` function for same shape indexing (:issue:`13170`)
+
+  .. ipython:: python
+
+     idx = pd.Index(['a', 'b', 'c'])
+     idx.where([True, False, True])
+
+
+- ``Index`` now supports ``.dropna`` to exclude missing values (:issue:`6194`)
+
+  .. ipython:: python
+
+     idx = pd.Index([1, 2, np.nan, 4])
+     idx.dropna()
+
+For ``MultiIndex``, values are dropped if any level is missing by default. Specifying
+``how='all'`` only drops values where all levels are missing.
+
+     midx = pd.MultiIndex.from_arrays([[1, 2, np.nan, 4],
+                                       [1, 2, np.nan, np.nan]])
+     midx
+     midx.dropna()
+     midx.dropna(how='all')
+
+- ``Index.astype()`` now accepts an optional boolean argument ``copy``, which allows optional copying if the requirements on dtype are satisfied (:issue:`13209`)
+- ``Index`` now supports ``.str.extractall()`` which returns a ``DataFrame``, the see :ref:`docs here <text.extractall>` (:issue:`10008`, :issue:`13156`)
+
 .. _whatsnew_0190.enhancements.other:
 
 Other enhancements
@@ -273,7 +307,6 @@ Other enhancements
      pd.to_numeric(s, downcast='unsigned')
      pd.to_numeric(s, downcast='integer')
 
-- ``Index`` now supports ``.str.extractall()`` which returns a ``DataFrame``, the see :ref:`docs here <text.extractall>` (:issue:`10008`, :issue:`13156`)
 - ``.to_hdf/read_hdf()`` now accept path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path (:issue:`11773`)
 
   .. ipython:: python
@@ -294,14 +327,6 @@ Other enhancements
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``memory_map`` option (:issue:`13381`)
 
 - The ``pd.read_html()`` has gained support for the ``na_values``, ``converters``, ``keep_default_na``  options (:issue:`13461`)
-
-- ``Index.astype()`` now accepts an optional boolean argument ``copy``, which allows optional copying if the requirements on dtype are satisfied (:issue:`13209`)
-- ``Index`` now supports the ``.where()`` function for same shape indexing (:issue:`13170`)
-
-  .. ipython:: python
-
-     idx = pd.Index(['a', 'b', 'c'])
-     idx.where([True, False, True])
 
 - ``Categorical.astype()`` now accepts an optional boolean argument ``copy``, effective when dtype is categorical (:issue:`13209`)
 - ``DataFrame`` has gained the ``.asof()`` method to return the last non-NaN values according to the selected subset (:issue:`13358`)
