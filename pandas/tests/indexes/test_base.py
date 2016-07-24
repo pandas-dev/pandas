@@ -2,9 +2,6 @@
 
 from datetime import datetime, timedelta
 
-# TODO(wesm): fix long line flake8 issues
-# flake8: noqa
-
 import pandas.util.testing as tm
 from pandas.indexes.api import Index, MultiIndex
 from .common import Base
@@ -286,7 +283,8 @@ class TestIndex(Base, tm.TestCase):
 
         for idx in [Index(np.array([True, False, True], dtype=bool)),
                     Index([True, False, True]),
-                    Index(np.array([True, False, True], dtype=bool), dtype=bool),
+                    Index(np.array([True, False, True], dtype=bool),
+                          dtype=bool),
                     Index([True, False, True], dtype=bool)]:
             self.assertIsInstance(idx, Index)
             self.assertEqual(idx.dtype, object)
@@ -294,8 +292,10 @@ class TestIndex(Base, tm.TestCase):
         for idx in [Index(np.array([1, 2, 3], dtype=int), dtype='category'),
                     Index([1, 2, 3], dtype='category'),
                     Index(np.array([np_datetime64_compat('2011-01-01'),
-                                    np_datetime64_compat('2011-01-02')]), dtype='category'),
-                    Index([datetime(2011, 1, 1), datetime(2011, 1, 2)], dtype='category')]:
+                                    np_datetime64_compat('2011-01-02')]),
+                          dtype='category'),
+                    Index([datetime(2011, 1, 1), datetime(2011, 1, 2)],
+                          dtype='category')]:
             self.assertIsInstance(idx, CategoricalIndex)
 
         for idx in [Index(np.array([np_datetime64_compat('2011-01-01'),
@@ -304,7 +304,8 @@ class TestIndex(Base, tm.TestCase):
             self.assertIsInstance(idx, DatetimeIndex)
 
         for idx in [Index(np.array([np_datetime64_compat('2011-01-01'),
-                                    np_datetime64_compat('2011-01-02')]), dtype=object),
+                                    np_datetime64_compat('2011-01-02')]),
+                          dtype=object),
                     Index([datetime(2011, 1, 1),
                            datetime(2011, 1, 2)], dtype=object)]:
             self.assertNotIsInstance(idx, DatetimeIndex)
@@ -483,10 +484,9 @@ class TestIndex(Base, tm.TestCase):
         # self.assertEqual(first_value,
         #                  x['2013-01-01 00:00:00.000000050+0000'])
 
-        self.assertEqual(
-            first_value,
-            x[Timestamp(np_datetime64_compat('2013-01-01 00:00:00.000000050+0000',
-                                             'ns'))])
+        exp_ts = np_datetime64_compat('2013-01-01 00:00:00.000000050+0000',
+                                      'ns')
+        self.assertEqual(first_value, x[Timestamp(exp_ts)])
 
     def test_comparators(self):
         index = self.dateIndex
@@ -1585,41 +1585,47 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
             expected = u"""Index(['あ', 'いい', 'ううう'], dtype='object')"""
             self.assertEqual(repr(idx), expected)
         else:
-            expected = u"""\
-Index([u'あ', u'いい', u'ううう'], dtype='object')"""
+            expected = u"""Index([u'あ', u'いい', u'ううう'], dtype='object')"""
             self.assertEqual(coerce(idx), expected)
 
         # multiple lines
         idx = pd.Index([u'あ', u'いい', u'ううう'] * 10)
         if PY3:
-            expected = u"""Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
-       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
-       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
-      dtype='object')"""
-
+            expected = (u"Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
+                        u"'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',\n"
+                        u"       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
+                        u"'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',\n"
+                        u"       'あ', 'いい', 'ううう', 'あ', 'いい', "
+                        u"'ううう'],\n"
+                        u"      dtype='object')")
             self.assertEqual(repr(idx), expected)
         else:
-            expected = u"""Index([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
-       u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
-       u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
-      dtype='object')"""
-
+            expected = (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
+                        u"u'ううう', u'あ', u'いい', u'ううう', u'あ',\n"
+                        u"       u'いい', u'ううう', u'あ', u'いい', u'ううう', "
+                        u"u'あ', u'いい', u'ううう', u'あ', u'いい',\n"
+                        u"       u'ううう', u'あ', u'いい', u'ううう', u'あ', "
+                        u"u'いい', u'ううう', u'あ', u'いい', u'ううう'],\n"
+                        u"      dtype='object')")
             self.assertEqual(coerce(idx), expected)
 
         # truncated
         idx = pd.Index([u'あ', u'いい', u'ううう'] * 100)
         if PY3:
-            expected = u"""Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
-       ...
-       'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
-      dtype='object', length=300)"""
-
+            expected = (u"Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
+                        u"'あ', 'いい', 'ううう', 'あ',\n"
+                        u"       ...\n"
+                        u"       'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', "
+                        u"'ううう', 'あ', 'いい', 'ううう'],\n"
+                        u"      dtype='object', length=300)")
             self.assertEqual(repr(idx), expected)
         else:
-            expected = u"""Index([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
-       ...
-       u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
-      dtype='object', length=300)"""
+            expected = (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
+                        u"u'ううう', u'あ', u'いい', u'ううう', u'あ',\n"
+                        u"       ...\n"
+                        u"       u'ううう', u'あ', u'いい', u'ううう', u'あ', "
+                        u"u'いい', u'ううう', u'あ', u'いい', u'ううう'],\n"
+                        u"      dtype='object', length=300)")
 
             self.assertEqual(coerce(idx), expected)
 
@@ -1629,49 +1635,62 @@ Index([u'あ', u'いい', u'ううう'], dtype='object')"""
             # short
             idx = pd.Index([u'あ', u'いい', u'ううう'])
             if PY3:
-                expected = u"""Index(['あ', 'いい', 'ううう'], dtype='object')"""
+                expected = (u"Index(['あ', 'いい', 'ううう'], "
+                            u"dtype='object')")
                 self.assertEqual(repr(idx), expected)
             else:
-                expected = u"""Index([u'あ', u'いい', u'ううう'], dtype='object')"""
+                expected = (u"Index([u'あ', u'いい', u'ううう'], "
+                            u"dtype='object')")
                 self.assertEqual(coerce(idx), expected)
 
             # multiple lines
             idx = pd.Index([u'あ', u'いい', u'ううう'] * 10)
             if PY3:
-                expected = u"""Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
-       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
-       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
-       'あ', 'いい', 'ううう'],
-      dtype='object')"""
+                expected = (u"Index(['あ', 'いい', 'ううう', 'あ', 'いい', "
+                            u"'ううう', 'あ', 'いい', 'ううう',\n"
+                            u"       'あ', 'いい', 'ううう', 'あ', 'いい', "
+                            u"'ううう', 'あ', 'いい', 'ううう',\n"
+                            u"       'あ', 'いい', 'ううう', 'あ', 'いい', "
+                            u"'ううう', 'あ', 'いい', 'ううう',\n"
+                            u"       'あ', 'いい', 'ううう'],\n"
+                            u"      dtype='object')""")
 
                 self.assertEqual(repr(idx), expected)
             else:
-                expected = u"""Index([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
-       u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
-       u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
-       u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
-      dtype='object')"""
+                expected = (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
+                            u"u'ううう', u'あ', u'いい',\n"
+                            u"       u'ううう', u'あ', u'いい', u'ううう', "
+                            u"u'あ', u'いい', u'ううう', u'あ',\n"
+                            u"       u'いい', u'ううう', u'あ', u'いい', "
+                            u"u'ううう', u'あ', u'いい',\n"
+                            u"       u'ううう', u'あ', u'いい', u'ううう', "
+                            u"u'あ', u'いい', u'ううう'],\n"
+                            u"      dtype='object')")
 
                 self.assertEqual(coerce(idx), expected)
 
             # truncated
             idx = pd.Index([u'あ', u'いい', u'ううう'] * 100)
             if PY3:
-                expected = u"""Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
-       'あ',
-       ...
-       'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
-       'ううう'],
-      dtype='object', length=300)"""
+                expected = (u"Index(['あ', 'いい', 'ううう', 'あ', 'いい', "
+                            u"'ううう', 'あ', 'いい', 'ううう',\n"
+                            u"       'あ',\n"
+                            u"       ...\n"
+                            u"       'ううう', 'あ', 'いい', 'ううう', 'あ', "
+                            u"'いい', 'ううう', 'あ', 'いい',\n"
+                            u"       'ううう'],\n"
+                            u"      dtype='object', length=300)")
 
                 self.assertEqual(repr(idx), expected)
             else:
-                expected = u"""Index([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
-       u'ううう', u'あ',
-       ...
-       u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
-       u'いい', u'ううう'],
-      dtype='object', length=300)"""
+                expected = (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
+                            u"u'ううう', u'あ', u'いい',\n"
+                            u"       u'ううう', u'あ',\n"
+                            u"       ...\n"
+                            u"       u'ううう', u'あ', u'いい', u'ううう', "
+                            u"u'あ', u'いい', u'ううう', u'あ',\n"
+                            u"       u'いい', u'ううう'],\n"
+                            u"      dtype='object', length=300)")
 
                 self.assertEqual(coerce(idx), expected)
 
