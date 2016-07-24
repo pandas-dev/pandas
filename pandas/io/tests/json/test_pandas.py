@@ -969,7 +969,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             return
 
         # GH 13774
-        raise nose.SkipTest("encoding not implemented in .to_json(), xref #13774")
+        raise nose.SkipTest("encoding not implemented in .to_json(), "
+                            "xref #13774")
 
         values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
                   [b'E\xc9, 17', b'a', b'b', b'c'],
@@ -1006,6 +1007,5 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb',
                          '--pdb-failure', '-s'], exit=False)
