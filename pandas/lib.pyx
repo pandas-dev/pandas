@@ -342,10 +342,12 @@ def item_from_zerodim(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj(ndarray[object] arr):
+def isnullobj(ndarray arr):
     cdef Py_ssize_t i, n
     cdef object val
     cdef ndarray[uint8_t] result
+
+    assert arr.ndim == 1, "'arr' must be 1-D."
 
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
@@ -356,10 +358,12 @@ def isnullobj(ndarray[object] arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj_old(ndarray[object] arr):
+def isnullobj_old(ndarray arr):
     cdef Py_ssize_t i, n
     cdef object val
     cdef ndarray[uint8_t] result
+
+    assert arr.ndim == 1, "'arr' must be 1-D."
 
     n = len(arr)
     result = np.zeros(n, dtype=np.uint8)
@@ -370,10 +374,12 @@ def isnullobj_old(ndarray[object] arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj2d(ndarray[object, ndim=2] arr):
+def isnullobj2d(ndarray arr):
     cdef Py_ssize_t i, j, n, m
     cdef object val
     cdef ndarray[uint8_t, ndim=2] result
+
+    assert arr.ndim == 2, "'arr' must be 2-D."
 
     n, m = (<object> arr).shape
     result = np.zeros((n, m), dtype=np.uint8)
@@ -386,10 +392,12 @@ def isnullobj2d(ndarray[object, ndim=2] arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj2d_old(ndarray[object, ndim=2] arr):
+def isnullobj2d_old(ndarray arr):
     cdef Py_ssize_t i, j, n, m
     cdef object val
     cdef ndarray[uint8_t, ndim=2] result
+
+    assert arr.ndim == 2, "'arr' must be 2-D."
 
     n, m = (<object> arr).shape
     result = np.zeros((n, m), dtype=np.uint8)
