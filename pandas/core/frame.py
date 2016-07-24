@@ -2641,7 +2641,7 @@ class DataFrame(NDFrame):
             from pandas.core.series import _sanitize_index
 
             # turn me into an ndarray
-            value = _sanitize_index(value, self.index, copy=False)
+            value = _sanitize_index(value, self.index, copy=True)
             if not isinstance(value, (np.ndarray, Index)):
                 if isinstance(value, list) and len(value) > 0:
                     value = _possibly_convert_platform(value)
