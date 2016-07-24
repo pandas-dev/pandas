@@ -2592,10 +2592,10 @@ class Timedelta(_Timedelta):
 
     """
 
-    def __new__(cls, object value=None, unit=None, **kwargs):
+    def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
 
-        if value is None:
+        if value is _no_input:
             if not len(kwargs):
                 raise ValueError("cannot construct a Timedelta without a value/unit or descriptive keywords (days,seconds....)")
 
