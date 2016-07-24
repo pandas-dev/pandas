@@ -686,7 +686,7 @@ def maybe_convert_numeric(object[:] values, set na_values,
                             raise ValueError('integer out of range')
                     else:
                         seen_float = True
-            except:
+            except (TypeError, ValueError):
                 if not coerce_numeric:
                     raise
 

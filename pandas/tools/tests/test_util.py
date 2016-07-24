@@ -120,7 +120,8 @@ class TestToNumeric(tm.TestCase):
 
     def test_error(self):
         s = pd.Series([1, -3.14, 'apple'])
-        with tm.assertRaises(ValueError):
+        msg = 'Unable to parse string "apple"'
+        with tm.assertRaisesRegexp(ValueError, msg):
             to_numeric(s, errors='raise')
 
         res = to_numeric(s, errors='ignore')
@@ -131,9 +132,15 @@ class TestToNumeric(tm.TestCase):
         expected = pd.Series([1, -3.14, np.nan])
         tm.assert_series_equal(res, expected)
 
+        s = pd.Series([1, -3.14, 'apple', 'orange'])
+        msg = 'Unable to parse string "apple"'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            to_numeric(s, errors='raise')
+
     def test_error_seen_bool(self):
         s = pd.Series([True, False, 'apple'])
-        with tm.assertRaises(ValueError):
+        msg = 'Unable to parse string "apple"'
+        with tm.assertRaisesRegexp(ValueError, msg):
             to_numeric(s, errors='raise')
 
         res = to_numeric(s, errors='ignore')
