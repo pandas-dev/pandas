@@ -291,11 +291,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
             if not isinstance(labels,
                               (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-                labels = DatetimeIndex(labels)
-
-                # need to set here becuase we changed the index
-                if fastpath:
-                    self._data.set_axis(axis, labels)
+                try:
+                    labels = DatetimeIndex(labels)
+                    # need to set here becuase we changed the index
+                    if fastpath:
+                        self._data.set_axis(axis, labels)
+                except tslib.OutOfBoundsDatetime:
+                    pass
         self._set_subtyp(is_all_dates)
 
         object.__setattr__(self, '_index', labels)

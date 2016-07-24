@@ -258,13 +258,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     pass
                 elif inferred != 'string':
                     if inferred.startswith('datetime'):
-
                         if (lib.is_datetime_with_singletz_array(subarr) or
                                 'tz' in kwargs):
                             # only when subarr has the same tz
                             from pandas.tseries.index import DatetimeIndex
-                            return DatetimeIndex(subarr, copy=copy, name=name,
-                                                 **kwargs)
+                            try:
+                                return DatetimeIndex(subarr, copy=copy,
+                                                     name=name, **kwargs)
+                            except tslib.OutOfBoundsDatetime:
+                                pass
 
                     elif inferred.startswith('timedelta'):
                         from pandas.tseries.tdi import TimedeltaIndex
