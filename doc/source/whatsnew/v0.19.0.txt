@@ -747,6 +747,8 @@ Bug Fixes
 - Bug in invalid datetime parsing in ``to_datetime`` and ``DatetimeIndex`` may raise ``TypeError`` rather than ``ValueError`` (:issue:`11169`, :issue:`11287`)
 - Bug in ``Index`` created with tz-aware ``Timestamp`` and mismatched ``tz`` option incorrectly coerces timezone (:issue:`13692`)
 - Bug in ``DatetimeIndex`` with nanosecond frequency does not include timestamp specified with ``end`` (:issue:`13672`)
+- Bug in ``DatetimeIndex`` may raise ``OutOfBoundsDatetime`` if input ``np.datetime64`` has other unit than ``ns`` (:issue:`9114`)
+
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
 - Bug in ``groupby`` with ``as_index=False`` returns all NaN's when grouping on multiple columns including a categorical one (:issue:`13204`)
