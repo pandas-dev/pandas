@@ -1332,10 +1332,10 @@ class ExcelWriterBase(SharedItems):
     def test_to_excel_multiindex_nan_label(self):
         _skip_if_no_xlrd()
 
-        frame = self.frame
-        frame.A = np.arange(len(frame))
-        frame.iloc[0, 0] = None
-        frame.set_index(['A', 'B'], inplace=True)
+        frame = pd.DataFrame({'A': [None, 2, 3],
+                              'B': [10, 20, 30],
+                              'C': np.random.sample(3)})
+        frame = frame.set_index(['A', 'B'])
 
         with ensure_clean(self.ext) as path:
             frame.to_excel(path, merge_cells=self.merge_cells)
