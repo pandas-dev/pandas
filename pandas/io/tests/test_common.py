@@ -138,6 +138,6 @@ class TestMMapWrapper(tm.TestCase):
 
         for line in lines:
             next_line = next(wrapper)
-            self.assertEqual(next_line, line)
+            self.assertEqual(next_line.strip(), line.strip())
 
         self.assertRaises(StopIteration, next, wrapper)
