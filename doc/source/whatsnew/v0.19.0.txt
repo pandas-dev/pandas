@@ -694,6 +694,7 @@ Bug Fixes
 - Bug in ``pd.read_hdf()`` where attempting to load an HDF file with a single dataset, that had one or more categorical columns, failed unless the key argument was set to the name of the dataset. (:issue:`13231`)
 - Bug in ``.rolling()`` that allowed a negative integer window in contruction of the ``Rolling()`` object, but would later fail on aggregation (:issue:`13383`)
 
+- Bug in printing ``pd.DataFrame`` where unusual elements with the ``object`` dtype were causing segfaults (:issue:`13717`)
 - Bug in various index types, which did not propagate the name of passed index (:issue:`12309`)
 - Bug in ``DatetimeIndex``, which did not honour the ``copy=True`` (:issue:`13205`)
 - Bug in ``DatetimeIndex.is_normalized`` returns incorrectly for normalized date_range in case of local timezones (:issue:`13459`)
