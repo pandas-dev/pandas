@@ -56,7 +56,7 @@ from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
                     Categorical)
 from pandas.tslib import NaTType
-from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
+from pandas.sparse.api import SparseSeries, SparseDataFrame
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.core.common import PerformanceWarning
@@ -446,18 +446,6 @@ def encode(obj):
             #    d[f] = getattr(obj, f, None)
             # d['data'] = dict([(name, ss)
             #                 for name, ss in compat.iteritems(obj)])
-            # return d
-        elif isinstance(obj, SparsePanel):
-            raise NotImplementedError(
-                'msgpack sparse frame is not implemented'
-            )
-            # d = {'typ': 'sparse_panel',
-            #     'klass': obj.__class__.__name__,
-            #     'items': obj.items}
-            # for f in ['default_fill_value', 'default_kind']:
-            #    d[f] = getattr(obj, f, None)
-            # d['data'] = dict([(name, df)
-            #                 for name, df in compat.iteritems(obj)])
             # return d
         else:
 

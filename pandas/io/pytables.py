@@ -29,7 +29,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, Index,
                     MultiIndex, Int64Index, isnull)
 from pandas.core import config
 from pandas.io.common import _stringify_path
-from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
+from pandas.sparse.api import SparseSeries, SparseDataFrame
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
@@ -169,7 +169,6 @@ _TYPE_MAP = {
     SparseDataFrame: u('sparse_frame'),
     Panel: u('wide'),
     Panel4D: u('ndim'),
-    SparsePanel: u('sparse_panel')
 }
 
 # storer class map
@@ -183,7 +182,6 @@ _STORER_MAP = {
     u('frame'): 'FrameFixed',
     u('sparse_frame'): 'SparseFrameFixed',
     u('wide'): 'PanelFixed',
-    u('sparse_panel'): 'SparsePanelFixed',
 }
 
 # table class map
@@ -2775,39 +2773,6 @@ class SparseFrameFixed(SparseFixed):
         self.attrs.default_fill_value = obj.default_fill_value
         self.attrs.default_kind = obj.default_kind
         self.write_index('columns', obj.columns)
-
-
-class SparsePanelFixed(SparseFixed):
-    pandas_kind = u('sparse_panel')
-    attributes = ['default_kind', 'default_fill_value']
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        items = self.read_index('items')
-
-        sdict = {}
-        for name in items:
-            key = 'sparse_frame_%s' % name
-            s = SparseFrameFixed(self.parent, getattr(self.group, key))
-            s.infer_axes()
-            sdict[name] = s.read()
-        return SparsePanel(sdict, items=items, default_kind=self.default_kind,
-                           default_fill_value=self.default_fill_value)
-
-    def write(self, obj, **kwargs):
-        super(SparsePanelFixed, self).write(obj, **kwargs)
-        self.attrs.default_fill_value = obj.default_fill_value
-        self.attrs.default_kind = obj.default_kind
-        self.write_index('items', obj.items)
-
-        for name, sdf in obj.iteritems():
-            key = 'sparse_frame_%s' % name
-            if key not in self.group._v_children:
-                node = self._handle.create_group(self.group, key)
-            else:
-                node = getattr(self.group, key)
-            s = SparseFrameFixed(self.parent, node)
-            s.write(sdf)
 
 
 class BlockManagerFixed(GenericFixed):

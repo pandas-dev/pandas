@@ -5,7 +5,6 @@ from datetime import datetime
 
 import operator
 import nose
-from functools import wraps
 
 import numpy as np
 import pandas as pd
@@ -20,35 +19,14 @@ from pandas.core.series import remove_na
 from pandas.formats.printing import pprint_thing
 from pandas import compat
 from pandas.compat import range, lrange, StringIO, OrderedDict, signature
-from pandas import SparsePanel
 
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
-                                 assert_produces_warning, ensure_clean,
-                                 assertRaisesRegexp, makeCustomDataframe as
-                                 mkdf, makeMixedDataFrame)
+                                 ensure_clean, assertRaisesRegexp,
+                                 makeCustomDataframe as mkdf,
+                                 makeMixedDataFrame)
 import pandas.core.panel as panelm
 import pandas.util.testing as tm
-
-
-def ignore_sparse_panel_future_warning(func):
-    """
-    decorator to ignore FutureWarning if we have a SparsePanel
-
-    can be removed when SparsePanel is fully removed
-    """
-
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-
-        if isinstance(self.panel, SparsePanel):
-            with assert_produces_warning(FutureWarning,
-                                         check_stacklevel=False):
-                return func(self, *args, **kwargs)
-        else:
-            return func(self, *args, **kwargs)
-
-    return wrapper
 
 
 class PanelTests(object):
@@ -78,7 +56,6 @@ class SafeForLongAndSparse(object):
     def test_repr(self):
         repr(self.panel)
 
-    @ignore_sparse_panel_future_warning
     def test_copy_names(self):
         for attr in ('major_axis', 'minor_axis'):
             getattr(self.panel, attr).name = None
@@ -261,7 +238,6 @@ class SafeForSparse(object):
         index, columns = self.panel._get_plane_axes('minor_axis')
         index, columns = self.panel._get_plane_axes(0)
 
-    @ignore_sparse_panel_future_warning
     def test_truncate(self):
         dates = self.panel.major_axis
         start, end = dates[1], dates[5]
@@ -322,7 +298,6 @@ class SafeForSparse(object):
         self.assertEqual(len(list(self.panel.iteritems())),
                          len(self.panel.items))
 
-    @ignore_sparse_panel_future_warning
     def test_combineFrame(self):
         def check_op(op, name):
             # items
@@ -352,18 +327,9 @@ class SafeForSparse(object):
             assert_frame_equal(result.minor_xs(idx),
                                op(self.panel.minor_xs(idx), xs))
 
-        ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
+        ops = ['add', 'sub', 'mul', 'truediv', 'floordiv', 'pow', 'mod']
         if not compat.PY3:
             ops.append('div')
-        # pow, mod not supported for SparsePanel as flex ops (for now)
-        if not isinstance(self.panel, SparsePanel):
-            ops.extend(['pow', 'mod'])
-        else:
-            idx = self.panel.minor_axis[1]
-            with assertRaisesRegexp(ValueError, "Simple arithmetic.*scalar"):
-                self.panel.pow(self.panel.minor_xs(idx), axis='minor')
-            with assertRaisesRegexp(ValueError, "Simple arithmetic.*scalar"):
-                self.panel.mod(self.panel.minor_xs(idx), axis='minor')
 
         for op in ops:
             try:
@@ -378,12 +344,10 @@ class SafeForSparse(object):
                 pprint_thing("Failing operation: %r" % 'div')
                 raise
 
-    @ignore_sparse_panel_future_warning
     def test_combinePanel(self):
         result = self.panel.add(self.panel)
         self.assert_panel_equal(result, self.panel * 2)
 
-    @ignore_sparse_panel_future_warning
     def test_neg(self):
         self.assert_panel_equal(-self.panel, self.panel * -1)
 
@@ -399,7 +363,6 @@ class SafeForSparse(object):
             with self.assertRaises(NotImplementedError):
                 getattr(p, op)(d, axis=0)
 
-    @ignore_sparse_panel_future_warning
     def test_select(self):
         p = self.panel
 
@@ -431,7 +394,6 @@ class SafeForSparse(object):
                     expected = self.panel[item][mnr][mjr]
                     assert_almost_equal(result, expected)
 
-    @ignore_sparse_panel_future_warning
     def test_abs(self):
 
         result = self.panel.abs()
@@ -1654,7 +1616,6 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         panel.values[0, 1, 1] = np.nan
         self.assertTrue(notnull(result.values[1, 0, 1]))
 
-    @ignore_sparse_panel_future_warning
     def test_to_frame(self):
         # filtered
         filtered = self.panel.to_frame()
@@ -2432,7 +2393,12 @@ class TestLongPanel(tm.TestCase):
         buf = StringIO()
         self.panel.to_string(buf)
 
-    @ignore_sparse_panel_future_warning
+    def test_to_sparse(self):
+        if isinstance(self.panel, Panel):
+            msg = 'sparsifying is not supported'
+            tm.assertRaisesRegexp(NotImplementedError, msg,
+                                  self.panel.to_sparse)
+
     def test_truncate(self):
         dates = self.panel.index.levels[0]
         start, end = dates[1], dates[5]
