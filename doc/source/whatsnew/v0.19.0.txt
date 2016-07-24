@@ -652,6 +652,8 @@ Performance Improvements
 - Improved performance of ``Index.difference`` (:issue:`12044`)
 - Improved performance of datetime string parsing in ``DatetimeIndex`` (:issue:`13692`)
 - Improved performance of hashing ``Period`` (:issue:`12817`)
+- Improved performance of ``factorize`` of datetime with timezone (:issue:`13750`)
+
 
 
 .. _whatsnew_0190.bug_fixes:
@@ -738,6 +740,7 @@ Bug Fixes
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
 - Bug in ``.unstack`` with ``Categorical`` dtype resets ``.ordered`` to ``True`` (:issue:`13249`)
 - Clean some compile time warnings in datetime parsing (:issue:`13607`)
+- Bug in ``factorize`` raises ``AmbiguousTimeError`` if data contains datetime near DST boundary (:issue:`13750`)
 
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
 - Bug in ``groupby`` where ``apply`` returns different result depending on whether first result is ``None`` or not (:issue:`12824`)

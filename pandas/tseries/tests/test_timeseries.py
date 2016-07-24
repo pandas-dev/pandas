@@ -3826,6 +3826,37 @@ class TestDatetimeIndex(tm.TestCase):
         self.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
+    def test_factorize_tz(self):
+        # GH 13750
+        for tz in [None, 'UTC', 'US/Eastern', 'Asia/Tokyo']:
+            base = pd.date_range('2016-11-05', freq='H', periods=100, tz=tz)
+            idx = base.repeat(5)
+
+            exp_arr = np.arange(100).repeat(5)
+
+            for obj in [idx, pd.Series(idx)]:
+                arr, res = obj.factorize()
+                self.assert_numpy_array_equal(arr, exp_arr)
+                tm.assert_index_equal(res, base)
+
+    def test_factorize_dst(self):
+        # GH 13750
+        idx = pd.date_range('2016-11-06', freq='H', periods=12,
+                            tz='US/Eastern')
+
+        for obj in [idx, pd.Series(idx)]:
+            arr, res = obj.factorize()
+            self.assert_numpy_array_equal(arr, np.arange(12))
+            tm.assert_index_equal(res, idx)
+
+        idx = pd.date_range('2016-06-13', freq='H', periods=12,
+                            tz='US/Eastern')
+
+        for obj in [idx, pd.Series(idx)]:
+            arr, res = obj.factorize()
+            self.assert_numpy_array_equal(arr, np.arange(12))
+            tm.assert_index_equal(res, idx)
+
     def test_slice_with_negative_step(self):
         ts = Series(np.arange(20),
                     date_range('2014-01-01', periods=20, freq='MS'))

@@ -293,7 +293,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     is_datetimetz_type = is_datetimetz(values)
     if is_datetimetz_type:
         values = DatetimeIndex(values)
-        vals = values.tz_localize(None)
+        vals = values.asi8
 
     is_datetime = is_datetime64_dtype(vals)
     is_timedelta = is_timedelta64_dtype(vals)
@@ -313,8 +313,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     if is_datetimetz_type:
         # reset tz
-        uniques = DatetimeIndex(uniques.astype('M8[ns]')).tz_localize(
-            values.tz)
+        uniques = values._shallow_copy(uniques)
     elif is_datetime:
         uniques = uniques.astype('M8[ns]')
     elif is_timedelta:
