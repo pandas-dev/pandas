@@ -188,6 +188,8 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(Timedelta('').value, iNaT)
         self.assertEqual(Timedelta('nat').value, iNaT)
         self.assertEqual(Timedelta('NAT').value, iNaT)
+        self.assertEqual(Timedelta(None).value, iNaT)
+        self.assertEqual(Timedelta(np.nan).value, iNaT)
         self.assertTrue(isnull(Timedelta('nat')))
 
         # offset
