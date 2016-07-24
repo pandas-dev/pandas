@@ -346,6 +346,7 @@ API changes
 - More informative exceptions are passed through the csv parser. The exception type would now be the original exception type instead of ``CParserError``. (:issue:`13652`)
 - ``astype()`` will now accept a dict of column name to data types mapping as the ``dtype`` argument. (:issue:`12086`)
 - The ``pd.read_json`` and ``DataFrame.to_json`` has gained support for reading and writing json lines with ``lines`` option see :ref:`Line delimited json <io.jsonl>` (:issue:`9180`)
+- ``pd.Timedelta(None)`` is now accepted and will return ``NaT``, mirroring ``pd.Timestamp`` (:issue:`13687`)
 
 .. _whatsnew_0190.api.tolist:
 
@@ -764,4 +765,3 @@ Bug Fixes
 - Bug where ``pd.read_gbq()`` could throw ``ImportError: No module named discovery`` as a result of a naming conflict with another python package called apiclient  (:issue:`13454`)
 - Bug in ``Index.union`` returns an incorrect result with a named empty index (:issue:`13432`)
 - Bugs in ``Index.difference`` and ``DataFrame.join`` raise in Python3 when using mixed-integer indexes (:issue:`13432`, :issue:`12814`)
-- Bug in ``pd.Timedelta(None)`` raises ``ValueError``. This is different from ``pd.Timestamp(None)`` (:issue:`13687`)
