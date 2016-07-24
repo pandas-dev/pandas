@@ -1,4 +1,5 @@
 from .pandas_vb_common import *
+import string
 
 
 class frame_apply_axis_1(object):
@@ -600,6 +601,21 @@ class frame_isnull_floats(object):
         np.random.seed(1234)
         self.sample = np.array([np.nan, 1.0])
         self.data = np.random.choice(self.sample, (1000, 1000))
+        self.df = DataFrame(self.data)
+
+    def time_frame_isnull(self):
+        isnull(self.df)
+
+
+class frame_isnull_strings(object):
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(1234)
+        self.sample = np.array(list(string.ascii_lowercase) +
+                               list(string.ascii_uppercase) +
+                               list(string.whitespace))
+        self.data = np.random.choice(self.choice, (1000, 1000))
         self.df = DataFrame(self.data)
 
     def time_frame_isnull(self):
