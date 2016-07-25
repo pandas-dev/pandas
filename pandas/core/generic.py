@@ -1671,7 +1671,7 @@ class NDFrame(PandasObject):
 
         return result
 
-    def xs(self, key, axis=0, level=None, copy=None, drop_level=True):
+    def xs(self, key, axis=0, level=None, drop_level=True):
         """
         Returns a cross-section (row(s) or column(s)) from the
         Series/DataFrame. Defaults to cross-section on the rows (axis=0).
@@ -1685,8 +1685,6 @@ class NDFrame(PandasObject):
         level : object, defaults to first n levels (n=1 or len(key))
             In case of a key partially contained in a MultiIndex, indicate
             which levels are used. Levels can be referred by label or position.
-        copy : boolean [deprecated]
-            Whether to make a copy of the data
         drop_level : boolean, default True
             If False, returns object with same levels as self.
 
@@ -1742,10 +1740,6 @@ class NDFrame(PandasObject):
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
-        if copy is not None:
-            warnings.warn("copy keyword is deprecated, "
-                          "default is to return a copy or a view if possible")
-
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
@@ -1800,9 +1794,9 @@ class NDFrame(PandasObject):
             if not is_list_like(new_values) or self.ndim == 1:
                 return _maybe_box_datetimelike(new_values)
 
-            result = self._constructor_sliced(new_values, index=self.columns,
-                                              name=self.index[loc], copy=copy,
-                                              dtype=new_values.dtype)
+            result = self._constructor_sliced(
+                new_values, index=self.columns,
+                name=self.index[loc], dtype=new_values.dtype)
 
         else:
             result = self.iloc[loc]
