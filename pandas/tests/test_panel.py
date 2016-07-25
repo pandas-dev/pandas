@@ -2597,13 +2597,6 @@ def test_panel_index():
     tm.assert_index_equal(index, expected)
 
 
-def test_import_warnings():
-    # GH8152
-    panel = Panel(np.random.rand(3, 3, 3))
-    with assert_produces_warning():
-        panel.major_xs(1, copy=False)
-
-
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
