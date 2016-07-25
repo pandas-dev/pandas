@@ -210,3 +210,17 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assert_series_equal(res1, exp2)
         tm.assertIsInstance(res2, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res2, exp1)
+
+    def test_subclass_sparse_slice(self):
+        ssdf = tm.SubclassedSparseDataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        ssdf.testattr = "testattr"
+
+        tm.assertIsInstance(ssdf.loc[:2], tm.SubclassedSparseDataFrame)
+        tm.assertIsInstance(ssdf.iloc[:2], tm.SubclassedSparseDataFrame)
+        tm.assertIsInstance(ssdf[:2], tm.SubclassedSparseDataFrame)
+        tm.assert_equal(ssdf.loc[:2].testattr, "testattr")
+        tm.assert_equal(ssdf.iloc[:2].testattr, "testattr")
+        tm.assert_equal(ssdf[:2].testattr, "testattr")
+
+        tm.assertIsInstance(ssdf.loc[1], tm.SubclassedSparseSeries)
+        tm.assertIsInstance(ssdf.iloc[1], tm.SubclassedSparseSeries)

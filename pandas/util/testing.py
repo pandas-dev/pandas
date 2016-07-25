@@ -2607,6 +2607,30 @@ class SubclassedDataFrame(DataFrame):
         return SubclassedSeries
 
 
+class SubclassedSparseSeries(pd.SparseSeries):
+    _metadata = ['testattr']
+
+    @property
+    def _constructor(self):
+        return SubclassedSparseSeries
+
+    @property
+    def _constructor_expanddim(self):
+        return SubclassedSparseDataFrame
+
+
+class SubclassedSparseDataFrame(pd.SparseDataFrame):
+    _metadata = ['testattr']
+
+    @property
+    def _constructor(self):
+        return SubclassedSparseDataFrame
+
+    @property
+    def _constructor_sliced(self):
+        return SubclassedSparseSeries
+
+
 @contextmanager
 def patch(ob, attr, value):
     """Temporarily patch an attribute of an object.

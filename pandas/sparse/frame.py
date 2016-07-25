@@ -373,7 +373,9 @@ class SparseDataFrame(DataFrame):
             new_index = self.index
             new_columns = self.columns[slobj]
 
-        return self.reindex(index=new_index, columns=new_columns)
+        return self._constructor(data=self.reindex(index=new_index,
+                                                   columns=new_columns))\
+                   .__finalize__(self)
 
     def xs(self, key, axis=0, copy=False):
         """
@@ -519,7 +521,8 @@ class SparseDataFrame(DataFrame):
                 return self
 
         if len(self.index) == 0:
-            return SparseDataFrame(index=index, columns=self.columns)
+            return self._constructor(index=index, columns=self.columns)\
+                       .__finalize__(self)
 
         indexer = self.index.get_indexer(index, method, limit=limit)
         indexer = _ensure_platform_int(indexer)
@@ -540,8 +543,9 @@ class SparseDataFrame(DataFrame):
 
             new_series[col] = new
 
-        return SparseDataFrame(new_series, index=index, columns=self.columns,
-                               default_fill_value=self._default_fill_value)
+        return self._constructor(new_series, index=index, columns=self.columns,
+                                 default_fill_value=self._default_fill_value)\
+                   .__finalize__(self)
 
     def _reindex_columns(self, columns, copy, level, fill_value, limit=None,
                          takeable=False):
