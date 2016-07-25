@@ -71,7 +71,7 @@ class SparsePanel(Panel):
 
         # deprecation #11157
         warnings.warn("SparsePanel is deprecated and will be removed in a "
-                      "future version", FutureWarning, stacklevel=2)
+                      "future version", FutureWarning, stacklevel=3)
 
         if frames is None:
             frames = {}

@@ -63,7 +63,6 @@ def set_testing_mode():
     # set the testing mode filters
     testing_mode = os.environ.get('PANDAS_TESTING_MODE', 'None')
     if 'deprecate' in testing_mode:
-
         warnings.simplefilter('always', _testing_mode_warnings)
 
 

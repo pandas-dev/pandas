@@ -157,16 +157,6 @@ class SafeForLongAndSparse(object):
 
         self._check_stat_op('sem', alt)
 
-    # def test_skew(self):
-    #     from scipy.stats import skew
-
-    #     def alt(x):
-    #         if len(x) < 3:
-    #             return np.nan
-    #         return skew(x, bias=False)
-
-    #     self._check_stat_op('skew', alt)
-
     def _check_stat_op(self, name, alternative, obj=None, has_skipna=True):
         if obj is None:
             obj = self.panel

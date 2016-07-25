@@ -613,7 +613,7 @@ Deprecations
 - ``Timestamp.offset`` property (and named arg in the constructor), has been deprecated in favor of ``freq`` (:issue:`12160`)
 - ``pd.tseries.util.pivot_annual`` is deprecated. Use ``pivot_table`` as alternative, an example is :ref:`here <cookbook.pivot>` (:issue:`736`)
 - ``pd.tseries.util.isleapyear`` has been deprecated and will be removed in a subsequent release. Datetime-likes now have a ``.is_leap_year`` property. (:issue:`13727`)
-
+- ``Panel4D`` and ``PanelND`` constructors are deprecated and will be removed in a future version. The recommended way to represent these types of n-dimensional data are with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas provides a :meth:`~Panel4D.to_xarray` method to automate this conversion. (:issue:`13564`)
 
 .. _whatsnew_0190.prior_deprecations:
 

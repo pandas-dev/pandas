@@ -1,6 +1,5 @@
 import nose
 
-import warnings
 import os
 import datetime
 import numpy as np
@@ -545,7 +544,8 @@ class TestSparse(TestPackers):
 
     def test_sparse_panel(self):
 
-        with warnings.catch_warnings(record=True):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
 
             items = ['x', 'y', 'z']
             p = Panel(dict((i, tm.makeDataFrame().ix[:2, :2]) for i in items))

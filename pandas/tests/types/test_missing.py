@@ -73,10 +73,11 @@ def test_isnull():
         tm.assert_panel_equal(result, expected)
 
     # panel 4d
-    for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
-        result = isnull(p)
-        expected = p.apply(isnull)
-        tm.assert_panel4d_equal(result, expected)
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
+            result = isnull(p)
+            expected = p.apply(isnull)
+            tm.assert_panel4d_equal(result, expected)
 
 
 def test_isnull_lists():
