@@ -198,6 +198,11 @@ class BinOp(ops.BinOp):
         elif meta == u('category'):
             metadata = com._values_from_object(self.metadata)
             result = metadata.searchsorted(v, side='left')
+
+            # result returns 0 if v is first element or if v is not in metadata
+            # check that metadata contains v
+            if not result and v not in metadata:
+                result = -1
             return TermValue(result, result, u('integer'))
         elif kind == u('integer'):
             v = int(float(v))
