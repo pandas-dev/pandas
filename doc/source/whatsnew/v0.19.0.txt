@@ -788,3 +788,4 @@ Bug Fixes
 - Bugs in ``Index.difference`` and ``DataFrame.join`` raise in Python3 when using mixed-integer indexes (:issue:`13432`, :issue:`12814`)
 
 - Bug in ``.to_excel()`` when DataFrame contains a MultiIndex which contains a label with a NaN value (:issue:`13511`)
+- Bug in ``pd.read_hdf()`` returns incorrect result when HDF Store contains a DataFrame with a categorical column and query doesn't match any values(:issue:`13792`)
