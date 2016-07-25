@@ -25,7 +25,9 @@ class TestPivotAnnual(tm.TestCase):
             annual = pivot_annual(ts, 'D')
 
         doy = ts.index.dayofyear
-        doy[(~isleapyear(ts.index.year)) & (doy >= 60)] += 1
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            doy[(~isleapyear(ts.index.year)) & (doy >= 60)] += 1
 
         for i in range(1, 367):
             subset = ts[doy == i]
@@ -51,7 +53,9 @@ class TestPivotAnnual(tm.TestCase):
         grouped = ts_hourly.groupby(ts_hourly.index.year)
         hoy = grouped.apply(lambda x: x.reset_index(drop=True))
         hoy = hoy.index.droplevel(0).values
-        hoy[~isleapyear(ts_hourly.index.year) & (hoy >= 1416)] += 24
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            hoy[~isleapyear(ts_hourly.index.year) & (hoy >= 1416)] += 24
         hoy += 1
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -99,6 +103,16 @@ class TestPivotAnnual(tm.TestCase):
 
     def test_period_weekly(self):
         pass
+
+    def test_isleapyear_deprecate(self):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertTrue(isleapyear(2000))
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertFalse(isleapyear(2001))
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertTrue(isleapyear(2004))
 
 
 def test_normalize_date():

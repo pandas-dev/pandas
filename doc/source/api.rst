@@ -472,6 +472,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.is_quarter_end
    Series.dt.is_year_start
    Series.dt.is_year_end
+   Series.dt.is_leap_year
    Series.dt.daysinmonth
    Series.dt.days_in_month
    Series.dt.tz
@@ -1497,6 +1498,7 @@ Time/Date Components
    DatetimeIndex.is_quarter_end
    DatetimeIndex.is_year_start
    DatetimeIndex.is_year_end
+   DatetimeIndex.is_leap_year
    DatetimeIndex.inferred_freq
 
 Selecting

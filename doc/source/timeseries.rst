@@ -560,6 +560,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_quarter_end,"Logical indicating if last day of quarter (defined by frequency)"
     is_year_start,"Logical indicating if first day of year (defined by frequency)"
     is_year_end,"Logical indicating if last day of year (defined by frequency)"
+    is_leap_year,"Logical indicating if the date belongs to a leap year"
 
 Furthermore, if you have a ``Series`` with datetimelike values, then you can access these properties via the ``.dt`` accessor, see the :ref:`docs <basics.dt_accessors>`
 
