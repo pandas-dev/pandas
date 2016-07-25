@@ -704,35 +704,37 @@ class TestConcatenate(ConcatenateBase):
         concat([panel1, panel3], axis=1, verify_integrity=True)
 
     def test_panel4d_concat(self):
-        p4d = tm.makePanel4D()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D()
 
-        p1 = p4d.ix[:, :, :5, :]
-        p2 = p4d.ix[:, :, 5:, :]
+            p1 = p4d.ix[:, :, :5, :]
+            p2 = p4d.ix[:, :, 5:, :]
 
-        result = concat([p1, p2], axis=2)
-        tm.assert_panel4d_equal(result, p4d)
+            result = concat([p1, p2], axis=2)
+            tm.assert_panel4d_equal(result, p4d)
 
-        p1 = p4d.ix[:, :, :, :2]
-        p2 = p4d.ix[:, :, :, 2:]
+            p1 = p4d.ix[:, :, :, :2]
+            p2 = p4d.ix[:, :, :, 2:]
 
-        result = concat([p1, p2], axis=3)
-        tm.assert_panel4d_equal(result, p4d)
+            result = concat([p1, p2], axis=3)
+            tm.assert_panel4d_equal(result, p4d)
 
     def test_panel4d_concat_mixed_type(self):
-        p4d = tm.makePanel4D()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D()
 
-        # if things are a bit misbehaved
-        p1 = p4d.ix[:, :2, :, :2]
-        p2 = p4d.ix[:, :, :, 2:]
-        p1['L5'] = 'baz'
+            # if things are a bit misbehaved
+            p1 = p4d.ix[:, :2, :, :2]
+            p2 = p4d.ix[:, :, :, 2:]
+            p1['L5'] = 'baz'
 
-        result = concat([p1, p2], axis=3)
+            result = concat([p1, p2], axis=3)
 
-        p2['L5'] = np.nan
-        expected = concat([p1, p2], axis=3)
-        expected = expected.ix[result.labels]
+            p2['L5'] = np.nan
+            expected = concat([p1, p2], axis=3)
+            expected = expected.ix[result.labels]
 
-        tm.assert_panel4d_equal(result, expected)
+            tm.assert_panel4d_equal(result, expected)
 
     def test_concat_series(self):
 

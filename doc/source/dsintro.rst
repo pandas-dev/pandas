@@ -941,6 +941,10 @@ method:
 Panel4D (Experimental)
 ----------------------
 
+.. warning::
+
+   In 0.19.0 ``Panel4D` is deprecated and will be removed in a future version. The recommended way to represent these types of n-dimensional data are with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas provides a :meth:`~Panel4D.to_xarray` method to automate this conversion.
+
 ``Panel4D`` is a 4-Dimensional named container very much like a ``Panel``, but
 having 4 named dimensions. It is intended as a test bed for more N-Dimensional named
 containers.
@@ -1025,6 +1029,10 @@ copy by default unless the data are heterogeneous):
 
 PanelND (Experimental)
 ----------------------
+
+.. warning::
+
+   In 0.19.0 ``PanelND` is deprecated and will be removed in a future version. The recommended way to represent these types of n-dimensional data are with the `xarray package <http://xarray.pydata.org/en/stable/>`__.
 
 PanelND is a module with a set of factory functions to enable a user to construct N-dimensional named
 containers like Panel4D, with a custom set of axis labels. Thus a domain-specific container can easily be

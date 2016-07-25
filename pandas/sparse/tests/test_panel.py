@@ -55,7 +55,7 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
             'ItemC': panel_data3(),
             'ItemD': panel_data1(),
         }
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.panel = SparsePanel(self.data_dict)
 
     @staticmethod
@@ -76,12 +76,12 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
 
     # deprecation GH11157
     def test_deprecation(self):
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             SparsePanel()
 
     # GH 9272
     def test_constructor_empty(self):
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             sp = SparsePanel()
         self.assertEqual(len(sp.items), 0)
         self.assertEqual(len(sp.major_axis), 0)
@@ -104,7 +104,8 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
 
     def test_dense_to_sparse(self):
         wp = Panel.from_dict(self.data_dict)
-        dwp = wp.to_sparse()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            dwp = wp.to_sparse()
         tm.assertIsInstance(dwp['ItemA']['A'], SparseSeries)
 
     def test_to_dense(self):
@@ -127,7 +128,8 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
             _compare_with_dense(self.panel)
             _compare_with_dense(self.panel.reindex(items=['ItemA']))
 
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 zero_panel = SparsePanel(self.data_dict, default_fill_value=0)
             self.assertRaises(Exception, zero_panel.to_frame)
 
@@ -154,15 +156,18 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
         self.assertRaises(Exception, self.panel.__setitem__, 'item6', 1)
 
     def test_set_value(self):
-        def _check_loc(item, major, minor, val=1.5):
-            res = self.panel.set_value(item, major, minor, val)
-            self.assertIsNot(res, self.panel)
-            self.assertEqual(res.get_value(item, major, minor), val)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            def _check_loc(item, major, minor, val=1.5):
+                res = self.panel.set_value(item, major, minor, val)
+                self.assertIsNot(res, self.panel)
+                self.assertEqual(res.get_value(item, major, minor), val)
 
-        _check_loc('ItemA', self.panel.major_axis[4], self.panel.minor_axis[3])
-        _check_loc('ItemF', self.panel.major_axis[4], self.panel.minor_axis[3])
-        _check_loc('ItemF', 'foo', self.panel.minor_axis[3])
-        _check_loc('ItemE', 'foo', 'bar')
+            _check_loc('ItemA', self.panel.major_axis[4],
+                       self.panel.minor_axis[3])
+            _check_loc('ItemF', self.panel.major_axis[4],
+                       self.panel.minor_axis[3])
+            _check_loc('ItemF', 'foo', self.panel.minor_axis[3])
+            _check_loc('ItemE', 'foo', 'bar')
 
     def test_delitem_pop(self):
         del self.panel['ItemB']

@@ -1,5 +1,6 @@
 """ Factory methods to create N-D panels """
 
+import warnings
 from pandas.compat import zip
 import pandas.compat as compat
 
@@ -7,6 +8,11 @@ import pandas.compat as compat
 def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
                             stat_axis=2, info_axis=0, ns=None):
     """ manufacture a n-d class:
+
+    DEPRECATED. Panelnd is deprecated and will be removed in a future version.
+    The recommended way to represent these types of n-dimensional data are with
+    the `xarray package <http://xarray.pydata.org/en/stable/>`__.
+    Pandas provides a `.to_xarray()` method to automate this conversion.
 
     Parameters
     ----------
@@ -44,6 +50,18 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
 
     # define the methods ####
     def __init__(self, *args, **kwargs):
+
+        # deprecation GH13564
+        warnings.warn("\n{klass} is deprecated and will be removed in a "
+                      "future version.\nThe recommended way to represent "
+                      "these types of n-dimensional data are with the\n"
+                      "`xarray package "
+                      "<http://xarray.pydata.org/en/stable/>`__.\n"
+                      "Pandas provides a `.to_xarray()` method to help "
+                      "automate this conversion.\n".format(
+                          klass=self.__class__.__name__),
+                      FutureWarning, stacklevel=2)
+
         if not (kwargs.get('data') or len(args)):
             raise Exception("must supply at least a data argument to [%s]" %
                             klass_name)
