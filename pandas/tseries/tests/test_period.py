@@ -1514,6 +1514,22 @@ class TestFreqConversion(tm.TestCase):
             self.assertEqual(result.ordinal, expected.ordinal)
             self.assertEqual(result.freq, expected.freq)
 
+    def test_is_leap_year(self):
+        # GH 13727
+        for freq in ['A', 'M', 'D', 'H']:
+            p = Period('2000-01-01 00:00:00', freq=freq)
+            self.assertTrue(p.is_leap_year)
+            self.assertIsInstance(p.is_leap_year, bool)
+
+            p = Period('1999-01-01 00:00:00', freq=freq)
+            self.assertFalse(p.is_leap_year)
+
+            p = Period('2004-01-01 00:00:00', freq=freq)
+            self.assertTrue(p.is_leap_year)
+
+            p = Period('2100-01-01 00:00:00', freq=freq)
+            self.assertFalse(p.is_leap_year)
+
 
 class TestPeriodIndex(tm.TestCase):
     def setUp(self):
@@ -3130,14 +3146,23 @@ class TestPeriodIndex(tm.TestCase):
     def _check_all_fields(self, periodindex):
         fields = ['year', 'month', 'day', 'hour', 'minute', 'second',
                   'weekofyear', 'week', 'dayofweek', 'weekday', 'dayofyear',
-                  'quarter', 'qyear', 'days_in_month']
+                  'quarter', 'qyear', 'days_in_month', 'is_leap_year']
 
         periods = list(periodindex)
+        s = pd.Series(periodindex)
 
         for field in fields:
             field_idx = getattr(periodindex, field)
             self.assertEqual(len(periodindex), len(field_idx))
             for x, val in zip(periods, field_idx):
+                self.assertEqual(getattr(x, field), val)
+
+            if len(s) == 0:
+                continue
+
+            field_s = getattr(s.dt, field)
+            self.assertEqual(len(periodindex), len(field_s))
+            for x, val in zip(periods, field_s):
                 self.assertEqual(getattr(x, field), val)
 
     def test_is_full(self):
@@ -4568,6 +4593,7 @@ class TestPeriodField(tm.TestCase):
     def test_get_period_field_array_raises_on_out_of_range(self):
         self.assertRaises(ValueError, _period.get_period_field_arr, -1,
                           np.empty(1), 0)
+
 
 if __name__ == '__main__':
     import nose

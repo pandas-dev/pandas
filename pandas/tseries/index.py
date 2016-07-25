@@ -72,11 +72,14 @@ def _field_accessor(name, field, docstring=None):
                                            self.freq.kwds.get('month', 12))
                         if self.freq else 12)
 
-            result = tslib.get_start_end_field(
-                values, field, self.freqstr, month_kw)
+            result = tslib.get_start_end_field(values, field, self.freqstr,
+                                               month_kw)
         elif field in ['weekday_name']:
             result = tslib.get_date_name_field(values, field)
             return self._maybe_mask_results(result)
+        elif field in ['is_leap_year']:
+            # no need to mask NaT
+            return tslib.get_date_field(values, field)
         else:
             result = tslib.get_date_field(values, field)
 
@@ -227,7 +230,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                          'daysinmonth', 'date', 'time', 'microsecond',
                          'nanosecond', 'is_month_start', 'is_month_end',
                          'is_quarter_start', 'is_quarter_end', 'is_year_start',
-                         'is_year_end', 'tz', 'freq', 'weekday_name']
+                         'is_year_end', 'tz', 'freq', 'weekday_name',
+                         'is_leap_year']
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
@@ -1521,29 +1525,21 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     doc="get/set the frequncy of the Index")
 
     year = _field_accessor('year', 'Y', "The year of the datetime")
-    month = _field_accessor(
-        'month', 'M', "The month as January=1, December=12")
+    month = _field_accessor('month', 'M',
+                            "The month as January=1, December=12")
     day = _field_accessor('day', 'D', "The days of the datetime")
     hour = _field_accessor('hour', 'h', "The hours of the datetime")
     minute = _field_accessor('minute', 'm', "The minutes of the datetime")
     second = _field_accessor('second', 's', "The seconds of the datetime")
-    microsecond = _field_accessor(
-        'microsecond',
-        'us',
-        "The microseconds of the datetime")
-    nanosecond = _field_accessor(
-        'nanosecond',
-        'ns',
-        "The nanoseconds of the datetime")
-    weekofyear = _field_accessor(
-        'weekofyear',
-        'woy',
-        "The week ordinal of the year")
+    microsecond = _field_accessor('microsecond', 'us',
+                                  "The microseconds of the datetime")
+    nanosecond = _field_accessor('nanosecond', 'ns',
+                                 "The nanoseconds of the datetime")
+    weekofyear = _field_accessor('weekofyear', 'woy',
+                                 "The week ordinal of the year")
     week = weekofyear
-    dayofweek = _field_accessor(
-        'dayofweek',
-        'dow',
-        "The day of the week with Monday=0, Sunday=6")
+    dayofweek = _field_accessor('dayofweek', 'dow',
+                                "The day of the week with Monday=0, Sunday=6")
     weekday = dayofweek
 
     weekday_name = _field_accessor(
@@ -1551,14 +1547,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         'weekday_name',
         "The name of day in a week (ex: Friday)\n\n.. versionadded:: 0.18.1")
 
-    dayofyear = _field_accessor(
-        'dayofyear',
-        'doy',
-        "The ordinal day of the year")
-    quarter = _field_accessor(
-        'quarter',
-        'q',
-        "The quarter of the date")
+    dayofyear = _field_accessor('dayofyear', 'doy',
+                                "The ordinal day of the year")
+    quarter = _field_accessor('quarter', 'q', "The quarter of the date")
     days_in_month = _field_accessor(
         'days_in_month',
         'dim',
@@ -1588,6 +1579,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         'is_year_end',
         'is_year_end',
         "Logical indicating if last day of year (defined by frequency)")
+    is_leap_year = _field_accessor(
+        'is_leap_year',
+        'is_leap_year',
+        "Logical indicating if the date belongs to a leap year")
 
     @property
     def time(self):

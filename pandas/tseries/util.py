@@ -95,6 +95,10 @@ def isleapyear(year):
     year : integer / sequence
         A given (list of) year(s).
     """
+
+    msg = "isleapyear is deprecated. Use .is_leap_year property instead"
+    warnings.warn(msg, FutureWarning)
+
     year = np.asarray(year)
     return np.logical_or(year % 400 == 0,
                          np.logical_and(year % 4 == 0, year % 100 > 0))

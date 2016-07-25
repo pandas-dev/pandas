@@ -969,12 +969,19 @@ class TestTimeSeries(tm.TestCase):
 
         fields = ['year', 'quarter', 'month', 'day', 'hour', 'minute',
                   'second', 'microsecond', 'nanosecond', 'week', 'dayofyear',
-                  'days_in_month']
+                  'days_in_month', 'is_leap_year']
+
         for field in fields:
             result = getattr(idx, field)
-            expected = [getattr(x, field) if x is not NaT else np.nan
-                        for x in idx]
+            expected = [getattr(x, field) for x in idx]
             self.assert_numpy_array_equal(result, np.array(expected))
+
+        s = pd.Series(idx)
+
+        for field in fields:
+            result = getattr(s.dt, field)
+            expected = [getattr(x, field) for x in idx]
+            self.assert_series_equal(result, pd.Series(expected))
 
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour', 'minute',
@@ -4760,6 +4767,25 @@ class TestTimestamp(tm.TestCase):
             expected = left_f(s_nat, Timestamp('nat'))
             result = right_f(Timestamp('nat'), s_nat)
             tm.assert_series_equal(result, expected)
+
+    def test_is_leap_year(self):
+        # GH 13727
+        for tz in [None, 'UTC', 'US/Eastern', 'Asia/Tokyo']:
+            dt = Timestamp('2000-01-01 00:00:00', tz=tz)
+            self.assertTrue(dt.is_leap_year)
+            self.assertIsInstance(dt.is_leap_year, bool)
+
+            dt = Timestamp('1999-01-01 00:00:00', tz=tz)
+            self.assertFalse(dt.is_leap_year)
+
+            dt = Timestamp('2004-01-01 00:00:00', tz=tz)
+            self.assertTrue(dt.is_leap_year)
+
+            dt = Timestamp('2100-01-01 00:00:00', tz=tz)
+            self.assertFalse(dt.is_leap_year)
+
+        self.assertFalse(pd.NaT.is_leap_year)
+        self.assertIsInstance(pd.NaT.is_leap_year, bool)
 
 
 class TestSlicing(tm.TestCase):

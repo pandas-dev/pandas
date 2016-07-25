@@ -165,7 +165,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                          'weekofyear', 'week', 'dayofweek', 'weekday',
                          'dayofyear', 'quarter', 'qyear', 'freq',
                          'days_in_month', 'daysinmonth',
-                         'to_timestamp', 'asfreq', 'start_time', 'end_time']
+                         'to_timestamp', 'asfreq', 'start_time', 'end_time',
+                         'is_leap_year']
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
@@ -509,16 +510,21 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     second = _field_accessor('second', 7, "The second of the period")
     weekofyear = _field_accessor('week', 8, "The week ordinal of the year")
     week = weekofyear
-    dayofweek = _field_accessor(
-        'dayofweek', 10, "The day of the week with Monday=0, Sunday=6")
+    dayofweek = _field_accessor('dayofweek', 10,
+                                "The day of the week with Monday=0, Sunday=6")
     weekday = dayofweek
-    dayofyear = day_of_year = _field_accessor(
-        'dayofyear', 9, "The ordinal day of the year")
+    dayofyear = day_of_year = _field_accessor('dayofyear', 9,
+                                              "The ordinal day of the year")
     quarter = _field_accessor('quarter', 2, "The quarter of the date")
     qyear = _field_accessor('qyear', 1)
-    days_in_month = _field_accessor(
-        'days_in_month', 11, "The number of days in the month")
+    days_in_month = _field_accessor('days_in_month', 11,
+                                    "The number of days in the month")
     daysinmonth = days_in_month
+
+    @property
+    def is_leap_year(self):
+        """ Logical indicating if the date belongs to a leap year """
+        return tslib._isleapyear_arr(self.year)
 
     @property
     def start_time(self):

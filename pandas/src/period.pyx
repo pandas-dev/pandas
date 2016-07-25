@@ -913,6 +913,9 @@ cdef class _Period(object):
     property daysinmonth:
         def __get__(self):
             return self.days_in_month
+    property is_leap_year:
+        def __get__(self):
+            return bool(is_leapyear(self._field(0)))
 
     @classmethod
     def now(cls, freq=None):
