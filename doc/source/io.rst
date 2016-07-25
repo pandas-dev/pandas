@@ -444,41 +444,55 @@ individual columns:
 
    Reading in data with mixed dtypes and relying on ``pandas``
    to infer them is not recommended. In doing so, the parsing engine will
-   loop over all the dtypes, trying to convert them to an actual
-   type; if something breaks during that process, the engine will go to the
-   next ``dtype`` and the data is left modified in place. For example,
+   infer the dtypes for different chunks of the data, rather than the whole
+   dataset at once. Consequently, you can end up with column(s) with mixed
+   dtypes. For example,
 
    .. ipython:: python
+         :okwarning:
 
-       from collections import Counter
        df = pd.DataFrame({'col_1':range(500000) + ['a', 'b'] + range(500000)})
        df.to_csv('foo')
        mixed_df = pd.read_csv('foo')
-       Counter(mixed_df['col_1'].apply(lambda x: type(x)))
+       mixed_df['col_1'].apply(lambda x: type(x)).value_counts()
+       mixed_df['col_1'].dtype
 
    will result with `mixed_df` containing an ``int`` dtype for the first
    262,143 values, and ``str`` for others due to a problem during
-   parsing. Fortunately, ``pandas`` offers a few ways to ensure that the column(s)
+   parsing. It is important to note that the overall column will be marked with a
+   ``dtype`` of ``object``, which is used for columns with mixed dtypes.
+
+   Fortunately, ``pandas`` offers a few ways to ensure that the column(s)
    contain only one ``dtype``. For instance, you could use the ``converters``
    argument of :func:`~pandas.read_csv`
 
    .. ipython:: python
 
        fixed_df1 = pd.read_csv('foo', converters={'col_1':str})
-       Counter(fixed_df1['col_1'].apply(lambda x: type(x)))
+       fixed_df1['col_1'].apply(lambda x: type(x)).value_counts()
 
    Or you could use the :func:`~pandas.to_numeric` function to coerce the
    dtypes after reading in the data,
 
    .. ipython:: python
+         :okwarning:
 
        fixed_df2 = pd.read_csv('foo')
        fixed_df2['col_1'] = pd.to_numeric(fixed_df2['col_1'], errors='coerce')
-       Counter(fixed_df2['col_1'].apply(lambda x: type(x)))
+       fixed_df2['col_1'].apply(lambda x: type(x)).value_counts()
 
    which would convert all valid parsing to ints, leaving the invalid parsing
    as ``NaN``.
 
+   Alternatively, you could set the ``low_memory`` argument of :func:`~pandas.read_csv`
+   to ``False``. Such as,
+
+   .. ipython:: python
+
+      fixed_df3 = pd.read_csv('foo', low_memory=False)
+      fixed_df2['col_1'].apply(lambda x: type(x)).value_counts()
+
+   which achieves a similar result.
 Naming and Using Columns
 ''''''''''''''''''''''''
 
