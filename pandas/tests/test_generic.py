@@ -1532,17 +1532,41 @@ class TestPanel4D(tm.TestCase, Generic):
         tm._skip_if_no_xarray()
         from xarray import DataArray
 
-        p = tm.makePanel4D()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p = tm.makePanel4D()
 
-        result = p.to_xarray()
-        self.assertIsInstance(result, DataArray)
-        self.assertEqual(len(result.coords), 4)
-        assert_almost_equal(list(result.coords.keys()),
-                            ['labels', 'items', 'major_axis', 'minor_axis'])
-        self.assertEqual(len(result.dims), 4)
+            result = p.to_xarray()
+            self.assertIsInstance(result, DataArray)
+            self.assertEqual(len(result.coords), 4)
+            assert_almost_equal(list(result.coords.keys()),
+                                ['labels', 'items', 'major_axis',
+                                 'minor_axis'])
+            self.assertEqual(len(result.dims), 4)
 
-        # non-convertible
-        self.assertRaises(ValueError, lambda: result.to_pandas())
+            # non-convertible
+            self.assertRaises(ValueError, lambda: result.to_pandas())
+
+# run all the tests, but wrap each in a warning catcher
+for t in ['test_rename', 'test_rename_axis', 'test_get_numeric_data',
+          'test_get_default', 'test_nonzero',
+          'test_numpy_1_7_compat_numeric_methods',
+          'test_downcast', 'test_constructor_compound_dtypes',
+          'test_head_tail',
+          'test_size_compat', 'test_split_compat',
+          'test_unexpected_keyword',
+          'test_stat_unexpected_keyword', 'test_api_compat',
+          'test_stat_non_defaults_args',
+          'test_clip', 'test_truncate_out_of_bounds', 'test_numpy_clip',
+          'test_metadata_propagation']:
+
+    def f():
+        def tester(self):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                return getattr(super(TestPanel4D, self), t)()
+        return tester
+
+    setattr(TestPanel4D, t, f())
 
 
 class TestNDFrame(tm.TestCase):
@@ -1674,8 +1698,9 @@ class TestNDFrame(tm.TestCase):
             tm.assert_frame_equal(df.squeeze(), df)
         for p in [tm.makePanel()]:
             tm.assert_panel_equal(p.squeeze(), p)
-        for p4d in [tm.makePanel4D()]:
-            tm.assert_panel4d_equal(p4d.squeeze(), p4d)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            for p4d in [tm.makePanel4D()]:
+                tm.assert_panel4d_equal(p4d.squeeze(), p4d)
 
         # squeezing
         df = tm.makeTimeDataFrame().reindex(columns=['A'])
@@ -1687,11 +1712,13 @@ class TestNDFrame(tm.TestCase):
         p = tm.makePanel().reindex(items=['ItemA'], minor_axis=['A'])
         tm.assert_series_equal(p.squeeze(), p.ix['ItemA', :, 'A'])
 
-        p4d = tm.makePanel4D().reindex(labels=['label1'])
-        tm.assert_panel_equal(p4d.squeeze(), p4d['label1'])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D().reindex(labels=['label1'])
+            tm.assert_panel_equal(p4d.squeeze(), p4d['label1'])
 
-        p4d = tm.makePanel4D().reindex(labels=['label1'], items=['ItemA'])
-        tm.assert_frame_equal(p4d.squeeze(), p4d.ix['label1', 'ItemA'])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D().reindex(labels=['label1'], items=['ItemA'])
+            tm.assert_frame_equal(p4d.squeeze(), p4d.ix['label1', 'ItemA'])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = pd.Series([], name='five')
@@ -1726,11 +1753,13 @@ class TestNDFrame(tm.TestCase):
                                   .transpose(1, 2, 0), p)
             tm.assertRaisesRegexp(TypeError, msg, p.transpose,
                                   2, 0, 1, axes=(2, 0, 1))
-        for p4d in [tm.makePanel4D()]:
-            tm.assert_panel4d_equal(p4d.transpose(2, 0, 3, 1)
-                                    .transpose(1, 3, 0, 2), p4d)
-            tm.assertRaisesRegexp(TypeError, msg, p4d.transpose,
-                                  2, 0, 3, 1, axes=(2, 0, 3, 1))
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            for p4d in [tm.makePanel4D()]:
+                tm.assert_panel4d_equal(p4d.transpose(2, 0, 3, 1)
+                                        .transpose(1, 3, 0, 2), p4d)
+                tm.assertRaisesRegexp(TypeError, msg, p4d.transpose,
+                                      2, 0, 3, 1, axes=(2, 0, 3, 1))
 
     def test_numpy_transpose(self):
         msg = "the 'axes' parameter is not supported"
@@ -1752,10 +1781,11 @@ class TestNDFrame(tm.TestCase):
             np.transpose(p, axes=(2, 0, 1)),
             axes=(1, 2, 0)), p)
 
-        p4d = tm.makePanel4D()
-        tm.assert_panel4d_equal(np.transpose(
-            np.transpose(p4d, axes=(2, 0, 3, 1)),
-            axes=(1, 3, 0, 2)), p4d)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D()
+            tm.assert_panel4d_equal(np.transpose(
+                np.transpose(p4d, axes=(2, 0, 3, 1)),
+                axes=(1, 3, 0, 2)), p4d)
 
     def test_take(self):
         indices = [1, 5, -2, 6, 3, -1]
@@ -1780,21 +1810,25 @@ class TestNDFrame(tm.TestCase):
                              major_axis=p.major_axis,
                              minor_axis=p.minor_axis)
             tm.assert_panel_equal(out, expected)
-        for p4d in [tm.makePanel4D()]:
-            out = p4d.take(indices)
-            expected = Panel4D(data=p4d.values.take(indices, axis=0),
-                               labels=p4d.labels.take(indices),
-                               major_axis=p4d.major_axis,
-                               minor_axis=p4d.minor_axis,
-                               items=p4d.items)
-            tm.assert_panel4d_equal(out, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            for p4d in [tm.makePanel4D()]:
+                out = p4d.take(indices)
+                expected = Panel4D(data=p4d.values.take(indices, axis=0),
+                                   labels=p4d.labels.take(indices),
+                                   major_axis=p4d.major_axis,
+                                   minor_axis=p4d.minor_axis,
+                                   items=p4d.items)
+                tm.assert_panel4d_equal(out, expected)
 
     def test_take_invalid_kwargs(self):
         indices = [-3, 2, 0, 1]
         s = tm.makeFloatSeries()
         df = tm.makeTimeDataFrame()
         p = tm.makePanel()
-        p4d = tm.makePanel4D()
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D()
 
         for obj in (s, df, p, p4d):
             msg = "take\(\) got an unexpected keyword argument 'foo'"
