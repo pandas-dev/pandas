@@ -1306,7 +1306,7 @@ class DataFrame(NDFrame):
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
                escapechar=None, decimal='.', **kwds):
-        """Write DataFrame to a comma-separated values (csv) file
+        r"""Write DataFrame to a comma-separated values (csv) file
 
         Parameters
         ----------
@@ -1343,7 +1343,7 @@ class DataFrame(NDFrame):
             a string representing the compression to use in the output file,
             allowed values are 'gzip', 'bz2', 'xz',
             only used when the first argument is a filename
-        line_terminator : string, default '\\n'
+        line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
         quoting : optional constant from csv module

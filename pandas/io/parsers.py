@@ -277,11 +277,11 @@ _engine_doc = """engine : {'c', 'python'}, optional
     Parser engine to use. The C engine is faster while the python engine is
     currently more feature-complete."""
 
-_sep_doc = """sep : str, default {default}
+_sep_doc = r"""sep : str, default {default}
     Delimiter to use. If sep is None, will try to automatically determine
-    this. Separators longer than 1 character and different from '\s+' will be
-    interpreted as regular expressions, will force use of the python parsing
-    engine and will ignore quotes in the data. Regex example: '\\r\\t'"""
+    this. Separators longer than 1 character and different from ``'\s+'`` will
+    be interpreted as regular expressions, will force use of the python parsing
+    engine and will ignore quotes in the data. Regex example: ``'\r\t'``"""
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
