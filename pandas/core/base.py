@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas.types.missing import isnull
 from pandas.types.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.types.common import (_ensure_object, is_object_dtype,
+from pandas.types.common import (is_object_dtype,
                                  is_list_like, is_scalar)
 
 from pandas.core import common as com
@@ -1014,6 +1014,7 @@ class IndexOpsMixin(object):
         """
         from pandas import Index
         return Index(self).is_monotonic
+
     is_monotonic_increasing = is_monotonic
 
     @property
@@ -1171,6 +1172,10 @@ class IndexOpsMixin(object):
                                                    False: 'first'})
     @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
+        if isinstance(self, ABCIndexClass):
+            if self.is_unique:
+                return self._shallow_copy()
+
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
         if inplace:
@@ -1200,13 +1205,14 @@ class IndexOpsMixin(object):
                                                    False: 'first'})
     @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
-        keys = com._values_from_object(_ensure_object(self.values))
-        duplicated = lib.duplicated(keys, keep=keep)
-        try:
-            return self._constructor(duplicated,
+        from pandas.core.algorithms import duplicated
+        if isinstance(self, ABCIndexClass):
+            if self.is_unique:
+                return np.zeros(len(self), dtype=np.bool)
+            return duplicated(self, keep=keep)
+        else:
+            return self._constructor(duplicated(self, keep=keep),
                                      index=self.index).__finalize__(self)
-        except AttributeError:
-            return np.array(duplicated, dtype=bool)
 
     # ----------------------------------------------------------------------
     # abstracts

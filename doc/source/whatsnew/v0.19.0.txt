@@ -656,6 +656,7 @@ Performance Improvements
 
 - Improved performance of float64 hash table operations, fixing some very slow indexing and groupby operations in python 3 (:issue:`13166`, :issue:`13334`)
 - Improved performance of ``DataFrameGroupBy.transform`` (:issue:`12737`)
+- Improved performance of ``Index`` and ``Series`` ``.duplicated`` (:issue:`10235`)
 - Improved performance of ``Index.difference`` (:issue:`12044`)
 - Improved performance of datetime string parsing in ``DatetimeIndex`` (:issue:`13692`)
 - Improved performance of hashing ``Period`` (:issue:`12817`)
