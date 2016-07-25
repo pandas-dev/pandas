@@ -1839,7 +1839,11 @@ class ExcelFormatter(object):
                 for spans, levels, labels in zip(level_lengths,
                                                  self.df.index.levels,
                                                  self.df.index.labels):
-                    values = levels.take(labels)
+
+                    values = levels.take(labels,
+                                         allow_fill=levels._can_hold_na,
+                                         fill_value=True)
+
                     for i in spans:
                         if spans[i] > 1:
                             yield ExcelCell(self.rowcounter + i, gcolidx,
