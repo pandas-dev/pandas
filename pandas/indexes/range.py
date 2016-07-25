@@ -221,6 +221,14 @@ class RangeIndex(Int64Index):
         """ return if the index has unique values """
         return True
 
+    @cache_readonly
+    def is_monotonic_increasing(self):
+        return self._step > 0 or len(self) <= 1
+
+    @cache_readonly
+    def is_monotonic_decreasing(self):
+        return self._step < 0 or len(self) <= 1
+
     @property
     def has_duplicates(self):
         return False
