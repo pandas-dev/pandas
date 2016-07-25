@@ -659,6 +659,7 @@ Performance Improvements
 - Improved performance of ``DataFrameGroupBy.transform`` (:issue:`12737`)
 - Improved performance of ``Index`` and ``Series`` ``.duplicated`` (:issue:`10235`)
 - Improved performance of ``Index.difference`` (:issue:`12044`)
+- Improved performance of ``RangeIndex.is_monotonic_increasing`` and ``is_monotonic_decreasing`` (:issue:`13749`)
 - Improved performance of datetime string parsing in ``DatetimeIndex`` (:issue:`13692`)
 - Improved performance of hashing ``Period`` (:issue:`12817`)
 - Improved performance of ``factorize`` of datetime with timezone (:issue:`13750`)
