@@ -1073,6 +1073,90 @@ def mode_int64(int64_t[:] values):
 
     return modes[:j+1]
 
+
+def duplicated_object(ndarray[object] values, object keep='first'):
+    cdef:
+        Py_ssize_t i, n
+        dict seen = dict()
+        object row
+
+    n = len(values)
+    cdef ndarray[uint8_t] result = np.zeros(n, dtype=np.uint8)
+
+    if keep == 'last':
+        for i from n > i >= 0:
+            row = values[i]
+            if row in seen:
+                result[i] = 1
+            else:
+                seen[row] = i
+                result[i] = 0
+    elif keep == 'first':
+        for i from 0 <= i < n:
+            row = values[i]
+            if row in seen:
+                result[i] = 1
+            else:
+                seen[row] = i
+                result[i] = 0
+    elif keep is False:
+        for i from 0 <= i < n:
+            row = values[i]
+            if row in seen:
+                result[i] = 1
+                result[seen[row]] = 1
+            else:
+                seen[row] = i
+                result[i] = 0
+    else:
+        raise ValueError('keep must be either "first", "last" or False')
+
+    return result.view(np.bool_)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def duplicated_float64(ndarray[float64_t, ndim=1] values,
+                       object keep='first'):
+    cdef:
+        int ret = 0, k
+        float64_t value
+        Py_ssize_t i, n = len(values)
+        kh_float64_t * table = kh_init_float64()
+        ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
+
+    kh_resize_float64(table, min(n, _SIZE_HINT_LIMIT))
+
+    if keep not in ('last', 'first', False):
+        raise ValueError('keep must be either "first", "last" or False')
+
+    if keep == 'last':
+        with nogil:
+            for i from n > i >=0:
+                kh_put_float64(table, values[i], &ret)
+                out[i] = ret == 0
+    elif keep == 'first':
+        with nogil:
+            for i from 0 <= i < n:
+                kh_put_float64(table, values[i], &ret)
+                out[i] = ret == 0
+    else:
+        with nogil:
+            for i from 0 <= i < n:
+                value = values[i]
+                k = kh_get_float64(table, value)
+                if k != table.n_buckets:
+                    out[table.vals[k]] = 1
+                    out[i] = 1
+                else:
+                    k = kh_put_float64(table, value, &ret)
+                    table.keys[k] = value
+                    table.vals[k] = i
+                    out[i] = 0
+    kh_destroy_float64(table)
+    return out
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def duplicated_int64(ndarray[int64_t, ndim=1] values,

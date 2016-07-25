@@ -234,45 +234,6 @@ class TestNullObj(tm.TestCase):
         self._check_behavior(arr, expected)
 
 
-def test_duplicated_with_nas():
-    keys = np.array([0, 1, np.nan, 0, 2, np.nan], dtype=object)
-
-    result = lib.duplicated(keys)
-    expected = [False, False, False, True, False, True]
-    assert (np.array_equal(result, expected))
-
-    result = lib.duplicated(keys, keep='first')
-    expected = [False, False, False, True, False, True]
-    assert (np.array_equal(result, expected))
-
-    result = lib.duplicated(keys, keep='last')
-    expected = [True, False, True, False, False, False]
-    assert (np.array_equal(result, expected))
-
-    result = lib.duplicated(keys, keep=False)
-    expected = [True, False, True, True, False, True]
-    assert (np.array_equal(result, expected))
-
-    keys = np.empty(8, dtype=object)
-    for i, t in enumerate(zip([0, 0, np.nan, np.nan] * 2,
-                              [0, np.nan, 0, np.nan] * 2)):
-        keys[i] = t
-
-    result = lib.duplicated(keys)
-    falses = [False] * 4
-    trues = [True] * 4
-    expected = falses + trues
-    assert (np.array_equal(result, expected))
-
-    result = lib.duplicated(keys, keep='last')
-    expected = trues + falses
-    assert (np.array_equal(result, expected))
-
-    result = lib.duplicated(keys, keep=False)
-    expected = trues + trues
-    assert (np.array_equal(result, expected))
-
-
 if __name__ == '__main__':
     import nose
 
