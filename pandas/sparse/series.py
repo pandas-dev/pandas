@@ -63,11 +63,11 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
                 new_fill_value = op(np.float64(self.fill_value),
                                     np.float64(other))
 
-            return SparseSeries(op(self.sp_values, other),
-                                index=self.index,
-                                sparse_index=self.sp_index,
-                                fill_value=new_fill_value,
-                                name=self.name)
+            return self._constructor(op(self.sp_values, other),
+                                     index=self.index,
+                                     sparse_index=self.sp_index,
+                                     fill_value=new_fill_value,
+                                     name=self.name)
         else:  # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
 
@@ -85,7 +85,7 @@ def _sparse_series_op(left, right, op, name):
     new_name = _maybe_match_name(left, right)
 
     result = _sparse_array_op(left, right, op, name)
-    return SparseSeries(result, index=new_index, name=new_name)
+    return left._constructor(result, index=new_index, name=new_name)
 
 
 class SparseSeries(Series):
