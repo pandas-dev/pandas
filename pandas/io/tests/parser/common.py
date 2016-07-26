@@ -5,8 +5,6 @@ import os
 import platform
 import codecs
 
-import subprocess
-
 import re
 import sys
 from datetime import datetime
@@ -1494,35 +1492,70 @@ j,-inF"""
         out = self.read_csv(mmap_file, memory_map=True)
         tm.assert_frame_equal(out, expected)
 
-
     def test_parse_trim_buffers(self):
-        # This test is designed to cause a `segfault` with unpatched `tokenizer.c`,
-        # Sometimes the test fails on `segfault`, other times it fails due to memory
-        # corruption, which causes the loaded DataFrame to differ from the expected
-        # one.
+        # This test is designed to cause a `segfault` with unpatched
+        # `tokenizer.c`, Sometimes the test fails on `segfault`, other
+        # times it fails due to memory corruption, which causes the
+        # loaded DataFrame to differ from the expected one.
         n_lines, chunksizes = 173, range(57, 90)
 
         # Create the expected output
         expected_ = [(chunksize_, "9999-9", "9999-9")
-                            for chunksize_ in chunksizes
-                            for _ in range((n_lines + chunksize_ - 1) // chunksize_)]
+                     for chunksize_ in chunksizes
+                     for _ in range((n_lines + chunksize_ - 1) // chunksize_)]
         expected = pd.DataFrame(expected_, columns=None, index=None)
 
         # Generate a large mixed-type CSV file on-the-fly (approx 272 KiB)
-        record_ = "9999-9,99:99,,,,ZZ,ZZ,,,ZZZ-ZZZZ,.Z-ZZZZ,-9.99,,,9.99,ZZZZZ,,-99,9,ZZZ-ZZZZ,ZZ-ZZZZ,,9.99,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,999,ZZZ-ZZZZ,,ZZ-ZZZZ,,,,,ZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,,,9,9,9,9,99,99,999,999,ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,9,ZZ-ZZZZ,9.99,ZZ-ZZZZ,ZZ-ZZZZ,,,,ZZZZ,,,ZZ,ZZ,,,,,,,,,,,,,9,,,999.99,999.99,,,ZZZZZ,,,Z9,,,,,,,ZZZ,ZZZ,,,,,,,,,,,ZZZZZ,ZZZZZ,ZZZ-ZZZZZZ,ZZZ-ZZZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,,,999999,999999,ZZZ,ZZZ,,,ZZZ,ZZZ,999.99,999.99,,,,ZZZ-ZZZ,ZZZ-ZZZ,-9.99,-9.99,9,9,,99,,9.99,9.99,9,9,9.99,9.99,,,,9.99,9.99,,99,,99,9.99,9.99,,,ZZZ,ZZZ,,999.99,,999.99,ZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,,,ZZZZZ,ZZZZZ,ZZZ,ZZZ,9,9,,,,,,ZZZ-ZZZZ,ZZZ999Z,,,999.99,,999.99,ZZZ-ZZZZ,,,9.999,9.999,9.999,9.999,-9.999,-9.999,-9.999,-9.999,9.999,9.999,9.999,9.999,9.999,9.999,9.999,9.999,99999,ZZZ-ZZZZ,,9.99,ZZZ,,,,,,,,ZZZ,,,,,9,,,,9,,,,,,,,,,ZZZ-ZZZZ,ZZZ-ZZZZ,,ZZZZZ,ZZZZZ,ZZZZZ,ZZZZZ,,,9.99,,ZZ-ZZZZ,ZZ-ZZZZ,ZZ,999,,,,ZZ-ZZZZ,ZZZ,ZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,,,99.99,99.99,,,9.99,9.99,9.99,9.99,ZZZ-ZZZZ,,,ZZZ-ZZZZZ,,,,,-9.99,-9.99,-9.99,-9.99,,,,,,,,,ZZZ-ZZZZ,,9,9.99,9.99,99ZZ,,-9.99,-9.99,ZZZ-ZZZZ,,,,,,,ZZZ-ZZZZ,9.99,9.99,9999,,,,,,,,,,-9.9,Z/Z-ZZZZ,999.99,9.99,,999.99,ZZ-ZZZZ,ZZ-ZZZZ,9.99,9.99,9.99,9.99,9.99,9.99,,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ,ZZZ,ZZZ,ZZZ,9.99,,,-9.99,ZZ-ZZZZ,-999.99,,-9999,,999.99,,,,999.99,99.99,,,ZZ-ZZZZZZZZ,ZZ-ZZZZ-ZZZZZZZ,,,,ZZ-ZZ-ZZZZZZZZ,ZZZZZZZZ,ZZZ-ZZZZ,9999,999.99,ZZZ-ZZZZ,-9.99,-9.99,ZZZ-ZZZZ,99:99:99,,99,99,,9.99,,-99.99,,,,,,9.99,ZZZ-ZZZZ,-9.99,-9.99,9.99,9.99,,ZZZ,,,,,,,ZZZ,ZZZ,,,,,"
+        record_ = \
+            """9999-9,99:99,,,,ZZ,ZZ,,,ZZZ-ZZZZ,.Z-ZZZZ,-9.99,,,9.""" \
+            """99,ZZZZZ,,-99,9,ZZZ-ZZZZ,ZZ-ZZZZ,,9.99,ZZZ-ZZZZZ,ZZZ-""" \
+            """ZZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-""" \
+            """ZZZZ,ZZZ-ZZZZ,999,ZZZ-ZZZZ,,ZZ-ZZZZ,,,,,ZZZZ,ZZZ-""" \
+            """ZZZZZ,ZZZ-ZZZZ,,,9,9,9,9,99,99,999,999,ZZZZZ,ZZZ-""" \
+            """ZZZZZ,ZZZ-ZZZZ,9,ZZ-ZZZZ,9.99,ZZ-ZZZZ,ZZ-""" \
+            """ZZZZ,,,,ZZZZ,,,ZZ,ZZ,,,,,,,,,,,,,9,,,999.99,999.99,,,""" \
+            """ZZZZZ,,,Z9,,,,,,,ZZZ,ZZZ,,,,,,,,,,,ZZZZZ,ZZZZZ,ZZZ-""" \
+            """ZZZZZZ,ZZZ-ZZZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-""" \
+            """ZZZZ,,,999999,999999,ZZZ,ZZZ,,,ZZZ,ZZZ,999.99,999.""" \
+            """99,,,,ZZZ-ZZZ,ZZZ-ZZZ,-9.99,-9.99,9,9,,99,,9.99,9.""" \
+            """99,9,9,9.99,9.99,,,,9.99,9.99,,99,,99,9.99,9.""" \
+            """99,,,ZZZ,ZZZ,,999.99,,999.99,ZZZ,ZZZ-ZZZZ,ZZZ-""" \
+            """ZZZZ,,,ZZZZZ,ZZZZZ,ZZZ,ZZZ,9,9,,,,,,ZZZ-""" \
+            """ZZZZ,ZZZ999Z,,,999.99,,999.99,ZZZ-ZZZZ,,,9.999,9.""" \
+            """999,9.999,9.999,-9.999,-9.999,-9.999,-9.999,9.999,9.""" \
+            """999,9.999,9.999,9.999,9.999,9.999,9.999,99999,ZZZ-""" \
+            """ZZZZ,,9.99,ZZZ,,,,,,,,ZZZ,,,,,9,,,,9,,,,,,,,,,ZZZ-""" \
+            """ZZZZ,ZZZ-ZZZZ,,ZZZZZ,ZZZZZ,ZZZZZ,ZZZZZ,,,9.99,,ZZ-""" \
+            """ZZZZ,ZZ-ZZZZ,ZZ,999,,,,ZZ-ZZZZ,ZZZ,ZZZ,ZZZ-ZZZZ,ZZZ-""" \
+            """ZZZZ,,,99.99,99.99,,,9.99,9.99,9.99,9.99,ZZZ-""" \
+            """ZZZZ,,,ZZZ-ZZZZZ,,,,,-9.99,-9.99,-9.99,-9.""" \
+            """99,,,,,,,,,ZZZ-ZZZZ,,9,9.99,9.99,99ZZ,,-9.99,-9.""" \
+            """99,ZZZ-ZZZZ,,,,,,,ZZZ-ZZZZ,9.99,9.99,9999,,,,,,,,,,-9""" \
+            """.9,Z/Z-ZZZZ,999.99,9.99,,999.99,ZZ-ZZZZ,ZZ-ZZZZ,9.""" \
+            """99,9.99,9.99,9.99,9.99,9.99,,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ-""" \
+            """ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ,ZZZ,ZZZ,ZZZ,9.99,,,-9.""" \
+            """99,ZZ-ZZZZ,-999.99,,-9999,,999.99,,,,999.99,99.""" \
+            """99,,,ZZ-ZZZZZZZZ,ZZ-ZZZZ-ZZZZZZZ,,,,ZZ-ZZ-""" \
+            """ZZZZZZZZ,ZZZZZZZZ,ZZZ-ZZZZ,9999,999.99,ZZZ-ZZZZ,-9.""" \
+            """99,-9.99,ZZZ-ZZZZ,99:99:99,,99,99,,9.99,,-99.""" \
+            """99,,,,,,9.99,ZZZ-ZZZZ,-9.99,-9.99,9.99,9.""" \
+            """99,,ZZZ,,,,,,,ZZZ,ZZZ,,,,,"""
         csv_data = "\n".join([record_] * n_lines) + "\n"
 
         output_ = list()
         for chunksize_ in chunksizes:
             try:
-                iterator_ = self.read_csv(StringIO(csv_data), header=None, dtype=object,
-                                          chunksize=chunksize_, na_filter=True)
-            except ValueError, e:
+                iterator_ = self.read_csv(StringIO(csv_data), header=None,
+                                          dtype=object, chunksize=chunksize_,
+                                          na_filter=True)
+            except ValueError:
                 # Ignore unsuported dtype=object by engine=python
                 pass
 
             for chunk_ in iterator_:
-                output_.append((chunksize_, chunk_.iloc[0, 0], chunk_.iloc[-1, 0]))
+                output_.append((chunksize_,
+                                chunk_.iloc[0, 0],
+                                chunk_.iloc[-1, 0]))
 
         df = pd.DataFrame(output_, columns=None, index=None)
 
