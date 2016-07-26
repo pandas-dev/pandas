@@ -1322,7 +1322,8 @@ def assert_panelnd_equal(left, right,
                          check_less_precise=False,
                          assert_func=assert_frame_equal,
                          check_names=False,
-                         by_blocks=False):
+                         by_blocks=False,
+                         obj='Panel'):
     """Check that left and right Panels are equal.
 
     Parameters
@@ -1343,6 +1344,9 @@ def assert_panelnd_equal(left, right,
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
+    obj : str, default 'Panel'
+        Specify the object name being compared, internally used to show
+        the appropriate assertion message.
     """
 
     if check_panel_type:
@@ -1404,9 +1408,29 @@ def assert_sp_array_equal(left, right):
 
 
 def assert_sp_series_equal(left, right, exact_indices=True,
-                           check_names=True, obj='SparseSeries'):
+                           check_series_type=True,
+                           check_names=True,
+                           obj='SparseSeries'):
+    """Check that the left and right SparseSeries are equal.
+
+    Parameters
+    ----------
+    left : SparseSeries
+    right : SparseSeries
+    exact_indices : bool, default True
+    check_series_type : bool, default True
+        Whether to check the SparseSeries class is identical.
+    check_names : bool, default True
+        Whether to check the SparseSeries name attribute.
+    obj : str, default 'SparseSeries'
+        Specify the object name being compared, internally used to show
+        the appropriate assertion message.
+    """
     assertIsInstance(left, pd.SparseSeries, '[SparseSeries]')
     assertIsInstance(right, pd.SparseSeries, '[SparseSeries]')
+
+    if check_series_type:
+        assert_class_equal(left, right, obj=obj)
 
     assert_index_equal(left.index, right.index,
                        obj='{0}.index'.format(obj))
@@ -1421,13 +1445,28 @@ def assert_sp_series_equal(left, right, exact_indices=True,
 
 
 def assert_sp_frame_equal(left, right, exact_indices=True,
+                          check_frame_type=True,
                           obj='SparseDataFrame'):
-    """
-    exact: Series SparseIndex objects must be exactly the same, otherwise just
-    compare dense representations
+    """Check that the left and right SparseDataFrame are equal.
+
+    Parameters
+    ----------
+    left : SparseDataFrame
+    right : SparseDataFrame
+    exact_indices : bool, default True
+        SparseSeries SparseIndex objects must be exactly the same,
+        otherwise just compare dense representations.
+    check_frame_type : bool, default True
+        Whether to check the SparseDataFrame class is identical.
+    obj : str, default 'SparseDataFrame'
+        Specify the object name being compared, internally used to show
+        the appropriate assertion message.
     """
     assertIsInstance(left, pd.SparseDataFrame, '[SparseDataFrame]')
     assertIsInstance(right, pd.SparseDataFrame, '[SparseDataFrame]')
+
+    if check_frame_type:
+        assert_class_equal(left, right, obj=obj)
 
     assert_index_equal(left.index, right.index,
                        obj='{0}.index'.format(obj))
