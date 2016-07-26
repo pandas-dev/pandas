@@ -90,11 +90,47 @@ try:
 except ImportError:
     cython = False
 
+
+if cython:
+    try:
+        try:
+            from Cython import Tempita as tempita
+        except ImportError:
+            import tempita
+    except ImportError:
+        raise ImportError('Building pandas requires Tempita: '
+                          'pip install Tempita')
+
+
 from os.path import join as pjoin
+
+
+_pxipath = pjoin('pandas', 'src')
+_pxifiles = ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
+             'algos_join_helper.pxi.in', 'algos_take_helper.pxi.in']
 
 
 class build_ext(_build_ext):
     def build_extensions(self):
+
+        for _pxifile in _pxifiles:
+            # build pxifiles first, template extention must be .pxi.in
+            assert _pxifile.endswith('.pxi.in')
+            pxifile = pjoin(_pxipath, _pxifile)
+            outfile = pxifile[:-3]
+
+            if (os.path.exists(outfile) and
+               os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
+                # if .pxi.in is not updated, no need to output .pxi
+                continue
+
+            with open(pxifile, "r") as f:
+                tmpl = f.read()
+            pyxcontent = tempita.sub(tmpl)
+
+            with open(outfile, "w") as f:
+                f.write(pyxcontent)
+
         numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
 
         for ext in self.extensions:

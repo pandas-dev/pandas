@@ -23,13 +23,25 @@ if [ "$LINT" ]; then
     for path in 'window.pyx'
     do
         echo "linting -> pandas/$path"
-        flake8 pandas/$path --filename '*.pyx' --select=E501,E302,E203,E226,E111,E114,E221,E303,E128,E231,E126,E128
+        flake8 pandas/$path --filename '*.pyx' --select=E501,E302,E203,E226,E111,E114,E221,E303,E128,E231,E126
         if [ $? -ne "0" ]; then
             RET=1
         fi
 
     done
     echo "Linting *.pyx DONE"
+
+    echo "Linting *.pxi.in"
+    for path in 'src'
+    do
+        echo "linting -> pandas/$path"
+        flake8 pandas/$path --filename '*.pxi.in' --select=E501,E302,E203,E111,E114,E221,E303,E231,E126
+        if [ $? -ne "0" ]; then
+            RET=1
+        fi
+
+    done
+    echo "Linting *.pxi.in DONE"
 
     echo "Check for invalid testing"
     grep -r -E --include '*.py' --exclude nosetester.py --exclude testing.py '(numpy|np)\.testing' pandas
