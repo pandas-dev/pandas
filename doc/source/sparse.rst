@@ -15,13 +15,14 @@
 Sparse data structures
 **********************
 
-We have implemented "sparse" versions of Series, DataFrame, and Panel. These
-are not sparse in the typical "mostly 0". You can view these objects as being
-"compressed" where any data matching a specific value (NaN/missing by default,
-though any value can be chosen) is omitted. A special ``SparseIndex`` object
-tracks where data has been "sparsified". This will make much more sense in an
-example. All of the standard pandas data structures have a ``to_sparse``
-method:
+.. note:: The ``SparsePanel`` class has been removed in 0.19.0
+
+We have implemented "sparse" versions of Series and DataFrame. These are not sparse
+in the typical "mostly 0". Rather, you can view these objects as being "compressed"
+where any data matching a specific value (``NaN`` / missing value, though any value
+can be chosen) is omitted. A special ``SparseIndex`` object tracks where data has been
+"sparsified". This will make much more sense in an example. All of the standard pandas
+data structures have a ``to_sparse`` method:
 
 .. ipython:: python
 
@@ -77,9 +78,8 @@ distinct from the ``fill_value``:
    sparr = pd.SparseArray(arr)
    sparr
 
-Like the indexed objects (SparseSeries, SparseDataFrame, SparsePanel), a
-``SparseArray`` can be converted back to a regular ndarray by calling
-``to_dense``:
+Like the indexed objects (SparseSeries, SparseDataFrame), a ``SparseArray``
+can be converted back to a regular ndarray by calling ``to_dense``:
 
 .. ipython:: python
 
