@@ -4690,9 +4690,62 @@ class NDFrame(PandasObject):
         Returns
         -------
         wh : same type as caller
+
+        Notes
+        -----
+        The %(name)s method is an application of the if-then idiom. For each
+        element in the calling DataFrame, if ``cond`` is ``%(cond)s`` the
+        element is used; otherwise the corresponding element from the DataFrame
+        ``other`` is used.
+
+        The signature for :func:`DataFrame.where` differs from
+        :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
+        ``np.where(m, df1, df2)``.
+
+        For further details and examples see the ``%(name)s`` documentation in
+        :ref:`indexing <indexing.where_mask>`.
+
+        Examples
+        --------
+        >>> s = pd.Series(range(5))
+        >>> s.where(s > 0)
+        0    NaN
+        1    1.0
+        2    2.0
+        3    3.0
+        4    4.0
+
+        >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
+        >>> m = df %% 3 == 0
+        >>> df.where(m, -df)
+           A  B
+        0  0 -1
+        1 -2  3
+        2 -4 -5
+        3  6 -7
+        4 -8  9
+        >>> df.where(m, -df) == np.where(m, df, -df)
+              A     B
+        0  True  True
+        1  True  True
+        2  True  True
+        3  True  True
+        4  True  True
+        >>> df.where(m, -df) == df.mask(~m, -df)
+              A     B
+        0  True  True
+        1  True  True
+        2  True  True
+        3  True  True
+        4  True  True
+
+        See Also
+        --------
+        :func:`DataFrame.%(name_other)s`
         """)
 
-    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True"))
+    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True",
+                                           name='where', name_other='mask'))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
 
@@ -4700,7 +4753,8 @@ class NDFrame(PandasObject):
         return self._where(cond, other, inplace, axis, level, try_cast,
                            raise_on_error)
 
-    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False"))
+    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False",
+                                           name='mask', name_other='where'))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
              try_cast=False, raise_on_error=True):
 
