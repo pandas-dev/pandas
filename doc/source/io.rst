@@ -442,11 +442,11 @@ individual columns:
 
 .. note::
 
-   Reading in data with mixed dtypes and relying on ``pandas``
-   to infer them is not recommended. In doing so, the parsing engine will
-   infer the dtypes for different chunks of the data, rather than the whole
-   dataset at once. Consequently, you can end up with column(s) with mixed
-   dtypes. For example,
+   Reading in data with columns containing mixed dtypes and relying
+   on ``pandas`` to infer them is not recommended. In doing so, the
+   parsing engine will infer the dtypes for different chunks of the data,
+   rather than the whole dataset at once. Consequently, you can end up with
+   column(s) with mixed dtypes. For example,
 
    .. ipython:: python
          :okwarning:
@@ -454,12 +454,12 @@ individual columns:
        df = pd.DataFrame({'col_1':range(500000) + ['a', 'b'] + range(500000)})
        df.to_csv('foo')
        mixed_df = pd.read_csv('foo')
-       mixed_df['col_1'].apply(lambda x: type(x)).value_counts()
+       mixed_df['col_1'].apply(type).value_counts()
        mixed_df['col_1'].dtype
 
-   will result with `mixed_df` containing an ``int`` dtype for the first
-   262,143 values, and ``str`` for others due to a problem during
-   parsing. It is important to note that the overall column will be marked with a
+   will result with `mixed_df` containing an ``int`` dtype for certain chunks
+   of the column, and ``str`` for others due to a problem during parsing.
+   It is important to note that the overall column will be marked with a
    ``dtype`` of ``object``, which is used for columns with mixed dtypes.
 
    Fortunately, ``pandas`` offers a few ways to ensure that the column(s)
@@ -469,7 +469,7 @@ individual columns:
    .. ipython:: python
 
        fixed_df1 = pd.read_csv('foo', converters={'col_1':str})
-       fixed_df1['col_1'].apply(lambda x: type(x)).value_counts()
+       fixed_df1['col_1'].apply(type).value_counts()
 
    Or you could use the :func:`~pandas.to_numeric` function to coerce the
    dtypes after reading in the data,
@@ -479,9 +479,9 @@ individual columns:
 
        fixed_df2 = pd.read_csv('foo')
        fixed_df2['col_1'] = pd.to_numeric(fixed_df2['col_1'], errors='coerce')
-       fixed_df2['col_1'].apply(lambda x: type(x)).value_counts()
+       fixed_df2['col_1'].apply(type).value_counts()
 
-   which would convert all valid parsing to ints, leaving the invalid parsing
+   which would convert all valid parsing to floats, leaving the invalid parsing
    as ``NaN``.
 
    Alternatively, you could set the ``low_memory`` argument of :func:`~pandas.read_csv`
@@ -490,9 +490,14 @@ individual columns:
    .. ipython:: python
 
       fixed_df3 = pd.read_csv('foo', low_memory=False)
-      fixed_df2['col_1'].apply(lambda x: type(x)).value_counts()
+      fixed_df3['col_1'].apply(type).value_counts()
 
-   which achieves a similar result.
+   Ultimately, how you deal with reading in columns containing mixed dtypes
+   depends on your specific needs. In the case above, if you wanted to ``NaN`` out
+   the data anomalies, then :func:`~pandas.to_numeric` is probably your best option.
+   However, if you wanted for all the data to be coerced, no matter the type, then
+   using the ``converters`` argument of :func:`~pandas.read_csv` would certainly work.
+
 Naming and Using Columns
 ''''''''''''''''''''''''
 
