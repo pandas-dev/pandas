@@ -2688,23 +2688,6 @@ class TestHDFStore(Base, tm.TestCase):
         self._check_double_roundtrip(ss3, tm.assert_frame_equal,
                                      check_frame_type=True)
 
-    def test_sparse_panel(self):
-
-        items = ['x', 'y', 'z']
-        p = Panel(dict((i, tm.makeDataFrame().ix[:2, :2]) for i in items))
-        sp = p.to_sparse()
-
-        self._check_double_roundtrip(sp, assert_panel_equal,
-                                     check_panel_type=True)
-
-        sp2 = p.to_sparse(kind='integer')
-        self._check_double_roundtrip(sp2, assert_panel_equal,
-                                     check_panel_type=True)
-
-        sp3 = p.to_sparse(fill_value=0)
-        self._check_double_roundtrip(sp3, assert_panel_equal,
-                                     check_panel_type=True)
-
     def test_float_index(self):
 
         # GH #454

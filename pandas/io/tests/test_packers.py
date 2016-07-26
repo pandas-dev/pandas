@@ -542,26 +542,6 @@ class TestSparse(TestPackers):
         self._check_roundtrip(ss3, tm.assert_frame_equal,
                               check_frame_type=True)
 
-    def test_sparse_panel(self):
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-
-            items = ['x', 'y', 'z']
-            p = Panel(dict((i, tm.makeDataFrame().ix[:2, :2]) for i in items))
-            sp = p.to_sparse()
-
-            self._check_roundtrip(sp, tm.assert_panel_equal,
-                                  check_panel_type=True)
-
-            sp2 = p.to_sparse(kind='integer')
-            self._check_roundtrip(sp2, tm.assert_panel_equal,
-                                  check_panel_type=True)
-
-            sp3 = p.to_sparse(fill_value=0)
-            self._check_roundtrip(sp3, tm.assert_panel_equal,
-                                  check_panel_type=True)
-
 
 class TestCompression(TestPackers):
     """See https://github.com/pydata/pandas/pull/9783
