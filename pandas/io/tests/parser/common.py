@@ -1542,7 +1542,7 @@ j,-inF"""
             """99,,ZZZ,,,,,,,ZZZ,ZZZ,,,,,"""
         csv_data = "\n".join([record_] * n_lines) + "\n"
 
-        output_ = list()
+        output_ = []
         for chunksize_ in chunksizes:
             try:
                 iterator_ = self.read_csv(StringIO(csv_data), header=None,
