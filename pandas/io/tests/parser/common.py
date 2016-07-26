@@ -1502,66 +1502,72 @@ j,-inF"""
         # `tokenizer.c`. Sometimes the test fails on `segfault`, other
         # times it fails due to memory corruption, which causes the
         # loaded DataFrame to differ from the expected one.
-        n_lines, chunksizes = 173, range(57, 90)
 
-        # Create the expected output
-        expected_ = [(chunksize_, "9999-9", "9999-9")
-                     for chunksize_ in chunksizes
-                     for _ in range((n_lines + chunksize_ - 1) // chunksize_)]
-        expected = pd.DataFrame(expected_, columns=None, index=None)
-
-        # Generate a large mixed-type CSV file on-the-fly (approx 272 KiB)
+        # Generate a large mixed-type CSV file on-the-fly (one record is
+        # approx 1.5KiB).
         record_ = \
-            """9999-9,99:99,,,,ZZ,ZZ,,,ZZZ-ZZZZ,.Z-ZZZZ,-9.99,,,9.""" \
-            """99,ZZZZZ,,-99,9,ZZZ-ZZZZ,ZZ-ZZZZ,,9.99,ZZZ-ZZZZZ,ZZZ-""" \
-            """ZZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-""" \
-            """ZZZZ,ZZZ-ZZZZ,999,ZZZ-ZZZZ,,ZZ-ZZZZ,,,,,ZZZZ,ZZZ-""" \
-            """ZZZZZ,ZZZ-ZZZZ,,,9,9,9,9,99,99,999,999,ZZZZZ,ZZZ-""" \
-            """ZZZZZ,ZZZ-ZZZZ,9,ZZ-ZZZZ,9.99,ZZ-ZZZZ,ZZ-""" \
-            """ZZZZ,,,,ZZZZ,,,ZZ,ZZ,,,,,,,,,,,,,9,,,999.99,999.99,,,""" \
-            """ZZZZZ,,,Z9,,,,,,,ZZZ,ZZZ,,,,,,,,,,,ZZZZZ,ZZZZZ,ZZZ-""" \
-            """ZZZZZZ,ZZZ-ZZZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-""" \
-            """ZZZZ,,,999999,999999,ZZZ,ZZZ,,,ZZZ,ZZZ,999.99,999.""" \
-            """99,,,,ZZZ-ZZZ,ZZZ-ZZZ,-9.99,-9.99,9,9,,99,,9.99,9.""" \
-            """99,9,9,9.99,9.99,,,,9.99,9.99,,99,,99,9.99,9.""" \
-            """99,,,ZZZ,ZZZ,,999.99,,999.99,ZZZ,ZZZ-ZZZZ,ZZZ-""" \
-            """ZZZZ,,,ZZZZZ,ZZZZZ,ZZZ,ZZZ,9,9,,,,,,ZZZ-""" \
-            """ZZZZ,ZZZ999Z,,,999.99,,999.99,ZZZ-ZZZZ,,,9.999,9.""" \
-            """999,9.999,9.999,-9.999,-9.999,-9.999,-9.999,9.999,9.""" \
-            """999,9.999,9.999,9.999,9.999,9.999,9.999,99999,ZZZ-""" \
-            """ZZZZ,,9.99,ZZZ,,,,,,,,ZZZ,,,,,9,,,,9,,,,,,,,,,ZZZ-""" \
-            """ZZZZ,ZZZ-ZZZZ,,ZZZZZ,ZZZZZ,ZZZZZ,ZZZZZ,,,9.99,,ZZ-""" \
-            """ZZZZ,ZZ-ZZZZ,ZZ,999,,,,ZZ-ZZZZ,ZZZ,ZZZ,ZZZ-ZZZZ,ZZZ-""" \
-            """ZZZZ,,,99.99,99.99,,,9.99,9.99,9.99,9.99,ZZZ-""" \
-            """ZZZZ,,,ZZZ-ZZZZZ,,,,,-9.99,-9.99,-9.99,-9.""" \
-            """99,,,,,,,,,ZZZ-ZZZZ,,9,9.99,9.99,99ZZ,,-9.99,-9.""" \
-            """99,ZZZ-ZZZZ,,,,,,,ZZZ-ZZZZ,9.99,9.99,9999,,,,,,,,,,-9""" \
-            """.9,Z/Z-ZZZZ,999.99,9.99,,999.99,ZZ-ZZZZ,ZZ-ZZZZ,9.""" \
-            """99,9.99,9.99,9.99,9.99,9.99,,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ-""" \
-            """ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ,ZZZ,ZZZ,ZZZ,9.99,,,-9.""" \
-            """99,ZZ-ZZZZ,-999.99,,-9999,,999.99,,,,999.99,99.""" \
-            """99,,,ZZ-ZZZZZZZZ,ZZ-ZZZZ-ZZZZZZZ,,,,ZZ-ZZ-""" \
-            """ZZZZZZZZ,ZZZZZZZZ,ZZZ-ZZZZ,9999,999.99,ZZZ-ZZZZ,-9.""" \
-            """99,-9.99,ZZZ-ZZZZ,99:99:99,,99,99,,9.99,,-99.""" \
-            """99,,,,,,9.99,ZZZ-ZZZZ,-9.99,-9.99,9.99,9.""" \
-            """99,,ZZZ,,,,,,,ZZZ,ZZZ,,,,,"""
+            """9999-9,99:99,,,,ZZ,ZZ,,,ZZZ-ZZZZ,.Z-ZZZZ,-9.99,,,9.99,Z""" \
+            """ZZZZ,,-99,9,ZZZ-ZZZZ,ZZ-ZZZZ,,9.99,ZZZ-ZZZZZ,ZZZ-ZZZZZ,""" \
+            """ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,9""" \
+            """99,ZZZ-ZZZZ,,ZZ-ZZZZ,,,,,ZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,,,9,9,""" \
+            """9,9,99,99,999,999,ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,9,ZZ-ZZZZ,9.""" \
+            """99,ZZ-ZZZZ,ZZ-ZZZZ,,,,ZZZZ,,,ZZ,ZZ,,,,,,,,,,,,,9,,,999.""" \
+            """99,999.99,,,ZZZZZ,,,Z9,,,,,,,ZZZ,ZZZ,,,,,,,,,,,ZZZZZ,ZZ""" \
+            """ZZZ,ZZZ-ZZZZZZ,ZZZ-ZZZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZ""" \
+            """ZZ,,,999999,999999,ZZZ,ZZZ,,,ZZZ,ZZZ,999.99,999.99,,,,Z""" \
+            """ZZ-ZZZ,ZZZ-ZZZ,-9.99,-9.99,9,9,,99,,9.99,9.99,9,9,9.99,""" \
+            """9.99,,,,9.99,9.99,,99,,99,9.99,9.99,,,ZZZ,ZZZ,,999.99,,""" \
+            """999.99,ZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,,,ZZZZZ,ZZZZZ,ZZZ,ZZZ,9,9,""" \
+            """,,,,,ZZZ-ZZZZ,ZZZ999Z,,,999.99,,999.99,ZZZ-ZZZZ,,,9.999""" \
+            """,9.999,9.999,9.999,-9.999,-9.999,-9.999,-9.999,9.999,9.""" \
+            """999,9.999,9.999,9.999,9.999,9.999,9.999,99999,ZZZ-ZZZZ,""" \
+            """,9.99,ZZZ,,,,,,,,ZZZ,,,,,9,,,,9,,,,,,,,,,ZZZ-ZZZZ,ZZZ-Z""" \
+            """ZZZ,,ZZZZZ,ZZZZZ,ZZZZZ,ZZZZZ,,,9.99,,ZZ-ZZZZ,ZZ-ZZZZ,ZZ""" \
+            """,999,,,,ZZ-ZZZZ,ZZZ,ZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,,,99.99,99.99""" \
+            """,,,9.99,9.99,9.99,9.99,ZZZ-ZZZZ,,,ZZZ-ZZZZZ,,,,,-9.99,-""" \
+            """9.99,-9.99,-9.99,,,,,,,,,ZZZ-ZZZZ,,9,9.99,9.99,99ZZ,,-9""" \
+            """.99,-9.99,ZZZ-ZZZZ,,,,,,,ZZZ-ZZZZ,9.99,9.99,9999,,,,,,,""" \
+            """,,,-9.9,Z/Z-ZZZZ,999.99,9.99,,999.99,ZZ-ZZZZ,ZZ-ZZZZ,9.""" \
+            """99,9.99,9.99,9.99,9.99,9.99,,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZ""" \
+            """ZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ,ZZZ,ZZZ,ZZZ,9.99,,,-9.99,ZZ""" \
+            """-ZZZZ,-999.99,,-9999,,999.99,,,,999.99,99.99,,,ZZ-ZZZZZ""" \
+            """ZZZ,ZZ-ZZZZ-ZZZZZZZ,,,,ZZ-ZZ-ZZZZZZZZ,ZZZZZZZZ,ZZZ-ZZZZ""" \
+            """,9999,999.99,ZZZ-ZZZZ,-9.99,-9.99,ZZZ-ZZZZ,99:99:99,,99""" \
+            """,99,,9.99,,-99.99,,,,,,9.99,ZZZ-ZZZZ,-9.99,-9.99,9.99,9""" \
+            """.99,,ZZZ,,,,,,,ZZZ,ZZZ,,,,,"""
+
+        # Set the number of line so that a call to `parser_trim_buffers`
+        #  is trgiggered: a couple of full chunks and a relatively small
+        # 'residual' chunk.
+        chunksize, n_lines = 128, 2 * 128 + 15
         csv_data = "\n".join([record_] * n_lines) + "\n"
 
+        # We will use StringIO to load the CSV from this text buffer.
+        # pd.read_csv() will iterate over the file in chunks and will
+        # finally read a residual chunk of really small size.
+
+        # Create the expected output: maually create the dataframe
+        # by splitting by comma and repeating the `n_lines` number
+        # of times.
+        row = tuple(val_ if val_ else float("nan")
+                    for val_ in record_.split(","))
+        expected_ = [row for _ in range(n_lines)]
+        expected = pd.DataFrame(expected_, dtype=object,
+                                columns=None, index=None)
+
+        # Iterate over the CSV file in chunks of `chunksize` lines
         output_ = []
         try:
-            for chunksize_ in chunksizes:
-                iterator_ = self.read_csv(StringIO(csv_data), header=None,
-                                          dtype=object, chunksize=chunksize_,
-                                          na_filter=True)
-                for chunk_ in iterator_:
-                    output_.append((chunksize_,
-                                    chunk_.iloc[0, 0],
-                                    chunk_.iloc[-1, 0]))
+            iterator_ = self.read_csv(StringIO(csv_data), header=None,
+                                      dtype=object, chunksize=chunksize)
+            for chunk_ in iterator_:
+                output_.append(chunk_)
         except ValueError:
             # Ignore unsuported dtype=object by engine=python
             # in this case output_ list is empty
             pass
 
+        # Check for data corruption if there is any output.
         if output_:
-            df = pd.DataFrame(output_, columns=None, index=None)
+            df = pd.concat(output_, axis=0, ignore_index=True)
             tm.assert_frame_equal(df, expected)
