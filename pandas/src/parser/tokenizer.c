@@ -1252,11 +1252,11 @@ int parser_trim_buffers(parser_t *self) {
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
-            // realloc sets errno when moving buffer?
+            // Update the pointers in the self->words array (char **) if `safe_realloc`
+            //  moved the `self->stream` buffer. This block mirrors a similar block in
+            //  `make_stream_space`.
             if (self->stream != newptr) {
-                // uff
                 /* TRACE(("Moving word pointers\n")) */
-
                 self->pword_start = newptr + self->word_start;
 
                 for (i = 0; i < self->words_len; ++i)
