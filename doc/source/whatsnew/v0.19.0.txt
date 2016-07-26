@@ -673,7 +673,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in ``pd.read_csv()`` causing a segfault when iterating over a large file in chunks (:issue:`13703`)
+- Bug in ``pd.read_csv()``, which may cause a segfault or corruption when iterating in large chunks over a stream/file under rare circumstances (:issue:`13703`)
 - Bug in ``io.json.json_normalize()``, where non-ascii keys raised an exception (:issue:`13213`)
 - Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing may raise ``IndexError`` (:issue:`13144`)
 - Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing result may have normal ``Index`` (:issue:`13144`)

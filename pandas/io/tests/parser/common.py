@@ -1493,8 +1493,13 @@ j,-inF"""
         tm.assert_frame_equal(out, expected)
 
     def test_parse_trim_buffers(self):
+        # This test is part of a bugfix for issue #13703. It attmepts to
+        # to stress the system memory allocator, to cause it to move the
+        # stream buffer and either let the OS reclaim the region, or let
+        # other memory requests of parser otherwise modify the contents
+        # of memory space, where it was formely located.
         # This test is designed to cause a `segfault` with unpatched
-        # `tokenizer.c`, Sometimes the test fails on `segfault`, other
+        # `tokenizer.c`. Sometimes the test fails on `segfault`, other
         # times it fails due to memory corruption, which causes the
         # loaded DataFrame to differ from the expected one.
         n_lines, chunksizes = 173, range(57, 90)
@@ -1543,20 +1548,20 @@ j,-inF"""
         csv_data = "\n".join([record_] * n_lines) + "\n"
 
         output_ = []
-        for chunksize_ in chunksizes:
-            try:
+        try:
+            for chunksize_ in chunksizes:
                 iterator_ = self.read_csv(StringIO(csv_data), header=None,
                                           dtype=object, chunksize=chunksize_,
                                           na_filter=True)
-            except ValueError:
-                # Ignore unsuported dtype=object by engine=python
-                pass
+                for chunk_ in iterator_:
+                    output_.append((chunksize_,
+                                    chunk_.iloc[0, 0],
+                                    chunk_.iloc[-1, 0]))
+        except ValueError:
+            # Ignore unsuported dtype=object by engine=python
+            # in this case output_ list is empty
+            pass
 
-            for chunk_ in iterator_:
-                output_.append((chunksize_,
-                                chunk_.iloc[0, 0],
-                                chunk_.iloc[-1, 0]))
-
-        df = pd.DataFrame(output_, columns=None, index=None)
-
-        tm.assert_frame_equal(df, expected)
+        if output_:
+            df = pd.DataFrame(output_, columns=None, index=None)
+            tm.assert_frame_equal(df, expected)
