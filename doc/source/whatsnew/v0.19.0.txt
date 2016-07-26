@@ -330,6 +330,7 @@ API changes
 ~~~~~~~~~~~
 
 
+- ``Panel.to_sparse`` will raise a ``NotImplementedError`` exception when called (:issue:`13778`)
 - ``Index.reshape`` will raise a ``NotImplementedError`` exception when called (:issue:`12882`)
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
 - ``eval``'s upcasting rules for ``float32`` types have been updated to be more consistent with NumPy's rules.  New behavior will not upcast to ``float64`` if you multiply a pandas ``float32`` object by a scalar float64. (:issue:`12388`)
@@ -619,6 +620,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- The ``SparsePanel`` class has been removed (:issue:`13778`)
 - The ``pd.sandbox`` module has been removed in favor of the external library ``pandas-qt`` (:issue:`13670`)
 - The ``pandas.io.data`` and ``pandas.io.wb`` modules are removed in favor of
   the `pandas-datareader package <https://github.com/pydata/pandas-datareader>`__ (:issue:`13724`).

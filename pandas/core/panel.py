@@ -393,25 +393,15 @@ class Panel(NDFrame):
 
     fromDict = from_dict
 
-    def to_sparse(self, fill_value=None, kind='block'):
+    def to_sparse(self, *args, **kwargs):
         """
+        NOT IMPLEMENTED: do not call this method, as sparsifying is not
+        supported for Panel objects and will raise an error.
+
         Convert to SparsePanel
-
-        Parameters
-        ----------
-        fill_value : float, default NaN
-        kind : {'block', 'integer'}
-
-        Returns
-        -------
-        y : SparseDataFrame
         """
-        from pandas.core.sparse import SparsePanel
-        frames = dict(self.iteritems())
-        return SparsePanel(frames, items=self.items,
-                           major_axis=self.major_axis,
-                           minor_axis=self.minor_axis, default_kind=kind,
-                           default_fill_value=fill_value)
+        raise NotImplementedError("sparsifying is not supported "
+                                  "for Panel objects")
 
     def to_excel(self, path, na_rep='', engine=None, **kwargs):
         """

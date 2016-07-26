@@ -1452,22 +1452,6 @@ def assert_sp_frame_equal(left, right, exact_indices=True,
         assert (col in left)
 
 
-def assert_sp_panel_equal(left, right, exact_indices=True):
-    assertIsInstance(left, pd.SparsePanel, '[SparsePanel]')
-    assertIsInstance(right, pd.SparsePanel, '[SparsePanel]')
-
-    for item, frame in left.iteritems():
-        assert (item in right)
-        # trade-off?
-        assert_sp_frame_equal(frame, right[item], exact_indices=exact_indices)
-
-    assert_almost_equal(left.default_fill_value, right.default_fill_value)
-    assert (left.default_kind == right.default_kind)
-
-    for item in right:
-        assert (item in left)
-
-
 def assert_sp_list_equal(left, right):
     assertIsInstance(left, pd.SparseList, '[SparseList]')
     assertIsInstance(right, pd.SparseList, '[SparseList]')
