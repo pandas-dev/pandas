@@ -435,18 +435,48 @@ individual columns:
     df = pd.read_csv(StringIO(data), dtype={'b': object, 'c': np.float64})
     df.dtypes
 
+Fortunately, ``pandas`` offers more than one way to ensure that your column(s)
+contain only one ``dtype``. For instance, you can use the ``converters`` argument
+of :func:`~pandas.read_csv`:
+
+.. ipython:: python
+
+    data = "col_1\n1\n2\n'A'\n4.22"
+    df = pd.read_csv(StringIO(data), converters={'col_1':str})
+    df
+    df['col_1'].apply(type).value_counts()
+
+Or you can use the :func:`~pandas.to_numeric` function to coerce the
+dtypes after reading in the data,
+
+.. ipython:: python
+
+    df2 = pd.read_csv(StringIO(data))
+    df2['col_1'] = pd.to_numeric(df2['col_1'], errors='coerce')
+    df2
+    df2['col_1'].apply(type).value_counts()
+
+which would convert all valid parsing to floats, leaving the invalid parsing
+as ``NaN``.
+
+Ultimately, how you deal with reading in columns containing mixed dtypes
+depends on your specific needs. In the case above, if you wanted to ``NaN`` out
+the data anomalies, then :func:`~pandas.to_numeric` is probably your best option.
+However, if you wanted for all the data to be coerced, no matter the type, then
+using the ``converters`` argument of :func:`~pandas.read_csv` would certainly be
+worth trying.
+
 .. note::
     The ``dtype`` option is currently only supported by the C engine.
     Specifying ``dtype`` with ``engine`` other than 'c' raises a
     ``ValueError``.
 
 .. note::
-
-   Reading in data with columns containing mixed dtypes and relying
-   on ``pandas`` to infer them is not recommended. In doing so, the
-   parsing engine will infer the dtypes for different chunks of the data,
-   rather than the whole dataset at once. Consequently, you can end up with
-   column(s) with mixed dtypes. For example,
+   In some cases, reading in abnormal data with columns containing mixed dtypes
+   will result in an inconsistent dataset. If you rely on pandas to infer the
+   dtypes of your columns, the parsing engine will go and infer the dtypes for
+   different chunks of the data, rather than the whole dataset at once. Consequently,
+   you can end up with column(s) with mixed dtypes. For example,
 
    .. ipython:: python
          :okwarning:
@@ -458,45 +488,11 @@ individual columns:
        mixed_df['col_1'].dtype
 
    will result with `mixed_df` containing an ``int`` dtype for certain chunks
-   of the column, and ``str`` for others due to a problem during parsing.
-   It is important to note that the overall column will be marked with a
-   ``dtype`` of ``object``, which is used for columns with mixed dtypes.
+   of the column, and ``str`` for others due to the mixed dtypes from the
+   data that was read in. It is important to note that the overall column will be
+   marked with a ``dtype`` of ``object``, which is used for columns with mixed dtypes.
 
-   Fortunately, ``pandas`` offers a few ways to ensure that the column(s)
-   contain only one ``dtype``. For instance, you could use the ``converters``
-   argument of :func:`~pandas.read_csv`
 
-   .. ipython:: python
-
-       fixed_df1 = pd.read_csv('foo', converters={'col_1':str})
-       fixed_df1['col_1'].apply(type).value_counts()
-
-   Or you could use the :func:`~pandas.to_numeric` function to coerce the
-   dtypes after reading in the data,
-
-   .. ipython:: python
-         :okwarning:
-
-       fixed_df2 = pd.read_csv('foo')
-       fixed_df2['col_1'] = pd.to_numeric(fixed_df2['col_1'], errors='coerce')
-       fixed_df2['col_1'].apply(type).value_counts()
-
-   which would convert all valid parsing to floats, leaving the invalid parsing
-   as ``NaN``.
-
-   Alternatively, you could set the ``low_memory`` argument of :func:`~pandas.read_csv`
-   to ``False``. Such as,
-
-   .. ipython:: python
-
-      fixed_df3 = pd.read_csv('foo', low_memory=False)
-      fixed_df3['col_1'].apply(type).value_counts()
-
-   Ultimately, how you deal with reading in columns containing mixed dtypes
-   depends on your specific needs. In the case above, if you wanted to ``NaN`` out
-   the data anomalies, then :func:`~pandas.to_numeric` is probably your best option.
-   However, if you wanted for all the data to be coerced, no matter the type, then
-   using the ``converters`` argument of :func:`~pandas.read_csv` would certainly work.
 
 Naming and Using Columns
 ''''''''''''''''''''''''
