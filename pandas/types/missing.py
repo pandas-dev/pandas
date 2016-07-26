@@ -140,7 +140,7 @@ def _isnull_ndarraylike(obj):
                 vec = lib.isnullobj(values.ravel())
                 result[...] = vec.reshape(shape)
 
-    elif is_datetimelike(obj):
+    elif needs_i8_conversion(obj):
         # this is the NaT pattern
         result = values.view('i8') == iNaT
     else:

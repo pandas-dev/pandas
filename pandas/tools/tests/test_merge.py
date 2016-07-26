@@ -473,6 +473,47 @@ class TestMerge(tm.TestCase):
                               '0r': Series([td, NaT], index=list('AB'))})
         assert_frame_equal(result, expected)
 
+    def test_other_datetime_unit(self):
+        # GH 13389
+        df1 = pd.DataFrame({'entity_id': [101, 102]})
+        s = pd.Series([None, None], index=[101, 102], name='days')
+
+        for dtype in ['datetime64[D]', 'datetime64[h]', 'datetime64[m]',
+                      'datetime64[s]', 'datetime64[ms]', 'datetime64[us]',
+                      'datetime64[ns]']:
+
+            df2 = s.astype(dtype).to_frame('days')
+            # coerces to datetime64[ns], thus sholuld not be affected
+            self.assertEqual(df2['days'].dtype, 'datetime64[ns]')
+
+            result = df1.merge(df2, left_on='entity_id', right_index=True)
+
+            exp = pd.DataFrame({'entity_id': [101, 102],
+                                'days': np.array(['nat', 'nat'],
+                                                 dtype='datetime64[ns]')},
+                               columns=['entity_id', 'days'])
+            tm.assert_frame_equal(result, exp)
+
+    def test_other_timedelta_unit(self):
+        # GH 13389
+        df1 = pd.DataFrame({'entity_id': [101, 102]})
+        s = pd.Series([None, None], index=[101, 102], name='days')
+
+        for dtype in ['timedelta64[D]', 'timedelta64[h]', 'timedelta64[m]',
+                      'timedelta64[s]', 'timedelta64[ms]', 'timedelta64[us]',
+                      'timedelta64[ns]']:
+
+            df2 = s.astype(dtype).to_frame('days')
+            self.assertEqual(df2['days'].dtype, dtype)
+
+            result = df1.merge(df2, left_on='entity_id', right_index=True)
+
+            exp = pd.DataFrame({'entity_id': [101, 102],
+                                'days': np.array(['nat', 'nat'],
+                                                 dtype=dtype)},
+                               columns=['entity_id', 'days'])
+            tm.assert_frame_equal(result, exp)
+
     def test_overlapping_columns_error_message(self):
         df = DataFrame({'key': [1, 2, 3],
                         'v1': [4, 5, 6],

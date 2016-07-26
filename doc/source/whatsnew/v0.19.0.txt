@@ -768,6 +768,10 @@ Bug Fixes
 - Bug in ``Index`` raises ``OutOfBoundsDatetime`` if ``datetime`` exceeds ``datetime64[ns]`` bounds, rather than coercing to ``object`` dtype (:issue:`13663`)
 - Bug in ``.value_counts`` raises ``OutOfBoundsDatetime`` if data exceeds ``datetime64[ns]`` bounds (:issue:`13663`)
 - Bug in ``DatetimeIndex`` may raise ``OutOfBoundsDatetime`` if input ``np.datetime64`` has other unit than ``ns`` (:issue:`9114`)
+- Bug in ``isnull`` ``notnull`` raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
+- Bug in ``.merge`` may raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
+
+
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
 - Bug in ``groupby`` with ``as_index=False`` returns all NaN's when grouping on multiple columns including a categorical one (:issue:`13204`)
