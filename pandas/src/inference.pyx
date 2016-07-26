@@ -688,7 +688,7 @@ def maybe_convert_numeric(object[:] values, set na_values,
                         seen_float = True
             except (TypeError, ValueError) as e:
                 if not coerce_numeric:
-                    raise type(e)(e.message + ' in row {}'.format(i))
+                    raise type(e)(str(e) + ' at array index {}'.format(i))
 
                 floats[i] = nan
                 seen_float = True
