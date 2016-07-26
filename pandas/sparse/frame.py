@@ -188,7 +188,7 @@ class SparseDataFrame(DataFrame):
         return self._init_dict(data, index, columns, dtype)
 
     def __array_wrap__(self, result):
-        return SparseDataFrame(
+        return self._constructor(
             result, index=self.index, columns=self.columns,
             default_kind=self._default_kind,
             default_fill_value=self._default_fill_value).__finalize__(self)
@@ -373,9 +373,7 @@ class SparseDataFrame(DataFrame):
             new_index = self.index
             new_columns = self.columns[slobj]
 
-        return self._constructor(
-            data=self.reindex(index=new_index,
-                              columns=new_columns)).__finalize__(self)
+        return self.reindex(index=new_index, columns=new_columns)
 
     def xs(self, key, axis=0, copy=False):
         """
@@ -409,7 +407,7 @@ class SparseDataFrame(DataFrame):
             raise NotImplementedError("'level' argument is not supported")
 
         if self.empty and other.empty:
-            return SparseDataFrame(index=new_index).__finalize__(self)
+            return self._constructor(index=new_index).__finalize__(self)
 
         new_data = {}
         new_fill_value = None
@@ -560,8 +558,9 @@ class SparseDataFrame(DataFrame):
 
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in compat.iteritems(self) if k in columns)
-        return SparseDataFrame(sdict, index=self.index, columns=columns,
-                               default_fill_value=self._default_fill_value)
+        return self._constructor(
+            sdict, index=self.index, columns=columns,
+            default_fill_value=self._default_fill_value).__finalize__(self)
 
     def _reindex_with_indexers(self, reindexers, method=None, fill_value=None,
                                limit=None, copy=False, allow_dups=False):
@@ -590,8 +589,8 @@ class SparseDataFrame(DataFrame):
             else:
                 new_arrays[col] = self[col]
 
-        return SparseDataFrame(new_arrays, index=index,
-                               columns=columns).__finalize__(self)
+        return self._constructor(new_arrays, index=index,
+                                 columns=columns).__finalize__(self)
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
@@ -648,7 +647,7 @@ class SparseDataFrame(DataFrame):
         Returns a DataFrame with the rows/columns switched.
         """
         nv.validate_transpose(args, kwargs)
-        return SparseDataFrame(
+        return self._constructor(
             self.values.T, index=self.columns, columns=self.index,
             default_fill_value=self._default_fill_value,
             default_kind=self._default_kind).__finalize__(self)
