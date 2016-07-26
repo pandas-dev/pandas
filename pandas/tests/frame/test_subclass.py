@@ -212,15 +212,18 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assert_frame_equal(res2, exp1)
 
     def test_subclass_sparse_slice(self):
-        ssdf = tm.SubclassedSparseDataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        rows = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]
+        ssdf = tm.SubclassedSparseDataFrame(rows)
         ssdf.testattr = "testattr"
 
-        tm.assertIsInstance(ssdf.loc[:2], tm.SubclassedSparseDataFrame)
-        tm.assertIsInstance(ssdf.iloc[:2], tm.SubclassedSparseDataFrame)
-        tm.assertIsInstance(ssdf[:2], tm.SubclassedSparseDataFrame)
+        tm.assert_sp_frame_equal(ssdf.loc[:2], tm.SubclassedSparseDataFrame(rows[:3]))
+        tm.assert_sp_frame_equal(ssdf.iloc[:2], tm.SubclassedSparseDataFrame(rows[:2]))
+        tm.assert_sp_frame_equal(ssdf[:2], tm.SubclassedSparseDataFrame(rows[:2]))
         tm.assert_equal(ssdf.loc[:2].testattr, "testattr")
         tm.assert_equal(ssdf.iloc[:2].testattr, "testattr")
         tm.assert_equal(ssdf[:2].testattr, "testattr")
 
-        tm.assertIsInstance(ssdf.loc[1], tm.SubclassedSparseSeries)
-        tm.assertIsInstance(ssdf.iloc[1], tm.SubclassedSparseSeries)
+        tm.assert_sp_series_equal(ssdf.loc[1], tm.SubclassedSparseSeries(rows[1]),
+                                  check_names=False)
+        tm.assert_sp_series_equal(ssdf.iloc[1], tm.SubclassedSparseSeries(rows[1]),
+                                  check_names=False)
