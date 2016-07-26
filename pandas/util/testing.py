@@ -1429,7 +1429,10 @@ def assert_sp_series_equal(left, right, exact_indices=True,
     assertIsInstance(left, pd.SparseSeries, '[SparseSeries]')
     assertIsInstance(right, pd.SparseSeries, '[SparseSeries]')
 
-    if check_series_type:
+    # SparseTimeSeries is deprecated, some pickling checks fail on this condition
+    from pandas import SparseTimeSeries
+    if check_series_type and not (isinstance(left, SparseTimeSeries)
+                                  or isinstance(right, SparseTimeSeries)):
         assert_class_equal(left, right, obj=obj)
 
     assert_index_equal(left.index, right.index,
