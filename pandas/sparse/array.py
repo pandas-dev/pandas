@@ -48,16 +48,14 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
                 raise AssertionError("length mismatch: %d vs. %d" %
                                      (len(self), len(other)))
             if not isinstance(other, ABCSparseArray):
-                other = SparseArray(other, fill_value=self.fill_value)
-            if name[0] == 'r':
-                return _sparse_array_op(other, self, op, name[1:])
-            else:
-                return _sparse_array_op(self, other, op, name)
+                dtype = getattr(other, 'dtype', None)
+                other = SparseArray(other, fill_value=self.fill_value,
+                                    dtype=dtype)
+            return _sparse_array_op(self, other, op, name)
         elif is_scalar(other):
-            new_fill_value = op(np.float64(self.fill_value), np.float64(other))
-
+            fill = op(_get_fill(self), np.asarray(other))
             return _wrap_result(name, op(self.sp_values, other),
-                                self.sp_index, new_fill_value)
+                                self.sp_index, fill)
         else:  # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
 
@@ -67,33 +65,74 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
     return wrapper
 
 
-def _sparse_array_op(left, right, op, name):
-    if left.sp_index.equals(right.sp_index):
-        result = op(left.sp_values, right.sp_values)
-        result_index = left.sp_index
+def _maybe_match_dtype(left, right):
+    if not hasattr(right, 'dtype'):
+        return left.dtype
+    elif left.dtype == right.dtype:
+        return getattr(left.dtype, '__name__', left.dtype)
     else:
-        sparse_op = getattr(splib, 'sparse_%s' % name)
-        result, result_index = sparse_op(left.sp_values, left.sp_index,
-                                         left.fill_value, right.sp_values,
-                                         right.sp_index, right.fill_value)
+        # ToDo: to be supported after GH 667
+        raise NotImplementedError('dtypes must be identical')
+
+
+def _get_fill(arr):
+    # coerce fill_value to arr dtype if possible
+    # int64 SparseArray can have NaN as fill_value if there is no missing
     try:
-        fill_value = op(left.fill_value, right.fill_value)
-    except:
-        fill_value = nan
-    return _wrap_result(name, result, result_index, fill_value)
+        return np.asarray(arr.fill_value, dtype=arr.dtype)
+    except ValueError:
+        return np.asarray(arr.fill_value)
 
 
-def _wrap_result(name, data, sparse_index, fill_value):
+def _sparse_array_op(left, right, op, name, series=False):
+
+    if series and is_integer_dtype(left) and is_integer_dtype(right):
+        # series coerces to float64 if result should have NaN/inf
+        if name in ('floordiv', 'mod') and (right.values == 0).any():
+            left = left.astype(np.float64)
+            right = right.astype(np.float64)
+        elif name in ('rfloordiv', 'rmod') and (left.values == 0).any():
+            left = left.astype(np.float64)
+            right = right.astype(np.float64)
+
+    dtype = _maybe_match_dtype(left, right)
+
+    if left.sp_index.ngaps == 0 or right.sp_index.ngaps == 0:
+        result = op(left.get_values(), right.get_values())
+
+        if left.sp_index.ngaps == 0:
+            index = left.sp_index
+        else:
+            index = right.sp_index
+        fill = op(_get_fill(left), _get_fill(right))
+    elif left.sp_index.equals(right.sp_index):
+        result = op(left.sp_values, right.sp_values)
+        index = left.sp_index
+        fill = op(_get_fill(left), _get_fill(right))
+    else:
+        if name[0] == 'r':
+            left, right = right, left
+            name = name[1:]
+
+        opname = 'sparse_{name}_{dtype}'.format(name=name, dtype=dtype)
+        sparse_op = getattr(splib, opname)
+
+        result, index, fill = sparse_op(left.sp_values, left.sp_index,
+                                        left.fill_value, right.sp_values,
+                                        right.sp_index, right.fill_value)
+    return _wrap_result(name, result, index, fill, dtype=result.dtype)
+
+
+def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     """ wrap op result to have correct dtype """
     if name in ('eq', 'ne', 'lt', 'gt', 'le', 'ge'):
         # ToDo: We can remove this condition when removing
         # SparseArray's dtype default when closing GH 667
-        return SparseArray(data, sparse_index=sparse_index,
-                           fill_value=fill_value,
-                           dtype=np.bool)
-    else:
-        return SparseArray(data, sparse_index=sparse_index,
-                           fill_value=fill_value)
+        dtype = np.bool
+    elif name == 'truediv':
+        dtype = np.float64
+    return SparseArray(data, sparse_index=sparse_index,
+                       fill_value=fill_value, dtype=dtype)
 
 
 class SparseArray(PandasObject, np.ndarray):
@@ -447,7 +486,12 @@ class SparseArray(PandasObject, np.ndarray):
         dtype = np.dtype(dtype)
         if dtype is not None and dtype not in (np.float_, float):
             raise TypeError('Can only support floating point data for now')
-        return self.copy()
+
+        if self.dtype == dtype:
+            return self.copy()
+        else:
+            return self._simple_new(self.sp_values.astype(dtype),
+                                    self.sp_index, float(self.fill_value))
 
     def copy(self, deep=True):
         """
