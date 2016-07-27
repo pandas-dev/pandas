@@ -435,10 +435,70 @@ individual columns:
     df = pd.read_csv(StringIO(data), dtype={'b': object, 'c': np.float64})
     df.dtypes
 
+Fortunately, ``pandas`` offers more than one way to ensure that your column(s)
+contain only one ``dtype``. If you're unfamiliar with these concepts, you can
+see :ref:`here<basics.dtypes>` to learn more about dtypes, and
+:ref:`here<basics.object_conversion>` to learn more about ``object`` conversion in
+``pandas``.
+
+
+For instance, you can use the ``converters`` argument
+of :func:`~pandas.read_csv`:
+
+.. ipython:: python
+
+    data = "col_1\n1\n2\n'A'\n4.22"
+    df = pd.read_csv(StringIO(data), converters={'col_1':str})
+    df
+    df['col_1'].apply(type).value_counts()
+
+Or you can use the :func:`~pandas.to_numeric` function to coerce the
+dtypes after reading in the data,
+
+.. ipython:: python
+
+    df2 = pd.read_csv(StringIO(data))
+    df2['col_1'] = pd.to_numeric(df2['col_1'], errors='coerce')
+    df2
+    df2['col_1'].apply(type).value_counts()
+
+which would convert all valid parsing to floats, leaving the invalid parsing
+as ``NaN``.
+
+Ultimately, how you deal with reading in columns containing mixed dtypes
+depends on your specific needs. In the case above, if you wanted to ``NaN`` out
+the data anomalies, then :func:`~pandas.to_numeric` is probably your best option.
+However, if you wanted for all the data to be coerced, no matter the type, then
+using the ``converters`` argument of :func:`~pandas.read_csv` would certainly be
+worth trying.
+
 .. note::
     The ``dtype`` option is currently only supported by the C engine.
     Specifying ``dtype`` with ``engine`` other than 'c' raises a
     ``ValueError``.
+
+.. note::
+   In some cases, reading in abnormal data with columns containing mixed dtypes
+   will result in an inconsistent dataset. If you rely on pandas to infer the
+   dtypes of your columns, the parsing engine will go and infer the dtypes for
+   different chunks of the data, rather than the whole dataset at once. Consequently,
+   you can end up with column(s) with mixed dtypes. For example,
+
+   .. ipython:: python
+         :okwarning:
+
+       df = pd.DataFrame({'col_1':range(500000) + ['a', 'b'] + range(500000)})
+       df.to_csv('foo')
+       mixed_df = pd.read_csv('foo')
+       mixed_df['col_1'].apply(type).value_counts()
+       mixed_df['col_1'].dtype
+
+   will result with `mixed_df` containing an ``int`` dtype for certain chunks
+   of the column, and ``str`` for others due to the mixed dtypes from the
+   data that was read in. It is important to note that the overall column will be
+   marked with a ``dtype`` of ``object``, which is used for columns with mixed dtypes.
+
+
 
 Naming and Using Columns
 ''''''''''''''''''''''''
