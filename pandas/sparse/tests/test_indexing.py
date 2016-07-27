@@ -134,6 +134,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
 
         # sparse array (actuary it coerces to normal Series)
         result = sparse.loc[sparse % 2 == 1]
+        print((sparse % 2 == 1).values)
         exp = orig.loc[orig % 2 == 1].to_sparse()
         tm.assert_sp_series_equal(result, exp)
 

@@ -512,6 +512,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
                                       name=self.bseries.name))
 
     def test_operators(self):
+
         def _check_op(a, b, op):
             sp_result = op(a, b)
             adense = a.to_dense() if isinstance(a, SparseSeries) else a
@@ -781,7 +782,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         cop2 = self.zbseries.copy()
         cop2.fill_value = 1
         result = cop2 / cop
-        self.assertTrue(np.isnan(result.fill_value))
+        self.assertEqual(result.fill_value, np.inf)
 
     def test_fill_value_when_combine_const(self):
         # GH12723
@@ -1239,6 +1240,7 @@ def _dense_series_compare(s, f):
 
 
 class TestSparseSeriesAnalytics(tm.TestCase):
+
     def setUp(self):
         arr, index = _test_data1()
         self.bseries = SparseSeries(arr, index=index, kind='block',
