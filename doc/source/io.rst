@@ -436,7 +436,13 @@ individual columns:
     df.dtypes
 
 Fortunately, ``pandas`` offers more than one way to ensure that your column(s)
-contain only one ``dtype``. For instance, you can use the ``converters`` argument
+contain only one ``dtype``. If you're unfamiliar with these concepts, you can
+see :ref:`here<basics.dtypes>` to learn more about dtypes, and
+:ref:`here<basics.object_conversion>` to learn more about ``object`` conversion in
+``pandas``.
+
+
+For instance, you can use the ``converters`` argument
 of :func:`~pandas.read_csv`:
 
 .. ipython:: python
