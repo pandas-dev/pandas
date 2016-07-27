@@ -74,17 +74,28 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertEqual(index._step, 2)
         tm.assert_index_equal(Index(expected), index)
 
-        index = RangeIndex()
-        expected = np.empty(0, dtype=np.int64)
-        self.assertIsInstance(index, RangeIndex)
-        self.assertEqual(index._start, 0)
-        self.assertEqual(index._stop, 0)
-        self.assertEqual(index._step, 1)
-        tm.assert_index_equal(Index(expected), index)
+        msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            RangeIndex()
 
-        index = RangeIndex(name='Foo')
-        self.assertIsInstance(index, RangeIndex)
-        self.assertEqual(index.name, 'Foo')
+        for index in [RangeIndex(0), RangeIndex(start=0), RangeIndex(stop=0),
+                      RangeIndex(0, 0)]:
+            expected = np.empty(0, dtype=np.int64)
+            self.assertIsInstance(index, RangeIndex)
+            self.assertEqual(index._start, 0)
+            self.assertEqual(index._stop, 0)
+            self.assertEqual(index._step, 1)
+            tm.assert_index_equal(Index(expected), index)
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            RangeIndex(name='Foo')
+
+        for index in [RangeIndex(0, name='Foo'),
+                      RangeIndex(start=0, name='Foo'),
+                      RangeIndex(stop=0, name='Foo'),
+                      RangeIndex(0, 0, name='Foo')]:
+            self.assertIsInstance(index, RangeIndex)
+            self.assertEqual(index.name, 'Foo')
 
         # we don't allow on a bare Index
         self.assertRaises(TypeError, lambda: Index(0, 1000))
@@ -210,10 +221,10 @@ class TestRangeIndex(Numeric, tm.TestCase):
                         RangeIndex(0, 1000, 1)._int64index // 2),
                        (RangeIndex(0, 100, 1), 2.0,
                         RangeIndex(0, 100, 1)._int64index // 2.0),
-                       (RangeIndex(), 50, RangeIndex()),
+                       (RangeIndex(0), 50, RangeIndex(0)),
                        (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
                        (RangeIndex(-5, -10, -6), 4, RangeIndex(-2, -1, 1)),
-                       (RangeIndex(-100, -200, 3), 2, RangeIndex())]
+                       (RangeIndex(-100, -200, 3), 2, RangeIndex(0))]
         for idx, div, expected in cases_exact:
             tm.assert_index_equal(idx // div, expected, exact=True)
 
@@ -288,7 +299,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
     def test_view(self):
         super(TestRangeIndex, self).test_view()
 
-        i = RangeIndex(name='Foo')
+        i = RangeIndex(0, name='Foo')
         i_view = i.view()
         self.assertEqual(i_view.name, 'Foo')
 
@@ -612,8 +623,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
                  (RI(0, 100, 5), RI(0, 100, 20), RI(0, 100, 5)),
                  (RI(0, -100, -5), RI(5, -100, -20), RI(-95, 10, 5)),
                  (RI(0, -11, -1), RI(1, -12, -4), RI(-11, 2, 1)),
-                 (RI(), RI(), RI()),
-                 (RI(0, -10, -2), RI(), RI(0, -10, -2)),
+                 (RI(0), RI(0), RI(0)),
+                 (RI(0, -10, -2), RI(0), RI(0, -10, -2)),
                  (RI(0, 100, 2), RI(100, 150, 200), RI(0, 102, 2)),
                  (RI(0, -100, -2), RI(-100, 50, 102), RI(-100, 4, 2)),
                  (RI(0, -100, -1), RI(0, -50, -3), RI(-99, 1, 1)),
@@ -621,7 +632,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                  (RI(0, 10, 5), RI(-5, -6, -20), RI(-5, 10, 5)),
                  (RI(0, 3, 1), RI(4, 5, 1), I64([0, 1, 2, 4])),
                  (RI(0, 10, 1), I64([]), RI(0, 10, 1)),
-                 (RI(), I64([1, 5, 6]), I64([1, 5, 6]))]
+                 (RI(0), I64([1, 5, 6]), I64([1, 5, 6]))]
         for idx1, idx2, expected in cases:
             res1 = idx1.union(idx2)
             res2 = idx2.union(idx1)

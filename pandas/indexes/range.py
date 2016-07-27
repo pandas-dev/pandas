@@ -70,7 +70,10 @@ class RangeIndex(Int64Index):
 
             return new_value
 
-        if start is None:
+        if start is None and stop is None and step is None:
+            msg = "RangeIndex(...) must be called with integers"
+            raise TypeError(msg)
+        elif start is None:
             start = 0
         else:
             start = _ensure_int(start, 'start')
@@ -122,8 +125,13 @@ class RangeIndex(Int64Index):
         result = object.__new__(cls)
 
         # handle passed None, non-integers
+        if start is None and stop is None:
+            # empty
+            start, stop, step = 0, 0, 1
+
         if start is None or not is_integer(start):
             try:
+
                 return RangeIndex(start, stop, step, name=name, **kwargs)
             except TypeError:
                 return Index(start, stop, step, name=name, **kwargs)
