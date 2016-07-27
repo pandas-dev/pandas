@@ -756,6 +756,8 @@ Bug Fixes
 - Bug in ``.unstack`` with ``Categorical`` dtype resets ``.ordered`` to ``True`` (:issue:`13249`)
 - Clean some compile time warnings in datetime parsing (:issue:`13607`)
 - Bug in ``factorize`` raises ``AmbiguousTimeError`` if data contains datetime near DST boundary (:issue:`13750`)
+- Bug in ``.set_index`` raises ``AmbiguousTimeError`` if new index contains DST boundary and multi levels (:issue:`12920`)
+
 
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
 - Bug in ``groupby`` where ``apply`` returns different result depending on whether first result is ``None`` or not (:issue:`12824`)
