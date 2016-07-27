@@ -1359,6 +1359,7 @@ def group_shift_indexer(int64_t[:] out, int64_t[:] labels,
 
                 # Skip null keys
                 if lab == -1:
+                    out[ii] = -1
                     continue
 
                 label_seen[lab] += 1
