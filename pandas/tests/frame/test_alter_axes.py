@@ -268,6 +268,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                 lambda d: pd.Timestamp(d, tz=tz))
             assert_frame_equal(df.reset_index(), expected)
 
+    def test_set_index_timezone(self):
         # GH 12358
         # tz-aware Series should retain the tz
         i = pd.to_datetime(["2014-01-01 10:10:10"],
@@ -276,6 +277,25 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         self.assertEqual(df.set_index(i).index[0].hour, 11)
         self.assertEqual(pd.DatetimeIndex(pd.Series(df.i))[0].hour, 11)
         self.assertEqual(df.set_index(df.i).index[0].hour, 11)
+
+    def test_set_index_dst(self):
+        di = pd.date_range('2006-10-29 00:00:00', periods=3,
+                           req='H', tz='US/Pacific')
+
+        df = pd.DataFrame(data={'a': [0, 1, 2], 'b': [3, 4, 5]},
+                          index=di).reset_index()
+        # single level
+        res = df.set_index('index')
+        exp = pd.DataFrame(data={'a': [0, 1, 2], 'b': [3, 4, 5]},
+                           index=pd.Index(di, name='index'))
+        tm.assert_frame_equal(res, exp)
+
+        # GH 12920
+        res = df.set_index(['index', 'a'])
+        exp_index = pd.MultiIndex.from_arrays([di, [0, 1, 2]],
+                                              names=['index', 'a'])
+        exp = pd.DataFrame({'b': [3, 4, 5]}, index=exp_index)
+        tm.assert_frame_equal(res, exp)
 
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
