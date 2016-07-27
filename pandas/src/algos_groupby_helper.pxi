@@ -1356,6 +1356,11 @@ def group_shift_indexer(int64_t[:] out, int64_t[:] labels,
                 ## reverse iterator if shifting backwards
                 ii = offset + sign * i
                 lab = labels[ii]
+
+                # Skip null keys
+                if lab == -1:
+                    continue
+
                 label_seen[lab] += 1
 
                 idxer_slot = label_seen[lab] % periods
