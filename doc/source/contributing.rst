@@ -577,13 +577,14 @@ To install asv::
 
 If you need to run a benchmark, change your directory to ``asv_bench/`` and run::
 
-    asv continuous upstream/master HEAD
+    asv continuous -f 1.1 upstream/master HEAD
 
-You can replace ``HEAD`` with the name of the branch you are working on.
+You can replace ``HEAD`` with the name of the branch you are working on,
+and report benchmarks that changed by more than 10%.
 The command uses ``conda`` by default for creating the benchmark
 environments. If you want to use virtualenv instead, write::
 
-    asv continuous -E virtualenv upstream/master HEAD
+    asv continuous -f 1.1 -E virtualenv upstream/master HEAD
 
 The ``-E virtualenv`` option should be added to all ``asv`` commands
 that run benchmarks. The default value is defined in ``asv.conf.json``.
@@ -595,12 +596,12 @@ regressions.  You can run specific benchmarks using the ``-b`` flag, which
 takes a regular expression.  For example, this will only run tests from a
 ``pandas/asv_bench/benchmarks/groupby.py`` file::
 
-    asv continuous upstream/master HEAD -b groupby
+    asv continuous -f 1.1 upstream/master HEAD -b ^groupby
 
 If you want to only run a specific group of tests from a file, you can do it
 using ``.`` as a separator. For example::
 
-    asv continuous upstream/master HEAD -b groupby.groupby_agg_builtins
+    asv continuous -f 1.1 upstream/master HEAD -b groupby.groupby_agg_builtins
 
 will only run the ``groupby_agg_builtins`` benchmark defined in ``groupby.py``.
 
