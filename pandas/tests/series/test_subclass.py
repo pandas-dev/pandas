@@ -54,8 +54,13 @@ class TestSparseSeriesSubclassing(tm.TestCase):
     def test_subclass_sparse_addition(self):
         s1 = tm.SubclassedSparseSeries([1, 3, 5])
         s2 = tm.SubclassedSparseSeries([-2, 5, 12])
-        tm.assert_sp_series_equal(s1 + s2,
-                                  tm.SubclassedSparseSeries([-1.0, 8.0, 17.0]))
+        exp = tm.SubclassedSparseSeries([-1, 8, 17])
+        tm.assert_sp_series_equal(s1 + s2, exp)
+
+        s1 = tm.SubclassedSparseSeries([4.0, 5.0, 6.0])
+        s2 = tm.SubclassedSparseSeries([1.0, 2.0, 3.0])
+        exp = tm.SubclassedSparseSeries([5., 7., 9.])
+        tm.assert_sp_series_equal(s1 + s2, exp)
 
     def test_subclass_sparse_to_frame(self):
         s = tm.SubclassedSparseSeries([1, 2], index=list('abcd'), name='xxx')

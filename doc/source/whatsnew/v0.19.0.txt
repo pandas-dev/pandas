@@ -307,6 +307,31 @@ Google BigQuery Enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - The :func:`pandas.io.gbq.read_gbq` method has gained the ``dialect`` argument to allow users to specify whether to use BigQuery's legacy SQL or BigQuery's standard SQL. See the :ref:`docs <io.bigquery_reader>` for more details (:issue:`13615`).
 
+.. _whatsnew_0190.sparse:
+
+Sparse changes
+~~~~~~~~~~~~~~
+
+These changes allow pandas to handle sparse data with more dtypes, and for work to make a smoother experience with data handling.
+
+- Sparse data structure now can preserve ``dtype`` after arithmetic ops (:issue:`13848`)
+
+.. ipython:: python
+
+   s = pd.SparseSeries([0, 2, 0, 1], fill_value=0, dtype=np.int64)
+   s.dtype
+
+   s + 1
+
+
+- Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing may raise ``IndexError`` (:issue:`13144`)
+- Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing result may have normal ``Index`` (:issue:`13144`)
+- Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)
+- Bug in ``SparseSeries`` and ``SparseDataFrame`` creation with ``object`` dtype may raise ``TypeError`` (:issue:`11633`)
+- Bug in ``SparseDataFrame`` doesn't respect passed ``SparseArray`` or ``SparseSeries`` 's dtype and ``fill_value``  (:issue:`13866`)
+- Bug in ``SparseArray`` and ``SparseSeries`` don't apply ufunc to ``fill_value`` (:issue:`13853`)
+- Bug in ``SparseSeries.abs`` incorrectly keeps negative ``fill_value`` (:issue:`13853`)
+
 .. _whatsnew_0190.enhancements.other:
 
 Other enhancements
@@ -754,13 +779,6 @@ Bug Fixes
 - Bug in ``groupby().shift()``, which could cause a segfault or corruption in rare circumstances when grouping by columns with missing values (:issue:`13813`)
 - Bug in ``pd.read_csv()``, which may cause a segfault or corruption when iterating in large chunks over a stream/file under rare circumstances (:issue:`13703`)
 - Bug in ``io.json.json_normalize()``, where non-ascii keys raised an exception (:issue:`13213`)
-- Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing may raise ``IndexError`` (:issue:`13144`)
-- Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing result may have normal ``Index`` (:issue:`13144`)
-- Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)
-- Bug in ``SparseSeries`` and ``SparseDataFrame`` creation with ``object`` dtype may raise ``TypeError`` (:issue:`11633`)
-- Bug in ``SparseDataFrame`` doesn't respect passed ``SparseArray`` or ``SparseSeries`` 's dtype and ``fill_value``  (:issue:`13866`)
-- Bug in ``SparseArray`` and ``SparseSeries`` don't apply ufunc to ``fill_value`` (:issue:`13853`)
-- Bug in ``SparseSeries.abs`` incorrectly keeps negative ``fill_value`` (:issue:`13853`)
 - Bug when passing a not-default-indexed ``Series`` as ``xerr`` or ``yerr`` in ``.plot()`` (:issue:`11858`)
 - Bug in matplotlib ``AutoDataFormatter``; this restores the second scaled formatting and re-adds micro-second scaled formatting (:issue:`13131`)
 - Bug in selection from a ``HDFStore`` with a fixed format and ``start`` and/or ``stop`` specified will now return the selected range (:issue:`8287`)

@@ -57,16 +57,9 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
         elif isinstance(other, DataFrame):
             return NotImplemented
         elif is_scalar(other):
-            if isnull(other) or isnull(self.fill_value):
-                new_fill_value = np.nan
-            else:
-                new_fill_value = op(np.float64(self.fill_value),
-                                    np.float64(other))
-
-            return self._constructor(op(self.sp_values, other),
+            new_values = op(self.values, other)
+            return self._constructor(new_values,
                                      index=self.index,
-                                     sparse_index=self.sp_index,
-                                     fill_value=new_fill_value,
                                      name=self.name)
         else:  # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
@@ -84,7 +77,8 @@ def _sparse_series_op(left, right, op, name):
     new_index = left.index
     new_name = _maybe_match_name(left, right)
 
-    result = _sparse_array_op(left, right, op, name)
+    result = _sparse_array_op(left.values, right.values, op, name,
+                              series=True)
     return left._constructor(result, index=new_index, name=new_name)
 
 
