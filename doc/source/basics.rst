@@ -1751,6 +1751,8 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`
        dft.loc[:, ['a', 'b']] = dft.loc[:, ['a', 'b']].astype(np.uint8)
        dft.dtypes
 
+.. _basics.object_conversion:
+
 object conversion
 ~~~~~~~~~~~~~~~~~
 

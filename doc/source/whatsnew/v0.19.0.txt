@@ -323,6 +323,8 @@ Other enhancements
                        index=['row1', 'row2'])
      df.sort_values(by='row2', axis=1)
 
+- Added documentation to :ref:`I/O<io.dtypes>` regarding the perils of reading in columns with mixed dtypes and how to handle it (:issue:`13746`)
+
 .. _whatsnew_0190.api:
 
 
