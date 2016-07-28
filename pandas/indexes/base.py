@@ -3243,6 +3243,29 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 return Index(result, name=self.name)
         return self._shallow_copy()
 
+    _index_shared_docs['dropna'] = """
+        Return Index without NA/NaN values
+
+        Parameters
+        ----------
+        how :  {'any', 'all'}, default 'any'
+            If the Index is a MultiIndex, drop the value when any or all levels
+            are NaN.
+
+        Returns
+        -------
+        valid : Index
+        """
+
+    @Appender(_index_shared_docs['dropna'])
+    def dropna(self, how='any'):
+        if how not in ('any', 'all'):
+            raise ValueError("invalid how option: {0}".format(how))
+
+        if self.hasnans:
+            return self._shallow_copy(self.values[~self._isnan])
+        return self._shallow_copy()
+
     def _evaluate_with_timedelta_like(self, other, op, opstr):
         raise TypeError("can only perform ops with timedelta like values")
 

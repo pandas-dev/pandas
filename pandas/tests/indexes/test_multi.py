@@ -2258,3 +2258,24 @@ class TestMultiIndex(Base, tm.TestCase):
         result = df.index.get_level_values('buzz')
         expected = pd.Int64Index(np.tile(np.arange(10), 10), name='buzz')
         tm.assert_index_equal(result, expected)
+
+    def test_dropna(self):
+        # GH 6194
+        idx = pd.MultiIndex.from_arrays([[1, np.nan, 3, np.nan, 5],
+                                         [1, 2, np.nan, np.nan, 5],
+                                         ['a', 'b', 'c', np.nan, 'e']])
+
+        exp = pd.MultiIndex.from_arrays([[1, 5],
+                                         [1, 5],
+                                         ['a', 'e']])
+        tm.assert_index_equal(idx.dropna(), exp)
+        tm.assert_index_equal(idx.dropna(how='any'), exp)
+
+        exp = pd.MultiIndex.from_arrays([[1, np.nan, 3, 5],
+                                         [1, 2, np.nan, 5],
+                                         ['a', 'b', 'c', 'e']])
+        tm.assert_index_equal(idx.dropna(how='all'), exp)
+
+        msg = "invalid how option: xxx"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.dropna(how='xxx')
