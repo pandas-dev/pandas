@@ -232,3 +232,11 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assert_sp_series_equal(ssdf.iloc[1],
                                   tm.SubclassedSparseSeries(rows[1]),
                                   check_names=False)
+
+    def test_subclass_sparse_transpose(self):
+        ossdf = tm.SubclassedSparseDataFrame([[1, 2, 3],
+                                              [4, 5, 6]])
+        essdf = tm.SubclassedSparseDataFrame([[1, 4],
+                                              [2, 5],
+                                              [3, 6]])
+        tm.assert_sp_frame_equal(ossdf.T, essdf)
