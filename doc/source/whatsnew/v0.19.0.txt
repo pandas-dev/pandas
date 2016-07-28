@@ -735,6 +735,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``groupby().shift()``, which could cause a segfault or corruption in rare circumstances when grouping by columns with missing values (:issue:`13813`)
 - Bug in ``pd.read_csv()``, which may cause a segfault or corruption when iterating in large chunks over a stream/file under rare circumstances (:issue:`13703`)
 - Bug in ``io.json.json_normalize()``, where non-ascii keys raised an exception (:issue:`13213`)
 - Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing may raise ``IndexError`` (:issue:`13144`)
