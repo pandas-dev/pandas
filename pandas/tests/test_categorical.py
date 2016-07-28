@@ -4415,6 +4415,36 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_frame_equal(df_expected, df_concat)
 
 
+class TestCategoricalSubclassing(tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_constructor(self):
+        sc = tm.SubclassedCategorical(['a', 'b', 'c'])
+        self.assertIsInstance(sc, tm.SubclassedCategorical)
+        tm.assert_categorical_equal(sc, Categorical(['a', 'b', 'c']))
+
+    def test_from_array(self):
+        sc = tm.SubclassedCategorical.from_codes([1, 0, 2], ['a', 'b', 'c'])
+        self.assertIsInstance(sc, tm.SubclassedCategorical)
+        exp = Categorical.from_codes([1, 0, 2], ['a', 'b', 'c'])
+        tm.assert_categorical_equal(sc, exp)
+
+    def test_map(self):
+        sc = tm.SubclassedCategorical(['a', 'b', 'c'])
+        res = sc.map(lambda x: x.upper())
+        self.assertIsInstance(res, tm.SubclassedCategorical)
+        exp = Categorical(['A', 'B', 'C'])
+        tm.assert_categorical_equal(res, exp)
+
+    def test_map(self):
+        sc = tm.SubclassedCategorical(['a', 'b', 'c'])
+        res = sc.map(lambda x: x.upper())
+        self.assertIsInstance(res, tm.SubclassedCategorical)
+        exp = Categorical(['A', 'B', 'C'])
+        tm.assert_categorical_equal(res, exp)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
