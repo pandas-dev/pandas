@@ -1871,6 +1871,10 @@ class PythonParser(ParserBase):
         else:
             def _read():
                 line = f.readline()
+
+                if compat.PY2 and self.encoding:
+                    line = line.decode(self.encoding)
+
                 pat = re.compile(sep)
                 yield pat.split(line.strip())
                 for line in f:

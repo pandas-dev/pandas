@@ -201,3 +201,19 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = self.read_csv(StringIO(data), names=['a'],
                                decimal='#', skipfooter=1)
         tm.assert_frame_equal(result, expected)
+
+    def test_encoding_non_utf8_multichar_sep(self):
+        # see gh-3404
+        expected = DataFrame({'a': [1], 'b': [2]})
+
+        for sep in ['::', '#####', '!!!', '123', '#1!c5',
+                    '%!c!d', '@@#4:2', '_!pd#_']:
+            data = '1' + sep + '2'
+
+            for encoding in ['utf-16', 'utf-16-be', 'utf-16-le',
+                             'utf-32', 'cp037']:
+                encoded_data = data.encode(encoding)
+                result = self.read_csv(BytesIO(encoded_data),
+                                       sep=sep, names=['a', 'b'],
+                                       encoding=encoding)
+                tm.assert_frame_equal(result, expected)

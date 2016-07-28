@@ -788,3 +788,4 @@ Bug Fixes
 - Bugs in ``Index.difference`` and ``DataFrame.join`` raise in Python3 when using mixed-integer indexes (:issue:`13432`, :issue:`12814`)
 
 - Bug in ``.to_excel()`` when DataFrame contains a MultiIndex which contains a label with a NaN value (:issue:`13511`)
+- Bug in ``pd.read_csv`` in Python 2.x with non-UTF8 encoded, multi-character separated data (:issue:`3404`)
