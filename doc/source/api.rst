@@ -1349,6 +1349,8 @@ Modifying and Computations
    Index.unique
    Index.nunique
    Index.value_counts
+   Index.fillna
+   Index.dropna
 
 Conversion
 ~~~~~~~~~~
