@@ -413,7 +413,7 @@ def _value_counts_arraylike(values, dropna=True):
             freq = values.freq
 
         values = values.view(np.int64)
-        keys, counts = htable.value_count_scalar64(values, dropna)
+        keys, counts = htable.value_count_int64(values, dropna)
 
         if dropna:
             msk = keys != iNaT
@@ -434,10 +434,10 @@ def _value_counts_arraylike(values, dropna=True):
 
     elif is_integer_dtype(dtype):
         values = _ensure_int64(values)
-        keys, counts = htable.value_count_scalar64(values, dropna)
+        keys, counts = htable.value_count_int64(values, dropna)
     elif is_float_dtype(dtype):
         values = _ensure_float64(values)
-        keys, counts = htable.value_count_scalar64(values, dropna)
+        keys, counts = htable.value_count_float64(values, dropna)
     else:
         values = _ensure_object(values)
         mask = isnull(values)

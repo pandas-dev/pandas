@@ -4399,7 +4399,7 @@ def _groupby_indices(values):
         # bit better than factorizing again
         reverse = dict(enumerate(values.categories))
         codes = values.codes.astype('int64')
-        _, counts = _hash.value_count_scalar64(codes, False)
+        _, counts = _hash.value_count_int64(codes, False)
     else:
         reverse, codes, counts = _algos.group_labels(
             _values_from_object(_ensure_object(values)))
