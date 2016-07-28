@@ -44,8 +44,15 @@ class TestPickle():
             return
 
         if typ.startswith('sp_'):
+            # SparseTimeSeries deprecated in 0.17.0
+            if (typ == "sp_series" and version and
+                    LooseVersion(version) < "0.17.0"):
+                check_kwargs = {"check_series_type": False}
+            else:
+                check_kwargs = {}
+
             comparator = getattr(tm, "assert_%s_equal" % typ)
-            comparator(result, expected, exact_indices=False)
+            comparator(result, expected, exact_indices=False, **check_kwargs)
         elif typ == 'timestamp':
             if expected is pd.NaT:
                 assert result is pd.NaT
