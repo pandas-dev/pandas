@@ -2534,8 +2534,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return result
 
     def to_csv(self, path, index=True, sep=",", na_rep='', float_format=None,
-               header=False, index_label=None, mode='w', nanRep=None,
-               encoding=None, date_format=None, decimal='.'):
+               header=False, index_label=None, mode='w', encoding=None,
+               date_format=None, decimal='.'):
         """
         Write Series to a comma-separated values (csv) file
 
@@ -2572,7 +2572,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         # result is only a string if no path provided, otherwise None
         result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
                            float_format=float_format, header=header,
-                           index_label=index_label, mode=mode, nanRep=nanRep,
+                           index_label=index_label, mode=mode,
                            encoding=encoding, date_format=date_format,
                            decimal=decimal)
         if path is None:

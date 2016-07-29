@@ -1305,7 +1305,7 @@ class DataFrame(NDFrame):
                mode='w', encoding=None, compression=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
-               escapechar=None, decimal='.', **kwds):
+               escapechar=None, decimal='.'):
         r"""Write DataFrame to a comma-separated values (csv) file
 
         Parameters
@@ -1332,8 +1332,6 @@ class DataFrame(NDFrame):
             sequence should be given if the DataFrame uses MultiIndex.  If
             False do not print fields for index names. Use index_label=False
             for easier importing in R
-        nanRep : None
-            deprecated, use na_rep
         mode : str
             Python write mode, default 'w'
         encoding : string, optional
