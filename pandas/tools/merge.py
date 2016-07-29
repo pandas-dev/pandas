@@ -258,8 +258,7 @@ def merge_asof(left, right, on=None,
                by=None,
                suffixes=('_x', '_y'),
                tolerance=None,
-               allow_exact_matches=True,
-               check_duplicates=True):
+               allow_exact_matches=True):
     """Perform an asof merge. This is similar to a left-join except that we
     match on nearest key rather than equal keys.
 
@@ -303,14 +302,6 @@ def merge_asof(left, right, on=None,
           (i.e. less-than-or-equal-to)
         - If False, don't match the same 'on' value
           (i.e., stricly less-than)
-
-    check_duplicates : boolean, default True
-
-        - If True, check and remove duplicates for the right
-          DataFrame, on the [by, on] combination, keeping the last value.
-        - If False, no check for duplicates. If you *know* that
-          you don't have duplicates, then turning off the check for duplicates
-          can be more performant.
 
     Returns
     -------
@@ -436,7 +427,7 @@ def merge_asof(left, right, on=None,
     if by is not None:
         result, groupby = _groupby_and_merge(by, on, left, right,
                                              lambda x, y: _merger(x, y),
-                                             check_duplicates=check_duplicates)
+                                             check_duplicates=False)
 
         # we want to preserve the original order
         # we had grouped, so need to reverse this
@@ -446,19 +437,11 @@ def merge_asof(left, right, on=None,
         sorter = _ensure_platform_int(
             np.concatenate([groupby.indices[g] for g, _ in groupby]))
         if len(result) != len(sorter):
-            if check_duplicates:
-                raise AssertionError("invalid reverse grouping")
             return result
 
         rev = np.empty(len(sorter), dtype=np.int_)
         rev.put(sorter, np.arange(len(sorter)))
         return result.take(rev).reset_index(drop=True)
-
-    if check_duplicates:
-        if on is None:
-            on = []
-        elif not isinstance(on, (list, tuple)):
-            on = [on]
 
         if right.duplicated(on).any():
             right = right.drop_duplicates(on, keep='last')
@@ -1067,8 +1050,8 @@ class _AsOfMerge(_OrderedMerge):
                 lt = lt.view('i8')
                 t = t.value
                 rt = rt.view('i8')
-            kwargs['left_distance'] = lt
-            kwargs['right_distance'] = rt
+            kwargs['left_values'] = lt
+            kwargs['right_values'] = rt
             kwargs['tolerance'] = t
 
         return _get_join_indexers(self.left_join_keys,

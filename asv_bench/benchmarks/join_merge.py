@@ -293,6 +293,43 @@ class join_dataframe_integer_key(object):
         merge(self.df, self.df2, on='key1')
 
 
+class merge_asof_noby(object):
+
+    def setup(self):
+        np.random.seed(0)
+        one_count = 200000
+        two_count = 1000000
+        self.df1 = pd.DataFrame({'time': np.random.randint(0, one_count/20, one_count),
+                                 'value1': np.random.randn(one_count)})
+        self.df2 = pd.DataFrame({'time': np.random.randint(0, two_count/20, two_count),
+                                 'value2': np.random.randn(two_count)})
+        self.df1 = self.df1.sort_values('time')
+        self.df2 = self.df2.sort_values('time')
+
+    def time_merge_asof_noby(self):
+        merge_asof(self.df1, self.df2, on='time')
+
+
+class merge_asof_by(object):
+
+    def setup(self):
+        import string
+        np.random.seed(0)
+        one_count = 200000
+        two_count = 1000000
+        self.df1 = pd.DataFrame({'time': np.random.randint(0, one_count/20, one_count),
+                                 'key': np.random.choice(list(string.uppercase), one_count),
+                                 'value1': np.random.randn(one_count)})
+        self.df2 = pd.DataFrame({'time': np.random.randint(0, two_count/20, two_count),
+                                 'key': np.random.choice(list(string.uppercase), two_count),
+                                 'value2': np.random.randn(two_count)})
+        self.df1 = self.df1.sort_values('time')
+        self.df2 = self.df2.sort_values('time')
+
+    def time_merge_asof_by(self):
+        merge_asof(self.df1, self.df2, on='time', by='key')
+
+
 class join_non_unique_equal(object):
     goal_time = 0.2
 
