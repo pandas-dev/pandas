@@ -6568,15 +6568,15 @@ class TestGroupBy(tm.TestCase):
         # values in column `B`, and then group by [`A`, `B`]. This should
         # force `-1` in `labels` array of `gr_.grouper.group_info` exactly
         # at those places, where the group-by key is partilly missing.
-        df = pd.DataFrame([(i % 12, i % 3 if i % 3 else float("nan"), i)
+        df = pd.DataFrame([(i % 12, i % 3 if i % 3 else np.nan, i)
                            for i in range(n_rows)], dtype=float,
                           columns=["A", "B", "Z"], index=None)
         gr_ = df.groupby(["A", "B"])
 
         # Generate teh expected dataframe
-        expected = pd.DataFrame([(i % 12, i % 3 if i % 3 else float("nan"),
+        expected = pd.DataFrame([(i % 12, i % 3 if i % 3 else np.nan,
                                   i + 12 if i % 3 and i < n_rows - 12
-                                  else float("nan"))
+                                  else np.nan)
                                  for i in range(n_rows)], dtype=float,
                                 columns=["A", "B", "Z"], index=None)
         result = gr_.shift(-1)
