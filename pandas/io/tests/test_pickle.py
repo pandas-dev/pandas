@@ -87,8 +87,9 @@ class TestPickle():
         return data
 
     def compare_sp_series_ts(self, res, exp, typ, version):
-        # SparseTimeSeries deprecated in 0.17.0
-        if version and LooseVersion(version) < "0.17.0":
+        # SparseTimeSeries integrated into SparseSeries in 0.12.0
+        # and deprecated in 0.17.0
+        if version and LooseVersion(version) <= "0.12.0":
             tm.assert_sp_series_equal(res, exp, check_series_type=False)
         else:
             tm.assert_sp_series_equal(res, exp)
