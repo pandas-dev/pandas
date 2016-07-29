@@ -745,6 +745,14 @@ class TestTimeSeries(tm.TestCase):
             seconds=t) for t in range(20)] + [NaT])
         assert_series_equal(result, expected)
 
+        # GH13834
+        s = Series([epoch + t for t in np.arange(0, 2, .25)] +
+                   [iNaT]).astype(float)
+        result = to_datetime(s, unit='s')
+        expected = Series([Timestamp('2013-06-09 02:42:28') + timedelta(
+            seconds=t) for t in np.arange(0, 2, .25)] + [NaT])
+        assert_series_equal(result, expected)
+
         s = concat([Series([epoch + t for t in range(20)]
                            ).astype(float), Series([np.nan])],
                    ignore_index=True)
