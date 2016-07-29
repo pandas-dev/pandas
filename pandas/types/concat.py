@@ -256,7 +256,7 @@ def union_categoricals(to_union, sort_categories=False):
         ordered = first.ordered
         new_codes = np.concatenate([c.codes for c in to_union])
 
-        if sort_categories:
+        if sort_categories and not categories.is_monotonic_increasing:
             categories = categories.sort_values()
             indexer = first.categories.get_indexer(categories)
             new_codes = take_1d(indexer, new_codes, fill_value=-1)

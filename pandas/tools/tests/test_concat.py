@@ -1006,6 +1006,14 @@ class TestConcatenate(ConcatenateBase):
                                categories=['a', 'b', 'c'])
         tm.assert_categorical_equal(result, expected)
 
+        # fastpath - skip resort
+        c1 = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+        c2 = Categorical(['b', 'c'], categories=['a', 'b', 'c'])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical(['a', 'b', 'b', 'c'],
+                               categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
         c1 = Categorical(['x', np.nan])
         c2 = Categorical([np.nan, 'b'])
         result = union_categoricals([c1, c2], sort_categories=True)
