@@ -872,23 +872,26 @@ class TestConcatenate(ConcatenateBase):
         # new categories ordered by appearance
         s = Categorical(['x', 'y', 'z'])
         s2 = Categorical(['a', 'b', 'c'])
-        result = union_categoricals([s, s2]).categories
-        expected = Index(['x', 'y', 'z', 'a', 'b', 'c'])
-        tm.assert_index_equal(result, expected)
+        result = union_categoricals([s, s2])
+        expected = Categorical(['x', 'y', 'z', 'a', 'b', 'c'],
+                               categories=['x', 'y', 'z', 'a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
 
-        # can't be ordered
         s = Categorical([0, 1.2, 2], ordered=True)
         s2 = Categorical([0, 1.2, 2], ordered=True)
-        with tm.assertRaises(TypeError):
-            union_categoricals([s, s2])
+        result = union_categoricals([s, s2])
+        expected = Categorical([0, 1.2, 2, 0, 1.2, 2], ordered=True)
+        tm.assert_categorical_equal(result, expected)
 
         # must exactly match types
         s = Categorical([0, 1.2, 2])
         s2 = Categorical([2, 3, 4])
-        with tm.assertRaises(TypeError):
+        msg = 'dtype of categories must be the same'
+        with tm.assertRaisesRegexp(TypeError, msg):
             union_categoricals([s, s2])
 
-        with tm.assertRaises(ValueError):
+        msg = 'No Categoricals to union'
+        with tm.assertRaisesRegexp(ValueError, msg):
             union_categoricals([])
 
     def test_union_categoricals_nan(self):
@@ -943,6 +946,48 @@ class TestConcatenate(ConcatenateBase):
         res = union_categoricals([nanc,
                                   pd.Categorical([])])
         tm.assert_categorical_equal(res, nanc)
+
+    def test_union_categorical_same_category(self):
+        # check fastpath
+        c1 = Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4])
+        c2 = Categorical([3, 2, 1, np.nan], categories=[1, 2, 3, 4])
+        res = union_categoricals([c1, c2])
+        exp = Categorical([1, 2, 3, 4, 3, 2, 1, np.nan],
+                          categories=[1, 2, 3, 4])
+        tm.assert_categorical_equal(res, exp)
+
+        c1 = Categorical(['z', 'z', 'z'], categories=['x', 'y', 'z'])
+        c2 = Categorical(['x', 'x', 'x'], categories=['x', 'y', 'z'])
+        res = union_categoricals([c1, c2])
+        exp = Categorical(['z', 'z', 'z', 'x', 'x', 'x'],
+                          categories=['x', 'y', 'z'])
+        tm.assert_categorical_equal(res, exp)
+
+    def test_union_categoricals_ordered(self):
+        c1 = Categorical([1, 2, 3], ordered=True)
+        c2 = Categorical([1, 2, 3], ordered=False)
+
+        msg = 'Categorical.ordered must be the same'
+        with tm.assertRaisesRegexp(TypeError, msg):
+            union_categoricals([c1, c2])
+
+        res = union_categoricals([c1, c1])
+        exp = Categorical([1, 2, 3, 1, 2, 3], ordered=True)
+        tm.assert_categorical_equal(res, exp)
+
+        c1 = Categorical([1, 2, 3, np.nan], ordered=True)
+        c2 = Categorical([3, 2], categories=[1, 2, 3], ordered=True)
+
+        res = union_categoricals([c1, c2])
+        exp = Categorical([1, 2, 3, np.nan, 3, 2], ordered=True)
+        tm.assert_categorical_equal(res, exp)
+
+        c1 = Categorical([1, 2, 3], ordered=True)
+        c2 = Categorical([1, 2, 3], categories=[3, 2, 1], ordered=True)
+
+        msg = "to union ordered Categoricals, all categories must be the same"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            union_categoricals([c1, c2])
 
     def test_concat_bug_1719(self):
         ts1 = tm.makeTimeSeries()
