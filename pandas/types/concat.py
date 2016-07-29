@@ -211,22 +211,23 @@ def _concat_categorical(to_concat, axis=0):
         return Categorical(concatted, rawcats)
 
 
-def union_categoricals(to_union):
+def union_categoricals(to_union, sort_categories=False):
     """
     Combine list-like of Categoricals, unioning categories. All
-    must have the same dtype, and none can be ordered.
+    categories must have the same dtype.
 
     .. versionadded:: 0.19.0
 
     Parameters
     ----------
     to_union : list-like of Categoricals
+    sort_categories : boolean, default False
+        If true, resulting categories will be lexsorted, otherwise
+        they will be ordered as they appear in the data
 
     Returns
     -------
-    Categorical
-       A single array, categories will be ordered as they
-       appear in the list
+    result : Categorical
 
     Raises
     ------
@@ -244,19 +245,39 @@ def union_categoricals(to_union):
 
     first = to_union[0]
 
-    if not all(is_dtype_equal(c.categories.dtype, first.categories.dtype)
-               for c in to_union):
+    if not all(is_dtype_equal(other.categories.dtype, first.categories.dtype)
+               for other in to_union[1:]):
         raise TypeError("dtype of categories must be the same")
 
+    ordered = False
     if all(first.is_dtype_equal(other) for other in to_union[1:]):
-        return Categorical(np.concatenate([c.codes for c in to_union]),
-                           categories=first.categories, ordered=first.ordered,
-                           fastpath=True)
+        # identical categories - fastpath
+        categories = first.categories
+        ordered = first.ordered
+        new_codes = np.concatenate([c.codes for c in to_union])
+
+        if sort_categories:
+            categories = categories.sort_values()
+            indexer = first.categories.get_indexer(categories)
+            new_codes = take_1d(indexer, new_codes, fill_value=-1)
     elif all(not c.ordered for c in to_union):
-        # not ordered
-        pass
+        # different categories - union and recode
+        cats = first.categories.append([c.categories for c in to_union[1:]])
+        categories = Index(cats.unique())
+        if sort_categories:
+            categories = categories.sort_values()
+
+        new_codes = []
+        for c in to_union:
+            if len(c.categories) > 0:
+                indexer = categories.get_indexer(c.categories)
+                new_codes.append(take_1d(indexer, c.codes, fill_value=-1))
+            else:
+                # must be all NaN
+                new_codes.append(c.codes)
+        new_codes = np.concatenate(new_codes)
     else:
-        # to show a proper error message
+        # ordered - to show a proper error message
         if all(c.ordered for c in to_union):
             msg = ("to union ordered Categoricals, "
                    "all categories must be the same")
@@ -264,21 +285,7 @@ def union_categoricals(to_union):
         else:
             raise TypeError('Categorical.ordered must be the same')
 
-    cats = first.categories
-    unique_cats = cats.append([c.categories for c in to_union[1:]]).unique()
-    categories = Index(unique_cats)
-
-    new_codes = []
-    for c in to_union:
-        if len(c.categories) > 0:
-            indexer = categories.get_indexer(c.categories)
-            new_codes.append(take_1d(indexer, c.codes, fill_value=-1))
-        else:
-            # must be all NaN
-            new_codes.append(c.codes)
-
-    new_codes = np.concatenate(new_codes)
-    return Categorical(new_codes, categories=categories, ordered=False,
+    return Categorical(new_codes, categories=categories, ordered=ordered,
                        fastpath=True)
 
 

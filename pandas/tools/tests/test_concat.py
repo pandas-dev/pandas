@@ -989,6 +989,42 @@ class TestConcatenate(ConcatenateBase):
         with tm.assertRaisesRegexp(TypeError, msg):
             union_categoricals([c1, c2])
 
+    def test_union_categoricals_sort(self):
+        # GH 13763
+        c1 = Categorical(['x', 'y', 'z'])
+        c2 = Categorical(['a', 'b', 'c'])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical(['x', 'y', 'z', 'a', 'b', 'c'],
+                               categories=['a', 'b', 'c', 'x', 'y', 'z'])
+        tm.assert_categorical_equal(result, expected)
+
+        # fastpath
+        c1 = Categorical(['a', 'b'], categories=['b', 'a', 'c'])
+        c2 = Categorical(['b', 'c'], categories=['b', 'a', 'c'])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical(['a', 'b', 'b', 'c'],
+                               categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical(['x', np.nan])
+        c2 = Categorical([np.nan, 'b'])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical(['x', np.nan, np.nan, 'b'],
+                               categories=['b', 'x'])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical([np.nan])
+        c2 = Categorical([np.nan])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical([np.nan, np.nan], categories=[])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical([])
+        c2 = Categorical([])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical([])
+        tm.assert_categorical_equal(result, expected)
+
     def test_concat_bug_1719(self):
         ts1 = tm.makeTimeSeries()
         ts2 = tm.makeTimeSeries()[::2]
