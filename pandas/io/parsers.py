@@ -16,7 +16,7 @@ from pandas.types.common import (is_integer, _ensure_object,
                                  is_list_like, is_integer_dtype,
                                  is_float,
                                  is_scalar)
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, MultiIndex, RangeIndex
 from pandas.core.frame import DataFrame
 from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
@@ -700,6 +700,7 @@ class TextFileReader(BaseIterator):
         # miscellanea
         self.engine = engine
         self._engine = None
+        self._currow = 0
 
         options = self._get_options_with_defaults(engine)
 
@@ -913,7 +914,19 @@ class TextFileReader(BaseIterator):
         # May alter columns / col_dict
         index, columns, col_dict = self._create_index(ret)
 
+        if index is None:
+            if col_dict:
+                # Any column is actually fine:
+                new_rows = len(compat.next(compat.itervalues(col_dict)))
+                index = RangeIndex(self._currow, self._currow + new_rows)
+            else:
+                new_rows = 0
+        else:
+            new_rows = len(index)
+
         df = DataFrame(col_dict, columns=columns, index=index)
+
+        self._currow += new_rows
 
         if self.squeeze and len(df.columns) == 1:
             return df[df.columns[0]].copy()
