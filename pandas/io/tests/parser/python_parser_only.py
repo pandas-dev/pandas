@@ -98,7 +98,7 @@ baz|7|8|9
         finally:
             sys.stdout = sys.__stdout__
 
-    def test_skip_footer(self):
+    def test_skipfooter(self):
         # see gh-6607
         data = """A,B,C
 1,2,3
@@ -107,7 +107,7 @@ baz|7|8|9
 want to skip this
 also also skip this
 """
-        result = self.read_csv(StringIO(data), skip_footer=2)
+        result = self.read_csv(StringIO(data), skipfooter=2)
         no_footer = '\n'.join(data.split('\n')[:-3])
         expected = self.read_csv(StringIO(no_footer))
         tm.assert_frame_equal(result, expected)

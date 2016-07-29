@@ -218,9 +218,9 @@ skip
                                  skiprows=[2])
             it.read()
 
-        # skip_footer is not supported with the C parser yet
+        # skipfooter is not supported with the C parser yet
         if self.engine == 'python':
-            # skip_footer
+            # skipfooter
             data = """ignore
 A,B,C
 1,2,3 # comment
@@ -232,7 +232,7 @@ footer
             with tm.assertRaisesRegexp(Exception, msg):
                 self.read_table(StringIO(data), sep=',',
                                 header=1, comment='#',
-                                skip_footer=1)
+                                skipfooter=1)
 
     def test_quoting(self):
         bad_line_small = """printer\tresult\tvariant_name
@@ -536,11 +536,11 @@ baz,7,8,9
         self.assertEqual(len(result), 3)
         tm.assert_frame_equal(pd.concat(result), expected)
 
-        # skip_footer is not supported with the C parser yet
+        # skipfooter is not supported with the C parser yet
         if self.engine == 'python':
-            # test bad parameter (skip_footer)
+            # test bad parameter (skipfooter)
             reader = self.read_csv(StringIO(self.data1), index_col=0,
-                                   iterator=True, skip_footer=True)
+                                   iterator=True, skipfooter=True)
             self.assertRaises(ValueError, reader.read, 3)
 
     def test_pass_names_with_index(self):
