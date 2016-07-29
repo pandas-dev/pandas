@@ -671,6 +671,7 @@ Deprecations
 - ``compact_ints`` and ``use_unsigned`` have been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13320`)
 - ``buffer_lines`` has been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13360`)
 - ``as_recarray`` has been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13373`)
+- ``skip_footer`` has been deprecated in ``pd.read_csv()`` in favor of ``skipfooter`` and will be removed in a future version (:issue:`13349`)
 - top-level ``pd.ordered_merge()`` has been renamed to ``pd.merge_ordered()`` and the original name will be removed in a future version (:issue:`13358`)
 - ``Timestamp.offset`` property (and named arg in the constructor), has been deprecated in favor of ``freq`` (:issue:`12160`)
 - ``pd.tseries.util.pivot_annual`` is deprecated. Use ``pivot_table`` as alternative, an example is :ref:`here <cookbook.pivot>` (:issue:`736`)

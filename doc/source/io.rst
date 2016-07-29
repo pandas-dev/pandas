@@ -175,6 +175,8 @@ skiprows : list-like or integer, default ``None``
   of the file.
 skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
+skip_footer : int, default ``0``
+  DEPRECATED: use the ``skipfooter`` parameter instead, as they are identical
 nrows : int, default ``None``
   Number of rows of file to read. Useful for reading pieces of large files.
 low_memory : boolean, default ``True``
@@ -1411,7 +1413,7 @@ back to python if C-unsupported options are specified. Currently, C-unsupported
 options include:
 
 - ``sep`` other than a single character (e.g. regex separators)
-- ``skip_footer``
+- ``skipfooter``
 - ``sep=None`` with ``delim_whitespace=False``
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the

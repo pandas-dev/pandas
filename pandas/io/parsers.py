@@ -125,6 +125,8 @@ skiprows : list-like or integer, default None
     at the start of the file
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c')
+skip_footer : int, default 0
+    DEPRECATED: use the `skipfooter` parameter instead, as they are identical
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 na_values : str or list-like or dict, default None
@@ -341,9 +343,6 @@ def _validate_nrows(nrows):
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
     encoding = kwds.get('encoding', None)
-    skipfooter = kwds.pop('skipfooter', None)
-    if skipfooter is not None:
-        kwds['skip_footer'] = skipfooter
 
     # If the input could be a filename, check for a recognizable compression
     # extension.  If we're reading from a URL, the `get_filepath_or_buffer`
@@ -411,8 +410,8 @@ _parser_defaults = {
     'na_values': None,
     'true_values': None,
     'false_values': None,
-    'skip_footer': 0,
     'converters': None,
+    'skipfooter': 0,
 
     'keep_default_na': True,
     'thousands': None,
@@ -461,7 +460,7 @@ _fwf_defaults = {
     'widths': None,
 }
 
-_c_unsupported = set(['skip_footer'])
+_c_unsupported = set(['skipfooter'])
 _python_unsupported = set([
     'low_memory',
     'buffer_lines',
@@ -503,7 +502,6 @@ def _make_parser_function(name, sep=','):
                  false_values=None,
                  skipinitialspace=False,
                  skiprows=None,
-                 skipfooter=None,
                  nrows=None,
 
                  # NA and Missing Data Handling
@@ -541,8 +539,8 @@ def _make_parser_function(name, sep=','):
                  error_bad_lines=True,
                  warn_bad_lines=True,
 
-                 # Deprecated
-                 skip_footer=0,
+                 skipfooter=0,
+                 skip_footer=0,  # deprecated
 
                  # Internal
                  doublequote=True,
@@ -569,6 +567,13 @@ def _make_parser_function(name, sep=','):
         else:
             engine = 'c'
             engine_specified = False
+
+        if skip_footer != 0:
+            warnings.warn("The 'skip_footer' argument has "
+                          "been deprecated and will be removed "
+                          "in a future version. Please use the "
+                          "'skipfooter' argument instead.",
+                          FutureWarning, stacklevel=2)
 
         kwds = dict(delimiter=delimiter,
                     engine=engine,
@@ -768,9 +773,9 @@ class TextFileReader(BaseIterator):
 
         # C engine not supported yet
         if engine == 'c':
-            if options['skip_footer'] > 0:
+            if options['skipfooter'] > 0:
                 fallback_reason = "the 'c' engine does not support"\
-                                  " skip_footer"
+                                  " skipfooter"
                 engine = 'python'
 
         if sep is None and not delim_whitespace:
@@ -903,8 +908,8 @@ class TextFileReader(BaseIterator):
 
     def read(self, nrows=None):
         if nrows is not None:
-            if self.options.get('skip_footer'):
-                raise ValueError('skip_footer not supported for iteration')
+            if self.options.get('skipfooter'):
+                raise ValueError('skipfooter not supported for iteration')
 
         ret = self._engine.read(nrows)
 
@@ -1591,7 +1596,7 @@ def TextParser(*args, **kwds):
     date_parser : function, default None
     skiprows : list of integers
         Row numbers to skip
-    skip_footer : int
+    skipfooter : int
         Number of line at bottom of file to skip
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
@@ -1704,7 +1709,7 @@ class PythonParser(ParserBase):
         self.memory_map = kwds['memory_map']
         self.skiprows = kwds['skiprows']
 
-        self.skip_footer = kwds['skip_footer']
+        self.skipfooter = kwds['skipfooter']
         self.delimiter = kwds['delimiter']
 
         self.quotechar = kwds['quotechar']
@@ -2340,7 +2345,7 @@ class PythonParser(ParserBase):
             content, min_width=col_len).T)
         zip_len = len(zipped_content)
 
-        if self.skip_footer < 0:
+        if self.skipfooter < 0:
             raise ValueError('skip footer cannot be negative')
 
         # Loop through rows to verify lengths are correct.
@@ -2353,8 +2358,8 @@ class PythonParser(ParserBase):
                     break
 
             footers = 0
-            if self.skip_footer:
-                footers = self.skip_footer
+            if self.skipfooter:
+                footers = self.skipfooter
 
             row_num = self.pos - (len(content) - i + footers)
 
@@ -2440,8 +2445,8 @@ class PythonParser(ParserBase):
         else:
             lines = new_rows
 
-        if self.skip_footer:
-            lines = lines[:-self.skip_footer]
+        if self.skipfooter:
+            lines = lines[:-self.skipfooter]
 
         lines = self._check_comments(lines)
         if self.skip_blank_lines:
