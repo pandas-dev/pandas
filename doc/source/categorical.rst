@@ -669,9 +669,10 @@ will be the union of the categories being combined.
 
 .. note::
 
-   `union_categoricals` only works with unordered categoricals
-   and will raise if any are ordered.
-
+   In addition to the "easy" case of combining two categoricals of the same
+   categories and order information (e.g. what you could also ``append`` for),
+   ``union_categoricals`` only works with unordered categoricals and will
+   raise if any are ordered.
 
 Getting Data In/Out
 -------------------
