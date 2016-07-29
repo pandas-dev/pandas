@@ -461,6 +461,18 @@ bar,foo"""
         piece = result.get_chunk()
         self.assertEqual(len(piece), 2)
 
+    def test_read_chunksize_generated_index(self):
+        # GH 12185
+        reader = self.read_csv(StringIO(self.data1), chunksize=2)
+        df = self.read_csv(StringIO(self.data1))
+
+        tm.assert_frame_equal(pd.concat(reader), df)
+
+        reader = self.read_csv(StringIO(self.data1), chunksize=2, index_col=0)
+        df = self.read_csv(StringIO(self.data1), index_col=0)
+
+        tm.assert_frame_equal(pd.concat(reader), df)
+
     def test_read_text_list(self):
         data = """A,B,C\nfoo,1,2,3\nbar,4,5,6"""
         as_list = [['A', 'B', 'C'], ['foo', '1', '2', '3'], ['bar',

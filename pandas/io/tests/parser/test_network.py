@@ -122,8 +122,6 @@ class TestS3(tm.TestCase):
                     self.assertFalse(df.empty)
                     true_df = local_tips.iloc[
                         chunksize * i_chunk: chunksize * (i_chunk + 1)]
-                    # Chunking doesn't preserve row numbering
-                    true_df = true_df.reset_index().drop('index', axis=1)
                     tm.assert_frame_equal(true_df, df)
 
     @tm.network
@@ -143,8 +141,6 @@ class TestS3(tm.TestCase):
                 self.assertFalse(df.empty)
                 true_df = local_tips.iloc[
                     chunksize * i_chunk: chunksize * (i_chunk + 1)]
-                # Chunking doesn't preserve row numbering
-                true_df = true_df.reset_index().drop('index', axis=1)
                 tm.assert_frame_equal(true_df, df)
 
     @tm.network
