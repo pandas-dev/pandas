@@ -29,9 +29,8 @@ class TestCategorical(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        self.factor = Categorical.from_array(['a', 'b', 'b', 'a',
-                                              'a', 'c', 'c', 'c'],
-                                             ordered=True)
+        self.factor = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'],
+                                  ordered=True)
 
     def test_getitem(self):
         self.assertEqual(self.factor[0], 'a')
@@ -70,8 +69,8 @@ class TestCategorical(tm.TestCase):
         indexer[0] = True
         indexer[-1] = True
         c[indexer] = 'c'
-        expected = Categorical.from_array(['c', 'b', 'b', 'a',
-                                           'a', 'c', 'c', 'c'], ordered=True)
+        expected = Categorical(['c', 'b', 'b', 'a', 'a', 'c', 'c', 'c'],
+                               ordered=True)
 
         self.assert_categorical_equal(c, expected)
 
@@ -94,12 +93,12 @@ class TestCategorical(tm.TestCase):
 
         # it works!
         arr = np.array([1, 2, 3, datetime.now()], dtype='O')
-        factor = Categorical.from_array(arr, ordered=False)
+        factor = Categorical(arr, ordered=False)
         self.assertFalse(factor.ordered)
 
         # this however will raise as cannot be sorted
         self.assertRaises(
-            TypeError, lambda: Categorical.from_array(arr, ordered=True))
+            TypeError, lambda: Categorical(arr, ordered=True))
 
     def test_is_equal_dtype(self):
 
@@ -341,26 +340,26 @@ class TestCategorical(tm.TestCase):
     def test_constructor_from_index_series_datetimetz(self):
         idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
                             tz='US/Eastern')
-        result = pd.Categorical.from_array(idx)
+        result = pd.Categorical(idx)
         tm.assert_index_equal(result.categories, idx)
 
-        result = pd.Categorical.from_array(pd.Series(idx))
+        result = pd.Categorical(pd.Series(idx))
         tm.assert_index_equal(result.categories, idx)
 
     def test_constructor_from_index_series_timedelta(self):
         idx = pd.timedelta_range('1 days', freq='D', periods=3)
-        result = pd.Categorical.from_array(idx)
+        result = pd.Categorical(idx)
         tm.assert_index_equal(result.categories, idx)
 
-        result = pd.Categorical.from_array(pd.Series(idx))
+        result = pd.Categorical(pd.Series(idx))
         tm.assert_index_equal(result.categories, idx)
 
     def test_constructor_from_index_series_period(self):
         idx = pd.period_range('2015-01-01', freq='D', periods=3)
-        result = pd.Categorical.from_array(idx)
+        result = pd.Categorical(idx)
         tm.assert_index_equal(result.categories, idx)
 
-        result = pd.Categorical.from_array(pd.Series(idx))
+        result = pd.Categorical(pd.Series(idx))
         tm.assert_index_equal(result.categories, idx)
 
     def test_from_codes(self):
@@ -408,9 +407,6 @@ class TestCategorical(tm.TestCase):
 
         with tm.assertRaisesRegexp(exp_err, exp_msg):
             Categorical([1, 2, 3], ordered=ordered)
-
-        with tm.assertRaisesRegexp(exp_err, exp_msg):
-            Categorical.from_array([1, 2, 3], ordered=ordered)
 
         with tm.assertRaisesRegexp(exp_err, exp_msg):
             Categorical.from_codes([0, 0, 1], categories=['a', 'b', 'c'],
@@ -724,7 +720,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
                             '2014-03', '2014-03'], freq='M')
 
-        cat1 = Categorical.from_array(idx1)
+        cat1 = Categorical(idx1)
         str(cat1)
         exp_arr = np.array([0, 0, 1, 1, 2, 2], dtype=np.int8)
         exp_idx = PeriodIndex(['2014-01', '2014-02', '2014-03'], freq='M')
@@ -733,7 +729,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         idx2 = PeriodIndex(['2014-03', '2014-03', '2014-02', '2014-01',
                             '2014-03', '2014-01'], freq='M')
-        cat2 = Categorical.from_array(idx2, ordered=True)
+        cat2 = Categorical(idx2, ordered=True)
         str(cat2)
         exp_arr = np.array([2, 2, 1, 0, 2, 0], dtype=np.int8)
         exp_idx2 = PeriodIndex(['2014-01', '2014-02', '2014-03'], freq='M')
@@ -742,7 +738,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         idx3 = PeriodIndex(['2013-12', '2013-11', '2013-10', '2013-09',
                             '2013-08', '2013-07', '2013-05'], freq='M')
-        cat3 = Categorical.from_array(idx3, ordered=True)
+        cat3 = Categorical(idx3, ordered=True)
         exp_arr = np.array([6, 5, 4, 3, 2, 1, 0], dtype=np.int8)
         exp_idx = PeriodIndex(['2013-05', '2013-07', '2013-08', '2013-09',
                                '2013-10', '2013-11', '2013-12'], freq='M')
@@ -1590,6 +1586,11 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
             res = cat.labels
         self.assert_numpy_array_equal(res, exp)
 
+    def test_deprecated_from_array(self):
+        # GH13854, `.from_array` is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            Categorical.from_array([0, 1])
+
     def test_removed_names_produces_warning(self):
 
         # 10482
@@ -1654,8 +1655,7 @@ class TestCategoricalAsBlock(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        self.factor = Categorical.from_array(['a', 'b', 'b', 'a', 'a', 'c',
-                                              'c', 'c'])
+        self.factor = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
 
         df = DataFrame({'value': np.random.randint(0, 10000, 100)})
         labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
@@ -3001,9 +3001,10 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # multiple groupers
         gb = df.groupby(['A', 'B'])
-        exp_index = pd.MultiIndex.from_product([['a', 'b', 'z'],
-                                                ['c', 'd', 'y']],
-                                               names=['A', 'B'])
+        exp_index = pd.MultiIndex.from_product(
+            [Categorical(["a", "b", "z"], ordered=True),
+             Categorical(["c", "d", "y"], ordered=True)],
+            names=['A', 'B'])
         expected = DataFrame({'values': [1, 2, np.nan, 3, 4, np.nan,
                                          np.nan, np.nan, np.nan]},
                              index=exp_index)
@@ -3014,10 +3015,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = df.copy()
         df['C'] = ['foo', 'bar'] * 2
         gb = df.groupby(['A', 'B', 'C'])
+        exp_index = pd.MultiIndex.from_product(
+            [Categorical(["a", "b", "z"], ordered=True),
+             Categorical(["c", "d", "y"], ordered=True),
+             ['foo', 'bar']],
+            names=['A', 'B', 'C'])
         expected = DataFrame({'values': Series(
-            np.nan, index=pd.MultiIndex.from_product(
-                [['a', 'b', 'z'], ['c', 'd', 'y'], ['foo', 'bar']
-                 ], names=['A', 'B', 'C']))}).sortlevel()
+            np.nan, index=exp_index)}).sortlevel()
         expected.iloc[[1, 2, 7, 8], 0] = [1, 2, 3, 4]
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
@@ -3096,11 +3100,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = DataFrame({"A": raw_cat1, "B": raw_cat2, "values": [1, 2, 3, 4]})
         result = pd.pivot_table(df, values='values', index=['A', 'B'])
 
+        exp_index = pd.MultiIndex.from_product(
+            [Categorical(["a", "b", "z"], ordered=True),
+             Categorical(["c", "d", "y"], ordered=True)],
+            names=['A', 'B'])
         expected = Series([1, 2, np.nan, 3, 4, np.nan, np.nan, np.nan, np.nan],
-                          index=pd.MultiIndex.from_product(
-                              [['a', 'b', 'z'], ['c', 'd', 'y']],
-                              names=['A', 'B']),
-                          name='values')
+                          index=exp_index, name='values')
         tm.assert_series_equal(result, expected)
 
     def test_count(self):
@@ -4184,7 +4189,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         cat = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
         exp = Series(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
         tm.assert_series_equal(cat.astype('str'), exp)
-        s2 = Series(Categorical.from_array(['1', '2', '3', '4']))
+        s2 = Series(Categorical(['1', '2', '3', '4']))
         exp2 = Series([1, 2, 3, 4]).astype(int)
         tm.assert_series_equal(s2.astype('int'), exp2)
 

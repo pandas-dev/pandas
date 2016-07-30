@@ -3108,8 +3108,10 @@ class TestGroupBy(tm.TestCase):
             grouped = df.groupby(['missing', 'dense'])
 
             # missing category 'b' should still exist in the output index
-            idx = MultiIndex.from_product([['a', 'b'], ['a', 'b', 'c']],
-                                          names=['missing', 'dense'])
+            idx = MultiIndex.from_product(
+                [Categorical(['a', 'b'], ordered=ordered),
+                 Categorical(['a', 'b', 'c'], ordered=ordered)],
+                names=['missing', 'dense'])
             expected = DataFrame([0, 1, 2, np.nan, np.nan, np.nan],
                                  index=idx,
                                  columns=['values'])
@@ -6389,7 +6391,8 @@ class TestGroupBy(tm.TestCase):
         groups_double_key = test.groupby(["cat", "ints"])
         res = groups_double_key.agg('mean')
         exp = DataFrame({"val": [10, 30, 20, 40, np.nan, np.nan],
-                         "cat": ["a", "a", "b", "b", "c", "c"],
+                         "cat": pd.Categorical(["a", "a", "b", "b", "c", "c"],
+                                               ordered=True),
                          "ints": [1, 2, 1, 2, 1, 2]}).set_index(["cat", "ints"
                                                                  ])
         tm.assert_frame_equal(res, exp)
@@ -6409,9 +6412,10 @@ class TestGroupBy(tm.TestCase):
 
         res = groups_double_key.agg('mean')
         nan = np.nan
-        idx = MultiIndex.from_product([["(1, 2]", "(2, 3]", "(3, 6]"],
-                                       [1, 2, 3, 4]],
-                                      names=["cat", "C2"])
+        idx = MultiIndex.from_product(
+            [Categorical(["(1, 2]", "(2, 3]", "(3, 6]"], ordered=True),
+             [1, 2, 3, 4]],
+            names=["cat", "C2"])
         exp = DataFrame({"C1": [nan, nan, nan, nan, 3, 3,
                                 nan, nan, nan, nan, 4, 5],
                          "C3": [nan, nan, nan, nan, 10, 100,
@@ -6424,7 +6428,7 @@ class TestGroupBy(tm.TestCase):
                         'A': [10, 11, 11],
                         'B': [101, 102, 103]})
         result = df.groupby(['cat', 'A'], as_index=False).sum()
-        expected = DataFrame({'cat': [1, 1, 2, 2, 3, 3],
+        expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
                               'A': [10, 11, 10, 11, 10, 11],
                               'B': [101.0, nan, nan, 205.0, nan, nan]},
                              columns=['cat', 'A', 'B'])
@@ -6433,7 +6437,7 @@ class TestGroupBy(tm.TestCase):
         # function grouper
         f = lambda r: df.loc[r, 'A']
         result = df.groupby(['cat', f], as_index=False).sum()
-        expected = DataFrame({'cat': [1, 1, 2, 2, 3, 3],
+        expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
                               'A': [10.0, nan, nan, 22.0, nan, nan],
                               'B': [101.0, nan, nan, 205.0, nan, nan]},
                              columns=['cat', 'A', 'B'])
@@ -6442,14 +6446,14 @@ class TestGroupBy(tm.TestCase):
         # another not in-axis grouper (conflicting names in index)
         s = Series(['a', 'b', 'b'], name='cat')
         result = df.groupby(['cat', s], as_index=False).sum()
-        expected = DataFrame({'cat': [1, 1, 2, 2, 3, 3],
+        expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
                               'A': [10.0, nan, nan, 22.0, nan, nan],
                               'B': [101.0, nan, nan, 205.0, nan, nan]},
                              columns=['cat', 'A', 'B'])
         tm.assert_frame_equal(result, expected)
 
         # is original index dropped?
-        expected = DataFrame({'cat': [1, 1, 2, 2, 3, 3],
+        expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
                               'A': [10, 11, 10, 11, 10, 11],
                               'B': [101.0, nan, nan, 205.0, nan, nan]},
                              columns=['cat', 'A', 'B'])
@@ -6458,6 +6462,49 @@ class TestGroupBy(tm.TestCase):
             df.index = Index(list("abc"), name=name)
             result = df.groupby(['cat', 'A'], as_index=False).sum()
             tm.assert_frame_equal(result, expected, check_index_type=True)
+
+    def test_groupby_preserve_categorical_dtype(self):
+        # GH13743, GH13854
+        df = DataFrame({'A': [1, 2, 1, 1, 2],
+                        'B': [10, 16, 22, 28, 34],
+                        'C1': Categorical(list("abaab"),
+                                          categories=list("bac"),
+                                          ordered=False),
+                        'C2': Categorical(list("abaab"),
+                                          categories=list("bac"),
+                                          ordered=True)})
+        # single grouper
+        exp_full = DataFrame({'A': [2.0, 1.0, np.nan],
+                              'B': [25.0, 20.0, np.nan],
+                              'C1': Categorical(list("bac"),
+                                                categories=list("bac"),
+                                                ordered=False),
+                              'C2': Categorical(list("bac"),
+                                                categories=list("bac"),
+                                                ordered=True)})
+        for col in ['C1', 'C2']:
+            result1 = df.groupby(by=col, as_index=False).mean()
+            result2 = df.groupby(by=col, as_index=True).mean().reset_index()
+            expected = exp_full.reindex(columns=result1.columns)
+            tm.assert_frame_equal(result1, expected)
+            tm.assert_frame_equal(result2, expected)
+
+        # multiple grouper
+        exp_full = DataFrame({'A': [1, 1, 1, 2, 2, 2],
+                              'B': [np.nan, 20.0, np.nan, 25.0, np.nan,
+                                    np.nan],
+                              'C1': Categorical(list("bacbac"),
+                                                categories=list("bac"),
+                                                ordered=False),
+                              'C2': Categorical(list("bacbac"),
+                                                categories=list("bac"),
+                                                ordered=True)})
+        for cols in [['A', 'C1'], ['A', 'C2']]:
+            result1 = df.groupby(by=cols, as_index=False).mean()
+            result2 = df.groupby(by=cols, as_index=True).mean().reset_index()
+            expected = exp_full.reindex(columns=result1.columns)
+            tm.assert_frame_equal(result1, expected)
+            tm.assert_frame_equal(result2, expected)
 
     def test_groupby_apply_all_none(self):
         # Tests to make sure no errors if apply function returns all None

@@ -314,6 +314,22 @@ class TestMultiIndex(Base, tm.TestCase):
         with tm.assertRaisesRegexp(TypeError, 'string'):
             self.index.set_names(names, level=0)
 
+    def test_set_levels_categorical(self):
+        # GH13854
+        index = MultiIndex.from_arrays([list("xyzx"), [0, 1, 2, 3]])
+        for ordered in [False, True]:
+            cidx = CategoricalIndex(list("bac"), ordered=ordered)
+            result = index.set_levels(cidx, 0)
+            expected = MultiIndex(levels=[cidx, [0, 1, 2, 3]],
+                                  labels=index.labels)
+            tm.assert_index_equal(result, expected)
+
+            result_lvl = result.get_level_values(0)
+            expected_lvl = CategoricalIndex(list("bacb"),
+                                            categories=cidx.categories,
+                                            ordered=cidx.ordered)
+            tm.assert_index_equal(result_lvl, expected_lvl)
+
     def test_metadata_immutable(self):
         levels, labels = self.index.levels, self.index.labels
         # shouldn't be able to set at either the top level or base level
@@ -656,6 +672,25 @@ class TestMultiIndex(Base, tm.TestCase):
 
         tm.assert_index_equal(result, result2)
 
+    def test_from_arrays_index_series_categorical(self):
+        # GH13743
+        idx1 = pd.CategoricalIndex(list("abcaab"), categories=list("bac"),
+                                   ordered=False)
+        idx2 = pd.CategoricalIndex(list("abcaab"), categories=list("bac"),
+                                   ordered=True)
+
+        result = pd.MultiIndex.from_arrays([idx1, idx2])
+        tm.assert_index_equal(result.get_level_values(0), idx1)
+        tm.assert_index_equal(result.get_level_values(1), idx2)
+
+        result2 = pd.MultiIndex.from_arrays([pd.Series(idx1), pd.Series(idx2)])
+        tm.assert_index_equal(result2.get_level_values(0), idx1)
+        tm.assert_index_equal(result2.get_level_values(1), idx2)
+
+        result3 = pd.MultiIndex.from_arrays([idx1.values, idx2.values])
+        tm.assert_index_equal(result3.get_level_values(0), idx1)
+        tm.assert_index_equal(result3.get_level_values(1), idx2)
+
     def test_from_arrays_different_lengths(self):
         # GH13599
         idx1 = [1, 2, 3]
@@ -695,6 +730,20 @@ class TestMultiIndex(Base, tm.TestCase):
             '2000-01-01')), (1, pd.Timestamp('2000-01-02')), (2, pd.Timestamp(
                 '2000-01-01')), (2, pd.Timestamp('2000-01-02'))])
         tm.assert_numpy_array_equal(mi.values, etalon)
+
+    def test_from_product_index_series_categorical(self):
+        # GH13743
+        first = ['foo', 'bar']
+        for ordered in [False, True]:
+            idx = pd.CategoricalIndex(list("abcaab"), categories=list("bac"),
+                                      ordered=ordered)
+            expected = pd.CategoricalIndex(list("abcaab") + list("abcaab"),
+                                           categories=list("bac"),
+                                           ordered=ordered)
+
+            for arr in [idx, pd.Series(idx), idx.values]:
+                result = pd.MultiIndex.from_product([first, arr])
+                tm.assert_index_equal(result.get_level_values(1), expected)
 
     def test_values_boxed(self):
         tuples = [(1, pd.Timestamp('2000-01-01')), (2, pd.NaT),
