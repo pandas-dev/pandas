@@ -5,7 +5,7 @@ from warnings import warn
 import types
 
 from pandas import compat, lib
-from pandas.compat import u
+from pandas.compat import u, lzip
 
 from pandas.types.generic import ABCSeries, ABCIndexClass, ABCCategoricalIndex
 from pandas.types.missing import isnull, notnull
@@ -17,6 +17,7 @@ from pandas.types.common import (_ensure_int64,
                                  _ensure_platform_int,
                                  is_dtype_equal,
                                  is_datetimelike,
+                                 is_categorical,
                                  is_categorical_dtype,
                                  is_integer_dtype, is_bool,
                                  is_list_like, is_sequence,
@@ -411,6 +412,8 @@ class Categorical(PandasObject):
     @classmethod
     def from_array(cls, data, **kwargs):
         """
+        DEPRECATED: Use ``Categorical`` instead.
+
         Make a Categorical type from a single array-like object.
 
         For internal compatibility with numpy arrays.
@@ -421,6 +424,8 @@ class Categorical(PandasObject):
             Can be an Index or array-like. The categories are assumed to be
             the unique values of `data`.
         """
+        warn("Categorical.from_array is deprecated, use Categorical instead",
+             FutureWarning, stacklevel=2)
         return cls(data, **kwargs)
 
     @classmethod
@@ -1959,3 +1964,47 @@ def _convert_to_list_like(list_like):
     else:
         # is this reached?
         return [list_like]
+
+
+def _factorize_from_iterable(values):
+    """
+    Factorize an input `values` into `categories` and `codes`. Preserves
+    categorical dtype in `categories`.
+
+    *This is an internal function*
+
+    Parameters
+    ----------
+    values : list-like
+
+    Returns
+    -------
+    codes : np.array
+    categories : Index
+        If `values` has a categorical dtype, then `categories` is
+        a CategoricalIndex keeping the categories and order of `values`.
+    """
+    from pandas.indexes.category import CategoricalIndex
+
+    if is_categorical(values):
+        if isinstance(values, (ABCCategoricalIndex, ABCSeries)):
+            values = values._values
+        categories = CategoricalIndex(values.categories,
+                                      categories=values.categories,
+                                      ordered=values.ordered)
+        codes = values.codes
+    else:
+        cat = Categorical(values, ordered=True)
+        categories = cat.categories
+        codes = cat.codes
+    return codes, categories
+
+
+def _factorize_from_iterables(iterables):
+    """
+    A higher-level wrapper over `_factorize_from_iterable`.
+    See `_factorize_from_iterable` for more info.
+
+    *This is an internal function*
+    """
+    return lzip(*[_factorize_from_iterable(it) for it in iterables])

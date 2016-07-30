@@ -18,7 +18,7 @@ from pandas.core.sparse import SparseDataFrame, SparseSeries
 from pandas.sparse.array import SparseArray
 from pandas._sparse import IntIndex
 
-from pandas.core.categorical import Categorical
+from pandas.core.categorical import Categorical, _factorize_from_iterable
 from pandas.core.groupby import get_group_index, _compress_group_index
 
 import pandas.core.algorithms as algos
@@ -166,9 +166,8 @@ class _Unstacker(object):
         if self.is_categorical is not None:
             categories = self.is_categorical.categories
             ordered = self.is_categorical.ordered
-            values = [Categorical.from_array(values[:, i],
-                                             categories=categories,
-                                             ordered=ordered)
+            values = [Categorical(values[:, i], categories=categories,
+                                  ordered=ordered)
                       for i in range(values.shape[-1])]
 
         return DataFrame(values, index=index, columns=columns)
@@ -471,8 +470,8 @@ def stack(frame, level=-1, dropna=True):
     def factorize(index):
         if index.is_unique:
             return index, np.arange(len(index))
-        cat = Categorical(index, ordered=True)
-        return cat.categories, cat.codes
+        codes, categories = _factorize_from_iterable(index)
+        return categories, codes
 
     N, K = frame.shape
     if isinstance(frame.columns, MultiIndex):
@@ -1107,8 +1106,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
                     sparse=False, drop_first=False):
     # Series avoids inconsistent NaN handling
-    cat = Categorical.from_array(Series(data), ordered=True)
-    levels = cat.categories
+    codes, levels = _factorize_from_iterable(Series(data))
 
     def get_empty_Frame(data, sparse):
         if isinstance(data, Series):
@@ -1124,10 +1122,10 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
     if not dummy_na and len(levels) == 0:
         return get_empty_Frame(data, sparse)
 
-    codes = cat.codes.copy()
+    codes = codes.copy()
     if dummy_na:
-        codes[codes == -1] = len(cat.categories)
-        levels = np.append(cat.categories, np.nan)
+        codes[codes == -1] = len(levels)
+        levels = np.append(levels, np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:
@@ -1212,9 +1210,7 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     labels = frame.index.labels[num]
     if transform is not None:
         mapped_items = items.map(transform)
-        cat = Categorical.from_array(mapped_items.take(labels), ordered=True)
-        labels = cat.codes
-        items = cat.categories
+        labels, items = _factorize_from_iterable(mapped_items.take(labels))
 
     values = np.eye(len(items), dtype=float)
     values = values.take(labels, axis=0)
