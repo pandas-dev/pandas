@@ -707,3 +707,19 @@ class TestDataFrameReshape(tm.TestCase, TestData):
                              columns=Index(['B', 'C'], name='Upper'),
                              dtype=df.dtypes[0])
         assert_frame_equal(result, expected)
+
+    def test_stack_preserve_categorical_dtype(self):
+        # GH13854
+        for ordered in [False, True]:
+            for labels in [list("yxz"), list("yxy")]:
+                cidx = pd.CategoricalIndex(labels, categories=list("xyz"),
+                                           ordered=ordered)
+                df = DataFrame([[10, 11, 12]], columns=cidx)
+                result = df.stack()
+
+                # `MutliIndex.from_product` preserves categorical dtype -
+                # it's tested elsewhere.
+                midx = pd.MultiIndex.from_product([df.index, cidx])
+                expected = Series([10, 11, 12], index=midx)
+
+                tm.assert_series_equal(result, expected)

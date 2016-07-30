@@ -21,7 +21,6 @@ import pandas.core.missing as missing
 from pandas import compat
 from pandas.compat import (map, zip, range, u, OrderedDict, OrderedDefaultdict)
 from pandas.compat.numpy import function as nv
-from pandas.core.categorical import Categorical
 from pandas.core.common import PandasError, _try_sort, _default_index
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
@@ -103,13 +102,7 @@ def panel_index(time, panels, names=None):
     if names is None:
         names = ['time', 'panel']
     time, panels = _ensure_like_indices(time, panels)
-    time_factor = Categorical.from_array(time, ordered=True)
-    panel_factor = Categorical.from_array(panels, ordered=True)
-
-    labels = [time_factor.codes, panel_factor.codes]
-    levels = [time_factor.categories, panel_factor.categories]
-    return MultiIndex(levels, labels, sortorder=None, names=names,
-                      verify_integrity=False)
+    return MultiIndex.from_arrays([time, panels], sortorder=None, names=names)
 
 
 class Panel(NDFrame):

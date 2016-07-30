@@ -37,7 +37,7 @@ from pandas.core.base import StringMixin
 from pandas.formats.printing import adjoin, pprint_thing
 from pandas.core.common import _asarray_tuplesafe, PerformanceWarning
 from pandas.core.algorithms import match, unique
-from pandas.core.categorical import Categorical
+from pandas.core.categorical import Categorical, _factorize_from_iterables
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
@@ -3736,11 +3736,12 @@ class LegacyTable(Table):
         if not self.read_axes(where=where, **kwargs):
             return None
 
-        factors = [Categorical.from_array(
-            a.values, ordered=True) for a in self.index_axes]
-        levels = [f.categories for f in factors]
-        N = [len(f.categories) for f in factors]
-        labels = [f.codes for f in factors]
+        lst_vals = [a.values for a in self.index_axes]
+        labels, levels = _factorize_from_iterables(lst_vals)
+        # labels and levels are tuples but lists are expected
+        labels = list(labels)
+        levels = list(levels)
+        N = [len(lvl) for lvl in levels]
 
         # compute the key
         key = _factor_indexer(N[1:], labels)

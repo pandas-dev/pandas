@@ -539,7 +539,8 @@ class TestGetDummies(tm.TestCase):
 
         data = Series(pd.Categorical(['a', 'b', 'a']))
         result = pd.get_dummies(data)
-        expected = DataFrame([[1, 0], [0, 1], [1, 0]], columns=['a', 'b'],
+        expected = DataFrame([[1, 0], [0, 1], [1, 0]],
+                             columns=pd.Categorical(['a', 'b']),
                              dtype=np.uint8)
         tm.assert_frame_equal(result, expected)
 
@@ -561,9 +562,45 @@ class TestGetDummies(tm.TestCase):
         result = pd.get_dummies(data, columns=['A', 'B'])
         tm.assert_frame_equal(result, expected)
 
+    def test_dataframe_dummies_preserve_categorical_dtype(self):
+        # GH13854
+        for ordered in [False, True]:
+            cat = pd.Categorical(list("xy"), categories=list("xyz"),
+                                 ordered=ordered)
+            result = get_dummies(cat)
+
+            data = np.array([[1, 0, 0], [0, 1, 0]], dtype=np.uint8)
+            cols = pd.CategoricalIndex(cat.categories,
+                                       categories=cat.categories,
+                                       ordered=ordered)
+            expected = DataFrame(data, columns=cols)
+
+            tm.assert_frame_equal(result, expected)
+
 
 class TestGetDummiesSparse(TestGetDummies):
     sparse = True
+
+
+class TestMakeAxisDummies(tm.TestCase):
+
+    def test_preserve_categorical_dtype(self):
+        # GH13854
+        for ordered in [False, True]:
+            cidx = pd.CategoricalIndex(list("xyz"), ordered=ordered)
+            midx = pd.MultiIndex(levels=[['a'], cidx],
+                                 labels=[[0, 0], [0, 1]])
+            df = DataFrame([[10, 11]], index=midx)
+
+            expected = DataFrame([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                                 index=midx, columns=cidx)
+
+            from pandas.core.reshape import make_axis_dummies
+            result = make_axis_dummies(df)
+            tm.assert_frame_equal(result, expected)
+
+            result = make_axis_dummies(df, transform=lambda x: x)
+            tm.assert_frame_equal(result, expected)
 
 
 class TestLreshape(tm.TestCase):

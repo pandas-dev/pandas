@@ -80,8 +80,7 @@ class TestCategoricalDtype(Base, tm.TestCase):
 
         self.assertTrue(is_categorical_dtype(self.dtype))
 
-        factor = Categorical.from_array(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'
-                                         ])
+        factor = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
 
         s = Series(factor, name='A')
 
