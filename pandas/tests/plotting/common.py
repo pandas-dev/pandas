@@ -8,7 +8,7 @@ import warnings
 from pandas import DataFrame
 from pandas.compat import zip, iteritems, OrderedDict
 from pandas.util.decorators import cache_readonly
-import pandas.core.common as com
+from pandas.types.api import is_list_like
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
                                  assert_is_valid_plot_return_object)
@@ -157,7 +157,7 @@ class TestPlotBase(tm.TestCase):
         """
         from matplotlib.collections import Collection
         if not isinstance(collections,
-                          Collection) and not com.is_list_like(collections):
+                          Collection) and not is_list_like(collections):
             collections = [collections]
 
         for patch in collections:
@@ -242,7 +242,7 @@ class TestPlotBase(tm.TestCase):
         expected : str or list-like which has the same length as texts
             expected text label, or its list
         """
-        if not com.is_list_like(texts):
+        if not is_list_like(texts):
             self.assertEqual(texts.get_text(), expected)
         else:
             labels = [t.get_text() for t in texts]
