@@ -4482,6 +4482,13 @@ destination DataFrame as well as a preferred column order as follows:
 
    You can toggle the verbose output via the ``verbose`` flag which defaults to ``True``.
 
+.. note::
+
+    The ``dialect`` argument can be used to indicate whether to use BigQuery's ``'legacy'`` SQL
+    or BigQuery's ``'standard'`` SQL (beta). The default value is ``'legacy'``. For more information
+    on BigQuery's standard SQL, see `BigQuery SQL Reference
+    <https://cloud.google.com/bigquery/sql-reference/>`__
+
 .. _io.bigquery_writer:
 
 
