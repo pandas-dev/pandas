@@ -1503,3 +1503,19 @@ j,-inF"""
 
         out = self.read_csv(mmap_file, memory_map=True)
         tm.assert_frame_equal(out, expected)
+
+    def test_null_byte_char(self):
+        # see gh-2741
+        data = '\x00,foo'
+        cols = ['a', 'b']
+
+        expected = DataFrame([[np.nan, 'foo']],
+                             columns=cols)
+
+        if self.engine == 'c':
+            out = self.read_csv(StringIO(data), names=cols)
+            tm.assert_frame_equal(out, expected)
+        else:
+            msg = "NULL byte detected"
+            with tm.assertRaisesRegexp(csv.Error, msg):
+                self.read_csv(StringIO(data), names=cols)

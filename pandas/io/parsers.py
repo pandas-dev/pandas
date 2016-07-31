@@ -2190,7 +2190,17 @@ class PythonParser(ParserBase):
                 next(self.data)
 
             while True:
-                orig_line = next(self.data)
+                try:
+                    orig_line = next(self.data)
+                except csv.Error as e:
+                    if 'NULL byte' in str(e):
+                        raise csv.Error(
+                            'NULL byte detected. This byte '
+                            'cannot be processed in Python\'s '
+                            'native csv library at the moment, '
+                            'so please pass in engine=\'c\' instead.')
+                    else:
+                        raise
                 line = self._check_comments([orig_line])[0]
                 self.pos += 1
                 if (not self.skip_blank_lines and
