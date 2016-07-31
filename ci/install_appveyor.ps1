@@ -126,7 +126,7 @@ function UpdateConda ($python_home) {
 function main () {
     InstallMiniconda $env:PYTHON_VERSION $env:PYTHON_ARCH $env:PYTHON
     UpdateConda $env:PYTHON
-    InstallCondaPackages $env:PYTHON "pip setuptools nose"
+    InstallCondaPackages $env:PYTHON "pip setuptools nose pytest"
     InstallCondaPackagesFromFile $env:PYTHON $env:PYTHON_VERSION $env:PYTHON_ARCH
 }
 

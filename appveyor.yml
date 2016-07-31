@@ -93,7 +93,7 @@ install:
   - cmd: '%CMD_IN_ENV% conda build ci\appveyor.recipe -q'
 
   # create our env
-  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% nose
+  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% nose pytest
   - cmd: activate pandas
   - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
   - cmd: echo "installing requirements from %REQ%"
@@ -105,4 +105,4 @@ test_script:
   - cd \
   - cmd: activate pandas
   - cmd: conda list
-  - cmd: nosetests --exe -A "not slow and not network and not disabled" pandas
+  - cmd: pytest --skip-slow --skip-network -c %APPVEYOR_BUILD_FOLDER% pandas

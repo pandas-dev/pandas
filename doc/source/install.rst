@@ -188,8 +188,8 @@ Running the test suite
 pandas is equipped with an exhaustive set of unit tests covering about 97% of
 the codebase as of this writing. To run it on your machine to verify that
 everything is working (and you have all of the dependencies, soft and hard,
-installed), make sure you have `nose
-<https://nose.readthedocs.io/en/latest/>`__ and run:
+installed), make sure you have `pytest
+<http://doc.pytest.org/en/latest/>`__ and run:
 
 ::
 
