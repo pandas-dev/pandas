@@ -19,7 +19,8 @@ from contextlib import contextmanager
 from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
-from numpy.testing.decorators import slow     # noqa
+# from numpy.testing.decorators import slow     # noqa
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -2549,9 +2550,8 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                                     % extra_warnings)
 
 
-def disabled(t):
-    t.disabled = True
-    return t
+disabled = pytest.mark.disabled
+slow = pytest.mark.slow
 
 
 class RNGContext(object):
