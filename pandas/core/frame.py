@@ -1556,12 +1556,11 @@ class DataFrame(NDFrame):
             return result
 
     @Appender(fmt.docstring_to_string, indents=1)
-    def to_html(self, buf=None, columns=None, col_space=None, colSpace=None,
-                header=True, index=True, na_rep='NaN', formatters=None,
-                float_format=None, sparsify=None, index_names=True,
-                justify=None, bold_rows=True, classes=None, escape=True,
-                max_rows=None, max_cols=None, show_dimensions=False,
-                notebook=False, decimal='.'):
+    def to_html(self, buf=None, columns=None, col_space=None, header=True,
+                index=True, na_rep='NaN', formatters=None, float_format=None,
+                sparsify=None, index_names=True, justify=None, bold_rows=True,
+                classes=None, escape=True, max_rows=None, max_cols=None,
+                show_dimensions=False, notebook=False, decimal='.'):
         """
         Render a DataFrame as an HTML table.
 
@@ -1585,11 +1584,6 @@ class DataFrame(NDFrame):
             .. versionadded:: 0.18.0
         """
 
-        if colSpace is not None:  # pragma: no cover
-            warnings.warn("colSpace is deprecated, use col_space",
-                          FutureWarning, stacklevel=2)
-            col_space = colSpace
-
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            formatters=formatters,
@@ -1609,11 +1603,11 @@ class DataFrame(NDFrame):
             return formatter.buf.getvalue()
 
     @Appender(fmt.common_docstring + fmt.return_docstring, indents=1)
-    def to_latex(self, buf=None, columns=None, col_space=None, colSpace=None,
-                 header=True, index=True, na_rep='NaN', formatters=None,
-                 float_format=None, sparsify=None, index_names=True,
-                 bold_rows=True, column_format=None, longtable=None,
-                 escape=None, encoding=None, decimal='.'):
+    def to_latex(self, buf=None, columns=None, col_space=None, header=True,
+                 index=True, na_rep='NaN', formatters=None, float_format=None,
+                 sparsify=None, index_names=True, bold_rows=True,
+                 column_format=None, longtable=None, escape=None,
+                 encoding=None, decimal='.'):
         """
         Render a DataFrame to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage{booktabs}.
@@ -1642,11 +1636,6 @@ class DataFrame(NDFrame):
             .. versionadded:: 0.18.0
 
         """
-
-        if colSpace is not None:  # pragma: no cover
-            warnings.warn("colSpace is deprecated, use col_space",
-                          FutureWarning, stacklevel=2)
-            col_space = colSpace
         # Get defaults from the pandas config
         if longtable is None:
             longtable = get_option("display.latex.longtable")
