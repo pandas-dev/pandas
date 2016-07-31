@@ -18,8 +18,9 @@ from pandas.types.generic import ABCSparseArray, ABCSparseSeries
 from pandas.types.common import (is_float, is_integer,
                                  is_integer_dtype, _ensure_platform_int,
                                  is_list_like,
-                                 is_scalar)
-from pandas.types.cast import _possibly_convert_platform
+                                 is_scalar, is_dtype_equal)
+from pandas.types.cast import (_possibly_convert_platform, _maybe_promote,
+                               _astype_nansafe)
 from pandas.types.missing import isnull, notnull
 
 from pandas._sparse import SparseIndex, BlockIndex, IntIndex
@@ -236,7 +237,7 @@ class SparseArray(PandasObject, np.ndarray):
             raise ValueError('sp_index must be a SparseIndex')
 
         result.sp_index = sp_index
-        result.fill_value = fill_value
+        result._fill_value = fill_value
         return result
 
     @property
@@ -285,7 +286,7 @@ class SparseArray(PandasObject, np.ndarray):
         to pass on the index.
         """
         self.sp_index = getattr(obj, 'sp_index', None)
-        self.fill_value = getattr(obj, 'fill_value', None)
+        self._fill_value = getattr(obj, 'fill_value', None)
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
@@ -301,7 +302,7 @@ class SparseArray(PandasObject, np.ndarray):
 
         fill_value, sp_index = own_state[:2]
         self.sp_index = sp_index
-        self.fill_value = fill_value
+        self._fill_value = fill_value
 
     def __len__(self):
         try:
@@ -343,6 +344,22 @@ class SparseArray(PandasObject, np.ndarray):
     def sp_values(self):
         # caching not an option, leaks memory
         return self.view(np.ndarray)
+
+    @property
+    def fill_value(self):
+        return self._fill_value
+
+    @fill_value.setter
+    def fill_value(self, value):
+        if not is_scalar(value):
+            raise ValueError('fill_value must be a scalar')
+        # if the specified value triggers type promotion, raise ValueError
+        new_dtype, fill_value = _maybe_promote(self.dtype, value)
+        if is_dtype_equal(self.dtype, new_dtype):
+            self._fill_value = fill_value
+        else:
+            msg = 'unable to set fill_value {0} to {1} dtype'
+            raise ValueError(msg.format(value, self.dtype))
 
     def get_values(self, fill=None):
         """ return a dense representation """
@@ -479,19 +496,16 @@ class SparseArray(PandasObject, np.ndarray):
         raise TypeError("SparseArray does not support item assignment via "
                         "slices")
 
-    def astype(self, dtype=None):
-        """
-
-        """
+    def astype(self, dtype=None, copy=True):
         dtype = np.dtype(dtype)
-        if dtype is not None and dtype not in (np.float_, float):
-            raise TypeError('Can only support floating point data for now')
-
-        if self.dtype == dtype:
-            return self.copy()
-        else:
-            return self._simple_new(self.sp_values.astype(dtype),
-                                    self.sp_index, float(self.fill_value))
+        sp_values = _astype_nansafe(self.sp_values, dtype, copy=copy)
+        try:
+            fill_value = dtype.type(self.fill_value)
+        except ValueError:
+            msg = 'unable to coerce current fill_value {0} to {1} dtype'
+            raise ValueError(msg.format(self.fill_value, dtype))
+        return self._simple_new(sp_values, self.sp_index,
+                                fill_value=fill_value)
 
     def copy(self, deep=True):
         """

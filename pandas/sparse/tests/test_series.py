@@ -797,7 +797,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         cop2 = self.zbseries.copy()
         cop2.fill_value = 1
         result = cop2 / cop
-        self.assertEqual(result.fill_value, np.inf)
+        # 1 / 0 is inf
+        self.assertTrue(np.isinf(result.fill_value))
 
     def test_fill_value_when_combine_const(self):
         # GH12723
