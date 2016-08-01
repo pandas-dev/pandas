@@ -86,6 +86,14 @@ class TestPickle():
                 comparator(result, expected, typ, version)
         return data
 
+    def compare_sp_series_ts(self, res, exp, typ, version):
+        # SparseTimeSeries integrated into SparseSeries in 0.12.0
+        # and deprecated in 0.17.0
+        if version and LooseVersion(version) <= "0.12.0":
+            tm.assert_sp_series_equal(res, exp, check_series_type=False)
+        else:
+            tm.assert_sp_series_equal(res, exp)
+
     def compare_series_ts(self, result, expected, typ, version):
         # GH 7748
         tm.assert_series_equal(result, expected)
