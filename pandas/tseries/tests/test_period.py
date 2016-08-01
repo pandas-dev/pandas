@@ -457,10 +457,14 @@ class TestPeriodProperties(tm.TestCase):
             for freq in freqs:
                 with self.assertRaisesRegexp(ValueError, msg):
                     Period('2016-03-01 09:00', freq=freq)
+                with self.assertRaisesRegexp(ValueError, msg):
+                    Period(ordinal=1, freq=freq)
 
-                # check supported freq-aliases still works
-                p = Period('2016-03-01 09:00', freq=exp)
-                tm.assertIsInstance(p, Period)
+            # check supported freq-aliases still works
+            p1 = Period('2016-03-01 09:00', freq=exp)
+            p2 = Period(ordinal=1, freq=exp)
+            tm.assertIsInstance(p1, Period)
+            tm.assertIsInstance(p2, Period)
 
     def test_hash(self):
         self.assertEqual(hash(Period('2011-01', freq='M')),
