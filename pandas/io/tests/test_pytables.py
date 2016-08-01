@@ -531,16 +531,25 @@ class TestHDFStore(Base, tm.TestCase):
 
                 # conv read
                 if mode in ['w']:
-                    self.assertRaises(KeyError, read_hdf,
+                    self.assertRaises(ValueError, read_hdf,
                                       path, 'df', mode=mode)
                 else:
                     result = read_hdf(path, 'df', mode=mode)
                     assert_frame_equal(result, df)
 
+        def check_default_mode():
+
+            # read_hdf uses default mode
+            with ensure_clean_path(self.path) as path:
+                df.to_hdf(path, 'df', mode='w')
+                result = read_hdf(path, 'df')
+                assert_frame_equal(result, df)
+
         check('r')
         check('r+')
         check('a')
         check('w')
+        check_default_mode()
 
     def test_reopen_handle(self):
 

@@ -303,6 +303,10 @@ def read_hdf(path_or_buf, key=None, **kwargs):
 
         """
 
+    if kwargs.get('mode', 'a') not in ['r', 'r+', 'a']:
+        raise ValueError('mode {0} is not allowed while performing a read. '
+                         'Allowed modes are r, r+ and a.'
+                         .format(kwargs.get('mode')))
     # grab the scope
     if 'where' in kwargs:
         kwargs['where'] = _ensure_term(kwargs['where'], scope_level=1)
