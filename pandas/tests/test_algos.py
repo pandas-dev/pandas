@@ -777,7 +777,6 @@ class TestDuplicated(tm.TestCase):
         exp_false = exp_first | exp_last
 
         for case in cases:
-            print(case)
             res_first = algos.duplicated(case, keep='first')
             tm.assert_numpy_array_equal(res_first, exp_first)
 
@@ -788,7 +787,8 @@ class TestDuplicated(tm.TestCase):
             tm.assert_numpy_array_equal(res_false, exp_false)
 
             # index
-            for idx in [pd.Index(case), pd.Index(case, dtype='category')]:
+            for idx in [pd.Index(case), pd.Index(case, dtype='category'),
+                        pd.Index(case, dtype=object)]:
                 res_first = idx.duplicated(keep='first')
                 tm.assert_numpy_array_equal(res_first, exp_first)
 
@@ -799,7 +799,8 @@ class TestDuplicated(tm.TestCase):
                 tm.assert_numpy_array_equal(res_false, exp_false)
 
             # series
-            for s in [pd.Series(case), pd.Series(case, dtype='category')]:
+            for s in [pd.Series(case), pd.Series(case, dtype='category'),
+                      pd.Series(case, dtype=object)]:
                 res_first = s.duplicated(keep='first')
                 tm.assert_series_equal(res_first, pd.Series(exp_first))
 
