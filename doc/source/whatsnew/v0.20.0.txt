@@ -328,6 +328,7 @@ Bug Fixes
 
 
 
+- Bug in ``resample``, where a non-string ```loffset`` argument would not be applied when resampling a timeseries (:issue:`13218`)
 
 
 
@@ -337,4 +338,15 @@ Bug Fixes
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
 - Bug in converting object elements of array-like objects to unsigned 64-bit integers (:issue:`4471`, :issue:`14982`)
 - Bug in ``pd.pivot_table()`` where no error was raised when values argument was not in the columns (:issue:`14938`)
+
+
+
+
+
+
+
+
+
+
+
 - Bug in ``pd.read_csv()`` for the C engine where ``usecols`` were being indexed incorrectly with ``parse_dates`` (:issue:`14792`)
