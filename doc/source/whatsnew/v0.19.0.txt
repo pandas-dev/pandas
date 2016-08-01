@@ -671,6 +671,7 @@ Deprecations
 - ``Categorical.reshape`` has been deprecated and will be removed in a subsequent release (:issue:`12882`)
 - ``Series.reshape`` has been deprecated and will be removed in a subsequent release (:issue:`12882`)
 
+- ``DataFrame.to_html()`` and ``DataFrame.to_latex()`` have dropped the ``colSpace`` parameter in favor of ``col_space`` (:issue:`13857`)
 - ``DataFrame.to_sql()`` has deprecated the ``flavor`` parameter, as it is superfluous when SQLAlchemy is not installed (:issue:`13611`)
 - ``compact_ints`` and ``use_unsigned`` have been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13320`)
 - ``buffer_lines`` has been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13360`)
