@@ -1152,7 +1152,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # different warning on py3
         if not PY3:
-            axes = _check_plot_works(df.plot.box, subplots=True, logy=True)
+            with tm.assert_produces_warning(UserWarning):
+                axes = _check_plot_works(df.plot.box, subplots=True, logy=True)
 
             self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
             self._check_ax_scales(axes, yaxis='log')
