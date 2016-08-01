@@ -975,3 +975,4 @@ Bug Fixes
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
 - Bug in ``Period`` and ``PeriodIndex`` creating wrong dates when frequency has combined offset aliases (:issue:`13874`)
 - Bug in ``pd.to_datetime()`` did not cast floats correctly when ``unit`` was specified, resulting in truncated datetime (:issue:`13845`)
+- Bug in ``resample`` where ``loffset`` was not applied when calling ``resample.agg()`` on a timeseries (:issue:`13218`)
