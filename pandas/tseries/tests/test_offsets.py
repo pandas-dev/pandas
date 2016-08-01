@@ -4591,21 +4591,30 @@ class TestParseTimeString(tm.TestCase):
 
 
 def test_get_standard_freq():
-    fstr = get_standard_freq('W')
-    assert fstr == get_standard_freq('w')
-    assert fstr == get_standard_freq('1w')
-    assert fstr == get_standard_freq(('W', 1))
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        fstr = get_standard_freq('W')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq('w')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq('1w')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq(('W', 1))
 
     with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
-        get_standard_freq('WeEk')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            get_standard_freq('WeEk')
 
-    fstr = get_standard_freq('5Q')
-    assert fstr == get_standard_freq('5q')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        fstr = get_standard_freq('5Q')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq('5q')
 
     with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
-        get_standard_freq('5QuarTer')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            get_standard_freq('5QuarTer')
 
-    assert fstr == get_standard_freq(('q', 5))
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq(('q', 5))
 
 
 def test_quarterly_dont_normalize():
