@@ -149,11 +149,6 @@ c,3
         result = self.read_csv(StringIO(data), index_col='time', squeeze=True)
         self.assertFalse(result._is_view)
 
-    def test_multiple_skts_example(self):
-        # TODO: Complete this
-        data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."  # noqa
-        pass
-
     def test_malformed(self):
         # see gh-6607
 
@@ -290,8 +285,11 @@ a,1,2
 b,3,4
 c,4,5
 """
-        # TODO: complete this
-        df = self.read_csv(StringIO(data))  # noqa
+        expected = DataFrame({'A': ['a', 'b', 'c'],
+                              'B': [1, 3, 4],
+                              'C': [2, 4, 5]})
+        out = self.read_csv(StringIO(data))
+        tm.assert_frame_equal(out, expected)
 
     def test_read_csv_dataframe(self):
         df = self.read_csv(self.csv1, index_col=0, parse_dates=True)
