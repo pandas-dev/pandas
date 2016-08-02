@@ -701,7 +701,7 @@ Removal of prior version deprecations/changes
 - ``Series.to_csv`` has dropped the ``nanRep`` parameter in favor of ``na_rep`` (:issue:`13804`)
 - ``Series.xs``, ``DataFrame.xs``, ``Panel.xs``, ``Panel.major_xs``, and ``Panel.minor_xs`` have dropped the ``copy`` parameter (:issue:`13781`)
 - ``str.split`` has dropped the ``return_type`` parameter in favor of ``expand`` (:issue:`13701`)
-- Removal of the legacy time rules (offset aliases), deprecated since 0.17.0 (this has been alias since 0.8.0) (:issue:`13590`)
+- Removal of the legacy time rules (offset aliases), deprecated since 0.17.0 (this has been alias since 0.8.0) (:issue:`13590`, :issue:`13868`)
 
   Previous Behavior:
 
