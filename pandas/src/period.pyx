@@ -681,10 +681,7 @@ cdef class _Period(object):
     @classmethod
     def _maybe_convert_freq(cls, object freq):
 
-        if isinstance(freq, compat.string_types):
-            freq = freq.upper()
-            freq = frequencies._period_alias_dict.get(freq, freq)
-        elif isinstance(freq, (int, tuple)):
+        if isinstance(freq, (int, tuple)):
             code, stride = frequencies.get_freq_code(freq)
             freq = frequencies._get_freq_str(code, stride)
 
