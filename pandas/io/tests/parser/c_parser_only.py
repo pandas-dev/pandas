@@ -439,7 +439,7 @@ No,No,No"""
 
         # Generate the expected output: manually create the dataframe
         # by splitting by comma and repeating the `n_lines` times.
-        row = tuple(val_ if val_ else float("nan")
+        row = tuple(val_ if val_ else np.nan
                     for val_ in record_.split(","))
         expected = pd.DataFrame([row for _ in range(n_lines)],
                                 dtype=object, columns=None, index=None)
@@ -447,7 +447,16 @@ No,No,No"""
         # Iterate over the CSV file in chunks of `chunksize` lines
         chunks_ = self.read_csv(StringIO(csv_data), header=None,
                                 dtype=object, chunksize=chunksize)
-        result = pd.concat(chunks_, axis=0, ignore_index=True)
+        result1 = pd.concat(chunks_, axis=0, ignore_index=True)
 
         # Check for data corruption if there was no segfault
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result1, expected)
+
+        # This extra test was added to replicate the fault in #5291.
+        # Force 'utf-8' encoding, so that `_string_convert` would take
+        # a different execution branch.
+        chunks_ = self.read_csv(StringIO(csv_data), header=None,
+                                dtype=object, chunksize=chunksize,
+                                encoding='utf_8')
+        result2 = pd.concat(chunks_, axis=0, ignore_index=True)
+        tm.assert_frame_equal(result2, expected)
