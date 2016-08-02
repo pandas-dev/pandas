@@ -920,5 +920,6 @@ def test_same_ordering():
     assert_framelist_equal(dfs_lxml, dfs_bs4)
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

@@ -2,7 +2,6 @@
 import re
 from datetime import datetime
 
-import nose
 import numpy as np
 from pandas.compat import long
 import pandas.core.algorithms as algos
@@ -451,5 +450,6 @@ class TestTake(tm.TestCase):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

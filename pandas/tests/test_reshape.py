@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
-import nose
-
 from pandas import DataFrame, Series
 from pandas.core.sparse import SparseDataFrame
 import pandas as pd
@@ -917,5 +915,6 @@ class TestWideToLong(tm.TestCase):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

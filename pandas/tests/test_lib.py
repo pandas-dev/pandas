@@ -235,7 +235,6 @@ class TestNullObj(tm.TestCase):
 
 
 if __name__ == '__main__':
-    import nose
+    import pytest
 
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

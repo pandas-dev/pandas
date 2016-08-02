@@ -15,7 +15,6 @@ from pandas.tseries.holiday import (USFederalHolidayCalendar, USMemorialDay,
                                     USLaborDay, USColumbusDay,
                                     USMartinLutherKingJr, USPresidentsDay)
 from pytz import utc
-import nose
 
 
 class TestCalendar(tm.TestCase):
@@ -388,5 +387,6 @@ class TestHolidayConflictingArguments(tm.TestCase):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

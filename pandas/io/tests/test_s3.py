@@ -1,4 +1,3 @@
-import nose
 from pandas.util import testing as tm
 
 from pandas.io.common import _is_s3_url
@@ -10,5 +9,6 @@ class TestS3URL(tm.TestCase):
         self.assertFalse(_is_s3_url("s4://pandas/somethingelse.com"))
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

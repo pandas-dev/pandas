@@ -4,9 +4,6 @@
 These test the private routines in types/cast.py
 
 """
-
-
-import nose
 from datetime import datetime
 import numpy as np
 
@@ -281,5 +278,6 @@ class TestCommonTypes(tm.TestCase):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

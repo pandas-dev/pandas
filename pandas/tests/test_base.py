@@ -5,6 +5,7 @@ import re
 import sys
 from datetime import datetime, timedelta
 
+import nose
 import numpy as np
 
 import pandas as pd
@@ -1101,8 +1102,6 @@ class TestNoNewAttributesMixin(tm.TestCase):
 
 
 if __name__ == '__main__':
-    import nose
+    import pytest
 
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   # '--with-coverage', '--cover-package=pandas.core'],
-                   exit=False)
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

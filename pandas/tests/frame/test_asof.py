@@ -1,7 +1,5 @@
 # coding=utf-8
 
-import nose
-
 import numpy as np
 from pandas import DataFrame, date_range
 
@@ -68,5 +66,6 @@ class TestFrameAsof(TestData, tm.TestCase):
         assert_frame_equal(result, expected)
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

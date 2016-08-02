@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import nose
 from pandas import compat
 import pandas.formats.printing as printing
 import pandas.formats.format as fmt
@@ -138,5 +137,6 @@ c        ff         いいい"""
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

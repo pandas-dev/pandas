@@ -1,7 +1,5 @@
 # pylint: disable=E1103
 
-import nose
-
 from numpy.random import randn
 import numpy as np
 
@@ -800,5 +798,6 @@ def _join_by_hand(a, b, how='left'):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

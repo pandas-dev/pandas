@@ -5726,6 +5726,6 @@ ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)
 ops.add_special_arithmetic_methods(DataFrame, **ops.frame_special_funcs)
 
 if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])
