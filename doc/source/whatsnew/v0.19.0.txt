@@ -842,6 +842,8 @@ Bug Fixes
 - Bug in ``RangeIndex`` can be created without no arguments rather than raises ``TypeError`` (:issue:`13793`)
 - Bug in ``.value_counts`` raises ``OutOfBoundsDatetime`` if data exceeds ``datetime64[ns]`` bounds (:issue:`13663`)
 - Bug in ``DatetimeIndex`` may raise ``OutOfBoundsDatetime`` if input ``np.datetime64`` has other unit than ``ns`` (:issue:`9114`)
+- Bug in ``Series`` creation with ``np.datetime64`` which has other unit than ``ns`` as ``object`` dtype results in incorrect values (:issue:`13876`)
+
 - Bug in ``isnull`` ``notnull`` raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
 - Bug in ``.merge`` may raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
 

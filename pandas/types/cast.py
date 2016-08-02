@@ -829,6 +829,8 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
         # coerce datetimelike to object
         elif is_datetime64_dtype(value) and not is_datetime64_dtype(dtype):
             if is_object_dtype(dtype):
+                if value.dtype != _NS_DTYPE:
+                    value = value.astype(_NS_DTYPE)
                 ints = np.asarray(value).view('i8')
                 return tslib.ints_to_pydatetime(ints)
 
