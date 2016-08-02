@@ -1089,7 +1089,6 @@ class TestConcatenate(ConcatenateBase):
                                categories=['b', 'a', 'c'], ordered=True)
         tm.assert_categorical_equal(result, expected)
 
-
     def test_concat_bug_1719(self):
         ts1 = tm.makeTimeSeries()
         ts2 = tm.makeTimeSeries()[::2]
