@@ -1332,6 +1332,15 @@ class TestIndexing(tm.TestCase):
         self.assertEqual(result, 3)
         self.assertRaises(ValueError, lambda: df.at['a', 0])
 
+        # GH 13822, incorrect error string with non-unique columns when missing
+        # column is accessed
+        df = DataFrame({'x': [1.], 'y': [2.], 'z': [3.]})
+        df.columns = ['x', 'x', 'z']
+
+        # Check that we get the correct value in the KeyError
+        self.assertRaisesRegexp(KeyError, "\['y'\] not in index",
+                                lambda: df[['x', 'y', 'z']])
+
     def test_loc_getitem_label_slice(self):
 
         # label slices (with ints)
