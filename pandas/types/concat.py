@@ -223,7 +223,7 @@ def union_categoricals(to_union, sort_categories=False):
     to_union : list-like of Categoricals
     sort_categories : boolean, default False
         If true, resulting categories will be lexsorted, otherwise
-        they will be ordered as they appear in the data
+        they will be ordered as they appear in the data.
 
     Returns
     -------
@@ -235,6 +235,7 @@ def union_categoricals(to_union, sort_categories=False):
         - all inputs do not have the same dtype
         - all inputs do not have the same ordered property
         - all inputs are ordered and their categories are not identical
+        - sort_categories=True and Categoricals are ordered
     ValueError
         Emmpty list of categoricals passed
     """
@@ -255,6 +256,10 @@ def union_categoricals(to_union, sort_categories=False):
         categories = first.categories
         ordered = first.ordered
         new_codes = np.concatenate([c.codes for c in to_union])
+
+        if sort_categories and ordered:
+            raise TypeError("Cannot use sort_categories=True with "
+                            "ordered Categoricals")
 
         if sort_categories and not categories.is_monotonic_increasing:
             categories = categories.sort_values()
