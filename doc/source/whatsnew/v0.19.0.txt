@@ -475,6 +475,112 @@ New Behavior:
 
    type(s.tolist()[0])
 
+.. _whatsnew_0190.api.series_ops:
+
+``Series`` operators for different indexes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Following ``Series`` operators has been changed to make all operators consistent,
+including ``DataFrame`` (:issue:`1134`, :issue:`4581`, :issue:`13538`)
+
+- ``Series`` comparison operators now raise ``ValueError`` when ``index`` are different.
+- ``Series`` logical operators align both ``index``.
+
+.. warning::
+   Until 0.18.1, comparing ``Series`` with the same length has been succeeded even if
+   these ``index`` are different (the result ignores ``index``).
+   As of 0.19.1, it raises ``ValueError`` to be more strict.
+
+As a result, ``Series`` and ``DataFrame`` operators behave as below:
+
+Arithmetic operators
+""""""""""""""""""""
+
+Arithmetic operators align both ``index`` (no changes).
+
+.. ipython:: python
+
+   s1 = pd.Series([1, 2, 3], index=list('ABC'))
+   s2 = pd.Series([2, 2, 2], index=list('ABD'))
+   s1 + s2
+
+   df1 = pd.DataFrame([1, 2, 3], index=list('ABC'))
+   df2 = pd.DataFrame([2, 2, 2], index=list('ABD'))
+   df1 + df2
+
+Comparison operators
+""""""""""""""""""""
+
+Comparison operators raise ``ValueError`` when ``index`` are different.
+
+Previous Behavior (``Series``):
+
+``Series`` compares values ignoring ``index`` as long as both lengthes are the same.
+
+.. code-block:: ipython
+
+   In [1]: s1 == s2
+   Out[1]:
+   A    False
+   B     True
+   C    False
+   dtype: bool
+
+New Behavior (``Series``):
+
+.. code-block:: ipython
+
+   In [2]: s1 == s2
+   Out[2]:
+   ValueError: Can only compare identically-labeled Series objects
+
+Current Behavior (``DataFrame``, no change):
+
+.. code-block:: ipython
+
+   In [3]: df1 == df2
+   Out[3]:
+   ValueError: Can only compare identically-labeled DataFrame objects
+
+Logical operators
+"""""""""""""""""
+
+Logical operators align both ``index``.
+
+Previous Behavior (``Series``):
+
+Only left hand side ``index`` is kept.
+
+.. code-block:: ipython
+
+   In [4]: s1 = pd.Series([True, False, True], index=list('ABC'))
+   In [5]: s2 = pd.Series([True, True, True], index=list('ABD'))
+   In [6]: s1 & s2
+   Out[6]:
+   A     True
+   B    False
+   C    False
+   dtype: bool
+
+New Behavior (``Series``):
+
+.. ipython:: python
+
+   s1 = pd.Series([True, False, True], index=list('ABC'))
+   s2 = pd.Series([True, True, True], index=list('ABD'))
+   s1 & s2
+
+.. note::
+   ``Series`` logical operators fill ``NaN`` result with ``False``.
+
+Current Behavior (``DataFrame``, no change):
+
+.. ipython:: python
+
+   df1 = pd.DataFrame([True, False, True], index=list('ABC'))
+   df2 = pd.DataFrame([True, True, True], index=list('ABD'))
+   df1 & df2
+
 .. _whatsnew_0190.api.promote:
 
 ``Series`` type promotion on assignment

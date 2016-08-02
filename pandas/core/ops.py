@@ -311,17 +311,6 @@ class _Op(object):
         is_datetime_lhs = (is_datetime64_dtype(left) or
                            is_datetime64tz_dtype(left))
 
-        if isinstance(left, ABCSeries) and isinstance(right, ABCSeries):
-            # avoid repated alignment
-            if not left.index.equals(right.index):
-                left, right = left.align(right, copy=False)
-
-                index, lidx, ridx = left.index.join(right.index, how='outer',
-                                                    return_indexers=True)
-                # if DatetimeIndex have different tz, convert to UTC
-                left.index = index
-                right.index = index
-
         if not (is_datetime_lhs or is_timedelta_lhs):
             return _Op(left, right, name, na_op)
         else:
@@ -603,6 +592,33 @@ class _TimeOp(_Op):
             return False
 
 
+def _align_method_SERIES(left, right, align_asobject=False):
+    """ algin lhs and rhs Series """
+
+    # ToDo: Different from _align_method_FRAME, list, tuple and ndarray
+    # are not coerced here
+    # because Series has inconsistencies described in #13637
+
+    if isinstance(right, ABCSeries):
+        # avoid repated alignment
+        if not left.index.equals(right.index):
+
+            if align_asobject:
+                # to keep original value's dtype for bool ops
+                left = left.astype(object)
+                right = right.astype(object)
+
+            left, right = left.align(right, copy=False)
+
+            index, lidx, ridx = left.index.join(right.index, how='outer',
+                                                return_indexers=True)
+            # if DatetimeIndex have different tz, convert to UTC
+            left.index = index
+            right.index = index
+
+    return left, right
+
+
 def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                          **eval_kwargs):
     """
@@ -653,6 +669,8 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
         if isinstance(right, pd.DataFrame):
             return NotImplemented
+
+        left, right = _align_method_SERIES(left, right)
 
         converted = _Op.get_op(left, right, name, na_op)
 
@@ -761,8 +779,9 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
         if isinstance(other, ABCSeries):
             name = _maybe_match_name(self, other)
-            if len(self) != len(other):
-                raise ValueError('Series lengths must match to compare')
+            if not self._indexed_same(other):
+                msg = 'Can only compare identically-labeled Series objects'
+                raise ValueError(msg)
             return self._constructor(na_op(self.values, other.values),
                                      index=self.index, name=name)
         elif isinstance(other, pd.DataFrame):  # pragma: no cover
@@ -784,6 +803,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
             return self._constructor(na_op(self.values, np.asarray(other)),
                                      index=self.index).__finalize__(self)
+
         elif isinstance(other, pd.Categorical):
             if not is_categorical_dtype(self):
                 msg = ("Cannot compare a Categorical for op {op} with Series "
@@ -856,9 +876,10 @@ def _bool_method_SERIES(op, name, str_rep):
         fill_int = lambda x: x.fillna(0)
         fill_bool = lambda x: x.fillna(False).astype(bool)
 
+        self, other = _align_method_SERIES(self, other, align_asobject=True)
+
         if isinstance(other, ABCSeries):
             name = _maybe_match_name(self, other)
-            other = other.reindex_like(self)
             is_other_int_dtype = is_integer_dtype(other.dtype)
             other = fill_int(other) if is_other_int_dtype else fill_bool(other)
 

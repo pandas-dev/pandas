@@ -676,7 +676,8 @@ class Base(object):
             index_a == series_d
         with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
             index_a == array_d
-        with tm.assertRaisesRegexp(ValueError, "Series lengths must match"):
+        msg = "Can only compare identically-labeled Series objects"
+        with tm.assertRaisesRegexp(ValueError, msg):
             series_a == series_d
         with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
             series_a == array_d
