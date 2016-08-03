@@ -557,6 +557,50 @@ class TestReadGBQIntegration(tm.TestCase):
         expected_result = DataFrame(page_array, columns=['title', 'id'])
         self.assert_frame_equal(df, expected_result)
 
+    def test_legacy_sql(self):
+        legacy_sql = "SELECT id FROM [publicdata.samples.wikipedia] LIMIT 10"
+
+        # Test that a legacy sql statement fails when
+        # setting dialect='standard'
+        with tm.assertRaises(gbq.GenericGBQException):
+            gbq.read_gbq(legacy_sql, project_id=PROJECT_ID,
+                         dialect='standard')
+
+        # Test that a legacy sql statement succeeds when
+        # setting dialect='legacy'
+        df = gbq.read_gbq(legacy_sql, project_id=PROJECT_ID,
+                          dialect='legacy')
+        self.assertEqual(len(df.drop_duplicates()), 10)
+
+    def test_standard_sql(self):
+        standard_sql = "SELECT DISTINCT id FROM " \
+                       "`publicdata.samples.wikipedia` LIMIT 10"
+
+        # Test that a standard sql statement fails when using
+        # the legacy SQL dialect (default value)
+        with tm.assertRaises(gbq.GenericGBQException):
+            gbq.read_gbq(standard_sql, project_id=PROJECT_ID)
+
+        # Test that a standard sql statement succeeds when
+        # setting dialect='standard'
+        df = gbq.read_gbq(standard_sql, project_id=PROJECT_ID,
+                          dialect='standard')
+        self.assertEqual(len(df.drop_duplicates()), 10)
+
+    def test_invalid_option_for_sql_dialect(self):
+        sql_statement = "SELECT DISTINCT id FROM " \
+                        "`publicdata.samples.wikipedia` LIMIT 10"
+
+        # Test that an invalid option for `dialect` raises ValueError
+        with tm.assertRaises(ValueError):
+            gbq.read_gbq(sql_statement, project_id=PROJECT_ID,
+                         dialect='invalid')
+
+        # Test that a correct option for dialect succeeds
+        # to make sure ValueError was due to invalid dialect
+        gbq.read_gbq(sql_statement, project_id=PROJECT_ID,
+                     dialect='standard')
+
 
 class TestToGBQIntegration(tm.TestCase):
     # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
