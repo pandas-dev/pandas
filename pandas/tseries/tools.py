@@ -179,7 +179,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
                  mapping={True: 'coerce', False: 'raise'})
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True, coerce=None,
-                unit=None, infer_datetime_format=False):
+                unit=None, infer_datetime_format=False, origin='epoch'):
     """
     Convert argument to datetime.
 
@@ -238,6 +238,17 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
+    origin : scalar convertible to Timestamp / string ('julian', 'epoch'),
+        default 'epoch'.
+        Define relative offset for the returned dates.
+
+        - If 'epoch', offset is set to 1-1-1970.
+        - If 'julian', unit must be 'D', and offset is set to beginning of
+          Julian Calendar.
+        - If Timestamp convertible, offset is set to Timestamp identified by
+          origin.
+
+        .. versionadded: 0.20.0
 
     Returns
     -------
@@ -294,8 +305,14 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     >>> %timeit pd.to_datetime(s,infer_datetime_format=False)
     1 loop, best of 3: 471 ms per loop
 
-    """
+    >>> pd.to_datetime(range(100), unit='D', origin=Timestamp('1960-01-01'))
+    0    1960-01-01
+    1    1960-01-02
+    ...
+    98   1960-04-08
+    99   1960-04-09
 
+    """
     from pandas.tseries.index import DatetimeIndex
 
     tz = 'utc' if utc else None
@@ -406,22 +423,45 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             except (ValueError, TypeError):
                 raise e
 
-    if arg is None:
-        return arg
-    elif isinstance(arg, tslib.Timestamp):
-        return arg
-    elif isinstance(arg, ABCSeries):
-        from pandas import Series
-        values = _convert_listlike(arg._values, False, format)
-        return Series(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (ABCDataFrame, MutableMapping)):
-        return _assemble_from_unit_mappings(arg, errors=errors)
-    elif isinstance(arg, ABCIndexClass):
-        return _convert_listlike(arg, box, format, name=arg.name)
-    elif is_list_like(arg):
-        return _convert_listlike(arg, box, format)
+    def result_without_offset(arg):
+        if arg is None:
+            return arg
+        elif isinstance(arg, tslib.Timestamp):
+            return arg
+        elif isinstance(arg, ABCSeries):
+            from pandas import Series
+            values = _convert_listlike(arg._values, False, format)
+            return Series(values, index=arg.index, name=arg.name)
+        elif isinstance(arg, (ABCDataFrame, MutableMapping)):
+            return _assemble_from_unit_mappings(arg, errors=errors)
+        elif isinstance(arg, ABCIndexClass):
+            return _convert_listlike(arg, box, format, name=arg.name)
+        elif is_list_like(arg):
+            return _convert_listlike(arg, box, format)
+        return _convert_listlike(np.array([arg]), box, format)[0]
 
-    return _convert_listlike(np.array([arg]), box, format)[0]
+    if origin == 'julian':
+        if unit != 'D':
+            raise ValueError("unit must be 'D' for origin='julian'")
+        arg = arg - tslib.Timestamp(0).to_julian_date()
+
+    result = result_without_offset(arg)
+
+    offset = None
+    if origin != 'epoch' and origin != 'julian':
+        try:
+            offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
+        except ValueError:
+            if errors == 'raise':
+                raise ValueError("Invalid Origin or Origin Out of Bound");
+            elif errors == 'coerce':
+                offset = tslib.NaT
+            elif errors == 'ignore':
+                return arg
+
+    if offset is not None:
+        result = result + offset
+    return result
 
 # mappings for assembling units
 _unit_map = {'year': 'year',
