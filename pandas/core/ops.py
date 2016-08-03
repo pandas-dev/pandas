@@ -586,10 +586,9 @@ class _TimeOp(_Op):
         """ check if obj or all elements of list-like is DateOffset """
         if isinstance(arr_or_obj, pd.DateOffset):
             return True
-        elif is_list_like(arr_or_obj):
+        elif is_list_like(arr_or_obj) and len(arr_or_obj):
             return all(isinstance(x, pd.DateOffset) for x in arr_or_obj)
-        else:
-            return False
+        return False
 
 
 def _align_method_SERIES(left, right, align_asobject=False):
