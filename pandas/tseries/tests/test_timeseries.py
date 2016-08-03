@@ -820,8 +820,8 @@ class TestTimeSeries(tm.TestCase):
                     # errors = 'coerce'
                     result = Series(pd.to_datetime(units_from_epoch, unit=unit,
                                                    origin=origin, errors='coerce'))
-                    expected = Series ([tslib.NaT, tslib.NaT, tslib.NaT,
-                                        tslib.NaT, tslib.NaT])
+                    expected = Series([tslib.NaT, tslib.NaT, tslib.NaT,
+                                       tslib.NaT, tslib.NaT])
                     assert_series_equal(result, expected)
 
                     # errors = 'ignore'

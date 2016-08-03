@@ -453,7 +453,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
         except ValueError:
             if errors == 'raise':
-                raise ValueError("Invalid Origin or Origin Out of Bound");
+                raise ValueError("Invalid Origin or Origin Out of Bound")
             elif errors == 'coerce':
                 offset = tslib.NaT
             elif errors == 'ignore':
