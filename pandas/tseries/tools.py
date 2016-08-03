@@ -242,13 +242,14 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         default 'epoch'.
         Define relative offset for the returned dates.
 
-        - If 'epoch', offset is set to 1-1-1970.
+        - If 'epoch', offset is set to 1970-01-01.
         - If 'julian', unit must be 'D', and offset is set to beginning of
-          Julian Calendar.
+          Julian Calendar. Julian day number 0 is assigned to the day starting
+          at noon on January 1, 4713 BC.
         - If Timestamp convertible, offset is set to Timestamp identified by
           origin.
 
-        .. versionadded: 0.20.0
+        .. versionadded: 0.19.0
 
     Returns
     -------
@@ -305,7 +306,9 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     >>> %timeit pd.to_datetime(s,infer_datetime_format=False)
     1 loop, best of 3: 471 ms per loop
 
-    >>> pd.to_datetime(range(100), unit='D', origin=Timestamp('1960-01-01'))
+    Using non-epoch origins to parse date
+    
+    >>> pd.to_datetime([1,2,3], unit='D', origin=Timestamp('1960-01-01'))
     0    1960-01-01
     1    1960-01-02
     ...

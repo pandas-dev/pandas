@@ -20,7 +20,6 @@ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations
 
 New features
 ~~~~~~~~~~~~
-- ``pd.to_datetime`` has a new parameter, ``origin``, to define an offset for ``DatetimeIndex`` (:issue:`11276`, :issue:`11745`)
 
 
 

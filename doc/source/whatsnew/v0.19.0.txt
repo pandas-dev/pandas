@@ -21,6 +21,7 @@ Highlights include:
 
 New features
 ~~~~~~~~~~~~
+- ``pd.to_datetime`` has a new parameter, ``origin``, to define an offset for ``DatetimeIndex`` (:issue:`11276`, :issue:`11745`)
 
 .. _whatsnew_0190.dev_api:
 
