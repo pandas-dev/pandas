@@ -11,7 +11,8 @@ import datetime
 import numpy as np
 
 from pandas import compat
-from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
+from pandas.compat import (range, lrange, StringIO, lzip,
+                           zip, string_types, map, u)
 from pandas.types.common import (is_integer, _ensure_object,
                                  is_list_like, is_integer_dtype,
                                  is_float,
@@ -39,6 +40,12 @@ _NA_VALUES = set([
     '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
     'N/A', 'NA', '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''
 ])
+
+# BOM character (byte order mark)
+# This exists at the beginning of a file to indicate endianness
+# of a file (stream). Unfortunately, this marker screws up parsing,
+# so we need to remove it if we see it.
+_BOM = u('\ufeff')
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -2161,6 +2168,67 @@ class PythonParser(ParserBase):
         else:
             return self._next_line()
 
+    def _check_for_bom(self, first_row):
+        """
+        Checks whether the file begins with the BOM character.
+        If it does, remove it. In addition, if there is quoting
+        in the field subsequent to the BOM, remove it as well
+        because it technically takes place at the beginning of
+        the name, not the middle of it.
+        """
+        # first_row will be a list, so we need to check
+        # that that list is not empty before proceeding.
+        if not first_row:
+            return first_row
+
+        # The first element of this row is the one that could have the
+        # BOM that we want to remove. Check that the first element is a
+        # string before proceeding.
+        if not isinstance(first_row[0], compat.string_types):
+            return first_row
+
+        # Check that the string is not empty, as that would
+        # obviously not have a BOM at the start of it.
+        if not first_row[0]:
+            return first_row
+
+        # Since the string is non-empty, check that it does
+        # in fact begin with a BOM.
+        first_elt = first_row[0][0]
+
+        # This is to avoid warnings we get in Python 2.x if
+        # we find ourselves comparing with non-Unicode
+        if compat.PY2 and not isinstance(first_elt, unicode):  # noqa
+            try:
+                first_elt = u(first_elt)
+            except UnicodeDecodeError:
+                return first_row
+
+        if first_elt != _BOM:
+            return first_row
+
+        first_row = first_row[0]
+
+        if len(first_row) > 1 and first_row[1] == self.quotechar:
+            start = 2
+            quote = first_row[1]
+            end = first_row[2:].index(quote) + 2
+
+            # Extract the data between the quotation marks
+            new_row = first_row[start:end]
+
+            # Extract any remaining data after the second
+            # quotation mark.
+            if len(first_row) > end + 1:
+                new_row += first_row[end + 1:]
+            return [new_row]
+        elif len(first_row) > 1:
+            return [first_row[1:]]
+        else:
+            # First row is just the BOM, so we
+            # return an empty string.
+            return [""]
+
     def _empty(self, line):
         return not line or all(not x for x in line)
 
@@ -2211,6 +2279,12 @@ class PythonParser(ParserBase):
                     if ret:
                         line = ret[0]
                         break
+
+        # This was the first line of the file,
+        # which could contain the BOM at the
+        # beginning of it.
+        if self.pos == 1:
+            line = self._check_for_bom(line)
 
         self.line_pos += 1
         self.buf.append(line)
