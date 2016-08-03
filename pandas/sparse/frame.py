@@ -706,7 +706,7 @@ class SparseDataFrame(DataFrame):
             new_series = {}
             for k, v in compat.iteritems(self):
                 applied = func(v)
-                applied.fill_value = func(applied.fill_value)
+                applied.fill_value = func(v.fill_value)
                 new_series[k] = applied
             return self._constructor(
                 new_series, index=self.index, columns=self.columns,

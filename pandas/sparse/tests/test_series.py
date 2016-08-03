@@ -589,6 +589,21 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         tm.assert_sp_series_equal(result, expected)
         self.assertEqual(result.name, 'x')
 
+        s = SparseSeries([1, -2, 2, -3], fill_value=-2, name='x')
+        expected = SparseSeries([1, 2, 3], sparse_index=s.sp_index,
+                                fill_value=2, name='x')
+        result = s.abs()
+        tm.assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
+        result = abs(s)
+        tm.assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
+        result = np.abs(s)
+        tm.assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
     def test_reindex(self):
         def _compare_with_series(sps, new_index):
             spsre = sps.reindex(new_index)
@@ -1287,6 +1302,7 @@ class TestSparseSeriesAnalytics(tm.TestCase):
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
+
 
 if __name__ == '__main__':
     import nose
