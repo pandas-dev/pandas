@@ -790,6 +790,28 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         df2 = read_csv(buf, index_col=0, encoding='UTF-8')
         assert_frame_equal(df, df2)
 
+    def test_to_csv_bytes(self):
+        # GH 9712
+        times = pd.date_range("2013-10-27 23:00", "2013-10-28 00:00", freq="H")
+        df = DataFrame.from_items([
+            (b'hello', ['a', b'b']),
+            (b'times', times),
+        ])
+        df.loc[2] = np.nan
+        df.index.name = 'idx'
+
+        with ensure_clean() as path:
+            df.to_csv(path)
+            with open(path) as csvfile:
+                lines = csvfile.readlines()
+
+        expected = [
+            "idx,hello,times\n",
+            "0,a,2013-10-27 23:00:00\n",
+            "1,b,2013-10-28 00:00:00\n", "2,,\n",
+        ]
+        assert(lines == expected)
+
     def test_to_csv_stringio(self):
         buf = StringIO()
         self.frame.to_csv(buf)

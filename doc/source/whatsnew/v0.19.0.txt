@@ -871,3 +871,5 @@ Bug Fixes
 - Bug in ``.to_excel()`` when DataFrame contains a MultiIndex which contains a label with a NaN value (:issue:`13511`)
 - Bug in ``pd.read_csv`` in Python 2.x with non-UTF8 encoded, multi-character separated data (:issue:`3404`)
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
+
+- Bug in ``to_csv()`` in Python 3 which emitted b'' around bytes (:issue:`9712`)
