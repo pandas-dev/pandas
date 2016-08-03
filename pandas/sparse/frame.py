@@ -151,7 +151,7 @@ class SparseDataFrame(DataFrame):
                 if not isinstance(v, SparseSeries):
                     v = sp_maker(v.values)
             elif isinstance(v, SparseArray):
-                v = sp_maker(v.values)
+                v = v.copy()
             else:
                 if isinstance(v, dict):
                     v = [v.get(i, nan) for i in index]

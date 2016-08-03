@@ -136,6 +136,15 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         result = df.ftypes
         tm.assert_series_equal(expected, result)
 
+    def test_constructor_preserve_attr(self):
+        arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)
+        self.assertEqual(arr.dtype, np.int64)
+        self.assertEqual(arr.fill_value, 0)
+
+        s = pd.SparseSeries(arr, name='x')
+        self.assertEqual(s.dtype, np.int64)
+        self.assertEqual(s.fill_value, 0)
+
     def test_series_density(self):
         # GH2803
         ts = Series(np.random.randn(10))
