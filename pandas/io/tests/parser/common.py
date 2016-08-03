@@ -1517,3 +1517,54 @@ j,-inF"""
             msg = "NULL byte detected"
             with tm.assertRaisesRegexp(csv.Error, msg):
                 self.read_csv(StringIO(data), names=cols)
+
+    def test_utf8_bom(self):
+        # see gh-4793
+        bom = u('\ufeff')
+        utf8 = 'utf-8'
+
+        def _encode_data_with_bom(_data):
+            bom_data = (bom + _data).encode(utf8)
+            return BytesIO(bom_data)
+
+        # basic test
+        data = 'a\n1'
+        expected = DataFrame({'a': [1]})
+
+        out = self.read_csv(_encode_data_with_bom(data),
+                            encoding=utf8)
+        tm.assert_frame_equal(out, expected)
+
+        # test with "regular" quoting
+        data = '"a"\n1'
+        expected = DataFrame({'a': [1]})
+
+        out = self.read_csv(_encode_data_with_bom(data),
+                            encoding=utf8, quotechar='"')
+        tm.assert_frame_equal(out, expected)
+
+        # test in a data row instead of header
+        data = 'b\n1'
+        expected = DataFrame({'a': ['b', '1']})
+
+        out = self.read_csv(_encode_data_with_bom(data),
+                            encoding=utf8, names=['a'])
+        tm.assert_frame_equal(out, expected)
+
+        # test in empty data row with skipping
+        data = '\n1'
+        expected = DataFrame({'a': [1]})
+
+        out = self.read_csv(_encode_data_with_bom(data),
+                            encoding=utf8, names=['a'],
+                            skip_blank_lines=True)
+        tm.assert_frame_equal(out, expected)
+
+        # test in empty data row without skipping
+        data = '\n1'
+        expected = DataFrame({'a': [np.nan, 1.0]})
+
+        out = self.read_csv(_encode_data_with_bom(data),
+                            encoding=utf8, names=['a'],
+                            skip_blank_lines=False)
+        tm.assert_frame_equal(out, expected)

@@ -704,6 +704,11 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     self->datapos = i;                                                  \
     TRACE(("_TOKEN_CLEANUP: datapos: %d, datalen: %d\n", self->datapos, self->datalen));
 
+#define CHECK_FOR_BOM()                                                   \
+    if (*buf == '\xef' && *(buf + 1) == '\xbb' && *(buf + 2) == '\xbf') { \
+        buf += 3;                                                         \
+        self->datapos += 3;                                               \
+    }
 
 int skip_this_line(parser_t *self, int64_t rownum) {
     if (self->skipset != NULL) {
@@ -735,6 +740,10 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
     maxstreamsize = self->stream_cap;
 
     TRACE(("%s\n", buf));
+
+    if (self->file_lines == 0) {
+        CHECK_FOR_BOM();
+    }
 
     for (i = self->datapos; i < self->datalen; ++i)
     {
