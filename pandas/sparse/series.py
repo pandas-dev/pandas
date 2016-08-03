@@ -307,13 +307,22 @@ class SparseSeries(Series):
         rep = '%s\n%s' % (series_rep, repr(self.sp_index))
         return rep
 
-    def __array_wrap__(self, result):
+    def __array_wrap__(self, result, context=None):
         """
         Gets called prior to a ufunc (and after)
+
+        See SparseArray.__array_wrap__ for detail.
         """
+        if isinstance(context, tuple) and len(context) == 3:
+            ufunc, args, domain = context
+            args = [getattr(a, 'fill_value', a) for a in args]
+            fill_value = ufunc(self.fill_value, *args[1:])
+        else:
+            fill_value = self.fill_value
+
         return self._constructor(result, index=self.index,
                                  sparse_index=self.sp_index,
-                                 fill_value=self.fill_value,
+                                 fill_value=fill_value,
                                  copy=False).__finalize__(self)
 
     def __array_finalize__(self, obj):
@@ -434,10 +443,8 @@ class SparseSeries(Series):
         -------
         abs: type of caller
         """
-        res_sp_values = np.abs(self.sp_values)
-        return self._constructor(res_sp_values, index=self.index,
-                                 sparse_index=self.sp_index,
-                                 fill_value=self.fill_value).__finalize__(self)
+        return self._constructor(np.abs(self.values),
+                                 index=self.index).__finalize__(self)
 
     def get(self, label, default=None):
         """

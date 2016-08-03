@@ -130,6 +130,28 @@ keeps an arrays of all of the locations where the data are not equal to the
 fill value. The ``block`` format tracks only the locations and sizes of blocks
 of data.
 
+.. _sparse.calculation:
+
+Sparse Calculation
+------------------
+
+You can apply NumPy *ufuncs* to ``SparseArray`` and get a ``SparseArray`` as a result.
+
+.. ipython:: python
+
+   arr = pd.SparseArray([1., np.nan, np.nan, -2., np.nan])
+   np.abs(arr)
+
+
+The *ufunc* is also applied to ``fill_value``. This is needed to get
+the correct dense result.
+
+.. ipython:: python
+
+   arr = pd.SparseArray([1., -1, -1, -2., -1], fill_value=-1)
+   np.abs(arr)
+   np.abs(arr).to_dense()
+
 .. _sparse.scipysparse:
 
 Interaction with scipy.sparse
