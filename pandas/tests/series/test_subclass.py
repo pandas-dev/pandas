@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import numpy as np
+import pandas as pd
 import pandas.util.testing as tm
 
 
@@ -32,6 +34,11 @@ class TestSeriesSubclassing(tm.TestCase):
         tm.assert_frame_equal(res, exp)
         tm.assertIsInstance(res, tm.SubclassedDataFrame)
 
+
+class TestSparseSeriesSubclassing(tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
     def test_subclass_sparse_slice(self):
         s = tm.SubclassedSparseSeries([1, 2, 3, 4, 5])
         tm.assert_sp_series_equal(s.loc[1:3],
@@ -53,5 +60,15 @@ class TestSeriesSubclassing(tm.TestCase):
     def test_subclass_sparse_to_frame(self):
         s = tm.SubclassedSparseSeries([1, 2], index=list('abcd'), name='xxx')
         res = s.to_frame()
-        exp = tm.SubclassedSparseDataFrame({'xxx': [1, 2]}, index=list('abcd'))
+
+        exp_arr = pd.SparseArray([1, 2], dtype=np.int64, kind='block')
+        exp = tm.SubclassedSparseDataFrame({'xxx': exp_arr},
+                                           index=list('abcd'))
+        tm.assert_sp_frame_equal(res, exp)
+
+        s = tm.SubclassedSparseSeries([1.1, 2.1], index=list('abcd'),
+                                      name='xxx')
+        res = s.to_frame()
+        exp = tm.SubclassedSparseDataFrame({'xxx': [1.1, 2.1]},
+                                           index=list('abcd'))
         tm.assert_sp_frame_equal(res, exp)

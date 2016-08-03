@@ -9,7 +9,6 @@ import numpy as np
 
 import pandas as pd
 from pandas.core.base import PandasObject
-import pandas.core.common as com
 
 from pandas import compat, lib
 from pandas.compat import range
@@ -577,11 +576,9 @@ def _maybe_to_dense(obj):
 
 
 def _maybe_to_sparse(array):
+    """ array must be SparseSeries or SparseArray """
     if isinstance(array, ABCSparseSeries):
-        array = SparseArray(array.values, sparse_index=array.sp_index,
-                            fill_value=array.fill_value, copy=True)
-    if not isinstance(array, SparseArray):
-        array = com._values_from_object(array)
+        array = array.values.copy()
     return array
 
 

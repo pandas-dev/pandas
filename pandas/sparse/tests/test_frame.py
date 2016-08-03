@@ -192,6 +192,28 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         # without sparse value raises error
         # df2 = SparseDataFrame([x2_sparse, y])
 
+    def test_constructor_preserve_attr(self):
+        # GH 13866
+        arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)
+        self.assertEqual(arr.dtype, np.int64)
+        self.assertEqual(arr.fill_value, 0)
+
+        df = pd.SparseDataFrame({'x': arr})
+        self.assertEqual(df['x'].dtype, np.int64)
+        self.assertEqual(df['x'].fill_value, 0)
+
+        s = pd.SparseSeries(arr, name='x')
+        self.assertEqual(s.dtype, np.int64)
+        self.assertEqual(s.fill_value, 0)
+
+        df = pd.SparseDataFrame(s)
+        self.assertEqual(df['x'].dtype, np.int64)
+        self.assertEqual(df['x'].fill_value, 0)
+
+        df = pd.SparseDataFrame({'x': s})
+        self.assertEqual(df['x'].dtype, np.int64)
+        self.assertEqual(df['x'].fill_value, 0)
+
     def test_dtypes(self):
         df = DataFrame(np.random.randn(10000, 4))
         df.ix[:9998] = np.nan
