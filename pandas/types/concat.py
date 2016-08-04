@@ -263,7 +263,7 @@ def union_categoricals(to_union, sort_categories=False):
 
         if sort_categories and not categories.is_monotonic_increasing:
             categories = categories.sort_values()
-            indexer = first.categories.get_indexer(categories)
+            indexer = categories.get_indexer(first.categories)
             new_codes = take_1d(indexer, new_codes, fill_value=-1)
     elif all(not c.ordered for c in to_union):
         # different categories - union and recode
