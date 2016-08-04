@@ -880,7 +880,7 @@ Bug Fixes
 - Bug in ``isnull`` ``notnull`` raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
 - Bug in ``.merge`` may raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
 
-
+- Bug in ``HDFStore``/``read_hdf()`` discarded ``DatetimeIndex.name`` if ``tz`` was set (:issue:`13884`)
 
 - Bug in ``Categorical.remove_unused_categories()`` changes ``.codes`` dtype to platform int (:issue:`13261`)
 - Bug in ``groupby`` with ``as_index=False`` returns all NaN's when grouping on multiple columns including a categorical one (:issue:`13204`)

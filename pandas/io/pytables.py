@@ -4339,9 +4339,10 @@ def _set_tz(values, tz, preserve_UTC=False, coerce=False):
     coerce : if we do not have a passed timezone, coerce to M8[ns] ndarray
     """
     if tz is not None:
+        name = getattr(values, 'name', None)
         values = values.ravel()
         tz = tslib.get_timezone(_ensure_decoded(tz))
-        values = DatetimeIndex(values)
+        values = DatetimeIndex(values, name=name)
         if values.tz is None:
             values = values.tz_localize('UTC').tz_convert(tz)
         if preserve_UTC:
