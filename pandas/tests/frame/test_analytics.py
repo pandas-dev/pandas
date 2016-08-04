@@ -249,6 +249,39 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                              index=['count', 'unique', 'top', 'freq'])
         tm.assert_frame_equal(result, expected)
 
+    def test_describe_bool_frame(self):
+        # GH 13891
+        df = pd.DataFrame({
+            'bool_data_1': [False, False, True, True],
+            'bool_data_2': [False, True, True, True]
+        })
+        result = df.describe()
+        expected = DataFrame({'bool_data_1': [4, 2, True, 2],
+                              'bool_data_2': [4, 2, True, 3]},
+                             index=['count', 'unique', 'top', 'freq'])
+        tm.assert_frame_equal(result, expected)
+
+        df = pd.DataFrame({
+            'bool_data': [False, False, True, True, False],
+            'int_data': [0, 1, 2, 3, 4]
+        })
+        result = df.describe()
+        expected = DataFrame({'int_data': [5, 2, df.int_data.std(), 0, 1,
+                                           2, 3, 4]},
+                             index=['count', 'mean', 'std', 'min', '25%',
+                                    '50%', '75%', 'max'])
+        tm.assert_frame_equal(result, expected)
+
+        df = pd.DataFrame({
+            'bool_data': [False, False, True, True],
+            'str_data': ['a', 'b', 'c', 'a']
+        })
+        result = df.describe()
+        expected = DataFrame({'bool_data': [4, 2, True, 2],
+                              'str_data': [4, 3, 'a', 2]},
+                             index=['count', 'unique', 'top', 'freq'])
+        tm.assert_frame_equal(result, expected)
+
     def test_describe_categorical_columns(self):
         # GH 11558
         columns = pd.CategoricalIndex(['int1', 'int2', 'obj'],
