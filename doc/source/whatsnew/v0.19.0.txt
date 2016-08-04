@@ -373,6 +373,8 @@ Other enhancements
 - ``Series.append`` now supports the ``ignore_index`` option (:issue:`13677`)
 - ``.to_stata()`` and ``StataWriter`` can now write variable labels to Stata dta files using a dictionary to make column names to labels (:issue:`13535`, :issue:`13536`)
 - ``.to_stata()`` and ``StataWriter`` will automatically convert ``datetime64[ns]`` columns to Stata format ``%tc``, rather than raising a ``ValueError`` (:issue:`12259`)
+- ``DataFrame.style`` will now render sparsified MultiIndexes (:issue:`11655`)
+- ``DataFrame.style`` will now show column level names (e.g. ``DataFrame.columns.names``) (:issue:`13775`)
 - ``DataFrame`` has gained support to re-order the columns based on the values
   in a row using ``df.sort_values(by='...', axis=1)`` (:issue:`10806`)
 
@@ -884,10 +886,10 @@ Bug Fixes
 - Bug in ``groupby`` with ``as_index=False`` returns all NaN's when grouping on multiple columns including a categorical one (:issue:`13204`)
 - Bug in ``df.groupby(...)[...]`` where getitem with ``Int64Index`` raised an error (:issue:`13731`)
 
+- Bug in the CSS classes assigned to ``DataFrame.style`` for index names. Previously they were assigned ``"col_heading level<n> col<c>"`` where ``n`` was the number of levels + 1. Now they are assigned ``"index_name level<n>"``, where ``n`` is the correct level for that MultiIndex.
 - Bug where ``pd.read_gbq()`` could throw ``ImportError: No module named discovery`` as a result of a naming conflict with another python package called apiclient  (:issue:`13454`)
 - Bug in ``Index.union`` returns an incorrect result with a named empty index (:issue:`13432`)
 - Bugs in ``Index.difference`` and ``DataFrame.join`` raise in Python3 when using mixed-integer indexes (:issue:`13432`, :issue:`12814`)
-
 - Bug in ``.to_excel()`` when DataFrame contains a MultiIndex which contains a label with a NaN value (:issue:`13511`)
 - Bug in ``pd.read_csv`` in Python 2.x with non-UTF8 encoded, multi-character separated data (:issue:`3404`)
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
