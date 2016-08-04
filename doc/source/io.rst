@@ -509,7 +509,7 @@ Specifying Categorical dtype
 
 ``Categorical`` columns can be parsed directly by specifying ``dtype='category'``
 
-.. ipython :: python
+.. ipython:: python
 
    data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
 
@@ -525,7 +525,7 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 
 .. note::
 
-   The resulting categories will always be parsed as string (object dtype).
+   The resulting categories will always be parsed as strings (object dtype).
    If the categories are numeric they can be converted using the
    :func:`pd.to_numeric` function, or as appropriate, another converter
    such as :func:`pd.to_datetime`.

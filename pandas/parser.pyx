@@ -40,7 +40,9 @@ from pandas.types.common import (is_categorical_dtype, CategoricalDtype,
                                  is_string_dtype, is_datetime64_dtype,
                                  pandas_dtype)
 from pandas.core.categorical import Categorical
+from pandas.core.algorithms import take_1d
 from pandas.types.concat import union_categoricals
+from pandas import Index
 
 import time
 import os
@@ -1182,6 +1184,19 @@ cdef class TextReader:
             codes, cats, na_count = _categorical_convert(self.parser, i, start,
                                                          end, na_filter, na_hashset,
                                                          self.c_encoding)
+            print cats
+            print codes
+            # sort categories and recode if necessary
+            cats = Index(cats)
+            if not cats.is_monotonic_increasing:
+                unsorted = cats.copy()
+                cats = cats.sort_values()
+                indexer = unsorted.get_indexer(cats)
+                codes = take_1d(indexer, codes, fill_value=-1)
+            print indexer
+            print cats
+            print codes
+
             return Categorical(codes, categories=cats, ordered=False,
                                fastpath=True), na_count
         elif is_object_dtype(dtype):
@@ -2000,7 +2015,7 @@ def _concatenate_chunks(list chunks):
                 warning_columns.append(str(name))
 
         if is_categorical_dtype(dtypes.pop()):
-            result[name] = union_categoricals(arrs)
+            result[name] = union_categoricals(arrs, sort_categories=True)
         else:
             result[name] = np.concatenate(arrs)
 

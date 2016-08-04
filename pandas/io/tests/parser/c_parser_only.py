@@ -225,8 +225,7 @@ one,two
 1,b,3.4
 2,a,4.5"""
         expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
-                                 'b': Categorical.from_codes([0, 0, 1],
-                                                             ['b', 'a']),
+                                 'b': Categorical(['b', 'b', 'a']),
                                  'c': Categorical(['3.4', '3.4', '4.5'])})
         actual = self.read_csv(StringIO(data), dtype='category')
         tm.assert_frame_equal(actual, expected)
@@ -237,8 +236,7 @@ one,two
 1,nan,3.4
 2,a,4.5"""
         expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
-                                 'b': Categorical.from_codes([0, -1, 1],
-                                                             ['b', 'a']),
+                                 'b': Categorical(['b', np.nan, 'a']),
                                  'c': Categorical(['3.4', '3.4', '4.5'])})
         actual = self.read_csv(StringIO(data), dtype='category')
         tm.assert_frame_equal(actual, expected)
@@ -248,14 +246,15 @@ one,two
         pth = tm.get_data_path('unicode_series.csv')
         encoding = 'latin-1'
         expected = self.read_csv(pth, header=None, encoding=encoding)
+        expected[1] = Categorical(expected[1])
         actual = self.read_csv(pth, header=None, encoding=encoding,
                                dtype={1: 'category'})
-        actual[1] = actual[1].astype(object)
         tm.assert_frame_equal(actual, expected)
 
         pth = tm.get_data_path('utf16_ex.txt')
         encoding = 'utf-16'
         expected = self.read_table(pth, encoding=encoding)
+        expected = expected.apply(Categorical)
         actual = self.read_table(pth, encoding=encoding, dtype='category')
         actual = actual.apply(lambda x: x.astype(object))
         tm.assert_frame_equal(actual, expected)
@@ -270,7 +269,8 @@ one,two
         expecteds = [pd.DataFrame({'a': [1, 1],
                                    'b': Categorical(['a', 'b'])}),
                      pd.DataFrame({'a': [1, 2],
-                                   'b': Categorical(['b', 'c'])})]
+                                   'b': Categorical(['b', 'c'])},
+                                  index=[2, 3])]
         actuals = self.read_csv(StringIO(data), dtype={'b': 'category'},
                                 chunksize=2)
 
