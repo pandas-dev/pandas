@@ -324,7 +324,68 @@ class TestSparseArray(tm.TestCase):
         res.sp_values[:3] = 27
         self.assertFalse((self.arr.sp_values[:3] == 27).any())
 
-        assertRaisesRegexp(TypeError, "floating point", self.arr.astype, 'i8')
+        msg = "unable to coerce current fill_value nan to int64 dtype"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.arr.astype('i8')
+
+        arr = SparseArray([0, np.nan, 0, 1])
+        with tm.assertRaisesRegexp(ValueError, msg):
+            arr.astype('i8')
+
+        arr = SparseArray([0, np.nan, 0, 1], fill_value=0)
+        msg = "Cannot convert NA to integer"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            arr.astype('i8')
+
+    def test_astype_all(self):
+        vals = np.array([1, 2, 3])
+        arr = SparseArray(vals, fill_value=1)
+
+        types = [np.float64, np.float32, np.int64,
+                 np.int32, np.int16, np.int8]
+        for typ in types:
+            res = arr.astype(typ)
+            self.assertEqual(res.dtype, typ)
+            self.assertEqual(res.sp_values.dtype, typ)
+
+            tm.assert_numpy_array_equal(res.values, vals.astype(typ))
+
+    def test_set_fill_value(self):
+        arr = SparseArray([1., np.nan, 2.], fill_value=np.nan)
+        arr.fill_value = 2
+        self.assertEqual(arr.fill_value, 2)
+
+        arr = SparseArray([1, 0, 2], fill_value=0, dtype=np.int64)
+        arr.fill_value = 2
+        self.assertEqual(arr.fill_value, 2)
+
+        # coerces to int
+        msg = "unable to set fill_value 3\\.1 to int64 dtype"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            arr.fill_value = 3.1
+
+        msg = "unable to set fill_value nan to int64 dtype"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            arr.fill_value = np.nan
+
+        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
+        arr.fill_value = True
+        self.assertTrue(arr.fill_value)
+
+        # coerces to bool
+        msg = "unable to set fill_value 0 to bool dtype"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            arr.fill_value = 0
+
+        msg = "unable to set fill_value nan to bool dtype"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            arr.fill_value = np.nan
+
+        # invalid
+        msg = "fill_value must be a scalar"
+        for val in [[1, 2, 3], np.array([1, 2]), (1, 2, 3)]:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                arr.fill_value = val
 
     def test_copy_shallow(self):
         arr2 = self.arr.copy(deep=False)
