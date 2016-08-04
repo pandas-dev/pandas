@@ -1184,18 +1184,13 @@ cdef class TextReader:
             codes, cats, na_count = _categorical_convert(self.parser, i, start,
                                                          end, na_filter, na_hashset,
                                                          self.c_encoding)
-            print cats
-            print codes
             # sort categories and recode if necessary
             cats = Index(cats)
             if not cats.is_monotonic_increasing:
                 unsorted = cats.copy()
                 cats = cats.sort_values()
-                indexer = unsorted.get_indexer(cats)
+                indexer = cats.get_indexer(unsorted)
                 codes = take_1d(indexer, codes, fill_value=-1)
-            print indexer
-            print cats
-            print codes
 
             return Categorical(codes, categories=cats, ordered=False,
                                fastpath=True), na_count

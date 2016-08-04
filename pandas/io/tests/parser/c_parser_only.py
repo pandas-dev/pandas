@@ -256,7 +256,6 @@ one,two
         expected = self.read_table(pth, encoding=encoding)
         expected = expected.apply(Categorical)
         actual = self.read_table(pth, encoding=encoding, dtype='category')
-        actual = actual.apply(lambda x: x.astype(object))
         tm.assert_frame_equal(actual, expected)
 
     def test_categorical_dtype_chunksize(self):
