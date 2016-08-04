@@ -43,7 +43,7 @@ from pandas.compat import(
 
 from pandas.computation import expressions as expr
 
-from pandas import (bdate_range, CategoricalIndex, DatetimeIndex,
+from pandas import (bdate_range, CategoricalIndex, Categorical, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, RangeIndex, Index, MultiIndex,
                     Series, DataFrame, Panel, Panel4D)
 from pandas.util.decorators import deprecate
@@ -2668,6 +2668,13 @@ class SubclassedSparseDataFrame(pd.SparseDataFrame):
     @property
     def _constructor_sliced(self):
         return SubclassedSparseSeries
+
+
+class SubclassedCategorical(Categorical):
+
+    @property
+    def _constructor(self):
+        return SubclassedCategorical
 
 
 @contextmanager
