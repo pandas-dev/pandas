@@ -235,7 +235,7 @@ New behaviour:
 .. _whatsnew_0190.enhancements.read_csv_categorical:
 
 :func:`read_csv` supports parsing ``Categorical`` directly
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :func:`read_csv` function now supports parsing a ``Categorical`` column when
 specified as a dtype (:issue:`10153`).  Depending on the structure of the data,
@@ -260,8 +260,8 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 
    The resulting categories will always be parsed as strings (object dtype).
    If the categories are numeric they can be converted using the
-   :func:`pd.to_numeric` function, or as appropriate, another converter
-   such as :func:`pd.to_datetime`.
+   :func:`to_numeric` function, or as appropriate, another converter
+   such as :func:`to_datetime`.
 
    .. ipython:: python
 

@@ -527,8 +527,8 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 
    The resulting categories will always be parsed as strings (object dtype).
    If the categories are numeric they can be converted using the
-   :func:`pd.to_numeric` function, or as appropriate, another converter
-   such as :func:`pd.to_datetime`.
+   :func:`to_numeric` function, or as appropriate, another converter
+   such as :func:`to_datetime`.
 
    .. ipython:: python
 
