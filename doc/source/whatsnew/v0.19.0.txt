@@ -876,6 +876,7 @@ Bug Fixes
 - Bug in ``factorize`` raises ``AmbiguousTimeError`` if data contains datetime near DST boundary (:issue:`13750`)
 - Bug in ``.set_index`` raises ``AmbiguousTimeError`` if new index contains DST boundary and multi levels (:issue:`12920`)
 - Bug in ``pd.read_hdf()`` returns incorrect result when a ``DataFrame`` with a ``categorical`` column and a query which doesn't match any values (:issue:`13792`)
+- Bug in ``pd.to_datetime()`` raise ``AttributeError`` with NaN and the other string is not valid when errors='ignore' (:issue:`12424`)
 
 
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
