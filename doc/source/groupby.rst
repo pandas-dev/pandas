@@ -13,6 +13,7 @@
    matplotlib.style.use('ggplot')
    import matplotlib.pyplot as plt
    plt.close('all')
+   from collections import OrderedDict
 
 *****************************
 Group By: split-apply-combine
@@ -486,6 +487,15 @@ must be either implemented on GroupBy or available via :ref:`dispatching
 .. ipython:: python
 
    grouped.agg({'C' : 'sum', 'D' : 'std'})
+
+Note that if you pass a dict to ``aggregate``, the ordering of the output colums is
+non-deterministic. If you want to be sure the output columns will be in a specific
+order, you can use an ``OrderedDict``.  Compare the output of the following two commands:
+
+.. ipython:: python
+
+   grouped.agg({'D': 'std', 'C': 'mean'})
+   grouped.agg(OrderedDict([('D', 'std'), ('C', 'mean')]))
 
 .. _groupby.aggregate.cython:
 
