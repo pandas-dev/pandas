@@ -764,6 +764,7 @@ Note that the limitation is applied to ``fill_value`` which default is ``np.nan`
 - Bug in ``SparseDataFrame`` doesn't respect passed ``SparseArray`` or ``SparseSeries`` 's dtype and ``fill_value``  (:issue:`13866`)
 - Bug in ``SparseArray`` and ``SparseSeries`` don't apply ufunc to ``fill_value`` (:issue:`13853`)
 - Bug in ``SparseSeries.abs`` incorrectly keeps negative ``fill_value`` (:issue:`13853`)
+- Bug when slicing single rows of multi-type ``SparseDataFrames`` (:issue:`13917`)
 
 .. _whatsnew_0190.deprecations:
 
