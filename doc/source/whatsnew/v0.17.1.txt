@@ -121,6 +121,7 @@ API changes
   result in ``NaT`` and not ``nan`` (:issue:`11245`).
 - Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)
 - ``Series.ptp`` will now ignore missing values by default (:issue:`11163`)
+- ``Series`` and ``DataFrame`` have gained the .items() method to mirror .iteritems() and for compat with PY3 (:issue:`13918`)
 
 .. _whatsnew_0171.deprecations:
 
