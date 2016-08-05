@@ -568,6 +568,12 @@ class TestValueCounts(tm.TestCase):
         exp = pd.Series([3, 2, 1], index=exp_index)
         tm.assert_series_equal(res, exp)
 
+        # GH 12424
+        res = pd.to_datetime(pd.Series(['2362-01-01', np.nan]),
+                             errors='ignore')
+        exp = pd.Series(['2362-01-01', np.nan], dtype=object)
+        tm.assert_series_equal(res, exp)
+
     def test_categorical(self):
         s = Series(pd.Categorical(list('aaabbc')))
         result = s.value_counts()

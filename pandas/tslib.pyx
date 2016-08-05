@@ -2396,10 +2396,10 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
             # set as nan except if its a NaT
             if _checknull_with_nat(val):
-                if val.view('i8') == NPY_NAT:
-                    oresult[i] = NaT
-                else:
+                if PyFloat_Check(val):
                     oresult[i] = np.nan
+                else:
+                    oresult[i] = NaT
             elif util.is_datetime64_object(val):
                 if get_datetime64_value(val) == NPY_NAT:
                     oresult[i] = NaT
