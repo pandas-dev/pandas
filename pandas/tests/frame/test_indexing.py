@@ -2712,6 +2712,14 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result = dg['x', 0]
         assert_series_equal(result, expected)
 
+    def test_sparse_indexing_single_multitype(self):
+        from pandas import SparseDataFrame, SparseSeries
+        sdf = SparseDataFrame([[1, 2, 'a'], [4, 5, 'b']])
+        tm.assert_sp_series_equal(sdf.iloc[0],
+                                  SparseSeries([1, 2, 'a'], name=0))
+        tm.assert_sp_series_equal(sdf.iloc[1],
+                                  SparseSeries([4, 5, 'b'], name=1))
+
 
 class TestDataFrameIndexingDatetimeWithTZ(tm.TestCase, TestData):
 

@@ -4439,7 +4439,10 @@ def _interleaved_dtype(blocks):
         """ find the lowest dtype that can accomodate the given types """
         m = l[0].dtype
         for x in l[1:]:
-            if x.dtype.itemsize > m.itemsize:
+            # the new dtype must either be wider or a strict subtype
+            if (x.dtype.itemsize > m.itemsize or
+                    (np.issubdtype(m, x.dtype) and
+                     not np.issubdtype(x.dtype, m))):
                 m = x.dtype
         return m
 
