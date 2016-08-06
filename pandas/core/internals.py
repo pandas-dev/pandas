@@ -2438,15 +2438,14 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         else:
             indexer[:periods] = np.arange(-periods, N)
 
-        # move to UTC & take
-        new_values = self.values.tz_localize(None).asi8.take(indexer)
+        new_values = self.values.asi8.take(indexer)
 
         if periods > 0:
             new_values[:periods] = tslib.iNaT
         else:
             new_values[periods:] = tslib.iNaT
 
-        new_values = DatetimeIndex(new_values, tz=self.values.tz)
+        new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
 
