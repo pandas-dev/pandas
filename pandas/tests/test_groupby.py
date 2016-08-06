@@ -720,6 +720,32 @@ class TestGroupBy(tm.TestCase):
         grouped = df.groupby(df.index.month)
         list(grouped)
 
+    def test_agg_dict_parameter_cast_result_dtypes(self):
+        # GH 12821
+
+        df = DataFrame(
+            {'class': ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D'],
+             'time': date_range('1/1/2011', periods=8, freq='H')})
+        df.loc[[0, 1, 2, 5], 'time'] = None
+
+        # test for `first` function
+        exp = df.loc[[0, 3, 4, 6]].set_index('class')
+        grouped = df.groupby('class')
+        assert_frame_equal(grouped.first(), exp)
+        assert_frame_equal(grouped.agg('first'), exp)
+        assert_frame_equal(grouped.agg({'time': 'first'}), exp)
+        assert_series_equal(grouped.time.first(), exp['time'])
+        assert_series_equal(grouped.time.agg('first'), exp['time'])
+
+        # test for `last` function
+        exp = df.loc[[0, 3, 4, 7]].set_index('class')
+        grouped = df.groupby('class')
+        assert_frame_equal(grouped.last(), exp)
+        assert_frame_equal(grouped.agg('last'), exp)
+        assert_frame_equal(grouped.agg({'time': 'last'}), exp)
+        assert_series_equal(grouped.time.last(), exp['time'])
+        assert_series_equal(grouped.time.agg('last'), exp['time'])
+
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
         self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
