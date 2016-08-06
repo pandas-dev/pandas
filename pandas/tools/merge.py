@@ -599,7 +599,7 @@ class _MergeOperation(object):
                     if name in self.left:
 
                         if left_has_missing is None:
-                            left_has_missing = any(left_indexer == -1)
+                            left_has_missing = (left_indexer == -1).any()
 
                         if left_has_missing:
                             take_right = self.right_join_keys[i]
@@ -611,7 +611,7 @@ class _MergeOperation(object):
                     elif name in self.right:
 
                         if right_has_missing is None:
-                            right_has_missing = any(right_indexer == -1)
+                            right_has_missing = (right_indexer == -1).any()
 
                         if right_has_missing:
                             take_left = self.left_join_keys[i]

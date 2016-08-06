@@ -146,16 +146,11 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
             # no multiple matches for any row on the left
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case
-            if left_sorter.dtype != np.int_:
-                left_sorter = left_sorter.astype(np.int_)
-
-            rev = np.empty(len(left), dtype=np.int_)
+            rev = np.empty(len(left), dtype=np.int64)
             rev.put(left_sorter, np.arange(len(left)))
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
-        if rev.dtype != np.int_:
-            rev = rev.astype(np.int_)
         right_indexer = right_indexer.take(rev)
         left_indexer = left_indexer.take(rev)
 
@@ -284,8 +279,6 @@ def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
 
 
 def _get_result_indexer(sorter, indexer):
-    if indexer.dtype != np.int_:
-        indexer = indexer.astype(np.int_)
     if len(sorter) > 0:
         res = sorter.take(indexer)
         np.putmask(res, indexer == -1, -1)
