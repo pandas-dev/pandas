@@ -1051,6 +1051,14 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
         tm.assert_frame_equal(self.test_frame3, result)
 
+    def test_con_string_import_error(self):
+        if not SQLALCHEMY_INSTALLED:
+            conn = 'mysql://root@localhost/pandas_nosetest'
+            self.assertRaises(ImportError, sql.read_sql, "SELECT * FROM iris",
+                              conn)
+        else:
+            raise nose.SkipTest('SQLAlchemy is installed')
+
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
         iris_frame2 = sql.read_sql("SELECT * FROM iris", self.conn)
