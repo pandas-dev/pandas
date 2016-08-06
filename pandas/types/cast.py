@@ -122,7 +122,8 @@ def _possibly_downcast_to_dtype(result, dtype):
                         return new_result
 
         # a datetimelike
-        elif dtype.kind in ['M', 'm'] and result.dtype.kind in ['i']:
+        # GH12821, iNaT is casted to float
+        elif dtype.kind in ['M', 'm'] and result.dtype.kind in ['i', 'f']:
             try:
                 result = result.astype(dtype)
             except:

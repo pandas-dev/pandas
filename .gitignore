@@ -18,6 +18,7 @@
 .vagrant
 .noseids
 .ipynb_checkpoints
+.tags
 
 # Compiled source #
 ###################

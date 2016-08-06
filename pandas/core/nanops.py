@@ -17,6 +17,7 @@ from pandas.types.common import (_ensure_int64, _ensure_object,
                                  is_integer, is_complex, is_float_dtype,
                                  is_complex_dtype, is_integer_dtype,
                                  is_bool_dtype, is_object_dtype,
+                                 is_numeric_dtype,
                                  is_datetime64_dtype, is_timedelta64_dtype,
                                  is_datetime_or_timedelta_dtype,
                                  is_int_or_datetime_dtype, is_any_int_dtype)
@@ -638,11 +639,15 @@ def _maybe_null_out(result, axis, mask):
     if axis is not None and getattr(result, 'ndim', False):
         null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
         if np.any(null_mask):
-            if np.iscomplexobj(result):
-                result = result.astype('c16')
+            if is_numeric_dtype(result):
+                if np.iscomplexobj(result):
+                    result = result.astype('c16')
+                else:
+                    result = result.astype('f8')
+                result[null_mask] = np.nan
             else:
-                result = result.astype('f8')
-            result[null_mask] = np.nan
+                # GH12941, use None to auto cast null
+                result[null_mask] = None
     elif result is not tslib.NaT:
         null_mask = mask.size - mask.sum()
         if null_mask == 0:
