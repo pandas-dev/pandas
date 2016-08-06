@@ -32,7 +32,8 @@ float64 = np.dtype(np.float64)
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
-from pandas.algos import groupsort_indexer
+from pandas.algos import groupsort_indexer, ensure_platform_int
+from pandas.core.algorithms import take_1d
 
 
 def inner_join(ndarray[int64_t] left, ndarray[int64_t] right,
@@ -151,6 +152,7 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
+        rev = ensure_platform_int(rev)
         right_indexer = right_indexer.take(rev)
         left_indexer = left_indexer.take(rev)
 
@@ -280,8 +282,7 @@ def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
 
 def _get_result_indexer(sorter, indexer):
     if len(sorter) > 0:
-        res = sorter.take(indexer)
-        np.putmask(res, indexer == -1, -1)
+        res = take_1d(sorter, indexer, fill_value=-1)
     else:
         # length-0 case
         res = np.empty(len(indexer), dtype=np.int64)

@@ -2847,17 +2847,24 @@ def put2d_int64_float64(ndarray[int64_t, ndim=2, cast=True] values,
 #----------------------------------------------------------------------
 # ensure_dtype
 #----------------------------------------------------------------------
-
 cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.int_)).descr.type_num
+cdef object PLATFORM_INT_DTYPE = np.int_
+import platform
+# Even though the platform `int` on Windows is always an int32,
+# if we're running as a 64 bit process numpy will accept and
+# it's more performant to use an int64 indexer
+if platform.os.name == 'nt' and platform.architecture()[0] == '64bit':
+    PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.int64)).descr.type_num
+    PLATFORM_INT_DTYPE = np.int64
 
 cpdef ensure_platform_int(object arr):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == PLATFORM_INT:
             return arr
         else:
-            return arr.astype(np.int_)
+            return arr.astype(PLATFORM_INT_DTYPE)
     else:
-        return np.array(arr, dtype=np.int_)
+        return np.array(arr, dtype=PLATFORM_INT_DTYPE)
 
 cpdef ensure_object(object arr):
     if util.is_array(arr):
