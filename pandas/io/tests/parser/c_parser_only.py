@@ -12,9 +12,10 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import DataFrame, Series, Index, MultiIndex
+from pandas import DataFrame, Series, Index, MultiIndex, Categorical
 from pandas import compat
 from pandas.compat import StringIO, range, lrange
+from pandas.types.dtypes import CategoricalDtype
 
 
 class CParserTests(object):
@@ -135,6 +136,11 @@ nan 2
                               dtype={'A': 'timedelta64', 'B': 'float64'},
                               index_col=0)
 
+            # valid but unsupported - fixed width unicode string
+            self.assertRaises(TypeError, self.read_csv, path,
+                              dtype={'A': 'U8'},
+                              index_col=0)
+
         # see gh-12048: empty frame
         actual = self.read_csv(StringIO('A,B'), dtype=str)
         expected = DataFrame({'A': [], 'B': []}, index=[], dtype=str)
@@ -183,6 +189,92 @@ one,two
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'})
         self.assertEqual(result['one'].dtype, 'u1')
         self.assertEqual(result['two'].dtype, 'object')
+
+    def test_categorical_dtype(self):
+        # GH 10153
+        data = """a,b,c
+1,a,3.4
+1,a,3.4
+2,b,4.5"""
+        expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
+                                 'b': Categorical(['a', 'a', 'b']),
+                                 'c': Categorical(['3.4', '3.4', '4.5'])})
+        actual = self.read_csv(StringIO(data), dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype=CategoricalDtype())
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype={'a': 'category',
+                                                      'b': 'category',
+                                                      'c': CategoricalDtype()})
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype={'b': 'category'})
+        expected = pd.DataFrame({'a': [1, 1, 2],
+                                 'b': Categorical(['a', 'a', 'b']),
+                                 'c': [3.4, 3.4, 4.5]})
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype={1: 'category'})
+        tm.assert_frame_equal(actual, expected)
+
+        # unsorted
+        data = """a,b,c
+1,b,3.4
+1,b,3.4
+2,a,4.5"""
+        expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
+                                 'b': Categorical(['b', 'b', 'a']),
+                                 'c': Categorical(['3.4', '3.4', '4.5'])})
+        actual = self.read_csv(StringIO(data), dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
+        # missing
+        data = """a,b,c
+1,b,3.4
+1,nan,3.4
+2,a,4.5"""
+        expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
+                                 'b': Categorical(['b', np.nan, 'a']),
+                                 'c': Categorical(['3.4', '3.4', '4.5'])})
+        actual = self.read_csv(StringIO(data), dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
+    def test_categorical_dtype_encoding(self):
+        # GH 10153
+        pth = tm.get_data_path('unicode_series.csv')
+        encoding = 'latin-1'
+        expected = self.read_csv(pth, header=None, encoding=encoding)
+        expected[1] = Categorical(expected[1])
+        actual = self.read_csv(pth, header=None, encoding=encoding,
+                               dtype={1: 'category'})
+        tm.assert_frame_equal(actual, expected)
+
+        pth = tm.get_data_path('utf16_ex.txt')
+        encoding = 'utf-16'
+        expected = self.read_table(pth, encoding=encoding)
+        expected = expected.apply(Categorical)
+        actual = self.read_table(pth, encoding=encoding, dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
+    def test_categorical_dtype_chunksize(self):
+        # GH 10153
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        expecteds = [pd.DataFrame({'a': [1, 1],
+                                   'b': Categorical(['a', 'b'])}),
+                     pd.DataFrame({'a': [1, 2],
+                                   'b': Categorical(['b', 'c'])},
+                                  index=[2, 3])]
+        actuals = self.read_csv(StringIO(data), dtype={'b': 'category'},
+                                chunksize=2)
+
+        for actual, expected in zip(actuals, expecteds):
+            tm.assert_frame_equal(actual, expected)
 
     def test_pass_dtype_as_recarray(self):
         if compat.is_platform_windows() and self.low_memory:

@@ -114,6 +114,27 @@ class read_csv_vb(object):
         os.remove('test.csv')
 
 
+class read_csv_categorical(object):
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        group1 = ['aaaaaaaa', 'bbbbbbb', 'cccccccc', 'dddddddd', 'eeeeeeee']
+        df = DataFrame({'a': np.random.choice(group1, N).astype('object'),
+                        'b': np.random.choice(group1, N).astype('object'),
+                        'c': np.random.choice(group1, N).astype('object')})
+        df.to_csv('strings.csv', index=False)
+
+    def time_read_csv_categorical_post(self):
+        read_csv('strings.csv').apply(pd.Categorical)
+
+    def time_read_csv_categorical_direct(self):
+        read_csv('strings.csv', dtype='category')
+
+    def teardown(self):
+        os.remove('strings.csv')
+
+
 class read_table_multiple_date(object):
     goal_time = 0.2
 
