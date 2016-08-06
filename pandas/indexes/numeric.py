@@ -1,5 +1,6 @@
 import numpy as np
 import pandas.lib as lib
+import pandas._join as _join
 import pandas.algos as _algos
 import pandas.index as _index
 
@@ -114,10 +115,10 @@ class Int64Index(NumericIndex):
     _typ = 'int64index'
     _groupby = _algos.groupby_int64
     _arrmap = _algos.arrmap_int64
-    _left_indexer_unique = _algos.left_join_indexer_unique_int64
-    _left_indexer = _algos.left_join_indexer_int64
-    _inner_indexer = _algos.inner_join_indexer_int64
-    _outer_indexer = _algos.outer_join_indexer_int64
+    _left_indexer_unique = _join.left_join_indexer_unique_int64
+    _left_indexer = _join.left_join_indexer_int64
+    _inner_indexer = _join.inner_join_indexer_int64
+    _outer_indexer = _join.outer_join_indexer_int64
 
     _can_hold_na = False
 
@@ -211,10 +212,10 @@ class Float64Index(NumericIndex):
     _engine_type = _index.Float64Engine
     _groupby = _algos.groupby_float64
     _arrmap = _algos.arrmap_float64
-    _left_indexer_unique = _algos.left_join_indexer_unique_float64
-    _left_indexer = _algos.left_join_indexer_float64
-    _inner_indexer = _algos.inner_join_indexer_float64
-    _outer_indexer = _algos.outer_join_indexer_float64
+    _left_indexer_unique = _join.left_join_indexer_unique_float64
+    _left_indexer = _join.left_join_indexer_float64
+    _inner_indexer = _join.inner_join_indexer_float64
+    _outer_indexer = _join.outer_join_indexer_float64
 
     _default_dtype = np.float64
 

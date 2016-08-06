@@ -1340,10 +1340,7 @@ cdef inline float64_t _median_linear(float64_t* a, int n):
     return result
 
 
-include "join.pyx"
-
 # generated from template
 include "algos_common_helper.pxi"
 include "algos_groupby_helper.pxi"
-include "algos_join_helper.pxi"
 include "algos_take_helper.pxi"

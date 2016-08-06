@@ -46,6 +46,7 @@ from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas._period as period
+import pandas._join as _join
 import pandas.algos as _algos
 import pandas.index as _index
 
@@ -204,11 +205,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype='M8[ns]',
                                                       **kwargs)
 
-    _inner_indexer = _join_i8_wrapper(_algos.inner_join_indexer_int64)
-    _outer_indexer = _join_i8_wrapper(_algos.outer_join_indexer_int64)
-    _left_indexer = _join_i8_wrapper(_algos.left_join_indexer_int64)
+    _inner_indexer = _join_i8_wrapper(_join.inner_join_indexer_int64)
+    _outer_indexer = _join_i8_wrapper(_join.outer_join_indexer_int64)
+    _left_indexer = _join_i8_wrapper(_join.left_join_indexer_int64)
     _left_indexer_unique = _join_i8_wrapper(
-        _algos.left_join_indexer_unique_int64, with_indexers=False)
+        _join.left_join_indexer_unique_int64, with_indexers=False)
     _arrmap = None
 
     __eq__ = _dt_index_cmp('__eq__')

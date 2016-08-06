@@ -20,7 +20,7 @@ if [ "$LINT" ]; then
     echo "Linting *.py DONE"
 
     echo "Linting *.pyx"
-    for path in 'window.pyx'
+    for path in 'window.pyx' "src/join.pyx"
     do
         echo "linting -> pandas/$path"
         flake8 pandas/$path --filename '*.pyx' --select=E501,E302,E203,E226,E111,E114,E221,E303,E128,E231,E126

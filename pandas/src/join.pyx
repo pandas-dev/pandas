@@ -1,3 +1,40 @@
+# cython: profile=False
+
+from numpy cimport *
+cimport numpy as np
+import numpy as np
+
+cimport cython
+
+import_array()
+
+cimport util
+
+from numpy cimport NPY_INT8 as NPY_int8
+from numpy cimport NPY_INT16 as NPY_int16
+from numpy cimport NPY_INT32 as NPY_int32
+from numpy cimport NPY_INT64 as NPY_int64
+from numpy cimport NPY_FLOAT16 as NPY_float16
+from numpy cimport NPY_FLOAT32 as NPY_float32
+from numpy cimport NPY_FLOAT64 as NPY_float64
+
+from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
+                    uint32_t, uint64_t, float16_t, float32_t, float64_t)
+
+int8 = np.dtype(np.int8)
+int16 = np.dtype(np.int16)
+int32 = np.dtype(np.int32)
+int64 = np.dtype(np.int64)
+float16 = np.dtype(np.float16)
+float32 = np.dtype(np.float32)
+float64 = np.dtype(np.float64)
+
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+from pandas.algos import groupsort_indexer
+
+
 def inner_join(ndarray[int64_t] left, ndarray[int64_t] right,
                Py_ssize_t max_groups):
     cdef:
@@ -47,6 +84,7 @@ def inner_join(ndarray[int64_t] left, ndarray[int64_t] right,
 
     return (_get_result_indexer(left_sorter, left_indexer),
             _get_result_indexer(right_sorter, right_indexer))
+
 
 def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
                     Py_ssize_t max_groups, sort=True):
@@ -117,12 +155,11 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
         if rev.dtype != np.int_:
-              rev = rev.astype(np.int_)
+            rev = rev.astype(np.int_)
         right_indexer = right_indexer.take(rev)
         left_indexer = left_indexer.take(rev)
 
     return left_indexer, right_indexer
-
 
 
 def left_outer_asof_join(ndarray[int64_t] left, ndarray[int64_t] right,
@@ -140,7 +177,8 @@ def left_outer_asof_join(ndarray[int64_t] left, ndarray[int64_t] right,
         int64_t tolerance_
 
     # if we are using tolerance, set our objects
-    if left_values is not None and right_values is not None and tolerance is not None:
+    if (left_values is not None and right_values is not None and
+        tolerance is not None):
         has_tolerance = 1
         left_values_ = left_values
         right_values_ = right_values
@@ -160,10 +198,12 @@ def left_outer_asof_join(ndarray[int64_t] left, ndarray[int64_t] right,
 
         # find last position in right whose value is less than left's value
         if allow_exact_matches:
-            while right_pos < right_size and right[right_pos] <= left[left_pos]:
+            while (right_pos < right_size and
+                   right[right_pos] <= left[left_pos]):
                 right_pos += 1
         else:
-            while right_pos < right_size and right[right_pos] < left[left_pos]:
+            while (right_pos < right_size and
+                   right[right_pos] < left[left_pos]):
                 right_pos += 1
         right_pos -= 1
 
@@ -243,7 +283,6 @@ def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 
-
 def _get_result_indexer(sorter, indexer):
     if indexer.dtype != np.int_:
         indexer = indexer.astype(np.int_)
@@ -256,7 +295,6 @@ def _get_result_indexer(sorter, indexer):
         res.fill(-1)
 
     return res
-
 
 
 def ffill_indexer(ndarray[int64_t] indexer):
@@ -301,3 +339,6 @@ def ffill_by_group(ndarray[int64_t] indexer, ndarray[int64_t] group_ids,
             last_obs[gid] = val
 
     return result
+
+
+include "join_helper.pxi"
