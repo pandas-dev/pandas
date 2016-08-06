@@ -12,7 +12,7 @@ from pandas.tools.merge import merge, concat
 from pandas.util.testing import assert_frame_equal
 from pandas import DataFrame, MultiIndex, Series
 
-import pandas.algos as algos
+import pandas._join as _join
 import pandas.util.testing as tm
 from pandas.tools.tests.test_merge import get_test_data, N, NGROUPS
 
@@ -51,7 +51,7 @@ class TestJoin(tm.TestCase):
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        ls, rs = algos.left_outer_join(left, right, max_group)
+        ls, rs = _join.left_outer_join(left, right, max_group)
 
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')
@@ -75,7 +75,7 @@ class TestJoin(tm.TestCase):
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        rs, ls = algos.left_outer_join(right, left, max_group)
+        rs, ls = _join.left_outer_join(right, left, max_group)
 
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')
@@ -101,7 +101,7 @@ class TestJoin(tm.TestCase):
         right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
         max_group = 5
 
-        ls, rs = algos.inner_join(left, right, max_group)
+        ls, rs = _join.inner_join(left, right, max_group)
 
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')

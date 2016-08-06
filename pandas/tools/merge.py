@@ -39,7 +39,7 @@ import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.types.concat as _concat
 
-import pandas.algos as _algos
+import pandas._join as _join
 import pandas.hashtable as _hash
 
 
@@ -918,8 +918,8 @@ class _OrderedMerge(_MergeOperation):
                                                      rdata.items, rsuf)
 
         if self.fill_method == 'ffill':
-            left_join_indexer = _algos.ffill_indexer(left_indexer)
-            right_join_indexer = _algos.ffill_indexer(right_indexer)
+            left_join_indexer = _join.ffill_indexer(left_indexer)
+            right_join_indexer = _join.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -1094,13 +1094,13 @@ def _get_multiindex_indexer(join_keys, index, sort):
     # factorize keys to a dense i8 space
     lkey, rkey, count = fkeys(lkey, rkey)
 
-    return _algos.left_outer_join(lkey, rkey, count, sort=sort)
+    return _join.left_outer_join(lkey, rkey, count, sort=sort)
 
 
 def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
-    left_indexer, right_indexer = _algos.left_outer_join(
+    left_indexer, right_indexer = _join.left_outer_join(
         _ensure_int64(left_key),
         _ensure_int64(right_key),
         count, sort=sort)
@@ -1135,15 +1135,15 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 
 
 def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = _algos.left_outer_join(y, x, max_groups)
+    right_indexer, left_indexer = _join.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 _join_functions = {
-    'inner': _algos.inner_join,
-    'left': _algos.left_outer_join,
+    'inner': _join.inner_join,
+    'left': _join.left_outer_join,
     'right': _right_outer_join,
-    'outer': _algos.full_outer_join,
-    'asof': _algos.left_outer_asof_join,
+    'outer': _join.full_outer_join,
+    'asof': _join.left_outer_asof_join,
 }
 
 
