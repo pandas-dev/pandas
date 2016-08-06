@@ -8,15 +8,14 @@ import numpy as np
 
 from pandas import compat, lib, tslib, _np_version_under1p8
 from pandas.types.cast import _maybe_promote
-from pandas.types.generic import (ABCSeries, ABCIndex, ABCPeriodIndex,
-                                  ABCDatetimeIndex)
+from pandas.types.generic import ABCSeries, ABCIndex
 from pandas.types.common import (is_integer_dtype,
                                  is_int64_dtype,
                                  is_categorical_dtype,
                                  is_extension_type,
                                  is_datetimetz,
+                                 is_period_dtype,
                                  is_period_arraylike,
-                                 is_datetime_or_timedelta_dtype,
                                  is_float_dtype,
                                  needs_i8_conversion,
                                  is_categorical,
@@ -395,8 +394,8 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
 def _value_counts_arraylike(values, dropna=True):
     is_datetimetz_type = is_datetimetz(values)
-    is_period = (isinstance(values, ABCPeriodIndex) or
-                 is_period_arraylike(values))
+    is_period_type = (is_period_dtype(values) or
+                      is_period_arraylike(values))
 
     orig = values
 
@@ -404,11 +403,12 @@ def _value_counts_arraylike(values, dropna=True):
     values = Series(values).values
     dtype = values.dtype
 
-    if is_datetime_or_timedelta_dtype(dtype) or is_period:
-        from pandas.tseries.index import DatetimeIndex
+    if needs_i8_conversion(dtype) or is_period_type:
+
         from pandas.tseries.period import PeriodIndex
 
-        if is_period:
+        if is_period_type:
+            # values may be an object
             values = PeriodIndex(values)
             freq = values.freq
 
@@ -424,12 +424,9 @@ def _value_counts_arraylike(values, dropna=True):
 
         # dtype handling
         if is_datetimetz_type:
-            if isinstance(orig, ABCDatetimeIndex):
-                tz = orig.tz
-            else:
-                tz = orig.dt.tz
-            keys = DatetimeIndex._simple_new(keys, tz=tz)
-        if is_period:
+            from pandas.tseries.index import DatetimeIndex
+            keys = DatetimeIndex._simple_new(keys, tz=orig.dtype.tz)
+        if is_period_type:
             keys = PeriodIndex._simple_new(keys, freq=freq)
 
     elif is_integer_dtype(dtype):
@@ -472,11 +469,8 @@ def duplicated(values, keep='first'):
     dtype = values.dtype
 
     # no need to revert to original type
-    if is_datetime_or_timedelta_dtype(dtype) or is_datetimetz(dtype):
-        if isinstance(values, (ABCSeries, ABCIndex)):
-            values = values.values.view(np.int64)
-        else:
-            values = values.view(np.int64)
+    if needs_i8_conversion(dtype):
+        values = values.view(np.int64)
     elif is_period_arraylike(values):
         from pandas.tseries.period import PeriodIndex
         values = PeriodIndex(values).asi8

@@ -244,6 +244,123 @@ class DatetimeTZDtype(ExtensionDtype):
         if isinstance(other, compat.string_types):
             return other == self.name
 
-        return isinstance(other, DatetimeTZDtype) and \
-            self.unit == other.unit and \
-            str(self.tz) == str(other.tz)
+        return (isinstance(other, DatetimeTZDtype) and
+                self.unit == other.unit and
+                str(self.tz) == str(other.tz))
+
+
+class PeriodDtypeType(type):
+    """
+    the type of PeriodDtype, this metaclass determines subclass ability
+    """
+    pass
+
+
+class PeriodDtype(ExtensionDtype):
+    __metaclass__ = PeriodDtypeType
+    """
+    A Period duck-typed class, suitable for holding a period with freq dtype.
+
+    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.int64.
+    """
+    type = PeriodDtypeType
+    kind = 'O'
+    str = '|O08'
+    base = np.dtype('O')
+    num = 102
+    _metadata = ['freq']
+    _match = re.compile("(P|p)eriod\[(?P<freq>.+)\]")
+    _cache = {}
+
+    def __new__(cls, freq=None):
+        """
+        Parameters
+        ----------
+        freq : frequency
+        """
+
+        if isinstance(freq, PeriodDtype):
+            return freq
+
+        elif freq is None:
+            # empty constructor for pickle compat
+            return object.__new__(cls)
+
+        from pandas._period import Period
+        try:
+            freq = Period._maybe_convert_freq(freq)
+        except ValueError:
+            freq = cls._parse_dtype_strict(freq)
+
+        try:
+            return cls._cache[freq.freqstr]
+        except KeyError:
+            u = object.__new__(cls)
+            u.freq = freq
+            cls._cache[freq.freqstr] = u
+            return u
+
+    @classmethod
+    def _parse_dtype_strict(cls, freq):
+        try:
+            m = cls._match.search(freq)
+            if m is not None:
+                from pandas._period import Period
+                freq = m.group('freq')
+                freq = Period._maybe_convert_freq(freq)
+                if freq is not None:
+                    return freq
+        except:
+            pass
+        raise ValueError("could not construct PeriodDtype")
+
+    @classmethod
+    def construct_from_string(cls, string):
+        """
+        attempt to construct this type from a string, raise a TypeError
+        if its not possible
+        """
+        from pandas.tseries.offsets import DateOffset
+        if isinstance(string, (compat.string_types, DateOffset)):
+            # avoid tuple to be regarded as freq
+            try:
+                return cls(freq=string)
+            except ValueError:
+                pass
+        raise TypeError("could not construct PeriodDtype")
+
+    def __unicode__(self):
+        return "period[{freq}]".format(freq=self.freq.freqstr)
+
+    @property
+    def name(self):
+        return str(self)
+
+    def __hash__(self):
+        # make myself hashable
+        return hash(str(self))
+
+    def __eq__(self, other):
+        if isinstance(other, compat.string_types):
+            return other == self.name
+
+        return isinstance(other, PeriodDtype) and self.freq == other.freq
+
+    @classmethod
+    def is_dtype(cls, dtype):
+        """
+        Return a boolean if we if the passed type is an actual dtype that we
+        can match (via string or type)
+        """
+
+        if isinstance(dtype, compat.string_types):
+            # PeriodDtype can be instanciated from freq string like "U",
+            # but dosn't regard freq str like "U" as dtype.
+            try:
+                if cls._parse_dtype_strict(dtype) is not None:
+                    return True
+                else:
+                    return False
+            except ValueError:
+                return False
+        return super(PeriodDtype, cls).is_dtype(dtype)

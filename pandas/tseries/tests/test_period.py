@@ -1783,6 +1783,35 @@ class TestPeriodIndex(tm.TestCase):
 
         self.assertRaises(ValueError, PeriodIndex, vals, freq='D')
 
+    def test_constructor_dtype(self):
+        # passing a dtype with a tz should localize
+        idx = PeriodIndex(['2013-01', '2013-03'], dtype='period[M]')
+        exp = PeriodIndex(['2013-01', '2013-03'], freq='M')
+        tm.assert_index_equal(idx, exp)
+        self.assertEqual(idx.dtype, 'period[M]')
+
+        idx = PeriodIndex(['2013-01-05', '2013-03-05'], dtype='period[3D]')
+        exp = PeriodIndex(['2013-01-05', '2013-03-05'], freq='3D')
+        tm.assert_index_equal(idx, exp)
+        self.assertEqual(idx.dtype, 'period[3D]')
+
+        # if we already have a freq and its not the same, then asfreq
+        # (not changed)
+        idx = PeriodIndex(['2013-01-01', '2013-01-02'], freq='D')
+
+        res = PeriodIndex(idx, dtype='period[M]')
+        exp = PeriodIndex(['2013-01', '2013-01'], freq='M')
+        tm.assert_index_equal(res, exp)
+        self.assertEqual(res.dtype, 'period[M]')
+
+        res = PeriodIndex(idx, freq='M')
+        tm.assert_index_equal(res, exp)
+        self.assertEqual(res.dtype, 'period[M]')
+
+        msg = 'specified freq and dtype are different'
+        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            PeriodIndex(['2011-01'], freq='M', dtype='period[D]')
+
     def test_constructor_empty(self):
         idx = pd.PeriodIndex([], freq='M')
         tm.assertIsInstance(idx, PeriodIndex)
@@ -1969,6 +1998,15 @@ class TestPeriodIndex(tm.TestCase):
             expected = PeriodIndex(['2016-01-01 00:00', '2016-01-02 01:00'],
                                    freq='25H')
             tm.assert_index_equal(pidx, expected)
+
+    def test_dtype_str(self):
+        pi = pd.PeriodIndex([], freq='M')
+        self.assertEqual(pi.dtype_str, 'period[M]')
+        self.assertEqual(pi.dtype_str, str(pi.dtype))
+
+        pi = pd.PeriodIndex([], freq='3M')
+        self.assertEqual(pi.dtype_str, 'period[3M]')
+        self.assertEqual(pi.dtype_str, str(pi.dtype))
 
     def test_view_asi8(self):
         idx = pd.PeriodIndex([], freq='M')
@@ -2313,6 +2351,17 @@ class TestPeriodIndex(tm.TestCase):
         expected = DatetimeIndex(
             ['2011-01-02 00:00', '2011-01-03 01:00'], name='idx')
         self.assert_index_equal(result, expected)
+
+    def test_to_timestamp_to_period_astype(self):
+        idx = DatetimeIndex([pd.NaT, '2011-01-01', '2011-02-01'], name='idx')
+
+        res = idx.astype('period[M]')
+        exp = PeriodIndex(['NaT', '2011-01', '2011-02'], freq='M', name='idx')
+        tm.assert_index_equal(res, exp)
+
+        res = idx.astype('period[3M]')
+        exp = PeriodIndex(['NaT', '2011-01', '2011-02'], freq='3M', name='idx')
+        self.assert_index_equal(res, exp)
 
     def test_start_time(self):
         index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
@@ -3012,6 +3061,16 @@ class TestPeriodIndex(tm.TestCase):
             tm.assert_frame_equal(df['2013/10/15':'2013/10/17'], empty)
             tm.assert_frame_equal(df['2013-06':'2013-09'], empty)
             tm.assert_frame_equal(df['2013-11':'2013-12'], empty)
+
+    def test_astype_asfreq(self):
+        pi1 = PeriodIndex(['2011-01-01', '2011-02-01', '2011-03-01'], freq='D')
+        exp = PeriodIndex(['2011-01', '2011-02', '2011-03'], freq='M')
+        tm.assert_index_equal(pi1.asfreq('M'), exp)
+        tm.assert_index_equal(pi1.astype('period[M]'), exp)
+
+        exp = PeriodIndex(['2011-01', '2011-02', '2011-03'], freq='3M')
+        tm.assert_index_equal(pi1.asfreq('3M'), exp)
+        tm.assert_index_equal(pi1.astype('period[3M]'), exp)
 
     def test_pindex_fieldaccessor_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT',

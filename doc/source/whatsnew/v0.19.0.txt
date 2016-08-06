@@ -628,6 +628,38 @@ Furthermore:
 - Passing duplicated ``percentiles`` will now raise a ``ValueError``.
 - Bug in ``.describe()`` on a DataFrame with a mixed-dtype column index, which would previously raise a ``TypeError`` (:issue:`13288`)
 
+.. _whatsnew_0190.api.perioddtype:
+
+``PeriodIndex`` now has ``period`` dtype
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``PeriodIndex`` now has its own ``period`` dtype. ``period`` dtype is a
+pandas extension dtype which extends NumPy dtype like ``"category"``. (:issue:`13941`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: pi = pd.PeriodIndex(['2016-08-01'], freq='D')
+   In [2]: pi
+   Out[2]: PeriodIndex(['2016-08-01'], dtype='int64', freq='D')
+   In [3]: pd.api.types.is_integer_dtype(pi)
+   Out[3]: True
+   In [4]: pi.dtype
+   Out[4]: dtype('int64')
+
+New Behavior:
+
+.. ipython:: python
+
+   pi = pd.PeriodIndex(['2016-08-01'], freq='D')
+   pi
+   pd.api.types.is_integer_dtype(pi)
+   pd.api.types.is_period_dtype(pi)
+
+   pi.dtype
+   type(pi.dtype)
+
 .. _whatsnew_0190.api.periodnat:
 
 ``Period('NaT')`` now returns ``pd.NaT``
