@@ -12,6 +12,7 @@ Highlights include:
 - :func:`merge_asof` for asof-style time-series joining, see :ref:`here <whatsnew_0190.enhancements.asof_merge>`
 - ``.rolling()`` are now time-series aware, see :ref:`here <whatsnew_0190.enhancements.rolling_ts>`
 - pandas development api, see :ref:`here <whatsnew_0190.dev_api>`
+- :func:`read_csv` now supports parsing ``Categorical`` data, see :ref:`here <whatsnew_0190.enhancements.read_csv_categorical>`
 
 .. contents:: What's new in v0.19.0
     :local:
@@ -195,6 +196,14 @@ default of the index) in a DataFrame.
 ``read_csv`` has improved support for duplicate column names
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. ipython:: python
+   :suppress:
+
+   from pandas.compat import StringIO
+
+.. _whatsnew_0190.enhancements.read_csv_dupe_col_names_support:
+
+
 :ref:`Duplicate column names <io.dupe_names>` are now supported in :func:`read_csv` whether
 they are in the file or passed in as the ``names`` parameter (:issue:`7160`, :issue:`9424`)
 
@@ -221,6 +230,46 @@ New behaviour:
 .. ipython :: python
 
    In [2]: pd.read_csv(StringIO(data), names=names)
+
+
+.. _whatsnew_0190.enhancements.read_csv_categorical:
+
+:func:`read_csv` supports parsing ``Categorical`` directly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :func:`read_csv` function now supports parsing a ``Categorical`` column when
+specified as a dtype (:issue:`10153`).  Depending on the structure of the data,
+this can result in a faster parse time and lower memory usage compared to
+converting to ``Categorical`` after parsing.  See the io :ref:`docs here <io.categorical>`
+
+.. ipython:: python
+
+   data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
+
+   pd.read_csv(StringIO(data))
+   pd.read_csv(StringIO(data)).dtypes
+   pd.read_csv(StringIO(data), dtype='category').dtypes
+
+Individual columns can be parsed as a ``Categorical`` using a dict specification
+
+.. ipython:: python
+
+   pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
+
+.. note::
+
+   The resulting categories will always be parsed as strings (object dtype).
+   If the categories are numeric they can be converted using the
+   :func:`to_numeric` function, or as appropriate, another converter
+   such as :func:`to_datetime`.
+
+   .. ipython:: python
+
+      df = pd.read_csv(StringIO(data), dtype='category')
+      df.dtypes
+      df['col3']
+      df['col3'].cat.categories = pd.to_numeric(df['col3'].cat.categories)
+      df['col3']
 
 .. _whatsnew_0190.enhancements.semi_month_offsets:
 
