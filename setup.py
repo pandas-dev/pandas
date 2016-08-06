@@ -107,7 +107,7 @@ from os.path import join as pjoin
 
 _pxipath = pjoin('pandas', 'src')
 _pxifiles = ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
-             'algos_join_helper.pxi.in', 'algos_take_helper.pxi.in',
+             'join_helper.pxi.in', 'algos_take_helper.pxi.in',
              'hashtable_class_helper.pxi.in', 'hashtable_func_helper.pxi.in',
              'sparse_op_helper.pxi.in']
 
@@ -308,6 +308,7 @@ class CheckSDist(sdist_class):
                  'pandas/tslib.pyx',
                  'pandas/index.pyx',
                  'pandas/algos.pyx',
+                 'pandas/join.pyx',
                  'pandas/window.pyx',
                  'pandas/parser.pyx',
                  'pandas/src/period.pyx',
@@ -464,8 +465,9 @@ ext_data = dict(
            'sources': ['pandas/src/datetime/np_datetime.c',
                        'pandas/src/datetime/np_datetime_strings.c']},
     algos={'pyxfile': 'algos',
-           'pxdfiles': ['src/util'],
-           'depends': [srcpath('join', suffix='.pyx')]},
+           'pxdfiles': ['src/util']},
+    _join={'pyxfile': 'src/join',
+           'pxdfiles': ['src/util']},
     _window={'pyxfile': 'window',
              'pxdfiles': ['src/skiplist', 'src/util'],
              'depends': ['pandas/src/skiplist.pyx',

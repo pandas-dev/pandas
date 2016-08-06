@@ -5,6 +5,7 @@ import operator
 import numpy as np
 import pandas.tslib as tslib
 import pandas.lib as lib
+import pandas._join as _join
 import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp, Timedelta, is_datetime_array
@@ -110,10 +111,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     # Cython methods
     _groupby = _algos.groupby_object
     _arrmap = _algos.arrmap_object
-    _left_indexer_unique = _algos.left_join_indexer_unique_object
-    _left_indexer = _algos.left_join_indexer_object
-    _inner_indexer = _algos.inner_join_indexer_object
-    _outer_indexer = _algos.outer_join_indexer_object
+    _left_indexer_unique = _join.left_join_indexer_unique_object
+    _left_indexer = _join.left_join_indexer_object
+    _inner_indexer = _join.inner_join_indexer_object
+    _outer_indexer = _join.outer_join_indexer_object
     _box_scalars = False
 
     _typ = 'index'

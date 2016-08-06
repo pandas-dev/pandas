@@ -1040,7 +1040,7 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         Specify object name being compared, internally used to show appropriate
         assertion message
     check_same : None|'copy'|'same', default None
-        Ensure "left" and "right refer/do not refer to the same memory area
+        Ensure left and right refer/do not refer to the same memory area
     """
 
     # instance validation
