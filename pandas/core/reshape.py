@@ -6,7 +6,7 @@ import itertools
 
 import numpy as np
 
-from pandas.types.common import _ensure_platform_int, is_list_like
+from pandas.types.common import is_list_like
 from pandas.types.cast import _maybe_promote
 from pandas.types.missing import notnull
 import pandas.types.concat as _concat

@@ -1038,7 +1038,6 @@ class MultiIndex(Index):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.labels, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,
@@ -1340,7 +1339,6 @@ class MultiIndex(Index):
             if not ascending:
                 indexer = indexer[::-1]
 
-        indexer = _ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
 
         new_index = MultiIndex(labels=new_labels, levels=self.levels,
@@ -1786,7 +1784,7 @@ class MultiIndex(Index):
                 # selected
                 from pandas import Series
                 mapper = Series(indexer)
-                indexer = labels.take(_ensure_platform_int(indexer))
+                indexer = labels.take(indexer)
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)._values
 

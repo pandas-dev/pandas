@@ -9,8 +9,7 @@ from pandas.types.common import (is_integer_dtype,
                                  is_categorical_dtype,
                                  is_list_like,
                                  is_sequence,
-                                 is_scalar,
-                                 _ensure_platform_int)
+                                 is_scalar)
 from pandas.types.missing import isnull, _infer_fill_value
 
 from pandas.core.index import Index, MultiIndex
@@ -864,7 +863,6 @@ class _NDFrameIndexer(object):
                 keyarr = _asarray_tuplesafe(key)
 
             if is_integer_dtype(keyarr) and not labels.is_integer():
-                keyarr = _ensure_platform_int(keyarr)
                 return labels.take(keyarr)
 
             return keyarr
@@ -1860,10 +1858,11 @@ def maybe_convert_indices(indices, n):
             # errors.
             return np.empty(0, dtype=np.int_)
 
+    # cythonize this to one pass?
     mask = indices < 0
     if mask.any():
-        # don't want to mutate original array
-        indices = np.array(indices, copy=True)
+        # don't mutate original array
+        indices = indices.copy()
         indices[mask] += n
     mask = (indices >= n) | (indices < 0)
     if mask.any():

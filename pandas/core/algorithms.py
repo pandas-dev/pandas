@@ -253,11 +253,9 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
 
     mask = (labels < -len(values)) | (labels >= len(values)) | \
         (labels == na_sentinel)
+    np.putmask(labels, mask, -1)
 
-    # (Out of bound indices will be masked with `na_sentinel` next, so we may
-    # deal with them here without performance loss using `mode='wrap'`.)
-    new_labels = take_nd(reverse_indexer, labels, fill_value=na_sentinel,
-                         mask_info=(mask, mask.any()))
+    new_labels = take_nd(reverse_indexer, labels, fill_value=na_sentinel)
 
     return ordered, new_labels
 

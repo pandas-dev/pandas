@@ -1479,6 +1479,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _assert_take_fillable(self, values, indices, allow_fill=True,
                               fill_value=None, na_value=np.nan):
         """ internal method to handle NA filling of take """
+        indices = np.asarray(indices)
         if allow_fill and fill_value is not None:
             if (indices < -1).any():
                 msg = ('When allow_fill=True and fill_value is not None, '
@@ -1486,7 +1487,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 raise ValueError(msg)
             else:
                 taken = algos.take_nd(values, indices, allow_fill=allow_fill,
-                                      fill_value=fill_value)
+                                      fill_value=na_value)
         else:
             # provide wraparound semantics if fill_value not specified
             from pandas.core.indexing import maybe_convert_indices
@@ -2529,7 +2530,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if len(missing):
             l = np.arange(len(indexer))
 
-            missing = _ensure_platform_int(missing)
+            missing = missing
             missing_labels = target.take(missing)
             missing_indexer = _ensure_int64(l[~check])
             cur_labels = self.take(indexer[check])._values
@@ -2723,12 +2724,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                                  [other._values], how=how,
                                                  sort=True)
 
-        left_idx = _ensure_platform_int(left_idx)
-        right_idx = _ensure_platform_int(right_idx)
-
-        join_index = self.values.take(left_idx)
-        mask = left_idx == -1
-        np.putmask(join_index, mask, other._values.take(right_idx))
+        lvals = algos.take_nd(self.values, left_idx, fill_value=-1)
+        rvals = algos.take_nd(other._values, right_idx, fill_value=-1)
+        join_index = np.where(left_idx == -1, rvals, lvals)
 
         join_index = self._wrap_joined_index(join_index, other)
 
