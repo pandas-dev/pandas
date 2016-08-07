@@ -9,10 +9,16 @@ from pandas import compat
 from pandas.compat.numpy import function as nv
 
 import numpy as np
-
+from pandas.types.common import (is_integer, is_float,
+                                 is_bool_dtype, _ensure_int64,
+                                 is_scalar,
+                                 is_list_like)
+from pandas.types.generic import (ABCIndex, ABCSeries,
+                                  ABCPeriodIndex, ABCIndexClass)
+from pandas.types.missing import isnull
 from pandas.core import common as com, algorithms
-from pandas.core.common import (is_integer, is_float, is_bool_dtype,
-                                AbstractMethodError)
+from pandas.core.common import AbstractMethodError
+
 import pandas.formats.printing as printing
 import pandas.tslib as tslib
 import pandas._period as prlib
@@ -111,9 +117,9 @@ class DatetimeIndexOpsMixin(object):
 
         @staticmethod
         def wrapper(left, right):
-            if isinstance(left, (np.ndarray, com.ABCIndex, com.ABCSeries)):
+            if isinstance(left, (np.ndarray, ABCIndex, ABCSeries)):
                 left = left.view('i8')
-            if isinstance(right, (np.ndarray, com.ABCIndex, com.ABCSeries)):
+            if isinstance(right, (np.ndarray, ABCIndex, ABCSeries)):
                 right = right.view('i8')
             results = joinf(left, right)
             if with_indexers:
@@ -133,16 +139,16 @@ class DatetimeIndexOpsMixin(object):
 
         # coerce to a similar object
         if not isinstance(other, type(self)):
-            if not com.is_list_like(other):
+            if not is_list_like(other):
                 # scalar
                 other = [other]
-            elif lib.isscalar(lib.item_from_zerodim(other)):
+            elif is_scalar(lib.item_from_zerodim(other)):
                 # ndarray scalar
                 other = [other.item()]
             other = type(self)(other)
 
         # compare
-        result = getattr(self.asi8, op)(other.asi8)
+        result = op(self.asi8, other.asi8)
 
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
@@ -174,7 +180,7 @@ class DatetimeIndexOpsMixin(object):
 
         # reconvert to local tz
         if getattr(self, 'tz', None) is not None:
-            if not isinstance(result, com.ABCIndexClass):
+            if not isinstance(result, ABCIndexClass):
                 result = self._simple_new(result)
             result = result.tz_localize(self.tz)
         return result
@@ -202,7 +208,7 @@ class DatetimeIndexOpsMixin(object):
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
-            return lib.isscalar(res) or type(res) == slice or np.any(res)
+            return is_scalar(res) or type(res) == slice or np.any(res)
         except (KeyError, TypeError, ValueError):
             return False
 
@@ -213,7 +219,7 @@ class DatetimeIndexOpsMixin(object):
         """
 
         is_int = is_integer(key)
-        if lib.isscalar(key) and not is_int:
+        if is_scalar(key) and not is_int:
             raise ValueError
 
         getitem = self._data.__getitem__
@@ -282,7 +288,7 @@ class DatetimeIndexOpsMixin(object):
             return result
 
         attribs = self._get_attributes_dict()
-        if not isinstance(self, com.ABCPeriodIndex):
+        if not isinstance(self, ABCPeriodIndex):
             attribs['freq'] = None
         return self._simple_new(result, **attribs)
 
@@ -312,7 +318,7 @@ class DatetimeIndexOpsMixin(object):
             attribs = self._get_attributes_dict()
             freq = attribs['freq']
 
-            if freq is not None and not isinstance(self, com.ABCPeriodIndex):
+            if freq is not None and not isinstance(self, ABCPeriodIndex):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
                 elif freq.n < 0 and ascending:
@@ -328,7 +334,7 @@ class DatetimeIndexOpsMixin(object):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = com._ensure_int64(indices)
+        indices = _ensure_int64(indices)
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):
@@ -340,7 +346,7 @@ class DatetimeIndexOpsMixin(object):
                                            na_value=tslib.iNaT)
 
         # keep freq in PeriodIndex, reset otherwise
-        freq = self.freq if isinstance(self, com.ABCPeriodIndex) else None
+        freq = self.freq if isinstance(self, ABCPeriodIndex) else None
         return self._shallow_copy(taken, freq=freq)
 
     def get_duplicates(self):
@@ -545,7 +551,7 @@ class DatetimeIndexOpsMixin(object):
 
         # we don't allow integer/float indexing for loc
         # we don't allow float indexing for ix/getitem
-        if lib.isscalar(key):
+        if is_scalar(key):
             is_int = is_integer(key)
             is_flt = is_float(key)
             if kind in ['loc'] and (is_int or is_flt):
@@ -591,7 +597,7 @@ class DatetimeIndexOpsMixin(object):
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64,
                                     tslib.Timedelta)):
                 return self._add_delta(other)
-            elif com.is_integer(other):
+            elif is_integer(other):
                 return self.shift(other)
             elif isinstance(other, (tslib.Timestamp, datetime)):
                 return self._add_datelike(other)
@@ -619,7 +625,7 @@ class DatetimeIndexOpsMixin(object):
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64,
                                     tslib.Timedelta)):
                 return self._add_delta(-other)
-            elif com.is_integer(other):
+            elif is_integer(other):
                 return self.shift(-other)
             elif isinstance(other, (tslib.Timestamp, datetime)):
                 return self._sub_datelike(other)
@@ -791,15 +797,18 @@ class DatetimeIndexOpsMixin(object):
 
 def _ensure_datetimelike_to_i8(other):
     """ helper for coercing an input scalar or array to i8 """
-    if lib.isscalar(other) and com.isnull(other):
+    if lib.isscalar(other) and isnull(other):
         other = tslib.iNaT
-    elif isinstance(other, com.ABCIndexClass):
-
+    elif isinstance(other, ABCIndexClass):
         # convert tz if needed
         if getattr(other, 'tz', None) is not None:
             other = other.tz_localize(None).asi8
         else:
             other = other.asi8
     else:
-        other = np.array(other, copy=False).view('i8')
+        try:
+            other = np.array(other, copy=False).view('i8')
+        except TypeError:
+            # period array cannot be coerces to int
+            other = Index(other).asi8
     return other

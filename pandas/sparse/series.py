@@ -7,10 +7,12 @@ with float64 data
 
 import numpy as np
 import warnings
-import operator
+
+from pandas.types.missing import isnull
+from pandas.types.common import is_scalar
+from pandas.core.common import _values_from_object, _maybe_match_name
 
 from pandas.compat.numpy import function as nv
-from pandas.core.common import isnull, _values_from_object, _maybe_match_name
 from pandas.core.index import Index, _ensure_index, InvalidIndexError
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
@@ -19,7 +21,6 @@ from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.index as _index
-import pandas.lib as lib
 from pandas.util.decorators import Appender
 
 from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray,
@@ -55,18 +56,11 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
             return _sparse_series_op(self, other, op, name)
         elif isinstance(other, DataFrame):
             return NotImplemented
-        elif lib.isscalar(other):
-            if isnull(other) or isnull(self.fill_value):
-                new_fill_value = np.nan
-            else:
-                new_fill_value = op(np.float64(self.fill_value),
-                                    np.float64(other))
-
-            return SparseSeries(op(self.sp_values, other),
-                                index=self.index,
-                                sparse_index=self.sp_index,
-                                fill_value=new_fill_value,
-                                name=self.name)
+        elif is_scalar(other):
+            new_values = op(self.values, other)
+            return self._constructor(new_values,
+                                     index=self.index,
+                                     name=self.name)
         else:  # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
 
@@ -83,8 +77,9 @@ def _sparse_series_op(left, right, op, name):
     new_index = left.index
     new_name = _maybe_match_name(left, right)
 
-    result = _sparse_array_op(left, right, op, name)
-    return SparseSeries(result, index=new_index, name=new_name)
+    result = _sparse_array_op(left.values, right.values, op, name,
+                              series=True)
+    return left._constructor(result, index=new_index, name=new_name)
 
 
 class SparseSeries(Series):
@@ -306,13 +301,22 @@ class SparseSeries(Series):
         rep = '%s\n%s' % (series_rep, repr(self.sp_index))
         return rep
 
-    def __array_wrap__(self, result):
+    def __array_wrap__(self, result, context=None):
         """
         Gets called prior to a ufunc (and after)
+
+        See SparseArray.__array_wrap__ for detail.
         """
+        if isinstance(context, tuple) and len(context) == 3:
+            ufunc, args, domain = context
+            args = [getattr(a, 'fill_value', a) for a in args]
+            fill_value = ufunc(self.fill_value, *args[1:])
+        else:
+            fill_value = self.fill_value
+
         return self._constructor(result, index=self.index,
                                  sparse_index=self.sp_index,
-                                 fill_value=self.fill_value,
+                                 fill_value=fill_value,
                                  copy=False).__finalize__(self)
 
     def __array_finalize__(self, obj):
@@ -433,10 +437,8 @@ class SparseSeries(Series):
         -------
         abs: type of caller
         """
-        res_sp_values = np.abs(self.sp_values)
-        return self._constructor(res_sp_values, index=self.index,
-                                 sparse_index=self.sp_index,
-                                 fill_value=self.fill_value).__finalize__(self)
+        return self._constructor(np.abs(self.values),
+                                 index=self.index).__finalize__(self)
 
     def get(self, label, default=None):
         """
@@ -803,7 +805,7 @@ ops.add_flex_arithmetic_methods(SparseSeries, use_numexpr=False,
 # overwrite basic arithmetic to use SparseSeries version
 # force methods to overwrite previous definitions.
 ops.add_special_arithmetic_methods(SparseSeries, _arith_method,
-                                   radd_func=operator.add, comp_method=None,
+                                   comp_method=None,
                                    bool_method=None, use_numexpr=False,
                                    force=True)
 

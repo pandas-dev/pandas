@@ -13,6 +13,21 @@ from pandas.lib import Timestamp
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
 from pandas import compat
+
+
+from pandas.types.common import (_ensure_int64,
+                                 _ensure_platform_int,
+                                 is_object_dtype,
+                                 is_iterator,
+                                 is_list_like,
+                                 is_scalar)
+from pandas.types.missing import isnull, array_equivalent
+from pandas.core.common import (_values_from_object,
+                                is_bool_indexer,
+                                is_null_slice,
+                                PerformanceWarning)
+
+
 from pandas.core.base import FrozenList
 import pandas.core.base as base
 from pandas.util.decorators import (Appender, cache_readonly,
@@ -21,13 +36,6 @@ import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
 from pandas.formats.printing import pprint_thing
-from pandas.core.common import (isnull, array_equivalent,
-                                is_object_dtype,
-                                _values_from_object,
-                                is_iterator,
-                                _ensure_int64, is_bool_indexer,
-                                is_list_like, is_null_slice,
-                                PerformanceWarning)
 
 from pandas.core.config import get_option
 
@@ -589,6 +597,19 @@ class MultiIndex(Index):
         # isnull is not implemented for MultiIndex
         raise NotImplementedError('isnull is not defined for MultiIndex')
 
+    @Appender(_index_shared_docs['dropna'])
+    def dropna(self, how='any'):
+        nans = [label == -1 for label in self.labels]
+        if how == 'any':
+            indexer = np.any(nans, axis=0)
+        elif how == 'all':
+            indexer = np.all(nans, axis=0)
+        else:
+            raise ValueError("invalid how option: {0}".format(how))
+
+        new_labels = [label[~indexer] for label in self.labels]
+        return self.copy(labels=new_labels, deep=True)
+
     def get_value(self, series, key):
         # somewhat broken encapsulation
         from pandas.core.indexing import maybe_droplevels
@@ -798,7 +819,7 @@ class MultiIndex(Index):
             else:
                 return 0
 
-        int64_labels = [com._ensure_int64(lab) for lab in self.labels]
+        int64_labels = [_ensure_int64(lab) for lab in self.labels]
         for k in range(self.nlevels, 0, -1):
             if lib.is_lexsorted(int64_labels[:k]):
                 return k
@@ -839,6 +860,12 @@ class MultiIndex(Index):
         if len(arrays) == 1:
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
+
+        # Check if lengths of all arrays are equal or not,
+        # raise ValueError, if not
+        for i in range(1, len(arrays)):
+            if len(arrays[i]) != len(arrays[i - 1]):
+                raise ValueError('all arrays must be same length')
 
         cats = [Categorical.from_array(arr, ordered=True) for arr in arrays]
         levels = [c.categories for c in cats]
@@ -984,7 +1011,7 @@ class MultiIndex(Index):
         self._reset_identity()
 
     def __getitem__(self, key):
-        if lib.isscalar(key):
+        if is_scalar(key):
             retval = []
             for lev, lab in zip(self.levels, self.labels):
                 if lab[key] == -1:
@@ -1011,7 +1038,7 @@ class MultiIndex(Index):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = com._ensure_platform_int(indices)
+        indices = _ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.labels, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,
@@ -1313,7 +1340,7 @@ class MultiIndex(Index):
             if not ascending:
                 indexer = indexer[::-1]
 
-        indexer = com._ensure_platform_int(indexer)
+        indexer = _ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
 
         new_index = MultiIndex(labels=new_labels, levels=self.levels,
@@ -1377,7 +1404,7 @@ class MultiIndex(Index):
         else:
             indexer = self_index._engine.get_indexer(target._values)
 
-        return com._ensure_platform_int(indexer)
+        return _ensure_platform_int(indexer)
 
     def reindex(self, target, method=None, level=None, limit=None,
                 tolerance=None):
@@ -1759,7 +1786,7 @@ class MultiIndex(Index):
                 # selected
                 from pandas import Series
                 mapper = Series(indexer)
-                indexer = labels.take(com._ensure_platform_int(indexer))
+                indexer = labels.take(_ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)._values
 

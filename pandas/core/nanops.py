@@ -11,16 +11,20 @@ except ImportError:  # pragma: no cover
 
 import pandas.hashtable as _hash
 from pandas import compat, lib, algos, tslib
-from pandas.core.common import (isnull, notnull, _values_from_object,
-                                _maybe_upcast_putmask, _ensure_float64,
-                                _ensure_int64, _ensure_object, is_float,
-                                is_integer, is_complex, is_float_dtype,
-                                is_complex_dtype, is_integer_dtype,
-                                is_bool_dtype, is_object_dtype,
-                                is_datetime64_dtype, is_timedelta64_dtype,
-                                is_datetime_or_timedelta_dtype, _get_dtype,
-                                is_int_or_datetime_dtype, is_any_int_dtype,
-                                _int64_max)
+from pandas.types.common import (_ensure_int64, _ensure_object,
+                                 _ensure_float64, _get_dtype,
+                                 is_float, is_scalar,
+                                 is_integer, is_complex, is_float_dtype,
+                                 is_complex_dtype, is_integer_dtype,
+                                 is_bool_dtype, is_object_dtype,
+                                 is_numeric_dtype,
+                                 is_datetime64_dtype, is_timedelta64_dtype,
+                                 is_datetime_or_timedelta_dtype,
+                                 is_int_or_datetime_dtype, is_any_int_dtype)
+from pandas.types.cast import _int64_max, _maybe_upcast_putmask
+from pandas.types.missing import isnull, notnull
+
+from pandas.core.common import _values_from_object
 
 
 class disallow(object):
@@ -351,7 +355,7 @@ def _get_counts_nanvar(mask, axis, ddof, dtype=float):
     d = count - dtype.type(ddof)
 
     # always return NaN, never inf
-    if lib.isscalar(count):
+    if is_scalar(count):
         if count <= ddof:
             count = np.nan
             d = np.nan
@@ -623,7 +627,7 @@ def _get_counts(mask, axis, dtype=float):
         return dtype.type(mask.size - mask.sum())
 
     count = mask.shape[axis] - mask.sum(axis)
-    if lib.isscalar(count):
+    if is_scalar(count):
         return dtype.type(count)
     try:
         return count.astype(dtype)
@@ -635,11 +639,15 @@ def _maybe_null_out(result, axis, mask):
     if axis is not None and getattr(result, 'ndim', False):
         null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
         if np.any(null_mask):
-            if np.iscomplexobj(result):
-                result = result.astype('c16')
+            if is_numeric_dtype(result):
+                if np.iscomplexobj(result):
+                    result = result.astype('c16')
+                else:
+                    result = result.astype('f8')
+                result[null_mask] = np.nan
             else:
-                result = result.astype('f8')
-            result[null_mask] = np.nan
+                # GH12941, use None to auto cast null
+                result[null_mask] = None
     elif result is not tslib.NaT:
         null_mask = mask.size - mask.sum()
         if null_mask == 0:

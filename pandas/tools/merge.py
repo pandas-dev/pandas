@@ -12,6 +12,21 @@ import pandas.compat as compat
 from pandas import (Categorical, DataFrame, Series,
                     Index, MultiIndex, Timedelta)
 from pandas.core.frame import _merge_doc
+from pandas.types.generic import ABCSeries
+from pandas.types.common import (is_datetime64tz_dtype,
+                                 is_datetime64_dtype,
+                                 needs_i8_conversion,
+                                 is_int64_dtype,
+                                 is_integer,
+                                 is_int_or_datetime_dtype,
+                                 is_dtype_equal,
+                                 is_bool,
+                                 is_list_like,
+                                 _ensure_int64,
+                                 _ensure_platform_int,
+                                 _ensure_object)
+from pandas.types.missing import na_value_for_dtype
+
 from pandas.core.generic import NDFrame
 from pandas.core.index import (_get_combined_index,
                                _ensure_index, _get_consensus_names,
@@ -19,20 +34,12 @@ from pandas.core.index import (_get_combined_index,
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
-from pandas.core.common import (ABCSeries, is_dtype_equal,
-                                is_datetime64_dtype,
-                                is_int64_dtype,
-                                is_integer,
-                                is_bool,
-                                is_list_like,
-                                needs_i8_conversion)
 
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.types.concat as _concat
-from pandas.types.api import na_value_for_dtype
 
-import pandas.algos as _algos
+import pandas._join as _join
 import pandas.hashtable as _hash
 
 
@@ -251,8 +258,7 @@ def merge_asof(left, right, on=None,
                by=None,
                suffixes=('_x', '_y'),
                tolerance=None,
-               allow_exact_matches=True,
-               check_duplicates=True):
+               allow_exact_matches=True):
     """Perform an asof merge. This is similar to a left-join except that we
     match on nearest key rather than equal keys.
 
@@ -296,14 +302,6 @@ def merge_asof(left, right, on=None,
           (i.e. less-than-or-equal-to)
         - If False, don't match the same 'on' value
           (i.e., stricly less-than)
-
-    check_duplicates : boolean, default True
-
-        - If True, check and remove duplicates for the right
-          DataFrame, on the [by, on] combination, keeping the last value.
-        - If False, no check for duplicates. If you *know* that
-          you don't have duplicates, then turning off the check for duplicates
-          can be more performant.
 
     Returns
     -------
@@ -429,29 +427,21 @@ def merge_asof(left, right, on=None,
     if by is not None:
         result, groupby = _groupby_and_merge(by, on, left, right,
                                              lambda x, y: _merger(x, y),
-                                             check_duplicates=check_duplicates)
+                                             check_duplicates=False)
 
         # we want to preserve the original order
         # we had grouped, so need to reverse this
         # if we DO have duplicates, then
         # we cannot guarantee order
 
-        sorter = com._ensure_platform_int(
+        sorter = _ensure_platform_int(
             np.concatenate([groupby.indices[g] for g, _ in groupby]))
         if len(result) != len(sorter):
-            if check_duplicates:
-                raise AssertionError("invalid reverse grouping")
             return result
 
         rev = np.empty(len(sorter), dtype=np.int_)
         rev.put(sorter, np.arange(len(sorter)))
         return result.take(rev).reset_index(drop=True)
-
-    if check_duplicates:
-        if on is None:
-            on = []
-        elif not isinstance(on, (list, tuple)):
-            on = [on]
 
         if right.duplicated(on).any():
             right = right.drop_duplicates(on, keep='last')
@@ -928,8 +918,8 @@ class _OrderedMerge(_MergeOperation):
                                                      rdata.items, rsuf)
 
         if self.fill_method == 'ffill':
-            left_join_indexer = _algos.ffill_indexer(left_indexer)
-            right_join_indexer = _algos.ffill_indexer(right_indexer)
+            left_join_indexer = _join.ffill_indexer(left_indexer)
+            right_join_indexer = _join.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -1060,8 +1050,8 @@ class _AsOfMerge(_OrderedMerge):
                 lt = lt.view('i8')
                 t = t.value
                 rt = rt.view('i8')
-            kwargs['left_distance'] = lt
-            kwargs['right_distance'] = rt
+            kwargs['left_values'] = lt
+            kwargs['right_values'] = rt
             kwargs['tolerance'] = t
 
         return _get_join_indexers(self.left_join_keys,
@@ -1104,15 +1094,15 @@ def _get_multiindex_indexer(join_keys, index, sort):
     # factorize keys to a dense i8 space
     lkey, rkey, count = fkeys(lkey, rkey)
 
-    return _algos.left_outer_join(lkey, rkey, count, sort=sort)
+    return _join.left_outer_join(lkey, rkey, count, sort=sort)
 
 
 def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
-    left_indexer, right_indexer = _algos.left_outer_join(
-        com._ensure_int64(left_key),
-        com._ensure_int64(right_key),
+    left_indexer, right_indexer = _join.left_outer_join(
+        _ensure_int64(left_key),
+        _ensure_int64(right_key),
         count, sort=sort)
 
     return left_indexer, right_indexer
@@ -1145,31 +1135,30 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 
 
 def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = _algos.left_outer_join(y, x, max_groups)
+    right_indexer, left_indexer = _join.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 _join_functions = {
-    'inner': _algos.inner_join,
-    'left': _algos.left_outer_join,
+    'inner': _join.inner_join,
+    'left': _join.left_outer_join,
     'right': _right_outer_join,
-    'outer': _algos.full_outer_join,
-    'asof': _algos.left_outer_asof_join,
+    'outer': _join.full_outer_join,
+    'asof': _join.left_outer_asof_join,
 }
 
 
 def _factorize_keys(lk, rk, sort=True):
-    if com.is_datetime64tz_dtype(lk) and com.is_datetime64tz_dtype(rk):
+    if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
         lk = lk.values
         rk = rk.values
-
-    if com.is_int_or_datetime_dtype(lk) and com.is_int_or_datetime_dtype(rk):
+    if is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = _hash.Int64Factorizer
-        lk = com._ensure_int64(com._values_from_object(lk))
-        rk = com._ensure_int64(com._values_from_object(rk))
+        lk = _ensure_int64(com._values_from_object(lk))
+        rk = _ensure_int64(com._values_from_object(rk))
     else:
         klass = _hash.Factorizer
-        lk = com._ensure_object(lk)
-        rk = com._ensure_object(rk)
+        lk = _ensure_object(lk)
+        rk = _ensure_object(rk)
 
     rizer = klass(max(len(lk), len(rk)))
 
@@ -1203,16 +1192,12 @@ def _sort_labels(uniques, left, right):
         # tuplesafe
         uniques = Index(uniques).values
 
-    sorter = uniques.argsort()
+    l = len(left)
+    labels = np.concatenate([left, right])
 
-    reverse_indexer = np.empty(len(sorter), dtype=np.int64)
-    reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-    new_left = reverse_indexer.take(com._ensure_platform_int(left))
-    np.putmask(new_left, left == -1, -1)
-
-    new_right = reverse_indexer.take(com._ensure_platform_int(right))
-    np.putmask(new_right, right == -1, -1)
+    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
+    new_labels = _ensure_int64(new_labels)
+    new_left, new_right = new_labels[:l], new_labels[l:]
 
     return new_left, new_right
 

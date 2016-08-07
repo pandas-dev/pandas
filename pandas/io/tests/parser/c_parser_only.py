@@ -12,9 +12,10 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import DataFrame, Series, Index, MultiIndex
+from pandas import DataFrame, Series, Index, MultiIndex, Categorical
 from pandas import compat
 from pandas.compat import StringIO, range, lrange
+from pandas.types.dtypes import CategoricalDtype
 
 
 class CParserTests(object):
@@ -135,6 +136,11 @@ nan 2
                               dtype={'A': 'timedelta64', 'B': 'float64'},
                               index_col=0)
 
+            # valid but unsupported - fixed width unicode string
+            self.assertRaises(TypeError, self.read_csv, path,
+                              dtype={'A': 'U8'},
+                              index_col=0)
+
         # see gh-12048: empty frame
         actual = self.read_csv(StringIO('A,B'), dtype=str)
         expected = DataFrame({'A': [], 'B': []}, index=[], dtype=str)
@@ -183,6 +189,92 @@ one,two
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'})
         self.assertEqual(result['one'].dtype, 'u1')
         self.assertEqual(result['two'].dtype, 'object')
+
+    def test_categorical_dtype(self):
+        # GH 10153
+        data = """a,b,c
+1,a,3.4
+1,a,3.4
+2,b,4.5"""
+        expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
+                                 'b': Categorical(['a', 'a', 'b']),
+                                 'c': Categorical(['3.4', '3.4', '4.5'])})
+        actual = self.read_csv(StringIO(data), dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype=CategoricalDtype())
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype={'a': 'category',
+                                                      'b': 'category',
+                                                      'c': CategoricalDtype()})
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype={'b': 'category'})
+        expected = pd.DataFrame({'a': [1, 1, 2],
+                                 'b': Categorical(['a', 'a', 'b']),
+                                 'c': [3.4, 3.4, 4.5]})
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.read_csv(StringIO(data), dtype={1: 'category'})
+        tm.assert_frame_equal(actual, expected)
+
+        # unsorted
+        data = """a,b,c
+1,b,3.4
+1,b,3.4
+2,a,4.5"""
+        expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
+                                 'b': Categorical(['b', 'b', 'a']),
+                                 'c': Categorical(['3.4', '3.4', '4.5'])})
+        actual = self.read_csv(StringIO(data), dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
+        # missing
+        data = """a,b,c
+1,b,3.4
+1,nan,3.4
+2,a,4.5"""
+        expected = pd.DataFrame({'a': Categorical(['1', '1', '2']),
+                                 'b': Categorical(['b', np.nan, 'a']),
+                                 'c': Categorical(['3.4', '3.4', '4.5'])})
+        actual = self.read_csv(StringIO(data), dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
+    def test_categorical_dtype_encoding(self):
+        # GH 10153
+        pth = tm.get_data_path('unicode_series.csv')
+        encoding = 'latin-1'
+        expected = self.read_csv(pth, header=None, encoding=encoding)
+        expected[1] = Categorical(expected[1])
+        actual = self.read_csv(pth, header=None, encoding=encoding,
+                               dtype={1: 'category'})
+        tm.assert_frame_equal(actual, expected)
+
+        pth = tm.get_data_path('utf16_ex.txt')
+        encoding = 'utf-16'
+        expected = self.read_table(pth, encoding=encoding)
+        expected = expected.apply(Categorical)
+        actual = self.read_table(pth, encoding=encoding, dtype='category')
+        tm.assert_frame_equal(actual, expected)
+
+    def test_categorical_dtype_chunksize(self):
+        # GH 10153
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        expecteds = [pd.DataFrame({'a': [1, 1],
+                                   'b': Categorical(['a', 'b'])}),
+                     pd.DataFrame({'a': [1, 2],
+                                   'b': Categorical(['b', 'c'])},
+                                  index=[2, 3])]
+        actuals = self.read_csv(StringIO(data), dtype={'b': 'category'},
+                                chunksize=2)
+
+        for actual, expected in zip(actuals, expecteds):
+            tm.assert_frame_equal(actual, expected)
 
     def test_pass_dtype_as_recarray(self):
         if compat.is_platform_windows() and self.low_memory:
@@ -381,3 +473,73 @@ No,No,No"""
 
         for count in range(1, 101):
             test_empty_header_read(count)
+
+    def test_parse_trim_buffers(self):
+        # This test is part of a bugfix for issue #13703. It attmepts to
+        # to stress the system memory allocator, to cause it to move the
+        # stream buffer and either let the OS reclaim the region, or let
+        # other memory requests of parser otherwise modify the contents
+        # of memory space, where it was formely located.
+        # This test is designed to cause a `segfault` with unpatched
+        # `tokenizer.c`. Sometimes the test fails on `segfault`, other
+        # times it fails due to memory corruption, which causes the
+        # loaded DataFrame to differ from the expected one.
+
+        # Generate a large mixed-type CSV file on-the-fly (one record is
+        # approx 1.5KiB).
+        record_ = \
+            """9999-9,99:99,,,,ZZ,ZZ,,,ZZZ-ZZZZ,.Z-ZZZZ,-9.99,,,9.99,Z""" \
+            """ZZZZ,,-99,9,ZZZ-ZZZZ,ZZ-ZZZZ,,9.99,ZZZ-ZZZZZ,ZZZ-ZZZZZ,""" \
+            """ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,9""" \
+            """99,ZZZ-ZZZZ,,ZZ-ZZZZ,,,,,ZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,,,9,9,""" \
+            """9,9,99,99,999,999,ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZ,9,ZZ-ZZZZ,9.""" \
+            """99,ZZ-ZZZZ,ZZ-ZZZZ,,,,ZZZZ,,,ZZ,ZZ,,,,,,,,,,,,,9,,,999.""" \
+            """99,999.99,,,ZZZZZ,,,Z9,,,,,,,ZZZ,ZZZ,,,,,,,,,,,ZZZZZ,ZZ""" \
+            """ZZZ,ZZZ-ZZZZZZ,ZZZ-ZZZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZZZ,ZZ-ZZ""" \
+            """ZZ,,,999999,999999,ZZZ,ZZZ,,,ZZZ,ZZZ,999.99,999.99,,,,Z""" \
+            """ZZ-ZZZ,ZZZ-ZZZ,-9.99,-9.99,9,9,,99,,9.99,9.99,9,9,9.99,""" \
+            """9.99,,,,9.99,9.99,,99,,99,9.99,9.99,,,ZZZ,ZZZ,,999.99,,""" \
+            """999.99,ZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,,,ZZZZZ,ZZZZZ,ZZZ,ZZZ,9,9,""" \
+            """,,,,,ZZZ-ZZZZ,ZZZ999Z,,,999.99,,999.99,ZZZ-ZZZZ,,,9.999""" \
+            """,9.999,9.999,9.999,-9.999,-9.999,-9.999,-9.999,9.999,9.""" \
+            """999,9.999,9.999,9.999,9.999,9.999,9.999,99999,ZZZ-ZZZZ,""" \
+            """,9.99,ZZZ,,,,,,,,ZZZ,,,,,9,,,,9,,,,,,,,,,ZZZ-ZZZZ,ZZZ-Z""" \
+            """ZZZ,,ZZZZZ,ZZZZZ,ZZZZZ,ZZZZZ,,,9.99,,ZZ-ZZZZ,ZZ-ZZZZ,ZZ""" \
+            """,999,,,,ZZ-ZZZZ,ZZZ,ZZZ,ZZZ-ZZZZ,ZZZ-ZZZZ,,,99.99,99.99""" \
+            """,,,9.99,9.99,9.99,9.99,ZZZ-ZZZZ,,,ZZZ-ZZZZZ,,,,,-9.99,-""" \
+            """9.99,-9.99,-9.99,,,,,,,,,ZZZ-ZZZZ,,9,9.99,9.99,99ZZ,,-9""" \
+            """.99,-9.99,ZZZ-ZZZZ,,,,,,,ZZZ-ZZZZ,9.99,9.99,9999,,,,,,,""" \
+            """,,,-9.9,Z/Z-ZZZZ,999.99,9.99,,999.99,ZZ-ZZZZ,ZZ-ZZZZ,9.""" \
+            """99,9.99,9.99,9.99,9.99,9.99,,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ-ZZ""" \
+            """ZZZ,ZZZ-ZZZZZ,ZZZ-ZZZZZ,ZZZ,ZZZ,ZZZ,ZZZ,9.99,,,-9.99,ZZ""" \
+            """-ZZZZ,-999.99,,-9999,,999.99,,,,999.99,99.99,,,ZZ-ZZZZZ""" \
+            """ZZZ,ZZ-ZZZZ-ZZZZZZZ,,,,ZZ-ZZ-ZZZZZZZZ,ZZZZZZZZ,ZZZ-ZZZZ""" \
+            """,9999,999.99,ZZZ-ZZZZ,-9.99,-9.99,ZZZ-ZZZZ,99:99:99,,99""" \
+            """,99,,9.99,,-99.99,,,,,,9.99,ZZZ-ZZZZ,-9.99,-9.99,9.99,9""" \
+            """.99,,ZZZ,,,,,,,ZZZ,ZZZ,,,,,"""
+
+        # Set the number of lines so that a call to `parser_trim_buffers`
+        # is triggered: after a couple of full chunks are consumed a
+        # relatively small 'residual' chunk would cause reallocation
+        # within the parser.
+        chunksize, n_lines = 128, 2 * 128 + 15
+        csv_data = "\n".join([record_] * n_lines) + "\n"
+
+        # We will use StringIO to load the CSV from this text buffer.
+        # pd.read_csv() will iterate over the file in chunks and will
+        # finally read a residual chunk of really small size.
+
+        # Generate the expected output: manually create the dataframe
+        # by splitting by comma and repeating the `n_lines` times.
+        row = tuple(val_ if val_ else float("nan")
+                    for val_ in record_.split(","))
+        expected = pd.DataFrame([row for _ in range(n_lines)],
+                                dtype=object, columns=None, index=None)
+
+        # Iterate over the CSV file in chunks of `chunksize` lines
+        chunks_ = self.read_csv(StringIO(csv_data), header=None,
+                                dtype=object, chunksize=chunksize)
+        result = pd.concat(chunks_, axis=0, ignore_index=True)
+
+        # Check for data corruption if there was no segfault
+        tm.assert_frame_equal(result, expected)

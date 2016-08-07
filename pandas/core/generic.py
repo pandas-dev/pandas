@@ -1,4 +1,5 @@
 # pylint: disable=W0231,E1101
+import collections
 import warnings
 import operator
 import weakref
@@ -8,6 +9,29 @@ import numpy as np
 import pandas.lib as lib
 
 import pandas as pd
+
+
+from pandas.types.common import (_coerce_to_dtype,
+                                 _ensure_int64,
+                                 needs_i8_conversion,
+                                 is_scalar,
+                                 is_integer, is_bool,
+                                 is_bool_dtype,
+                                 is_numeric_dtype,
+                                 is_datetime64_dtype,
+                                 is_timedelta64_dtype,
+                                 is_list_like,
+                                 is_dict_like,
+                                 is_re_compilable)
+from pandas.types.cast import _maybe_promote, _maybe_upcast_putmask
+from pandas.types.missing import isnull, notnull
+from pandas.types.generic import ABCSeries, ABCPanel
+
+from pandas.core.common import (_values_from_object,
+                                _maybe_box_datetimelike,
+                                SettingWithCopyError, SettingWithCopyWarning,
+                                AbstractMethodError)
+
 from pandas.core.base import PandasObject
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                InvalidIndexError)
@@ -25,11 +49,6 @@ from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lrange, string_types,
                            isidentifier, set_function_name)
-from pandas.core.common import (isnull, notnull, is_list_like,
-                                _values_from_object, _maybe_promote,
-                                _maybe_box_datetimelike, ABCSeries,
-                                SettingWithCopyError, SettingWithCopyWarning,
-                                AbstractMethodError)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core import config
@@ -37,14 +56,13 @@ from pandas.core import config
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = dict()
-_shared_doc_kwargs = dict(axes='keywords for axes', klass='NDFrame',
-                          axes_single_arg='int or labels for object',
-                          args_transpose='axes to permute (int or label for'
-                          ' object)')
-
-
-def is_dictlike(x):
-    return isinstance(x, (dict, com.ABCSeries))
+_shared_doc_kwargs = dict(
+    axes='keywords for axes', klass='NDFrame',
+    axes_single_arg='int or labels for object',
+    args_transpose='axes to permute (int or label for object)',
+    optional_by="""
+        by : str or list of str
+            Name or list of names which refer to the axis items.""")
 
 
 def _single_replace(self, to_replace, method, inplace, limit):
@@ -113,7 +131,7 @@ class NDFrame(PandasObject):
         """ validate the passed dtype """
 
         if dtype is not None:
-            dtype = com._coerce_to_dtype(dtype)
+            dtype = _coerce_to_dtype(dtype)
 
             # a compound dtype
             if dtype.kind == 'V':
@@ -144,7 +162,7 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor(self):
-        """Used when a manipulation result has the same dimesions as the
+        """Used when a manipulation result has the same dimensions as the
         original.
         """
         raise AbstractMethodError(self)
@@ -307,7 +325,7 @@ class NDFrame(PandasObject):
 
     def _get_axis_number(self, axis):
         axis = self._AXIS_ALIASES.get(axis, axis)
-        if com.is_integer(axis):
+        if is_integer(axis):
             if axis in self._AXIS_NAMES:
                 return axis
         else:
@@ -714,8 +732,8 @@ class NDFrame(PandasObject):
         1    2  5
         2    3  6
         """
-        non_mapper = lib.isscalar(mapper) or (com.is_list_like(mapper) and not
-                                              com.is_dict_like(mapper))
+        non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
+                                           is_dict_like(mapper))
         if non_mapper:
             return self._set_axis_name(mapper, axis=axis)
         else:
@@ -909,7 +927,7 @@ class NDFrame(PandasObject):
         v = self.squeeze()
         if isinstance(v, (bool, np.bool_)):
             return bool(v)
-        elif lib.isscalar(v):
+        elif is_scalar(v):
             raise ValueError("bool cannot act on a non-boolean single element "
                              "{0}".format(self.__class__.__name__))
 
@@ -999,7 +1017,7 @@ class NDFrame(PandasObject):
 
     def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None):
+                default_handler=None, lines=False):
         """
         Convert the object to a JSON string.
 
@@ -1047,6 +1065,13 @@ class NDFrame(PandasObject):
             Handler to call if object cannot otherwise be converted to a
             suitable format for JSON. Should receive a single argument which is
             the object to convert and return a serialisable object.
+        lines : boolean, defalut False
+            If 'orient' is 'records' write out line delimited json format. Will
+            throw ValueError if incorrect 'orient' since others are not list
+            like.
+
+            .. versionadded:: 0.19.0
+
 
         Returns
         -------
@@ -1059,7 +1084,8 @@ class NDFrame(PandasObject):
                             date_format=date_format,
                             double_precision=double_precision,
                             force_ascii=force_ascii, date_unit=date_unit,
-                            default_handler=default_handler)
+                            default_handler=default_handler,
+                            lines=lines)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
         """Activate the HDFStore.
@@ -1127,7 +1153,7 @@ class NDFrame(PandasObject):
         return packers.to_msgpack(path_or_buf, self, encoding=encoding,
                                   **kwargs)
 
-    def to_sql(self, name, con, flavor='sqlite', schema=None, if_exists='fail',
+    def to_sql(self, name, con, flavor=None, schema=None, if_exists='fail',
                index=True, index_label=None, chunksize=None, dtype=None):
         """
         Write records stored in a DataFrame to a SQL database.
@@ -1138,12 +1164,11 @@ class NDFrame(PandasObject):
             Name of SQL table
         con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
             Using SQLAlchemy makes it possible to use any DB supported by that
-            library.
-            If a DBAPI2 object, only sqlite3 is supported.
-        flavor : {'sqlite', 'mysql'}, default 'sqlite'
-            The flavor of SQL to use. Ignored when using SQLAlchemy engine.
-            'mysql' is deprecated and will be removed in future versions, but
-            it will be further supported through SQLAlchemy engines.
+            library. If a DBAPI2 object, only sqlite3 is supported.
+        flavor : 'sqlite', default None
+            DEPRECATED: this parameter will be removed in a future version,
+            as 'sqlite' is the only supported option if SQLAlchemy is not
+            installed.
         schema : string, default None
             Specify the schema (if database flavor supports this). If None, use
             default schema.
@@ -1646,7 +1671,7 @@ class NDFrame(PandasObject):
 
         return result
 
-    def xs(self, key, axis=0, level=None, copy=None, drop_level=True):
+    def xs(self, key, axis=0, level=None, drop_level=True):
         """
         Returns a cross-section (row(s) or column(s)) from the
         Series/DataFrame. Defaults to cross-section on the rows (axis=0).
@@ -1660,8 +1685,6 @@ class NDFrame(PandasObject):
         level : object, defaults to first n levels (n=1 or len(key))
             In case of a key partially contained in a MultiIndex, indicate
             which levels are used. Levels can be referred by label or position.
-        copy : boolean [deprecated]
-            Whether to make a copy of the data
         drop_level : boolean, default True
             If False, returns object with same levels as self.
 
@@ -1717,10 +1740,6 @@ class NDFrame(PandasObject):
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
-        if copy is not None:
-            warnings.warn("copy keyword is deprecated, "
-                          "default is to return a copy or a view if possible")
-
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
@@ -1761,10 +1780,10 @@ class NDFrame(PandasObject):
                 else:
                     return self.take(loc, axis=axis, convert=True)
 
-            if not lib.isscalar(loc):
+            if not is_scalar(loc):
                 new_index = self.index[loc]
 
-        if lib.isscalar(loc):
+        if is_scalar(loc):
             new_values = self._data.fast_xs(loc)
 
             # may need to box a datelike-scalar
@@ -1775,9 +1794,9 @@ class NDFrame(PandasObject):
             if not is_list_like(new_values) or self.ndim == 1:
                 return _maybe_box_datetimelike(new_values)
 
-            result = self._constructor_sliced(new_values, index=self.columns,
-                                              name=self.index[loc], copy=copy,
-                                              dtype=new_values.dtype)
+            result = self._constructor_sliced(
+                new_values, index=self.columns,
+                name=self.index[loc], dtype=new_values.dtype)
 
         else:
             result = self.iloc[loc]
@@ -1961,21 +1980,21 @@ class NDFrame(PandasObject):
         .. versionadded:: 0.17.0
 
         Parameters
-        ----------
-        by : string name or list of names which refer to the axis items
-        axis : %(axes)s to direct sorting
-        ascending : bool or list of bool
+        ----------%(optional_by)s
+        axis : %(axes_single_arg)s, default 0
+            Axis to direct sorting
+        ascending : bool or list of bool, default True
              Sort ascending vs. descending. Specify list for multiple sort
              orders.  If this is a list of bools, must match the length of
              the by.
-        inplace : bool
+        inplace : bool, default False
              if True, perform operation in-place
-        kind : {`quicksort`, `mergesort`, `heapsort`}
+        kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
              Choice of sorting algorithm. See also ndarray.np.sort for more
              information.  `mergesort` is the only stable algorithm. For
              DataFrames, this option is only applied when sorting on a single
              column or label.
-        na_position : {'first', 'last'}
+        na_position : {'first', 'last'}, default 'last'
              `first` puts NaNs at the beginning, `last` puts NaNs at the end
 
         Returns
@@ -1997,16 +2016,16 @@ class NDFrame(PandasObject):
             if not None, sort on values in specified index level(s)
         ascending : boolean, default True
             Sort ascending vs. descending
-        inplace : bool
+        inplace : bool, default False
             if True, perform operation in-place
-        kind : {`quicksort`, `mergesort`, `heapsort`}
+        kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
              Choice of sorting algorithm. See also ndarray.np.sort for more
              information.  `mergesort` is the only stable algorithm. For
              DataFrames, this option is only applied when sorting on a single
              column or label.
-        na_position : {'first', 'last'}
+        na_position : {'first', 'last'}, default 'last'
              `first` puts NaNs at the beginning, `last` puts NaNs at the end
-        sort_remaining : bool
+        sort_remaining : bool, default True
             if true and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level
 
@@ -2338,7 +2357,7 @@ class NDFrame(PandasObject):
 
             index = _ensure_index(index)
             if indexer is not None:
-                indexer = com._ensure_int64(indexer)
+                indexer = _ensure_int64(indexer)
 
             # TODO: speed up on homogeneous DataFrame objects
             new_data = new_data.reindex_indexer(index, indexer, axis=baxis,
@@ -2985,7 +3004,11 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        dtype : numpy.dtype or Python type
+        dtype : data type, or dict of column name -> data type
+            Use a numpy.dtype or Python type to cast entire pandas object to
+            the same type. Alternatively, use {col: dtype, ...}, where col is a
+            column label and dtype is a numpy.dtype or Python type to cast one
+            or more of the DataFrame's columns to column-specific types.
         raise_on_error : raise on invalid input
         kwargs : keyword arguments to pass on to the constructor
 
@@ -2993,10 +3016,36 @@ class NDFrame(PandasObject):
         -------
         casted : type of caller
         """
+        if isinstance(dtype, collections.Mapping):
+            if self.ndim == 1:  # i.e. Series
+                if len(dtype) > 1 or list(dtype.keys())[0] != self.name:
+                    raise KeyError('Only the Series name can be used for '
+                                   'the key in Series dtype mappings.')
+                new_type = list(dtype.values())[0]
+                return self.astype(new_type, copy, raise_on_error, **kwargs)
+            elif self.ndim > 2:
+                raise NotImplementedError(
+                    'astype() only accepts a dtype arg of type dict when '
+                    'invoked on Series and DataFrames. A single dtype must be '
+                    'specified when invoked on a Panel.'
+                )
+            for col_name in dtype.keys():
+                if col_name not in self:
+                    raise KeyError('Only a column name can be used for the '
+                                   'key in a dtype mappings argument.')
+            from pandas import concat
+            results = []
+            for col_name, col in self.iteritems():
+                if col_name in dtype:
+                    results.append(col.astype(dtype[col_name], copy=copy))
+                else:
+                    results.append(results.append(col.copy() if copy else col))
+            return concat(results, axis=1, copy=False)
 
-        mgr = self._data.astype(dtype=dtype, copy=copy,
-                                raise_on_error=raise_on_error, **kwargs)
-        return self._constructor(mgr).__finalize__(self)
+        # else, only a single dtype is given
+        new_data = self._data.astype(dtype=dtype, copy=copy,
+                                     raise_on_error=raise_on_error, **kwargs)
+        return self._constructor(new_data).__finalize__(self)
 
     def copy(self, deep=True):
         """
@@ -3200,10 +3249,10 @@ class NDFrame(PandasObject):
                 return self
 
             if self.ndim == 1:
-                if isinstance(value, (dict, com.ABCSeries)):
+                if isinstance(value, (dict, ABCSeries)):
                     from pandas import Series
                     value = Series(value)
-                elif not com.is_list_like(value):
+                elif not is_list_like(value):
                     pass
                 else:
                     raise ValueError("invalid fill value with a %s" %
@@ -3213,7 +3262,7 @@ class NDFrame(PandasObject):
                                              inplace=inplace,
                                              downcast=downcast)
 
-            elif isinstance(value, (dict, com.ABCSeries)):
+            elif isinstance(value, (dict, ABCSeries)):
                 if axis == 1:
                     raise NotImplementedError('Currently only can fill '
                                               'with dict/Series column '
@@ -3226,7 +3275,7 @@ class NDFrame(PandasObject):
                     obj = result[k]
                     obj.fillna(v, limit=limit, inplace=True)
                 return result
-            elif not com.is_list_like(value):
+            elif not is_list_like(value):
                 new_data = self._data.fillna(value=value, limit=limit,
                                              inplace=inplace,
                                              downcast=downcast)
@@ -3352,7 +3401,7 @@ class NDFrame(PandasObject):
           and play with this method to gain intuition about how it works.
 
         """
-        if not com.is_bool(regex) and to_replace is not None:
+        if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
         if axis is not None:
@@ -3365,15 +3414,15 @@ class NDFrame(PandasObject):
         if value is None:
             # passing a single value that is scalar like
             # when value is None (GH5319), for compat
-            if not is_dictlike(to_replace) and not is_dictlike(regex):
+            if not is_dict_like(to_replace) and not is_dict_like(regex):
                 to_replace = [to_replace]
 
             if isinstance(to_replace, (tuple, list)):
                 return _single_replace(self, to_replace, method, inplace,
                                        limit)
 
-            if not is_dictlike(to_replace):
-                if not is_dictlike(regex):
+            if not is_dict_like(to_replace):
+                if not is_dict_like(regex):
                     raise TypeError('If "to_replace" and "value" are both None'
                                     ' and "to_replace" is not a list, then '
                                     'regex must be a mapping')
@@ -3383,7 +3432,7 @@ class NDFrame(PandasObject):
             items = list(compat.iteritems(to_replace))
             keys, values = zip(*items)
 
-            are_mappings = [is_dictlike(v) for v in values]
+            are_mappings = [is_dict_like(v) for v in values]
 
             if any(are_mappings):
                 if not all(are_mappings):
@@ -3416,8 +3465,8 @@ class NDFrame(PandasObject):
                     return self
 
             new_data = self._data
-            if is_dictlike(to_replace):
-                if is_dictlike(value):  # {'A' : NA} -> {'A' : 0}
+            if is_dict_like(to_replace):
+                if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
                     res = self if inplace else self.copy()
                     for c, src in compat.iteritems(to_replace):
                         if c in value and c in self:
@@ -3427,7 +3476,7 @@ class NDFrame(PandasObject):
                     return None if inplace else res
 
                 # {'A': NA} -> 0
-                elif not com.is_list_like(value):
+                elif not is_list_like(value):
                     for k, src in compat.iteritems(to_replace):
                         if k in self:
                             new_data = new_data.replace(to_replace=src,
@@ -3439,8 +3488,8 @@ class NDFrame(PandasObject):
                     raise TypeError('value argument must be scalar, dict, or '
                                     'Series')
 
-            elif com.is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
-                if com.is_list_like(value):
+            elif is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
+                if is_list_like(value):
                     if len(to_replace) != len(value):
                         raise ValueError('Replacement lists must match '
                                          'in length. Expecting %d got %d ' %
@@ -3456,8 +3505,8 @@ class NDFrame(PandasObject):
                                                   value=value, inplace=inplace,
                                                   regex=regex)
             elif to_replace is None:
-                if not (com.is_re_compilable(regex) or
-                        com.is_list_like(regex) or is_dictlike(regex)):
+                if not (is_re_compilable(regex) or
+                        is_list_like(regex) or is_dict_like(regex)):
                     raise TypeError("'regex' must be a string or a compiled "
                                     "regular expression or a list or dict of "
                                     "strings or regular expressions, you "
@@ -3468,7 +3517,7 @@ class NDFrame(PandasObject):
             else:
 
                 # dest iterable dict-like
-                if is_dictlike(value):  # NA -> {'A' : 0, 'B' : -1}
+                if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
                     new_data = self._data
 
                     for k, v in compat.iteritems(value):
@@ -3478,7 +3527,7 @@ class NDFrame(PandasObject):
                                                         inplace=inplace,
                                                         regex=regex)
 
-                elif not com.is_list_like(value):  # NA -> 0
+                elif not is_list_like(value):  # NA -> 0
                     new_data = self._data.replace(to_replace=to_replace,
                                                   value=value, inplace=inplace,
                                                   regex=regex)
@@ -3790,14 +3839,14 @@ class NDFrame(PandasObject):
         3  0.230930  0.000000
         4  1.100000  0.570967
         """
-        if isinstance(self, com.ABCPanel):
+        if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
 
         axis = nv.validate_clip_with_axis(axis, args, kwargs)
 
         # GH 2747 (arguments were reversed)
         if lower is not None and upper is not None:
-            if lib.isscalar(lower) and lib.isscalar(upper):
+            if is_scalar(lower) and is_scalar(upper):
                 lower, upper = min(lower, upper), max(lower, upper)
 
         result = self
@@ -3914,16 +3963,20 @@ class NDFrame(PandasObject):
 
     def asfreq(self, freq, method=None, how=None, normalize=False):
         """
-        Convert all TimeSeries inside to specified frequency using DateOffset
-        objects. Optionally provide fill method to pad/backfill missing values.
+        Convert TimeSeries to specified frequency.
+
+        Optionally provide filling method to pad/backfill missing values.
 
         Parameters
         ----------
         freq : DateOffset object, or string
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill method
+        method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
+            Method to use for filling holes in reindexed Series (note this
+            does not fill NaNs that already were present):
+
+            * 'pad' / 'ffill': propagate last valid observation forward to next
+              valid
+            * 'backfill' / 'bfill': use NEXT valid observation to fill
         how : {'start', 'end'}, default end
             For PeriodIndex only, see PeriodIndex.asfreq
         normalize : bool, default False
@@ -3932,6 +3985,9 @@ class NDFrame(PandasObject):
         Returns
         -------
         converted : type of caller
+
+        To learn more about the frequency strings, please see `this link
+        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
         """
         from pandas.tseries.resample import asfreq
         return asfreq(self, freq, method=method, how=how, normalize=normalize)
@@ -4002,6 +4058,9 @@ class NDFrame(PandasObject):
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0
 
+
+        To learn more about the offset strings, please see `this link
+        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
         Examples
         --------
@@ -4479,10 +4538,12 @@ class NDFrame(PandasObject):
                     new_other = np.array(other, dtype=self.dtype)
                 except ValueError:
                     new_other = np.array(other)
+                except TypeError:
+                    new_other = other
 
                 # we can end up comparing integers and m8[ns]
                 # which is a numpy no no
-                is_i8 = com.needs_i8_conversion(self.dtype)
+                is_i8 = needs_i8_conversion(self.dtype)
                 if is_i8:
                     matches = False
                 else:
@@ -4491,7 +4552,7 @@ class NDFrame(PandasObject):
                 if matches is False or not matches.all():
 
                     # coerce other to a common dtype if we can
-                    if com.needs_i8_conversion(self.dtype):
+                    if needs_i8_conversion(self.dtype):
                         try:
                             other = np.array(other, dtype=self.dtype)
                         except:
@@ -4544,7 +4605,7 @@ class NDFrame(PandasObject):
                             dtype, fill_value = _maybe_promote(other.dtype)
                             new_other = np.empty(len(icond), dtype=dtype)
                             new_other.fill(fill_value)
-                            com._maybe_upcast_putmask(new_other, icond, other)
+                            _maybe_upcast_putmask(new_other, icond, other)
                             other = new_other
 
                     else:
@@ -5052,7 +5113,7 @@ class NDFrame(PandasObject):
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
 
-                if com.is_datetime64_dtype(data):
+                if is_datetime64_dtype(data):
                     asint = data.dropna().values.view('i8')
                     names += ['top', 'freq', 'first', 'last']
                     result += [lib.Timestamp(top), freq,
@@ -5065,11 +5126,11 @@ class NDFrame(PandasObject):
             return pd.Series(result, index=names, name=data.name)
 
         def describe_1d(data):
-            if com.is_bool_dtype(data):
+            if is_bool_dtype(data):
                 return describe_categorical_1d(data)
-            elif com.is_numeric_dtype(data):
+            elif is_numeric_dtype(data):
                 return describe_numeric_1d(data)
-            elif com.is_timedelta64_dtype(data):
+            elif is_timedelta64_dtype(data):
                 return describe_numeric_1d(data)
             else:
                 return describe_categorical_1d(data)
@@ -5156,7 +5217,7 @@ class NDFrame(PandasObject):
         rs = (data.div(data.shift(periods=periods, freq=freq, axis=axis,
                                   **kwargs)) - 1)
         if freq is None:
-            mask = com.isnull(_values_from_object(self))
+            mask = isnull(_values_from_object(self))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -5321,11 +5382,12 @@ class NDFrame(PandasObject):
 
         @Appender(rwindow.rolling.__doc__)
         def rolling(self, window, min_periods=None, freq=None, center=False,
-                    win_type=None, axis=0):
+                    win_type=None, on=None, axis=0):
             axis = self._get_axis_number(axis)
             return rwindow.rolling(self, window=window,
                                    min_periods=min_periods, freq=freq,
-                                   center=center, win_type=win_type, axis=axis)
+                                   center=center, win_type=win_type,
+                                   on=on, axis=axis)
 
         cls.rolling = rolling
 
@@ -5482,7 +5544,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
                        mask_a, mask_b):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
-    @Appender("Return cumulative {0} over requested axis.".format(name) +
+    @Appender("Return {0} over requested axis.".format(desc) +
               _cnum_doc)
     def cum_func(self, axis=None, skipna=True, *args, **kwargs):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)

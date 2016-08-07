@@ -4,6 +4,12 @@ Base and utility classes for pandas objects.
 from pandas import compat
 from pandas.compat import builtins
 import numpy as np
+
+from pandas.types.missing import isnull
+from pandas.types.generic import ABCDataFrame, ABCSeries, ABCIndexClass
+from pandas.types.common import (is_object_dtype,
+                                 is_list_like, is_scalar)
+
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
@@ -11,7 +17,6 @@ from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
-from pandas.types import api as gt
 from pandas.formats.printing import pprint_thing
 
 _shared_docs = dict()
@@ -121,7 +126,7 @@ class PandasObject(StringMixin):
         """
         if hasattr(self, 'memory_usage'):
             mem = self.memory_usage(deep=True)
-            if not lib.isscalar(mem):
+            if not is_scalar(mem):
                 mem = mem.sum()
             return int(mem)
 
@@ -293,15 +298,15 @@ class SelectionMixin(object):
 
     @property
     def _selection_list(self):
-        if not isinstance(self._selection, (list, tuple, gt.ABCSeries,
-                                            gt.ABCIndex, np.ndarray)):
+        if not isinstance(self._selection, (list, tuple, ABCSeries,
+                                            ABCIndexClass, np.ndarray)):
             return [self._selection]
         return self._selection
 
     @cache_readonly
     def _selected_obj(self):
 
-        if self._selection is None or isinstance(self.obj, gt.ABCSeries):
+        if self._selection is None or isinstance(self.obj, ABCSeries):
             return self.obj
         else:
             return self.obj[self._selection]
@@ -313,7 +318,7 @@ class SelectionMixin(object):
     @cache_readonly
     def _obj_with_exclusions(self):
         if self._selection is not None and isinstance(self.obj,
-                                                      gt.ABCDataFrame):
+                                                      ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
 
         if len(self.exclusions) > 0:
@@ -325,7 +330,7 @@ class SelectionMixin(object):
         if self._selection is not None:
             raise Exception('Column(s) %s already selected' % self._selection)
 
-        if isinstance(key, (list, tuple, gt.ABCSeries, gt.ABCIndex,
+        if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
@@ -553,7 +558,7 @@ pandas.DataFrame.%(name)s
             if isinstance(result, list):
                 result = concat(result, keys=keys, axis=1)
             elif isinstance(list(compat.itervalues(result))[0],
-                            gt.ABCDataFrame):
+                            ABCDataFrame):
                 result = concat([result[k] for k in keys], keys=keys, axis=1)
             else:
                 from pandas import DataFrame
@@ -682,7 +687,7 @@ class GroupByMixin(object):
                               **kwargs)
         self._reset_cache()
         if subset.ndim == 2:
-            if lib.isscalar(key) and key in subset or com.is_list_like(key):
+            if is_scalar(key) and key in subset or is_list_like(key):
                 self._selection = key
         return self
 
@@ -903,7 +908,7 @@ class IndexOpsMixin(object):
     @cache_readonly
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
-        return com.isnull(self).any()
+        return isnull(self).any()
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -980,7 +985,7 @@ class IndexOpsMixin(object):
         """
         uniqs = self.unique()
         n = len(uniqs)
-        if dropna and com.isnull(uniqs).any():
+        if dropna and isnull(uniqs).any():
             n -= 1
         return n
 
@@ -1009,6 +1014,7 @@ class IndexOpsMixin(object):
         """
         from pandas import Index
         return Index(self).is_monotonic
+
     is_monotonic_increasing = is_monotonic
 
     @property
@@ -1053,7 +1059,7 @@ class IndexOpsMixin(object):
             return self.values.memory_usage(deep=deep)
 
         v = self.values.nbytes
-        if deep and com.is_object_dtype(self):
+        if deep and is_object_dtype(self):
             v += lib.memory_usage_of_objects(self.values)
         return v
 
@@ -1166,6 +1172,10 @@ class IndexOpsMixin(object):
                                                    False: 'first'})
     @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
+        if isinstance(self, ABCIndexClass):
+            if self.is_unique:
+                return self._shallow_copy()
+
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
         if inplace:
@@ -1195,13 +1205,14 @@ class IndexOpsMixin(object):
                                                    False: 'first'})
     @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
-        keys = com._values_from_object(com._ensure_object(self.values))
-        duplicated = lib.duplicated(keys, keep=keep)
-        try:
-            return self._constructor(duplicated,
+        from pandas.core.algorithms import duplicated
+        if isinstance(self, ABCIndexClass):
+            if self.is_unique:
+                return np.zeros(len(self), dtype=np.bool)
+            return duplicated(self, keep=keep)
+        else:
+            return self._constructor(duplicated(self, keep=keep),
                                      index=self.index).__finalize__(self)
-        except AttributeError:
-            return np.array(duplicated, dtype=bool)
 
     # ----------------------------------------------------------------------
     # abstracts

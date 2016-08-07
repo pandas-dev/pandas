@@ -3,10 +3,20 @@ Utility functions related to concat
 """
 
 import numpy as np
-import pandas.core.common as com
 import pandas.tslib as tslib
 from pandas import compat
 from pandas.compat import map
+from pandas.core.algorithms import take_1d
+from .common import (is_categorical_dtype,
+                     is_sparse,
+                     is_datetimetz,
+                     is_datetime64_dtype,
+                     is_timedelta64_dtype,
+                     is_object_dtype,
+                     is_bool_dtype,
+                     is_dtype_equal,
+                     _NS_DTYPE,
+                     _TD_DTYPE)
 
 
 def get_dtype_kinds(l):
@@ -24,19 +34,19 @@ def get_dtype_kinds(l):
     for arr in l:
 
         dtype = arr.dtype
-        if com.is_categorical_dtype(dtype):
+        if is_categorical_dtype(dtype):
             typ = 'category'
-        elif com.is_sparse(arr):
+        elif is_sparse(arr):
             typ = 'sparse'
-        elif com.is_datetimetz(arr):
+        elif is_datetimetz(arr):
             typ = 'datetimetz'
-        elif com.is_datetime64_dtype(dtype):
+        elif is_datetime64_dtype(dtype):
             typ = 'datetime'
-        elif com.is_timedelta64_dtype(dtype):
+        elif is_timedelta64_dtype(dtype):
             typ = 'timedelta'
-        elif com.is_object_dtype(dtype):
+        elif is_object_dtype(dtype):
             typ = 'object'
-        elif com.is_bool_dtype(dtype):
+        elif is_bool_dtype(dtype):
             typ = 'bool'
         else:
             typ = dtype.kind
@@ -51,14 +61,14 @@ def _get_series_result_type(result):
     """
     if isinstance(result, dict):
         # concat Series with axis 1
-        if all(com.is_sparse(c) for c in compat.itervalues(result)):
+        if all(is_sparse(c) for c in compat.itervalues(result)):
             from pandas.sparse.api import SparseDataFrame
             return SparseDataFrame
         else:
             from pandas.core.frame import DataFrame
             return DataFrame
 
-    elif com.is_sparse(result):
+    elif is_sparse(result):
         # concat Series with axis 1
         from pandas.sparse.api import SparseSeries
         return SparseSeries
@@ -165,7 +175,7 @@ def _concat_categorical(to_concat, axis=0):
 
     def convert_categorical(x):
         # coerce to object dtype
-        if com.is_categorical_dtype(x.dtype):
+        if is_categorical_dtype(x.dtype):
             return x.get_values()
         return x.ravel()
 
@@ -177,7 +187,7 @@ def _concat_categorical(to_concat, axis=0):
     # we could have object blocks and categoricals here
     # if we only have a single categoricals then combine everything
     # else its a non-compat categorical
-    categoricals = [x for x in to_concat if com.is_categorical_dtype(x.dtype)]
+    categoricals = [x for x in to_concat if is_categorical_dtype(x.dtype)]
 
     # validate the categories
     categories = categoricals[0]
@@ -201,28 +211,31 @@ def _concat_categorical(to_concat, axis=0):
         return Categorical(concatted, rawcats)
 
 
-def union_categoricals(to_union):
+def union_categoricals(to_union, sort_categories=False):
     """
     Combine list-like of Categoricals, unioning categories. All
-    must have the same dtype, and none can be ordered.
+    categories must have the same dtype.
 
     .. versionadded:: 0.19.0
 
     Parameters
     ----------
     to_union : list-like of Categoricals
+    sort_categories : boolean, default False
+        If true, resulting categories will be lexsorted, otherwise
+        they will be ordered as they appear in the data.
 
     Returns
     -------
-    Categorical
-       A single array, categories will be ordered as they
-       appear in the list
+    result : Categorical
 
     Raises
     ------
     TypeError
-        If any of the categoricals are ordered or all do not
-        have the same dtype
+        - all inputs do not have the same dtype
+        - all inputs do not have the same ordered property
+        - all inputs are ordered and their categories are not identical
+        - sort_categories=True and Categoricals are ordered
     ValueError
         Emmpty list of categoricals passed
     """
@@ -232,23 +245,52 @@ def union_categoricals(to_union):
         raise ValueError('No Categoricals to union')
 
     first = to_union[0]
-    if any(c.ordered for c in to_union):
-        raise TypeError("Can only combine unordered Categoricals")
 
-    if not all(com.is_dtype_equal(c.categories.dtype, first.categories.dtype)
-               for c in to_union):
+    if not all(is_dtype_equal(other.categories.dtype, first.categories.dtype)
+               for other in to_union[1:]):
         raise TypeError("dtype of categories must be the same")
 
-    cats = first.categories
-    unique_cats = cats.append([c.categories for c in to_union[1:]]).unique()
-    categories = Index(unique_cats)
+    ordered = False
+    if all(first.is_dtype_equal(other) for other in to_union[1:]):
+        # identical categories - fastpath
+        categories = first.categories
+        ordered = first.ordered
+        new_codes = np.concatenate([c.codes for c in to_union])
 
-    new_codes = []
-    for c in to_union:
-        indexer = categories.get_indexer(c.categories)
-        new_codes.append(indexer.take(c.codes))
-    codes = np.concatenate(new_codes)
-    return Categorical(codes, categories=categories, ordered=False,
+        if sort_categories and ordered:
+            raise TypeError("Cannot use sort_categories=True with "
+                            "ordered Categoricals")
+
+        if sort_categories and not categories.is_monotonic_increasing:
+            categories = categories.sort_values()
+            indexer = categories.get_indexer(first.categories)
+            new_codes = take_1d(indexer, new_codes, fill_value=-1)
+    elif all(not c.ordered for c in to_union):
+        # different categories - union and recode
+        cats = first.categories.append([c.categories for c in to_union[1:]])
+        categories = Index(cats.unique())
+        if sort_categories:
+            categories = categories.sort_values()
+
+        new_codes = []
+        for c in to_union:
+            if len(c.categories) > 0:
+                indexer = categories.get_indexer(c.categories)
+                new_codes.append(take_1d(indexer, c.codes, fill_value=-1))
+            else:
+                # must be all NaN
+                new_codes.append(c.codes)
+        new_codes = np.concatenate(new_codes)
+    else:
+        # ordered - to show a proper error message
+        if all(c.ordered for c in to_union):
+            msg = ("to union ordered Categoricals, "
+                   "all categories must be the same")
+            raise TypeError(msg)
+        else:
+            raise TypeError('Categorical.ordered must be the same')
+
+    return Categorical(new_codes, categories=categories, ordered=ordered,
                        fastpath=True)
 
 
@@ -272,7 +314,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
         # coerce to an object dtype
 
         # if dtype is of datetimetz or timezone
-        if x.dtype.kind == com._NS_DTYPE.kind:
+        if x.dtype.kind == _NS_DTYPE.kind:
             if getattr(x, 'tz', None) is not None:
                 x = x.asobject.values
             else:
@@ -280,7 +322,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
                 x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
                 x = x.reshape(shape)
 
-        elif x.dtype == com._TD_DTYPE:
+        elif x.dtype == _TD_DTYPE:
             shape = x.shape
             x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel())
             x = x.reshape(shape)
@@ -310,12 +352,12 @@ def _concat_datetime(to_concat, axis=0, typs=None):
         elif 'datetime' in typs:
             new_values = np.concatenate([x.view(np.int64) for x in to_concat],
                                         axis=axis)
-            return new_values.view(com._NS_DTYPE)
+            return new_values.view(_NS_DTYPE)
 
         elif 'timedelta' in typs:
             new_values = np.concatenate([x.view(np.int64) for x in to_concat],
                                         axis=axis)
-            return new_values.view(com._TD_DTYPE)
+            return new_values.view(_TD_DTYPE)
 
     # need to coerce to object
     to_concat = [convert_to_pydatetime(x, axis) for x in to_concat]
@@ -350,7 +392,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
         return x
 
     if typs is None:
-        typs = com.get_dtype_kinds(to_concat)
+        typs = get_dtype_kinds(to_concat)
 
     if len(typs) == 1:
         # concat input as it is if all inputs are sparse
@@ -374,7 +416,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
 
     # input may be sparse / dense mixed and may have different fill_value
     # input must contain sparse at least 1
-    sparses = [c for c in to_concat if com.is_sparse(c)]
+    sparses = [c for c in to_concat if is_sparse(c)]
     fill_values = [c.fill_value for c in sparses]
     sp_indexes = [c.sp_index for c in sparses]
 

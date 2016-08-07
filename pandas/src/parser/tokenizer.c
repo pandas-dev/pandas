@@ -704,6 +704,11 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     self->datapos = i;                                                  \
     TRACE(("_TOKEN_CLEANUP: datapos: %d, datalen: %d\n", self->datapos, self->datalen));
 
+#define CHECK_FOR_BOM()                                                   \
+    if (*buf == '\xef' && *(buf + 1) == '\xbb' && *(buf + 2) == '\xbf') { \
+        buf += 3;                                                         \
+        self->datapos += 3;                                               \
+    }
 
 int skip_this_line(parser_t *self, int64_t rownum) {
     if (self->skipset != NULL) {
@@ -735,6 +740,10 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
     maxstreamsize = self->stream_cap;
 
     TRACE(("%s\n", buf));
+
+    if (self->file_lines == 0) {
+        CHECK_FOR_BOM();
+    }
 
     for (i = self->datapos; i < self->datalen; ++i)
     {
@@ -1221,20 +1230,7 @@ int parser_trim_buffers(parser_t *self) {
     size_t new_cap;
     void *newptr;
 
-    /* trim stream */
-    new_cap = _next_pow2(self->stream_len) + 1;
-    TRACE(("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = %zu\n",
-           new_cap, self->stream_cap, self->lines_cap));
-    if (new_cap < self->stream_cap) {
-        TRACE(("parser_trim_buffers: new_cap < self->stream_cap, calling safe_realloc\n"));
-        newptr = safe_realloc((void*) self->stream, new_cap);
-        if (newptr == NULL) {
-            return PARSER_OUT_OF_MEMORY;
-        } else {
-            self->stream = newptr;
-            self->stream_cap = new_cap;
-        }
-    }
+    int i;
 
     /* trim words, word_starts */
     new_cap = _next_pow2(self->words_len) + 1;
@@ -1252,6 +1248,35 @@ int parser_trim_buffers(parser_t *self) {
         } else {
             self->word_starts = (int*) newptr;
             self->words_cap = new_cap;
+        }
+    }
+
+    /* trim stream */
+    new_cap = _next_pow2(self->stream_len) + 1;
+    TRACE(("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = %zu\n",
+           new_cap, self->stream_cap, self->lines_cap));
+    if (new_cap < self->stream_cap) {
+        TRACE(("parser_trim_buffers: new_cap < self->stream_cap, calling safe_realloc\n"));
+        newptr = safe_realloc((void*) self->stream, new_cap);
+        if (newptr == NULL) {
+            return PARSER_OUT_OF_MEMORY;
+        } else {
+            // Update the pointers in the self->words array (char **) if `safe_realloc`
+            //  moved the `self->stream` buffer. This block mirrors a similar block in
+            //  `make_stream_space`.
+            if (self->stream != newptr) {
+                /* TRACE(("Moving word pointers\n")) */
+                self->pword_start = (char*) newptr + self->word_start;
+
+                for (i = 0; i < self->words_len; ++i)
+                {
+                    self->words[i] = (char*) newptr + self->word_starts[i];
+                }
+            }
+
+            self->stream = newptr;
+            self->stream_cap = new_cap;
+
         }
     }
 

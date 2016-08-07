@@ -175,6 +175,8 @@ skiprows : list-like or integer, default ``None``
   of the file.
 skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
+skip_footer : int, default ``0``
+  DEPRECATED: use the ``skipfooter`` parameter instead, as they are identical
 nrows : int, default ``None``
   Number of rows of file to read. Useful for reading pieces of large files.
 low_memory : boolean, default ``True``
@@ -435,10 +437,107 @@ individual columns:
     df = pd.read_csv(StringIO(data), dtype={'b': object, 'c': np.float64})
     df.dtypes
 
+Fortunately, ``pandas`` offers more than one way to ensure that your column(s)
+contain only one ``dtype``. If you're unfamiliar with these concepts, you can
+see :ref:`here<basics.dtypes>` to learn more about dtypes, and
+:ref:`here<basics.object_conversion>` to learn more about ``object`` conversion in
+``pandas``.
+
+
+For instance, you can use the ``converters`` argument
+of :func:`~pandas.read_csv`:
+
+.. ipython:: python
+
+    data = "col_1\n1\n2\n'A'\n4.22"
+    df = pd.read_csv(StringIO(data), converters={'col_1':str})
+    df
+    df['col_1'].apply(type).value_counts()
+
+Or you can use the :func:`~pandas.to_numeric` function to coerce the
+dtypes after reading in the data,
+
+.. ipython:: python
+
+    df2 = pd.read_csv(StringIO(data))
+    df2['col_1'] = pd.to_numeric(df2['col_1'], errors='coerce')
+    df2
+    df2['col_1'].apply(type).value_counts()
+
+which would convert all valid parsing to floats, leaving the invalid parsing
+as ``NaN``.
+
+Ultimately, how you deal with reading in columns containing mixed dtypes
+depends on your specific needs. In the case above, if you wanted to ``NaN`` out
+the data anomalies, then :func:`~pandas.to_numeric` is probably your best option.
+However, if you wanted for all the data to be coerced, no matter the type, then
+using the ``converters`` argument of :func:`~pandas.read_csv` would certainly be
+worth trying.
+
 .. note::
     The ``dtype`` option is currently only supported by the C engine.
     Specifying ``dtype`` with ``engine`` other than 'c' raises a
     ``ValueError``.
+
+.. note::
+   In some cases, reading in abnormal data with columns containing mixed dtypes
+   will result in an inconsistent dataset. If you rely on pandas to infer the
+   dtypes of your columns, the parsing engine will go and infer the dtypes for
+   different chunks of the data, rather than the whole dataset at once. Consequently,
+   you can end up with column(s) with mixed dtypes. For example,
+
+   .. ipython:: python
+         :okwarning:
+
+       df = pd.DataFrame({'col_1':range(500000) + ['a', 'b'] + range(500000)})
+       df.to_csv('foo')
+       mixed_df = pd.read_csv('foo')
+       mixed_df['col_1'].apply(type).value_counts()
+       mixed_df['col_1'].dtype
+
+   will result with `mixed_df` containing an ``int`` dtype for certain chunks
+   of the column, and ``str`` for others due to the mixed dtypes from the
+   data that was read in. It is important to note that the overall column will be
+   marked with a ``dtype`` of ``object``, which is used for columns with mixed dtypes.
+
+.. _io.categorical:
+
+Specifying Categorical dtype
+''''''''''''''''''''''''''''
+
+.. versionadded:: 0.19.0
+
+``Categorical`` columns can be parsed directly by specifying ``dtype='category'``
+
+.. ipython:: python
+
+   data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
+
+   pd.read_csv(StringIO(data))
+   pd.read_csv(StringIO(data)).dtypes
+   pd.read_csv(StringIO(data), dtype='category').dtypes
+
+Individual columns can be parsed as a ``Categorical`` using a dict specification
+
+.. ipython:: python
+
+   pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
+
+.. note::
+
+   The resulting categories will always be parsed as strings (object dtype).
+   If the categories are numeric they can be converted using the
+   :func:`to_numeric` function, or as appropriate, another converter
+   such as :func:`to_datetime`.
+
+   .. ipython:: python
+
+      df = pd.read_csv(StringIO(data), dtype='category')
+      df.dtypes
+      df['col3']
+      df['col3'].cat.categories = pd.to_numeric(df['col3'].cat.categories)
+      df['col3']
+
 
 Naming and Using Columns
 ''''''''''''''''''''''''
@@ -1351,7 +1450,7 @@ back to python if C-unsupported options are specified. Currently, C-unsupported
 options include:
 
 - ``sep`` other than a single character (e.g. regex separators)
-- ``skip_footer``
+- ``skipfooter``
 - ``sep=None`` with ``delim_whitespace=False``
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
@@ -1466,6 +1565,7 @@ with optional parameters:
 - ``force_ascii`` : force encoded string to be ASCII, default True.
 - ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
 - ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serializable object.
+- ``lines`` : If ``records`` orient, then will write each record per line as json.
 
 Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datetime`` objects will be converted based on the ``date_format`` and ``date_unit`` parameters.
 
@@ -1656,6 +1756,8 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
   None. By default the timestamp precision will be detected, if this is not desired
   then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to
   seconds, milliseconds, microseconds or nanoseconds respectively.
+- ``lines`` : reads file as one json object per line.
+- ``encoding`` : The encoding to use to decode py3 bytes.
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 
@@ -1845,6 +1947,26 @@ into a flat table.
 
    json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
 
+.. _io.jsonl:
+
+Line delimited json
+'''''''''''''''''''
+
+.. versionadded:: 0.19.0
+
+pandas is able to read and write line-delimited json files that are common in data processing pipelines
+using Hadoop or Spark.
+
+.. ipython:: python
+
+  jsonl = '''
+      {"a":1,"b":2}
+      {"a":3,"b":4}
+  '''
+  df = pd.read_json(jsonl, lines=True)
+  df
+  df.to_json(orient='records', lines=True)
+
 HTML
 ----
 
@@ -1958,6 +2080,35 @@ Specify an HTML attribute
    dfs1 = read_html(url, attrs={'id': 'table'})
    dfs2 = read_html(url, attrs={'class': 'sortable'})
    print(np.array_equal(dfs1[0], dfs2[0]))  # Should be True
+
+Specify values that should be converted to NaN
+
+.. code-block:: python
+
+   dfs = read_html(url, na_values=['No Acquirer'])
+
+.. versionadded:: 0.19
+
+Specify whether to keep the default set of NaN values
+
+.. code-block:: python
+
+   dfs = read_html(url, keep_default_na=False)
+
+.. versionadded:: 0.19
+
+Specify converters for columns. This is useful for numerical text data that has
+leading zeros.  By default columns that are numerical are cast to numeric
+types and the leading zeros are lost.  To avoid this, we can convert these
+columns to strings.
+
+.. code-block:: python
+
+   url_mcc = 'https://en.wikipedia.org/wiki/Mobile_country_code'
+   dfs = read_html(url_mcc, match='Telekom Albania', header=0, converters={'MNC':
+   str})
+
+.. versionadded:: 0.19
 
 Use some combination of the above
 
@@ -4367,6 +4518,13 @@ destination DataFrame as well as a preferred column order as follows:
 .. note::
 
    You can toggle the verbose output via the ``verbose`` flag which defaults to ``True``.
+
+.. note::
+
+    The ``dialect`` argument can be used to indicate whether to use BigQuery's ``'legacy'`` SQL
+    or BigQuery's ``'standard'`` SQL (beta). The default value is ``'legacy'``. For more information
+    on BigQuery's standard SQL, see `BigQuery SQL Reference
+    <https://cloud.google.com/bigquery/sql-reference/>`__
 
 .. _io.bigquery_writer:
 

@@ -3,6 +3,7 @@
 import csv
 import os
 import platform
+import codecs
 
 import re
 import sys
@@ -44,6 +45,27 @@ bar2,12,13,14,15
         msg = 'Only length-1 decimal markers supported'
         with tm.assertRaisesRegexp(ValueError, msg):
             self.read_csv(StringIO(data), decimal='')
+
+    def test_bad_stream_exception(self):
+        # Issue 13652:
+        # This test validates that both python engine
+        # and C engine will raise UnicodeDecodeError instead of
+        # c engine raising CParserError and swallowing exception
+        # that caused read to fail.
+        handle = open(self.csv_shiftjs, "rb")
+        codec = codecs.lookup("utf-8")
+        utf8 = codecs.lookup('utf-8')
+        # stream must be binary UTF8
+        stream = codecs.StreamRecoder(
+            handle, utf8.encode, utf8.decode, codec.streamreader,
+            codec.streamwriter)
+        if compat.PY3:
+            msg = "'utf-8' codec can't decode byte"
+        else:
+            msg = "'utf8' codec can't decode byte"
+        with tm.assertRaisesRegexp(UnicodeDecodeError, msg):
+            self.read_csv(stream)
+        stream.close()
 
     def test_read_csv(self):
         if not compat.PY3:
@@ -127,11 +149,6 @@ c,3
         result = self.read_csv(StringIO(data), index_col='time', squeeze=True)
         self.assertFalse(result._is_view)
 
-    def test_multiple_skts_example(self):
-        # TODO: Complete this
-        data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."  # noqa
-        pass
-
     def test_malformed(self):
         # see gh-6607
 
@@ -196,9 +213,9 @@ skip
                                  skiprows=[2])
             it.read()
 
-        # skip_footer is not supported with the C parser yet
+        # skipfooter is not supported with the C parser yet
         if self.engine == 'python':
-            # skip_footer
+            # skipfooter
             data = """ignore
 A,B,C
 1,2,3 # comment
@@ -210,7 +227,7 @@ footer
             with tm.assertRaisesRegexp(Exception, msg):
                 self.read_table(StringIO(data), sep=',',
                                 header=1, comment='#',
-                                skip_footer=1)
+                                skipfooter=1)
 
     def test_quoting(self):
         bad_line_small = """printer\tresult\tvariant_name
@@ -268,8 +285,11 @@ a,1,2
 b,3,4
 c,4,5
 """
-        # TODO: complete this
-        df = self.read_csv(StringIO(data))  # noqa
+        expected = DataFrame({'A': ['a', 'b', 'c'],
+                              'B': [1, 3, 4],
+                              'C': [2, 4, 5]})
+        out = self.read_csv(StringIO(data))
+        tm.assert_frame_equal(out, expected)
 
     def test_read_csv_dataframe(self):
         df = self.read_csv(self.csv1, index_col=0, parse_dates=True)
@@ -439,6 +459,18 @@ bar,foo"""
         piece = result.get_chunk()
         self.assertEqual(len(piece), 2)
 
+    def test_read_chunksize_generated_index(self):
+        # GH 12185
+        reader = self.read_csv(StringIO(self.data1), chunksize=2)
+        df = self.read_csv(StringIO(self.data1))
+
+        tm.assert_frame_equal(pd.concat(reader), df)
+
+        reader = self.read_csv(StringIO(self.data1), chunksize=2, index_col=0)
+        df = self.read_csv(StringIO(self.data1), index_col=0)
+
+        tm.assert_frame_equal(pd.concat(reader), df)
+
     def test_read_text_list(self):
         data = """A,B,C\nfoo,1,2,3\nbar,4,5,6"""
         as_list = [['A', 'B', 'C'], ['foo', '1', '2', '3'], ['bar',
@@ -502,11 +534,11 @@ baz,7,8,9
         self.assertEqual(len(result), 3)
         tm.assert_frame_equal(pd.concat(result), expected)
 
-        # skip_footer is not supported with the C parser yet
+        # skipfooter is not supported with the C parser yet
         if self.engine == 'python':
-            # test bad parameter (skip_footer)
+            # test bad parameter (skipfooter)
             reader = self.read_csv(StringIO(self.data1), index_col=0,
-                                   iterator=True, skip_footer=True)
+                                   iterator=True, skipfooter=True)
             self.assertRaises(ValueError, reader.read, 3)
 
     def test_pass_names_with_index(self):
@@ -1468,4 +1500,71 @@ j,-inF"""
         })
 
         out = self.read_csv(mmap_file, memory_map=True)
+        tm.assert_frame_equal(out, expected)
+
+    def test_null_byte_char(self):
+        # see gh-2741
+        data = '\x00,foo'
+        cols = ['a', 'b']
+
+        expected = DataFrame([[np.nan, 'foo']],
+                             columns=cols)
+
+        if self.engine == 'c':
+            out = self.read_csv(StringIO(data), names=cols)
+            tm.assert_frame_equal(out, expected)
+        else:
+            msg = "NULL byte detected"
+            with tm.assertRaisesRegexp(csv.Error, msg):
+                self.read_csv(StringIO(data), names=cols)
+
+    def test_utf8_bom(self):
+        # see gh-4793
+        bom = u('\ufeff')
+        utf8 = 'utf-8'
+
+        def _encode_data_with_bom(_data):
+            bom_data = (bom + _data).encode(utf8)
+            return BytesIO(bom_data)
+
+        # basic test
+        data = 'a\n1'
+        expected = DataFrame({'a': [1]})
+
+        out = self.read_csv(_encode_data_with_bom(data),
+                            encoding=utf8)
+        tm.assert_frame_equal(out, expected)
+
+        # test with "regular" quoting
+        data = '"a"\n1'
+        expected = DataFrame({'a': [1]})
+
+        out = self.read_csv(_encode_data_with_bom(data),
+                            encoding=utf8, quotechar='"')
+        tm.assert_frame_equal(out, expected)
+
+        # test in a data row instead of header
+        data = 'b\n1'
+        expected = DataFrame({'a': ['b', '1']})
+
+        out = self.read_csv(_encode_data_with_bom(data),
+                            encoding=utf8, names=['a'])
+        tm.assert_frame_equal(out, expected)
+
+        # test in empty data row with skipping
+        data = '\n1'
+        expected = DataFrame({'a': [1]})
+
+        out = self.read_csv(_encode_data_with_bom(data),
+                            encoding=utf8, names=['a'],
+                            skip_blank_lines=True)
+        tm.assert_frame_equal(out, expected)
+
+        # test in empty data row without skipping
+        data = '\n1'
+        expected = DataFrame({'a': [np.nan, 1.0]})
+
+        out = self.read_csv(_encode_data_with_bom(data),
+                            encoding=utf8, names=['a'],
+                            skip_blank_lines=False)
         tm.assert_frame_equal(out, expected)

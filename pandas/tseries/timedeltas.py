@@ -4,9 +4,11 @@ timedelta support tools
 
 import numpy as np
 import pandas.tslib as tslib
-from pandas.core.common import (ABCSeries, is_integer_dtype,
-                                is_timedelta64_dtype, is_list_like,
-                                _ensure_object, ABCIndexClass)
+from pandas.types.common import (_ensure_object,
+                                 is_integer_dtype,
+                                 is_timedelta64_dtype,
+                                 is_list_like)
+from pandas.types.generic import ABCSeries, ABCIndexClass
 from pandas.util.decorators import deprecate_kwarg
 
 
@@ -74,8 +76,8 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
             value = arg.astype('timedelta64[{0}]'.format(
                 unit)).astype('timedelta64[ns]', copy=False)
         else:
-            value = tslib.array_to_timedelta64(
-                _ensure_object(arg), unit=unit, errors=errors)
+            value = tslib.array_to_timedelta64(_ensure_object(arg),
+                                               unit=unit, errors=errors)
             value = value.astype('timedelta64[ns]', copy=False)
 
         if box:

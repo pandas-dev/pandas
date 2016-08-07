@@ -15,13 +15,14 @@
 Sparse data structures
 **********************
 
-We have implemented "sparse" versions of Series, DataFrame, and Panel. These
-are not sparse in the typical "mostly 0". You can view these objects as being
-"compressed" where any data matching a specific value (NaN/missing by default,
-though any value can be chosen) is omitted. A special ``SparseIndex`` object
-tracks where data has been "sparsified". This will make much more sense in an
-example. All of the standard pandas data structures have a ``to_sparse``
-method:
+.. note:: The ``SparsePanel`` class has been removed in 0.19.0
+
+We have implemented "sparse" versions of Series and DataFrame. These are not sparse
+in the typical "mostly 0". Rather, you can view these objects as being "compressed"
+where any data matching a specific value (``NaN`` / missing value, though any value
+can be chosen) is omitted. A special ``SparseIndex`` object tracks where data has been
+"sparsified". This will make much more sense in an example. All of the standard pandas
+data structures have a ``to_sparse`` method:
 
 .. ipython:: python
 
@@ -77,9 +78,8 @@ distinct from the ``fill_value``:
    sparr = pd.SparseArray(arr)
    sparr
 
-Like the indexed objects (SparseSeries, SparseDataFrame, SparsePanel), a
-``SparseArray`` can be converted back to a regular ndarray by calling
-``to_dense``:
+Like the indexed objects (SparseSeries, SparseDataFrame), a ``SparseArray``
+can be converted back to a regular ndarray by calling ``to_dense``:
 
 .. ipython:: python
 
@@ -129,6 +129,28 @@ recommend using ``block`` as it's more memory efficient. The ``integer`` format
 keeps an arrays of all of the locations where the data are not equal to the
 fill value. The ``block`` format tracks only the locations and sizes of blocks
 of data.
+
+.. _sparse.calculation:
+
+Sparse Calculation
+------------------
+
+You can apply NumPy *ufuncs* to ``SparseArray`` and get a ``SparseArray`` as a result.
+
+.. ipython:: python
+
+   arr = pd.SparseArray([1., np.nan, np.nan, -2., np.nan])
+   np.abs(arr)
+
+
+The *ufunc* is also applied to ``fill_value``. This is needed to get
+the correct dense result.
+
+.. ipython:: python
+
+   arr = pd.SparseArray([1., -1, -1, -2., -1], fill_value=-1)
+   np.abs(arr)
+   np.abs(arr).to_dense()
 
 .. _sparse.scipysparse:
 

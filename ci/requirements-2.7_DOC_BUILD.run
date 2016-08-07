@@ -1,4 +1,4 @@
-ipython
+ipython=4.2.0
 ipykernel
 sphinx
 nbconvert

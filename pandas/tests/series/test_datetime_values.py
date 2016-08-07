@@ -6,6 +6,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
+from pandas.types.common import is_integer_dtype, is_list_like
 from pandas import (Index, Series, DataFrame, bdate_range,
                     date_range, period_range, timedelta_range)
 from pandas.tseries.period import PeriodIndex
@@ -31,7 +32,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         ok_for_base = ['year', 'month', 'day', 'hour', 'minute', 'second',
                        'weekofyear', 'week', 'dayofweek', 'weekday',
                        'dayofyear', 'quarter', 'freq', 'days_in_month',
-                       'daysinmonth']
+                       'daysinmonth', 'is_leap_year']
         ok_for_period = ok_for_base + ['qyear', 'start_time', 'end_time']
         ok_for_period_methods = ['strftime', 'to_timestamp', 'asfreq']
         ok_for_dt = ok_for_base + ['date', 'time', 'microsecond', 'nanosecond',
@@ -49,16 +50,16 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         def get_expected(s, name):
             result = getattr(Index(s._values), prop)
             if isinstance(result, np.ndarray):
-                if com.is_integer_dtype(result):
+                if is_integer_dtype(result):
                     result = result.astype('int64')
-            elif not com.is_list_like(result):
+            elif not is_list_like(result):
                 return result
             return Series(result, index=s.index, name=s.name)
 
         def compare(s, name):
             a = getattr(s.dt, prop)
             b = get_expected(s, prop)
-            if not (com.is_list_like(a) and com.is_list_like(b)):
+            if not (is_list_like(a) and is_list_like(b)):
                 self.assertEqual(a, b)
             else:
                 tm.assert_series_equal(a, b)

@@ -17,7 +17,7 @@ from pandas.util.testing import (assert_frame_equal,
                                  assert_almost_equal)
 
 
-class TestConcatenate(tm.TestCase):
+class ConcatenateBase(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -25,6 +25,9 @@ class TestConcatenate(tm.TestCase):
         self.frame = DataFrame(tm.getSeriesData())
         self.mixed_frame = self.frame.copy()
         self.mixed_frame['foo'] = 'bar'
+
+
+class TestAppend(ConcatenateBase):
 
     def test_append(self):
         begin_index = self.frame.index[:5]
@@ -142,42 +145,32 @@ class TestConcatenate(tm.TestCase):
         result = df1.append(df2)
         self.assertEqual(result.index.name, 'A')
 
-    def test_join_many(self):
-        df = DataFrame(np.random.randn(10, 6), columns=list('abcdef'))
-        df_list = [df[['a', 'b']], df[['c', 'd']], df[['e', 'f']]]
+    def test_append_dtype_coerce(self):
 
-        joined = df_list[0].join(df_list[1:])
-        tm.assert_frame_equal(joined, df)
+        # GH 4993
+        # appending with datetime will incorrectly convert datetime64
+        import datetime as dt
+        from pandas import NaT
 
-        df_list = [df[['a', 'b']][:-2],
-                   df[['c', 'd']][2:], df[['e', 'f']][1:9]]
+        df1 = DataFrame(index=[1, 2], data=[dt.datetime(2013, 1, 1, 0, 0),
+                                            dt.datetime(2013, 1, 2, 0, 0)],
+                        columns=['start_time'])
+        df2 = DataFrame(index=[4, 5], data=[[dt.datetime(2013, 1, 3, 0, 0),
+                                             dt.datetime(2013, 1, 3, 6, 10)],
+                                            [dt.datetime(2013, 1, 4, 0, 0),
+                                             dt.datetime(2013, 1, 4, 7, 10)]],
+                        columns=['start_time', 'end_time'])
 
-        def _check_diff_index(df_list, result, exp_index):
-            reindexed = [x.reindex(exp_index) for x in df_list]
-            expected = reindexed[0].join(reindexed[1:])
-            tm.assert_frame_equal(result, expected)
-
-        # different join types
-        joined = df_list[0].join(df_list[1:], how='outer')
-        _check_diff_index(df_list, joined, df.index)
-
-        joined = df_list[0].join(df_list[1:])
-        _check_diff_index(df_list, joined, df_list[0].index)
-
-        joined = df_list[0].join(df_list[1:], how='inner')
-        _check_diff_index(df_list, joined, df.index[2:8])
-
-        self.assertRaises(ValueError, df_list[0].join, df_list[1:], on='a')
-
-    def test_join_many_mixed(self):
-        df = DataFrame(np.random.randn(8, 4), columns=['A', 'B', 'C', 'D'])
-        df['key'] = ['foo', 'bar'] * 4
-        df1 = df.ix[:, ['A', 'B']]
-        df2 = df.ix[:, ['C', 'D']]
-        df3 = df.ix[:, ['key']]
-
-        result = df1.join([df2, df3])
-        assert_frame_equal(result, df)
+        expected = concat([Series([NaT, NaT, dt.datetime(2013, 1, 3, 6, 10),
+                                   dt.datetime(2013, 1, 4, 7, 10)],
+                                  name='end_time'),
+                           Series([dt.datetime(2013, 1, 1, 0, 0),
+                                   dt.datetime(2013, 1, 2, 0, 0),
+                                   dt.datetime(2013, 1, 3, 0, 0),
+                                   dt.datetime(2013, 1, 4, 0, 0)],
+                                  name='start_time')], axis=1)
+        result = df1.append(df2, ignore_index=True)
+        assert_frame_equal(result, expected)
 
     def test_append_missing_column_proper_upcast(self):
         df1 = DataFrame({'A': np.array([1, 2, 3, 4], dtype='i8')})
@@ -187,6 +180,9 @@ class TestConcatenate(tm.TestCase):
         appended = df1.append(df2, ignore_index=True)
         self.assertEqual(appended['A'].dtype, 'f8')
         self.assertEqual(appended['B'].dtype, 'O')
+
+
+class TestConcatenate(ConcatenateBase):
 
     def test_concat_copy(self):
 
@@ -524,35 +520,6 @@ class TestConcatenate(tm.TestCase):
         # it works
         concat([df1, df2])
 
-    def test_join_dups(self):
-
-        # joining dups
-        df = concat([DataFrame(np.random.randn(10, 4),
-                               columns=['A', 'A', 'B', 'B']),
-                     DataFrame(np.random.randint(0, 10, size=20)
-                               .reshape(10, 2),
-                               columns=['A', 'C'])],
-                    axis=1)
-
-        expected = concat([df, df], axis=1)
-        result = df.join(df, rsuffix='_2')
-        result.columns = expected.columns
-        assert_frame_equal(result, expected)
-
-        # GH 4975, invalid join on dups
-        w = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
-        x = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
-        y = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
-        z = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
-
-        dta = x.merge(y, left_index=True, right_index=True).merge(
-            z, left_index=True, right_index=True, how="outer")
-        dta = dta.merge(w, left_index=True, right_index=True)
-        expected = concat([x, y, z, w], axis=1)
-        expected.columns = ['x_x', 'y_x', 'x_y',
-                            'y_y', 'x_x', 'y_x', 'x_y', 'y_y']
-        assert_frame_equal(dta, expected)
-
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
 
@@ -649,86 +616,40 @@ class TestConcatenate(tm.TestCase):
         panel = tm.makePanel()
         self.assertRaises(ValueError, lambda: concat([panel, s1], axis=1))
 
-    def test_panel_join(self):
-        panel = tm.makePanel()
-        tm.add_nans(panel)
+    def test_empty_dtype_coerce(self):
 
-        p1 = panel.ix[:2, :10, :3]
-        p2 = panel.ix[2:, 5:, 2:]
+        # xref to #12411
+        # xref to #12045
+        # xref to #11594
+        # see below
 
-        # left join
-        result = p1.join(p2)
-        expected = p1.copy()
-        expected['ItemC'] = p2['ItemC']
-        tm.assert_panel_equal(result, expected)
+        # 10571
+        df1 = DataFrame(data=[[1, None], [2, None]], columns=['a', 'b'])
+        df2 = DataFrame(data=[[3, None], [4, None]], columns=['a', 'b'])
+        result = concat([df1, df2])
+        expected = df1.dtypes
+        tm.assert_series_equal(result.dtypes, expected)
 
-        # right join
-        result = p1.join(p2, how='right')
-        expected = p2.copy()
-        expected['ItemA'] = p1['ItemA']
-        expected['ItemB'] = p1['ItemB']
-        expected = expected.reindex(items=['ItemA', 'ItemB', 'ItemC'])
-        tm.assert_panel_equal(result, expected)
+    def test_dtype_coerceion(self):
 
-        # inner join
-        result = p1.join(p2, how='inner')
-        expected = panel.ix[:, 5:10, 2:3]
-        tm.assert_panel_equal(result, expected)
+        # 12411
+        df = DataFrame({'date': [pd.Timestamp('20130101').tz_localize('UTC'),
+                                 pd.NaT]})
 
-        # outer join
-        result = p1.join(p2, how='outer')
-        expected = p1.reindex(major=panel.major_axis,
-                              minor=panel.minor_axis)
-        expected = expected.join(p2.reindex(major=panel.major_axis,
-                                            minor=panel.minor_axis))
-        tm.assert_panel_equal(result, expected)
+        result = concat([df.iloc[[0]], df.iloc[[1]]])
+        tm.assert_series_equal(result.dtypes, df.dtypes)
 
-    def test_panel_join_overlap(self):
-        panel = tm.makePanel()
-        tm.add_nans(panel)
+        # 12045
+        import datetime
+        df = DataFrame({'date': [datetime.datetime(2012, 1, 1),
+                                 datetime.datetime(1012, 1, 2)]})
+        result = concat([df.iloc[[0]], df.iloc[[1]]])
+        tm.assert_series_equal(result.dtypes, df.dtypes)
 
-        p1 = panel.ix[['ItemA', 'ItemB', 'ItemC']]
-        p2 = panel.ix[['ItemB', 'ItemC']]
-
-        # Expected index is
-        #
-        # ItemA, ItemB_p1, ItemC_p1, ItemB_p2, ItemC_p2
-        joined = p1.join(p2, lsuffix='_p1', rsuffix='_p2')
-        p1_suf = p1.ix[['ItemB', 'ItemC']].add_suffix('_p1')
-        p2_suf = p2.ix[['ItemB', 'ItemC']].add_suffix('_p2')
-        no_overlap = panel.ix[['ItemA']]
-        expected = no_overlap.join(p1_suf.join(p2_suf))
-        tm.assert_panel_equal(joined, expected)
-
-    def test_panel_join_many(self):
-        tm.K = 10
-        panel = tm.makePanel()
-        tm.K = 4
-
-        panels = [panel.ix[:2], panel.ix[2:6], panel.ix[6:]]
-
-        joined = panels[0].join(panels[1:])
-        tm.assert_panel_equal(joined, panel)
-
-        panels = [panel.ix[:2, :-5], panel.ix[2:6, 2:], panel.ix[6:, 5:-7]]
-
-        data_dict = {}
-        for p in panels:
-            data_dict.update(p.iteritems())
-
-        joined = panels[0].join(panels[1:], how='inner')
-        expected = Panel.from_dict(data_dict, intersect=True)
-        tm.assert_panel_equal(joined, expected)
-
-        joined = panels[0].join(panels[1:], how='outer')
-        expected = Panel.from_dict(data_dict, intersect=False)
-        tm.assert_panel_equal(joined, expected)
-
-        # edge cases
-        self.assertRaises(ValueError, panels[0].join, panels[1:],
-                          how='outer', lsuffix='foo', rsuffix='bar')
-        self.assertRaises(ValueError, panels[0].join, panels[1:],
-                          how='right')
+        # 11594
+        df = DataFrame({'text': ['some words'] + [None] * 9})
+        result = concat([df.iloc[[0]], df.iloc[[1]]])
+        tm.assert_series_equal(result.dtypes, df.dtypes)
 
     def test_panel_concat_other_axes(self):
         panel = tm.makePanel()
@@ -783,35 +704,37 @@ class TestConcatenate(tm.TestCase):
         concat([panel1, panel3], axis=1, verify_integrity=True)
 
     def test_panel4d_concat(self):
-        p4d = tm.makePanel4D()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D()
 
-        p1 = p4d.ix[:, :, :5, :]
-        p2 = p4d.ix[:, :, 5:, :]
+            p1 = p4d.ix[:, :, :5, :]
+            p2 = p4d.ix[:, :, 5:, :]
 
-        result = concat([p1, p2], axis=2)
-        tm.assert_panel4d_equal(result, p4d)
+            result = concat([p1, p2], axis=2)
+            tm.assert_panel4d_equal(result, p4d)
 
-        p1 = p4d.ix[:, :, :, :2]
-        p2 = p4d.ix[:, :, :, 2:]
+            p1 = p4d.ix[:, :, :, :2]
+            p2 = p4d.ix[:, :, :, 2:]
 
-        result = concat([p1, p2], axis=3)
-        tm.assert_panel4d_equal(result, p4d)
+            result = concat([p1, p2], axis=3)
+            tm.assert_panel4d_equal(result, p4d)
 
     def test_panel4d_concat_mixed_type(self):
-        p4d = tm.makePanel4D()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D()
 
-        # if things are a bit misbehaved
-        p1 = p4d.ix[:, :2, :, :2]
-        p2 = p4d.ix[:, :, :, 2:]
-        p1['L5'] = 'baz'
+            # if things are a bit misbehaved
+            p1 = p4d.ix[:, :2, :, :2]
+            p2 = p4d.ix[:, :, :, 2:]
+            p1['L5'] = 'baz'
 
-        result = concat([p1, p2], axis=3)
+            result = concat([p1, p2], axis=3)
 
-        p2['L5'] = np.nan
-        expected = concat([p1, p2], axis=3)
-        expected = expected.ix[result.labels]
+            p2['L5'] = np.nan
+            expected = concat([p1, p2], axis=3)
+            expected = expected.ix[result.labels]
 
-        tm.assert_panel4d_equal(result, expected)
+            tm.assert_panel4d_equal(result, expected)
 
     def test_concat_series(self):
 
@@ -927,6 +850,9 @@ class TestConcatenate(tm.TestCase):
             ([0, 1, 2], [2, 3, 4], [0, 1, 2, 2, 3, 4]),
             ([0, 1.2, 2], [2, 3.4, 4], [0, 1.2, 2, 2, 3.4, 4]),
 
+            (['b', 'b', np.nan, 'a'], ['a', np.nan, 'c'],
+             ['b', 'b', np.nan, 'a', 'a', np.nan, 'c']),
+
             (pd.date_range('2014-01-01', '2014-01-05'),
              pd.date_range('2014-01-06', '2014-01-07'),
              pd.date_range('2014-01-01', '2014-01-07')),
@@ -949,24 +875,229 @@ class TestConcatenate(tm.TestCase):
         # new categories ordered by appearance
         s = Categorical(['x', 'y', 'z'])
         s2 = Categorical(['a', 'b', 'c'])
-        result = union_categoricals([s, s2]).categories
-        expected = Index(['x', 'y', 'z', 'a', 'b', 'c'])
-        tm.assert_index_equal(result, expected)
+        result = union_categoricals([s, s2])
+        expected = Categorical(['x', 'y', 'z', 'a', 'b', 'c'],
+                               categories=['x', 'y', 'z', 'a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
 
-        # can't be ordered
         s = Categorical([0, 1.2, 2], ordered=True)
         s2 = Categorical([0, 1.2, 2], ordered=True)
-        with tm.assertRaises(TypeError):
-            union_categoricals([s, s2])
+        result = union_categoricals([s, s2])
+        expected = Categorical([0, 1.2, 2, 0, 1.2, 2], ordered=True)
+        tm.assert_categorical_equal(result, expected)
 
         # must exactly match types
         s = Categorical([0, 1.2, 2])
         s2 = Categorical([2, 3, 4])
-        with tm.assertRaises(TypeError):
+        msg = 'dtype of categories must be the same'
+        with tm.assertRaisesRegexp(TypeError, msg):
             union_categoricals([s, s2])
 
-        with tm.assertRaises(ValueError):
+        msg = 'No Categoricals to union'
+        with tm.assertRaisesRegexp(ValueError, msg):
             union_categoricals([])
+
+    def test_union_categoricals_nan(self):
+        # GH 13759
+        res = union_categoricals([pd.Categorical([1, 2, np.nan]),
+                                  pd.Categorical([3, 2, np.nan])])
+        exp = Categorical([1, 2, np.nan, 3, 2, np.nan])
+        tm.assert_categorical_equal(res, exp)
+
+        res = union_categoricals([pd.Categorical(['A', 'B']),
+                                  pd.Categorical(['B', 'B', np.nan])])
+        exp = Categorical(['A', 'B', 'B', 'B', np.nan])
+        tm.assert_categorical_equal(res, exp)
+
+        val1 = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-03-01'),
+                pd.NaT]
+        val2 = [pd.NaT, pd.Timestamp('2011-01-01'),
+                pd.Timestamp('2011-02-01')]
+
+        res = union_categoricals([pd.Categorical(val1), pd.Categorical(val2)])
+        exp = Categorical(val1 + val2,
+                          categories=[pd.Timestamp('2011-01-01'),
+                                      pd.Timestamp('2011-03-01'),
+                                      pd.Timestamp('2011-02-01')])
+        tm.assert_categorical_equal(res, exp)
+
+        # all NaN
+        res = union_categoricals([pd.Categorical([np.nan, np.nan]),
+                                  pd.Categorical(['X'])])
+        exp = Categorical([np.nan, np.nan, 'X'])
+        tm.assert_categorical_equal(res, exp)
+
+        res = union_categoricals([pd.Categorical([np.nan, np.nan]),
+                                  pd.Categorical([np.nan, np.nan])])
+        exp = Categorical([np.nan, np.nan, np.nan, np.nan])
+        tm.assert_categorical_equal(res, exp)
+
+    def test_union_categoricals_empty(self):
+        # GH 13759
+        res = union_categoricals([pd.Categorical([]),
+                                  pd.Categorical([])])
+        exp = Categorical([])
+        tm.assert_categorical_equal(res, exp)
+
+        res = union_categoricals([pd.Categorical([]),
+                                  pd.Categorical([1.0])])
+        exp = Categorical([1.0])
+        tm.assert_categorical_equal(res, exp)
+
+        # to make dtype equal
+        nanc = pd.Categorical(np.array([np.nan], dtype=np.float64))
+        res = union_categoricals([nanc,
+                                  pd.Categorical([])])
+        tm.assert_categorical_equal(res, nanc)
+
+    def test_union_categorical_same_category(self):
+        # check fastpath
+        c1 = Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4])
+        c2 = Categorical([3, 2, 1, np.nan], categories=[1, 2, 3, 4])
+        res = union_categoricals([c1, c2])
+        exp = Categorical([1, 2, 3, 4, 3, 2, 1, np.nan],
+                          categories=[1, 2, 3, 4])
+        tm.assert_categorical_equal(res, exp)
+
+        c1 = Categorical(['z', 'z', 'z'], categories=['x', 'y', 'z'])
+        c2 = Categorical(['x', 'x', 'x'], categories=['x', 'y', 'z'])
+        res = union_categoricals([c1, c2])
+        exp = Categorical(['z', 'z', 'z', 'x', 'x', 'x'],
+                          categories=['x', 'y', 'z'])
+        tm.assert_categorical_equal(res, exp)
+
+    def test_union_categoricals_ordered(self):
+        c1 = Categorical([1, 2, 3], ordered=True)
+        c2 = Categorical([1, 2, 3], ordered=False)
+
+        msg = 'Categorical.ordered must be the same'
+        with tm.assertRaisesRegexp(TypeError, msg):
+            union_categoricals([c1, c2])
+
+        res = union_categoricals([c1, c1])
+        exp = Categorical([1, 2, 3, 1, 2, 3], ordered=True)
+        tm.assert_categorical_equal(res, exp)
+
+        c1 = Categorical([1, 2, 3, np.nan], ordered=True)
+        c2 = Categorical([3, 2], categories=[1, 2, 3], ordered=True)
+
+        res = union_categoricals([c1, c2])
+        exp = Categorical([1, 2, 3, np.nan, 3, 2], ordered=True)
+        tm.assert_categorical_equal(res, exp)
+
+        c1 = Categorical([1, 2, 3], ordered=True)
+        c2 = Categorical([1, 2, 3], categories=[3, 2, 1], ordered=True)
+
+        msg = "to union ordered Categoricals, all categories must be the same"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            union_categoricals([c1, c2])
+
+    def test_union_categoricals_sort(self):
+        # GH 13846
+        c1 = Categorical(['x', 'y', 'z'])
+        c2 = Categorical(['a', 'b', 'c'])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical(['x', 'y', 'z', 'a', 'b', 'c'],
+                               categories=['a', 'b', 'c', 'x', 'y', 'z'])
+        tm.assert_categorical_equal(result, expected)
+
+        # fastpath
+        c1 = Categorical(['a', 'b'], categories=['b', 'a', 'c'])
+        c2 = Categorical(['b', 'c'], categories=['b', 'a', 'c'])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical(['a', 'b', 'b', 'c'],
+                               categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical(['a', 'b'], categories=['c', 'a', 'b'])
+        c2 = Categorical(['b', 'c'], categories=['c', 'a', 'b'])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical(['a', 'b', 'b', 'c'],
+                               categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
+        # fastpath - skip resort
+        c1 = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+        c2 = Categorical(['b', 'c'], categories=['a', 'b', 'c'])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical(['a', 'b', 'b', 'c'],
+                               categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical(['x', np.nan])
+        c2 = Categorical([np.nan, 'b'])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical(['x', np.nan, np.nan, 'b'],
+                               categories=['b', 'x'])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical([np.nan])
+        c2 = Categorical([np.nan])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical([np.nan, np.nan], categories=[])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical([])
+        c2 = Categorical([])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical([])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical(['b', 'a'], categories=['b', 'a', 'c'], ordered=True)
+        c2 = Categorical(['a', 'c'], categories=['b', 'a', 'c'], ordered=True)
+        with tm.assertRaises(TypeError):
+            union_categoricals([c1, c2], sort_categories=True)
+
+    def test_union_categoricals_sort_false(self):
+        # GH 13846
+        c1 = Categorical(['x', 'y', 'z'])
+        c2 = Categorical(['a', 'b', 'c'])
+        result = union_categoricals([c1, c2], sort_categories=False)
+        expected = Categorical(['x', 'y', 'z', 'a', 'b', 'c'],
+                               categories=['x', 'y', 'z', 'a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
+        # fastpath
+        c1 = Categorical(['a', 'b'], categories=['b', 'a', 'c'])
+        c2 = Categorical(['b', 'c'], categories=['b', 'a', 'c'])
+        result = union_categoricals([c1, c2], sort_categories=False)
+        expected = Categorical(['a', 'b', 'b', 'c'],
+                               categories=['b', 'a', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
+        # fastpath - skip resort
+        c1 = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+        c2 = Categorical(['b', 'c'], categories=['a', 'b', 'c'])
+        result = union_categoricals([c1, c2], sort_categories=False)
+        expected = Categorical(['a', 'b', 'b', 'c'],
+                               categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical(['x', np.nan])
+        c2 = Categorical([np.nan, 'b'])
+        result = union_categoricals([c1, c2], sort_categories=False)
+        expected = Categorical(['x', np.nan, np.nan, 'b'],
+                               categories=['x', 'b'])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical([np.nan])
+        c2 = Categorical([np.nan])
+        result = union_categoricals([c1, c2], sort_categories=False)
+        expected = Categorical([np.nan, np.nan], categories=[])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical([])
+        c2 = Categorical([])
+        result = union_categoricals([c1, c2], sort_categories=False)
+        expected = Categorical([])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical(['b', 'a'], categories=['b', 'a', 'c'], ordered=True)
+        c2 = Categorical(['a', 'c'], categories=['b', 'a', 'c'], ordered=True)
+        result = union_categoricals([c1, c2], sort_categories=False)
+        expected = Categorical(['b', 'a', 'a', 'c'],
+                               categories=['b', 'a', 'c'], ordered=True)
+        tm.assert_categorical_equal(result, expected)
 
     def test_concat_bug_1719(self):
         ts1 = tm.makeTimeSeries()
@@ -1079,6 +1210,239 @@ bar2,12,13,14,15
         result = concat(reader, ignore_index=True)
         expected = read_csv(StringIO(data))
         assert_frame_equal(result, expected)
+
+    def test_concat_NaT_series(self):
+        # GH 11693
+        # test for merging NaT series with datetime series.
+        x = Series(date_range('20151124 08:00', '20151124 09:00',
+                              freq='1h', tz='US/Eastern'))
+        y = Series(pd.NaT, index=[0, 1], dtype='datetime64[ns, US/Eastern]')
+        expected = Series([x[0], x[1], pd.NaT, pd.NaT])
+
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+
+        # all NaT with tz
+        expected = Series(pd.NaT, index=range(4),
+                          dtype='datetime64[ns, US/Eastern]')
+        result = pd.concat([y, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+
+        # without tz
+        x = pd.Series(pd.date_range('20151124 08:00',
+                                    '20151124 09:00', freq='1h'))
+        y = pd.Series(pd.date_range('20151124 10:00',
+                                    '20151124 11:00', freq='1h'))
+        y[:] = pd.NaT
+        expected = pd.Series([x[0], x[1], pd.NaT, pd.NaT])
+        result = pd.concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+
+        # all NaT without tz
+        x[:] = pd.NaT
+        expected = pd.Series(pd.NaT, index=range(4),
+                             dtype='datetime64[ns]')
+        result = pd.concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+
+    def test_concat_tz_frame(self):
+        df2 = DataFrame(dict(A=pd.Timestamp('20130102', tz='US/Eastern'),
+                             B=pd.Timestamp('20130603', tz='CET')),
+                        index=range(5))
+
+        # concat
+        df3 = pd.concat([df2.A.to_frame(), df2.B.to_frame()], axis=1)
+        assert_frame_equal(df2, df3)
+
+    def test_concat_tz_series(self):
+        # GH 11755
+        # tz and no tz
+        x = Series(date_range('20151124 08:00',
+                              '20151124 09:00',
+                              freq='1h', tz='UTC'))
+        y = Series(date_range('2012-01-01', '2012-01-02'))
+        expected = Series([x[0], x[1], y[0], y[1]],
+                          dtype='object')
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+
+        # GH 11887
+        # concat tz and object
+        x = Series(date_range('20151124 08:00',
+                              '20151124 09:00',
+                              freq='1h', tz='UTC'))
+        y = Series(['a', 'b'])
+        expected = Series([x[0], x[1], y[0], y[1]],
+                          dtype='object')
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+
+        # 12217
+        # 12306 fixed I think
+
+        # Concat'ing two UTC times
+        first = pd.DataFrame([[datetime(2016, 1, 1)]])
+        first[0] = first[0].dt.tz_localize('UTC')
+
+        second = pd.DataFrame([[datetime(2016, 1, 2)]])
+        second[0] = second[0].dt.tz_localize('UTC')
+
+        result = pd.concat([first, second])
+        self.assertEqual(result[0].dtype, 'datetime64[ns, UTC]')
+
+        # Concat'ing two London times
+        first = pd.DataFrame([[datetime(2016, 1, 1)]])
+        first[0] = first[0].dt.tz_localize('Europe/London')
+
+        second = pd.DataFrame([[datetime(2016, 1, 2)]])
+        second[0] = second[0].dt.tz_localize('Europe/London')
+
+        result = pd.concat([first, second])
+        self.assertEqual(result[0].dtype, 'datetime64[ns, Europe/London]')
+
+        # Concat'ing 2+1 London times
+        first = pd.DataFrame([[datetime(2016, 1, 1)], [datetime(2016, 1, 2)]])
+        first[0] = first[0].dt.tz_localize('Europe/London')
+
+        second = pd.DataFrame([[datetime(2016, 1, 3)]])
+        second[0] = second[0].dt.tz_localize('Europe/London')
+
+        result = pd.concat([first, second])
+        self.assertEqual(result[0].dtype, 'datetime64[ns, Europe/London]')
+
+        # Concat'ing 1+2 London times
+        first = pd.DataFrame([[datetime(2016, 1, 1)]])
+        first[0] = first[0].dt.tz_localize('Europe/London')
+
+        second = pd.DataFrame([[datetime(2016, 1, 2)], [datetime(2016, 1, 3)]])
+        second[0] = second[0].dt.tz_localize('Europe/London')
+
+        result = pd.concat([first, second])
+        self.assertEqual(result[0].dtype, 'datetime64[ns, Europe/London]')
+
+    def test_concat_tz_series_with_datetimelike(self):
+        # GH 12620
+        # tz and timedelta
+        x = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
+             pd.Timestamp('2011-02-01', tz='US/Eastern')]
+        y = [pd.Timedelta('1 day'), pd.Timedelta('2 day')]
+        result = concat([pd.Series(x), pd.Series(y)], ignore_index=True)
+        tm.assert_series_equal(result, pd.Series(x + y, dtype='object'))
+
+        # tz and period
+        y = [pd.Period('2011-03', freq='M'), pd.Period('2011-04', freq='M')]
+        result = concat([pd.Series(x), pd.Series(y)], ignore_index=True)
+        tm.assert_series_equal(result, pd.Series(x + y, dtype='object'))
+
+    def test_concat_tz_series_tzlocal(self):
+        # GH 13583
+        tm._skip_if_no_dateutil()
+        import dateutil
+        x = [pd.Timestamp('2011-01-01', tz=dateutil.tz.tzlocal()),
+             pd.Timestamp('2011-02-01', tz=dateutil.tz.tzlocal())]
+        y = [pd.Timestamp('2012-01-01', tz=dateutil.tz.tzlocal()),
+             pd.Timestamp('2012-02-01', tz=dateutil.tz.tzlocal())]
+        result = concat([pd.Series(x), pd.Series(y)], ignore_index=True)
+        tm.assert_series_equal(result, pd.Series(x + y))
+        self.assertEqual(result.dtype, 'datetime64[ns, tzlocal()]')
+
+    def test_concat_period_series(self):
+        x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
+        y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='D'))
+        expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+        self.assertEqual(result.dtype, 'object')
+
+        # different freq
+        x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
+        y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='M'))
+        expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+        self.assertEqual(result.dtype, 'object')
+
+        x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
+        y = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='M'))
+        expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+        self.assertEqual(result.dtype, 'object')
+
+        # non-period
+        x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
+        y = Series(pd.DatetimeIndex(['2015-11-01', '2015-12-01']))
+        expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+        self.assertEqual(result.dtype, 'object')
+
+        x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
+        y = Series(['A', 'B'])
+        expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+        self.assertEqual(result.dtype, 'object')
+
+    def test_concat_empty_series(self):
+        # GH 11082
+        s1 = pd.Series([1, 2, 3], name='x')
+        s2 = pd.Series(name='y')
+        res = pd.concat([s1, s2], axis=1)
+        exp = pd.DataFrame({'x': [1, 2, 3], 'y': [np.nan, np.nan, np.nan]})
+        tm.assert_frame_equal(res, exp)
+
+        s1 = pd.Series([1, 2, 3], name='x')
+        s2 = pd.Series(name='y')
+        res = pd.concat([s1, s2], axis=0)
+        # name will be reset
+        exp = pd.Series([1, 2, 3])
+        tm.assert_series_equal(res, exp)
+
+        # empty Series with no name
+        s1 = pd.Series([1, 2, 3], name='x')
+        s2 = pd.Series(name=None)
+        res = pd.concat([s1, s2], axis=1)
+        exp = pd.DataFrame({'x': [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
+                           columns=['x', 0])
+        tm.assert_frame_equal(res, exp)
+
+    def test_default_index(self):
+        # is_series and ignore_index
+        s1 = pd.Series([1, 2, 3], name='x')
+        s2 = pd.Series([4, 5, 6], name='y')
+        res = pd.concat([s1, s2], axis=1, ignore_index=True)
+        self.assertIsInstance(res.columns, pd.RangeIndex)
+        exp = pd.DataFrame([[1, 4], [2, 5], [3, 6]])
+        # use check_index_type=True to check the result have
+        # RangeIndex (default index)
+        tm.assert_frame_equal(res, exp, check_index_type=True,
+                              check_column_type=True)
+
+        # is_series and all inputs have no names
+        s1 = pd.Series([1, 2, 3])
+        s2 = pd.Series([4, 5, 6])
+        res = pd.concat([s1, s2], axis=1, ignore_index=False)
+        self.assertIsInstance(res.columns, pd.RangeIndex)
+        exp = pd.DataFrame([[1, 4], [2, 5], [3, 6]])
+        exp.columns = pd.RangeIndex(2)
+        tm.assert_frame_equal(res, exp, check_index_type=True,
+                              check_column_type=True)
+
+        # is_dataframe and ignore_index
+        df1 = pd.DataFrame({'A': [1, 2], 'B': [5, 6]})
+        df2 = pd.DataFrame({'A': [3, 4], 'B': [7, 8]})
+
+        res = pd.concat([df1, df2], axis=0, ignore_index=True)
+        exp = pd.DataFrame([[1, 5], [2, 6], [3, 7], [4, 8]],
+                           columns=['A', 'B'])
+        tm.assert_frame_equal(res, exp, check_index_type=True,
+                              check_column_type=True)
+
+        res = pd.concat([df1, df2], axis=1, ignore_index=True)
+        exp = pd.DataFrame([[1, 5, 3, 7], [2, 6, 4, 8]])
+        tm.assert_frame_equal(res, exp, check_index_type=True,
+                              check_column_type=True)
 
 
 if __name__ == '__main__':

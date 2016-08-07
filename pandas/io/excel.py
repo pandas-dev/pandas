@@ -10,6 +10,9 @@ import os
 import abc
 import numpy as np
 
+from pandas.types.common import (is_integer, is_float,
+                                 is_bool, is_list_like)
+
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
@@ -22,7 +25,6 @@ from pandas.core import config
 from pandas.formats.printing import pprint_thing
 import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
-import pandas.core.common as com
 from warnings import warn
 from distutils.version import LooseVersion
 
@@ -423,17 +425,17 @@ class ExcelFile(object):
                 output[asheetname] = DataFrame()
                 continue
 
-            if com.is_list_like(header) and len(header) == 1:
+            if is_list_like(header) and len(header) == 1:
                 header = header[0]
 
             # forward fill and pull out names for MultiIndex column
             header_names = None
             if header is not None:
-                if com.is_list_like(header):
+                if is_list_like(header):
                     header_names = []
                     control_row = [True for x in data[0]]
                     for row in header:
-                        if com.is_integer(skiprows):
+                        if is_integer(skiprows):
                             row += skiprows
 
                         data[row], control_row = _fill_mi_header(
@@ -444,9 +446,9 @@ class ExcelFile(object):
                 else:
                     data[header] = _trim_excel_header(data[header])
 
-            if com.is_list_like(index_col):
+            if is_list_like(index_col):
                 # forward fill values for MultiIndex index
-                if not com.is_list_like(header):
+                if not is_list_like(header):
                     offset = 1 + header
                 else:
                     offset = 1 + max(header)
@@ -459,7 +461,7 @@ class ExcelFile(object):
                         else:
                             last = data[row][col]
 
-            if com.is_list_like(header) and len(header) > 1:
+            if is_list_like(header) and len(header) > 1:
                 has_index_names = True
 
             # GH 12292 : error when read one empty column from excel file
@@ -471,7 +473,7 @@ class ExcelFile(object):
                                     parse_dates=parse_dates,
                                     date_parser=date_parser,
                                     skiprows=skiprows,
-                                    skip_footer=skip_footer,
+                                    skipfooter=skip_footer,
                                     squeeze=squeeze,
                                     **kwds)
 
@@ -556,21 +558,21 @@ def _pop_header_name(row, index_col):
         return none_fill(row[0]), row[1:]
     else:
         # pop out header name and fill w/ blank
-        i = index_col if not com.is_list_like(index_col) else max(index_col)
+        i = index_col if not is_list_like(index_col) else max(index_col)
         return none_fill(row[i]), row[:i] + [''] + row[i + 1:]
 
 
 def _conv_value(val):
     # Convert numpy types to Python types for the Excel writers.
-    if com.is_integer(val):
+    if is_integer(val):
         val = int(val)
-    elif com.is_float(val):
+    elif is_float(val):
         val = float(val)
-    elif com.is_bool(val):
+    elif is_bool(val):
         val = bool(val)
     elif isinstance(val, Period):
         val = "%s" % val
-    elif com.is_list_like(val):
+    elif is_list_like(val):
         val = str(val)
 
     return val

@@ -184,42 +184,7 @@ class TestAsOfMerge(tm.TestCase):
         expected = self.read_data('asof.csv')
         assert_frame_equal(result, expected)
 
-        result = merge_asof(self.trades, q,
-                            on='time',
-                            by='ticker',
-                            check_duplicates=False)
-        expected = self.read_data('asof.csv')
-        expected = pd.concat([expected, expected]).sort_values(
-            ['time', 'ticker']).reset_index(drop=True)
-
-        # the results are not ordered in a meaningful way
-        # nor are the exact matches duplicated, so comparisons
-        # are pretty tricky here, however the uniques are the same
-
-        def aligner(x, ticker):
-            return (x[x.ticker == ticker]
-                    .sort_values(['time', 'ticker', 'quantity', 'price',
-                                  'marketCenter', 'bid', 'ask'])
-                    .drop_duplicates(keep='last')
-                    .reset_index(drop=True)
-                    )
-
-        for ticker in expected.ticker.unique():
-            r = aligner(result, ticker)
-            e = aligner(expected, ticker)
-            assert_frame_equal(r, e)
-
     def test_with_duplicates_no_on(self):
-
-        df1 = pd.DataFrame({'key': [1, 1, 3],
-                            'left_val': [1, 2, 3]})
-        df2 = pd.DataFrame({'key': [1, 3, 3],
-                            'right_val': [1, 2, 3]})
-        result = merge_asof(df1, df2, on='key', check_duplicates=False)
-        expected = pd.DataFrame({'key': [1, 1, 3, 3],
-                                 'left_val': [1, 2, 3, 3],
-                                 'right_val': [1, 1, 2, 3]})
-        assert_frame_equal(result, expected)
 
         df1 = pd.DataFrame({'key': [1, 1, 3],
                             'left_val': [1, 2, 3]})
@@ -346,6 +311,59 @@ class TestAsOfMerge(tm.TestCase):
                             allow_exact_matches=False)
         expected = self.allow_exact_matches_and_tolerance
         assert_frame_equal(result, expected)
+
+    def test_allow_exact_matches_and_tolerance2(self):
+        # GH 13695
+        df1 = pd.DataFrame({
+            'time': pd.to_datetime(['2016-07-15 13:30:00.030']),
+            'username': ['bob']})
+        df2 = pd.DataFrame({
+            'time': pd.to_datetime(['2016-07-15 13:30:00.000',
+                                    '2016-07-15 13:30:00.030']),
+            'version': [1, 2]})
+
+        result = pd.merge_asof(df1, df2, on='time')
+        expected = pd.DataFrame({
+            'time': pd.to_datetime(['2016-07-15 13:30:00.030']),
+            'username': ['bob'],
+            'version': [2]})
+        assert_frame_equal(result, expected)
+
+        result = pd.merge_asof(df1, df2, on='time', allow_exact_matches=False)
+        expected = pd.DataFrame({
+            'time': pd.to_datetime(['2016-07-15 13:30:00.030']),
+            'username': ['bob'],
+            'version': [1]})
+        assert_frame_equal(result, expected)
+
+        result = pd.merge_asof(df1, df2, on='time', allow_exact_matches=False,
+                               tolerance=pd.Timedelta('10ms'))
+        expected = pd.DataFrame({
+            'time': pd.to_datetime(['2016-07-15 13:30:00.030']),
+            'username': ['bob'],
+            'version': [np.nan]})
+        assert_frame_equal(result, expected)
+
+    def test_allow_exact_matches_and_tolerance3(self):
+        # GH 13709
+        df1 = pd.DataFrame({
+            'time': pd.to_datetime(['2016-07-15 13:30:00.030',
+                                   '2016-07-15 13:30:00.030']),
+            'username': ['bob', 'charlie']})
+        df2 = pd.DataFrame({
+            'time': pd.to_datetime(['2016-07-15 13:30:00.000',
+                                    '2016-07-15 13:30:00.030']),
+            'version': [1, 2]})
+
+        result = pd.merge_asof(df1, df2, on='time', allow_exact_matches=False,
+                               tolerance=pd.Timedelta('10ms'))
+        expected = pd.DataFrame({
+            'time': pd.to_datetime(['2016-07-15 13:30:00.030',
+                                    '2016-07-15 13:30:00.030']),
+            'username': ['bob', 'charlie'],
+            'version': [np.nan, np.nan]})
+        assert_frame_equal(result, expected)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

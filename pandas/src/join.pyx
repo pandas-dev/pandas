@@ -1,3 +1,40 @@
+# cython: profile=False
+
+from numpy cimport *
+cimport numpy as np
+import numpy as np
+
+cimport cython
+
+import_array()
+
+cimport util
+
+from numpy cimport NPY_INT8 as NPY_int8
+from numpy cimport NPY_INT16 as NPY_int16
+from numpy cimport NPY_INT32 as NPY_int32
+from numpy cimport NPY_INT64 as NPY_int64
+from numpy cimport NPY_FLOAT16 as NPY_float16
+from numpy cimport NPY_FLOAT32 as NPY_float32
+from numpy cimport NPY_FLOAT64 as NPY_float64
+
+from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
+                    uint32_t, uint64_t, float16_t, float32_t, float64_t)
+
+int8 = np.dtype(np.int8)
+int16 = np.dtype(np.int16)
+int32 = np.dtype(np.int32)
+int64 = np.dtype(np.int64)
+float16 = np.dtype(np.float16)
+float32 = np.dtype(np.float32)
+float64 = np.dtype(np.float64)
+
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+from pandas.algos import groupsort_indexer
+
+
 def inner_join(ndarray[int64_t] left, ndarray[int64_t] right,
                Py_ssize_t max_groups):
     cdef:
@@ -47,6 +84,7 @@ def inner_join(ndarray[int64_t] left, ndarray[int64_t] right,
 
     return (_get_result_indexer(left_sorter, left_indexer),
             _get_result_indexer(right_sorter, right_indexer))
+
 
 def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
                     Py_ssize_t max_groups, sort=True):
@@ -117,157 +155,67 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
         if rev.dtype != np.int_:
-              rev = rev.astype(np.int_)
+            rev = rev.astype(np.int_)
         right_indexer = right_indexer.take(rev)
         left_indexer = left_indexer.take(rev)
 
     return left_indexer, right_indexer
 
 
-
 def left_outer_asof_join(ndarray[int64_t] left, ndarray[int64_t] right,
-                         Py_ssize_t max_groups, sort=True,
+                         Py_ssize_t max_groups,  # ignored
                          bint allow_exact_matches=1,
-                         left_distance=None,
-                         right_distance=None,
+                         left_values=None,
+                         right_values=None,
                          tolerance=None):
 
     cdef:
-        Py_ssize_t i, j, k, count = 0
-        Py_ssize_t loc, left_pos, right_pos, position
-        Py_ssize_t offset
-        ndarray[int64_t] left_count, right_count
-        ndarray left_sorter, right_sorter, rev
+        Py_ssize_t left_pos, right_pos, left_size, right_size
         ndarray[int64_t] left_indexer, right_indexer
-        int64_t lc, rc, tol, left_val, right_val, diff, indexer
-        ndarray[int64_t] ld, rd
-        bint has_tol = 0
+        bint has_tolerance = 0
+        ndarray[int64_t] left_values_, right_values_
+        int64_t tolerance_
 
     # if we are using tolerance, set our objects
-    if left_distance is not None and right_distance is not None and tolerance is not None:
-        has_tol = 1
-        ld = left_distance
-        rd = right_distance
-        tol = tolerance
+    if (left_values is not None and right_values is not None and
+        tolerance is not None):
+        has_tolerance = 1
+        left_values_ = left_values
+        right_values_ = right_values
+        tolerance_ = tolerance
 
-    # NA group in location 0
-    left_sorter, left_count = groupsort_indexer(left, max_groups)
-    right_sorter, right_count = groupsort_indexer(right, max_groups)
+    left_size = len(left)
+    right_size = len(right)
 
-    # First pass, determine size of result set, do not use the NA group
-    for i in range(1, max_groups + 1):
-        if right_count[i] > 0:
-            count += left_count[i] * right_count[i]
-        else:
-            count += left_count[i]
+    left_indexer = np.empty(left_size, dtype=np.int64)
+    right_indexer = np.empty(left_size, dtype=np.int64)
 
-    # group 0 is the NA group
-    left_pos = 0
     right_pos = 0
-    position = 0
+    for left_pos in range(left_size):
+        # restart right_pos if it went negative in a previous iteration
+        if right_pos < 0:
+            right_pos = 0
 
-    # exclude the NA group
-    left_pos = left_count[0]
-    right_pos = right_count[0]
-
-    left_indexer = np.empty(count, dtype=np.int64)
-    right_indexer = np.empty(count, dtype=np.int64)
-
-    for i in range(1, max_groups + 1):
-        lc = left_count[i]
-        rc = right_count[i]
-
-        if rc == 0:
-            for j in range(lc):
-                indexer = position + j
-                left_indexer[indexer] = left_pos + j
-
-                # take the most recent value
-                # if we are not the first
-                if right_pos:
-
-                    if has_tol:
-
-                        left_val = ld[left_pos + j]
-                        right_val = rd[right_pos - 1]
-                        diff = left_val - right_val
-
-                        # do we allow exact matches
-                        if allow_exact_matches and diff > tol:
-                            right_indexer[indexer] = -1
-                            continue
-                        elif not allow_exact_matches:
-                            if diff >= tol:
-                                right_indexer[indexer] = -1
-                                continue
-
-                    right_indexer[indexer] = right_pos - 1
-                else:
-                    right_indexer[indexer] = -1
-            position += lc
+        # find last position in right whose value is less than left's value
+        if allow_exact_matches:
+            while (right_pos < right_size and
+                   right[right_pos] <= left[left_pos]):
+                right_pos += 1
         else:
-            for j in range(lc):
-                offset = position + j * rc
-                for k in range(rc):
+            while (right_pos < right_size and
+                   right[right_pos] < left[left_pos]):
+                right_pos += 1
+        right_pos -= 1
 
-                    indexer = offset + k
-                    left_indexer[indexer] = left_pos + j
+        # save positions as the desired index
+        left_indexer[left_pos] = left_pos
+        right_indexer[left_pos] = right_pos
 
-                    if has_tol:
-
-                        left_val = ld[left_pos + j]
-                        right_val = rd[right_pos + k]
-                        diff = left_val - right_val
-
-                        # do we allow exact matches
-                        if allow_exact_matches and diff > tol:
-                            right_indexer[indexer] = -1
-                            continue
-
-                        # we don't allow exact matches
-                        elif not allow_exact_matches:
-                            if diff >= tol or not right_pos:
-                                right_indexer[indexer] = -1
-                            else:
-                                right_indexer[indexer] = right_pos - 1
-                            continue
-
-                    else:
-
-                        # do we allow exact matches
-                        if not allow_exact_matches:
-
-                            if right_pos:
-                                right_indexer[indexer] = right_pos - 1
-                            else:
-                                right_indexer[indexer] = -1
-                            continue
-
-                    right_indexer[indexer] = right_pos + k
-            position += lc * rc
-        left_pos += lc
-        right_pos += rc
-
-    left_indexer = _get_result_indexer(left_sorter, left_indexer)
-    right_indexer = _get_result_indexer(right_sorter, right_indexer)
-
-    if not sort:  # if not asked to sort, revert to original order
-        if len(left) == len(left_indexer):
-            # no multiple matches for any row on the left
-            # this is a short-cut to avoid groupsort_indexer
-            # otherwise, the `else` path also works in this case
-            if left_sorter.dtype != np.int_:
-                left_sorter = left_sorter.astype(np.int_)
-
-            rev = np.empty(len(left), dtype=np.int_)
-            rev.put(left_sorter, np.arange(len(left)))
-        else:
-            rev, _ = groupsort_indexer(left_indexer, len(left))
-
-        if rev.dtype != np.int_:
-              rev = rev.astype(np.int_)
-        right_indexer = right_indexer.take(rev)
-        left_indexer = left_indexer.take(rev)
+        # if needed, verify that tolerance is met
+        if has_tolerance and right_pos != -1:
+            diff = left_values[left_pos] - right_values[right_pos]
+            if diff > tolerance_:
+                right_indexer[left_pos] = -1
 
     return left_indexer, right_indexer
 
@@ -335,7 +283,6 @@ def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 
-
 def _get_result_indexer(sorter, indexer):
     if indexer.dtype != np.int_:
         indexer = indexer.astype(np.int_)
@@ -348,7 +295,6 @@ def _get_result_indexer(sorter, indexer):
         res.fill(-1)
 
     return res
-
 
 
 def ffill_indexer(ndarray[int64_t] indexer):
@@ -393,3 +339,6 @@ def ffill_by_group(ndarray[int64_t] indexer, ndarray[int64_t] group_ids,
             last_obs[gid] = val
 
     return result
+
+
+include "join_helper.pxi"

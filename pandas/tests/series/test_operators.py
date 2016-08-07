@@ -571,11 +571,11 @@ class TestSeriesOperators(TestData, tm.TestCase):
         td2 / td1
 
         # ## datetime64 ###
-        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'), Timestamp(
-            '20120103')])
+        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
+                      Timestamp('20120103')])
         dt1.iloc[2] = np.nan
-        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'), Timestamp(
-            '20120104')])
+        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
+                      Timestamp('20120104')])
         ops = ['__add__', '__mul__', '__floordiv__', '__truediv__', '__div__',
                '__pow__', '__radd__', '__rmul__', '__rfloordiv__',
                '__rtruediv__', '__rdiv__', '__rpow__']
@@ -607,9 +607,10 @@ class TestSeriesOperators(TestData, tm.TestCase):
         ops = ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__',
                '__rmul__', '__rfloordiv__', '__rtruediv__', '__rdiv__',
                '__rpow__']
-        dt1 = Series(
-            date_range('2000-01-01 09:00:00', periods=5,
-                       tz='US/Eastern'), name='foo')
+
+        tz = 'US/Eastern'
+        dt1 = Series(date_range('2000-01-01 09:00:00', periods=5,
+                                tz=tz), name='foo')
         dt2 = dt1.copy()
         dt2.iloc[2] = np.nan
         td1 = Series(timedelta_range('1 days 1 min', periods=5, freq='H'))
@@ -618,58 +619,48 @@ class TestSeriesOperators(TestData, tm.TestCase):
         run_ops(ops, dt1, td1)
 
         result = dt1 + td1[0]
-        expected = (
-            dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt2 + td2[0]
-        expected = (
-            dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         # odd numpy behavior with scalar timedeltas
         if not _np_version_under1p8:
             result = td1[0] + dt1
-            expected = (
-                dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize('US/Eastern')
-            assert_series_equal(result, expected)
+            exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
+            assert_series_equal(result, exp)
 
             result = td2[0] + dt2
-            expected = (
-                dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize('US/Eastern')
-            assert_series_equal(result, expected)
+            exp = (dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize(tz)
+            assert_series_equal(result, exp)
 
         result = dt1 - td1[0]
-        expected = (
-            dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
         self.assertRaises(TypeError, lambda: td1[0] - dt1)
 
         result = dt2 - td2[0]
-        expected = (
-            dt2.dt.tz_localize(None) - td2[0]).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt2.dt.tz_localize(None) - td2[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
         self.assertRaises(TypeError, lambda: td2[0] - dt2)
 
         result = dt1 + td1
-        expected = (
-            dt1.dt.tz_localize(None) + td1).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt1.dt.tz_localize(None) + td1).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt2 + td2
-        expected = (
-            dt2.dt.tz_localize(None) + td2).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt2.dt.tz_localize(None) + td2).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt1 - td1
-        expected = (
-            dt1.dt.tz_localize(None) - td1).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt1.dt.tz_localize(None) - td1).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt2 - td2
-        expected = (
-            dt2.dt.tz_localize(None) - td2).dt.tz_localize('US/Eastern')
-        assert_series_equal(result, expected)
+        exp = (dt2.dt.tz_localize(None) - td2).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         self.assertRaises(TypeError, lambda: td1 - dt1)
         self.assertRaises(TypeError, lambda: td2 - dt2)
@@ -980,24 +971,97 @@ class TestSeriesOperators(TestData, tm.TestCase):
             self.assertRaises(TypeError, lambda: x <= y)
 
     def test_more_na_comparisons(self):
-        left = Series(['a', np.nan, 'c'])
-        right = Series(['a', np.nan, 'd'])
+        for dtype in [None, object]:
+            left = Series(['a', np.nan, 'c'], dtype=dtype)
+            right = Series(['a', np.nan, 'd'], dtype=dtype)
 
-        result = left == right
-        expected = Series([True, False, False])
-        assert_series_equal(result, expected)
+            result = left == right
+            expected = Series([True, False, False])
+            assert_series_equal(result, expected)
 
-        result = left != right
-        expected = Series([False, True, True])
-        assert_series_equal(result, expected)
+            result = left != right
+            expected = Series([False, True, True])
+            assert_series_equal(result, expected)
 
-        result = left == np.nan
-        expected = Series([False, False, False])
-        assert_series_equal(result, expected)
+            result = left == np.nan
+            expected = Series([False, False, False])
+            assert_series_equal(result, expected)
 
-        result = left != np.nan
-        expected = Series([True, True, True])
-        assert_series_equal(result, expected)
+            result = left != np.nan
+            expected = Series([True, True, True])
+            assert_series_equal(result, expected)
+
+    def test_nat_comparisons(self):
+        data = [([pd.Timestamp('2011-01-01'), pd.NaT,
+                  pd.Timestamp('2011-01-03')],
+                 [pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')]),
+
+                ([pd.Timedelta('1 days'), pd.NaT,
+                  pd.Timedelta('3 days')],
+                 [pd.NaT, pd.NaT, pd.Timedelta('3 days')]),
+
+                ([pd.Period('2011-01', freq='M'), pd.NaT,
+                  pd.Period('2011-03', freq='M')],
+                 [pd.NaT, pd.NaT, pd.Period('2011-03', freq='M')])]
+
+        # add lhs / rhs switched data
+        data = data + [(r, l) for l, r in data]
+
+        for l, r in data:
+            for dtype in [None, object]:
+                left = Series(l, dtype=dtype)
+
+                # Series, Index
+                for right in [Series(r, dtype=dtype), Index(r, dtype=dtype)]:
+                    expected = Series([False, False, True])
+                    assert_series_equal(left == right, expected)
+
+                    expected = Series([True, True, False])
+                    assert_series_equal(left != right, expected)
+
+                    expected = Series([False, False, False])
+                    assert_series_equal(left < right, expected)
+
+                    expected = Series([False, False, False])
+                    assert_series_equal(left > right, expected)
+
+                    expected = Series([False, False, True])
+                    assert_series_equal(left >= right, expected)
+
+                    expected = Series([False, False, True])
+                    assert_series_equal(left <= right, expected)
+
+    def test_nat_comparisons_scalar(self):
+        data = [[pd.Timestamp('2011-01-01'), pd.NaT,
+                 pd.Timestamp('2011-01-03')],
+
+                [pd.Timedelta('1 days'), pd.NaT, pd.Timedelta('3 days')],
+
+                [pd.Period('2011-01', freq='M'), pd.NaT,
+                 pd.Period('2011-03', freq='M')]]
+
+        for l in data:
+            for dtype in [None, object]:
+                left = Series(l, dtype=dtype)
+
+                expected = Series([False, False, False])
+                assert_series_equal(left == pd.NaT, expected)
+                assert_series_equal(pd.NaT == left, expected)
+
+                expected = Series([True, True, True])
+                assert_series_equal(left != pd.NaT, expected)
+                assert_series_equal(pd.NaT != left, expected)
+
+                expected = Series([False, False, False])
+                assert_series_equal(left < pd.NaT, expected)
+                assert_series_equal(pd.NaT > left, expected)
+                assert_series_equal(left <= pd.NaT, expected)
+                assert_series_equal(pd.NaT >= left, expected)
+
+                assert_series_equal(left > pd.NaT, expected)
+                assert_series_equal(pd.NaT < left, expected)
+                assert_series_equal(left >= pd.NaT, expected)
+                assert_series_equal(pd.NaT <= left, expected)
 
     def test_comparison_different_length(self):
         a = Series(['a', 'b', 'c'])
@@ -1259,8 +1323,6 @@ class TestSeriesOperators(TestData, tm.TestCase):
         _check_op(arr, operator.floordiv)
 
     def test_series_frame_radd_bug(self):
-        import operator
-
         # GH 353
         vals = Series(tm.rands_array(5, 10))
         result = 'foo_' + vals
@@ -1273,7 +1335,78 @@ class TestSeriesOperators(TestData, tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         # really raise this time
-        self.assertRaises(TypeError, operator.add, datetime.now(), self.ts)
+        with tm.assertRaises(TypeError):
+            datetime.now() + self.ts
+
+        with tm.assertRaises(TypeError):
+            self.ts + datetime.now()
+
+    def test_series_radd_more(self):
+        data = [[1, 2, 3],
+                [1.1, 2.2, 3.3],
+                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+                 pd.NaT],
+                ['x', 'y', 1]]
+
+        for d in data:
+            for dtype in [None, object]:
+                s = Series(d, dtype=dtype)
+                with tm.assertRaises(TypeError):
+                    'foo_' + s
+
+        for dtype in [None, object]:
+            res = 1 + pd.Series([1, 2, 3], dtype=dtype)
+            exp = pd.Series([2, 3, 4], dtype=dtype)
+            tm.assert_series_equal(res, exp)
+            res = pd.Series([1, 2, 3], dtype=dtype) + 1
+            tm.assert_series_equal(res, exp)
+
+            res = np.nan + pd.Series([1, 2, 3], dtype=dtype)
+            exp = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
+            tm.assert_series_equal(res, exp)
+            res = pd.Series([1, 2, 3], dtype=dtype) + np.nan
+            tm.assert_series_equal(res, exp)
+
+            s = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+                           pd.Timedelta('3 days')], dtype=dtype)
+            exp = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
+                             pd.Timedelta('6 days')])
+            tm.assert_series_equal(pd.Timedelta('3 days') + s, exp)
+            tm.assert_series_equal(s + pd.Timedelta('3 days'), exp)
+
+        s = pd.Series(['x', np.nan, 'x'])
+        tm.assert_series_equal('a' + s, pd.Series(['ax', np.nan, 'ax']))
+        tm.assert_series_equal(s + 'a', pd.Series(['xa', np.nan, 'xa']))
+
+    def test_frame_radd_more(self):
+        data = [[1, 2, 3],
+                [1.1, 2.2, 3.3],
+                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+                 pd.NaT],
+                ['x', 'y', 1]]
+
+        for d in data:
+            for dtype in [None, object]:
+                s = DataFrame(d, dtype=dtype)
+                with tm.assertRaises(TypeError):
+                    'foo_' + s
+
+        for dtype in [None, object]:
+            res = 1 + pd.DataFrame([1, 2, 3], dtype=dtype)
+            exp = pd.DataFrame([2, 3, 4], dtype=dtype)
+            tm.assert_frame_equal(res, exp)
+            res = pd.DataFrame([1, 2, 3], dtype=dtype) + 1
+            tm.assert_frame_equal(res, exp)
+
+            res = np.nan + pd.DataFrame([1, 2, 3], dtype=dtype)
+            exp = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
+            tm.assert_frame_equal(res, exp)
+            res = pd.DataFrame([1, 2, 3], dtype=dtype) + np.nan
+            tm.assert_frame_equal(res, exp)
+
+        df = pd.DataFrame(['x', np.nan, 'x'])
+        tm.assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
+        tm.assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame
@@ -1413,3 +1546,12 @@ class TestSeriesOperators(TestData, tm.TestCase):
         df['expected'] = df['date'] - df.index.to_series()
         df['result'] = df['date'] - df.index
         assert_series_equal(df['result'], df['expected'], check_names=False)
+
+    def test_dti_tz_convert_to_utc(self):
+        base = pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'],
+                                tz='UTC')
+        idx1 = base.tz_convert('Asia/Tokyo')[:2]
+        idx2 = base.tz_convert('US/Eastern')[1:]
+
+        res = Series([1, 2], index=idx1) + Series([1, 1], index=idx2)
+        assert_series_equal(res, Series([np.nan, 3, np.nan], index=base))

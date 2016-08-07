@@ -98,7 +98,7 @@ baz|7|8|9
         finally:
             sys.stdout = sys.__stdout__
 
-    def test_skip_footer(self):
+    def test_skipfooter(self):
         # see gh-6607
         data = """A,B,C
 1,2,3
@@ -107,7 +107,7 @@ baz|7|8|9
 want to skip this
 also also skip this
 """
-        result = self.read_csv(StringIO(data), skip_footer=2)
+        result = self.read_csv(StringIO(data), skipfooter=2)
         no_footer = '\n'.join(data.split('\n')[:-3])
         expected = self.read_csv(StringIO(no_footer))
         tm.assert_frame_equal(result, expected)
@@ -185,3 +185,35 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = self.read_csv(new_file, sep=r"\s*", header=None)
         expected = DataFrame([[0, 0]])
         tm.assert_frame_equal(result, expected)
+
+    def test_skipfooter_with_decimal(self):
+        # see gh-6971
+        data = '1#2\n3#4'
+        expected = DataFrame({'a': [1.2, 3.4]})
+
+        result = self.read_csv(StringIO(data), names=['a'],
+                               decimal='#')
+        tm.assert_frame_equal(result, expected)
+
+        # the stray footer line should not mess with the
+        # casting of the first t    wo lines if we skip it
+        data = data + '\nFooter'
+        result = self.read_csv(StringIO(data), names=['a'],
+                               decimal='#', skipfooter=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_encoding_non_utf8_multichar_sep(self):
+        # see gh-3404
+        expected = DataFrame({'a': [1], 'b': [2]})
+
+        for sep in ['::', '#####', '!!!', '123', '#1!c5',
+                    '%!c!d', '@@#4:2', '_!pd#_']:
+            data = '1' + sep + '2'
+
+            for encoding in ['utf-16', 'utf-16-be', 'utf-16-le',
+                             'utf-32', 'cp037']:
+                encoded_data = data.encode(encoding)
+                result = self.read_csv(BytesIO(encoded_data),
+                                       sep=sep, names=['a', 'b'],
+                                       encoding=encoding)
+                tm.assert_frame_equal(result, expected)

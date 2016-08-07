@@ -7,6 +7,22 @@ import types
 from pandas import compat, lib
 from pandas.compat import u
 
+from pandas.types.generic import ABCSeries, ABCIndexClass, ABCCategoricalIndex
+from pandas.types.missing import isnull, notnull
+from pandas.types.cast import (_possibly_infer_to_datetimelike,
+                               _coerce_indexer_dtype)
+from pandas.types.dtypes import CategoricalDtype
+from pandas.types.common import (_ensure_int64,
+                                 _ensure_object,
+                                 _ensure_platform_int,
+                                 is_dtype_equal,
+                                 is_datetimelike,
+                                 is_categorical_dtype,
+                                 is_integer_dtype, is_bool,
+                                 is_list_like, is_sequence,
+                                 is_scalar)
+from pandas.core.common import is_null_slice
+
 from pandas.core.algorithms import factorize, take_1d
 from pandas.core.base import (PandasObject, PandasDelegate,
                               NoNewAttributesMixin, _shared_docs)
@@ -16,13 +32,6 @@ from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 
-from pandas.core.common import (
-    ABCSeries, ABCIndexClass, ABCCategoricalIndex, isnull, notnull,
-    is_dtype_equal, is_categorical_dtype, is_integer_dtype,
-    _possibly_infer_to_datetimelike, is_list_like,
-    is_sequence, is_null_slice, is_bool, _ensure_object, _ensure_int64,
-    _coerce_indexer_dtype)
-from pandas.types.api import CategoricalDtype
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 
@@ -64,7 +73,7 @@ def _cat_compare_op(op):
         # With cat[0], for example, being ``np.int64(1)`` by the time it gets
         # into this function would become ``np.array(1)``.
         other = lib.item_from_zerodim(other)
-        if lib.isscalar(other):
+        if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
                 return getattr(self._codes, op)(i)
@@ -219,8 +228,8 @@ class Categorical(PandasObject):
     __array_priority__ = 1000
     _typ = 'categorical'
 
-    def __init__(self, values, categories=None, ordered=False, name=None,
-                 fastpath=False, levels=None):
+    def __init__(self, values, categories=None, ordered=False,
+                 name=None, fastpath=False):
 
         if fastpath:
             # fast path
@@ -235,17 +244,6 @@ class Categorical(PandasObject):
                    "of the categorical instead (e.g. 'Series(cat, "
                    "name=\"something\")'")
             warn(msg, UserWarning, stacklevel=2)
-
-        # TODO: Remove after deprecation period in 2017/ after 0.18
-        if levels is not None:
-            warn("Creating a 'Categorical' with 'levels' is deprecated, use "
-                 "'categories' instead", FutureWarning, stacklevel=2)
-            if categories is None:
-                categories = levels
-            else:
-                raise ValueError("Cannot pass in both 'categories' and "
-                                 "(deprecated) 'levels', use only "
-                                 "'categories'", stacklevel=2)
 
         # sanitize input
         if is_categorical_dtype(values):
@@ -330,11 +328,16 @@ class Categorical(PandasObject):
         self._categories = categories
         self._codes = _coerce_indexer_dtype(codes, categories)
 
+    @property
+    def _constructor(self):
+        return Categorical
+
     def copy(self):
         """ Copy constructor. """
-        return Categorical(values=self._codes.copy(),
-                           categories=self.categories, ordered=self.ordered,
-                           fastpath=True)
+        return self._constructor(values=self._codes.copy(),
+                                 categories=self.categories,
+                                 ordered=self.ordered,
+                                 fastpath=True)
 
     def astype(self, dtype, copy=True):
         """
@@ -374,11 +377,28 @@ class Categorical(PandasObject):
 
     def reshape(self, new_shape, *args, **kwargs):
         """
-        An ndarray-compatible method that returns
-        `self` because categorical instances cannot
-        actually be reshaped.
+        DEPRECATED: calling this method will raise an error in a
+        future release.
+
+        An ndarray-compatible method that returns `self` because
+        `Categorical` instances cannot actually be reshaped.
+
+        Parameters
+        ----------
+        new_shape : int or tuple of ints
+            A 1-D array of integers that correspond to the new
+            shape of the `Categorical`. For more information on
+            the parameter, please refer to `np.reshape`.
         """
+        warn("reshape is deprecated and will raise "
+             "in a subsequent release", FutureWarning, stacklevel=2)
+
         nv.validate_reshape(args, kwargs)
+
+        # while the 'new_shape' parameter has no effect,
+        # we should still enforce valid shape parameters
+        np.reshape(self.codes, new_shape)
+
         return self
 
     @property
@@ -399,7 +419,7 @@ class Categorical(PandasObject):
             Can be an Index or array-like. The categories are assumed to be
             the unique values of `data`.
         """
-        return Categorical(data, **kwargs)
+        return cls(data, **kwargs)
 
     @classmethod
     def from_codes(cls, codes, categories, ordered=False, name=None):
@@ -443,8 +463,8 @@ class Categorical(PandasObject):
             raise ValueError("codes need to be between -1 and "
                              "len(categories)-1")
 
-        return Categorical(codes, categories=categories, ordered=ordered,
-                           fastpath=True)
+        return cls(codes, categories=categories, ordered=ordered,
+                   fastpath=True)
 
     _codes = None
 
@@ -554,28 +574,7 @@ class Categorical(PandasObject):
     categories = property(fget=_get_categories, fset=_set_categories,
                           doc=_categories_doc)
 
-    def _set_levels(self, levels):
-        """ set new levels (deprecated, use "categories") """
-        warn("Assigning to 'levels' is deprecated, use 'categories'",
-             FutureWarning, stacklevel=2)
-        self.categories = levels
-
-    def _get_levels(self):
-        """ Gets the levels (deprecated, use "categories") """
-        warn("Accessing 'levels' is deprecated, use 'categories'",
-             FutureWarning, stacklevel=2)
-        return self.categories
-
-    # TODO: Remove after deprecation period in 2017/ after 0.18
-    levels = property(fget=_get_levels, fset=_set_levels)
-
     _ordered = None
-
-    def _set_ordered(self, value):
-        """ Sets the ordered attribute to the boolean value """
-        warn("Setting 'ordered' directly is deprecated, use 'set_ordered'",
-             FutureWarning, stacklevel=2)
-        self.set_ordered(value, inplace=True)
 
     def set_ordered(self, value, inplace=False):
         """
@@ -624,7 +623,7 @@ class Categorical(PandasObject):
         """ Gets the ordered attribute """
         return self._ordered
 
-    ordered = property(fget=_get_ordered, fset=_set_ordered)
+    ordered = property(fget=_get_ordered)
 
     def set_categories(self, new_categories, ordered=None, rename=False,
                        inplace=False):
@@ -922,9 +921,9 @@ class Categorical(PandasObject):
         """
         new_categories = self.categories.map(mapper)
         try:
-            return Categorical.from_codes(self._codes.copy(),
-                                          categories=new_categories,
-                                          ordered=self.ordered)
+            return self.from_codes(self._codes.copy(),
+                                   categories=new_categories,
+                                   ordered=self.ordered)
         except ValueError:
             return np.take(new_categories, self._codes)
 
@@ -968,14 +967,14 @@ class Categorical(PandasObject):
         if codes.ndim > 1:
             raise NotImplementedError("Categorical with ndim > 1.")
         if np.prod(codes.shape) and (periods != 0):
-            codes = np.roll(codes, com._ensure_platform_int(periods), axis=0)
+            codes = np.roll(codes, _ensure_platform_int(periods), axis=0)
             if periods > 0:
                 codes[:periods] = -1
             else:
                 codes[periods:] = -1
 
-        return Categorical.from_codes(codes, categories=self.categories,
-                                      ordered=self.ordered)
+        return self.from_codes(codes, categories=self.categories,
+                               ordered=self.ordered)
 
     def __array__(self, dtype=None):
         """
@@ -1148,7 +1147,7 @@ class Categorical(PandasObject):
         counts : Series
         """
         from numpy import bincount
-        from pandas.core.common import isnull
+        from pandas.types.missing import isnull
         from pandas.core.series import Series
         from pandas.core.index import CategoricalIndex
 
@@ -1165,8 +1164,8 @@ class Categorical(PandasObject):
             count = bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
 
-        ix = Categorical(ix, categories=cat, ordered=obj.ordered,
-                         fastpath=True)
+        ix = self._constructor(ix, categories=cat, ordered=obj.ordered,
+                               fastpath=True)
 
         return Series(count, index=CategoricalIndex(ix), dtype='int64')
 
@@ -1182,7 +1181,7 @@ class Categorical(PandasObject):
             Index if datetime / periods
         """
         # if we are a datetime and period index, return Index to keep metadata
-        if com.is_datetimelike(self.categories):
+        if is_datetimelike(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
         return np.array(self)
 
@@ -1319,8 +1318,8 @@ class Categorical(PandasObject):
             self._codes = codes
             return
         else:
-            return Categorical(values=codes, categories=self.categories,
-                               ordered=self.ordered, fastpath=True)
+            return self._constructor(values=codes, categories=self.categories,
+                                     ordered=self.ordered, fastpath=True)
 
     def order(self, inplace=False, ascending=True, na_position='last'):
         """
@@ -1447,8 +1446,8 @@ class Categorical(PandasObject):
                 values = values.copy()
                 values[mask] = self.categories.get_loc(value)
 
-        return Categorical(values, categories=self.categories,
-                           ordered=self.ordered, fastpath=True)
+        return self._constructor(values, categories=self.categories,
+                                 ordered=self.ordered, fastpath=True)
 
     def take_nd(self, indexer, allow_fill=True, fill_value=None):
         """ Take the codes by the indexer, fill with the fill_value.
@@ -1461,8 +1460,8 @@ class Categorical(PandasObject):
         assert isnull(fill_value)
 
         codes = take_1d(self._codes, indexer, allow_fill=True, fill_value=-1)
-        result = Categorical(codes, categories=self.categories,
-                             ordered=self.ordered, fastpath=True)
+        result = self._constructor(codes, categories=self.categories,
+                                   ordered=self.ordered, fastpath=True)
         return result
 
     take = take_nd
@@ -1482,8 +1481,8 @@ class Categorical(PandasObject):
             slicer = slicer[1]
 
         _codes = self._codes[slicer]
-        return Categorical(values=_codes, categories=self.categories,
-                           ordered=self.ordered, fastpath=True)
+        return self._constructor(values=_codes, categories=self.categories,
+                                 ordered=self.ordered, fastpath=True)
 
     def __len__(self):
         """The length of this Categorical."""
@@ -1594,10 +1593,9 @@ class Categorical(PandasObject):
             else:
                 return self.categories[i]
         else:
-            return Categorical(values=self._codes[key],
-                               categories=self.categories,
-                               ordered=self.ordered,
-                               fastpath=True)
+            return self._constructor(values=self._codes[key],
+                                     categories=self.categories,
+                                     ordered=self.ordered, fastpath=True)
 
     def __setitem__(self, key, value):
         """ Item assignment.
@@ -1748,8 +1746,8 @@ class Categorical(PandasObject):
         import pandas.hashtable as htable
         good = self._codes != -1
         values = sorted(htable.mode_int64(_ensure_int64(self._codes[good])))
-        result = Categorical(values=values, categories=self.categories,
-                             ordered=self.ordered, fastpath=True)
+        result = self._constructor(values=values, categories=self.categories,
+                                   ordered=self.ordered, fastpath=True)
         return result
 
     def unique(self):
@@ -1843,8 +1841,8 @@ class Categorical(PandasObject):
         """
         nv.validate_repeat(args, kwargs)
         codes = self._codes.repeat(repeats)
-        return Categorical(values=codes, categories=self.categories,
-                           ordered=self.ordered, fastpath=True)
+        return self._constructor(values=codes, categories=self.categories,
+                                 ordered=self.ordered, fastpath=True)
 
 # The Series.cat accessor
 
@@ -1933,7 +1931,7 @@ def _convert_to_list_like(list_like):
     if (is_sequence(list_like) or isinstance(list_like, tuple) or
             isinstance(list_like, types.GeneratorType)):
         return list(list_like)
-    elif lib.isscalar(list_like):
+    elif is_scalar(list_like):
         return [list_like]
     else:
         # is this reached?

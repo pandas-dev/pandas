@@ -3139,10 +3139,6 @@ b &       b &     b \\
             df.to_csv(path, quoting=1)  # 1=QUOTE_ALL
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         expected = """\
 $$,$col$
@@ -3154,17 +3150,10 @@ $1$,$2$
             df.to_csv(path, quoting=1, quotechar="$")
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, quotechar="$", engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         with tm.ensure_clean('test.csv') as path:
             with tm.assertRaisesRegexp(TypeError, 'quotechar'):
                 df.to_csv(path, quoting=1, quotechar=None)
-        with tm.ensure_clean('test.csv') as path:
-            with tm.assertRaisesRegexp(TypeError, 'quotechar'):
-                df.to_csv(path, quoting=1, quotechar=None, engine='python')
 
     def test_to_csv_doublequote(self):
         df = DataFrame({'col': ['a"a', '"bb"']})
@@ -3178,18 +3167,11 @@ $1$,$2$
             df.to_csv(path, quoting=1, doublequote=True)  # QUOTE_ALL
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, doublequote=True, engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         from _csv import Error
         with tm.ensure_clean('test.csv') as path:
             with tm.assertRaisesRegexp(Error, 'escapechar'):
                 df.to_csv(path, doublequote=False)  # no escapechar set
-        with tm.ensure_clean('test.csv') as path:
-            with tm.assertRaisesRegexp(Error, 'escapechar'):
-                df.to_csv(path, doublequote=False, engine='python')
 
     def test_to_csv_escapechar(self):
         df = DataFrame({'col': ['a"a', '"bb"']})
@@ -3203,11 +3185,6 @@ $1$,$2$
             df.to_csv(path, quoting=1, doublequote=False, escapechar='\\')
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, doublequote=False, escapechar='\\',
-                      engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         df = DataFrame({'col': ['a,a', ',bb,']})
         expected = """\
@@ -3218,10 +3195,6 @@ $1$,$2$
 
         with tm.ensure_clean('test.csv') as path:
             df.to_csv(path, quoting=3, escapechar='\\')  # QUOTE_NONE
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=3, escapechar='\\', engine='python')
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
 
@@ -3328,12 +3301,6 @@ $1$,$2$
         df_sec_grouped = df_sec.groupby([pd.Grouper(key='A', freq='1h'), 'B'])
         self.assertEqual(df_sec_grouped.mean().to_csv(date_format='%Y-%m-%d'),
                          expected_ymd_sec)
-
-    # deprecation GH11274
-    def test_to_csv_engine_kw_deprecation(self):
-        with tm.assert_produces_warning(FutureWarning):
-            df = DataFrame({'col1': [1], 'col2': ['a'], 'col3': [10.1]})
-            df.to_csv(engine='python')
 
     def test_period(self):
         # GH 12615

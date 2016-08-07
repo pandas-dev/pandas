@@ -1,6 +1,5 @@
 import nose
 
-import warnings
 import os
 import datetime
 import numpy as np
@@ -8,7 +7,7 @@ import sys
 from distutils.version import LooseVersion
 
 from pandas import compat
-from pandas.compat import u
+from pandas.compat import u, PY3
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, period_range, Index, Categorical)
 from pandas.core.common import PerformanceWarning
@@ -58,6 +57,19 @@ def check_arbitrary(a, b):
         assert_series_equal(a, b)
     elif isinstance(a, Index):
         assert_index_equal(a, b)
+    elif isinstance(a, Categorical):
+        # Temp,
+        # Categorical.categories is changed from str to bytes in PY3
+        # maybe the same as GH 13591
+        if PY3 and b.categories.inferred_type == 'string':
+            pass
+        else:
+            tm.assert_categorical_equal(a, b)
+    elif a is NaT:
+        assert b is NaT
+    elif isinstance(a, Timestamp):
+        assert a == b
+        assert a.freq == b.freq
     else:
         assert(a == b)
 
@@ -530,25 +542,6 @@ class TestSparse(TestPackers):
         self._check_roundtrip(ss3, tm.assert_frame_equal,
                               check_frame_type=True)
 
-    def test_sparse_panel(self):
-
-        with warnings.catch_warnings(record=True):
-
-            items = ['x', 'y', 'z']
-            p = Panel(dict((i, tm.makeDataFrame().ix[:2, :2]) for i in items))
-            sp = p.to_sparse()
-
-            self._check_roundtrip(sp, tm.assert_panel_equal,
-                                  check_panel_type=True)
-
-            sp2 = p.to_sparse(kind='integer')
-            self._check_roundtrip(sp2, tm.assert_panel_equal,
-                                  check_panel_type=True)
-
-            sp3 = p.to_sparse(fill_value=0)
-            self._check_roundtrip(sp3, tm.assert_panel_equal,
-                                  check_panel_type=True)
-
 
 class TestCompression(TestPackers):
     """See https://github.com/pydata/pandas/pull/9783
@@ -815,8 +808,8 @@ TestPackers
         for typ, v in self.minimum_structure.items():
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
-                assert kind in data[
-                    typ], '"{0}" not found in data["{1}"]'.format(kind, typ)
+                msg = '"{0}" not found in data["{1}"]'.format(kind, typ)
+                assert kind in data[typ], msg
 
     def compare(self, vf, version):
         # GH12277 encoding default used to be latin-1, now utf-8
@@ -839,8 +832,8 @@ TestPackers
 
                 # use a specific comparator
                 # if available
-                comparator = getattr(
-                    self, "compare_{typ}_{dt}".format(typ=typ, dt=dt), None)
+                comp_method = "compare_{typ}_{dt}".format(typ=typ, dt=dt)
+                comparator = getattr(self, comp_method, None)
                 if comparator is not None:
                     comparator(result, expected, typ, version)
                 else:
@@ -872,9 +865,8 @@ TestPackers
         n = 0
         for f in os.listdir(pth):
             # GH12142 0.17 files packed in P2 can't be read in P3
-            if (compat.PY3 and
-                    version.startswith('0.17.') and
-                    f.split('.')[-4][-1] == '2'):
+            if (compat.PY3 and version.startswith('0.17.') and
+               f.split('.')[-4][-1] == '2'):
                 continue
             vf = os.path.join(pth, f)
             try:

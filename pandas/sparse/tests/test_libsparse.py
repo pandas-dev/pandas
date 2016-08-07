@@ -486,13 +486,14 @@ class TestSparseOperators(tm.TestCase):
             xfill = 0
             yfill = 2
 
-            result_block_vals, rb_index = sparse_op(x, xindex, xfill, y,
-                                                    yindex, yfill)
-            result_int_vals, ri_index = sparse_op(x, xdindex, xfill, y,
-                                                  ydindex, yfill)
+            result_block_vals, rb_index, bfill = sparse_op(x, xindex, xfill, y,
+                                                           yindex, yfill)
+            result_int_vals, ri_index, ifill = sparse_op(x, xdindex, xfill, y,
+                                                         ydindex, yfill)
 
             self.assertTrue(rb_index.to_int_index().equals(ri_index))
             tm.assert_numpy_array_equal(result_block_vals, result_int_vals)
+            self.assertEqual(bfill, ifill)
 
             # check versus Series...
             xseries = Series(x, xdindex.indices)
@@ -517,7 +518,7 @@ check_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
 
 def make_optestf(op):
     def f(self):
-        sparse_op = getattr(splib, 'sparse_%s' % op)
+        sparse_op = getattr(splib, 'sparse_%s_float64' % op)
         python_op = getattr(operator, op)
         self._op_tests(sparse_op, python_op)
 

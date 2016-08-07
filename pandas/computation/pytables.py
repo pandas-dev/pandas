@@ -7,6 +7,8 @@ from functools import partial
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
+
+from pandas.types.common import is_list_like
 import pandas.core.common as com
 from pandas.compat import u, string_types, DeepChainMap
 from pandas.core.base import StringMixin
@@ -127,7 +129,7 @@ class BinOp(ops.BinOp):
 
     def conform(self, rhs):
         """ inplace conform rhs """
-        if not com.is_list_like(rhs):
+        if not is_list_like(rhs):
             rhs = [rhs]
         if isinstance(rhs, np.ndarray):
             rhs = rhs.ravel()
@@ -196,6 +198,11 @@ class BinOp(ops.BinOp):
         elif meta == u('category'):
             metadata = com._values_from_object(self.metadata)
             result = metadata.searchsorted(v, side='left')
+
+            # result returns 0 if v is first element or if v is not in metadata
+            # check that metadata contains v
+            if not result and v not in metadata:
+                result = -1
             return TermValue(result, result, u('integer'))
         elif kind == u('integer'):
             v = int(float(v))

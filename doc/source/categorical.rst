@@ -656,7 +656,7 @@ Unioning
 .. versionadded:: 0.19.0
 
 If you want to combine categoricals that do not necessarily have
-the same categories, the `union_categorical` function will
+the same categories, the ``union_categoricals`` function will
 combine a list-like of categoricals. The new categories
 will be the union of the categories being combined.
 
@@ -667,11 +667,20 @@ will be the union of the categories being combined.
     b = pd.Categorical(["a", "b"])
     union_categoricals([a, b])
 
+By default, the resulting categories will be ordered as
+they appear in the data. If you want the categories to
+be lexsorted, use ``sort_categories=True`` argument.
+
+.. ipython:: python
+
+    union_categoricals([a, b], sort_categories=True)
+
 .. note::
 
-   `union_categoricals` only works with unordered categoricals
-   and will raise if any are ordered.
-
+   In addition to the "easy" case of combining two categoricals of the same
+   categories and order information (e.g. what you could also ``append`` for),
+   ``union_categoricals`` only works with unordered categoricals and will
+   raise if any are ordered.
 
 Getting Data In/Out
 -------------------

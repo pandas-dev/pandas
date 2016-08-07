@@ -6,6 +6,11 @@ import itertools
 
 import numpy as np
 
+from pandas.types.common import _ensure_platform_int, is_list_like
+from pandas.types.cast import _maybe_promote
+from pandas.types.missing import notnull
+import pandas.types.concat as _concat
+
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
@@ -14,11 +19,8 @@ from pandas.sparse.array import SparseArray
 from pandas._sparse import IntIndex
 
 from pandas.core.categorical import Categorical
-from pandas.core.common import notnull, _ensure_platform_int, _maybe_promote
 from pandas.core.groupby import get_group_index, _compress_group_index
 
-import pandas.core.common as com
-import pandas.types.concat as _concat
 import pandas.core.algorithms as algos
 import pandas.algos as _algos
 
@@ -1063,7 +1065,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
             length_msg = ("Length of '{0}' ({1}) did not match the length of "
                           "the columns being encoded ({2}).")
 
-            if com.is_list_like(item):
+            if is_list_like(item):
                 if not len(item) == len(columns_to_encode):
                     raise ValueError(length_msg.format(name, len(item),
                                                        len(columns_to_encode)))
