@@ -56,6 +56,27 @@ def _skip_if_no_private_key_contents():
         _skip_if_no_private_key_contents()
 
 
+def _skip_if_get_correct_default_credentials(can=False):
+    got_credentials = False
+    try:
+        from oauth2client.client import GoogleCredentials
+        from apiclient.discovery import build
+        credentials = GoogleCredentials.get_application_default()
+        bigquery_service = build('bigquery', 'v2', credentials=credentials)
+        jobs = bigquery_service.jobs()
+        job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
+        jobs.insert(projectId=PROJECT_ID, body=job_data).execute()
+        got_credentials = True
+    except:
+        pass
+    if can and got_credentials:
+        raise nose.SkipTest("Cannot get default_credentials "
+                            "from the environment!")
+    if (not can) and (not got_credentials):
+        raise nose.SkipTest("Can get default_credentials "
+                            "from the environment!")
+
+
 def _test_imports():
     global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
         _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
@@ -218,11 +239,16 @@ class TestGBQConnectorIntegration(tm.TestCase):
         schema, pages = self.sut.run_query('SELECT 1')
         self.assertTrue(pages is not None)
 
-    def test_get_application_default_credentials_should_not_throw_error(self):
+    def test_get_application_default_credentials_does_not_throw_error(self):
+        _skip_if_get_correct_default_credentials(can=True)
+        credentials = self.sut.get_application_default_credentials()
+        self.assertIsNone(credentials)
+
+    def test_get_application_default_credentials_returns_credentials(self):
+        _skip_if_get_correct_default_credentials(can=False)
         from oauth2client.client import GoogleCredentials
         credentials = self.sut.get_application_default_credentials()
-        valid_types = (type(None), GoogleCredentials)
-        assert isinstance(credentials, valid_types)
+        self.assertTrue(isinstance(credentials, GoogleCredentials))
 
 
 class TestGBQConnectorServiceAccountKeyPathIntegration(tm.TestCase):

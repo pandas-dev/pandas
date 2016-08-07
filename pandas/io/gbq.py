@@ -180,6 +180,7 @@ class GbqConnector(object):
             from apiclient.errors import HttpError
         try:
             from oauth2client.client import GoogleCredentials
+            from oauth2client.client import HttpAccessTokenRefreshError
             from oauth2client.client import ApplicationDefaultCredentialsError
         except ImportError:
             return None
@@ -195,7 +196,8 @@ class GbqConnector(object):
         job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
         try:
             jobs.insert(projectId=self.project_id, body=job_data).execute()
-        except (AccessTokenRefreshError, HttpError, TypeError):
+        except (HttpAccessTokenRefreshError, AccessTokenRefreshError,
+                HttpError, TypeError):
             return None
         return credentials
 
