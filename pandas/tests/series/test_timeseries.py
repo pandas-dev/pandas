@@ -526,10 +526,11 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         self.assertTrue(ser.index.is_all_dates)
         self.assertIsInstance(ser.index, DatetimeIndex)
 
-    def test_empty_series_addition(self):
+    def test_empty_series_ops(self):
         # see issue #13844
         a = Series(dtype='M8[ns]')
         b = Series(dtype='m8[ns]')
         assert_series_equal(a, a + b)
         assert_series_equal(a, a - b)
         assert_series_equal(a, b + a)
+        self.assertRaises(TypeError, lambda x, y: x - y, b, a)
