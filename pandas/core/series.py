@@ -2380,12 +2380,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         numpy.ndarray.take
         """
         nv.validate_take(tuple(), kwargs)
+        indices = np.asarray(indices)
 
         # check/convert indicies here
         if convert:
             indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
 
-        new_index = self.index.take(indices)
+        new_index = self.index.take(indices, convert=False)
         new_values = algos.take_nd(self._values, indices, allow_fill=False)
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)

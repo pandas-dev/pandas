@@ -4367,7 +4367,7 @@ def _get_group_index_sorter(group_index, ngroups):
     if alpha + beta * ngroups < count * np.log(count):
         sorter, _ = _algos.groupsort_indexer(_ensure_int64(group_index),
                                              ngroups)
-        return _ensure_platform_int(sorter)
+        return sorter
     else:
         return group_index.argsort(kind='mergesort')
 

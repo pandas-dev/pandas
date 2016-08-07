@@ -332,7 +332,7 @@ class DatetimeIndexOpsMixin(object):
 
     @Appender(_index_shared_docs['take'])
     def take(self, indices, axis=0, allow_fill=True,
-             fill_value=None, **kwargs):
+             fill_value=None, convert=True, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = _ensure_int64(indices)
 
@@ -343,7 +343,8 @@ class DatetimeIndexOpsMixin(object):
         taken = self._assert_take_fillable(self.asi8, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,
-                                           na_value=tslib.iNaT)
+                                           na_value=tslib.iNaT,
+                                           convert=convert)
 
         # keep freq in PeriodIndex, reset otherwise
         freq = self.freq if isinstance(self, ABCPeriodIndex) else None

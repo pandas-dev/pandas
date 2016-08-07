@@ -1852,6 +1852,7 @@ def maybe_convert_indices(indices, n):
     """ if we have negative indicies, translate to postive here
     if have indicies that are out-of-bounds, raise an IndexError
     """
+    # return indices
     from pandas.algos import take_bounds_check
     indices = _ensure_int64(indices)
     out = np.empty(len(indices), dtype='int64')

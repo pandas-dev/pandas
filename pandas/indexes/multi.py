@@ -1054,17 +1054,16 @@ class MultiIndex(Index):
                 msg = ('When allow_fill=True and fill_value is not None, '
                        'all indices must be >= -1')
                 raise ValueError(msg)
-            taken = [lab.take(indices) for lab in self.labels]
-            mask = indices == -1
-            if mask.any():
-                masked = []
-                for new_label in taken:
-                    label_values = new_label.values()
-                    label_values[mask] = na_value
-                    masked.append(base.FrozenNDArray(label_values))
-                taken = masked
+            taken = [algos.take_nd(lab, indices, fill_value=na_value)
+                     for lab in values]
         else:
-            taken = [lab.take(indices) for lab in self.labels]
+            # provide wraparound semantics
+            from pandas.core.indexing import maybe_convert_indices
+            taken = []
+            for i, lab in enumerate(values):
+                lab = maybe_convert_indices(lab, len(self.levels[i]))
+                taken.append(algos.take_nd(lab, indices, allow_fill=False))
+
         return taken
 
     def append(self, other):

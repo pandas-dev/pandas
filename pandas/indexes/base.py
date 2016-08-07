@@ -1463,7 +1463,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     @Appender(_index_shared_docs['take'])
     def take(self, indices, axis=0, allow_fill=True,
-             fill_value=None, **kwargs):
+             fill_value=None, convert=True, **kwargs):
         nv.validate_take(tuple(), kwargs)
 
         if not self._can_hold_na and allow_fill and fill_value is not None:
@@ -1473,11 +1473,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             taken = self._assert_take_fillable(self.values, indices,
                                                allow_fill=allow_fill,
                                                fill_value=fill_value,
-                                               na_value=self._na_value)
+                                               na_value=self._na_value,
+                                               convert=convert)
         return self._shallow_copy(taken)
 
     def _assert_take_fillable(self, values, indices, allow_fill=True,
-                              fill_value=None, na_value=np.nan):
+                              fill_value=None, convert=True, na_value=np.nan):
         """ internal method to handle NA filling of take """
         indices = np.asarray(indices)
         if allow_fill and fill_value is not None:
@@ -1490,9 +1491,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                       fill_value=na_value)
         else:
             # provide wraparound semantics if fill_value not specified
-            from pandas.core.indexing import maybe_convert_indices
-            n = values.shape[0]
-            indices = maybe_convert_indices(indices, n)
+            if convert:
+                from pandas.core.indexing import maybe_convert_indices
+                n = values.shape[0]
+                indices = maybe_convert_indices(indices, n)
             taken = algos.take_nd(values, indices, allow_fill=False)
         return taken
 
