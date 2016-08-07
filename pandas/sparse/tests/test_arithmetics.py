@@ -281,28 +281,29 @@ class TestSparseArrayArithmetics(tm.TestCase):
             self._check_numeric_ops(a, b, values, rvalues)
 
     def test_int_array_comparison(self):
-        values = self._base([0, 1, 2, 0, 0, 0, 1, 2, 1, 0])
-        rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0])
 
-        dtype = np.int64
+        # int32 NI ATM
+        for dtype in ['int64']:
+            values = self._base([0, 1, 2, 0, 0, 0, 1, 2, 1, 0], dtype=dtype)
+            rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=dtype)
 
-        for kind in ['integer', 'block']:
-            a = self._klass(values, dtype=dtype, kind=kind)
-            b = self._klass(rvalues, dtype=dtype, kind=kind)
-            self._check_comparison_ops(a, b, values, rvalues)
-            self._check_comparison_ops(a, b * 0, values, rvalues * 0)
+            for kind in ['integer', 'block']:
+                a = self._klass(values, dtype=dtype, kind=kind)
+                b = self._klass(rvalues, dtype=dtype, kind=kind)
+                self._check_comparison_ops(a, b, values, rvalues)
+                self._check_comparison_ops(a, b * 0, values, rvalues * 0)
 
-            a = self._klass(values, dtype=dtype, kind=kind, fill_value=0)
-            b = self._klass(rvalues, dtype=dtype, kind=kind)
-            self._check_comparison_ops(a, b, values, rvalues)
+                a = self._klass(values, dtype=dtype, kind=kind, fill_value=0)
+                b = self._klass(rvalues, dtype=dtype, kind=kind)
+                self._check_comparison_ops(a, b, values, rvalues)
 
-            a = self._klass(values, dtype=dtype, kind=kind, fill_value=0)
-            b = self._klass(rvalues, dtype=dtype, kind=kind, fill_value=0)
-            self._check_comparison_ops(a, b, values, rvalues)
+                a = self._klass(values, dtype=dtype, kind=kind, fill_value=0)
+                b = self._klass(rvalues, dtype=dtype, kind=kind, fill_value=0)
+                self._check_comparison_ops(a, b, values, rvalues)
 
-            a = self._klass(values, dtype=dtype, kind=kind, fill_value=1)
-            b = self._klass(rvalues, dtype=dtype, kind=kind, fill_value=2)
-            self._check_comparison_ops(a, b, values, rvalues)
+                a = self._klass(values, dtype=dtype, kind=kind, fill_value=1)
+                b = self._klass(rvalues, dtype=dtype, kind=kind, fill_value=2)
+                self._check_comparison_ops(a, b, values, rvalues)
 
 
 class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
