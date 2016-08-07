@@ -4038,7 +4038,7 @@ class NDFrame(PandasObject):
 
     def resample(self, rule, how=None, axis=0, fill_method=None, closed=None,
                  label=None, convention='start', kind=None, loffset=None,
-                 limit=None, base=0):
+                 limit=None, base=0, on=None, level=None):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -4059,7 +4059,12 @@ class NDFrame(PandasObject):
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0
-
+        on : string, optional
+            For a DataFrame, column to use for resampling, rather than
+            the index
+        level : string or int, optional
+            For a MultiIndex, level (name or number) to use for
+            resampling
 
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -4164,12 +4169,16 @@ class NDFrame(PandasObject):
         """
         from pandas.tseries.resample import (resample,
                                              _maybe_process_deprecations)
+        if is_list_like(on):
+            raise ValueError("Only a single column may be passed to on")
+        if is_list_like(level):
+            raise ValueError("Only a single column may be passed to level")
 
         axis = self._get_axis_number(axis)
         r = resample(self, freq=rule, label=label, closed=closed,
                      axis=axis, kind=kind, loffset=loffset,
                      convention=convention,
-                     base=base)
+                     base=base, key=on, level=level)
         return _maybe_process_deprecations(r,
                                            how=how,
                                            fill_method=fill_method,

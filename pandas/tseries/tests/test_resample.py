@@ -450,20 +450,30 @@ class TestResampleAPI(tm.TestCase):
                                                       ('r2', 'B', 'sum')])
 
     def test_agg_misc(self):
-        # test with both a Resampler and a TimeGrouper
+        # test with all three Resampler apis and TimeGrouper
 
         np.random.seed(1234)
         df = pd.DataFrame(np.random.rand(10, 2),
                           columns=list('AB'),
                           index=pd.date_range('2010-01-01 09:00:00',
                                               periods=10,
-                                              freq='s'))
+                                              freq='s',
+                                              name='date'))
+        df_col = df.reset_index()
+        df_mult = df_col.copy()
+        df_mult.index = pd.MultiIndex.from_arrays([range(10), df.index],
+                                                  names=['index', 'date'])
 
         r = df.resample('2s')
-        g = df.groupby(pd.Grouper(freq='2s'))
+        cases = [
+            r,
+            df_col.resample('2s', on='date'),
+            df_mult.resample('2s', level='date'),
+            df.groupby(pd.Grouper(freq='2s'))
+        ]
 
         # passed lambda
-        for t in [r, g]:
+        for t in cases:
             result = t.agg({'A': np.sum,
                             'B': lambda x: np.std(x, ddof=1)})
             rcustom = t['B'].apply(lambda x: np.std(x, ddof=1))
@@ -480,7 +490,7 @@ class TestResampleAPI(tm.TestCase):
                                                       ('result1', 'B'),
                                                       ('result2', 'A'),
                                                       ('result2', 'B')])
-        for t in [r, g]:
+        for t in cases:
             result = t[['A', 'B']].agg(OrderedDict([('result1', np.sum),
                                                     ('result2', np.mean)]))
             assert_frame_equal(result, expected, check_like=True)
@@ -495,19 +505,19 @@ class TestResampleAPI(tm.TestCase):
                                                       ('A', 'std'),
                                                       ('B', 'mean'),
                                                       ('B', 'std')])
-        for t in [r, g]:
+        for t in cases:
             result = t.agg(OrderedDict([('A', ['sum', 'std']),
                                         ('B', ['mean', 'std'])]))
             assert_frame_equal(result, expected, check_like=True)
 
         # equivalent of using a selection list / or not
-        for t in [r, g]:
-            result = g[['A', 'B']].agg({'A': ['sum', 'std'],
+        for t in cases:
+            result = t[['A', 'B']].agg({'A': ['sum', 'std'],
                                         'B': ['mean', 'std']})
             assert_frame_equal(result, expected, check_like=True)
 
         # series like aggs
-        for t in [r, g]:
+        for t in cases:
             result = t['A'].agg({'A': ['sum', 'std']})
             expected = pd.concat([t['A'].sum(),
                                   t['A'].std()],
@@ -528,9 +538,9 @@ class TestResampleAPI(tm.TestCase):
 
         # errors
         # invalid names in the agg specification
-        for t in [r, g]:
+        for t in cases:
             def f():
-                r[['A']].agg({'A': ['sum', 'std'],
+                t[['A']].agg({'A': ['sum', 'std'],
                               'B': ['mean', 'std']})
 
             self.assertRaises(SpecificationError, f)
@@ -580,6 +590,36 @@ class TestResampleAPI(tm.TestCase):
         expected = r[['A', 'B', 'C']].agg({'r1': 'mean', 'r2': 'sum'})
         result = r.agg({'r1': 'mean', 'r2': 'sum'})
         assert_frame_equal(result, expected)
+
+    def test_api_validation(self):
+        # GH 13500
+        dates = pd.date_range('2015-01-01', freq='W', periods=10)
+        df = pd.DataFrame({'date': dates,
+                           'a': np.arange(10, dtype='int64')},
+                          index=pd.MultiIndex.from_arrays([
+                              np.arange(10),
+                              dates], names=['v', 'd']))
+
+        exp_index = pd.date_range('2015-01-31', periods=3,
+                                  freq='M', name='date')
+        expected = pd.DataFrame({'a': [6, 22, 17]},
+                                index=exp_index)
+
+        actual = df.resample('M', on='date').sum()
+        assert_frame_equal(actual, expected)
+
+        actual = df.resample('M', level='d').sum()
+        expected.index.name = 'd'
+        assert_frame_equal(actual, expected)
+
+        with tm.assertRaises(ValueError):
+            df.resample('M', on='date', level='d')
+
+        with tm.assertRaises(ValueError):
+            df.resample('M', on=['a', 'date'])
+
+        with tm.assertRaises(ValueError):
+            df.resample('M', level=['a', 'date'])
 
 
 class Base(object):

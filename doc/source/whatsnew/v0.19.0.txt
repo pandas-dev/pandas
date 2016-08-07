@@ -377,6 +377,20 @@ Other enhancements
 
     pd.Timestamp(year=2012, month=1, day=1, hour=8, minute=30)
 
+- the ``.resample()`` function now accepts a ``on=`` or ``key=`` parameter for resampling on a column or ``MultiIndex`` level (:issue:`13500`)
+
+  .. ipython:: python
+
+     df = pd.DataFrame({'date': pd.date_range('2015-01-01', freq='W', periods=5),
+                        'a': np.arange(5)},
+                       index=pd.MultiIndex.from_arrays([
+                                [1,2,3,4,5],
+                                pd.date_range('2015-01-01', freq='W', periods=5)],
+                            names=['v','d']))
+     df
+     df.resample('M', on='date').sum()
+     df.resample('M', level='d').sum()
+
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``decimal`` option (:issue:`12933`)
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``na_filter`` option (:issue:`13321`)
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``memory_map`` option (:issue:`13381`)
