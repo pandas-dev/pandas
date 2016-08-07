@@ -1496,8 +1496,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             taken = algos.take_nd(values, indices, allow_fill=False)
         return taken
 
-
-
     @cache_readonly
     def _isnan(self):
         """ return if each value is nan"""

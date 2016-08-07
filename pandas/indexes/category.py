@@ -14,7 +14,6 @@ from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg)
 from pandas.core.config import get_option
 from pandas.indexes.base import Index, _index_shared_docs
-import pandas.core.algorithms as algos
 import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.indexes.base as ibase

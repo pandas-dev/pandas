@@ -4947,3 +4947,22 @@ def take_2d_multi_object_object(ndarray[object, ndim=2] values,
                     out[i, j] = fv
                 else:
                     out[i, j] = values[idx, idx1[j]]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_bounds_check(int64_t[:] indexer, int64_t[:] out, int64_t n):
+    cdef:
+        Py_ssize_t i
+        int64_t label
+
+    with nogil:
+        for i in range(indexer.shape[0]):
+            label = indexer[i]
+            if label < 0:
+                label += n
+
+            if label >= n or label < 0:
+                with gil:
+                    raise IndexError("indicies are out of bounds")
+            out[i] = label
