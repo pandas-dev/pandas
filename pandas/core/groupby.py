@@ -1706,7 +1706,6 @@ class BaseGrouper(object):
 
         name_list = []
         for ping, labels in zip(self.groupings, self.recons_labels):
-            labels = _ensure_platform_int(labels)
             levels = ping.group_index.take(labels)
 
             name_list.append(levels)

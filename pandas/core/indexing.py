@@ -1862,6 +1862,8 @@ def maybe_convert_indices(indices, n):
 
     mask = indices < 0
     if mask.any():
+        # don't want to mutate original array
+        indices = np.array(indices, copy=True)
         indices[mask] += n
     mask = (indices >= n) | (indices < 0)
     if mask.any():

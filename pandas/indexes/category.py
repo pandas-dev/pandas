@@ -5,7 +5,6 @@ from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.types.generic import ABCCategorical, ABCSeries
 from pandas.types.common import (is_categorical_dtype,
-                                 _ensure_platform_int,
                                  is_list_like,
                                  is_scalar)
 from pandas.types.missing import array_equivalent
@@ -15,6 +14,7 @@ from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg)
 from pandas.core.config import get_option
 from pandas.indexes.base import Index, _index_shared_docs
+import pandas.core.algorithms as algos
 import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.indexes.base as ibase
@@ -466,7 +466,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
             codes = self.categories.get_indexer(target)
             indexer, _ = self._engine.get_indexer_non_unique(codes)
 
-        return _ensure_platform_int(indexer)
+        return indexer
 
     def get_indexer_non_unique(self, target):
         """ this is the same for a CategoricalIndex for get_indexer; the API
@@ -497,7 +497,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.codes, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,

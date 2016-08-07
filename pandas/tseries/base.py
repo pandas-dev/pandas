@@ -768,6 +768,7 @@ class DatetimeIndexOpsMixin(object):
         values = _ensure_datetimelike_to_i8(self)
         result = np.where(cond, values, other).astype('i8')
 
+        import pdb; pdb.set_trace()
         result = self._ensure_localized(result)
         return self._shallow_copy(result,
                                   **self._get_attributes_dict())

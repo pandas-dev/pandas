@@ -221,8 +221,8 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         ordered = sort_mixed(values)
     else:
         try:
-            sorter = values.argsort()
-            ordered = values.take(sorter)
+            sorter = _ensure_int64(values.argsort())
+            ordered = take_nd(values, sorter, allow_fill=False)
         except TypeError:
             # try this anyway
             ordered = sort_mixed(values)
@@ -235,7 +235,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     if not is_list_like(labels):
         raise TypeError("Only list-like objects or None are allowed to be"
                         "passed to safe_sort as labels")
-    labels = _ensure_platform_int(np.asarray(labels))
+    labels = np.asarray(labels)
 
     from pandas import Index
     if not assume_unique and not Index(values).is_unique:
@@ -246,7 +246,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         (hash_klass, _), values = _get_data_algo(values, _hashtables)
         t = hash_klass(len(values))
         t.map_locations(values)
-        sorter = _ensure_platform_int(t.lookup(ordered))
+        sorter = t.lookup(ordered)
 
     reverse_indexer = np.empty(len(sorter), dtype=np.int_)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -256,8 +256,8 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
 
     # (Out of bound indices will be masked with `na_sentinel` next, so we may
     # deal with them here without performance loss using `mode='wrap'`.)
-    new_labels = reverse_indexer.take(labels, mode='wrap')
-    np.putmask(new_labels, mask, na_sentinel)
+    new_labels = take_nd(reverse_indexer, labels, fill_value=na_sentinel,
+                         mask_info=(mask, mask.any()))
 
     return ordered, new_labels
 
@@ -303,8 +303,6 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     table = hash_klass(size_hint or len(vals))
     uniques = vec_klass()
     labels = table.get_labels(vals, uniques, 0, na_sentinel, True)
-
-    labels = _ensure_platform_int(labels)
 
     uniques = uniques.to_array()
 
@@ -825,6 +823,7 @@ def _take_2d_multi_generic(arr, indexer, out, fill_value, mask_info):
             out[i, j] = arr[u_, v]
 
 
+# is this used ?
 def _take_nd_generic(arr, indexer, out, axis, fill_value, mask_info):
     if mask_info is not None:
         mask, needs_masking = mask_info
@@ -1076,7 +1075,6 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype, axis=axis,
                                  mask_info=mask_info)
-    indexer = _ensure_int64(indexer)
     func(arr, indexer, out, fill_value)
 
     if flip_order:

@@ -3195,7 +3195,6 @@ class DataFrame(NDFrame):
                 keys.append(trans(k))
             indexer = _lexsort_indexer(keys, orders=ascending,
                                        na_position=na_position)
-            indexer = _ensure_platform_int(indexer)
         else:
             from pandas.core.groupby import _nargsort
 
