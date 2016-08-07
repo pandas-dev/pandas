@@ -461,7 +461,7 @@ class _TimeOp(_Op):
 
             # a datelike
             elif isinstance(values, pd.DatetimeIndex):
-                values = values.to_series()
+                values = values.to_series(True)
             # datetime with tz
             elif (isinstance(ovalues, datetime.datetime) and
                   hasattr(ovalues, 'tz')):
@@ -543,9 +543,9 @@ class _TimeOp(_Op):
 
                 # with tz, convert to UTC
                 if self.is_datetime64tz_lhs:
-                    lvalues = lvalues.tz_localize(None)
+                    lvalues = lvalues.tz_convert('UTC')
                 if self.is_datetime64tz_rhs:
-                    rvalues = rvalues.tz_localize(None)
+                    rvalues = rvalues.tz_convert('UTC')
 
                 lvalues = lvalues.view(np.int64)
                 rvalues = rvalues.view(np.int64)
