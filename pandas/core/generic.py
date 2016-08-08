@@ -5138,10 +5138,9 @@ class NDFrame(PandasObject):
         if self.ndim == 1:
             return describe_1d(self)
         elif (include is None) and (exclude is None):
-            if len(self._get_numeric_data()._info_axis) > 0:
-                # when some numerics are found, keep only numerics
-                data = self.select_dtypes(include=[np.number])
-            else:
+            # when some numerics are found, keep only numerics
+            data = self.select_dtypes(include=[np.number])
+            if len(data.columns) == 0:
                 data = self
         elif include == 'all':
             if exclude is not None:
