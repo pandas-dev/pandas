@@ -1055,6 +1055,25 @@ def string_array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_re
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def object_array_decode_bytes(ndarray[object, ndim=1] arr, object encoding):
+    """Decode any instances of bytes to str in arr using the given encoding."""
+    if bytes == str: # in Python 2 these are the same and nothing needs to be done
+        return
+
+    cdef int length = arr.shape[0], i = 0
+    for i from 0 <= i < length:
+        if isinstance(arr[i], bytes):
+            arr[i] = arr[i].decode(encoding)
+        elif isinstance(arr[i], tuple):
+            mask = [isinstance(it, bytes) for it in arr[i]]
+            if any(mask):
+                val = [it.decode(encoding) if mask[j] else it for j, it in enumerate(arr[i])]
+                arr[i] = tuple(val)
+
+    return arr
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def write_csv_rows(list data, ndarray data_index, int nlevels, ndarray cols, object writer):
 
     cdef int N, j, i, ncols

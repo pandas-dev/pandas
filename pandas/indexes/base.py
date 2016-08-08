@@ -1580,12 +1580,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             result = _trim_front(format_array(values, None, justify='left'))
         return header + result
 
-    def to_native_types(self, slicer=None, **kwargs):
+    def to_native_types(self, slicer=None, bytes_encoding=None, **kwargs):
         """ slice and dice then format """
         values = self
         if slicer is not None:
             values = values[slicer]
-        return values._format_native_types(**kwargs)
+        result = values._format_native_types(**kwargs)
+        if bytes_encoding is not None and result.dtype == object:
+            lib.object_array_decode_bytes(result, bytes_encoding)
+        return result
 
     def _format_native_types(self, na_rep='', quoting=None, **kwargs):
         """ actually format my specific types """

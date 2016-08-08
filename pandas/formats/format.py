@@ -1378,6 +1378,12 @@ class CSVFormatter(object):
         self.has_mi_columns = (isinstance(obj.columns, MultiIndex) and
                                not self.tupleize_cols)
 
+        # in Python 3, decode bytes to str so strings print without b''
+        if compat.PY3:
+            self.bytes_encoding = (encoding or get_option("display.encoding"))
+        else:
+            self.bytes_encoding = None
+
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
@@ -1387,6 +1393,7 @@ class CSVFormatter(object):
         if cols is not None:
             if isinstance(cols, Index):
                 cols = cols.to_native_types(na_rep=na_rep,
+                                            bytes_encoding=self.bytes_encoding,
                                             float_format=float_format,
                                             date_format=date_format,
                                             quoting=self.quoting)
@@ -1399,6 +1406,7 @@ class CSVFormatter(object):
         cols = self.obj.columns
         if isinstance(cols, Index):
             cols = cols.to_native_types(na_rep=na_rep,
+                                        bytes_encoding=self.bytes_encoding,
                                         float_format=float_format,
                                         date_format=date_format,
                                         quoting=self.quoting)
@@ -1506,6 +1514,8 @@ class CSVFormatter(object):
             else:
                 encoded_labels = []
 
+        self._bytes_to_str(encoded_labels)
+
         if not has_mi_columns:
             encoded_labels += list(write_cols)
 
@@ -1565,6 +1575,7 @@ class CSVFormatter(object):
         for i in range(len(self.blocks)):
             b = self.blocks[i]
             d = b.to_native_types(slicer=slicer, na_rep=self.na_rep,
+                                  bytes_encoding=self.bytes_encoding,
                                   float_format=self.float_format,
                                   decimal=self.decimal,
                                   date_format=self.date_format,
@@ -1575,12 +1586,21 @@ class CSVFormatter(object):
                 self.data[col_loc] = col
 
         ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep,
+                                        bytes_encoding=self.bytes_encoding,
                                         float_format=self.float_format,
                                         decimal=self.decimal,
                                         date_format=self.date_format,
                                         quoting=self.quoting)
 
         lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
+
+    def _bytes_to_str(self, values):
+        """Modify values list by decoding bytes to str."""
+        if self.bytes_encoding:
+            for ii, value in enumerate(values):
+                if isinstance(value, bytes):
+                    values[ii] = value.decode(self.bytes_encoding)
+
 
 # from collections import namedtuple
 # ExcelCell = namedtuple("ExcelCell",

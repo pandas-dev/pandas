@@ -2020,6 +2020,14 @@ class ObjectBlock(Block):
 
         return block
 
+    def to_native_types(self, slicer=None, na_rep='nan', quoting=None,
+                        bytes_encoding=None, **kwargs):
+        result = Block.to_native_types(self, slicer, na_rep, quoting, **kwargs)
+        if bytes_encoding is not None:
+            for arr in result:
+                lib.object_array_decode_bytes(arr, bytes_encoding)
+        return result
+
 
 class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
     __slots__ = ()
