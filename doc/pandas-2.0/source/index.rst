@@ -12,8 +12,9 @@ future.
 
    goals
    internal-architecture
-   copyonwrite
    strings
+   copyonwrite
+   removals
 
 .. Indices and tables
 .. ==================

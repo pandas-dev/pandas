@@ -132,8 +132,25 @@ non-string into string data will be a ``TypeError``) and improved performance
 and memory use under the hood. I will devote an entire section to talking about
 strings.
 
+In general, I would be supportive of making Python object (``numpy.object_``
+dtype) arrays the solution only for mixed-type arrays and data types for which
+pandas has no native handling.
+
+Permitting "other" (non-NumPy) data structures
+==============================================
+
+
+
 C++11/14 for lowest implementation tier
 =======================================
+
+Currently, pandas architecturally is structured as follows:
+
+* Pure Python implementation of internal data structure business logic
+* Algorithms in Cython (more often) or C (less often) to accelerate
+  computationally-intensive algorithms
+
+
 
 3rd-party native API (i.e. Cython and C / C++)
 ==============================================

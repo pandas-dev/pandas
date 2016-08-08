@@ -23,10 +23,10 @@ At a high level, the "pandas 2.0" effort is based on a number of observations:
   for suboptimal design choices (for example: the ``.ix`` operator) made in the
   early days of the project (2010 to 2012).
 * The unification of Series and DataFrame internals to be based on a common
-  ``NDFrame`` base class and "block manager" data structure (heroically
-  championed by Jeff Reback), while introducing many benefits to pandas, has
-  come to be viewed as a long-term source of technical debt and code
-  complexity.
+  ``NDFrame`` base class and "block manager" data structure (originally created
+  by me in 2011, and heroically driven forward to its modern form by Jeff
+  Reback), while introducing many benefits to pandas, has come to be viewed as
+  a long-term source of technical debt and code complexity.
 * pandas's ability to support an increasingly broad set of use cases has been
   significantly constrained (as will be examined in detail in these documents)
   by its tight coupling to NumPy and therefore subject to various limitations
@@ -35,7 +35,13 @@ At a high level, the "pandas 2.0" effort is based on a number of observations:
   to pandas, particularly new data types, has grown increasingly complex with
   very obvious accumulations of technical debt.
 * pandas is being used increasingly for very large datasets on machines with
-  many cores and large amounts of RAM (100s of gigabytes to terabytes)
+  many cores and large amounts of RAM (100s of gigabytes to terabytes). It
+  would be nice to be able to better utilize these larger, beefier systems
+  within a single Python process.
+* pandas is being used increasingly as a computational building block of some
+  larger system, such as Dask or Apache Spark. We should consider reducing the
+  overhead for making data accessible to pandas (i.e. via memory-mapping or
+  other low-overhead memory sharing).
 * Rough edges in pandas's implementation (e.g. its handling of missing data
   across data types) are being exposed to users.
 
@@ -109,10 +115,10 @@ commonly-asked questions in brief:
 
    * pandas already contains a large amount (10s of KLOCs) of custom
      computational code (see, for example,
-     `https://github.com/pydata/pandas/tree/master/pandas/src`) that implements
+     `<https://github.com/pydata/pandas/tree/master/pandas/src>`_) that implements
      functionality not present in NumPy.
 
-   * pandas already features its own (what can be called) "logical type
+   * pandas already features its own (what I will describe as a) "logical type
      system", including things like custom data types (such as that of
      ``pandas.Categorical``), pandas-specific missing data representation, and
      implicit type casting (e.g. integer to float on introduction of missing
