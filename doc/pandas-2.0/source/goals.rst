@@ -13,18 +13,23 @@ The pandas codebase is now over 8 years old, having grown to over 200,000 lines
 of code from its original ~10,000 LOC in the original 0.1 open source release
 in January 2010.
 
-At a high level, the "pandas 2.0" effort is based on a couple of observations:
+At a high level, the "pandas 2.0" effort is based on a number of observations:
 
-* The pandas 0.x series of releases have been primarily iterative improvements
-  to the library, with new features, bug fixes, and improved
-  documentation. There have also been a series of deprecations, API changes,
-  and other evolutions of pandas's API to account for suboptimal design choices
-  (for example: the ``.ix`` operator) made in the early days of the project
-  (2010 to 2012).
+* The pandas 0.x series of releases have consisted with huge amounts of
+  iterative improvements to the library along with some major new features, bug
+  fixes, and improved documentation. There have also been a series of
+  deprecations, API changes, and other evolutions of pandas's API to account
+  for suboptimal design choices (for example: the ``.ix`` operator) made in the
+  early days of the project (2010 to 2012).
+* The unification of Series and DataFrame internals to be based on a common
+  ``NDFrame`` base class and "block manager" data structure (heroically
+  championed by Jeff Reback), while introducing many benefits to pandas, has
+  come to be viewed as a long-term source of technical debt and code
+  complexity.
 * pandas's ability to support an increasingly broad set of use cases has been
   significantly constrained (as will be examined in detail in these documents)
-  by its tight coupling to NumPy and therefore subject to design limitations in
-  NumPy.
+  by its tight coupling to NumPy and therefore subject to various limitations
+  in NumPy.
 * Making significant functional additions (particularly filling gaps in NumPy)
   to pandas, particularly new data types, has grown increasingly complex with
   very obvious accumulations of technical debt.
@@ -78,6 +83,8 @@ As this will be a quite nuanced discussion, especially for those not intimately
 familiar with pandas's implementation details, I wanted to speak to a couple of
 commonly-asked questions in brief:
 
+````
+
 1. **Will this work make it harder to use pandas with NumPy, scikit-learn,
    statsmodels, SciPy, or other libraries that depend on NumPy
    interoperability?**
@@ -90,6 +97,8 @@ commonly-asked questions in brief:
   * If anything, more performant and more precise data semantics in pandas will
     generally make production code using a downstream library like scikit-learn
     more dependable and future-proof.
+
+````
 
 2. **By decoupling from NumPy, it sounds like you are reimplementing NumPy or
    adding a new data type system**
@@ -112,6 +121,58 @@ commonly-asked questions in brief:
      reasons. I will examine in detail the difference between **physical
      types** (i.e. NumPy's dtypes) and **logical types** (i.e. what pandas
      currently has, implicitly).
+
+````
+
+3. **Shouldn't you try to accomplish your goals by contributing work to NumPy
+   instead of investing major work in pandas's internals?**
+
+   * In my opinion, this is a "false dichotomy"; i.e. these things are not
+     mutually exclusive.
+
+   * Yes, we should define, scope, and if possible help implement improvements
+     to NumPy that make sense. As NumPy serves a significantly larger and more
+     diverse set of users, major changes to the NumPy C codebase must be
+     approached more conservatively.
+
+   * It is unclear that pandas's body of domain-specific data handling and
+     computational code is entirely "in scope" for NumPy. Some technical
+     details, such as our categorical or datetime data semantics, "group by"
+     functionality, relational algebra (joins), etc., may be ideal for pandas
+     but not necessarily ideal for a general user of NumPy. My opinion is that
+     functionality from NumPy we wish to use in pandas should "pass through" to
+     the user unmodified, but we must retain the flexibility to work "outside
+     the box" (implement things not found in NumPy) without adding technical
+     debt or user API complexity.
+
+````
+
+4. **API changes / breaks are thought to be bad; don't you have a
+   responsibility to maintain backwards compatibility for users that heavily
+   depend on pandas?**
+
+   * It's true that APIs should not be broken or changed, and as such should be
+     approached with extreme caution.
+
+   * The goal of the pandas 2.0 initiative is to only make "good" API breaks
+     that yield a net benefit that can be easily demonstrated. As an example:
+     adding native missing data support to integer and boolean data (without
+     casting to another physical storage type) may break user code that has
+     knowledge of the "rough edge" (the behavior that we are fixing). As these
+     changes will mostly affect advanced pandas users, I expect they will be
+     welcomed.
+
+   * Any major API change or break will be documented and justified to assist
+     with code migration.
+
+   * As soon as we are able, we will post binary development artifacts for the
+     pandas 2.0 development branch to get early feedback from heavy pandas
+     users to understand the impact of changes and how we can better help the
+     existing user base.
+
+   * Some users will find that a certain piece of code has been working "by
+     accident" (i.e. relying upon undocumented behavior). This kind of breakage
+     is already a routine occurrence unfortunately.
 
 Summary
 =======
