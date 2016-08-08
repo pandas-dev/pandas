@@ -147,13 +147,13 @@ cdef class IntIndex(SparseIndex):
         return IntIndex(self.length, new_indices)
 
     @cython.wraparound(False)
-    cpdef int lookup(self, Py_ssize_t index):
+    cpdef int32_t lookup(self, Py_ssize_t index):
         """
         Return the internal location if value exists on given index.
         Return -1 otherwise.
         """
         cdef:
-            Py_ssize_t res
+            int32_t res
             ndarray[int32_t, ndim=1] inds
 
         inds = self.indices
@@ -290,7 +290,7 @@ cdef class BlockIndex(SparseIndex):
     ----------
     """
     cdef readonly:
-        Py_ssize_t nblocks, npoints, length
+        int32_t nblocks, npoints, length
         ndarray blocs, blengths
 
     cdef:
@@ -308,7 +308,7 @@ cdef class BlockIndex(SparseIndex):
         self.lenbuf = <int32_t*> self.blengths.data
 
         self.length = length
-        self.nblocks = len(self.blocs)
+        self.nblocks = np.int32(len(self.blocs))
         self.npoints = self.blengths.sum()
 
         # self.block_start = blocs
@@ -381,7 +381,7 @@ cdef class BlockIndex(SparseIndex):
 
     def to_int_index(self):
         cdef:
-            Py_ssize_t i = 0, j, b
+            int32_t i = 0, j, b
             int32_t offset
             ndarray[int32_t, ndim=1] indices
 
@@ -498,7 +498,7 @@ cdef class BlockIndex(SparseIndex):
         """
         return BlockUnion(self, y.to_block_index()).result
 
-    cpdef int lookup(self, Py_ssize_t index):
+    cpdef Py_ssize_t lookup(self, Py_ssize_t index):
         """
         Return the internal location if value exists on given index.
         Return -1 otherwise.
