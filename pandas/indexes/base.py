@@ -1463,38 +1463,39 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     @Appender(_index_shared_docs['take'])
     def take(self, indices, axis=0, allow_fill=True,
-             fill_value=None, **kwargs):
+             fill_value=None, convert=True, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
-        if self._can_hold_na:
+
+        if not self._can_hold_na and allow_fill and fill_value is not None:
+            msg = 'Unable to fill values because {0} cannot contain NA'
+            raise ValueError(msg.format(self.__class__.__name__))
+        else:
             taken = self._assert_take_fillable(self.values, indices,
                                                allow_fill=allow_fill,
                                                fill_value=fill_value,
-                                               na_value=self._na_value)
-        else:
-            if allow_fill and fill_value is not None:
-                msg = 'Unable to fill values because {0} cannot contain NA'
-                raise ValueError(msg.format(self.__class__.__name__))
-            taken = self.values.take(indices)
+                                               na_value=self._na_value,
+                                               convert=convert)
         return self._shallow_copy(taken)
 
     def _assert_take_fillable(self, values, indices, allow_fill=True,
-                              fill_value=None, na_value=np.nan):
-        """ Internal method to handle NA filling of take """
-        indices = _ensure_platform_int(indices)
-
-        # only fill if we are passing a non-None fill_value
+                              fill_value=None, convert=True, na_value=np.nan):
+        """ internal method to handle NA filling of take """
+        indices = np.asarray(indices)
         if allow_fill and fill_value is not None:
             if (indices < -1).any():
                 msg = ('When allow_fill=True and fill_value is not None, '
                        'all indices must be >= -1')
                 raise ValueError(msg)
-            taken = values.take(indices)
-            mask = indices == -1
-            if mask.any():
-                taken[mask] = na_value
+            else:
+                taken = algos.take_nd(values, indices, allow_fill=allow_fill,
+                                      fill_value=na_value)
         else:
-            taken = values.take(indices)
+            # provide wraparound semantics if fill_value not specified
+            if convert:
+                from pandas.core.indexing import maybe_convert_indices
+                n = values.shape[0]
+                indices = maybe_convert_indices(indices, n)
+            taken = algos.take_nd(values, indices, allow_fill=False)
         return taken
 
     @cache_readonly
@@ -2529,7 +2530,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if len(missing):
             l = np.arange(len(indexer))
 
-            missing = _ensure_platform_int(missing)
+            missing = missing
             missing_labels = target.take(missing)
             missing_indexer = _ensure_int64(l[~check])
             cur_labels = self.take(indexer[check])._values
@@ -2723,12 +2724,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                                  [other._values], how=how,
                                                  sort=True)
 
-        left_idx = _ensure_platform_int(left_idx)
-        right_idx = _ensure_platform_int(right_idx)
-
-        join_index = self.values.take(left_idx)
-        mask = left_idx == -1
-        np.putmask(join_index, mask, other._values.take(right_idx))
+        lvals = algos.take_nd(self.values, left_idx, fill_value=-1)
+        rvals = algos.take_nd(other._values, right_idx, fill_value=-1)
+        join_index = np.where(left_idx == -1, rvals, lvals)
 
         join_index = self._wrap_joined_index(join_index, other)
 

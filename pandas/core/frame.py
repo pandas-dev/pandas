@@ -48,7 +48,6 @@ from pandas.types.common import (is_categorical_dtype,
                                  _ensure_float,
                                  _ensure_float64,
                                  _ensure_int64,
-                                 _ensure_platform_int,
                                  is_list_like,
                                  is_iterator,
                                  is_sequence,
@@ -3195,7 +3194,6 @@ class DataFrame(NDFrame):
                 keys.append(trans(k))
             indexer = _lexsort_indexer(keys, orders=ascending,
                                        na_position=na_position)
-            indexer = _ensure_platform_int(indexer)
         else:
             from pandas.core.groupby import _nargsort
 

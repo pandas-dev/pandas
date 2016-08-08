@@ -1038,7 +1038,6 @@ class MultiIndex(Index):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.labels, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,
@@ -1055,17 +1054,16 @@ class MultiIndex(Index):
                 msg = ('When allow_fill=True and fill_value is not None, '
                        'all indices must be >= -1')
                 raise ValueError(msg)
-            taken = [lab.take(indices) for lab in self.labels]
-            mask = indices == -1
-            if mask.any():
-                masked = []
-                for new_label in taken:
-                    label_values = new_label.values()
-                    label_values[mask] = na_value
-                    masked.append(base.FrozenNDArray(label_values))
-                taken = masked
+            taken = [algos.take_nd(lab, indices, fill_value=na_value)
+                     for lab in values]
         else:
-            taken = [lab.take(indices) for lab in self.labels]
+            # provide wraparound semantics
+            from pandas.core.indexing import maybe_convert_indices
+            taken = []
+            for i, lab in enumerate(values):
+                lab = maybe_convert_indices(lab, len(self.levels[i]))
+                taken.append(algos.take_nd(lab, indices, allow_fill=False))
+
         return taken
 
     def append(self, other):
@@ -1340,7 +1338,6 @@ class MultiIndex(Index):
             if not ascending:
                 indexer = indexer[::-1]
 
-        indexer = _ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
 
         new_index = MultiIndex(labels=new_labels, levels=self.levels,
@@ -1786,7 +1783,7 @@ class MultiIndex(Index):
                 # selected
                 from pandas import Series
                 mapper = Series(indexer)
-                indexer = labels.take(_ensure_platform_int(indexer))
+                indexer = labels.take(indexer)
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)._values
 

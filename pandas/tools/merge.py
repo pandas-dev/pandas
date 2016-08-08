@@ -23,7 +23,6 @@ from pandas.types.common import (is_datetime64tz_dtype,
                                  is_bool,
                                  is_list_like,
                                  _ensure_int64,
-                                 _ensure_platform_int,
                                  _ensure_object)
 from pandas.types.missing import na_value_for_dtype
 
@@ -434,12 +433,11 @@ def merge_asof(left, right, on=None,
         # if we DO have duplicates, then
         # we cannot guarantee order
 
-        sorter = _ensure_platform_int(
-            np.concatenate([groupby.indices[g] for g, _ in groupby]))
+        sorter = np.concatenate([groupby.indices[g] for g, _ in groupby])
         if len(result) != len(sorter):
             return result
 
-        rev = np.empty(len(sorter), dtype=np.int_)
+        rev = np.empty(len(sorter), dtype=np.int64)
         rev.put(sorter, np.arange(len(sorter)))
         return result.take(rev).reset_index(drop=True)
 
@@ -599,7 +597,7 @@ class _MergeOperation(object):
                     if name in self.left:
 
                         if left_has_missing is None:
-                            left_has_missing = any(left_indexer == -1)
+                            left_has_missing = (left_indexer == -1).any()
 
                         if left_has_missing:
                             take_right = self.right_join_keys[i]
@@ -611,7 +609,7 @@ class _MergeOperation(object):
                     elif name in self.right:
 
                         if right_has_missing is None:
-                            right_has_missing = any(right_indexer == -1)
+                            right_has_missing = (right_indexer == -1).any()
 
                         if right_has_missing:
                             take_left = self.left_join_keys[i]

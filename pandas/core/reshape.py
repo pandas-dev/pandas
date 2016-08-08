@@ -6,7 +6,7 @@ import itertools
 
 import numpy as np
 
-from pandas.types.common import _ensure_platform_int, is_list_like
+from pandas.types.common import is_list_like
 from pandas.types.cast import _maybe_promote
 from pandas.types.missing import notnull
 import pandas.types.concat as _concat
@@ -114,10 +114,10 @@ class _Unstacker(object):
         ngroups = len(obs_ids)
 
         indexer = _algos.groupsort_indexer(comp_index, ngroups)[0]
-        indexer = _ensure_platform_int(indexer)
 
         self.sorted_values = algos.take_nd(self.values, indexer, axis=0)
-        self.sorted_labels = [l.take(indexer) for l in to_sort]
+        self.sorted_labels = [algos.take_nd(l, indexer, allow_fill=False)
+                              for l in to_sort]
 
     def _make_selectors(self):
         new_levels = self.new_index_levels
@@ -129,7 +129,6 @@ class _Unstacker(object):
         comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
         ngroups = len(obs_ids)
 
-        comp_index = _ensure_platform_int(comp_index)
         stride = self.index.levshape[self.level] + self.lift
         self.full_shape = ngroups, stride
 
