@@ -87,7 +87,7 @@ cdef inline tuple block_op_add_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -282,7 +282,7 @@ cdef inline tuple block_op_add_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -477,7 +477,7 @@ cdef inline tuple block_op_sub_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -672,7 +672,7 @@ cdef inline tuple block_op_sub_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -867,7 +867,7 @@ cdef inline tuple block_op_mul_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -1062,7 +1062,7 @@ cdef inline tuple block_op_mul_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -1257,7 +1257,7 @@ cdef inline tuple block_op_div_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -1452,7 +1452,7 @@ cdef inline tuple block_op_div_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -1647,7 +1647,7 @@ cdef inline tuple block_op_mod_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -1842,7 +1842,7 @@ cdef inline tuple block_op_mod_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -2037,7 +2037,7 @@ cdef inline tuple block_op_truediv_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -2232,7 +2232,7 @@ cdef inline tuple block_op_truediv_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -2427,7 +2427,7 @@ cdef inline tuple block_op_floordiv_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -2622,7 +2622,7 @@ cdef inline tuple block_op_floordiv_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -2817,7 +2817,7 @@ cdef inline tuple block_op_pow_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -3012,7 +3012,7 @@ cdef inline tuple block_op_pow_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -3207,7 +3207,7 @@ cdef inline tuple block_op_eq_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -3402,7 +3402,7 @@ cdef inline tuple block_op_eq_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -3597,7 +3597,7 @@ cdef inline tuple block_op_ne_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -3792,7 +3792,7 @@ cdef inline tuple block_op_ne_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -3987,7 +3987,7 @@ cdef inline tuple block_op_lt_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -4182,7 +4182,7 @@ cdef inline tuple block_op_lt_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -4377,7 +4377,7 @@ cdef inline tuple block_op_gt_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -4572,7 +4572,7 @@ cdef inline tuple block_op_gt_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -4767,7 +4767,7 @@ cdef inline tuple block_op_le_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -4962,7 +4962,7 @@ cdef inline tuple block_op_le_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -5157,7 +5157,7 @@ cdef inline tuple block_op_ge_float64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -5352,7 +5352,7 @@ cdef inline tuple block_op_ge_int64(ndarray x_,
     cdef:
         BlockIndex out_index
         Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        int32_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
