@@ -216,7 +216,7 @@ pseudoxml:
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."
 
 OUTPUTDIR=_build/html
-DEPLOYREPOSITORY=pandas2.github.io
+DEPLOYREPOSITORY=pandas2-design
 
 deploy: html
 	if test -d $(OUTPUTDIR); \
@@ -225,7 +225,7 @@ deploy: html
 	fi
 	if test -d $(DEPLOYREPOSITORY); \
 	then echo "  (repository directory exists)"; \
-	else git clone git@github.com:pandas2/$(DEPLOYREPOSITORY).git; \
+	else git clone git@github.com:wesm/$(DEPLOYREPOSITORY).git; \
 	fi
 	cd $(DEPLOYREPOSITORY) && git pull
 	rsync -r $(OUTPUTDIR)/* $(DEPLOYREPOSITORY)/
