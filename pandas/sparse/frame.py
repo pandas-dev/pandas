@@ -235,8 +235,19 @@ class SparseDataFrame(DataFrame):
         data = dict((k, v.to_dense()) for k, v in compat.iteritems(self))
         return DataFrame(data, index=self.index, columns=self.columns)
 
+    def _apply_columns(self, func):
+        """ get new SparseDataFrame applying func to each columns """
+
+        new_data = {}
+        for col, series in compat.iteritems(self):
+            new_data[col] = func(series)
+
+        return self._constructor(
+            data=new_data, index=self.index, columns=self.columns,
+            default_fill_value=self.default_fill_value).__finalize__(self)
+
     def astype(self, dtype):
-        raise NotImplementedError
+        return self._apply_columns(lambda x: x.astype(dtype))
 
     def copy(self, deep=True):
         """
@@ -499,13 +510,7 @@ class SparseDataFrame(DataFrame):
             default_fill_value=self.default_fill_value).__finalize__(self)
 
     def _combine_const(self, other, func):
-        new_data = {}
-        for col, series in compat.iteritems(self):
-            new_data[col] = func(series, other)
-
-        return self._constructor(
-            data=new_data, index=self.index, columns=self.columns,
-            default_fill_value=self.default_fill_value).__finalize__(self)
+        return self._apply_columns(lambda x: func(x, other))
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
                        limit=None, takeable=False):
@@ -706,7 +711,7 @@ class SparseDataFrame(DataFrame):
             new_series = {}
             for k, v in compat.iteritems(self):
                 applied = func(v)
-                applied.fill_value = func(applied.fill_value)
+                applied.fill_value = func(v.fill_value)
                 new_series[k] = applied
             return self._constructor(
                 new_series, index=self.index, columns=self.columns,

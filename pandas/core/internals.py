@@ -2446,15 +2446,14 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         else:
             indexer[:periods] = np.arange(-periods, N)
 
-        # move to UTC & take
-        new_values = self.values.tz_localize(None).asi8.take(indexer)
+        new_values = self.values.asi8.take(indexer)
 
         if periods > 0:
             new_values[:periods] = tslib.iNaT
         else:
             new_values[periods:] = tslib.iNaT
 
-        new_values = DatetimeIndex(new_values, tz=self.values.tz)
+        new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
 
@@ -2512,6 +2511,14 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     def kind(self):
         return self.values.kind
 
+    def _astype(self, dtype, copy=False, raise_on_error=True, values=None,
+                klass=None, mgr=None, **kwargs):
+        if values is None:
+            values = self.values
+        values = values.astype(dtype, copy=copy)
+        return self.make_block_same_class(values=values,
+                                          placement=self.mgr_locs)
+
     def __len__(self):
         try:
             return self.sp_index.length
@@ -2529,7 +2536,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                               copy=False, fastpath=True, **kwargs):
         """ return a new block """
         if dtype is None:
-            dtype = self.dtype
+            dtype = values.dtype
         if fill_value is None and not isinstance(values, SparseArray):
             fill_value = self.values.fill_value
 

@@ -512,6 +512,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
                                       name=self.bseries.name))
 
     def test_operators(self):
+
         def _check_op(a, b, op):
             sp_result = op(a, b)
             adense = a.to_dense() if isinstance(a, SparseSeries) else a
@@ -577,6 +578,21 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_abs(self):
         s = SparseSeries([1, 2, -3], name='x')
         expected = SparseSeries([1, 2, 3], name='x')
+        result = s.abs()
+        tm.assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
+        result = abs(s)
+        tm.assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
+        result = np.abs(s)
+        tm.assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
+        s = SparseSeries([1, -2, 2, -3], fill_value=-2, name='x')
+        expected = SparseSeries([1, 2, 3], sparse_index=s.sp_index,
+                                fill_value=2, name='x')
         result = s.abs()
         tm.assert_sp_series_equal(result, expected)
         self.assertEqual(result.name, 'x')
@@ -781,7 +797,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         cop2 = self.zbseries.copy()
         cop2.fill_value = 1
         result = cop2 / cop
-        self.assertTrue(np.isnan(result.fill_value))
+        # 1 / 0 is inf
+        self.assertTrue(np.isinf(result.fill_value))
 
     def test_fill_value_when_combine_const(self):
         # GH12723
@@ -1239,6 +1256,7 @@ def _dense_series_compare(s, f):
 
 
 class TestSparseSeriesAnalytics(tm.TestCase):
+
     def setUp(self):
         arr, index = _test_data1()
         self.bseries = SparseSeries(arr, index=index, kind='block',
@@ -1287,6 +1305,7 @@ class TestSparseSeriesAnalytics(tm.TestCase):
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
+
 
 if __name__ == '__main__':
     import nose

@@ -850,6 +850,9 @@ class TestConcatenate(ConcatenateBase):
             ([0, 1, 2], [2, 3, 4], [0, 1, 2, 2, 3, 4]),
             ([0, 1.2, 2], [2, 3.4, 4], [0, 1.2, 2, 2, 3.4, 4]),
 
+            (['b', 'b', np.nan, 'a'], ['a', np.nan, 'c'],
+             ['b', 'b', np.nan, 'a', 'a', np.nan, 'c']),
+
             (pd.date_range('2014-01-01', '2014-01-05'),
              pd.date_range('2014-01-06', '2014-01-07'),
              pd.date_range('2014-01-01', '2014-01-07')),
@@ -1001,6 +1004,13 @@ class TestConcatenate(ConcatenateBase):
         # fastpath
         c1 = Categorical(['a', 'b'], categories=['b', 'a', 'c'])
         c2 = Categorical(['b', 'c'], categories=['b', 'a', 'c'])
+        result = union_categoricals([c1, c2], sort_categories=True)
+        expected = Categorical(['a', 'b', 'b', 'c'],
+                               categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Categorical(['a', 'b'], categories=['c', 'a', 'b'])
+        c2 = Categorical(['b', 'c'], categories=['c', 'a', 'b'])
         result = union_categoricals([c1, c2], sort_categories=True)
         expected = Categorical(['a', 'b', 'b', 'c'],
                                categories=['a', 'b', 'c'])

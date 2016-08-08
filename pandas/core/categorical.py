@@ -328,11 +328,16 @@ class Categorical(PandasObject):
         self._categories = categories
         self._codes = _coerce_indexer_dtype(codes, categories)
 
+    @property
+    def _constructor(self):
+        return Categorical
+
     def copy(self):
         """ Copy constructor. """
-        return Categorical(values=self._codes.copy(),
-                           categories=self.categories, ordered=self.ordered,
-                           fastpath=True)
+        return self._constructor(values=self._codes.copy(),
+                                 categories=self.categories,
+                                 ordered=self.ordered,
+                                 fastpath=True)
 
     def astype(self, dtype, copy=True):
         """
@@ -414,7 +419,7 @@ class Categorical(PandasObject):
             Can be an Index or array-like. The categories are assumed to be
             the unique values of `data`.
         """
-        return Categorical(data, **kwargs)
+        return cls(data, **kwargs)
 
     @classmethod
     def from_codes(cls, codes, categories, ordered=False, name=None):
@@ -458,8 +463,8 @@ class Categorical(PandasObject):
             raise ValueError("codes need to be between -1 and "
                              "len(categories)-1")
 
-        return Categorical(codes, categories=categories, ordered=ordered,
-                           fastpath=True)
+        return cls(codes, categories=categories, ordered=ordered,
+                   fastpath=True)
 
     _codes = None
 
@@ -916,9 +921,9 @@ class Categorical(PandasObject):
         """
         new_categories = self.categories.map(mapper)
         try:
-            return Categorical.from_codes(self._codes.copy(),
-                                          categories=new_categories,
-                                          ordered=self.ordered)
+            return self.from_codes(self._codes.copy(),
+                                   categories=new_categories,
+                                   ordered=self.ordered)
         except ValueError:
             return np.take(new_categories, self._codes)
 
@@ -968,8 +973,8 @@ class Categorical(PandasObject):
             else:
                 codes[periods:] = -1
 
-        return Categorical.from_codes(codes, categories=self.categories,
-                                      ordered=self.ordered)
+        return self.from_codes(codes, categories=self.categories,
+                               ordered=self.ordered)
 
     def __array__(self, dtype=None):
         """
@@ -1159,8 +1164,8 @@ class Categorical(PandasObject):
             count = bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
 
-        ix = Categorical(ix, categories=cat, ordered=obj.ordered,
-                         fastpath=True)
+        ix = self._constructor(ix, categories=cat, ordered=obj.ordered,
+                               fastpath=True)
 
         return Series(count, index=CategoricalIndex(ix), dtype='int64')
 
@@ -1313,8 +1318,8 @@ class Categorical(PandasObject):
             self._codes = codes
             return
         else:
-            return Categorical(values=codes, categories=self.categories,
-                               ordered=self.ordered, fastpath=True)
+            return self._constructor(values=codes, categories=self.categories,
+                                     ordered=self.ordered, fastpath=True)
 
     def order(self, inplace=False, ascending=True, na_position='last'):
         """
@@ -1441,8 +1446,8 @@ class Categorical(PandasObject):
                 values = values.copy()
                 values[mask] = self.categories.get_loc(value)
 
-        return Categorical(values, categories=self.categories,
-                           ordered=self.ordered, fastpath=True)
+        return self._constructor(values, categories=self.categories,
+                                 ordered=self.ordered, fastpath=True)
 
     def take_nd(self, indexer, allow_fill=True, fill_value=None):
         """ Take the codes by the indexer, fill with the fill_value.
@@ -1455,8 +1460,8 @@ class Categorical(PandasObject):
         assert isnull(fill_value)
 
         codes = take_1d(self._codes, indexer, allow_fill=True, fill_value=-1)
-        result = Categorical(codes, categories=self.categories,
-                             ordered=self.ordered, fastpath=True)
+        result = self._constructor(codes, categories=self.categories,
+                                   ordered=self.ordered, fastpath=True)
         return result
 
     take = take_nd
@@ -1476,8 +1481,8 @@ class Categorical(PandasObject):
             slicer = slicer[1]
 
         _codes = self._codes[slicer]
-        return Categorical(values=_codes, categories=self.categories,
-                           ordered=self.ordered, fastpath=True)
+        return self._constructor(values=_codes, categories=self.categories,
+                                 ordered=self.ordered, fastpath=True)
 
     def __len__(self):
         """The length of this Categorical."""
@@ -1588,10 +1593,9 @@ class Categorical(PandasObject):
             else:
                 return self.categories[i]
         else:
-            return Categorical(values=self._codes[key],
-                               categories=self.categories,
-                               ordered=self.ordered,
-                               fastpath=True)
+            return self._constructor(values=self._codes[key],
+                                     categories=self.categories,
+                                     ordered=self.ordered, fastpath=True)
 
     def __setitem__(self, key, value):
         """ Item assignment.
@@ -1742,8 +1746,8 @@ class Categorical(PandasObject):
         import pandas.hashtable as htable
         good = self._codes != -1
         values = sorted(htable.mode_int64(_ensure_int64(self._codes[good])))
-        result = Categorical(values=values, categories=self.categories,
-                             ordered=self.ordered, fastpath=True)
+        result = self._constructor(values=values, categories=self.categories,
+                                   ordered=self.ordered, fastpath=True)
         return result
 
     def unique(self):
@@ -1837,8 +1841,8 @@ class Categorical(PandasObject):
         """
         nv.validate_repeat(args, kwargs)
         codes = self._codes.repeat(repeats)
-        return Categorical(values=codes, categories=self.categories,
-                           ordered=self.ordered, fastpath=True)
+        return self._constructor(values=codes, categories=self.categories,
+                                 ordered=self.ordered, fastpath=True)
 
 # The Series.cat accessor
 

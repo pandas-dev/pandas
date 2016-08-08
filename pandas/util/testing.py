@@ -43,7 +43,7 @@ from pandas.compat import(
 
 from pandas.computation import expressions as expr
 
-from pandas import (bdate_range, CategoricalIndex, DatetimeIndex,
+from pandas import (bdate_range, CategoricalIndex, Categorical, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, RangeIndex, Index, MultiIndex,
                     Series, DataFrame, Panel, Panel4D)
 from pandas.util.decorators import deprecate
@@ -1040,7 +1040,7 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         Specify object name being compared, internally used to show appropriate
         assertion message
     check_same : None|'copy'|'same', default None
-        Ensure "left" and "right refer/do not refer to the same memory area
+        Ensure left and right refer/do not refer to the same memory area
     """
 
     # instance validation
@@ -2668,6 +2668,13 @@ class SubclassedSparseDataFrame(pd.SparseDataFrame):
     @property
     def _constructor_sliced(self):
         return SubclassedSparseSeries
+
+
+class SubclassedCategorical(Categorical):
+
+    @property
+    def _constructor(self):
+        return SubclassedCategorical
 
 
 @contextmanager
