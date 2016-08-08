@@ -4435,17 +4435,6 @@ def _interleaved_dtype(blocks):
     for x in blocks:
         counts[type(x)].append(x)
 
-    def _lcd_dtype(l):
-        """ find the lowest dtype that can accomodate the given types """
-        m = l[0].dtype
-        for x in l[1:]:
-            # the new dtype must either be wider or a strict subtype
-            if (x.dtype.itemsize > m.itemsize or
-                    (np.issubdtype(m, x.dtype) and
-                     not np.issubdtype(x.dtype, m))):
-                m = x.dtype
-        return m
-
     have_int = len(counts[IntBlock]) > 0
     have_bool = len(counts[BoolBlock]) > 0
     have_object = len(counts[ObjectBlock]) > 0
@@ -4458,7 +4447,6 @@ def _interleaved_dtype(blocks):
     # TODO: have_sparse is not used
     have_sparse = len(counts[SparseBlock]) > 0  # noqa
     have_numeric = have_float or have_complex or have_int
-
     has_non_numeric = have_dt64 or have_dt64_tz or have_td64 or have_cat
 
     if (have_object or
@@ -4470,10 +4458,9 @@ def _interleaved_dtype(blocks):
     elif have_bool:
         return np.dtype(bool)
     elif have_int and not have_float and not have_complex:
-
         # if we are mixing unsigned and signed, then return
         # the next biggest int type (if we can)
-        lcd = _lcd_dtype(counts[IntBlock])
+        lcd = np.find_common_type([b.dtype for b in counts[IntBlock]], [])
         kinds = set([i.dtype.kind for i in counts[IntBlock]])
         if len(kinds) == 1:
             return lcd
@@ -4489,7 +4476,8 @@ def _interleaved_dtype(blocks):
     elif have_complex:
         return np.dtype('c16')
     else:
-        return _lcd_dtype(counts[FloatBlock] + counts[SparseBlock])
+        introspection_blks = counts[FloatBlock] + counts[SparseBlock]
+        return np.find_common_type([b.dtype for b in introspection_blks], [])
 
 
 def _consolidate(blocks):
