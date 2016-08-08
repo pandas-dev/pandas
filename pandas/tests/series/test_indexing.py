@@ -1856,3 +1856,29 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         result2 = s.ix['foo']
         self.assertEqual(result.name, s.name)
         self.assertEqual(result2.name, s.name)
+
+
+class TestSparseSeriesMultitype(tm.TestCase):
+    def setUp(self):
+        super(TestSparseSeriesMultitype, self).setUp()
+        self.index = ['string', 'int', 'float', 'object']
+        self.ss = pd.SparseSeries(['a', 1, 1.1, []],
+                                  index=self.index)
+
+    def test_indexing_single(self):
+        for i, idx in enumerate(self.index):
+            self.assertEqual(self.ss.iloc[i], self.ss[idx])
+            self.assertEqual(type(self.ss.iloc[i]),
+                             type(self.ss[idx]))
+        self.assertEqual(self.ss['string'], 'a')
+        self.assertEqual(self.ss['int'], 1)
+        self.assertEqual(self.ss['float'], 1.1)
+        self.assertEqual(self.ss['object'], [])
+
+    def test_indexing_multiple(self):
+        tm.assert_sp_series_equal(self.ss.loc[['string', 'int']],
+                                  pd.SparseSeries(['a', 1],
+                                                  index=['string', 'int']))
+        tm.assert_sp_series_equal(self.ss.loc[['string', 'object']],
+                                  pd.SparseSeries(['a', []],
+                                                  index=['string', 'object']))
