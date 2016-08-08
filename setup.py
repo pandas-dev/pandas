@@ -109,7 +109,7 @@ _pxipath = pjoin('pandas', 'src')
 _pxifiles = ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
              'join_helper.pxi.in', 'algos_take_helper.pxi.in',
              'hashtable_class_helper.pxi.in', 'hashtable_func_helper.pxi.in',
-             'sparse_op_helper.pxi.in']
+             'sparse_op_helper.pxi.in', 'joins_func_helper.pxi.in']
 
 
 class build_ext(_build_ext):

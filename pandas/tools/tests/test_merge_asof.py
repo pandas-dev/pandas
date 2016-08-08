@@ -364,6 +364,100 @@ class TestAsOfMerge(tm.TestCase):
             'version': [np.nan, np.nan]})
         assert_frame_equal(result, expected)
 
+    def test_by_int(self):
+        # we specialize by type, so test that this is correct
+        df1 = pd.DataFrame({
+            'time': pd.to_datetime(['20160525 13:30:00.020',
+                                    '20160525 13:30:00.030',
+                                    '20160525 13:30:00.040',
+                                    '20160525 13:30:00.050',
+                                    '20160525 13:30:00.060']),
+            'key': [1, 2, 1, 3, 2],
+            'value1': [1.1, 1.2, 1.3, 1.4, 1.5]},
+            columns=['time', 'key', 'value1'])
+
+        df2 = pd.DataFrame({
+            'time': pd.to_datetime(['20160525 13:30:00.015',
+                                    '20160525 13:30:00.020',
+                                    '20160525 13:30:00.025',
+                                    '20160525 13:30:00.035',
+                                    '20160525 13:30:00.040',
+                                    '20160525 13:30:00.055',
+                                    '20160525 13:30:00.060',
+                                    '20160525 13:30:00.065']),
+            'key': [2, 1, 1, 3, 2, 1, 2, 3],
+            'value2': [2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8]},
+            columns=['time', 'key', 'value2'])
+
+        result = pd.merge_asof(df1, df2, on='time', by='key')
+
+        expected = pd.DataFrame({
+            'time': pd.to_datetime(['20160525 13:30:00.020',
+                                    '20160525 13:30:00.030',
+                                    '20160525 13:30:00.040',
+                                    '20160525 13:30:00.050',
+                                    '20160525 13:30:00.060']),
+            'key': [1, 2, 1, 3, 2],
+            'value1': [1.1, 1.2, 1.3, 1.4, 1.5],
+            'value2': [2.2, 2.1, 2.3, 2.4, 2.7]},
+            columns=['time', 'key', 'value1', 'value2'])
+
+        assert_frame_equal(result, expected)
+
+    def test_on_float(self):
+        # mimics how to determine the minimum-price variation
+        df1 = pd.DataFrame({
+            'price': [5.01, 0.0023, 25.13, 340.05, 30.78, 1040.90, 0.0078],
+            'symbol': list("ABCDEFG")},
+            columns=['symbol', 'price'])
+
+        df2 = pd.DataFrame({
+            'price': [0.0, 1.0, 100.0],
+            'mpv': [0.0001, 0.01, 0.05]},
+            columns=['price', 'mpv'])
+
+        df1 = df1.sort_values('price').reset_index(drop=True)
+
+        result = pd.merge_asof(df1, df2, on='price')
+
+        expected = pd.DataFrame({
+            'symbol': list("BGACEDF"),
+            'price': [0.0023, 0.0078, 5.01, 25.13, 30.78, 340.05, 1040.90],
+            'mpv': [0.0001, 0.0001, 0.01, 0.01, 0.01, 0.05, 0.05]},
+            columns=['symbol', 'price', 'mpv'])
+
+        assert_frame_equal(result, expected)
+
+    def test_on_float_by_int(self):
+        # type specialize both "by" and "on" parameters
+        df1 = pd.DataFrame({
+            'symbol': list("AAABBBCCC"),
+            'exch': [1, 2, 3, 1, 2, 3, 1, 2, 3],
+            'price': [3.26, 3.2599, 3.2598, 12.58, 12.59,
+                      12.5, 378.15, 378.2, 378.25]},
+            columns=['symbol', 'exch', 'price'])
+
+        df2 = pd.DataFrame({
+            'exch': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            'price': [0.0, 1.0, 100.0, 0.0, 5.0, 100.0, 0.0, 5.0, 1000.0],
+            'mpv': [0.0001, 0.01, 0.05, 0.0001, 0.01, 0.1, 0.0001, 0.25, 1.0]},
+            columns=['exch', 'price', 'mpv'])
+
+        df1 = df1.sort_values('price').reset_index(drop=True)
+        df2 = df2.sort_values('price').reset_index(drop=True)
+
+        result = pd.merge_asof(df1, df2, on='price', by='exch')
+
+        expected = pd.DataFrame({
+            'symbol': list("AAABBBCCC"),
+            'exch': [3, 2, 1, 3, 1, 2, 1, 2, 3],
+            'price': [3.2598, 3.2599, 3.26, 12.5, 12.58,
+                      12.59, 378.15, 378.2, 378.25],
+            'mpv': [0.0001, 0.0001, 0.01, 0.25, 0.01, 0.01, 0.05, 0.1, 0.25]},
+            columns=['symbol', 'exch', 'price', 'mpv'])
+
+        assert_frame_equal(result, expected)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

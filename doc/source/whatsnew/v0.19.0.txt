@@ -48,7 +48,7 @@ The following are now part of this API:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A long-time requested feature has been added through the :func:`merge_asof` function, to
-support asof style joining of time-series. (:issue:`1870`, :issue:`13695`, :issue:`13709`). Full documentation is
+support asof style joining of time-series. (:issue:`1870`, :issue:`13695`, :issue:`13709`, :issue:`13902`). Full documentation is
 :ref:`here <merging.merge_asof>`
 
 The :func:`merge_asof` performs an asof merge, which is similar to a left-join
