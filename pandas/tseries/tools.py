@@ -307,7 +307,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1 loop, best of 3: 471 ms per loop
 
     Using non-epoch origins to parse date
-    
+
     >>> pd.to_datetime([1,2,3], unit='D', origin=Timestamp('1960-01-01'))
     0    1960-01-01
     1    1960-01-02
@@ -455,12 +455,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         try:
             offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
         except ValueError:
-            if errors == 'raise':
-                raise ValueError("Invalid Origin or Origin Out of Bound")
-            elif errors == 'coerce':
-                offset = tslib.NaT
-            elif errors == 'ignore':
-                return arg
+            raise ValueError("Invalid Origin or Origin Out of Bound")
 
     if offset is not None:
         result = result + offset

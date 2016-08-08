@@ -810,28 +810,9 @@ class TestTimeSeries(tm.TestCase):
 
             # check for invalid origins
             for origin in invalid_origins:
-
-                # errors = 'raise'
                 with self.assertRaises(ValueError):
                     pd.to_datetime(units_from_epoch, unit=unit,
                                    origin=origin)
-
-                for unit in units:
-                    # errors = 'coerce'
-                    result = Series(pd.to_datetime(units_from_epoch,
-                                                   unit=unit,
-                                                   origin=origin,
-                                                   errors='coerce'))
-                    expected = Series([tslib.NaT, tslib.NaT, tslib.NaT,
-                                       tslib.NaT, tslib.NaT])
-                    assert_series_equal(result, expected)
-
-                    # errors = 'ignore'
-                    result = Series(pd.to_datetime(units_from_epoch,
-                                                   unit=unit, origin=origin,
-                                                   errors='ignore'))
-                    expected = Series(units_from_epoch)
-                    assert_series_equal(result, expected)
 
     def test_series_ctor_datetime64(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
