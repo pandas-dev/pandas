@@ -739,7 +739,7 @@ cdef class _Period(object):
             msg = 'Input cannot be converted to Period(freq={0})'
             raise IncompatibleFrequency(msg.format(self.freqstr))
         elif isinstance(other, offsets.DateOffset):
-            freqstr = frequencies.get_standard_freq(other)
+            freqstr = other.rule_code
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 ordinal = self.ordinal + other.n
@@ -806,6 +806,7 @@ cdef class _Period(object):
         -------
         resampled : Period
         """
+        freq = self._maybe_convert_freq(freq)
         how = _validate_end_alias(how)
         base1, mult1 = frequencies.get_freq_code(self.freq)
         base2, mult2 = frequencies.get_freq_code(freq)
@@ -849,6 +850,8 @@ cdef class _Period(object):
         -------
         Timestamp
         """
+        if freq is not None:
+            freq = self._maybe_convert_freq(freq)
         how = _validate_end_alias(how)
 
         if freq is None:
@@ -1121,6 +1124,9 @@ class Period(_Period):
         # ordinal is the period offset from the gregorian proleptic epoch
 
         cdef _Period self
+
+        if freq is not None:
+            freq = cls._maybe_convert_freq(freq)
 
         if ordinal is not None and value is not None:
             raise ValueError(("Only value or ordinal but not both should be "

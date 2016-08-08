@@ -57,6 +57,7 @@ def dt64arr_to_periodarr(data, freq, tz):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
+    freq = Period._maybe_convert_freq(freq)
     base, mult = _gfc(freq)
     return period.dt64arr_to_periodarr(data.view('i8'), base, tz)
 
@@ -206,6 +207,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
+        if freq is not None:
+            freq = Period._maybe_convert_freq(freq)
+
         field_count = len(fields)
         if com._count_not_none(start, end) > 0:
             if field_count > 0:
@@ -222,6 +226,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _from_arraylike(cls, data, freq, tz):
+        if freq is not None:
+            freq = Period._maybe_convert_freq(freq)
+
         if not isinstance(data, (np.ndarray, PeriodIndex,
                                  DatetimeIndex, Int64Index)):
             if is_scalar(data) or isinstance(data, Period):
@@ -478,7 +485,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """
         how = _validate_end_alias(how)
 
-        freq = frequencies.get_standard_freq(freq)
+        freq = Period._maybe_convert_freq(freq)
 
         base1, mult1 = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
@@ -579,6 +586,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if freq is None:
             base, mult = _gfc(self.freq)
             freq = frequencies.get_to_timestamp_base(base)
+        else:
+            freq = Period._maybe_convert_freq(freq)
 
         base, mult = _gfc(freq)
         new_data = self.asfreq(freq, how)
@@ -596,7 +605,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 if nanos % offset_nanos == 0:
                     return nanos // offset_nanos
         elif isinstance(other, offsets.DateOffset):
-            freqstr = frequencies.get_standard_freq(other)
+            freqstr = other.rule_code
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 return other.n

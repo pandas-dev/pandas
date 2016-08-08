@@ -102,6 +102,9 @@ class TestPeriodProperties(tm.TestCase):
         p = Period(tslib.iNaT, freq='3D')
         self.assertIs(p, pd.NaT)
 
+        p = Period(tslib.iNaT, freq='1D1H')
+        self.assertIs(p, pd.NaT)
+
         p = Period('NaT')
         self.assertIs(p, pd.NaT)
 
@@ -151,6 +154,73 @@ class TestPeriodProperties(tm.TestCase):
         msg = ('Frequency must be positive, because it' ' represents span: 0M')
         with tm.assertRaisesRegexp(ValueError, msg):
             Period('2011-01', freq='0M')
+
+    def test_period_cons_combined(self):
+        p = [(Period('2011-01', freq='1D1H'),
+              Period('2011-01', freq='1H1D'),
+              Period('2011-01', freq='H')),
+             (Period(ordinal=1, freq='1D1H'),
+              Period(ordinal=1, freq='1H1D'),
+              Period(ordinal=1, freq='H'))]
+
+        for p1, p2, p3 in p:
+            self.assertEqual(p1.ordinal, p3.ordinal)
+            self.assertEqual(p2.ordinal, p3.ordinal)
+
+            self.assertEqual(p1.freq, offsets.Hour(25))
+            self.assertEqual(p1.freqstr, '25H')
+
+            self.assertEqual(p2.freq, offsets.Hour(25))
+            self.assertEqual(p2.freqstr, '25H')
+
+            self.assertEqual(p3.freq, offsets.Hour())
+            self.assertEqual(p3.freqstr, 'H')
+
+            result = p1 + 1
+            self.assertEqual(result.ordinal, (p3 + 25).ordinal)
+            self.assertEqual(result.freq, p1.freq)
+            self.assertEqual(result.freqstr, '25H')
+
+            result = p2 + 1
+            self.assertEqual(result.ordinal, (p3 + 25).ordinal)
+            self.assertEqual(result.freq, p2.freq)
+            self.assertEqual(result.freqstr, '25H')
+
+            result = p1 - 1
+            self.assertEqual(result.ordinal, (p3 - 25).ordinal)
+            self.assertEqual(result.freq, p1.freq)
+            self.assertEqual(result.freqstr, '25H')
+
+            result = p2 - 1
+            self.assertEqual(result.ordinal, (p3 - 25).ordinal)
+            self.assertEqual(result.freq, p2.freq)
+            self.assertEqual(result.freqstr, '25H')
+
+        msg = ('Frequency must be positive, because it'
+               ' represents span: -25H')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            Period('2011-01', freq='-1D1H')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            Period('2011-01', freq='-1H1D')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            Period(ordinal=1, freq='-1D1H')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            Period(ordinal=1, freq='-1H1D')
+
+        msg = ('Frequency must be positive, because it'
+               ' represents span: 0D')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            Period('2011-01', freq='0D0H')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            Period(ordinal=1, freq='0D0H')
+
+        # You can only combine together day and intraday offsets
+        msg = ('Invalid frequency: 1W1D')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            Period('2011-01', freq='1W1D')
+        msg = ('Invalid frequency: 1D1W')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            Period('2011-01', freq='1D1W')
 
     def test_timestamp_tz_arg(self):
         tm._skip_if_no_pytz()
@@ -622,6 +692,14 @@ class TestPeriodProperties(tm.TestCase):
         # Test for GH 11738
         p = Period('2012', freq='15D')
         xp = _ex(2012, 1, 16)
+        self.assertEqual(xp, p.end_time)
+
+        p = Period('2012', freq='1D1H')
+        xp = _ex(2012, 1, 2, 1)
+        self.assertEqual(xp, p.end_time)
+
+        p = Period('2012', freq='1H1D')
+        xp = _ex(2012, 1, 2, 1)
         self.assertEqual(xp, p.end_time)
 
     def test_anchor_week_end_time(self):
@@ -1518,6 +1596,44 @@ class TestFreqConversion(tm.TestCase):
             self.assertEqual(result.ordinal, expected.ordinal)
             self.assertEqual(result.freq, expected.freq)
 
+    def test_asfreq_combined(self):
+        # normal freq to combined freq
+        p = Period('2007', freq='H')
+
+        # ordinal will not change
+        expected = Period('2007', freq='25H')
+        for freq, how in zip(['1D1H', '1H1D'], ['E', 'S']):
+            result = p.asfreq(freq, how=how)
+            self.assertEqual(result, expected)
+            self.assertEqual(result.ordinal, expected.ordinal)
+            self.assertEqual(result.freq, expected.freq)
+
+        # combined freq to normal freq
+        p1 = Period(freq='1D1H', year=2007)
+        p2 = Period(freq='1H1D', year=2007)
+
+        # ordinal will change because how=E is the default
+        result1 = p1.asfreq('H')
+        result2 = p2.asfreq('H')
+        expected = Period('2007-01-02', freq='H')
+        self.assertEqual(result1, expected)
+        self.assertEqual(result1.ordinal, expected.ordinal)
+        self.assertEqual(result1.freq, expected.freq)
+        self.assertEqual(result2, expected)
+        self.assertEqual(result2.ordinal, expected.ordinal)
+        self.assertEqual(result2.freq, expected.freq)
+
+        # ordinal will not change
+        result1 = p1.asfreq('H', how='S')
+        result2 = p2.asfreq('H', how='S')
+        expected = Period('2007-01-01', freq='H')
+        self.assertEqual(result1, expected)
+        self.assertEqual(result1.ordinal, expected.ordinal)
+        self.assertEqual(result1.freq, expected.freq)
+        self.assertEqual(result2, expected)
+        self.assertEqual(result2.ordinal, expected.ordinal)
+        self.assertEqual(result2.freq, expected.freq)
+
     def test_is_leap_year(self):
         # GH 13727
         for freq in ['A', 'M', 'D', 'H']:
@@ -1861,6 +1977,17 @@ class TestPeriodIndex(tm.TestCase):
                                   periods=10).to_period(freqstr)
             tm.assert_index_equal(pidx, expected)
 
+    def test_constructor_freq_combined(self):
+        for freq in ['1D1H', '1H1D']:
+            pidx = PeriodIndex(['2016-01-01', '2016-01-02'], freq=freq)
+            expected = PeriodIndex(['2016-01-01 00:00', '2016-01-02 00:00'],
+                                   freq='25H')
+        for freq, func in zip(['1D1H', '1H1D'], [PeriodIndex, period_range]):
+            pidx = func(start='2016-01-01', periods=2, freq=freq)
+            expected = PeriodIndex(['2016-01-01 00:00', '2016-01-02 01:00'],
+                                   freq='25H')
+            tm.assert_index_equal(pidx, expected)
+
     def test_is_(self):
         create_index = lambda: PeriodIndex(freq='A', start='1/1/2001',
                                            end='12/1/2009')
@@ -2128,6 +2255,21 @@ class TestPeriodIndex(tm.TestCase):
         result = idx.to_timestamp(how='E')
         expected = DatetimeIndex(
             ['2011-02-28', 'NaT', '2011-03-31'], name='idx')
+        self.assert_index_equal(result, expected)
+
+    def test_to_timestamp_pi_combined(self):
+        idx = PeriodIndex(start='2011', periods=2, freq='1D1H', name='idx')
+        result = idx.to_timestamp()
+        expected = DatetimeIndex(
+            ['2011-01-01 00:00', '2011-01-02 01:00'], name='idx')
+        self.assert_index_equal(result, expected)
+        result = idx.to_timestamp(how='E')
+        expected = DatetimeIndex(
+            ['2011-01-02 00:59:59', '2011-01-03 01:59:59'], name='idx')
+        self.assert_index_equal(result, expected)
+        result = idx.to_timestamp(how='E', freq='H')
+        expected = DatetimeIndex(
+            ['2011-01-02 00:00', '2011-01-03 01:00'], name='idx')
         self.assert_index_equal(result, expected)
 
     def test_start_time(self):
@@ -2538,6 +2680,33 @@ class TestPeriodIndex(tm.TestCase):
             result = pi.asfreq(freq, how='S')
             exp = PeriodIndex(['2001-01-01', '2001-02-01', 'NaT',
                                '2001-03-01'], freq=freq)
+            self.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, exp.freq)
+
+    def test_asfreq_combined_pi(self):
+        pi = pd.PeriodIndex(['2001-01-01 00:00', '2001-01-02 02:00', 'NaT'],
+                            freq='H')
+        exp = PeriodIndex(['2001-01-01 00:00', '2001-01-02 02:00', 'NaT'],
+                          freq='25H')
+        for freq, how in zip(['1D1H', '1H1D'], ['S', 'E']):
+            result = pi.asfreq(freq, how=how)
+            self.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, exp.freq)
+
+        for freq in ['1D1H', '1H1D']:
+            pi = pd.PeriodIndex(['2001-01-01 00:00', '2001-01-02 02:00',
+                                 'NaT'], freq=freq)
+            result = pi.asfreq('H')
+            exp = PeriodIndex(['2001-01-02 00:00', '2001-01-03 02:00', 'NaT'],
+                              freq='H')
+            self.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, exp.freq)
+
+            pi = pd.PeriodIndex(['2001-01-01 00:00', '2001-01-02 02:00',
+                                 'NaT'], freq=freq)
+            result = pi.asfreq('H', how='S')
+            exp = PeriodIndex(['2001-01-01 00:00', '2001-01-02 02:00', 'NaT'],
+                              freq='H')
             self.assert_index_equal(result, exp)
             self.assertEqual(result.freq, exp.freq)
 

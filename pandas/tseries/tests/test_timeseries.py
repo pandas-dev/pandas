@@ -4700,7 +4700,8 @@ class TestTimestamp(tm.TestCase):
 
         self.assertRaises(ValueError, frequencies.to_offset, ('', ''))
 
-        result = frequencies.get_standard_freq(offsets.Hour())
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = frequencies.get_standard_freq(offsets.Hour())
         self.assertEqual(result, 'H')
 
     def test_hash_equivalent(self):

@@ -15,7 +15,7 @@ from pandas.types.common import (is_integer,
 import pandas.core.algorithms as algos
 from pandas.core.algorithms import unique
 from pandas.tseries.offsets import DateOffset
-from pandas.util.decorators import cache_readonly
+from pandas.util.decorators import cache_readonly, deprecate_kwarg
 import pandas.tseries.offsets as offsets
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -386,37 +386,71 @@ _name_to_offset_map = {'days': Day(1),
 _INVALID_FREQ_ERROR = "Invalid frequency: {0}"
 
 
-def to_offset(freqstr):
+@deprecate_kwarg(old_arg_name='freqstr', new_arg_name='freq')
+def to_offset(freq):
     """
-    Return DateOffset object from string representation or
-    Timedelta object
+    Return DateOffset object from string or tuple representation
+    or datetime.timedelta object
+
+    Parameters
+    ----------
+    freq : str, tuple, datetime.timedelta, DateOffset or None
+
+    Returns
+    -------
+    delta : DateOffset
+        None if freq is None
+
+    Raises
+    ------
+    ValueError
+        If freq is an invalid frequency
+
+    See Also
+    --------
+    pandas.DateOffset
 
     Examples
     --------
-    >>> to_offset('5Min')
-    Minute(5)
+    >>> to_offset('5min')
+    <5 * Minutes>
+
+    >>> to_offset('1D1H')
+    <25 * Hours>
+
+    >>> to_offset(('W', 2))
+    <2 * Weeks: weekday=6>
+
+    >>> to_offset((2, 'B'))
+    <2 * BusinessDays>
+
+    >>> to_offset(datetime.timedelta(days=1))
+    <Day>
+
+    >>> to_offset(Hour())
+    <Hour>
     """
-    if freqstr is None:
+    if freq is None:
         return None
 
-    if isinstance(freqstr, DateOffset):
-        return freqstr
+    if isinstance(freq, DateOffset):
+        return freq
 
-    if isinstance(freqstr, tuple):
-        name = freqstr[0]
-        stride = freqstr[1]
+    if isinstance(freq, tuple):
+        name = freq[0]
+        stride = freq[1]
         if isinstance(stride, compat.string_types):
             name, stride = stride, name
         name, _ = _base_and_stride(name)
         delta = get_offset(name) * stride
 
-    elif isinstance(freqstr, timedelta):
+    elif isinstance(freq, timedelta):
         delta = None
-        freqstr = Timedelta(freqstr)
+        freq = Timedelta(freq)
         try:
-            for name in freqstr.components._fields:
+            for name in freq.components._fields:
                 offset = _name_to_offset_map[name]
-                stride = getattr(freqstr.components, name)
+                stride = getattr(freq.components, name)
                 if stride != 0:
                     offset = stride * offset
                     if delta is None:
@@ -424,13 +458,13 @@ def to_offset(freqstr):
                     else:
                         delta = delta + offset
         except Exception:
-            raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
+            raise ValueError(_INVALID_FREQ_ERROR.format(freq))
 
     else:
         delta = None
         stride_sign = None
         try:
-            for stride, name, _ in opattern.findall(freqstr):
+            for stride, name, _ in opattern.findall(freq):
                 offset = get_offset(name)
                 if stride_sign is None:
                     stride_sign = -1 if stride.startswith('-') else 1
@@ -443,10 +477,10 @@ def to_offset(freqstr):
                 else:
                     delta = delta + offset
         except Exception:
-            raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
+            raise ValueError(_INVALID_FREQ_ERROR.format(freq))
 
     if delta is None:
-        raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
+        raise ValueError(_INVALID_FREQ_ERROR.format(freq))
 
     return delta
 
@@ -542,14 +576,11 @@ def get_standard_freq(freq):
     """
     Return the standardized frequency string
     """
-    if freq is None:
-        return None
 
-    if isinstance(freq, DateOffset):
-        return freq.rule_code
-
-    code, stride = get_freq_code(freq)
-    return _get_freq_str(code, stride)
+    msg = ("get_standard_freq is deprecated. Use to_offset(freq).rule_code "
+           "instead.")
+    warnings.warn(msg, FutureWarning, stacklevel=2)
+    return to_offset(freq).rule_code
 
 # ---------------------------------------------------------------------
 # Period codes
