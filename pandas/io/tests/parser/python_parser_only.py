@@ -130,7 +130,8 @@ also also skip this
         except ImportError:
             raise nose.SkipTest('need gzip and bz2 to run')
 
-        data = open(self.csv1, 'rb').read()
+        with open(self.csv1, 'rb') as f:
+            data = f.read()
         data = data.replace(b',', b'::')
         expected = self.read_csv(self.csv1)
 

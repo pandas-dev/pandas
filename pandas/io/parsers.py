@@ -393,11 +393,15 @@ def _read(filepath_or_buffer, kwds):
         raise NotImplementedError("'nrows' and 'chunksize' cannot be used"
                                   " together yet.")
     elif nrows is not None:
-        return parser.read(nrows)
+        data = parser.read(nrows)
+        parser.close()
+        return data
     elif chunksize or iterator:
         return parser
 
-    return parser.read()
+    data = parser.read()
+    parser.close()
+    return data
 
 _parser_defaults = {
     'delimiter': None,
@@ -727,10 +731,7 @@ class TextFileReader(BaseIterator):
         self._make_engine(self.engine)
 
     def close(self):
-        try:
-            self._engine._reader.close()
-        except:
-            pass
+        self._engine.close()
 
     def _get_options_with_defaults(self, engine):
         kwds = self.orig_options
@@ -1057,8 +1058,13 @@ class ParserBase(object):
 
         self._first_chunk = True
 
+        # GH 13932
+        # keep references to file handles opened by the parser itself
+        self.handles = []
+
     def close(self):
-        self._reader.close()
+        for f in self.handles:
+            f.close()
 
     @property
     def _has_complex_date_col(self):
@@ -1356,6 +1362,7 @@ class CParserWrapper(ParserBase):
         if 'utf-16' in (kwds.get('encoding') or ''):
             if isinstance(src, compat.string_types):
                 src = open(src, 'rb')
+                self.handles.append(src)
             src = UTF8Recoder(src, kwds['encoding'])
             kwds['encoding'] = 'utf-8'
 
@@ -1760,6 +1767,7 @@ class PythonParser(ParserBase):
             f = TextIOWrapper(f, encoding=self.encoding)
 
         # Set self.data to something that can read lines.
+        self.handles.append(f)
         if hasattr(f, 'readline'):
             self._make_reader(f)
         else:
