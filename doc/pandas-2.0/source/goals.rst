@@ -7,7 +7,8 @@
 .. note::
 
   These documents are largely written by Wes McKinney, and at this point
-  reflect his opinions for the time being
+  reflect his opinions for the time being. Many things may change as we discuss
+  and work to reach a consensus about the path forward.
 
 The pandas codebase is now over 8 years old, having grown to over 200,000 lines
 of code from its original ~10,000 LOC in the original 0.1 open source release
