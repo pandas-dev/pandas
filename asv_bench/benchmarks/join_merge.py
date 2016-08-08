@@ -310,7 +310,7 @@ class merge_asof_noby(object):
         merge_asof(self.df1, self.df2, on='time')
 
 
-class merge_asof_by(object):
+class merge_asof_by_object(object):
 
     def setup(self):
         import string
@@ -326,7 +326,26 @@ class merge_asof_by(object):
         self.df1 = self.df1.sort_values('time')
         self.df2 = self.df2.sort_values('time')
 
-    def time_merge_asof_by(self):
+    def time_merge_asof_by_object(self):
+        merge_asof(self.df1, self.df2, on='time', by='key')
+
+
+class merge_asof_by_int(object):
+
+    def setup(self):
+        np.random.seed(0)
+        one_count = 200000
+        two_count = 1000000
+        self.df1 = pd.DataFrame({'time': np.random.randint(0, one_count/20, one_count),
+                                 'key': np.random.randint(0, 25, one_count),
+                                 'value1': np.random.randn(one_count)})
+        self.df2 = pd.DataFrame({'time': np.random.randint(0, two_count/20, two_count),
+                                 'key': np.random.randint(0, 25, two_count),
+                                 'value2': np.random.randn(two_count)})
+        self.df1 = self.df1.sort_values('time')
+        self.df2 = self.df2.sort_values('time')
+
+    def time_merge_asof_by_int(self):
         merge_asof(self.df1, self.df2, on='time', by='key')
 
 

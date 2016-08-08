@@ -34,6 +34,8 @@ cdef double nan = NaN
 
 from pandas.algos import groupsort_indexer
 
+include "joins_func_helper.pxi"
+
 
 def inner_join(ndarray[int64_t] left, ndarray[int64_t] right,
                Py_ssize_t max_groups):
@@ -158,64 +160,6 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
             rev = rev.astype(np.int_)
         right_indexer = right_indexer.take(rev)
         left_indexer = left_indexer.take(rev)
-
-    return left_indexer, right_indexer
-
-
-def left_outer_asof_join(ndarray[int64_t] left, ndarray[int64_t] right,
-                         Py_ssize_t max_groups,  # ignored
-                         bint allow_exact_matches=1,
-                         left_values=None,
-                         right_values=None,
-                         tolerance=None):
-
-    cdef:
-        Py_ssize_t left_pos, right_pos, left_size, right_size
-        ndarray[int64_t] left_indexer, right_indexer
-        bint has_tolerance = 0
-        ndarray[int64_t] left_values_, right_values_
-        int64_t tolerance_
-
-    # if we are using tolerance, set our objects
-    if (left_values is not None and right_values is not None and
-        tolerance is not None):
-        has_tolerance = 1
-        left_values_ = left_values
-        right_values_ = right_values
-        tolerance_ = tolerance
-
-    left_size = len(left)
-    right_size = len(right)
-
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
-
-    right_pos = 0
-    for left_pos in range(left_size):
-        # restart right_pos if it went negative in a previous iteration
-        if right_pos < 0:
-            right_pos = 0
-
-        # find last position in right whose value is less than left's value
-        if allow_exact_matches:
-            while (right_pos < right_size and
-                   right[right_pos] <= left[left_pos]):
-                right_pos += 1
-        else:
-            while (right_pos < right_size and
-                   right[right_pos] < left[left_pos]):
-                right_pos += 1
-        right_pos -= 1
-
-        # save positions as the desired index
-        left_indexer[left_pos] = left_pos
-        right_indexer[left_pos] = right_pos
-
-        # if needed, verify that tolerance is met
-        if has_tolerance and right_pos != -1:
-            diff = left_values[left_pos] - right_values[right_pos]
-            if diff > tolerance_:
-                right_indexer[left_pos] = -1
 
     return left_indexer, right_indexer
 
