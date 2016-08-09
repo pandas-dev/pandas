@@ -17,6 +17,10 @@ available in Python 3.
 Deprecated code to remove
 =========================
 
+* ``.ix`` indexing entirely
+* ``Panel`` and ``PanelND`` classes
+* Plotting?
+
 Other ideas
 ===========
 

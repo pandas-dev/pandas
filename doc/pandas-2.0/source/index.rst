@@ -14,7 +14,6 @@ project in the future.
    internal-architecture
    strings
    copyonwrite
-   capi
    removals
 
 .. Indices and tables
