@@ -192,33 +192,42 @@ class TestConvert(tm.TestCase):
 
 
 class TestCommonTypes(tm.TestCase):
-    def setUp(self):
-        super(TestCommonTypes, self).setUp()
-
     def test_numpy_dtypes(self):
+        # identity
         self.assertEqual(_find_common_type([np.int64]), np.int64)
         self.assertEqual(_find_common_type([np.uint64]), np.uint64)
         self.assertEqual(_find_common_type([np.float32]), np.float32)
         self.assertEqual(_find_common_type([np.object]), np.object)
 
+        # into ints
         self.assertEqual(_find_common_type([np.int16, np.int64]),
                          np.int64)
         self.assertEqual(_find_common_type([np.int32, np.uint32]),
                          np.int64)
+        self.assertEqual(_find_common_type([np.uint16, np.uint64]),
+                         np.uint64)
+
+        # into floats
+        self.assertEqual(_find_common_type([np.float16, np.float32]),
+                         np.float32)
+        self.assertEqual(_find_common_type([np.float16, np.int16]),
+                         np.float32)
+        self.assertEqual(_find_common_type([np.float32, np.int16]),
+                         np.float32)
+        self.assertEqual(_find_common_type([np.uint64, np.int64]),
+                         np.float64)
+        self.assertEqual(_find_common_type([np.int16, np.float64]),
+                         np.float64)
+        self.assertEqual(_find_common_type([np.float16, np.int64]),
+                         np.float64)
+
+        # into others
+        self.assertEqual(_find_common_type([np.complex128, np.int32]),
+                         np.complex128)
         self.assertEqual(_find_common_type([np.object, np.float32]),
                          np.object)
         self.assertEqual(_find_common_type([np.object, np.int16]),
                          np.object)
-        self.assertEqual(_find_common_type([np.int16, np.float64]),
-                         np.float64)
-        self.assertEqual(_find_common_type([np.float16, np.int16]),
-                         np.float32)
-        self.assertEqual(_find_common_type([np.float16, np.int64]),
-                         np.float64)
-        self.assertEqual(_find_common_type([np.complex128, np.int32]),
-                         np.complex128)
-        self.assertEqual(_find_common_type([np.uint64, np.int64]),
-                         np.float64)
 
     def test_pandas_dtypes(self):
         with self.assertRaises(TypeError):
