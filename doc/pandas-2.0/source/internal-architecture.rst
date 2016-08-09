@@ -17,7 +17,7 @@ Logical types and Physical Storage Decoupling
 
 Since this is the most important, but perhaps also most controversial, change
 (in my opinion) to pandas, I'm going to go over it in great detail. I think the
-hardest part of coming up with clear language and definitions for concepts so
+hardest part is coming up with clear language and definitions for concepts so
 that we can communicate effectively. For example the term "data type" is vague
 and may mean different things to different people.
 
@@ -124,9 +124,9 @@ types. For example: you could have a categorical type (a logical construct
 consisting of multiple arrays of data) whose categories are some other logical
 type.
 
-For historical reasons, **pandas never developed a clear semantic separation in
-its user API between logical and physical data types**. Also, the addition of
-new, pandas-only "synthetic" dtypes that are unknown to NumPy (like
+For historical reasons, **pandas never developed a clear or clean semantic
+separation in its user API between logical and physical data types**. Also, the
+addition of new, pandas-only "synthetic" dtypes that are unknown to NumPy (like
 categorical, datetimetz, etc.) has expanded this conflation considerably. If
 you also consider pandas's custom missing / NULL data behavior, the addition of
 ad hoc missing data semantics to a physical NumPy data type created, by the
@@ -168,7 +168,7 @@ The major goals of introducing a logical type abstraction are the follows:
   right code branches based on the data type.
 * Enabling pandas to decouple both its internal semantics and physical storage
   from NumPy's metadata and APIs. Note that this is already happening with
-  categorical types, since a particular instance ``CategoricalDtype`` may
+  categorical types, since a particular instance of ``CategoricalDtype`` may
   physically be stored in one of 4 NumPy data types.
 
 Physical storage decoupling
@@ -189,18 +189,69 @@ By separating pandas data from the presumption of using a particular physical
   data by forming a composite data structure consisting of a NumPy array plus a
   bitmap marking the null / not-null values.
 
+* We can start to think about improved behavior around data ownership (like
+  copy-on-write) which may yield many benefits. I will write a dedicated
+  section about this.
+
 Note that neither of these points implies that we are trying to use NumPy
-less. We already have large amounts of code that implement algorithms also
-found in NumPy (see ``pandas.unique`` or the implementation of ``Series.sum``),
-but taking into account pandas's missing data representation, etc. Internally,
-we can use NumPy when its computational semantics match those we've chosen for
-pandas, and elsewhere we can invoke pandas-specific code.
+less. We already have large amounts of code that implement algorithms similar
+to those found in NumPy (e.g. ``pandas.unique`` or the implementation of
+``Series.sum``), but taking into account pandas's missing data representation,
+etc. Internally, we can use NumPy when its computational semantics match those
+we've chosen for pandas, and elsewhere we can invoke pandas-specific code.
 
 A major concern here based on these ideas is **preserving NumPy
 interoperability**, so I'll examine this topic in some detail next.
 
 Preserving NumPy interoperability
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some of types of intended interoperability between NumPy and pandas are as
+follows:
+
+* Users can obtain the a ``numpy.ndarray`` (possibly a view depending on the
+  internal block structure, more on this soon) in constant time and without
+  copying the actual data. This has a couple other implications
+
+  * Changes made to this array will be reflected in the source pandas object.
+  * If you write C extension code (possibly in Cython) and respect pandas's
+    missing data details, you can invoke certain kinds of fast custom code on
+    pandas data (but it's somewhat inflexible -- see the latest discussion on
+    adding a native code API to pandas).
+
+* NumPy ufuncs (like ``np.sqrt`` or ``np.log``) can be invoked on
+  pandas objects like Series and DataFrame
+
+* ``numpy.asarray`` will always yield some array, even if it discards metadata
+  or has to create a new array. For example ``asarray`` invoked on
+  ``pandas.Categorical`` yields a reconstructed array (rather than either the
+  categories or codes internal arrays)
+
+* Many NumPy methods designed to work on subclasses (or duck-typed classes) of
+  ``ndarray`` may be used. For example ``numpy.sum`` may be used on a Series
+  even though it does not invoke NumPy's internal C sum algorithm. This means
+  that a Series may be used as an interchangeable argument in a large set of
+  functions that only know about NumPy arrays.
+
+By and large, I think much of this can be preserved, but there will be some API
+breakage.
+
+If we add more composite data structures (Categorical can be thought of as
+one existing composite data structure) to pandas or alternate non-NumPy data
+structures, there will be cases where the semantic information in a Series
+cannot be adequately represented in a NumPy array.
+
+As one example, if we add pandas-only missing data support to integer and
+boolean data (a long requested feature), calling ``np.asarray`` on such data
+may not have well-defined behavior. As present, pandas is implicitly converting
+these types to ``float64`` (see more below), which isn't too great. A decision
+does not need to be made now, but the benefits of solving this long-standing
+issue may merit breaking ``asarray`` as long as we provide an explicit way to
+obtain the original casted ``float64`` NumPy array (with ``NaN`` for NULL/NA
+values)
+
+For pandas data that does not step outside NumPy's semantic realm, we can
+continue to provide zero-copy views in many cases.
 
 Removal of BlockManager / new DataFrame internals
 =================================================
@@ -360,7 +411,7 @@ computations. Let's take for example:
 Profiling ``s.sum()`` with ``%prun`` in IPython, I am seeing 116 function
 calls (pandas 0.18.1). Let's look at the microperformance:
 
-.. code-block:: python
+.. code-block:: text
 
    In [14]: timeit s.sum()
    10000 loops, best of 3: 31.7 µs per loop

@@ -229,7 +229,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'pandas20DesignDocs.tex', 'pandas 2.0 Design Docs Documentation',
-     'pandas Core Team', 'manual'),
+     'Wes McKinney', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
