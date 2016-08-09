@@ -116,8 +116,8 @@ class TestMMapWrapper(tm.TestCase):
         tm.assertRaisesRegexp(ValueError, msg, common.MMapWrapper, target)
 
     def test_get_attr(self):
-        target = open(self.mmap_file, 'r')
-        wrapper = common.MMapWrapper(target)
+        with open(self.mmap_file, 'r') as target:
+            wrapper = common.MMapWrapper(target)
 
         attrs = dir(wrapper.mmap)
         attrs = [attr for attr in attrs
@@ -130,10 +130,9 @@ class TestMMapWrapper(tm.TestCase):
         self.assertFalse(hasattr(wrapper, 'foo'))
 
     def test_next(self):
-        target = open(self.mmap_file, 'r')
-        wrapper = common.MMapWrapper(target)
-
-        lines = target.readlines()
+        with open(self.mmap_file, 'r') as target:
+            wrapper = common.MMapWrapper(target)
+            lines = target.readlines()
 
         for line in lines:
             next_line = next(wrapper)
