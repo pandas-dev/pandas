@@ -1436,6 +1436,14 @@ class CParserWrapper(ParserBase):
 
         self._implicit_index = self._reader.leading_cols > 0
 
+    def close(self):
+        for f in self.handles:
+            f.close()
+        try:
+            self._reader.close()
+        except:
+            pass
+
     def _set_noconvert_columns(self):
         names = self.orig_names
         usecols = self.usecols
