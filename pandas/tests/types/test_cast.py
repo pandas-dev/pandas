@@ -193,43 +193,37 @@ class TestConvert(tm.TestCase):
 
 class TestCommonTypes(tm.TestCase):
     def test_numpy_dtypes(self):
-        # identity
-        self.assertEqual(_find_common_type([np.int64]), np.int64)
-        self.assertEqual(_find_common_type([np.uint64]), np.uint64)
-        self.assertEqual(_find_common_type([np.float32]), np.float32)
-        self.assertEqual(_find_common_type([np.object]), np.object)
+        # (source_types, destination_type)
+        testcases = (
+            # identity
+            ((np.int64,), np.int64),
+            ((np.uint64,), np.uint64),
+            ((np.float32,), np.float32),
+            ((np.object,), np.object),
 
-        # into ints
-        self.assertEqual(_find_common_type([np.int16, np.int64]),
-                         np.int64)
-        self.assertEqual(_find_common_type([np.int32, np.uint32]),
-                         np.int64)
-        self.assertEqual(_find_common_type([np.uint16, np.uint64]),
-                         np.uint64)
+            # into ints
+            ((np.int16, np.int64), np.int64),
+            ((np.int32, np.uint32), np.int64),
+            ((np.uint16, np.uint64), np.uint64),
 
-        # into floats
-        self.assertEqual(_find_common_type([np.float16, np.float32]),
-                         np.float32)
-        self.assertEqual(_find_common_type([np.float16, np.int16]),
-                         np.float32)
-        self.assertEqual(_find_common_type([np.float32, np.int16]),
-                         np.float32)
-        self.assertEqual(_find_common_type([np.uint64, np.int64]),
-                         np.float64)
-        self.assertEqual(_find_common_type([np.int16, np.float64]),
-                         np.float64)
-        self.assertEqual(_find_common_type([np.float16, np.int64]),
-                         np.float64)
+            # into floats
+            ((np.float16, np.float32), np.float32),
+            ((np.float16, np.int16), np.float32),
+            ((np.float32, np.int16), np.float32),
+            ((np.uint64, np.int64), np.float64),
+            ((np.int16, np.float64), np.float64),
+            ((np.float16, np.int64), np.float64),
 
-        # into others
-        self.assertEqual(_find_common_type([np.complex128, np.int32]),
-                         np.complex128)
-        self.assertEqual(_find_common_type([np.object, np.float32]),
-                         np.object)
-        self.assertEqual(_find_common_type([np.object, np.int16]),
-                         np.object)
+            # into others
+            ((np.complex128, np.int32), np.complex128),
+            ((np.object, np.float32), np.object),
+            ((np.object, np.int16), np.object),
+        )
+        for src, common in testcases:
+            self.assertEqual(_find_common_type(src), common)
 
     def test_pandas_dtypes(self):
+        # TODO: not implemented yet
         with self.assertRaises(TypeError):
             self.assertEqual(_find_common_type([CategoricalDtype()]),
                              CategoricalDtype)
