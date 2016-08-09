@@ -167,15 +167,11 @@ def read_stata(filepath_or_buffer, convert_dates=True,
                          chunksize=chunksize, encoding=encoding)
 
     if iterator or chunksize:
-        try:
-            return reader
-        except StopIteration:
-            reader.close()
-
-    try:
-        return reader.read()
-    finally:
+        data = reader
+    else:
+        data = reader.read()
         reader.close()
+    return data
 
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
@@ -1411,150 +1407,154 @@ class StataReader(StataParser, BaseIterator):
              convert_categoricals=None, index=None,
              convert_missing=None, preserve_dtypes=None,
              columns=None, order_categoricals=None):
-
         # Handle empty file or chunk.  If reading incrementally raise
         # StopIteration.  If reading the whole thing return an empty
         # data frame.
         if (self.nobs == 0) and (nrows is None):
             self._can_read_value_labels = True
             self._data_read = True
+            self.close()
             return DataFrame(columns=self.varlist)
 
-        # Handle options
-        if convert_dates is None:
-            convert_dates = self._convert_dates
-        if convert_categoricals is None:
-            convert_categoricals = self._convert_categoricals
-        if convert_missing is None:
-            convert_missing = self._convert_missing
-        if preserve_dtypes is None:
-            preserve_dtypes = self._preserve_dtypes
-        if columns is None:
-            columns = self._columns
-        if order_categoricals is None:
-            order_categoricals = self._order_categoricals
+        try:
+            # Handle options
+            if convert_dates is None:
+                convert_dates = self._convert_dates
+            if convert_categoricals is None:
+                convert_categoricals = self._convert_categoricals
+            if convert_missing is None:
+                convert_missing = self._convert_missing
+            if preserve_dtypes is None:
+                preserve_dtypes = self._preserve_dtypes
+            if columns is None:
+                columns = self._columns
+            if order_categoricals is None:
+                order_categoricals = self._order_categoricals
 
-        if nrows is None:
-            nrows = self.nobs
+            if nrows is None:
+                nrows = self.nobs
 
-        if (self.format_version >= 117) and (self._dtype is None):
-            self._can_read_value_labels = True
-            self._read_strls()
+            if (self.format_version >= 117) and (self._dtype is None):
+                self._can_read_value_labels = True
+                self._read_strls()
 
-        # Setup the dtype.
-        if self._dtype is None:
-            dtype = []  # Convert struct data types to numpy data type
-            for i, typ in enumerate(self.typlist):
-                if typ in self.NUMPY_TYPE_MAP:
-                    dtype.append(('s' + str(i), self.byteorder +
-                                  self.NUMPY_TYPE_MAP[typ]))
-                else:
-                    dtype.append(('s' + str(i), 'S' + str(typ)))
-            dtype = np.dtype(dtype)
-            self._dtype = dtype
+            # Setup the dtype.
+            if self._dtype is None:
+                dtype = []  # Convert struct data types to numpy data type
+                for i, typ in enumerate(self.typlist):
+                    if typ in self.NUMPY_TYPE_MAP:
+                        dtype.append(('s' + str(i), self.byteorder +
+                                      self.NUMPY_TYPE_MAP[typ]))
+                    else:
+                        dtype.append(('s' + str(i), 'S' + str(typ)))
+                dtype = np.dtype(dtype)
+                self._dtype = dtype
 
-        # Read data
-        dtype = self._dtype
-        max_read_len = (self.nobs - self._lines_read) * dtype.itemsize
-        read_len = nrows * dtype.itemsize
-        read_len = min(read_len, max_read_len)
-        if read_len <= 0:
-            # Iterator has finished, should never be here unless
-            # we are reading the file incrementally
+            # Read data
+            dtype = self._dtype
+            max_read_len = (self.nobs - self._lines_read) * dtype.itemsize
+            read_len = nrows * dtype.itemsize
+            read_len = min(read_len, max_read_len)
+            if read_len <= 0:
+                # Iterator has finished, should never be here unless
+                # we are reading the file incrementally
+                if convert_categoricals:
+                    self._read_value_labels()
+                raise StopIteration
+            offset = self._lines_read * dtype.itemsize
+            self.path_or_buf.seek(self.data_location + offset)
+            read_lines = min(nrows, self.nobs - self._lines_read)
+            data = np.frombuffer(self.path_or_buf.read(read_len), dtype=dtype,
+                                 count=read_lines)
+
+            self._lines_read += read_lines
+            if self._lines_read == self.nobs:
+                self._can_read_value_labels = True
+                self._data_read = True
+            # if necessary, swap the byte order to native here
+            if self.byteorder != self._native_byteorder:
+                data = data.byteswap().newbyteorder()
+
             if convert_categoricals:
                 self._read_value_labels()
-            raise StopIteration
-        offset = self._lines_read * dtype.itemsize
-        self.path_or_buf.seek(self.data_location + offset)
-        read_lines = min(nrows, self.nobs - self._lines_read)
-        data = np.frombuffer(self.path_or_buf.read(read_len), dtype=dtype,
-                             count=read_lines)
 
-        self._lines_read += read_lines
-        if self._lines_read == self.nobs:
-            self._can_read_value_labels = True
-            self._data_read = True
-        # if necessary, swap the byte order to native here
-        if self.byteorder != self._native_byteorder:
-            data = data.byteswap().newbyteorder()
+            if len(data) == 0:
+                data = DataFrame(columns=self.varlist, index=index)
+            else:
+                data = DataFrame.from_records(data, index=index)
+                data.columns = self.varlist
 
-        if convert_categoricals:
-            self._read_value_labels()
+            # If index is not specified, use actual row number rather than
+            # restarting at 0 for each chunk.
+            if index is None:
+                ix = np.arange(self._lines_read - read_lines, self._lines_read)
+                data = data.set_index(ix)
 
-        if len(data) == 0:
-            data = DataFrame(columns=self.varlist, index=index)
-        else:
-            data = DataFrame.from_records(data, index=index)
-            data.columns = self.varlist
+            if columns is not None:
+                data = self._do_select_columns(data, columns)
 
-        # If index is not specified, use actual row number rather than
-        # restarting at 0 for each chunk.
-        if index is None:
-            ix = np.arange(self._lines_read - read_lines, self._lines_read)
-            data = data.set_index(ix)
+            # Decode strings
+            for col, typ in zip(data, self.typlist):
+                if type(typ) is int:
+                    data[col] = data[col].apply(
+                        self._null_terminate, convert_dtype=True)
 
-        if columns is not None:
-            data = self._do_select_columns(data, columns)
+            data = self._insert_strls(data)
 
-        # Decode strings
-        for col, typ in zip(data, self.typlist):
-            if type(typ) is int:
-                data[col] = data[col].apply(
-                    self._null_terminate, convert_dtype=True)
+            cols_ = np.where(self.dtyplist)[0]
 
-        data = self._insert_strls(data)
+            # Convert columns (if needed) to match input type
+            index = data.index
+            requires_type_conversion = False
+            data_formatted = []
+            for i in cols_:
+                if self.dtyplist[i] is not None:
+                    col = data.columns[i]
+                    dtype = data[col].dtype
+                    if (dtype != np.dtype(object)) and (dtype != self.dtyplist[i]):
+                        requires_type_conversion = True
+                        data_formatted.append(
+                            (col, Series(data[col], index, self.dtyplist[i])))
+                    else:
+                        data_formatted.append((col, data[col]))
+            if requires_type_conversion:
+                data = DataFrame.from_items(data_formatted)
+            del data_formatted
 
-        cols_ = np.where(self.dtyplist)[0]
+            self._do_convert_missing(data, convert_missing)
 
-        # Convert columns (if needed) to match input type
-        index = data.index
-        requires_type_conversion = False
-        data_formatted = []
-        for i in cols_:
-            if self.dtyplist[i] is not None:
-                col = data.columns[i]
-                dtype = data[col].dtype
-                if (dtype != np.dtype(object)) and (dtype != self.dtyplist[i]):
-                    requires_type_conversion = True
-                    data_formatted.append(
-                        (col, Series(data[col], index, self.dtyplist[i])))
-                else:
-                    data_formatted.append((col, data[col]))
-        if requires_type_conversion:
-            data = DataFrame.from_items(data_formatted)
-        del data_formatted
+            if convert_dates:
+                cols = np.where(lmap(lambda x: x in _date_formats,
+                                     self.fmtlist))[0]
+                for i in cols:
+                    col = data.columns[i]
+                    data[col] = _stata_elapsed_date_to_datetime_vec(
+                        data[col],
+                        self.fmtlist[i])
 
-        self._do_convert_missing(data, convert_missing)
+            if convert_categoricals and self.format_version > 108:
+                data = self._do_convert_categoricals(data,
+                                                     self.value_label_dict,
+                                                     self.lbllist,
+                                                     order_categoricals)
 
-        if convert_dates:
-            cols = np.where(lmap(lambda x: x in _date_formats,
-                                 self.fmtlist))[0]
-            for i in cols:
-                col = data.columns[i]
-                data[col] = _stata_elapsed_date_to_datetime_vec(
-                    data[col],
-                    self.fmtlist[i])
-
-        if convert_categoricals and self.format_version > 108:
-            data = self._do_convert_categoricals(data,
-                                                 self.value_label_dict,
-                                                 self.lbllist,
-                                                 order_categoricals)
-
-        if not preserve_dtypes:
-            retyped_data = []
-            convert = False
-            for col in data:
-                dtype = data[col].dtype
-                if dtype in (np.float16, np.float32):
-                    dtype = np.float64
-                    convert = True
-                elif dtype in (np.int8, np.int16, np.int32):
-                    dtype = np.int64
-                    convert = True
-                retyped_data.append((col, data[col].astype(dtype)))
-            if convert:
-                data = DataFrame.from_items(retyped_data)
+            if not preserve_dtypes:
+                retyped_data = []
+                convert = False
+                for col in data:
+                    dtype = data[col].dtype
+                    if dtype in (np.float16, np.float32):
+                        dtype = np.float64
+                        convert = True
+                    elif dtype in (np.int8, np.int16, np.int32):
+                        dtype = np.int64
+                        convert = True
+                    retyped_data.append((col, data[col].astype(dtype)))
+                if convert:
+                    data = DataFrame.from_items(retyped_data)
+        except:
+            self.close()
+            raise
 
         return data
 
