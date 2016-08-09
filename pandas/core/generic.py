@@ -1088,17 +1088,15 @@ class NDFrame(PandasObject):
                             lines=lines)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
-        """Activate the HDFStore.
+        """Write the contained data to an HDF5 file using HDFStore.
 
         Parameters
         ----------
         path_or_buf : the path (string) or HDFStore object
         key : string
             indentifier for the group in the store
-        mode : optional, {'a', 'w', 'r', 'r+'}, default 'a'
+        mode : optional, {'a', 'w', 'r+'}, default 'a'
 
-          ``'r'``
-              Read-only; no data can be modified.
           ``'w'``
               Write; a new file is created (an existing file with the same
               name would be deleted).
@@ -1116,6 +1114,9 @@ class NDFrame(PandasObject):
                        / selecting subsets of the data
         append   : boolean, default False
             For Table formats, append the input data to the existing
+        data_columns : list of columns to create as data columns, or True to
+            use all columns. See
+            `here <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__ # noqa
         complevel : int, 1-9, default 0
             If a complib is specified compression will be applied
             where possible
@@ -1126,7 +1127,6 @@ class NDFrame(PandasObject):
             If applying compression use the fletcher32 checksum
         dropna : boolean, default False.
             If true, ALL nan rows will not be written to store.
-
         """
 
         from pandas.io import pytables
