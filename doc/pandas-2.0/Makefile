@@ -230,4 +230,4 @@ deploy: html
 	cd $(DEPLOYREPOSITORY) && git pull
 	rsync -r $(OUTPUTDIR)/* $(DEPLOYREPOSITORY)/
 	cd $(DEPLOYREPOSITORY) && git add . && git commit -m "deploy"
-	cd $(DEPLOYREPOSITORY) && git push origin master
+	cd $(DEPLOYREPOSITORY) && git push origin gh-pages

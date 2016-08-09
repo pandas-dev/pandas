@@ -7,8 +7,36 @@
 Dropping Python 2 support
 =========================
 
-Controversional ideas
-=====================
+With Python 2.7 reaching its supported end-of-life in 2020, like some other
+Python projects (e.g. IPython / Jupyter) we should seriously contemplate making
+pandas 2.0 only support Python 3.5 and higher. In addition to lowering the
+development burden at both the C API and pure Python level, we can also finally
+look to take advantage of features (things like ``asyncio``, maybe?) only
+available in Python 3.
+
+Deprecated code to remove
+=========================
+
+Other ideas
+===========
+
+Here's a collection of other miscellaneous ideas that don't necessarily fit
+elsewhere in these documents.
+
+Column statistics
+~~~~~~~~~~~~~~~~~
+
+In quite a few pandas algorithms, there are characteristics of the data that
+are very useful to know, such as:
+
+* **Monotonicity**: for comparable data (e.g. numbers), is the data sorted /
+  strictly increasing? In time series, this permits sorting steps to be
+  skipped.
+
+* **Null count**: for data not containing any nulls, the null handling path in
+  some algorithms can be skipped entirely
+
+
 
 Strided arrays: more trouble than they are worth?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -106,12 +106,13 @@ Some benefits of this approach include:
 
 Some drawbacks
 
-* Mutating slots in a string array becomes more complex. Whether single value
-  assignments or put / array-assignment may likely require creating a new
-  ``data`` buffer. Without a compaction / "garbage collection" step on this
-  buffer it will be possible to have "dead" memory inside it (for example, if
-  you did ``arr[:] = 'a-new-string-value'``, all the existing values would be
-  orphaned).
+* This memory layout is best used as an immutable representation. Mutating
+  slots here becomes more complex. Whether single value assignments or put /
+  array-assignment may likely require constructing a new ``data`` buffer
+  (either by ``realloc`` or some other copying mechanism). Without a compaction
+  / "garbage collection" step on this buffer it will be possible to have "dead"
+  memory inside it (for example, if you did ``arr[:] = 'a-new-string-value'``,
+  all the existing values would be orphaned).
 
   * Some systems have addressed this issue by storing all string data in a
     "global string hash table". This is something we could explore, but it
@@ -120,8 +121,8 @@ Some drawbacks
 
 * Indexing into this data structure to obtain a single Python object will
   probably want to call ``PyUnicode_FromStringAndSize`` to construct a string
-  (Python 3, therefore Unicode). This requires a memory allocation, where
-  currently only a ``Py_INCREF``.
+  (Python 3, therefore Unicode). This requires a memory allocation, whereas it
+  currently only has to do a ``Py_INCREF``.
 
 * Many of pandas's existing algorithms assuming Python objects would need to be
   specialized to take advantage of this new memory layout. This is both a pro
