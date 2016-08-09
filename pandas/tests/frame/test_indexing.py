@@ -2760,10 +2760,10 @@ class TestSparseDataFrameMultitype(tm.TestCase):
         tm.assert_sp_frame_equal(self.sdf, self.sdf.loc[:])
         tm.assert_sp_frame_equal(self.sdf.iloc[[1, 2]],
                                  pd.SparseDataFrame({
-                                     'string': ['b', 'c'],
-                                     'int': [2, 3],
-                                     'float': [1.2, 1.3],
-                                     'object': [{}, set()]
+                                     'string': self.string_series.iloc[[1, 2]],
+                                     'int': self.int_series.iloc[[1, 2]],
+                                     'float': self.float_series.iloc[[1, 2]],
+                                     'object': self.object_series.iloc[[1, 2]]
                                  }, index=[1, 2])[self.cols])
         tm.assert_sp_frame_equal(self.sdf[['int', 'string']],
                                  pd.SparseDataFrame({

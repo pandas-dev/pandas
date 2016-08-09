@@ -861,3 +861,9 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
             value = _possibly_infer_to_datetimelike(value)
 
     return value
+
+
+def _find_common_type(types):
+    """Find a common data type among the given dtypes."""
+    # TODO: enable using pandas specific types
+    return np.find_common_type(types, [])

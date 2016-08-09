@@ -35,7 +35,8 @@ from pandas.types.cast import (_possibly_downcast_to_dtype,
                                _infer_dtype_from_scalar,
                                _soft_convert_objects,
                                _possibly_convert_objects,
-                               _astype_nansafe)
+                               _astype_nansafe,
+                               _find_common_type)
 from pandas.types.missing import (isnull, array_equivalent,
                                   _is_na_compat,
                                   is_null_datelike_scalar)
@@ -4460,7 +4461,7 @@ def _interleaved_dtype(blocks):
     elif have_int and not have_float and not have_complex:
         # if we are mixing unsigned and signed, then return
         # the next biggest int type (if we can)
-        lcd = np.find_common_type([b.dtype for b in counts[IntBlock]], [])
+        lcd = _find_common_type([b.dtype for b in counts[IntBlock]])
         kinds = set([i.dtype.kind for i in counts[IntBlock]])
         if len(kinds) == 1:
             return lcd
@@ -4477,7 +4478,7 @@ def _interleaved_dtype(blocks):
         return np.dtype('c16')
     else:
         introspection_blks = counts[FloatBlock] + counts[SparseBlock]
-        return np.find_common_type([b.dtype for b in introspection_blks], [])
+        return _find_common_type([b.dtype for b in introspection_blks])
 
 
 def _consolidate(blocks):
