@@ -1881,9 +1881,7 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._file = _open_file_binary_write(
-            fname, self._encoding or self._default_encoding
-        )
+        self._fname = fname
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
 
     def _write(self, to_write):
@@ -2078,16 +2076,21 @@ class StataWriter(StataParser):
                 self.fmtlist[key] = self._convert_dates[key]
 
     def write_file(self):
-        self._write_header(time_stamp=self._time_stamp,
-                           data_label=self._data_label)
-        self._write_descriptors()
-        self._write_variable_labels()
-        # write 5 zeros for expansion fields
-        self._write(_pad_bytes("", 5))
-        self._prepare_data()
-        self._write_data()
-        self._write_value_labels()
-        self._file.close()
+        self._file = _open_file_binary_write(
+            self._fname, self._encoding or self._default_encoding
+        )
+        try:
+            self._write_header(time_stamp=self._time_stamp,
+                               data_label=self._data_label)
+            self._write_descriptors()
+            self._write_variable_labels()
+            # write 5 zeros for expansion fields
+            self._write(_pad_bytes("", 5))
+            self._prepare_data()
+            self._write_data()
+            self._write_value_labels()
+        finally:
+            self._file.close()
 
     def _write_value_labels(self):
         for vl in self._value_labels:
