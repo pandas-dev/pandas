@@ -2095,7 +2095,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         # if we have nulls that are not type-compat
         # then need to iterate
         try:
-            iresult = values.astype('i8')
+            iresult = values.astype('i8', casting='same_kind', copy=False)
             mask = iresult == iNaT
             iresult[mask] = 0
             fvalues = iresult.astype('f8') * m
