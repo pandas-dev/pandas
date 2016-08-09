@@ -80,6 +80,7 @@ class TestStata(tm.TestCase):
         self.dta21_117 = os.path.join(self.dirpath, 'stata12_117.dta')
 
         self.dta22_118 = os.path.join(self.dirpath, 'stata14_118.dta')
+        self.dta23 = os.path.join(self.dirpath, 'stata15.dta')
 
     def read_dta(self, file):
         # Legacy default reader configuration
@@ -1211,6 +1212,12 @@ class TestStata(tm.TestCase):
         with tm.assertRaises(NotImplementedError):
             with tm.ensure_clean() as path:
                 original.to_stata(path)
+
+    def test_repeated_column_labels(self):
+        # GH 13923
+        with tm.assertRaises(ValueError) as cm:
+            read_stata(self.dta23, convert_categoricals=True)
+            tm.assertTrue('wolof' in cm.exception)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

@@ -397,6 +397,7 @@ Other enhancements
 - ``Series.append`` now supports the ``ignore_index`` option (:issue:`13677`)
 - ``.to_stata()`` and ``StataWriter`` can now write variable labels to Stata dta files using a dictionary to make column names to labels (:issue:`13535`, :issue:`13536`)
 - ``.to_stata()`` and ``StataWriter`` will automatically convert ``datetime64[ns]`` columns to Stata format ``%tc``, rather than raising a ``ValueError`` (:issue:`12259`)
+- ``read_stata()`` and ``StataReader`` raise with a more explicit error message when reading Stata files with repeated value labels when ``convert_categoricals=True`` (:issue:`13923`)
 - ``DataFrame.style`` will now render sparsified MultiIndexes (:issue:`11655`)
 - ``DataFrame.style`` will now show column level names (e.g. ``DataFrame.columns.names``) (:issue:`13775`)
 - ``DataFrame`` has gained support to re-order the columns based on the values
