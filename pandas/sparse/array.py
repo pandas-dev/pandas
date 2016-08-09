@@ -162,7 +162,7 @@ class SparseArray(PandasObject, np.ndarray):
     fill_value = None
 
     def __new__(cls, data, sparse_index=None, index=None, kind='integer',
-                fill_value=None, dtype=None, copy=False):
+                fill_value=None, dtype=np.float64, copy=False):
 
         if index is not None:
             if data is None:
