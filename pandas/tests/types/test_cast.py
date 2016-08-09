@@ -15,7 +15,10 @@ from pandas.types.cast import (_possibly_downcast_to_dtype,
                                _possibly_convert_objects,
                                _infer_dtype_from_scalar,
                                _maybe_convert_string_to_object,
-                               _maybe_convert_scalar)
+                               _maybe_convert_scalar,
+                               _find_common_type)
+from pandas.types.dtypes import (CategoricalDtype,
+                                 DatetimeTZDtype)
 from pandas.util import testing as tm
 
 _multiprocess_can_split_ = True
@@ -187,6 +190,42 @@ class TestConvert(tm.TestCase):
         out = _possibly_convert_objects(values, copy=True)
         self.assertTrue(values is not out)
 
+
+class TestCommonTypes(tm.TestCase):
+    def setUp(self):
+        super(TestCommonTypes, self).setUp()
+
+    def test_numpy_dtypes(self):
+        self.assertEqual(_find_common_type([np.int64]), np.int64)
+        self.assertEqual(_find_common_type([np.uint64]), np.uint64)
+        self.assertEqual(_find_common_type([np.float32]), np.float32)
+        self.assertEqual(_find_common_type([np.object]), np.object)
+
+        self.assertEqual(_find_common_type([np.int16, np.int64]),
+                         np.int64)
+        self.assertEqual(_find_common_type([np.int32, np.uint32]),
+                         np.int64)
+        self.assertEqual(_find_common_type([np.object, np.float32]),
+                         np.object)
+        self.assertEqual(_find_common_type([np.object, np.int16]),
+                         np.object)
+        self.assertEqual(_find_common_type([np.int16, np.float64]),
+                         np.float64)
+        self.assertEqual(_find_common_type([np.float16, np.int16]),
+                         np.float32)
+        self.assertEqual(_find_common_type([np.float16, np.int64]),
+                         np.float64)
+        self.assertEqual(_find_common_type([np.complex128, np.int32]),
+                         np.complex128)
+        self.assertEqual(_find_common_type([np.uint64, np.int64]),
+                         np.float64)
+
+    def test_pandas_dtypes(self):
+        with self.assertRaises(TypeError):
+            self.assertEqual(_find_common_type([CategoricalDtype]),
+                             CategoricalDtype)
+            self.assertEqual(_find_common_type([DatetimeTZDtype]),
+                             DatetimeTZDtype)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

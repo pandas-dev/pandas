@@ -19,6 +19,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
                      _DATELIKE_DTYPES, _POSSIBLY_CAST_DTYPES)
+from .dtypes import ExtensionDtype
 from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
 from .missing import isnull, notnull
 from .inference import is_list_like
@@ -865,5 +866,9 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
 
 def _find_common_type(types):
     """Find a common data type among the given dtypes."""
-    # TODO: enable using pandas specific types
+    # TODO: enable using pandas-specific types
+    if any(issubclass(t, ExtensionDtype) or isinstance(t, ExtensionDtype)
+           for t in types):
+        raise TypeError("Common type discovery is currently only "
+                        "supported for pure numpy dtypes.")
     return np.find_common_type(types, [])
