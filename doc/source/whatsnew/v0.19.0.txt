@@ -904,6 +904,7 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` with ``engine='c'`` in which fields were not properly cast to float when quoting was specified as non-numeric (:issue:`13411`)
 - Bug in ``pd.read_csv``, ``pd.read_table`` and ``pd.read_stata`` where files were opened by parsers but not closed if both ``chunksize`` and ``iterator`` were ``None``. (:issue:`13940`)
 - Bug in ``StataReader`` and ``StataWriter`` where a file was not properly closed when an error was raised. (:issue:`13940`)
+
 - Bug in ``pd.pivot_table()`` where ``margins_name`` is ignored when ``aggfunc`` is a list (:issue:`13354`)
 - Bug in ``pd.Series.str.zfill``, ``center``, ``ljust``, ``rjust``, and ``pad`` when passing non-integers, did not raise ``TypeError`` (:issue:`13598`)
 - Bug in checking for any null objects in a ``TimedeltaIndex``, which always returned ``True`` (:issue:`13603`)
@@ -974,4 +975,7 @@ Bug Fixes
 
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
 - Bug in ``Period`` and ``PeriodIndex`` creating wrong dates when frequency has combined offset aliases (:issue:`13874`)
+<<<<<<< 30b61e60f358677289d8325df6a06f5cf98453bc
 - Bug in ``pd.to_datetime()`` did not cast floats correctly when ``unit`` was specified, resulting in truncated datetime (:issue:`13845`)
+=======
+>>>>>>> Fix whatsnew entries
