@@ -1568,3 +1568,17 @@ j,-inF"""
                             encoding=utf8, names=['a'],
                             skip_blank_lines=False)
         tm.assert_frame_equal(out, expected)
+
+    def test_temporary_file(self):
+        # see gh-13398
+        data1 = "0 0"
+
+        from tempfile import TemporaryFile
+        new_file = TemporaryFile("w+")
+        new_file.write(data1)
+        new_file.flush()
+        new_file.seek(0)
+
+        result = self.read_csv(new_file, sep='\s+', header=None)
+        expected = DataFrame([[0, 0]])
+        tm.assert_frame_equal(result, expected)
