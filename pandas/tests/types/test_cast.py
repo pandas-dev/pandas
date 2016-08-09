@@ -231,9 +231,10 @@ class TestCommonTypes(tm.TestCase):
 
     def test_pandas_dtypes(self):
         with self.assertRaises(TypeError):
-            self.assertEqual(_find_common_type([CategoricalDtype]),
+            self.assertEqual(_find_common_type([CategoricalDtype()]),
                              CategoricalDtype)
-            self.assertEqual(_find_common_type([DatetimeTZDtype]),
+        with self.assertRaises(TypeError):
+            self.assertEqual(_find_common_type([DatetimeTZDtype()]),
                              DatetimeTZDtype)
 
 if __name__ == '__main__':

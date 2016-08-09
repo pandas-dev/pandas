@@ -867,8 +867,7 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
 def _find_common_type(types):
     """Find a common data type among the given dtypes."""
     # TODO: enable using pandas-specific types
-    if any(issubclass(t, ExtensionDtype) or isinstance(t, ExtensionDtype)
-           for t in types):
+    if any(isinstance(t, ExtensionDtype) for t in types):
         raise TypeError("Common type discovery is currently only "
                         "supported for pure numpy dtypes.")
     return np.find_common_type(types, [])
