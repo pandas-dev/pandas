@@ -201,9 +201,6 @@ default of the index) in a DataFrame.
 
    from pandas.compat import StringIO
 
-.. _whatsnew_0190.enhancements.read_csv_dupe_col_names_support:
-
-
 :ref:`Duplicate column names <io.dupe_names>` are now supported in :func:`read_csv` whether
 they are in the file or passed in as the ``names`` parameter (:issue:`7160`, :issue:`9424`)
 

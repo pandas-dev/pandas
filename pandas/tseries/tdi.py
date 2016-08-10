@@ -1010,13 +1010,13 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
-    Notes
-    -----
-    2 of start, end, or periods must be specified
-
     Returns
     -------
     rng : TimedeltaIndex
+
+    Notes
+    -----
+    2 of start, end, or periods must be specified.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
