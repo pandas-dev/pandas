@@ -1783,24 +1783,6 @@ class TestPeriodIndex(tm.TestCase):
 
         self.assertRaises(ValueError, PeriodIndex, vals, freq='D')
 
-    def test_view(self):
-        idx = pd.PeriodIndex([], freq='M')
-
-        exp = np.array([], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx.view('i8'), exp)
-        tm.assert_numpy_array_equal(idx.asi8, exp)
-
-        idx = pd.PeriodIndex(['2011-01', pd.NaT], freq='M')
-
-        exp = np.array([492, -9223372036854775808], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx.view('i8'), exp)
-        tm.assert_numpy_array_equal(idx.asi8, exp)
-
-        exp = np.array([14975, -9223372036854775808], dtype=np.int64)
-        idx = pd.PeriodIndex(['2011-01-01', pd.NaT], freq='D')
-        tm.assert_numpy_array_equal(idx.view('i8'), exp)
-        tm.assert_numpy_array_equal(idx.asi8, exp)
-
     def test_constructor_empty(self):
         idx = pd.PeriodIndex([], freq='M')
         tm.assertIsInstance(idx, PeriodIndex)
@@ -1987,6 +1969,66 @@ class TestPeriodIndex(tm.TestCase):
             expected = PeriodIndex(['2016-01-01 00:00', '2016-01-02 01:00'],
                                    freq='25H')
             tm.assert_index_equal(pidx, expected)
+
+    def test_view_asi8(self):
+        idx = pd.PeriodIndex([], freq='M')
+
+        exp = np.array([], dtype=np.int64)
+        tm.assert_numpy_array_equal(idx.view('i8'), exp)
+        tm.assert_numpy_array_equal(idx.asi8, exp)
+
+        idx = pd.PeriodIndex(['2011-01', pd.NaT], freq='M')
+
+        exp = np.array([492, -9223372036854775808], dtype=np.int64)
+        tm.assert_numpy_array_equal(idx.view('i8'), exp)
+        tm.assert_numpy_array_equal(idx.asi8, exp)
+
+        exp = np.array([14975, -9223372036854775808], dtype=np.int64)
+        idx = pd.PeriodIndex(['2011-01-01', pd.NaT], freq='D')
+        tm.assert_numpy_array_equal(idx.view('i8'), exp)
+        tm.assert_numpy_array_equal(idx.asi8, exp)
+
+    def test_values(self):
+        # ToDo: .values and .get_values() should return Period as object
+        # dtype array. ._values shouldn't be changed
+        idx = pd.PeriodIndex([], freq='M')
+
+        exp = np.array([], dtype=np.int64)
+        tm.assert_numpy_array_equal(idx.values, exp)
+        tm.assert_numpy_array_equal(idx.get_values(), exp)
+        tm.assert_numpy_array_equal(idx._values, exp)
+
+        idx = pd.PeriodIndex(['2011-01', pd.NaT], freq='M')
+
+        exp = np.array([492, -9223372036854775808], dtype=np.int64)
+        tm.assert_numpy_array_equal(idx.values, exp)
+        tm.assert_numpy_array_equal(idx.get_values(), exp)
+        tm.assert_numpy_array_equal(idx._values, exp)
+
+        exp = np.array([14975, -9223372036854775808], dtype=np.int64)
+        idx = pd.PeriodIndex(['2011-01-01', pd.NaT], freq='D')
+        tm.assert_numpy_array_equal(idx.values, exp)
+        tm.assert_numpy_array_equal(idx.get_values(), exp)
+        tm.assert_numpy_array_equal(idx._values, exp)
+
+    def test_asobject_like(self):
+        idx = pd.PeriodIndex([], freq='M')
+
+        exp = np.array([], dtype=object)
+        tm.assert_numpy_array_equal(idx.asobject.values, exp)
+        tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
+
+        idx = pd.PeriodIndex(['2011-01', pd.NaT], freq='M')
+
+        exp = np.array([pd.Period('2011-01', freq='M'), pd.NaT], dtype=object)
+        tm.assert_numpy_array_equal(idx.asobject.values, exp)
+        tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
+
+        exp = np.array([pd.Period('2011-01-01', freq='D'), pd.NaT],
+                       dtype=object)
+        idx = pd.PeriodIndex(['2011-01-01', pd.NaT], freq='D')
+        tm.assert_numpy_array_equal(idx.asobject.values, exp)
+        tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
 
     def test_is_(self):
         create_index = lambda: PeriodIndex(freq='A', start='1/1/2001',
