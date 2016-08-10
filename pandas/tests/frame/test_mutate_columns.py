@@ -5,11 +5,8 @@ from __future__ import print_function
 from pandas.compat import range, lrange
 import numpy as np
 
+import pandas as pd
 from pandas import DataFrame, Series, Index
-
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
 
 import pandas.util.testing as tm
 
@@ -29,41 +26,41 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         result = df.assign(C=df.B / df.A)
         expected = df.copy()
         expected['C'] = [4, 2.5, 2]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # lambda syntax
         result = df.assign(C=lambda x: x.B / x.A)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # original is unmodified
-        assert_frame_equal(df, original)
+        tm.assert_frame_equal(df, original)
 
         # Non-Series array-like
         result = df.assign(C=[4, 2.5, 2])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
         # original is unmodified
-        assert_frame_equal(df, original)
+        tm.assert_frame_equal(df, original)
 
         result = df.assign(B=df.B / df.A)
         expected = expected.drop('B', axis=1).rename(columns={'C': 'B'})
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # overwrite
         result = df.assign(A=df.A + df.B)
         expected = df.copy()
         expected['A'] = [5, 7, 9]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # lambda
         result = df.assign(A=lambda x: x.A + x.B)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_assign_multiple(self):
         df = DataFrame([[1, 4], [2, 5], [3, 6]], columns=['A', 'B'])
         result = df.assign(C=[7, 8, 9], D=df.A, E=lambda x: x.B)
         expected = DataFrame([[1, 4, 7, 1, 4], [2, 5, 8, 2, 5],
                               [3, 6, 9, 3, 6]], columns=list('ABCDE'))
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_assign_alphabetical(self):
         # GH 9818
@@ -71,9 +68,9 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         result = df.assign(D=df.A + df.B, C=df.A - df.B)
         expected = DataFrame([[1, 2, -1, 3], [3, 4, -1, 7]],
                              columns=list('ABCD'))
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
         result = df.assign(C=df.A - df.B, D=df.A + df.B)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_assign_bad(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
@@ -95,7 +92,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         s = DataFrame({'foo': ['a', 'b', 'c', 'a'], 'fiz': [
                       'g', 'h', 'i', 'j']}).set_index('foo')
         msg = 'cannot reindex from a duplicate axis'
-        with assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             df['newcol'] = s
 
         # GH 4107, more descriptive error message
@@ -103,20 +100,36 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
                        columns=['a', 'b', 'c', 'd'])
 
         msg = 'incompatible index of inserted column with frame index'
-        with assertRaisesRegexp(TypeError, msg):
+        with tm.assertRaisesRegexp(TypeError, msg):
             df['gr'] = df.groupby(['b', 'c']).count()
 
     def test_insert_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
         K = 5
+
+        # df has empty columns of object dtype
         df = DataFrame(index=lrange(N))
+        tm.assert_index_equal(df.columns, pd.Index([], dtype=object))
+
+        new_col = np.random.randn(N)
+        for i in range(K):
+            df[i] = new_col
+        expected = DataFrame(np.repeat(new_col, K).reshape(N, K),
+                             columns=lrange(K),
+                             index=lrange(N))
+        tm.assert_frame_equal(df, expected)
+
+        # df has empty columns of int dtype
+        df = DataFrame(index=lrange(N), columns=pd.Int64Index([]))
+        tm.assert_index_equal(df.columns, pd.Int64Index([]))
+
         new_col = np.random.randn(N)
         for i in range(K):
             df[i] = new_col
         expected = DataFrame(np.repeat(new_col, K).reshape(N, K),
                              index=lrange(N))
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),
@@ -147,7 +160,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         result = Series(dict(float64=4, float32=2, int32=1))
         self.assertTrue((df.get_dtype_counts() == result).all())
 
-        with assertRaisesRegexp(ValueError, 'already exists'):
+        with tm.assertRaisesRegexp(ValueError, 'already exists'):
             df.insert(1, 'a', df['b'])
         self.assertRaises(ValueError, df.insert, 1, 'c', df['b'])
 
@@ -161,7 +174,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         df['X'] = df.index
         df['X'] = ['x', 'y', 'z']
         exp = DataFrame(data={'X': ['x', 'y', 'z']}, index=['A', 'B', 'C'])
-        assert_frame_equal(df, exp)
+        tm.assert_frame_equal(df, exp)
 
     def test_delitem(self):
         del self.frame['A']
@@ -188,11 +201,11 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         # original frame
         expected = DataFrame([[1, 3], [4, 6]], columns=[
                              'A', 'C'], index=['X', 'Y'])
-        assert_frame_equal(a, expected)
+        tm.assert_frame_equal(a, expected)
 
         # result
         expected = Series([2, 5], index=['X', 'Y'], name='B') + 1
-        assert_series_equal(b, expected)
+        tm.assert_series_equal(b, expected)
 
     def test_pop_non_unique_cols(self):
         df = DataFrame({0: [0, 1], 1: [0, 1], 2: [4, 5]})
@@ -216,7 +229,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         result = df.rename(columns={})
         str(result)
         expected = DataFrame([[1, 1.1], [2, 2.2]], columns=['a', 'b'])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
         df.insert(0, 'c', [1.3, 2.3])
 
         result = df.rename(columns={})
@@ -224,4 +237,4 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
 
         expected = DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]],
                              columns=['c', 'a', 'b'])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)

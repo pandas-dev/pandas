@@ -908,6 +908,44 @@ Freq: D"""
             self.assertFalse(idx.equals(list(idx3)))
             self.assertFalse(idx.equals(pd.Series(idx3)))
 
+    def test_insert(self):
+        # insert tests also locates
+        # - each index classes paired with delete
+        # - indexing/test_coercion.py
+        # this cases are intended for timedelta / period compat
+
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02',
+                             '2000-01-03'], freq='D')
+        res = idx.insert(0, pd.Timestamp('1999-12-31'))
+
+        # freq is kept
+        exp = DatetimeIndex(['1999-12-31', '2000-01-01', '2000-01-02',
+                             '2000-01-03'], freq='D')
+        tm.assert_index_equal(res, exp)
+        self.assertEqual(res.freq, 'D')
+
+        # str is inserted as it is
+        res = idx.insert(0, '1999-12-31')
+        exp = Index(['1999-12-31', pd.Timestamp('2000-01-01'),
+                     pd.Timestamp('2000-01-02'), pd.Timestamp('2000-01-03')],
+                    dtype=object)
+        tm.assert_index_equal(res, exp)
+
+        # str is inserted as it is
+        res = idx.insert(0, 3)
+        exp = Index([3, pd.Timestamp('2000-01-01'),
+                     pd.Timestamp('2000-01-02'), pd.Timestamp('2000-01-03')],
+                    dtype=object)
+        tm.assert_index_equal(res, exp)
+
+    def test_insert_null(self):
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02',
+                             '2000-01-03'], freq='D')
+        exp = DatetimeIndex(['2000-01-01', 'NaT', '2000-01-02', '2000-01-03'])
+        for n in [None, np.nan, float('nan'), pd.NaT]:
+            res = idx.insert(1, n)
+            tm.assert_index_equal(res, exp)
+
 
 class TestTimedeltaIndexOps(Ops):
     def setUp(self):

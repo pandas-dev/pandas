@@ -52,6 +52,8 @@ Bug Fixes
 
 
 
+- Bug in ``Index.insert`` may have incorrect ``dtype`` or raises ``TypeError`` (:issue:`14535`)
+
 
 
 
