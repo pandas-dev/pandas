@@ -98,7 +98,10 @@ def run_cmd(cmd):
         if cmd is None:
             cmd = popenargs[0]
         raise subprocess.CalledProcessError(retcode, cmd, output=output)
-    return six.text_type(output)
+
+    if isinstance(output, six.binary_type):
+        output = output.decode('utf-8')
+    return output
 
 
 def continue_maybe(prompt):
@@ -123,6 +126,7 @@ def clean_up():
 
 # merge the requested PR and return the merge hash
 def merge_pr(pr_num, target_ref):
+
     pr_branch_name = "%s_MERGE_PR_%s" % (BRANCH_PREFIX, pr_num)
     target_branch_name = "%s_MERGE_PR_%s_%s" % (BRANCH_PREFIX, pr_num,
                                                 target_ref.upper())
