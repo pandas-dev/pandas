@@ -1839,10 +1839,16 @@ class AreaPlot(LinePlot):
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None,
               stacking_id=None, is_errorbar=False, **kwds):
+
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(y))
         y_values = cls._get_stacked_values(ax, stacking_id, y, kwds['label'])
-        lines = MPLPlot._plot(ax, x, y_values, style=style, **kwds)
+
+        # need to remove label, because subplots uses mpl legend as it is
+        line_kwds = kwds.copy()
+        if cls.mpl_ge_1_5_0():
+            line_kwds.pop('label')
+        lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
 
         # get data from the line to get coordinates for fill_between
         xdata, y_values = lines[0].get_data(orig=False)
@@ -1860,18 +1866,21 @@ class AreaPlot(LinePlot):
         if 'color' not in kwds:
             kwds['color'] = lines[0].get_color()
 
-        if cls.mpl_ge_1_5_0():  # mpl 1.5 added real support for poly legends
-            kwds.pop('label')
-        ax.fill_between(xdata, start, y_values, **kwds)
+        rect = ax.fill_between(xdata, start, y_values, **kwds)
         cls._update_stacker(ax, stacking_id, y)
-        return lines
+
+        # LinePlot expects list of artists
+        res = [rect] if cls.mpl_ge_1_5_0() else lines
+        return res
 
     def _add_legend_handle(self, handle, label, index=None):
-        from matplotlib.patches import Rectangle
-        # Because fill_between isn't supported in legend,
-        # specifically add Rectangle handle here
-        alpha = self.kwds.get('alpha', None)
-        handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(), alpha=alpha)
+        if not self.mpl_ge_1_5_0():
+            from matplotlib.patches import Rectangle
+            # Because fill_between isn't supported in legend,
+            # specifically add Rectangle handle here
+            alpha = self.kwds.get('alpha', None)
+            handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(),
+                               alpha=alpha)
         LinePlot._add_legend_handle(self, handle, label, index=index)
 
     def _post_plot_logic(self, ax, data):
