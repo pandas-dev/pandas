@@ -402,9 +402,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
         return result
 
-    def _array_values(self):
-        return self.asobject
-
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         dtype = np.dtype(dtype)
@@ -541,14 +538,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def end_time(self):
         return self.to_timestamp(how='end')
 
-    def _get_object_array(self):
-        freq = self.freq
-        return np.array([Period._from_ordinal(ordinal=x, freq=freq)
-                         for x in self.values], copy=False)
-
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return self._get_object_array()
+        return self.asobject.values
 
     def equals(self, other):
         """
