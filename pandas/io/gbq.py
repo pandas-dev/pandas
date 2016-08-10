@@ -181,11 +181,10 @@ class GbqConnector(object):
             from googleapiclient.discovery import build
             from googleapiclient.errors import HttpError
         except ImportError:
+            if not oauth2client_library_imported:
+                return None
             from apiclient.discovery import build
             from apiclient.errors import HttpError
-
-        if not oauth2client_library_imported:
-            return None
 
         credentials = None
         try:
