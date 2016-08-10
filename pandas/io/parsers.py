@@ -899,7 +899,11 @@ class TextFileReader(BaseIterator):
         return result, engine
 
     def __next__(self):
-        return self.get_chunk()
+        try:
+            return self.get_chunk()
+        except StopIteration:
+            self.close()
+            raise
 
     def _make_engine(self, engine='c'):
         if engine == 'c':
