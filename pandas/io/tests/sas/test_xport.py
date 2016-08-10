@@ -39,11 +39,13 @@ class TestXport(tm.TestCase):
         # Test incremental read with `read` method.
         reader = read_sas(self.file01, format="xport", iterator=True)
         data = reader.read(10)
+        reader.close()
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :])
 
         # Test incremental read with `get_chunk` method.
         reader = read_sas(self.file01, format="xport", chunksize=10)
         data = reader.get_chunk()
+        reader.close()
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :])
 
         # Read full file with `read_sas` method
@@ -66,6 +68,7 @@ class TestXport(tm.TestCase):
         reader = read_sas(self.file01, index="SEQN", format="xport",
                           iterator=True)
         data = reader.read(10)
+        reader.close()
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :],
                               check_index_type=False)
 
@@ -73,6 +76,7 @@ class TestXport(tm.TestCase):
         reader = read_sas(self.file01, index="SEQN", format="xport",
                           chunksize=10)
         data = reader.get_chunk()
+        reader.close()
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :],
                               check_index_type=False)
 
