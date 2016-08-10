@@ -30,7 +30,7 @@ from pandas.types.common import (needs_i8_conversion,
                                  is_bool_dtype, is_datetimetz,
                                  is_list_like,
                                  _ensure_object)
-from pandas.types.cast import _maybe_upcast_putmask
+from pandas.types.cast import _maybe_upcast_putmask, _find_common_type
 from pandas.types.generic import ABCSeries, ABCIndex, ABCPeriodIndex
 
 # -----------------------------------------------------------------------------
@@ -616,7 +616,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                           raise_on_error=True, **eval_kwargs)
         except TypeError:
             if isinstance(y, (np.ndarray, ABCSeries, pd.Index)):
-                dtype = np.find_common_type([x.dtype, y.dtype], [])
+                dtype = _find_common_type([x.dtype, y.dtype])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notnull(x) & notnull(y)
                 result[mask] = op(x[mask], _values_from_object(y[mask]))
