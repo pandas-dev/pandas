@@ -1649,7 +1649,15 @@ class StataReader(StataParser, BaseIterator):
                         categories.append(value_label_dict[label][category])
                     else:
                         categories.append(category)  # Partially labeled
-                cat_data.categories = categories
+                try:
+                    cat_data.categories = categories
+                except ValueError:
+                    vc = Series(categories).value_counts()
+                    repeats = list(vc.index[vc > 1])
+                    repeats = '\n' + '-' * 80 + '\n'.join(repeats)
+                    msg = 'Value labels for column {0} are not unique. The ' \
+                          'repeated labels are:\n{1}'.format(col, repeats)
+                    raise ValueError(msg)
                 # TODO: is the next line needed above in the data(...) method?
                 cat_data = Series(cat_data, index=data.index)
                 cat_converted_data.append((col, cat_data))
