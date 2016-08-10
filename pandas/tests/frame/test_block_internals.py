@@ -104,15 +104,21 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         values = self.mixed_float.as_matrix(['C'])
         self.assertEqual(values.dtype, np.float16)
 
+        # GH 10364
+        # B uint64 forces float because there are other signed int types
         values = self.mixed_int.as_matrix(['A', 'B', 'C', 'D'])
-        self.assertEqual(values.dtype, np.int64)
+        self.assertEqual(values.dtype, np.float64)
 
         values = self.mixed_int.as_matrix(['A', 'D'])
         self.assertEqual(values.dtype, np.int64)
 
-        # guess all ints are cast to uints....
+        # B uint64 forces float because there are other signed int types
         values = self.mixed_int.as_matrix(['A', 'B', 'C'])
-        self.assertEqual(values.dtype, np.int64)
+        self.assertEqual(values.dtype, np.float64)
+
+        # as B and C are both unsigned, no forcing to float is needed
+        values = self.mixed_int.as_matrix(['B', 'C'])
+        self.assertEqual(values.dtype, np.uint64)
 
         values = self.mixed_int.as_matrix(['A', 'C'])
         self.assertEqual(values.dtype, np.int32)
