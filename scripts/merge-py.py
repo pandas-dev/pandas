@@ -116,7 +116,7 @@ def clean_up():
 
     branches = run_cmd("git branch").replace(" ", "").split("\n")
 
-    for branch in [b for b in branches if x.startswith(BRANCH_PREFIX)]:
+    for branch in [b for b in branches if b.startswith(BRANCH_PREFIX)]:
         print("Deleting local branch %s" % branch)
         run_cmd("git branch -D %s" % branch)
 
