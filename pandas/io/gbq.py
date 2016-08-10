@@ -54,8 +54,6 @@ def _test_google_api_imports():
             from apiclient.errors import HttpError  # noqa
         from oauth2client.client import GoogleCredentials  # noqa
         from oauth2client.client import AccessTokenRefreshError  # noqa
-        from oauth2client.client import HttpAccessTokenRefreshError  # noqa
-        from oauth2client.client import ApplicationDefaultCredentialsError  # noqa
         from oauth2client.client import OAuth2WebServerFlow  # noqa
         from oauth2client.file import Storage  # noqa
         from oauth2client.tools import run_flow, argparser  # noqa
@@ -193,18 +191,13 @@ class GbqConnector(object):
         """
         try:
             from googleapiclient.discovery import build
-            from googleapiclient.errors import HttpError
         except ImportError:
             from apiclient.discovery import build
-            from apiclient.errors import HttpError
         from oauth2client.client import GoogleCredentials
-        from oauth2client.client import AccessTokenRefreshError
-        from oauth2client.client import HttpAccessTokenRefreshError
-        from oauth2client.client import ApplicationDefaultCredentialsError
 
         try:
             credentials = GoogleCredentials.get_application_default()
-        except ApplicationDefaultCredentialsError:
+        except:
             return None
 
         # Check if the application has rights to the BigQuery project
@@ -214,8 +207,7 @@ class GbqConnector(object):
         try:
             jobs.insert(projectId=self.project_id, body=job_data).execute()
             return credentials
-        except (HttpAccessTokenRefreshError, AccessTokenRefreshError,
-                HttpError, TypeError):
+        except:
             return None
 
     def get_user_account_credentials(self):

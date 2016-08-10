@@ -56,32 +56,6 @@ def _skip_if_no_private_key_contents():
         _skip_if_no_private_key_contents()
 
 
-def _check_if_can_get_correct_default_credentials():
-    try:
-        from oauth2client.client import GoogleCredentials
-        from apiclient.discovery import build
-        credentials = GoogleCredentials.get_application_default()
-        bigquery_service = build('bigquery', 'v2', credentials=credentials)
-        jobs = bigquery_service.jobs()
-        job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
-        jobs.insert(projectId=PROJECT_ID, body=job_data).execute()
-        return True
-    except:
-        return False
-
-
-def _skip_if_cant_get_correct_default_credentials():
-    if not _check_if_can_get_correct_default_credentials():
-        raise nose.SkipTest("Cannot get default_credentials "
-                            "from the environment!")
-
-
-def _skip_if_can_get_correct_default_credentials():
-    if _check_if_can_get_correct_default_credentials():
-        raise nose.SkipTest("Can get default_credentials "
-                            "from the environment!")
-
-
 def _test_imports():
     global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
         _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
@@ -176,6 +150,36 @@ def test_requirements():
         _test_imports()
     except (ImportError, NotImplementedError) as import_exception:
         raise nose.SkipTest(import_exception)
+
+
+def _check_if_can_get_correct_default_credentials():
+    test_requirements()
+    from oauth2client.client import GoogleCredentials
+    try:
+        from googleapiclient.discovery import build
+    except ImportError:
+        from apiclient.discovery import build
+    try:
+        credentials = GoogleCredentials.get_application_default()
+        bigquery_service = build('bigquery', 'v2', credentials=credentials)
+        jobs = bigquery_service.jobs()
+        job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
+        jobs.insert(projectId=PROJECT_ID, body=job_data).execute()
+        return True
+    except:
+        return False
+
+
+def _skip_if_cant_get_correct_default_credentials():
+    if not _check_if_can_get_correct_default_credentials():
+        raise nose.SkipTest("Cannot get default_credentials "
+                            "from the environment!")
+
+
+def _skip_if_can_get_correct_default_credentials():
+    if _check_if_can_get_correct_default_credentials():
+        raise nose.SkipTest("Can get default_credentials "
+                            "from the environment!")
 
 
 def clean_gbq_environment(private_key=None):
