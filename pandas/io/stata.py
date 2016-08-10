@@ -1515,8 +1515,7 @@ class StataReader(StataParser, BaseIterator):
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                if ((dtype != np.dtype(object)) and
-                    (dtype != self.dtyplist[i])):
+                if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
                     requires_type_conversion = True
                     data_formatted.append(
                         (col, Series(data[col], index, self.dtyplist[i])))
