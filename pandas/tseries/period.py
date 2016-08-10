@@ -16,8 +16,6 @@ from pandas.types.common import (is_integer,
                                  _ensure_object)
 
 from pandas.types.generic import ABCSeries
-from pandas.types.missing import isnull
-
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
@@ -40,7 +38,6 @@ from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, cache_readonly, Substitution
 from pandas.lib import Timedelta
 import pandas.tslib as tslib
-import pandas.core.missing as missing
 from pandas.compat import zip, u
 
 
@@ -87,8 +84,7 @@ def _period_index_cmp(opname, nat_result=False):
 
             result = getattr(self.values, opname)(other.values)
 
-            mask = (missing.mask_missing(self.values, tslib.iNaT) |
-                    missing.mask_missing(other.values, tslib.iNaT))
+            mask = self._isnan | other._isnan
             if mask.any():
                 result[mask] = nat_result
 
@@ -101,9 +97,8 @@ def _period_index_cmp(opname, nat_result=False):
             func = getattr(self.values, opname)
             result = func(other.ordinal)
 
-        mask = self.values == tslib.iNaT
-        if mask.any():
-            result[mask] = nat_result
+        if self.hasnans:
+            result[self._isnan] = nat_result
 
         return result
     return wrapper
@@ -498,8 +493,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         new_data = period.period_asfreq_arr(ordinal, base1, base2, end)
 
         if self.hasnans:
-            mask = asi8 == tslib.iNaT
-            new_data[mask] = tslib.iNaT
+            new_data[self._isnan] = tslib.iNaT
 
         return self._simple_new(new_data, self.name, freq=freq)
 
@@ -637,9 +631,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         new_data = asi8 - other.ordinal
 
         if self.hasnans:
-            mask = asi8 == tslib.iNaT
             new_data = new_data.astype(np.float64)
-            new_data[mask] = np.nan
+            new_data[self._isnan] = np.nan
         # result must be Int64Index or Float64Index
         return Index(new_data, name=self.name)
 
@@ -892,16 +885,21 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _format_native_types(self, na_rep=u('NaT'), date_format=None,
                              **kwargs):
 
-        values = np.array(list(self), dtype=object)
-        mask = isnull(self.values)
-        values[mask] = na_rep
-        imask = ~mask
+        values = self.asobject.values
 
         if date_format:
             formatter = lambda dt: dt.strftime(date_format)
         else:
             formatter = lambda dt: u('%s') % dt
-        values[imask] = np.array([formatter(dt) for dt in values[imask]])
+
+        if self.hasnans:
+            mask = self._isnan
+            values[mask] = na_rep
+            imask = ~mask
+            values[imask] = np.array([formatter(dt) for dt
+                                      in values[imask]])
+        else:
+            values = np.array([formatter(dt) for dt in values])
         return values
 
     def append(self, other):
