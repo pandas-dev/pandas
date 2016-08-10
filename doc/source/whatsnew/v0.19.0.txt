@@ -975,7 +975,4 @@ Bug Fixes
 
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
 - Bug in ``Period`` and ``PeriodIndex`` creating wrong dates when frequency has combined offset aliases (:issue:`13874`)
-<<<<<<< 30b61e60f358677289d8325df6a06f5cf98453bc
 - Bug in ``pd.to_datetime()`` did not cast floats correctly when ``unit`` was specified, resulting in truncated datetime (:issue:`13845`)
-=======
->>>>>>> Fix whatsnew entries
