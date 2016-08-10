@@ -171,18 +171,20 @@ class GbqConnector(object):
         This method tries to retrieve the "default application credentials"
         Could be useful for running code on Google Cloud Platform
         """
-        from oauth2client.client import AccessTokenRefreshError
-        try:
-            from googleapiclient.discovery import build
-            from googleapiclient.errors import HttpError
-        except:
-            from apiclient.discovery import build
-            from apiclient.errors import HttpError
+        oauth2client_library_imported = False
         try:
             from oauth2client.client import GoogleCredentials
+            from oauth2client.client import AccessTokenRefreshError
             from oauth2client.client import HttpAccessTokenRefreshError
             from oauth2client.client import ApplicationDefaultCredentialsError
+            oauth2client_library_imported = True
+            from googleapiclient.discovery import build
+            from googleapiclient.errors import HttpError
         except ImportError:
+            from apiclient.discovery import build
+            from apiclient.errors import HttpError
+
+        if not oauth2client_library_imported:
             return None
 
         credentials = None
@@ -190,6 +192,7 @@ class GbqConnector(object):
             credentials = GoogleCredentials.get_application_default()
         except ApplicationDefaultCredentialsError:
             return None
+
         # Check if the application has rights to the BigQuery project
         bigquery_service = build('bigquery', 'v2', credentials=credentials)
         jobs = bigquery_service.jobs()
@@ -617,14 +620,16 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     https://developers.google.com/api-client-library/python/apis/bigquery/v2
 
     Authentication to the Google BigQuery service is via OAuth 2.0.
-    If "private_key" is not provided:
-        By default "application default credentials" are used [new behavior]
-        If default application credentials are not found or are restrictive -
-        User account credentials are used. In this case - you will be asked to
+    - If "private_key" is not provided:
+        By default "application default credentials" are used.
+
+        .. versionadded:: 0.19.0
+
+        If default application credentials are not found or are restrictive,
+        user account credentials are used. In this case, you will be asked to
         grant permissions for product name 'pandas GBQ'.
-    If "private_key" is provided:
-        It is also posible to authenticate via service account credentials
-        by using this parameter.
+    - If "private_key" is provided:
+        Service account credentials will be used to authenticate.
 
     Parameters
     ----------
@@ -731,14 +736,17 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     Documentation is available at
     https://developers.google.com/api-client-library/python/apis/bigquery/v2
 
-    If "private_key" is not provided:
-        By default "application default credentials" are used [new behavior]
-        If default application credentials are not found or are restrictive -
-        User account credentials are used. In this case - you will be asked to
+    Authentication to the Google BigQuery service is via OAuth 2.0.
+    - If "private_key" is not provided:
+        By default "application default credentials" are used.
+
+        .. versionadded:: 0.19.0
+
+        If default application credentials are not found or are restrictive,
+        user account credentials are used. In this case, you will be asked to
         grant permissions for product name 'pandas GBQ'.
-    If "private_key" is provided:
-        It is also posible to authenticate via service account credentials
-        by using this parameter.
+    - If "private_key" is provided:
+        Service account credentials will be used to authenticate.
 
     Parameters
     ----------
