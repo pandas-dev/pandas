@@ -487,13 +487,13 @@ worth trying.
    you can end up with column(s) with mixed dtypes. For example,
 
    .. ipython:: python
-         :okwarning:
+        :okwarning:
 
-       df = pd.DataFrame({'col_1':range(500000) + ['a', 'b'] + range(500000)})
-       df.to_csv('foo')
-       mixed_df = pd.read_csv('foo')
-       mixed_df['col_1'].apply(type).value_counts()
-       mixed_df['col_1'].dtype
+        df = pd.DataFrame({'col_1':range(500000) + ['a', 'b'] + range(500000)})
+        df.to_csv('foo')
+        mixed_df = pd.read_csv('foo')
+        mixed_df['col_1'].apply(type).value_counts()
+        mixed_df['col_1'].dtype
 
    will result with `mixed_df` containing an ``int`` dtype for certain chunks
    of the column, and ``str`` for others due to the mixed dtypes from the
