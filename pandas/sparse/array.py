@@ -103,7 +103,7 @@ def _sparse_array_op(left, right, op, name, series=False):
     result_dtype = None
 
     if left.sp_index.ngaps == 0 or right.sp_index.ngaps == 0:
-        with np.seterr(all='ignore'):
+        with np.errstate(all='ignore'):
             result = op(left.get_values(), right.get_values())
             fill = op(_get_fill(left), _get_fill(right))
 
@@ -112,7 +112,7 @@ def _sparse_array_op(left, right, op, name, series=False):
         else:
             index = right.sp_index
     elif left.sp_index.equals(right.sp_index):
-        with np.seterr(all='ignore'):
+        with np.errstate(all='ignore'):
             result = op(left.sp_values, right.sp_values)
             fill = op(_get_fill(left), _get_fill(right))
         index = left.sp_index
