@@ -3346,6 +3346,16 @@ class TestRollingTS(tm.TestCase):
                             on='timestamp').sum()
         tm.assert_frame_equal(result, expected)
 
+        df = DataFrame({'B': [1] * 3},
+                        index=[Timestamp('20130101 09:00:30'),
+                               Timestamp('20130101 09:01:00'),
+                               Timestamp('20130101 09:02:00')])
+        expected = DataFrame({'B': [1., 2., 2.]},
+                        index=[Timestamp('20130101 09:00:30'),
+                               Timestamp('20130101 09:01:00'),
+                               Timestamp('20130101 09:02:00')])
+        result = df.rolling('1min', left_closed=True).sum()
+        tm.assert_frame_equal(result, expected)
 
     def test_ragged_sum(self):
 
