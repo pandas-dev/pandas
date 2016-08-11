@@ -608,17 +608,24 @@ class TestResampleAPI(tm.TestCase):
         actual = df.resample('M', on='date').sum()
         assert_frame_equal(actual, expected)
 
-        actual = df.resample('M', level='d').sum()
         expected.index.name = 'd'
+        actual = df.resample('M', level='d').sum()
         assert_frame_equal(actual, expected)
+
+        actual = df.resample('M', level=1).sum()
+        assert_frame_equal(actual, expected)
+
+        # non DatetimeIndex
+        with tm.assertRaises(TypeError):
+            df.resample('M', level='v')
 
         with tm.assertRaises(ValueError):
             df.resample('M', on='date', level='d')
 
-        with tm.assertRaises(ValueError):
+        with tm.assertRaises(TypeError):
             df.resample('M', on=['a', 'date'])
 
-        with tm.assertRaises(ValueError):
+        with tm.assertRaises(KeyError):
             df.resample('M', level=['a', 'date'])
 
 

@@ -1473,6 +1473,28 @@ Furthermore, you can also specify multiple aggregation functions for each column
    r.agg({'A' : ['sum','std'], 'B' : ['mean','std'] })
 
 
+If a ``DataFrame`` does not have a ``DatetimeIndex``, but instead you want
+to resample based on column in the frame, it can passed to the ``on`` keyword.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'date': pd.date_range('2015-01-01', freq='W', periods=5),
+                      'a': np.arange(5)},
+                     index=pd.MultiIndex.from_arrays([
+                              [1,2,3,4,5],
+                              pd.date_range('2015-01-01', freq='W', periods=5)],
+                          names=['v','d']))
+   df
+   df.resample('M', on='date').sum()
+
+Similarly, if you instead want to resample by a level of ``MultiIndex``, its
+name or location can be passed to the ``level`` keyword.
+
+.. ipython:: python
+
+   df.resample(level='d').sum()
+
+
 .. _timeseries.periods:
 
 Time Span Representation

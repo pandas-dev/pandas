@@ -4169,11 +4169,6 @@ class NDFrame(PandasObject):
         """
         from pandas.tseries.resample import (resample,
                                              _maybe_process_deprecations)
-        if is_list_like(on):
-            raise ValueError("Only a single column may be passed to on")
-        if is_list_like(level):
-            raise ValueError("Only a single column may be passed to level")
-
         axis = self._get_axis_number(axis)
         r = resample(self, freq=rule, label=label, closed=closed,
                      axis=axis, kind=kind, loffset=loffset,
