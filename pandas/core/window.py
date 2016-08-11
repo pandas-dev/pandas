@@ -997,12 +997,12 @@ class _Rolling_and_Expanding(_Rolling):
 
 
 class Rolling(_Rolling_and_Expanding):
-    _attributes = ['window', 'min_periods', 'left_closed', 'freq',
-                   'center', 'win_type', 'axis', 'on']
+    _attributes = ['window', 'min_periods', 'freq', 'center', 'win_type',
+                   'axis', 'on', 'left_closed']
 
-    def __init__(self, obj, window=None, min_periods=None, left_closed=None,
-                 freq=None, center=False, win_type=None, axis=0, on=None,
-                 **kwargs):
+    def __init__(self, obj, window=None, min_periods=None, freq=None,
+                 center=False, win_type=None, axis=0, on=None,
+                 left_closed=None, **kwargs):
         self.left_closed = left_closed
         super(Rolling, self).__init__(obj=obj, window=window,
                                       min_periods=min_periods, freq=freq,
