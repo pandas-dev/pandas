@@ -106,19 +106,28 @@ from os.path import join as pjoin
 
 
 _pxipath = pjoin('pandas', 'src')
-_pxifiles = ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
-             'join_helper.pxi.in', 'algos_take_helper.pxi.in',
-             'hashtable_class_helper.pxi.in', 'hashtable_func_helper.pxi.in',
-             'sparse_op_helper.pxi.in', 'joins_func_helper.pxi.in']
+_pxi_dep_template = {
+    'algos': ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
+              'algos_take_helper.pxi.in'],
+    '_join': ['join_helper.pxi.in', 'joins_func_helper.pxi.in'],
+    'hashtable': ['hashtable_class_helper.pxi.in',
+                  'hashtable_func_helper.pxi.in'],
+    '_sparse': ['sparse_op_helper.pxi.in']
+}
+_pxifiles = []
+_pxi_dep = {}
+for module, files in _pxi_dep_template.items():
+    pxi_files = [pjoin(_pxipath, x) for x in files]
+    _pxifiles.extend(pxi_files)
+    _pxi_dep[module] = pxi_files
 
 
 class build_ext(_build_ext):
     def build_extensions(self):
 
-        for _pxifile in _pxifiles:
+        for pxifile in _pxifiles:
             # build pxifiles first, template extention must be .pxi.in
-            assert _pxifile.endswith('.pxi.in')
-            pxifile = pjoin(_pxipath, _pxifile)
+            assert pxifile.endswith('.pxi.in')
             outfile = pxifile[:-3]
 
             if (os.path.exists(outfile) and
@@ -450,7 +459,8 @@ ext_data = dict(
          'depends': lib_depends},
     hashtable={'pyxfile': 'hashtable',
                'pxdfiles': ['hashtable'],
-               'depends': ['pandas/src/klib/khash_python.h']},
+               'depends': (['pandas/src/klib/khash_python.h']
+                           + _pxi_dep['hashtable'])},
     tslib={'pyxfile': 'tslib',
            'depends': tseries_depends,
            'sources': ['pandas/src/datetime/np_datetime.c',
@@ -465,9 +475,11 @@ ext_data = dict(
            'sources': ['pandas/src/datetime/np_datetime.c',
                        'pandas/src/datetime/np_datetime_strings.c']},
     algos={'pyxfile': 'algos',
-           'pxdfiles': ['src/util']},
+           'pxdfiles': ['src/util'],
+           'depends': _pxi_dep['algos']},
     _join={'pyxfile': 'src/join',
-           'pxdfiles': ['src/util']},
+           'pxdfiles': ['src/util'],
+           'depends': _pxi_dep['_join']},
     _window={'pyxfile': 'window',
              'pxdfiles': ['src/skiplist', 'src/util'],
              'depends': ['pandas/src/skiplist.pyx',
@@ -479,7 +491,8 @@ ext_data = dict(
             'sources': ['pandas/src/parser/tokenizer.c',
                         'pandas/src/parser/io.c']},
     _sparse={'pyxfile': 'src/sparse',
-             'depends': [srcpath('sparse', suffix='.pyx')]},
+             'depends': ([srcpath('sparse', suffix='.pyx')]
+                         + _pxi_dep['_sparse'])},
     _testing={'pyxfile': 'src/testing',
               'depends': [srcpath('testing', suffix='.pyx')]},
 )
