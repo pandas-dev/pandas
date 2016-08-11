@@ -293,7 +293,8 @@ class SparseArray(PandasObject, np.ndarray):
             ufunc, args, domain = context
             # to apply ufunc only to fill_value (to avoid recursive call)
             args = [getattr(a, 'fill_value', a) for a in args]
-            fill_value = ufunc(self.fill_value, *args[1:])
+            with np.errstate(all='ignore'):
+                fill_value = ufunc(self.fill_value, *args[1:])
         else:
             fill_value = self.fill_value
 

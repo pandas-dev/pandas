@@ -2094,12 +2094,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
         else:
             too_long = False
 
-        abs_vals = np.abs(self.values)
-
-        # this is pretty arbitrary for now
-        # large values: more that 8 characters including decimal symbol
-        # and first digit, hence > 1e6
         with np.errstate(invalid='ignore'):
+            abs_vals = np.abs(self.values)
+            # this is pretty arbitrary for now
+            # large values: more that 8 characters including decimal symbol
+            # and first digit, hence > 1e6
             has_large_values = (abs_vals > 1e6).any()
             has_small_values = ((abs_vals < 10**(-self.digits)) &
                                 (abs_vals > 0)).any()
@@ -2212,9 +2211,10 @@ def format_percentiles(percentiles):
     percentiles = np.asarray(percentiles)
 
     # It checks for np.NaN as well
-    if not is_numeric_dtype(percentiles) or not np.all(percentiles >= 0) \
-            or not np.all(percentiles <= 1):
-        raise ValueError("percentiles should all be in the interval [0,1]")
+    with np.errstate(invalid='ignore'):
+        if not is_numeric_dtype(percentiles) or not np.all(percentiles >= 0) \
+                or not np.all(percentiles <= 1):
+            raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
     int_idx = (percentiles.astype(int) == percentiles)

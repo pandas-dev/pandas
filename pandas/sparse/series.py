@@ -311,7 +311,8 @@ class SparseSeries(Series):
         if isinstance(context, tuple) and len(context) == 3:
             ufunc, args, domain = context
             args = [getattr(a, 'fill_value', a) for a in args]
-            fill_value = ufunc(self.fill_value, *args[1:])
+            with np.errstate(all='ignore'):
+                fill_value = ufunc(self.fill_value, *args[1:])
         else:
             fill_value = self.fill_value
 
