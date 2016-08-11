@@ -31,20 +31,22 @@ from pandas.types.cast import (_maybe_upcast,
                                _possibly_downcast_to_dtype,
                                _invalidate_string_dtypes,
                                _coerce_to_dtypes,
-                               _maybe_upcast_putmask)
+                               _maybe_upcast_putmask,
+                               _find_common_type)
 from pandas.types.common import (is_categorical_dtype,
                                  is_object_dtype,
                                  is_extension_type,
                                  is_datetimetz,
                                  is_datetime64_dtype,
+                                 is_datetime64tz_dtype,
                                  is_bool_dtype,
                                  is_integer_dtype,
                                  is_float_dtype,
                                  is_integer,
                                  is_scalar,
+                                 is_dtype_equal,
                                  needs_i8_conversion,
                                  _get_dtype_from_object,
-                                 _lcd_dtypes,
                                  _ensure_float,
                                  _ensure_float64,
                                  _ensure_int64,
@@ -3700,17 +3702,20 @@ class DataFrame(NDFrame):
                 otherSeries[other_mask] = fill_value
 
             # if we have different dtypes, possibily promote
-            new_dtype = this_dtype
-            if this_dtype != other_dtype:
-                new_dtype = _lcd_dtypes(this_dtype, other_dtype)
-                series = series.astype(new_dtype)
+            if notnull(series).all():
+                new_dtype = this_dtype
                 otherSeries = otherSeries.astype(new_dtype)
+            else:
+                new_dtype = _find_common_type([this_dtype, other_dtype])
+                if not is_dtype_equal(this_dtype, new_dtype):
+                    series = series.astype(new_dtype)
+                if not is_dtype_equal(other_dtype, new_dtype):
+                    otherSeries = otherSeries.astype(new_dtype)
 
             # see if we need to be represented as i8 (datetimelike)
             # try to keep us at this dtype
             needs_i8_conversion_i = needs_i8_conversion(new_dtype)
             if needs_i8_conversion_i:
-                this_dtype = new_dtype
                 arr = func(series, otherSeries, True)
             else:
                 arr = func(series, otherSeries)
@@ -3721,7 +3726,12 @@ class DataFrame(NDFrame):
 
             # try to downcast back to the original dtype
             if needs_i8_conversion_i:
-                arr = _possibly_cast_to_datetime(arr, this_dtype)
+                # ToDo: This conversion should be handled in
+                # _possibly_cast_to_datetime but the change affects lot...
+                if is_datetime64tz_dtype(new_dtype):
+                    arr = DatetimeIndex._simple_new(arr, tz=new_dtype.tz)
+                else:
+                    arr = _possibly_cast_to_datetime(arr, new_dtype)
             else:
                 arr = _possibly_downcast_to_dtype(arr, this_dtype)
 
