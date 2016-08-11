@@ -5567,11 +5567,12 @@ class NDFrame(PandasObject):
         from pandas.core import window as rwindow
 
         @Appender(rwindow.rolling.__doc__)
-        def rolling(self, window, min_periods=None, freq=None, center=False,
-                    win_type=None, on=None, axis=0):
+        def rolling(self, window, min_periods=None, left_closed=None,
+                    freq=None, center=False, win_type=None, on=None, axis=0):
             axis = self._get_axis_number(axis)
             return rwindow.rolling(self, window=window,
-                                   min_periods=min_periods, freq=freq,
+                                   min_periods=min_periods,
+                                   left_closed=left_closed, freq=freq,
                                    center=center, win_type=win_type,
                                    on=on, axis=axis)
 

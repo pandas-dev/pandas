@@ -997,6 +997,17 @@ class _Rolling_and_Expanding(_Rolling):
 
 
 class Rolling(_Rolling_and_Expanding):
+    _attributes = ['window', 'min_periods', 'left_closed', 'freq',
+                   'center', 'win_type', 'axis', 'on']
+
+    def __init__(self, obj, window=None, min_periods=None, left_closed=None,
+                 freq=None, center=False, win_type=None, axis=0, on=None,
+                 **kwargs):
+        self.left_closed = left_closed
+        super(Rolling, self).__init__(obj=obj, window=window,
+                                      min_periods=min_periods, freq=freq,
+                                      center=center, win_type=win_type,
+                                      axis=axis, on=on, **kwargs)
 
     @cache_readonly
     def is_datetimelike(self):
@@ -1045,18 +1056,26 @@ class Rolling(_Rolling_and_Expanding):
                                           "for datetimelike and offset "
                                           "based windows")
 
+            if self.left_closed is not None and not is_bool(self.left_closed):
+                raise ValueError("left_closed must be a boolean")
+
             # this will raise ValueError on non-fixed freqs
             self.window = freq.nanos
+            if self.left_closed:
+                self.window += 1
             self.win_type = 'freq'
 
             # min_periods must be an integer
             if self.min_periods is None:
                 self.min_periods = 1
-
-        elif not is_integer(self.window):
-            raise ValueError("window must be an integer")
-        elif self.window < 0:
-            raise ValueError("window must be non-negative")
+        else:
+            if self.left_closed is not None:
+                raise ValueError("left_closed only valid for datetimelike "
+                                 "and offset based windows")
+            elif not is_integer(self.window):
+                raise ValueError("window must be an integer")
+            elif self.window < 0:
+                raise ValueError("window must be non-negative")
 
     @Substitution(name='rolling')
     @Appender(SelectionMixin._see_also_template)
