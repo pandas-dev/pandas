@@ -3357,6 +3357,9 @@ class TestRollingTS(tm.TestCase):
         result = df.rolling('1min', left_closed=True).sum()
         tm.assert_frame_equal(result, expected)
 
+        with self.assertRaises(ValueError):
+            df.rolling('1min', left_closed="'tis wrong")
+
     def test_ragged_sum(self):
 
         df = self.ragged
