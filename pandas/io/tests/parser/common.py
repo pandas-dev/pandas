@@ -1580,5 +1580,6 @@ j,-inF"""
         new_file.seek(0)
 
         result = self.read_csv(new_file, sep='\s+', header=None)
+        new_file.close()
         expected = DataFrame([[0, 0]])
         tm.assert_frame_equal(result, expected)
