@@ -167,15 +167,11 @@ def read_stata(filepath_or_buffer, convert_dates=True,
                          chunksize=chunksize, encoding=encoding)
 
     if iterator or chunksize:
-        try:
-            return reader
-        except StopIteration:
-            reader.close()
-
-    try:
-        return reader.read()
-    finally:
+        data = reader
+    else:
+        data = reader.read()
         reader.close()
+    return data
 
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
@@ -1411,13 +1407,13 @@ class StataReader(StataParser, BaseIterator):
              convert_categoricals=None, index=None,
              convert_missing=None, preserve_dtypes=None,
              columns=None, order_categoricals=None):
-
         # Handle empty file or chunk.  If reading incrementally raise
         # StopIteration.  If reading the whole thing return an empty
         # data frame.
         if (self.nobs == 0) and (nrows is None):
             self._can_read_value_labels = True
             self._data_read = True
+            self.close()
             return DataFrame(columns=self.varlist)
 
         # Handle options
@@ -1463,6 +1459,7 @@ class StataReader(StataParser, BaseIterator):
             # we are reading the file incrementally
             if convert_categoricals:
                 self._read_value_labels()
+            self.close()
             raise StopIteration
         offset = self._lines_read * dtype.itemsize
         self.path_or_buf.seek(self.data_location + offset)
@@ -1494,7 +1491,11 @@ class StataReader(StataParser, BaseIterator):
             data = data.set_index(ix)
 
         if columns is not None:
-            data = self._do_select_columns(data, columns)
+            try:
+                data = self._do_select_columns(data, columns)
+            except ValueError:
+                self.close()
+                raise
 
         # Decode strings
         for col, typ in zip(data, self.typlist):
@@ -1514,7 +1515,7 @@ class StataReader(StataParser, BaseIterator):
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                if (dtype != np.dtype(object)) and (dtype != self.dtyplist[i]):
+                if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
                     requires_type_conversion = True
                     data_formatted.append(
                         (col, Series(data[col], index, self.dtyplist[i])))
@@ -1531,9 +1532,13 @@ class StataReader(StataParser, BaseIterator):
                                  self.fmtlist))[0]
             for i in cols:
                 col = data.columns[i]
-                data[col] = _stata_elapsed_date_to_datetime_vec(
-                    data[col],
-                    self.fmtlist[i])
+                try:
+                    data[col] = _stata_elapsed_date_to_datetime_vec(
+                        data[col],
+                        self.fmtlist[i])
+                except ValueError:
+                    self.close()
+                    raise
 
         if convert_categoricals and self.format_version > 108:
             data = self._do_convert_categoricals(data,
@@ -1889,9 +1894,7 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._file = _open_file_binary_write(
-            fname, self._encoding or self._default_encoding
-        )
+        self._fname = fname
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
 
     def _write(self, to_write):
@@ -2086,16 +2089,21 @@ class StataWriter(StataParser):
                 self.fmtlist[key] = self._convert_dates[key]
 
     def write_file(self):
-        self._write_header(time_stamp=self._time_stamp,
-                           data_label=self._data_label)
-        self._write_descriptors()
-        self._write_variable_labels()
-        # write 5 zeros for expansion fields
-        self._write(_pad_bytes("", 5))
-        self._prepare_data()
-        self._write_data()
-        self._write_value_labels()
-        self._file.close()
+        self._file = _open_file_binary_write(
+            self._fname, self._encoding or self._default_encoding
+        )
+        try:
+            self._write_header(time_stamp=self._time_stamp,
+                               data_label=self._data_label)
+            self._write_descriptors()
+            self._write_variable_labels()
+            # write 5 zeros for expansion fields
+            self._write(_pad_bytes("", 5))
+            self._prepare_data()
+            self._write_data()
+            self._write_value_labels()
+        finally:
+            self._file.close()
 
     def _write_value_labels(self):
         for vl in self._value_labels:

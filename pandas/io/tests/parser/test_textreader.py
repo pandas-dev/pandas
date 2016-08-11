@@ -54,7 +54,8 @@ class TestTextReader(tm.TestCase):
             f.close()
 
     def test_StringIO(self):
-        text = open(self.csv1, 'rb').read()
+        with open(self.csv1, 'rb') as f:
+            text = f.read()
         src = BytesIO(text)
         reader = TextReader(src, header=None)
         reader.read()

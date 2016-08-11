@@ -393,11 +393,15 @@ def _read(filepath_or_buffer, kwds):
         raise NotImplementedError("'nrows' and 'chunksize' cannot be used"
                                   " together yet.")
     elif nrows is not None:
-        return parser.read(nrows)
+        data = parser.read(nrows)
+        parser.close()
+        return data
     elif chunksize or iterator:
         return parser
 
-    return parser.read()
+    data = parser.read()
+    parser.close()
+    return data
 
 _parser_defaults = {
     'delimiter': None,
@@ -727,10 +731,7 @@ class TextFileReader(BaseIterator):
         self._make_engine(self.engine)
 
     def close(self):
-        try:
-            self._engine._reader.close()
-        except:
-            pass
+        self._engine.close()
 
     def _get_options_with_defaults(self, engine):
         kwds = self.orig_options
@@ -898,7 +899,11 @@ class TextFileReader(BaseIterator):
         return result, engine
 
     def __next__(self):
-        return self.get_chunk()
+        try:
+            return self.get_chunk()
+        except StopIteration:
+            self.close()
+            raise
 
     def _make_engine(self, engine='c'):
         if engine == 'c':
@@ -1057,8 +1062,13 @@ class ParserBase(object):
 
         self._first_chunk = True
 
+        # GH 13932
+        # keep references to file handles opened by the parser itself
+        self.handles = []
+
     def close(self):
-        self._reader.close()
+        for f in self.handles:
+            f.close()
 
     @property
     def _has_complex_date_col(self):
@@ -1356,6 +1366,7 @@ class CParserWrapper(ParserBase):
         if 'utf-16' in (kwds.get('encoding') or ''):
             if isinstance(src, compat.string_types):
                 src = open(src, 'rb')
+                self.handles.append(src)
             src = UTF8Recoder(src, kwds['encoding'])
             kwds['encoding'] = 'utf-8'
 
@@ -1428,6 +1439,14 @@ class CParserWrapper(ParserBase):
                 self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
+
+    def close(self):
+        for f in self.handles:
+            f.close()
+        try:
+            self._reader.close()
+        except:
+            pass
 
     def _set_noconvert_columns(self):
         names = self.orig_names
@@ -1751,13 +1770,16 @@ class PythonParser(ParserBase):
             f = _get_handle(f, 'r', encoding=self.encoding,
                             compression=self.compression,
                             memory_map=self.memory_map)
+            self.handles.append(f)
         elif self.compression:
             f = _wrap_compressed(f, self.compression, self.encoding)
+            self.handles.append(f)
         # in Python 3, convert BytesIO or fileobjects passed with an encoding
         elif compat.PY3 and isinstance(f, compat.BytesIO):
             from io import TextIOWrapper
 
             f = TextIOWrapper(f, encoding=self.encoding)
+            self.handles.append(f)
 
         # Set self.data to something that can read lines.
         if hasattr(f, 'readline'):

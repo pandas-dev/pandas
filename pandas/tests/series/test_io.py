@@ -64,7 +64,8 @@ class TestSeriesToCSV(TestData, tm.TestCase):
         with ensure_clean() as path:
             self.ts.to_csv(path)
 
-            lines = io.open(path, newline=None).readlines()
+            with io.open(path, newline=None) as f:
+                lines = f.readlines()
             assert (lines[1] != '\n')
 
             self.ts.to_csv(path, index=False)

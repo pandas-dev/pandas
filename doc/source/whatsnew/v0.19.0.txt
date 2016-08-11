@@ -905,6 +905,9 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` that prevents ``usecols`` from being an empty set (:issue:`13402`)
 - Bug in ``pd.read_csv()`` with ``engine='c'`` in which null ``quotechar`` was not accepted even though ``quoting`` was specified as ``None`` (:issue:`13411`)
 - Bug in ``pd.read_csv()`` with ``engine='c'`` in which fields were not properly cast to float when quoting was specified as non-numeric (:issue:`13411`)
+- Bug in ``pd.read_csv``, ``pd.read_table``, ``pd.read_fwf``, ``pd.read_stata`` and ``pd.read_sas`` where files were opened by parsers but not closed if both ``chunksize`` and ``iterator`` were ``None``. (:issue:`13940`)
+- Bug in ``StataReader``, ``StataWriter``, ``XportReader`` and ``SAS7BDATReader`` where a file was not properly closed when an error was raised. (:issue:`13940`)
+
 - Bug in ``pd.pivot_table()`` where ``margins_name`` is ignored when ``aggfunc`` is a list (:issue:`13354`)
 - Bug in ``pd.Series.str.zfill``, ``center``, ``ljust``, ``rjust``, and ``pad`` when passing non-integers, did not raise ``TypeError`` (:issue:`13598`)
 - Bug in checking for any null objects in a ``TimedeltaIndex``, which always returned ``True`` (:issue:`13603`)
