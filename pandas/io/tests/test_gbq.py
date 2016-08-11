@@ -153,6 +153,9 @@ def test_requirements():
 
 
 def _check_if_can_get_correct_default_credentials():
+    # Checks if "Application Default Credentials" can be fetched
+    # from the environment the tests are running in.
+    # See Issue #13577
     test_requirements()
     from oauth2client.client import GoogleCredentials
     try:
@@ -168,18 +171,6 @@ def _check_if_can_get_correct_default_credentials():
         return True
     except:
         return False
-
-
-def _skip_if_cant_get_correct_default_credentials():
-    if not _check_if_can_get_correct_default_credentials():
-        raise nose.SkipTest("Cannot get default_credentials "
-                            "from the environment!")
-
-
-def _skip_if_can_get_correct_default_credentials():
-    if _check_if_can_get_correct_default_credentials():
-        raise nose.SkipTest("Can get default_credentials "
-                            "from the environment!")
 
 
 def clean_gbq_environment(private_key=None):
@@ -249,12 +240,16 @@ class TestGBQConnectorIntegration(tm.TestCase):
         self.assertTrue(pages is not None)
 
     def test_get_application_default_credentials_does_not_throw_error(self):
-        _skip_if_can_get_correct_default_credentials()
+        if _check_if_can_get_correct_default_credentials():
+            raise nose.SkipTest("Can get default_credentials "
+                                "from the environment!")
         credentials = self.sut.get_application_default_credentials()
         self.assertIsNone(credentials)
 
     def test_get_application_default_credentials_returns_credentials(self):
-        _skip_if_cant_get_correct_default_credentials()
+        if not _check_if_can_get_correct_default_credentials():
+            raise nose.SkipTest("Cannot get default_credentials "
+                                "from the environment!")
         from oauth2client.client import GoogleCredentials
         credentials = self.sut.get_application_default_credentials()
         self.assertTrue(isinstance(credentials, GoogleCredentials))
