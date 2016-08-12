@@ -866,8 +866,23 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
 
 def _find_common_type(types):
     """Find a common data type among the given dtypes."""
-    # TODO: enable using pandas-specific types
+
+    if len(types) == 0:
+        raise ValueError('no types given')
+
+    first = types[0]
+    # workaround for find_common_type([np.dtype('datetime64[ns]')] * 2)
+    # => object
+    if all(is_dtype_equal(first, t) for t in types[1:]):
+        return first
+
     if any(isinstance(t, ExtensionDtype) for t in types):
-        raise TypeError("Common type discovery is currently only "
-                        "supported for pure numpy dtypes.")
+        return np.object
+
+    # take lowest unit
+    if all(is_datetime64_dtype(t) for t in types):
+        return np.dtype('datetime64[ns]')
+    if all(is_timedelta64_dtype(t) for t in types):
+        return np.dtype('timedelta64[ns]')
+
     return np.find_common_type(types, [])

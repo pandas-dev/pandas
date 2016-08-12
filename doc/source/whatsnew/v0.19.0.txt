@@ -788,6 +788,7 @@ Deprecations
 - ``pandas.tseries.frequencies.get_standard_freq`` is deprecated. Use  ``pandas.tseries.frequencies.to_offset(freq).rule_code`` instead. (:issue:`13874`)
 - ``pandas.tseries.frequencies.to_offset``'s ``freqstr`` keyword is deprecated in favor of ``freq``. (:issue:`13874`)
 
+
 .. _whatsnew_0190.prior_deprecations:
 
 Removal of prior version deprecations/changes
@@ -939,6 +940,7 @@ Bug Fixes
 
 
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
+- Bug in ``.combine_first`` may return incorrect ``dtype`` (:issue:`7630`, :issue:`10567`)
 - Bug in ``groupby`` where ``apply`` returns different result depending on whether first result is ``None`` or not (:issue:`12824`)
 - Bug in ``groupby(..).nth()`` where the group key is included inconsistently if called after ``.head()/.tail()`` (:issue:`12839`)
 - Bug in ``.to_html``, ``.to_latex`` and ``.to_string`` silently ignore custom datetime formatter passed through the ``formatters`` key word (:issue:`10690`)
