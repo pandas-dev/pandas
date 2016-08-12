@@ -192,6 +192,7 @@ class TestConvert(tm.TestCase):
 
 
 class TestCommonTypes(tm.TestCase):
+
     def test_numpy_dtypes(self):
         # (source_types, destination_type)
         testcases = (
@@ -218,18 +219,43 @@ class TestCommonTypes(tm.TestCase):
             ((np.complex128, np.int32), np.complex128),
             ((np.object, np.float32), np.object),
             ((np.object, np.int16), np.object),
+
+            ((np.dtype('datetime64[ns]'), np.dtype('datetime64[ns]')),
+             np.dtype('datetime64[ns]')),
+            ((np.dtype('timedelta64[ns]'), np.dtype('timedelta64[ns]')),
+             np.dtype('timedelta64[ns]')),
+
+            ((np.dtype('datetime64[ns]'), np.dtype('datetime64[ms]')),
+             np.dtype('datetime64[ns]')),
+            ((np.dtype('timedelta64[ms]'), np.dtype('timedelta64[ns]')),
+             np.dtype('timedelta64[ns]')),
+
+            ((np.dtype('datetime64[ns]'), np.dtype('timedelta64[ns]')),
+             np.object),
+            ((np.dtype('datetime64[ns]'), np.int64), np.object)
         )
         for src, common in testcases:
             self.assertEqual(_find_common_type(src), common)
 
+        with tm.assertRaises(ValueError):
+            # empty
+            _find_common_type([])
+
     def test_pandas_dtypes(self):
-        # TODO: not implemented yet
-        with self.assertRaises(TypeError):
-            self.assertEqual(_find_common_type([CategoricalDtype()]),
-                             CategoricalDtype)
-        with self.assertRaises(TypeError):
-            self.assertEqual(_find_common_type([DatetimeTZDtype()]),
-                             DatetimeTZDtype)
+        dtype = CategoricalDtype()
+        self.assertEqual(_find_common_type([dtype]), 'category')
+        self.assertEqual(_find_common_type([dtype, dtype]), 'category')
+        self.assertEqual(_find_common_type([np.object, dtype]), np.object)
+
+        dtype = DatetimeTZDtype(unit='ns', tz='US/Eastern')
+        self.assertEqual(_find_common_type([dtype, dtype]),
+                         'datetime64[ns, US/Eastern]')
+
+        for dtype2 in [DatetimeTZDtype(unit='ns', tz='Asia/Tokyo'),
+                       np.dtype('datetime64[ns]'), np.object, np.int64]:
+            self.assertEqual(_find_common_type([dtype, dtype2]), np.object)
+            self.assertEqual(_find_common_type([dtype2, dtype]), np.object)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
