@@ -3310,6 +3310,9 @@ class TestRollingTS(tm.TestCase):
         expected = df.rolling('4s').sum()
         result = df.rolling('3s', closed='both').sum()
         tm.assert_frame_equal(result, expected)
+        expected = df.rolling('3s').count()
+        result = df.rolling('3s', closed='right').count()
+        tm.assert_frame_equal(result, expected)
 
         df.index = df.index - Timestamp('20130101 09:00:00')
         expected = df.rolling('4s').count()
@@ -3317,6 +3320,9 @@ class TestRollingTS(tm.TestCase):
         tm.assert_frame_equal(result, expected)
         expected = df.rolling('4s').sum()
         result = df.rolling('3s', closed='both').sum()
+        tm.assert_frame_equal(result, expected)
+        expected = df.rolling('3s').sum()
+        result = df.rolling('3s', closed='right').sum()
         tm.assert_frame_equal(result, expected)
 
         df = DataFrame({'B': [1, 1, 2, np.nan, 4],
@@ -3352,6 +3358,9 @@ class TestRollingTS(tm.TestCase):
         expected = df.rolling('4d').sum()
         result = df.rolling('3d', closed='both').sum()
         tm.assert_frame_equal(result, expected)
+        expected = df.rolling('3d').count()
+        result = df.rolling('3d', closed='right').count()
+        tm.assert_frame_equal(result, expected)
 
         df.index = df.index - Timestamp('20130101')
         expected = df.rolling('4d').count()
@@ -3359,6 +3368,9 @@ class TestRollingTS(tm.TestCase):
         tm.assert_frame_equal(result, expected)
         expected = df.rolling('4d').sum()
         result = df.rolling('3d', closed='both').sum()
+        tm.assert_frame_equal(result, expected)
+        expected = df.rolling('3d').count()
+        result = df.rolling('3d', closed='right').count()
         tm.assert_frame_equal(result, expected)
 
         df = DataFrame({'B': [1, 1, 2, np.nan, 4],
