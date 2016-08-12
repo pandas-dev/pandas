@@ -998,12 +998,12 @@ class _Rolling_and_Expanding(_Rolling):
 
 class Rolling(_Rolling_and_Expanding):
     _attributes = ['window', 'min_periods', 'freq', 'center', 'win_type',
-                   'axis', 'on', 'left_closed']
+                   'axis', 'on', 'closed']
 
     def __init__(self, obj, window=None, min_periods=None, freq=None,
                  center=False, win_type=None, axis=0, on=None,
-                 left_closed=None, **kwargs):
-        self.left_closed = left_closed
+                 closed='right', **kwargs):
+        self.closed = closed
         super(Rolling, self).__init__(obj=obj, window=window,
                                       min_periods=min_periods, freq=freq,
                                       center=center, win_type=win_type,
@@ -1032,6 +1032,9 @@ class Rolling(_Rolling_and_Expanding):
     def validate(self):
         super(Rolling, self).validate()
 
+        if self.closed not in ['right', 'both']:
+            raise ValueError("closed must be right or both")
+
         # we allow rolling on a datetimelike index
         if (self.is_datetimelike and
                 isinstance(self.window, (compat.string_types, DateOffset))):
@@ -1056,12 +1059,9 @@ class Rolling(_Rolling_and_Expanding):
                                           "for datetimelike and offset "
                                           "based windows")
 
-            if self.left_closed is not None and not is_bool(self.left_closed):
-                raise ValueError("left_closed must be a boolean")
-
             # this will raise ValueError on non-fixed freqs
             self.window = freq.nanos
-            if self.left_closed:
+            if self.closed == 'both':
                 self.window += 1
             self.win_type = 'freq'
 
@@ -1069,8 +1069,8 @@ class Rolling(_Rolling_and_Expanding):
             if self.min_periods is None:
                 self.min_periods = 1
         else:
-            if self.left_closed is not None:
-                raise ValueError("left_closed only valid for datetimelike "
+            if self.closed == 'both':
+                raise ValueError("closed=both only valid for datetimelike "
                                  "and offset based windows")
             elif not is_integer(self.window):
                 raise ValueError("window must be an integer")

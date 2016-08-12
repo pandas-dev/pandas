@@ -3288,7 +3288,7 @@ class TestRollingTS(tm.TestCase):
         result = df.rolling('2s', min_periods=1).sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_left_closed(self):
+    def test_closed(self):
 
         df = DataFrame({'B': [1, 1, 2, np.nan, 4]},
                        index=[Timestamp('20130101 09:00:00'),
@@ -3297,10 +3297,10 @@ class TestRollingTS(tm.TestCase):
                               Timestamp('20130101 09:00:05'),
                               Timestamp('20130101 09:00:06')])
         expected = df.rolling('4s').count()
-        result = df.rolling('3s', left_closed=True).count()
+        result = df.rolling('3s', closed='both').count()
         tm.assert_frame_equal(result, expected)
         expected = df.rolling('4s').sum()
-        result = df.rolling('3s', left_closed=True).sum()
+        result = df.rolling('3s', closed='both').sum()
         tm.assert_frame_equal(result, expected)
 
         df = DataFrame({'B': [1, 1, 2, np.nan, 4],
@@ -3310,11 +3310,11 @@ class TestRollingTS(tm.TestCase):
                                       Timestamp('20130101 09:00:05'),
                                       Timestamp('20130101 09:00:06')]})
         expected = df.rolling('4s', on='timestamp').count()
-        result = df.rolling('3s', left_closed=True,
+        result = df.rolling('3s', closed='both',
                             on='timestamp').count()
         tm.assert_frame_equal(result, expected)
         expected = df.rolling('4s', on='timestamp').sum()
-        result = df.rolling('3s', left_closed=True,
+        result = df.rolling('3s', closed='both',
                             on='timestamp').sum()
         tm.assert_frame_equal(result, expected)
 
@@ -3325,10 +3325,10 @@ class TestRollingTS(tm.TestCase):
                               Timestamp('20130106'),
                               Timestamp('20130107')])
         expected = df.rolling('4d').count()
-        result = df.rolling('3d', left_closed=True).count()
+        result = df.rolling('3d', closed='both').count()
         tm.assert_frame_equal(result, expected)
         expected = df.rolling('4d').sum()
-        result = df.rolling('3d', left_closed=True).sum()
+        result = df.rolling('3d', closed='both').sum()
         tm.assert_frame_equal(result, expected)
 
         df = DataFrame({'B': [1, 1, 2, np.nan, 4],
@@ -3338,11 +3338,11 @@ class TestRollingTS(tm.TestCase):
                                      Timestamp('20130106'),
                                      Timestamp('20130107')]})
         expected = df.rolling('4d', on='timestamp').count()
-        result = df.rolling('3d', left_closed=True,
+        result = df.rolling('3d', closed='both',
                             on='timestamp').count()
         tm.assert_frame_equal(result, expected)
         expected = df.rolling('4d', on='timestamp').sum()
-        result = df.rolling('3d', left_closed=True,
+        result = df.rolling('3d', closed='both',
                             on='timestamp').sum()
         tm.assert_frame_equal(result, expected)
 
@@ -3354,11 +3354,11 @@ class TestRollingTS(tm.TestCase):
                              index=[Timestamp('20130101 09:00:30'),
                                     Timestamp('20130101 09:01:00'),
                                     Timestamp('20130101 09:02:00')])
-        result = df.rolling('1min', left_closed=True).sum()
+        result = df.rolling('1min', closed='both').sum()
         tm.assert_frame_equal(result, expected)
 
         with self.assertRaises(ValueError):
-            df.rolling('1min', left_closed="'tis wrong")
+            df.rolling('1min', closed="'tis wrong")
 
     def test_ragged_sum(self):
 
