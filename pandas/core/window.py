@@ -376,6 +376,9 @@ class Window(_Window):
         .. versionadded:: 0.19.0
 
     axis : int or string, default 0
+    closed: 'right' or 'both', default 'right'
+        For offset-based windows, make the interval closed only on the right
+        or on both endpoints.
 
     Returns
     -------
@@ -453,6 +456,14 @@ class Window(_Window):
     2013-01-01 09:00:02  1.0
     2013-01-01 09:00:03  3.0
     2013-01-01 09:00:05  NaN
+    2013-01-01 09:00:06  4.0
+
+    >>> df.rolling('2s', closed='both').sum()
+                           B
+    2013-01-01 09:00:00  0.0
+    2013-01-01 09:00:02  1.0
+    2013-01-01 09:00:03  3.0
+    2013-01-01 09:00:05  2.0
     2013-01-01 09:00:06  4.0
 
     Notes
