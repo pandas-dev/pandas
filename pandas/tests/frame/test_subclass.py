@@ -211,6 +211,13 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assertIsInstance(res2, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res2, exp1)
 
+    def test_subclass_iterrows(self):
+        # GH 13977
+        df = tm.SubclassedDataFrame({'a': [1]})
+        for i, row in df.iterrows():
+            tm.assertIsInstance(row, tm.SubclassedSeries)
+            tm.assert_series_equal(row, df.loc[i])
+
     def test_subclass_sparse_slice(self):
         rows = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]
         ssdf = tm.SubclassedSparseDataFrame(rows)

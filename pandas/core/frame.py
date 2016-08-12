@@ -694,8 +694,9 @@ class DataFrame(NDFrame):
 
         """
         columns = self.columns
+        klass = self._constructor_sliced
         for k, v in zip(self.index, self.values):
-            s = Series(v, index=columns, name=k)
+            s = klass(v, index=columns, name=k)
             yield k, s
 
     def itertuples(self, index=True, name="Pandas"):
