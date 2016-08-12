@@ -395,6 +395,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         expected = CategoricalIndex([0], name='foo')
         self.assert_index_equal(idx.drop_duplicates(), expected)
+        self.assert_index_equal(idx.unique(), expected)
 
     def test_get_indexer(self):
 

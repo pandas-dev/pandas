@@ -60,7 +60,8 @@ __all__ = ['Index']
 
 _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
-_index_doc_kwargs = dict(klass='Index', inplace='', duplicated='np.array')
+_index_doc_kwargs = dict(klass='Index', inplace='',
+                         unique='Index', duplicated='np.ndarray')
 _index_shared_docs = dict()
 
 
@@ -3216,6 +3217,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                  labels[mask])
             indexer = indexer[~mask]
         return self.delete(indexer)
+
+    @Appender(base._shared_docs['unique'] % _index_doc_kwargs)
+    def unique(self):
+        result = super(Index, self).unique()
+        return self._shallow_copy(result)
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})

@@ -17,6 +17,7 @@ from pandas.compat import u, StringIO
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.base import (FrozenList, FrozenNDArray, PandasDelegate,
                               NoNewAttributesMixin)
+from pandas.types.common import is_datetime64_dtype
 from pandas.tseries.base import DatetimeIndexOpsMixin
 
 
@@ -452,43 +453,29 @@ class TestIndexOps(Ops):
 
             o = orig.copy()
             klass = type(o)
-            values = o.values
+            values = o._values
+
+            if isinstance(values, Index):
+                # reset name not to affect latter process
+                values.name = None
 
             # create repeated values, 'n'th element is repeated by n+1 times
-            if isinstance(o, PeriodIndex):
-                # freq must be specified because repeat makes freq ambiguous
-
-                # resets name from Index
-                expected_index = pd.Index(o[::-1])
-                expected_index.name = None
-
-                # attach name to klass
-                o = o.repeat(range(1, len(o) + 1))
-                o.name = 'a'
-
-            elif isinstance(o, DatetimeIndex):
-
-                # resets name from Index
-                expected_index = pd.Index(o[::-1])
-                expected_index.name = None
-
-                # attach name to klass
-                o = o.repeat(range(1, len(o) + 1))
-                o.name = 'a'
-
-            # don't test boolean
-            elif isinstance(o, Index) and o.is_boolean():
+            # skip boolean, because it only has 2 values at most
+            if isinstance(o, Index) and o.is_boolean():
                 continue
             elif isinstance(o, Index):
-                expected_index = pd.Index(values[::-1])
+                expected_index = pd.Index(o[::-1])
                 expected_index.name = None
                 o = o.repeat(range(1, len(o) + 1))
                 o.name = 'a'
             else:
                 expected_index = pd.Index(values[::-1])
                 idx = o.index.repeat(range(1, len(o) + 1))
-                o = klass(np.repeat(values, range(1, len(o) + 1)),
-                          index=idx, name='a')
+                rep = np.repeat(values, range(1, len(o) + 1))
+                o = klass(rep, index=idx, name='a')
+
+            # check values has the same dtype as the original
+            self.assertEqual(o.dtype, orig.dtype)
 
             expected_s = Series(range(10, 0, -1), index=expected_index,
                                 dtype='int64', name='a')
@@ -499,14 +486,22 @@ class TestIndexOps(Ops):
             self.assertEqual(result.name, 'a')
 
             result = o.unique()
-            if isinstance(o, (DatetimeIndex, PeriodIndex)):
+            if isinstance(o, Index):
                 self.assertTrue(isinstance(result, o.__class__))
-                self.assertEqual(result.freq, o.freq)
                 self.assert_index_equal(result, orig)
+            elif is_datetimetz(o):
+                # datetimetz Series returns array of Timestamp
+                self.assertEqual(result[0], orig[0])
+                for r in result:
+                    self.assertIsInstance(r, pd.Timestamp)
+                tm.assert_numpy_array_equal(result,
+                                            orig._values.asobject.values)
             else:
-                self.assert_numpy_array_equal(result, values)
+                tm.assert_numpy_array_equal(result, orig.values)
 
             self.assertEqual(o.nunique(), len(np.unique(o.values)))
+
+    def test_value_counts_unique_nunique_null(self):
 
         for null_obj in [np.nan, None]:
             for o in self.objs:
@@ -525,12 +520,14 @@ class TestIndexOps(Ops):
                     else:
                         o = o.copy()
                         o[0:2] = pd.tslib.iNaT
-                        values = o.values
-                elif o.values.dtype == 'datetime64[ns]' or isinstance(
-                        o, PeriodIndex):
+                        values = o._values
+
+                elif is_datetime64_dtype(o) or isinstance(o, PeriodIndex):
                     values[0:2] = pd.tslib.iNaT
                 else:
                     values[0:2] = null_obj
+                # check values has the same dtype as the original
+                self.assertEqual(values.dtype, o.dtype)
 
                 # create repeated values, 'n'th element is repeated by n+1
                 # times
@@ -570,13 +567,17 @@ class TestIndexOps(Ops):
                 self.assertTrue(result_s.index.name is None)
                 self.assertEqual(result_s.name, 'a')
 
-                # numpy_array_equal cannot compare arrays includes nan
                 result = o.unique()
-                self.assert_numpy_array_equal(result[1:], values[2:])
-
-                if isinstance(o, (DatetimeIndex, PeriodIndex)):
-                    self.assertTrue(result.asi8[0] == pd.tslib.iNaT)
+                if isinstance(o, Index):
+                    tm.assert_index_equal(result,
+                                          Index(values[1:], name='a'))
+                elif is_datetimetz(o):
+                    # unable to compare NaT / nan
+                    tm.assert_numpy_array_equal(result[1:],
+                                                values[2:].asobject.values)
+                    self.assertIs(result[0], pd.NaT)
                 else:
+                    tm.assert_numpy_array_equal(result[1:], values[2:])
                     self.assertTrue(pd.isnull(result[0]))
 
                 self.assertEqual(o.nunique(), 8)
@@ -590,8 +591,13 @@ class TestIndexOps(Ops):
             expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
             tm.assert_series_equal(s.value_counts(), expected)
 
-            exp = np.unique(np.array(s_values, dtype=np.object_))
-            self.assert_numpy_array_equal(s.unique(), exp)
+            if isinstance(s, Index):
+                exp = Index(np.unique(np.array(s_values, dtype=np.object_)))
+                tm.assert_index_equal(s.unique(), exp)
+            else:
+                exp = np.unique(np.array(s_values, dtype=np.object_))
+                tm.assert_numpy_array_equal(s.unique(), exp)
+
             self.assertEqual(s.nunique(), 4)
             # don't sort, have to sort after the fact as not sorting is
             # platform-dep
@@ -627,8 +633,12 @@ class TestIndexOps(Ops):
             exp1n = Series({0.998: 1.0})
             tm.assert_series_equal(res1n, exp1n)
 
-            self.assert_numpy_array_equal(s1.unique(),
-                                          np.array([1, 2, 3], dtype=np.int64))
+            if isinstance(s1, Index):
+                tm.assert_index_equal(s1.unique(), Index([1, 2, 3]))
+            else:
+                exp = np.array([1, 2, 3], dtype=np.int64)
+                tm.assert_numpy_array_equal(s1.unique(), exp)
+
             self.assertEqual(s1.nunique(), 3)
 
             res4 = s1.value_counts(bins=4)
@@ -652,8 +662,12 @@ class TestIndexOps(Ops):
             expected = Series([4, 3, 2], index=['b', 'a', 'd'])
             tm.assert_series_equal(s.value_counts(), expected)
 
-            exp = np.array(['a', 'b', np.nan, 'd'], dtype=np.object_)
-            self.assert_numpy_array_equal(s.unique(), exp)
+            if isinstance(s, Index):
+                exp = Index(['a', 'b', np.nan, 'd'])
+                tm.assert_index_equal(s.unique(), exp)
+            else:
+                exp = np.array(['a', 'b', np.nan, 'd'], dtype=object)
+                tm.assert_numpy_array_equal(s.unique(), exp)
             self.assertEqual(s.nunique(), 3)
 
             s = klass({})
@@ -661,8 +675,13 @@ class TestIndexOps(Ops):
             tm.assert_series_equal(s.value_counts(), expected,
                                    check_index_type=False)
             # returned dtype differs depending on original
-            self.assert_numpy_array_equal(s.unique(), np.array([]),
-                                          check_dtype=False)
+            if isinstance(s, Index):
+                self.assert_index_equal(s.unique(), Index([]),
+                                        exact=False)
+            else:
+                self.assert_numpy_array_equal(s.unique(), np.array([]),
+                                              check_dtype=False)
+
             self.assertEqual(s.nunique(), 0)
 
     def test_value_counts_datetime64(self):
@@ -691,10 +710,10 @@ class TestIndexOps(Ops):
                                                    '2009-01-01 00:00:00Z',
                                                    '2008-09-09 00:00:00Z'],
                                                   dtype='datetime64[ns]')
-            if isinstance(s, DatetimeIndex):
-                self.assert_index_equal(s.unique(), DatetimeIndex(expected))
+            if isinstance(s, Index):
+                tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
             else:
-                self.assert_numpy_array_equal(s.unique(), expected)
+                tm.assert_numpy_array_equal(s.unique(), expected)
 
             self.assertEqual(s.nunique(), 3)
 
@@ -714,12 +733,12 @@ class TestIndexOps(Ops):
             self.assertEqual(unique.dtype, 'datetime64[ns]')
 
             # numpy_array_equal cannot compare pd.NaT
-            if isinstance(s, DatetimeIndex):
-                self.assert_index_equal(unique[:3], DatetimeIndex(expected))
+            if isinstance(s, Index):
+                exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT])
+                tm.assert_index_equal(unique, exp_idx)
             else:
-                self.assert_numpy_array_equal(unique[:3], expected)
-            self.assertTrue(unique[3] is pd.NaT or
-                            unique[3].astype('int64') == pd.tslib.iNaT)
+                tm.assert_numpy_array_equal(unique[:3], expected)
+                self.assertTrue(pd.isnull(unique[3]))
 
             self.assertEqual(s.nunique(), 3)
             self.assertEqual(s.nunique(dropna=False), 4)
@@ -733,10 +752,10 @@ class TestIndexOps(Ops):
             tm.assert_series_equal(result, expected_s)
 
             expected = TimedeltaIndex(['1 days'], name='dt')
-            if isinstance(td, TimedeltaIndex):
-                self.assert_index_equal(td.unique(), expected)
+            if isinstance(td, Index):
+                tm.assert_index_equal(td.unique(), expected)
             else:
-                self.assert_numpy_array_equal(td.unique(), expected.values)
+                tm.assert_numpy_array_equal(td.unique(), expected.values)
 
             td2 = timedelta(1) + (df.dt - df.dt)
             td2 = klass(td2, name='dt')
