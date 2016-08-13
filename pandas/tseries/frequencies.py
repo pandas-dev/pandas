@@ -464,7 +464,14 @@ def to_offset(freq):
         delta = None
         stride_sign = None
         try:
-            for stride, name, _ in opattern.findall(freq):
+            splitted = re.split(opattern, freq)
+            if splitted[-1] != '' and not splitted[-1].isspace():
+                # the last element must be blank
+                raise ValueError('last element must be blank')
+            for sep, stride, name in zip(splitted[0::4], splitted[1::4],
+                                         splitted[2::4]):
+                if sep != '' and not sep.isspace():
+                    raise ValueError('separator must be spaces')
                 offset = get_offset(name)
                 if stride_sign is None:
                     stride_sign = -1 if stride.startswith('-') else 1
@@ -486,7 +493,7 @@ def to_offset(freq):
 
 
 # hack to handle WOM-1MON
-opattern = re.compile(r'([\-]?\d*)\s*([A-Za-z]+([\-@][\dA-Za-z\-]+)?)')
+opattern = re.compile(r'([\-]?\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)')
 
 
 def _base_and_stride(freqstr):
