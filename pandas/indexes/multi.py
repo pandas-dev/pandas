@@ -687,10 +687,7 @@ class MultiIndex(Index):
         labels = self.labels[num]
         filled = algos.take_1d(unique.values, labels,
                                fill_value=unique._na_value)
-        _simple_new = unique._simple_new
-        values = _simple_new(filled, name=self.names[num],
-                             freq=getattr(unique, 'freq', None),
-                             tz=getattr(unique, 'tz', None))
+        values = unique._shallow_copy(filled)
         return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,

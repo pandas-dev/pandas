@@ -749,10 +749,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         unique = index.levels[level]
         labels = index.labels[level]
         filled = take_1d(unique.values, labels, fill_value=unique._na_value)
-        values = unique._simple_new(filled,
-                                    name=index.names[level],
-                                    freq=getattr(unique, 'freq', None),
-                                    tz=getattr(unique, 'tz', None))
+        values = unique._shallow_copy(filled, name=index.names[level])
         return values
 
     # instance validation
