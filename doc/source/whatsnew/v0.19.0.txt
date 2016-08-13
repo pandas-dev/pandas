@@ -17,6 +17,7 @@ Highlights include:
 - ``.rolling()`` are now time-series aware, see :ref:`here <whatsnew_0190.enhancements.rolling_ts>`
 - pandas development api, see :ref:`here <whatsnew_0190.dev_api>`
 - ``PeriodIndex`` now has its own ``period`` dtype, and changed to be more consistent with other ``Index`` classes. See ref:`here <whatsnew_0190.api.period>`
+- Sparse data structures now gained enhanced support of ``int`` and ``bool`` dtypes, see :ref:`here <whatsnew_0190.sparse>`
 
 .. contents:: What's new in v0.19.0
     :local:
@@ -975,6 +976,51 @@ Sparse Changes
 
 These changes allow pandas to handle sparse data with more dtypes, and for work to make a smoother experience with data handling.
 
+
+``int64`` and ``bool`` support enhancements
+"""""""""""""""""""""""""""""""""""""""""""
+
+Sparse data structures now gained enhanced support of ``int64`` and ``bool`` ``dtype`` (:issue:`667`, :issue:`13849`)
+
+Previously, sparse data were ``float64`` dtype by default, even if all inputs were ``int`` or ``bool`` dtype. You had to specify ``dtype`` explicitly to create sparse data with ``int64`` dtype. Also, ``fill_value`` had to be specified explicitly becuase it's default was ``np.nan`` which doesn't appear in ``int64`` or ``bool`` data.
+
+.. code-block:: ipython
+
+   In [1]: pd.SparseArray([1, 2, 0, 0])
+   Out[1]:
+   [1.0, 2.0, 0.0, 0.0]
+   Fill: nan
+   IntIndex
+   Indices: array([0, 1, 2, 3], dtype=int32)
+
+   # specifying int64 dtype, but all values are stored in sp_values because
+   # fill_value default is np.nan
+   In [2]: pd.SparseArray([1, 2, 0, 0], dtype=np.int64)
+   Out[2]:
+   [1, 2, 0, 0]
+   Fill: nan
+   IntIndex
+   Indices: array([0, 1, 2, 3], dtype=int32)
+
+   In [3]: pd.SparseArray([1, 2, 0, 0], dtype=np.int64, fill_value=0)
+   Out[3]:
+   [1, 2, 0, 0]
+   Fill: 0
+   IntIndex
+   Indices: array([0, 1], dtype=int32)
+
+As of v0.19.0, sparse data keeps the input dtype, and assign more appropriate ``fill_value`` default (``0`` for ``int64`` dtype, ``False`` for ``bool`` dtype).
+
+.. ipython :: python
+
+   pd.SparseArray([1, 2, 0, 0], dtype=np.int64)
+   pd.SparseArray([True, False, False, False])
+
+See the :ref:`docs <sparse.dtype>` for more details.
+
+Operators now preserve dtypes
+"""""""""""""""""""""""""""""
+
 - Sparse data structure now can preserve ``dtype`` after arithmetic ops (:issue:`13848`)
 
 .. ipython:: python
@@ -1001,6 +1047,9 @@ Note that the limitation is applied to ``fill_value`` which default is ``np.nan`
    Out[7]:
    ValueError: unable to coerce current fill_value nan to int64 dtype
 
+Other sparse fixes
+""""""""""""""""""
+
 - Subclassed ``SparseDataFrame`` and ``SparseSeries`` now preserve class types when slicing or transposing. (:issue:`13787`)
 - ``SparseArray`` with ``bool`` dtype now supports logical (bool) operators (:issue:`14000`)
 - Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing may raise ``IndexError`` (:issue:`13144`)
@@ -1011,6 +1060,11 @@ Note that the limitation is applied to ``fill_value`` which default is ``np.nan`
 - Bug in ``SparseArray`` and ``SparseSeries`` don't apply ufunc to ``fill_value`` (:issue:`13853`)
 - Bug in ``SparseSeries.abs`` incorrectly keeps negative ``fill_value`` (:issue:`13853`)
 - Bug in single row slicing on multi-type ``SparseDataFrame``s, types were previously forced to float (:issue:`13917`)
+- Bug in ``SparseSeries`` slicing changes integer dtype to float (:issue:`8292`)
+- Bug in ``SparseDataFarme`` comparison ops may raise ``TypeError`` (:issue:`13001`)
+- Bug in ``SparseDataFarme.isnull`` raises ``ValueError`` (:issue:`8276`)
+- Bug in ``SparseSeries`` representation with ``bool`` dtype may raise ``IndexError`` (:issue:`13110`)
+- Bug in ``SparseSeries`` and ``SparseDataFrame`` of ``bool`` or ``int64`` dtype may display its values like ``float64`` dtype (:issue:`13110`)
 - Bug in sparse indexing using ``SparseArray`` with ``bool`` dtype may return incorrect result  (:issue:`13985`)
 - Bug in ``SparseArray`` created from ``SparseSeries`` may lose ``dtype`` (:issue:`13999`)
 - Bug in ``SparseSeries`` comparison with dense returns normal ``Series`` rather than ``SparseSeries`` (:issue:`13999`)
@@ -1052,7 +1106,6 @@ New behaviour:
 
    In [2]: i.get_indexer(['b', 'b', 'c']).dtype
    Out[2]: dtype('int64')
-
 
 .. _whatsnew_0190.deprecations:
 

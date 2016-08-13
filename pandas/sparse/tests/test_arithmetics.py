@@ -357,6 +357,65 @@ class TestSparseArrayArithmetics(tm.TestCase):
                                 fill_value=fill_value)
                 self._check_logical_ops(a, b, values, rvalues)
 
+    def test_mixed_array_float_int(self):
+
+        for rdtype in ['int64']:
+            values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+            rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=rdtype)
+
+            for kind in ['integer', 'block']:
+                a = self._klass(values, kind=kind)
+                b = self._klass(rvalues, kind=kind)
+                self.assertEqual(b.dtype, rdtype)
+
+                self._check_numeric_ops(a, b, values, rvalues)
+                self._check_numeric_ops(a, b * 0, values, rvalues * 0)
+
+                a = self._klass(values, kind=kind, fill_value=0)
+                b = self._klass(rvalues, kind=kind)
+                self.assertEqual(b.dtype, rdtype)
+                self._check_numeric_ops(a, b, values, rvalues)
+
+                a = self._klass(values, kind=kind, fill_value=0)
+                b = self._klass(rvalues, kind=kind, fill_value=0)
+                self.assertEqual(b.dtype, rdtype)
+                self._check_numeric_ops(a, b, values, rvalues)
+
+                a = self._klass(values, kind=kind, fill_value=1)
+                b = self._klass(rvalues, kind=kind, fill_value=2)
+                self.assertEqual(b.dtype, rdtype)
+                self._check_numeric_ops(a, b, values, rvalues)
+
+    def test_mixed_array_comparison(self):
+
+        # int32 NI ATM
+        for rdtype in ['int64']:
+            values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+            rvalues = self._base([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=rdtype)
+
+            for kind in ['integer', 'block']:
+                a = self._klass(values, kind=kind)
+                b = self._klass(rvalues, kind=kind)
+                self.assertEqual(b.dtype, rdtype)
+
+                self._check_comparison_ops(a, b, values, rvalues)
+                self._check_comparison_ops(a, b * 0, values, rvalues * 0)
+
+                a = self._klass(values, kind=kind, fill_value=0)
+                b = self._klass(rvalues, kind=kind)
+                self.assertEqual(b.dtype, rdtype)
+                self._check_comparison_ops(a, b, values, rvalues)
+
+                a = self._klass(values, kind=kind, fill_value=0)
+                b = self._klass(rvalues, kind=kind, fill_value=0)
+                self.assertEqual(b.dtype, rdtype)
+                self._check_comparison_ops(a, b, values, rvalues)
+
+                a = self._klass(values, kind=kind, fill_value=1)
+                b = self._klass(rvalues, kind=kind, fill_value=2)
+                self.assertEqual(b.dtype, rdtype)
+                self._check_comparison_ops(a, b, values, rvalues)
+
 
 class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
 

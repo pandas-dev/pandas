@@ -11,6 +11,7 @@ from pandas import compat
 import numpy as np
 
 from pandas.types.missing import isnull, notnull
+from pandas.types.cast import _maybe_upcast
 from pandas.types.common import _ensure_platform_int
 
 from pandas.core.common import _try_sort
@@ -22,10 +23,13 @@ from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
 import pandas.core.algorithms as algos
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays)
-from pandas.core.generic import NDFrame
+import pandas.core.generic as generic
 from pandas.sparse.series import SparseSeries, SparseArray
 from pandas.util.decorators import Appender
 import pandas.core.ops as ops
+
+
+_shared_doc_kwargs = dict(klass='SparseDataFrame')
 
 
 class SparseDataFrame(DataFrame):
@@ -118,7 +122,7 @@ class SparseDataFrame(DataFrame):
             if dtype is not None:
                 mgr = mgr.astype(dtype)
 
-        NDFrame.__init__(self, mgr)
+        generic.NDFrame.__init__(self, mgr)
 
     @property
     def _constructor(self):
@@ -509,7 +513,7 @@ class SparseDataFrame(DataFrame):
             new_data, index=self.index, columns=union,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
-    def _combine_const(self, other, func):
+    def _combine_const(self, other, func, raise_on_error=True):
         return self._apply_columns(lambda x: func(x, other))
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
@@ -542,6 +546,9 @@ class SparseDataFrame(DataFrame):
             new = values.take(indexer)
             if need_mask:
                 new = new.values
+                # convert integer to float if necessary. need to do a lot
+                # more than that, handle boolean etc also
+                new, fill_value = _maybe_upcast(new, fill_value=fill_value)
                 np.putmask(new, mask, fill_value)
 
             new_series[col] = new
@@ -685,6 +692,14 @@ class SparseDataFrame(DataFrame):
             axis = self._stat_axis_number
 
         return self.apply(lambda x: x.cumsum(), axis=axis)
+
+    @Appender(generic._shared_docs['isnull'])
+    def isnull(self):
+        return self._apply_columns(lambda x: x.isnull())
+
+    @Appender(generic._shared_docs['isnotnull'])
+    def isnotnull(self):
+        return self._apply_columns(lambda x: x.isnotnull())
 
     def apply(self, func, axis=0, broadcast=False, reduce=False):
         """

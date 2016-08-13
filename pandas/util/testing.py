@@ -1404,9 +1404,8 @@ def assert_sp_array_equal(left, right):
     assert_numpy_array_equal(left.values, right.values)
 
 
-def assert_sp_series_equal(left, right, exact_indices=True,
-                           check_series_type=True,
-                           check_names=True,
+def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
+                           check_series_type=True, check_names=True,
                            obj='SparseSeries'):
     """Check that the left and right SparseSeries are equal.
 
@@ -1414,6 +1413,8 @@ def assert_sp_series_equal(left, right, exact_indices=True,
     ----------
     left : SparseSeries
     right : SparseSeries
+    check_dtype : bool, default True
+        Whether to check the Series dtype is identical.
     exact_indices : bool, default True
     check_series_type : bool, default True
         Whether to check the SparseSeries class is identical.
@@ -1436,20 +1437,22 @@ def assert_sp_series_equal(left, right, exact_indices=True,
 
     if check_names:
         assert_attr_equal('name', left, right)
-    assert_attr_equal('dtype', left, right)
+    if check_dtype:
+        assert_attr_equal('dtype', left, right)
 
     assert_numpy_array_equal(left.values, right.values)
 
 
-def assert_sp_frame_equal(left, right, exact_indices=True,
-                          check_frame_type=True,
-                          obj='SparseDataFrame'):
+def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
+                          check_frame_type=True, obj='SparseDataFrame'):
     """Check that the left and right SparseDataFrame are equal.
 
     Parameters
     ----------
     left : SparseDataFrame
     right : SparseDataFrame
+    check_dtype : bool, default True
+        Whether to check the Series dtype is identical.
     exact_indices : bool, default True
         SparseSeries SparseIndex objects must be exactly the same,
         otherwise just compare dense representations.
@@ -1475,9 +1478,11 @@ def assert_sp_frame_equal(left, right, exact_indices=True,
         # trade-off?
 
         if exact_indices:
-            assert_sp_series_equal(series, right[col])
+            assert_sp_series_equal(series, right[col],
+                                   check_dtype=check_dtype)
         else:
-            assert_series_equal(series.to_dense(), right[col].to_dense())
+            assert_series_equal(series.to_dense(), right[col].to_dense(),
+                                check_dtype=check_dtype)
 
     assert_attr_equal('default_fill_value', left, right, obj=obj)
 
