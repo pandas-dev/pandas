@@ -19,7 +19,6 @@ from pandas.types.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
 from pandas.types.missing import isnull, array_equivalent
 from pandas.types.common import (_ensure_int64, _ensure_object,
                                  _ensure_platform_int,
-                                 is_datetimetz,
                                  is_integer,
                                  is_float,
                                  is_dtype_equal,
@@ -27,6 +26,8 @@ from pandas.types.common import (_ensure_int64, _ensure_object,
                                  is_categorical_dtype,
                                  is_bool_dtype,
                                  is_integer_dtype, is_float_dtype,
+                                 is_datetime64_any_dtype,
+                                 is_timedelta64_dtype,
                                  needs_i8_conversion,
                                  is_iterator, is_list_like,
                                  is_scalar)
@@ -162,16 +163,19 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
-            if (issubclass(data.dtype.type, np.datetime64) or
-                    is_datetimetz(data)):
+            if (is_datetime64_any_dtype(data) or
+               (dtype is not None and is_datetime64_any_dtype(dtype)) or
+               'tz' in kwargs):
                 from pandas.tseries.index import DatetimeIndex
-                result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
-                if dtype is not None and _o_dtype == dtype:
+                result = DatetimeIndex(data, copy=copy, name=name,
+                                       dtype=dtype, **kwargs)
+                if dtype is not None and is_dtype_equal(_o_dtype, dtype):
                     return Index(result.to_pydatetime(), dtype=_o_dtype)
                 else:
                     return result
 
-            elif issubclass(data.dtype.type, np.timedelta64):
+            elif (is_timedelta64_dtype(data) or
+                  (dtype is not None and is_timedelta64_dtype(dtype))):
                 from pandas.tseries.tdi import TimedeltaIndex
                 result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
