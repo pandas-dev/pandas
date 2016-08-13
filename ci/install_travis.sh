@@ -124,7 +124,7 @@ else
     echo "pip installs"
     REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.pip"
     if [ -e ${REQ} ]; then
-        pip install --pre --upgrade -r $REQ
+        pip install --upgrade -r $REQ
     fi
 
     # remove any installed pandas package
@@ -136,6 +136,10 @@ else
     echo "running setup.py develop"
     python setup.py develop  || exit 1
 
+fi
+
+if [ "$JOB_NAME" == "34_slow" ]; then
+    conda install -c conda-forge/label/rc -c conda-forge matplotlib
 fi
 
 echo "done"
