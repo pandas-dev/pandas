@@ -163,7 +163,7 @@ class TestTypes(Base, tm.TestCase):
         self.check(types, self.allowed)
 
     def check_deprecation(self, fold, fnew):
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(DeprecationWarning):
             try:
                 result = fold('foo')
                 expected = fnew('foo')

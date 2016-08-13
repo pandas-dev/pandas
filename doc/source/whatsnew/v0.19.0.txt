@@ -31,7 +31,7 @@ pandas development API
 As part of making pandas APi more uniform and accessible in the future, we have created a standard
 sub-package of pandas, ``pandas.api`` to hold public API's. We are starting by exposing type
 introspection functions in ``pandas.api.types``. More sub-packages and officially sanctioned API's
-will be published in future versions of pandas.
+will be published in future versions of pandas (:issue:`13147`, :issue:`13634`)
 
 The following are now part of this API:
 
@@ -41,6 +41,10 @@ The following are now part of this API:
    from pandas.api import types
    funcs = [ f for f in dir(types) if not f.startswith('_') ]
    pprint.pprint(funcs)
+
+.. note::
+
+   Calling these functions from the internal module ``pandas.core.common`` will now show a ``DeprecationWarning`` (:issue:`13990`)
 
 .. _whatsnew_0190.enhancements.asof_merge:
 

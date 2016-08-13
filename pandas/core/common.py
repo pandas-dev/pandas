@@ -31,7 +31,7 @@ for t in [t for t in dir(types) if not t.startswith('_')]:
             warnings.warn("pandas.core.common.{t} is deprecated. "
                           "import from the public API: "
                           "pandas.api.types.{t} instead".format(t=t),
-                          FutureWarning, stacklevel=3)
+                          DeprecationWarning, stacklevel=3)
             return getattr(types, t)(*args, **kwargs)
         return wrapper
 
@@ -57,7 +57,7 @@ for t in ['is_datetime_arraylike',
                           "These are not longer public API functions, "
                           "but can be imported from "
                           "pandas.types.common.{t} instead".format(t=t),
-                          FutureWarning, stacklevel=3)
+                          DeprecationWarning, stacklevel=3)
             return getattr(common, t)(*args, **kwargs)
         return wrapper
 
