@@ -609,6 +609,7 @@ class SparseSeries(Series):
         -------
         taken : ndarray
         """
+
         convert = nv.validate_take_with_convert(convert, args, kwargs)
         new_values = SparseArray.take(self.values, indices)
         new_index = self.index.take(indices)

@@ -766,6 +766,7 @@ Note that the limitation is applied to ``fill_value`` which default is ``np.nan`
 - Bug in ``SparseArray`` and ``SparseSeries`` don't apply ufunc to ``fill_value`` (:issue:`13853`)
 - Bug in ``SparseSeries.abs`` incorrectly keeps negative ``fill_value`` (:issue:`13853`)
 - Bug in single row slicing on multi-type ``SparseDataFrame``s, types were previously forced to float (:issue:`13917`)
+- Bug in sparse indexing using ``SparseArray`` with ``bool`` dtype may return incorrect result  (:issue:`13985`)
 
 .. _whatsnew_0190.deprecations:
 
