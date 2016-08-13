@@ -4012,6 +4012,7 @@ number of options, please see the docstring.
    legacy_file_path = os.path.abspath('source/_static/legacy_0.10.h5')
 
 .. ipython:: python
+   :okwarning:
 
    # a legacy store
    legacy_store = HDFStore(legacy_file_path,'r')
@@ -4059,6 +4060,7 @@ Experimental
 HDFStore supports ``Panel4D`` storage.
 
 .. ipython:: python
+   :okwarning:
 
    p4d = Panel4D({ 'l1' : wp })
    p4d
@@ -4073,6 +4075,7 @@ store your data. Pass the ``axes`` keyword with a list of dimensions
 object). This cannot be changed after table creation.
 
 .. ipython:: python
+   :okwarning:
 
    store.append('p4d2', p4d, axes=['labels', 'major_axis', 'minor_axis'])
    store

@@ -1042,6 +1042,7 @@ The following creates a Panel5D. A new panel type object must be sliceable into 
 Here we slice to a Panel4D.
 
 .. ipython:: python
+    :okwarning:
 
     from pandas.core import panelnd
     Panel5D = panelnd.create_nd_panel_factory(
