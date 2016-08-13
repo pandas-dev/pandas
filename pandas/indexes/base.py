@@ -2816,7 +2816,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             new_levels[level] = new_level
 
             if keep_order:  # just drop missing values. o.w. keep order
-                left_indexer = np.arange(len(left))
+                left_indexer = np.arange(len(left), dtype=np.intp)
                 mask = new_lev_labels != -1
                 if not mask.all():
                     new_labels = [lab[mask] for lab in new_labels]

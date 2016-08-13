@@ -552,20 +552,21 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
 
     def test_get_indexer(self):
         idx = pd.date_range('2000-01-01', periods=3)
-        tm.assert_numpy_array_equal(idx.get_indexer(idx), np.array([0, 1, 2]))
+        exp = np.array([0, 1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(idx.get_indexer(idx), exp)
 
         target = idx[0] + pd.to_timedelta(['-1 hour', '12 hours',
                                            '1 day 1 hour'])
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'pad'),
-                                    np.array([-1, 0, 1]))
+                                    np.array([-1, 0, 1], dtype=np.intp))
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'backfill'),
-                                    np.array([0, 1, 2]))
+                                    np.array([0, 1, 2], dtype=np.intp))
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest'),
-                                    np.array([0, 1, 1]))
+                                    np.array([0, 1, 1], dtype=np.intp))
         tm.assert_numpy_array_equal(
             idx.get_indexer(target, 'nearest',
                             tolerance=pd.Timedelta('1 hour')),
-            np.array([0, -1, 1]))
+            np.array([0, -1, 1], dtype=np.intp))
         with tm.assertRaises(ValueError):
             idx.get_indexer(idx[[0]], method='nearest', tolerance='foo')
 
@@ -872,19 +873,19 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
     def test_get_indexer(self):
         idx = pd.period_range('2000-01-01', periods=3).asfreq('H', how='start')
         tm.assert_numpy_array_equal(idx.get_indexer(idx),
-                                    np.array([0, 1, 2], dtype=np.int_))
+                                    np.array([0, 1, 2], dtype=np.intp))
 
         target = pd.PeriodIndex(['1999-12-31T23', '2000-01-01T12',
                                  '2000-01-02T01'], freq='H')
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'pad'),
-                                    np.array([-1, 0, 1], dtype=np.int_))
+                                    np.array([-1, 0, 1], dtype=np.intp))
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'backfill'),
-                                    np.array([0, 1, 2], dtype=np.int_))
+                                    np.array([0, 1, 2], dtype=np.intp))
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest'),
-                                    np.array([0, 1, 1], dtype=np.int_))
+                                    np.array([0, 1, 1], dtype=np.intp))
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest',
                                                     tolerance='1 hour'),
-                                    np.array([0, -1, 1], dtype=np.int_))
+                                    np.array([0, -1, 1], dtype=np.intp))
 
         msg = 'Input has different freq from PeriodIndex\\(freq=H\\)'
         with self.assertRaisesRegexp(ValueError, msg):
@@ -892,7 +893,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest',
                                                     tolerance='1 day'),
-                                    np.array([0, 1, 1], dtype=np.int_))
+                                    np.array([0, 1, 1], dtype=np.intp))
 
     def test_repeat(self):
         # GH10183
@@ -1048,19 +1049,19 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     def test_get_indexer(self):
         idx = pd.to_timedelta(['0 days', '1 days', '2 days'])
         tm.assert_numpy_array_equal(idx.get_indexer(idx),
-                                    np.array([0, 1, 2], dtype=np.int_))
+                                    np.array([0, 1, 2], dtype=np.intp))
 
         target = pd.to_timedelta(['-1 hour', '12 hours', '1 day 1 hour'])
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'pad'),
-                                    np.array([-1, 0, 1], dtype=np.int_))
+                                    np.array([-1, 0, 1], dtype=np.intp))
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'backfill'),
-                                    np.array([0, 1, 2], dtype=np.int_))
+                                    np.array([0, 1, 2], dtype=np.intp))
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest'),
-                                    np.array([0, 1, 1], dtype=np.int_))
+                                    np.array([0, 1, 1], dtype=np.intp))
 
         res = idx.get_indexer(target, 'nearest',
                               tolerance=pd.Timedelta('1 hour'))
-        tm.assert_numpy_array_equal(res, np.array([0, -1, 1], dtype=np.int_))
+        tm.assert_numpy_array_equal(res, np.array([0, -1, 1], dtype=np.intp))
 
     def test_numeric_compat(self):
 

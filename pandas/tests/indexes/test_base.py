@@ -936,10 +936,10 @@ class TestIndex(Base, tm.TestCase):
         idx2 = Index([2, 4, 6])
 
         r1 = idx1.get_indexer(idx2)
-        assert_almost_equal(r1, np.array([1, 3, -1]))
+        assert_almost_equal(r1, np.array([1, 3, -1], dtype=np.intp))
 
         r1 = idx2.get_indexer(idx1, method='pad')
-        e1 = np.array([-1, 0, 0, 1, 1])
+        e1 = np.array([-1, 0, 0, 1, 1], dtype=np.intp)
         assert_almost_equal(r1, e1)
 
         r2 = idx2.get_indexer(idx1[::-1], method='pad')
@@ -949,7 +949,7 @@ class TestIndex(Base, tm.TestCase):
         assert_almost_equal(r1, rffill1)
 
         r1 = idx2.get_indexer(idx1, method='backfill')
-        e1 = np.array([0, 0, 1, 1, 2])
+        e1 = np.array([0, 0, 1, 1, 2], dtype=np.intp)
         assert_almost_equal(r1, e1)
 
         rbfill1 = idx2.get_indexer(idx1, method='bfill')
@@ -974,25 +974,30 @@ class TestIndex(Base, tm.TestCase):
         all_methods = ['pad', 'backfill', 'nearest']
         for method in all_methods:
             actual = idx.get_indexer([0, 5, 9], method=method)
-            tm.assert_numpy_array_equal(actual, np.array([0, 5, 9]))
+            tm.assert_numpy_array_equal(actual, np.array([0, 5, 9],
+                                                         dtype=np.intp))
 
             actual = idx.get_indexer([0, 5, 9], method=method, tolerance=0)
-            tm.assert_numpy_array_equal(actual, np.array([0, 5, 9]))
+            tm.assert_numpy_array_equal(actual, np.array([0, 5, 9],
+                                                         dtype=np.intp))
 
         for method, expected in zip(all_methods, [[0, 1, 8], [1, 2, 9],
                                                   [0, 2, 9]]):
             actual = idx.get_indexer([0.2, 1.8, 8.5], method=method)
-            tm.assert_numpy_array_equal(actual, np.array(expected))
+            tm.assert_numpy_array_equal(actual, np.array(expected,
+                                                         dtype=np.intp))
 
             actual = idx.get_indexer([0.2, 1.8, 8.5], method=method,
                                      tolerance=1)
-            tm.assert_numpy_array_equal(actual, np.array(expected))
+            tm.assert_numpy_array_equal(actual, np.array(expected,
+                                                         dtype=np.intp))
 
         for method, expected in zip(all_methods, [[0, -1, -1], [-1, 2, -1],
                                                   [0, 2, -1]]):
             actual = idx.get_indexer([0.2, 1.8, 8.5], method=method,
                                      tolerance=0.2)
-            tm.assert_numpy_array_equal(actual, np.array(expected))
+            tm.assert_numpy_array_equal(actual, np.array(expected,
+                                                         dtype=np.intp))
 
         with tm.assertRaisesRegexp(ValueError, 'limit argument'):
             idx.get_indexer([1, 0], method='nearest', limit=1)
@@ -1003,22 +1008,24 @@ class TestIndex(Base, tm.TestCase):
         all_methods = ['pad', 'backfill', 'nearest']
         for method in all_methods:
             actual = idx.get_indexer([0, 5, 9], method=method)
-            tm.assert_numpy_array_equal(actual, np.array([9, 4, 0]))
+            tm.assert_numpy_array_equal(actual, np.array([9, 4, 0],
+                                                         dtype=np.intp))
 
         for method, expected in zip(all_methods, [[8, 7, 0], [9, 8, 1],
                                                   [9, 7, 0]]):
             actual = idx.get_indexer([0.2, 1.8, 8.5], method=method)
-            tm.assert_numpy_array_equal(actual, np.array(expected))
+            tm.assert_numpy_array_equal(actual, np.array(expected,
+                                                         dtype=np.intp))
 
     def test_get_indexer_strings(self):
         idx = pd.Index(['b', 'c'])
 
         actual = idx.get_indexer(['a', 'b', 'c', 'd'], method='pad')
-        expected = np.array([-1, 0, 1, 1])
+        expected = np.array([-1, 0, 1, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(actual, expected)
 
         actual = idx.get_indexer(['a', 'b', 'c', 'd'], method='backfill')
-        expected = np.array([0, 0, 1, -1])
+        expected = np.array([0, 0, 1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(actual, expected)
 
         with tm.assertRaises(TypeError):

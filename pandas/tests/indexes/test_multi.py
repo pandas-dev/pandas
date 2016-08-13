@@ -775,7 +775,7 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertTrue(obj.equals(obj2))
 
         res = obj.get_indexer(obj)
-        exp = np.arange(len(obj))
+        exp = np.arange(len(obj), dtype=np.intp)
         assert_almost_equal(res, exp)
 
         res = obj.get_indexer(obj2[::-1])
@@ -794,7 +794,7 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertTrue(obj.equals(obj2))
 
         res = obj.get_indexer(obj)
-        exp = np.arange(len(obj))
+        exp = np.arange(len(obj), dtype=np.intp)
         assert_almost_equal(res, exp)
 
         res = obj.get_indexer(obj2[::-1])
@@ -1039,8 +1039,8 @@ class TestMultiIndex(Base, tm.TestCase):
         major_axis = Index(lrange(4))
         minor_axis = Index(lrange(2))
 
-        major_labels = np.array([0, 0, 1, 2, 2, 3, 3])
-        minor_labels = np.array([0, 1, 0, 0, 1, 0, 1])
+        major_labels = np.array([0, 0, 1, 2, 2, 3, 3], dtype=np.intp)
+        minor_labels = np.array([0, 1, 0, 0, 1, 0, 1], dtype=np.intp)
 
         index = MultiIndex(levels=[major_axis, minor_axis],
                            labels=[major_labels, minor_labels])
@@ -1048,10 +1048,10 @@ class TestMultiIndex(Base, tm.TestCase):
         idx2 = index[[1, 3, 5]]
 
         r1 = idx1.get_indexer(idx2)
-        assert_almost_equal(r1, np.array([1, 3, -1]))
+        assert_almost_equal(r1, np.array([1, 3, -1], dtype=np.intp))
 
         r1 = idx2.get_indexer(idx1, method='pad')
-        e1 = np.array([-1, 0, 0, 1, 1])
+        e1 = np.array([-1, 0, 0, 1, 1], dtype=np.intp)
         assert_almost_equal(r1, e1)
 
         r2 = idx2.get_indexer(idx1[::-1], method='pad')
@@ -1061,7 +1061,7 @@ class TestMultiIndex(Base, tm.TestCase):
         assert_almost_equal(r1, rffill1)
 
         r1 = idx2.get_indexer(idx1, method='backfill')
-        e1 = np.array([0, 0, 1, 1, 2])
+        e1 = np.array([0, 0, 1, 1, 2], dtype=np.intp)
         assert_almost_equal(r1, e1)
 
         r2 = idx2.get_indexer(idx1[::-1], method='backfill')
@@ -1723,8 +1723,8 @@ class TestMultiIndex(Base, tm.TestCase):
         jidx, lidx, ridx = midx.join(idx, how='inner', return_indexers=True)
         exp_idx = pd.MultiIndex.from_product(
             [np.arange(4), [1, 2]], names=['a', 'b'])
-        exp_lidx = np.array([1, 2, 5, 6, 9, 10, 13, 14], dtype=np.int_)
-        exp_ridx = np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64)
+        exp_lidx = np.array([1, 2, 5, 6, 9, 10, 13, 14], dtype=np.intp)
+        exp_ridx = np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.intp)
         self.assert_index_equal(jidx, exp_idx)
         self.assert_numpy_array_equal(lidx, exp_lidx)
         self.assert_numpy_array_equal(ridx, exp_ridx)

@@ -2576,12 +2576,12 @@ class TestGroupBy(tm.TestCase):
 
     def test_level_preserve_order(self):
         grouped = self.mframe.groupby(level=0)
-        exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3])
+        exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3], np.intp)
         assert_almost_equal(grouped.grouper.labels[0], exp_labels)
 
     def test_grouping_labels(self):
         grouped = self.mframe.groupby(self.mframe.index.get_level_values(0))
-        exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3])
+        exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3], dtype=np.intp)
         assert_almost_equal(grouped.grouper.labels[0], exp_labels)
 
     def test_cython_fail_agg(self):
@@ -5958,22 +5958,22 @@ class TestGroupBy(tm.TestCase):
         # orders=True, na_position='last'
         result = _lexsort_indexer(keys, orders=True, na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
         # orders=True, na_position='first'
         result = _lexsort_indexer(keys, orders=True, na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, np.array(exp))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
         # orders=False, na_position='last'
         result = _lexsort_indexer(keys, orders=False, na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
         # orders=False, na_position='first'
         result = _lexsort_indexer(keys, orders=False, na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
-        tm.assert_numpy_array_equal(result, np.array(exp))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
     def test_nargsort(self):
         # np.argsort(items) places NaNs last

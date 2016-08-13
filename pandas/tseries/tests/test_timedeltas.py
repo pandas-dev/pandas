@@ -1799,7 +1799,7 @@ class TestTimedeltaIndex(tm.TestCase):
         idx1 = TimedeltaIndex(['1 day', '1 day', '2 day', '2 day', '3 day',
                                '3 day'])
 
-        exp_arr = np.array([0, 0, 1, 1, 2, 2])
+        exp_arr = np.array([0, 0, 1, 1, 2, 2], dtype=np.intp)
         exp_idx = TimedeltaIndex(['1 day', '2 day', '3 day'])
 
         arr, idx = idx1.factorize()
@@ -1812,7 +1812,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         # freq must be preserved
         idx3 = timedelta_range('1 day', periods=4, freq='s')
-        exp_arr = np.array([0, 1, 2, 3])
+        exp_arr = np.array([0, 1, 2, 3], dtype=np.intp)
         arr, idx = idx3.factorize()
         self.assert_numpy_array_equal(arr, exp_arr)
         self.assert_index_equal(idx, idx3)

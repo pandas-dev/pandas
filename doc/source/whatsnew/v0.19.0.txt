@@ -777,8 +777,8 @@ Indexer dtype Changes
 
 Methods such as ``Index.get_indexer`` that return an indexer array coerce that array to a "platform int", so that it can be
 directly used in 3rd party library operations like ``numpy.take``.  Previously, a platform int was defined as ``np.int_``
-which corresponds to a C integer - but the correct type, and what is being used now, is ``np.intp``, which corresponds
-to the C integer size that can hold a pointer.
+which corresponds to a C integer, but the correct type, and what is being used now, is ``np.intp``, which corresponds
+to the C integer size that can hold a pointer. (:issue:`13972`)
 
 These types are the same on many platform, but for 64 bit python on Windows,
 ``np.int_`` is 32 bits, and ``np.intp`` is 64 bits.  Changing this behavior improves performance for many
@@ -795,10 +795,12 @@ Previous behaviour:
 
 New behaviour:
 
-.. ipython :: python
+.. code-block:: ipython
 
-   i = pd.Index(['a', 'b', 'c'])
-   i.get_indexer(['b', 'b', 'c']).dtype
+   In [1]: i = pd.Index(['a', 'b', 'c'])
+
+   In [2]: i.get_indexer(['b', 'b', 'c']).dtype
+   Out[2]: dtype('int64')
 
 
 .. _whatsnew_0190.deprecations:

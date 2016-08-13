@@ -336,7 +336,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         # determined by cat ordering
         idx = self.create_index()
-        expected = np.array([4, 0, 1, 5, 2, 3])
+        expected = np.array([4, 0, 1, 5, 2, 3], dtype=np.intp)
 
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
@@ -403,7 +403,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         for indexer in [idx2, list('abf'), Index(list('abf'))]:
             r1 = idx1.get_indexer(idx2)
-            assert_almost_equal(r1, np.array([0, 1, 2, -1]))
+            assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
 
         self.assertRaises(NotImplementedError,
                           lambda: idx2.get_indexer(idx1, method='pad'))

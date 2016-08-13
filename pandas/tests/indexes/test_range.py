@@ -376,19 +376,19 @@ class TestRangeIndex(Numeric, tm.TestCase):
     def test_get_indexer(self):
         target = RangeIndex(10)
         indexer = self.index.get_indexer(target)
-        expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1])
+        expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1], dtype=np.intp)
         self.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_pad(self):
         target = RangeIndex(10)
         indexer = self.index.get_indexer(target, method='pad')
-        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
+        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
         self.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_backfill(self):
         target = RangeIndex(10)
         indexer = self.index.get_indexer(target, method='backfill')
-        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5])
+        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         self.assert_numpy_array_equal(indexer, expected)
 
     def test_join_outer(self):
@@ -403,9 +403,9 @@ class TestRangeIndex(Numeric, tm.TestCase):
         eres = Int64Index([0, 2, 4, 6, 8, 10, 12, 14, 15, 16, 17, 18, 19, 20,
                            21, 22, 23, 24, 25])
         elidx = np.array([0, 1, 2, 3, 4, 5, 6, 7, -1, 8, -1, 9,
-                          -1, -1, -1, -1, -1, -1, -1], dtype=np.int_)
+                          -1, -1, -1, -1, -1, -1, -1], dtype=np.intp)
         eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 8, 7, 6,
-                          5, 4, 3, 2, 1, 0], dtype=np.int_)
+                          5, 4, 3, 2, 1, 0], dtype=np.intp)
 
         self.assertIsInstance(res, Int64Index)
         self.assertFalse(isinstance(res, RangeIndex))
@@ -441,8 +441,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
         ridx = ridx.take(ind)
 
         eres = Int64Index([16, 18])
-        elidx = np.array([8, 9])
-        eridx = np.array([9, 7])
+        elidx = np.array([8, 9], dtype=np.intp)
+        eridx = np.array([9, 7], dtype=np.intp)
 
         self.assertIsInstance(res, Int64Index)
         self.assert_index_equal(res, eres)
@@ -467,7 +467,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, how='left',
                                           return_indexers=True)
         eres = self.index
-        eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 9, 7], dtype=np.int_)
+        eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 9, 7], dtype=np.intp)
 
         self.assertIsInstance(res, RangeIndex)
         self.assert_index_equal(res, eres)
@@ -493,7 +493,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                                           return_indexers=True)
         eres = other
         elidx = np.array([-1, -1, -1, -1, -1, -1, -1, 9, -1, 8, -1],
-                         dtype=np.int_)
+                         dtype=np.intp)
 
         self.assertIsInstance(other, Int64Index)
         self.assert_index_equal(res, eres)
@@ -545,9 +545,9 @@ class TestRangeIndex(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, return_indexers=True)
 
         eres = Int64Index([0, 2, 4, 4, 6, 8, 10, 12, 14, 16, 18])
-        elidx = np.array([0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.int_)
+        elidx = np.array([0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.intp)
         eridx = np.array([-1, -1, 0, 1, -1, -1, -1, -1, -1, -1, -1],
-                         dtype=np.int_)
+                         dtype=np.intp)
 
         self.assert_index_equal(res, eres)
         self.assert_numpy_array_equal(lidx, elidx)

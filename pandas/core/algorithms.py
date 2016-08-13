@@ -259,7 +259,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     new_labels = reverse_indexer.take(labels, mode='wrap')
     np.putmask(new_labels, mask, na_sentinel)
 
-    return ordered, new_labels
+    return ordered, _ensure_platform_int(new_labels)
 
 
 def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
