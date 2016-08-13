@@ -1098,25 +1098,35 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
     def test_resample_loffset_count(self):
         # GH 12725
-        start_time = '1/1/2000 00:00:00'
-        rng = date_range(start_time, periods=100, freq='S')
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        s = self.create_series()
+        df = s.to_frame('value')
+        result = df.resample('2D', loffset='2H').count()
+        expected_index = DatetimeIndex(start=df.index[0],
+                                       freq='2D',
+                                       periods=len(df.index) / 2)
+        expected_index = expected_index + timedelta(hours=2)
+        expected = DataFrame({'value': 2},
+                             index=expected_index)
+        assert_frame_equal(result, expected)
 
-        result = ts.resample('10S', loffset='1s').count()
-
-        expected_index = (
-            date_range(start_time, periods=10, freq='10S') +
-            timedelta(seconds=1)
-        )
-        expected = pd.Series(10, index=expected_index)
-
-        assert_series_equal(result, expected)
-
-        # Same issue should apply to .size() since it goes through
-        #   same code path
-        result = ts.resample('10S', loffset='1s').size()
-
-        assert_series_equal(result, expected)
+    def test_resample_loffset_agg(self):
+        # GH 13218
+        s = self.create_series()
+        expected_means = [s.values[i:i + 2].mean()
+                          for i in range(0, len(s.values), 2)]
+        df = s.to_frame('value')
+        for arg in ['mean', {'value': 'mean'}, ['mean']]:
+            result = df.resample('2D', loffset='2H').agg(arg)
+            expected_index = DatetimeIndex(start=df.index[0],
+                                           freq='2D',
+                                           periods=len(df.index) / 2)
+            expected_index = expected_index + timedelta(hours=2)
+            expected = DataFrame({'value': expected_means},
+                                 index=expected_index)
+            if isinstance(arg, list):
+                expected.columns = pd.MultiIndex.from_tuples([('value',
+                                                               'mean')])
+            assert_frame_equal(result, expected)
 
     def test_resample_upsample(self):
         # from daily
@@ -2509,6 +2519,36 @@ class TestPeriodIndex(Base, tm.TestCase):
         result = df.resample('7D').sum()
         assert_frame_equal(result, expected)
 
+    def test_resample_loffset_count(self):
+        # GH 12725
+        s = self.create_series()
+        df = s.to_frame('value')
+        result = df.resample('2D', loffset='2H').count()
+        expected_index = df.index.take(
+            np.arange(0, len(df.index), 2)).to_datetime()
+        expected_index = expected_index + timedelta(hours=2)
+        expected = DataFrame({'value': 2},
+                             index=expected_index)
+        assert_frame_equal(result, expected)
+
+    def test_resample_loffset_agg(self):
+        # GH 13218
+        s = self.create_series()
+        expected_means = [s.values[i:i + 2].mean()
+                          for i in range(0, len(s.values), 2)]
+        df = s.to_frame('value')
+        for arg in ['mean', {'value': 'mean'}, ['mean']]:
+            result = df.resample('2D', loffset='2H').agg(arg)
+            expected_index = df.index.take(
+                np.arange(0, len(df.index), 2)).to_datetime()
+            expected_index = expected_index + timedelta(hours=2)
+            expected = DataFrame({'value': expected_means},
+                                 index=expected_index)
+            if isinstance(arg, list):
+                expected.columns = pd.MultiIndex.from_tuples([('value',
+                                                               'mean')])
+            assert_frame_equal(result, expected)
+
 
 class TestTimedeltaIndex(Base, tm.TestCase):
     _multiprocess_can_split_ = True
@@ -2530,6 +2570,41 @@ class TestTimedeltaIndex(Base, tm.TestCase):
                                                    periods=4,
                                                    freq='1T'))
         assert_frame_equal(result, expected)
+
+    def test_resample_loffset_count(self):
+        # GH 12725
+        s = self.create_series()
+        df = s.to_frame('value')
+        result = df.resample('2D', loffset='2H').count()
+
+        # GH 13022, 7687 resample w/ TimedeltaIndex results in incorrect index
+        expected_index = timedelta_range(start=df.index[0],
+                                         freq='2D',
+                                         periods=len(df.index) / 2)
+        expected = DataFrame({'value': 2},
+                             index=expected_index)
+        with tm.assertRaises(AssertionError):
+            assert_frame_equal(result, expected)
+
+    def test_resample_loffset_agg(self):
+        # GH 13218
+        s = self.create_series()
+        expected_means = [s.values[i:i + 2].mean()
+                          for i in range(0, len(s.values), 2)]
+        df = s.to_frame('value')
+        for arg in ['mean', {'value': 'mean'}, ['mean']]:
+            result = df.resample('2D', loffset='2H').agg(arg)
+            expected_index = timedelta_range(start=df.index[0],
+                                             freq='2D',
+                                             periods=len(df.index) / 2)
+            expected = DataFrame({'value': expected_means},
+                                 index=expected_index)
+            if isinstance(arg, list):
+                expected.columns = pd.MultiIndex.from_tuples([('value',
+                                                               'mean')])
+            # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
+            with tm.assertRaises(AssertionError):
+                assert_frame_equal(result, expected)
 
 
 class TestResamplerGrouper(tm.TestCase):

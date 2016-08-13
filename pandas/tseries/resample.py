@@ -309,6 +309,9 @@ class Resampler(_GroupBy):
             return self._groupby_and_aggregate(arg,
                                                *args,
                                                **kwargs)
+        # GH 13218
+        if isinstance(arg, (dict, list)):
+            result = self._apply_loffset(result)
 
         return result
 
@@ -368,7 +371,7 @@ class Resampler(_GroupBy):
             return grouped
 
     def _groupby_and_aggregate(self, how, grouper=None, *args, **kwargs):
-        """ revaluate the obj with a groupby aggregation """
+        """ re-evaluate the obj with a groupby aggregation """
 
         if grouper is None:
             self._set_binner()
@@ -396,7 +399,14 @@ class Resampler(_GroupBy):
         return self._wrap_result(result)
 
     def _apply_loffset(self, result):
-        """if loffset if set, offset the result index"""
+        """
+        if loffset is set, offset the result index
+
+        Parameters
+        ----------
+        result : Series or DataFrame
+            the result of resample
+        """
         loffset = self.loffset
         if isinstance(loffset, compat.string_types):
             loffset = to_offset(self.loffset)
@@ -406,6 +416,7 @@ class Resampler(_GroupBy):
             isinstance(result.index, DatetimeIndex) and
             len(result.index) > 0
         )
+
         if needs_offset:
             result.index = result.index + loffset
 
@@ -770,6 +781,10 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
             result = self._downsample(arg, *args, **kwargs)
+
+        # GH 13218
+        if isinstance(arg, (dict, list)):
+            result = self._apply_loffset(result)
 
         return result
 
