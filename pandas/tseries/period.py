@@ -862,25 +862,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             rawarr = PeriodIndex(rawarr, freq=self.freq)
         return rawarr
 
-    def __getitem__(self, key):
-        getitem = self._data.__getitem__
-        if is_scalar(key):
-            val = getitem(key)
-            return Period(ordinal=val, freq=self.freq)
-        else:
-            if com.is_bool_indexer(key):
-                key = np.asarray(key)
-
-            result = getitem(key)
-            if result.ndim > 1:
-                # MPL kludge
-                # values = np.asarray(list(values), dtype=object)
-                # return values.reshape(result.shape)
-
-                return PeriodIndex(result, name=self.name, freq=self.freq)
-
-            return PeriodIndex(result, name=self.name, freq=self.freq)
-
     def _format_native_types(self, na_rep=u('NaT'), date_format=None,
                              **kwargs):
 
