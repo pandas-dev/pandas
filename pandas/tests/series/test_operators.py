@@ -373,6 +373,17 @@ class TestSeriesOperators(TestData, tm.TestCase):
             td - op(5)
             op(5) - td
 
+    def test_timedelta64_operations_with_DatetimeIndex_tz(self):
+        # GH 13905
+        dti = pd.DatetimeIndex(['2016-06-28 05:30', '2016-06-28 05:31'],
+                               dtype='datetime64[ns, America/Chicago]')
+        td = Series(['00:00:05', '00:00:05'], dtype='timedelta64[ns]')
+
+        exp = Series(['2016-06-28 05:30:05-05:00',
+                      '2016-06-28 05:31:05-05:00'],
+                     dtype='datetime64[ns, America/Chicago]')
+        assert_series_equal(dti + td, exp)
+
     def test_timedelta64_operations_with_timedeltas(self):
 
         # td operate with td

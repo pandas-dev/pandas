@@ -165,7 +165,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if (issubclass(data.dtype.type, np.datetime64) or
                     is_datetimetz(data)):
                 from pandas.tseries.index import DatetimeIndex
-                result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
+                if 'tz' in kwargs:
+                    tz = kwargs['tz']
+                    del kwargs['tz']
+                    result = DatetimeIndex(data, copy=copy, tz='UTC',
+                                           name=name, **kwargs).tz_convert(tz)
+                else:
+                    result = DatetimeIndex(data, copy=copy,
+                                           name=name, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
                     return Index(result.to_pydatetime(), dtype=_o_dtype)
                 else:

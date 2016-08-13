@@ -949,6 +949,7 @@ Bug Fixes
 - Bug in invalid ``Timedelta`` arithmetic and comparison may raise ``ValueError`` rather than ``TypeError`` (:issue:`13624`)
 - Bug in invalid datetime parsing in ``to_datetime`` and ``DatetimeIndex`` may raise ``TypeError`` rather than ``ValueError`` (:issue:`11169`, :issue:`11287`)
 - Bug in ``Index`` created with tz-aware ``Timestamp`` and mismatched ``tz`` option incorrectly coerces timezone (:issue:`13692`)
+- Bug in ``DatetimeIndex + TimeDelta`` gives wrong results when timezone is set (:issue:`13905`)
 - Bug in ``DatetimeIndex`` with nanosecond frequency does not include timestamp specified with ``end`` (:issue:`13672`)
 
 - Bug in ``Index`` raises ``OutOfBoundsDatetime`` if ``datetime`` exceeds ``datetime64[ns]`` bounds, rather than coercing to ``object`` dtype (:issue:`13663`)
