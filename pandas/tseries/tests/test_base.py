@@ -1758,12 +1758,11 @@ class TestPeriodIndexOps(Ops):
         idx1 = PeriodIndex([], freq='D')
         idx2 = PeriodIndex(['2011-01-01'], freq='D')
         idx3 = PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
-        idx4 = PeriodIndex(
-            ['2011-01-01', '2011-01-02', '2011-01-03'], freq='D')
+        idx4 = PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'],
+                           freq='D')
         idx5 = PeriodIndex(['2011', '2012', '2013'], freq='A')
-        idx6 = PeriodIndex(
-            ['2011-01-01 09:00', '2012-02-01 10:00', 'NaT'], freq='H')
-
+        idx6 = PeriodIndex(['2011-01-01 09:00', '2012-02-01 10:00',
+                            'NaT'], freq='H')
         idx7 = pd.period_range('2013Q1', periods=1, freq="Q")
         idx8 = pd.period_range('2013Q1', periods=2, freq="Q")
         idx9 = pd.period_range('2013Q1', periods=3, freq="Q")
