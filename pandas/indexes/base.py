@@ -1251,7 +1251,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     @cache_readonly
     def _engine(self):
         # property, for now, slow to look up
-        return self._engine_type(lambda: self.values, len(self))
+        return self._engine_type(lambda: self._values, len(self))
 
     def _validate_index_level(self, level):
         """
@@ -1823,13 +1823,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._outer_indexer(self.values, other._values)[0]
+                result = self._outer_indexer(self._values, other._values)[0]
             except TypeError:
                 # incomparable objects
-                result = list(self.values)
+                result = list(self._values)
 
                 # worth making this faster? a very unusual case
-                value_set = set(self.values)
+                value_set = set(self._values)
                 result.extend([x for x in other._values if x not in value_set])
         else:
             indexer = self.get_indexer(other)
@@ -1838,10 +1838,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if len(indexer) > 0:
                 other_diff = algos.take_nd(other._values, indexer,
                                            allow_fill=False)
-                result = _concat._concat_compat((self.values, other_diff))
+                result = _concat._concat_compat((self._values, other_diff))
 
                 try:
-                    self.values[0] < other_diff[0]
+                    self._values[0] < other_diff[0]
                 except TypeError as e:
                     warnings.warn("%s, sort order is undefined for "
                                   "incomparable objects" % e, RuntimeWarning,
@@ -1853,7 +1853,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                         result.sort()
 
             else:
-                result = self.values
+                result = self._values
 
                 try:
                     result = np.sort(result)
@@ -1906,17 +1906,17 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._inner_indexer(self.values, other._values)[0]
+                result = self._inner_indexer(self._values, other._values)[0]
                 return self._wrap_union_result(other, result)
             except TypeError:
                 pass
 
         try:
-            indexer = Index(self.values).get_indexer(other._values)
+            indexer = Index(self._values).get_indexer(other._values)
             indexer = indexer.take((indexer != -1).nonzero()[0])
         except:
             # duplicates
-            indexer = Index(self.values).get_indexer_non_unique(
+            indexer = Index(self._values).get_indexer_non_unique(
                 other._values)[0].unique()
             indexer = indexer[indexer != -1]
 
@@ -2536,7 +2536,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             missing = _ensure_platform_int(missing)
             missing_labels = target.take(missing)
             missing_indexer = _ensure_int64(l[~check])
-            cur_labels = self.take(indexer[check])._values
+            cur_labels = self.take(indexer[check]).values
             cur_indexer = _ensure_int64(l[check])
 
             new_labels = np.empty(tuple([len(indexer)]), dtype=object)
@@ -2556,7 +2556,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             else:
 
                 # need to retake to have the same size as the indexer
-                indexer = indexer._values
+                indexer = indexer.values
                 indexer[~check] = 0
 
                 # reset the new indexer to account for the new size
@@ -2879,7 +2879,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             else:
                 return ret_index
 
-        sv = self.values
+        sv = self._values
         ov = other._values
 
         if self.is_unique and other.is_unique:
@@ -3185,7 +3185,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         _self = np.asarray(self)
         item = self._coerce_scalar_to_index(item)._values
-
         idx = np.concatenate((_self[:loc], item, _self[loc:]))
         return self._shallow_copy_with_infer(idx)
 

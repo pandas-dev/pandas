@@ -2349,6 +2349,11 @@ class GenericFixed(Fixed):
                 return DatetimeIndex._simple_new(values, None, freq=freq,
                                                  tz=tz)
             return f
+        elif klass == PeriodIndex:
+            def f(values, freq=None, tz=None):
+                return PeriodIndex._simple_new(values, None, freq=freq)
+            return f
+
         return klass
 
     def validate_read(self, kwargs):
@@ -2450,7 +2455,9 @@ class GenericFixed(Fixed):
             setattr(self.attrs, '%s_variety' % key, 'regular')
             converted = _convert_index(index, self.encoding,
                                        self.format_type).set_name('index')
+
             self.write_array(key, converted.values)
+
             node = getattr(self.group, key)
             node._v_attrs.kind = converted.kind
             node._v_attrs.name = index.name
@@ -2552,12 +2559,12 @@ class GenericFixed(Fixed):
             kwargs['tz'] = node._v_attrs['tz']
 
         if kind in (u('date'), u('datetime')):
-            index = factory(
-                _unconvert_index(data, kind, encoding=self.encoding),
-                dtype=object, **kwargs)
+            index = factory(_unconvert_index(data, kind,
+                                             encoding=self.encoding),
+                            dtype=object, **kwargs)
         else:
-            index = factory(
-                _unconvert_index(data, kind, encoding=self.encoding), **kwargs)
+            index = factory(_unconvert_index(data, kind,
+                                             encoding=self.encoding), **kwargs)
 
         index.name = name
 
@@ -4377,9 +4384,10 @@ def _convert_index(index, encoding=None, format_type=None):
                         index_name=index_name)
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
-        return IndexCol(
-            index.values, 'integer', atom, freq=getattr(index, 'freq', None),
-            index_name=index_name)
+        # avoid to store ndarray of Period objects
+        return IndexCol(index._values, 'integer', atom,
+                        freq=getattr(index, 'freq', None),
+                        index_name=index_name)
 
     if isinstance(index, MultiIndex):
         raise TypeError('MultiIndex not supported here!')

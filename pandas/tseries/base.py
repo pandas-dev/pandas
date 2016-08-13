@@ -323,7 +323,7 @@ class DatetimeIndexOpsMixin(object):
             sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            sorted_values = np.sort(self.values)
+            sorted_values = np.sort(self._values)
             attribs = self._get_attributes_dict()
             freq = attribs['freq']
 

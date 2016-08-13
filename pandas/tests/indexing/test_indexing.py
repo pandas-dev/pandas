@@ -4137,8 +4137,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         idx = pd.period_range('2011-01-01', '2011-01-02', freq='D', name='idx')
         ser = Series([0.1, 0.2], index=idx, name='s')
 
-        result = ser.loc[[pd.Period('2011-01-01', freq='D'), pd.Period(
-            '2011-01-02', freq='D')]]
+        result = ser.loc[[pd.Period('2011-01-01', freq='D'),
+                          pd.Period('2011-01-02', freq='D')]]
         exp = Series([0.1, 0.2], index=idx, name='s')
         tm.assert_series_equal(result, exp, check_index_type=True)
 

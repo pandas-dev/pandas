@@ -2364,8 +2364,8 @@ Freq: Q-DEC"""
                            freq='D')
 
         result = pidx.sort_values()
-        expected = PeriodIndex(
-            ['NaT', '2011', '2011', '2013'], name='pidx', freq='D')
+        expected = PeriodIndex(['NaT', '2011', '2011', '2013'],
+                               name='pidx', freq='D')
         self.assert_index_equal(result, expected)
         self.assertEqual(result.freq, 'D')
 
