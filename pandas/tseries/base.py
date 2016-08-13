@@ -11,7 +11,7 @@ from pandas.compat.numpy import function as nv
 import numpy as np
 from pandas.types.common import (is_integer, is_float,
                                  is_bool_dtype, _ensure_int64,
-                                 is_scalar,
+                                 is_scalar, is_dtype_equal,
                                  is_list_like)
 from pandas.types.generic import (ABCIndex, ABCSeries,
                                   ABCPeriodIndex, ABCIndexClass)
@@ -107,6 +107,34 @@ class TimelikeOps(object):
 
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified inteface datetimelike Index """
+
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self.is_(other):
+            return True
+
+        if not isinstance(other, ABCIndexClass):
+            return False
+        elif not isinstance(other, type(self)):
+            try:
+                other = type(self)(other)
+            except:
+                return False
+
+        if not is_dtype_equal(self.dtype, other.dtype):
+            # have different timezone
+            return False
+
+        # ToDo: Remove this when PeriodDtype is added
+        elif isinstance(self, ABCPeriodIndex):
+            if not isinstance(other, ABCPeriodIndex):
+                return False
+            if self.freq != other.freq:
+                return False
+
+        return np.array_equal(self.asi8, other.asi8)
 
     def __iter__(self):
         return (self._box_func(v) for v in self.asi8)

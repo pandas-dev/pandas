@@ -265,7 +265,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
             i = Float64Index([0, 1.1, np.NAN])
             self.assertRaises(ValueError, lambda: i.astype(dtype))
 
-    def test_equals(self):
+    def test_equals_numeric(self):
 
         i = Float64Index([1.0, 2.0])
         self.assertTrue(i.equals(i))

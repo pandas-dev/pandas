@@ -650,6 +650,20 @@ class Base(object):
                 # either depending on numpy version
                 result = idx.delete(len(idx))
 
+    def test_equals(self):
+
+        for name, idx in compat.iteritems(self.indices):
+            self.assertTrue(idx.equals(idx))
+            self.assertTrue(idx.equals(idx.copy()))
+            self.assertTrue(idx.equals(idx.astype(object)))
+
+            self.assertFalse(idx.equals(list(idx)))
+            self.assertFalse(idx.equals(np.array(idx)))
+
+            if idx.nlevels == 1:
+                # do not test MultiIndex
+                self.assertFalse(idx.equals(pd.Series(idx)))
+
     def test_equals_op(self):
         # GH9947, GH10637
         index_a = self.create_index()
