@@ -383,6 +383,7 @@ Adding experimental support for Panel4D and factory functions to create n-dimens
 :ref:`Docs <dsintro.panel4d>` for NDim. Here is a taste of what to expect.
 
      .. ipython:: python
+        :okwarning:
 
         p4d = Panel4D(randn(2, 2, 5, 4),
               labels=['Label1','Label2'],
