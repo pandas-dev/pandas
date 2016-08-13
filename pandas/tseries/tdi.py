@@ -282,9 +282,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         result._reset_identity()
         return result
 
-    _na_value = tslib.NaT
-    """The expected NA value to use with this index."""
-
     @property
     def _formatter_func(self):
         from pandas.formats.format import _get_format_timedelta64

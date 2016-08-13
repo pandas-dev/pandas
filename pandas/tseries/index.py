@@ -667,9 +667,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # how to represent ourselves to matplotlib
         return tslib.ints_to_pydatetime(self.asi8, self.tz)
 
-    _na_value = tslib.NaT
-    """The expected NA value to use with this index."""
-
     @cache_readonly
     def _is_dates_only(self):
         from pandas.formats.format import _is_dates_only

@@ -353,6 +353,9 @@ class DatetimeIndexOpsMixin(object):
         values = Index.get_duplicates(self)
         return self._simple_new(values)
 
+    _na_value = tslib.NaT
+    """The expected NA value to use with this index."""
+
     @cache_readonly
     def _isnan(self):
         """ return if each value is nan"""
