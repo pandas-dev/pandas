@@ -17,6 +17,7 @@ from pandas.compat.numpy import function as nv
 from pandas.types.generic import ABCSparseArray, ABCSparseSeries
 from pandas.types.common import (is_float, is_integer,
                                  is_integer_dtype, _ensure_platform_int,
+                                 is_bool_dtype,
                                  is_list_like,
                                  is_scalar, is_dtype_equal)
 from pandas.types.cast import (_possibly_convert_platform, _maybe_promote,
@@ -385,7 +386,10 @@ class SparseArray(PandasObject, np.ndarray):
             data_slice = self.values[key]
         else:
             if isinstance(key, SparseArray):
-                key = np.asarray(key)
+                if is_bool_dtype(key):
+                    key = key.to_dense()
+                else:
+                    key = np.asarray(key)
 
             if hasattr(key, '__len__') and len(self) != len(key):
                 return self.take(key)
