@@ -40,14 +40,14 @@ class TestSeriesMissingData(TestData, tm.TestCase):
 
     def test_timedelta_fillna(self):
         # GH 3371
-        s = Series([Timestamp('20130101'), Timestamp('20130101'), Timestamp(
-            '20130102'), Timestamp('20130103 9:01:01')])
+        s = Series([Timestamp('20130101'), Timestamp('20130101'),
+                    Timestamp('20130102'), Timestamp('20130103 9:01:01')])
         td = s.diff()
 
         # reg fillna
         result = td.fillna(0)
-        expected = Series([timedelta(0), timedelta(0), timedelta(1), timedelta(
-            days=1, seconds=9 * 3600 + 60 + 1)])
+        expected = Series([timedelta(0), timedelta(0), timedelta(1),
+                           timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
         # interprested as seconds
@@ -57,8 +57,9 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
         result = td.fillna(timedelta(days=1, seconds=1))
-        expected = Series([timedelta(days=1, seconds=1), timedelta(
-            0), timedelta(1), timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
+        expected = Series([timedelta(days=1, seconds=1), timedelta(0),
+                           timedelta(1),
+                           timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
         result = td.fillna(np.timedelta64(int(1e9)))

@@ -107,6 +107,19 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
         exp = pd.Series([1, 1, 3, 4])
         self._assert_setitem_series_conversion(obj, True, exp, np.int64)
 
+    def test_setitem_series_int8(self):
+        # integer dtype coercion (no change)
+        obj = pd.Series([1, 2, 3, 4], dtype=np.int8)
+        self.assertEqual(obj.dtype, np.int8)
+
+        exp = pd.Series([1, 1, 3, 4], dtype=np.int8)
+        self._assert_setitem_series_conversion(obj, np.int32(1), exp, np.int8)
+
+        # BUG: it must be Series([1, 1, 3, 4], dtype=np.int16)
+        exp = pd.Series([1, 0, 3, 4], dtype=np.int8)
+        self._assert_setitem_series_conversion(obj, np.int16(2**9), exp,
+                                               np.int8)
+
     def test_setitem_series_float64(self):
         obj = pd.Series([1.1, 2.2, 3.3, 4.4])
         self.assertEqual(obj.dtype, np.float64)
@@ -207,6 +220,13 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
                          pd.Timestamp('2011-01-04')])
         self._assert_setitem_series_conversion(obj, 1, exp, 'datetime64[ns]')
 
+        # datetime64 + object -> object
+        exp = pd.Series([pd.Timestamp('2011-01-01'),
+                         'x',
+                         pd.Timestamp('2011-01-03'),
+                         pd.Timestamp('2011-01-04')])
+        self._assert_setitem_series_conversion(obj, 'x', exp, np.object)
+
         # ToDo: add more tests once the above issue has been fixed
 
     def test_setitem_series_datetime64tz(self):
@@ -226,19 +246,62 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
         self._assert_setitem_series_conversion(obj, value, exp,
                                                'datetime64[ns, US/Eastern]')
 
-        # datetime64 + int -> object
-        # ToDo: The result must be object
+        # datetime64tz + datetime64tz (different tz) -> object
         exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.Timestamp(1, tz=tz),
+                         pd.Timestamp('2012-01-01', tz='US/Pacific'),
                          pd.Timestamp('2011-01-03', tz=tz),
                          pd.Timestamp('2011-01-04', tz=tz)])
-        self._assert_setitem_series_conversion(obj, 1, exp,
-                                               'datetime64[ns, US/Eastern]')
+        value = pd.Timestamp('2012-01-01', tz='US/Pacific')
+        self._assert_setitem_series_conversion(obj, value, exp, np.object)
+
+        # datetime64tz + datetime64 -> object
+        exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
+                         pd.Timestamp('2012-01-01'),
+                         pd.Timestamp('2011-01-03', tz=tz),
+                         pd.Timestamp('2011-01-04', tz=tz)])
+        value = pd.Timestamp('2012-01-01')
+        self._assert_setitem_series_conversion(obj, value, exp, np.object)
+
+        # datetime64 + int -> object
+        exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
+                         1,
+                         pd.Timestamp('2011-01-03', tz=tz),
+                         pd.Timestamp('2011-01-04', tz=tz)])
+        self._assert_setitem_series_conversion(obj, 1, exp, np.object)
 
         # ToDo: add more tests once the above issue has been fixed
 
     def test_setitem_series_timedelta64(self):
-        pass
+        obj = pd.Series([pd.Timedelta('1 day'),
+                         pd.Timedelta('2 day'),
+                         pd.Timedelta('3 day'),
+                         pd.Timedelta('4 day')])
+        self.assertEqual(obj.dtype, 'timedelta64[ns]')
+
+        # timedelta64 + timedelta64 -> timedelta64
+        exp = pd.Series([pd.Timedelta('1 day'),
+                         pd.Timedelta('12 day'),
+                         pd.Timedelta('3 day'),
+                         pd.Timedelta('4 day')])
+        self._assert_setitem_series_conversion(obj, pd.Timedelta('12 day'),
+                                               exp, 'timedelta64[ns]')
+
+        # timedelta64 + int -> object
+        # ToDo: The result must be object
+        exp = pd.Series([pd.Timedelta('1 day'),
+                         pd.Timedelta(1),
+                         pd.Timedelta('3 day'),
+                         pd.Timedelta('4 day')])
+        self._assert_setitem_series_conversion(obj, 1, exp, 'timedelta64[ns]')
+
+        # timedelta64 + object -> object
+        exp = pd.Series([pd.Timedelta('1 day'),
+                         'x',
+                         pd.Timedelta('3 day'),
+                         pd.Timedelta('4 day')])
+        self._assert_setitem_series_conversion(obj, 'x', exp, np.object)
+
+        # ToDo: add more tests once the above issue has been fixed
 
     def test_setitem_series_period(self):
         pass
@@ -1035,14 +1098,12 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
         value = pd.Timestamp('2012-01-01', tz='Asia/Tokyo')
         self._assert_fillna_conversion(obj, value, exp, np.object)
 
-        # datetime64tz + int => datetime64tz
-        # ToDo: must be object
+        # datetime64tz + int => object
         exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.Timestamp(1, tz=tz),
+                         1,
                          pd.Timestamp('2011-01-03', tz=tz),
                          pd.Timestamp('2011-01-04', tz=tz)])
-        self._assert_fillna_conversion(obj, 1, exp,
-                                       'datetime64[ns, US/Eastern]')
+        self._assert_fillna_conversion(obj, 1, exp, np.object)
 
         # datetime64tz + object => object
         exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),

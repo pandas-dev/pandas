@@ -41,7 +41,7 @@ from pandas.types.missing import (isnull, array_equivalent,
                                   is_null_datelike_scalar)
 import pandas.types.concat as _concat
 
-from pandas.types.generic import ABCSeries
+from pandas.types.generic import ABCSeries, ABCDatetimeIndex
 from pandas.core.common import is_null_slice
 import pandas.core.algorithms as algos
 
@@ -379,7 +379,8 @@ class Block(PandasObject):
 
         # fillna, but if we cannot coerce, then try again as an ObjectBlock
         try:
-            values, _, value, _ = self._try_coerce_args(self.values, value)
+            values, _, _, _ = self._try_coerce_args(self.values, value)
+            # value may be converted to internal, thus drop
             blocks = self.putmask(mask, value, inplace=inplace)
             blocks = [b.make_block(values=self._try_coerce_result(b.values))
                       for b in blocks]
@@ -673,8 +674,43 @@ class Block(PandasObject):
             if self.is_numeric:
                 value = np.nan
 
-        # coerce args
-        values, _, value, _ = self._try_coerce_args(self.values, value)
+        # coerce if block dtype can store value
+        values = self.values
+        try:
+            values, _, value, _ = self._try_coerce_args(values, value)
+            # can keep its own dtype
+            if hasattr(value, 'dtype') and is_dtype_equal(values.dtype,
+                                                          value.dtype):
+                dtype = self.dtype
+            else:
+                dtype = 'infer'
+
+        except (TypeError, ValueError):
+            # current dtype cannot store value, coerce to common dtype
+            find_dtype = False
+
+            if hasattr(value, 'dtype'):
+                dtype = value.dtype
+                find_dtype = True
+
+            elif is_scalar(value):
+                if isnull(value):
+                    # NaN promotion is handled in latter path
+                    dtype = False
+                else:
+                    dtype, _ = _infer_dtype_from_scalar(value,
+                                                        pandas_dtype=True)
+                    find_dtype = True
+            else:
+                dtype = 'infer'
+
+            if find_dtype:
+                dtype = _find_common_type([values.dtype, dtype])
+                if not is_dtype_equal(self.dtype, dtype):
+                    b = self.astype(dtype)
+                    return b.setitem(indexer, value, mgr=mgr)
+
+        # value must be storeable at this moment
         arr_value = np.array(value)
 
         # cast the values to a type that can hold nan (if necessary)
@@ -704,87 +740,52 @@ class Block(PandasObject):
                     raise ValueError("cannot set using a slice indexer with a "
                                      "different length than the value")
 
-        try:
+        def _is_scalar_indexer(indexer):
+            # return True if we are all scalar indexers
 
-            def _is_scalar_indexer(indexer):
-                # return True if we are all scalar indexers
+            if arr_value.ndim == 1:
+                if not isinstance(indexer, tuple):
+                    indexer = tuple([indexer])
+                return all([is_scalar(idx) for idx in indexer])
+            return False
 
-                if arr_value.ndim == 1:
-                    if not isinstance(indexer, tuple):
-                        indexer = tuple([indexer])
-                    return all([is_scalar(idx) for idx in indexer])
-                return False
+        def _is_empty_indexer(indexer):
+            # return a boolean if we have an empty indexer
 
-            def _is_empty_indexer(indexer):
-                # return a boolean if we have an empty indexer
+            if arr_value.ndim == 1:
+                if not isinstance(indexer, tuple):
+                    indexer = tuple([indexer])
+                return any(isinstance(idx, np.ndarray) and len(idx) == 0
+                           for idx in indexer)
+            return False
 
-                if arr_value.ndim == 1:
-                    if not isinstance(indexer, tuple):
-                        indexer = tuple([indexer])
-                    return any(isinstance(idx, np.ndarray) and len(idx) == 0
-                               for idx in indexer)
-                return False
-
-            # empty indexers
-            # 8669 (empty)
-            if _is_empty_indexer(indexer):
-                pass
-
-            # setting a single element for each dim and with a rhs that could
-            # be say a list
-            # GH 6043
-            elif _is_scalar_indexer(indexer):
-                values[indexer] = value
-
-            # if we are an exact match (ex-broadcasting),
-            # then use the resultant dtype
-            elif (len(arr_value.shape) and
-                  arr_value.shape[0] == values.shape[0] and
-                  np.prod(arr_value.shape) == np.prod(values.shape)):
-                values[indexer] = value
-                values = values.astype(arr_value.dtype)
-
-            # set
-            else:
-                values[indexer] = value
-
-            # coerce and try to infer the dtypes of the result
-            if hasattr(value, 'dtype') and is_dtype_equal(values.dtype,
-                                                          value.dtype):
-                dtype = value.dtype
-            elif is_scalar(value):
-                dtype, _ = _infer_dtype_from_scalar(value)
-            else:
-                dtype = 'infer'
-            values = self._try_coerce_and_cast_result(values, dtype)
-            block = self.make_block(transf(values), fastpath=True)
-
-            # may have to soft convert_objects here
-            if block.is_object and not self.is_object:
-                block = block.convert(numeric=False)
-
-            return block
-        except ValueError:
-            raise
-        except TypeError:
-
-            # cast to the passed dtype if possible
-            # otherwise raise the original error
-            try:
-                # e.g. we are uint32 and our value is uint64
-                # this is for compat with older numpies
-                block = self.make_block(transf(values.astype(value.dtype)))
-                return block.setitem(indexer=indexer, value=value, mgr=mgr)
-
-            except:
-                pass
-
-            raise
-
-        except Exception:
+        # empty indexers
+        # 8669 (empty)
+        if _is_empty_indexer(indexer):
             pass
 
-        return [self]
+        # setting a single element for each dim and with a rhs that could
+        # be say a list
+        # GH 6043
+        elif _is_scalar_indexer(indexer):
+            values[indexer] = value
+
+        # if we are an exact match (ex-broadcasting),
+        # then use the resultant dtype
+        elif (len(arr_value.shape) and
+              arr_value.shape[0] == values.shape[0] and
+              np.prod(arr_value.shape) == np.prod(values.shape)):
+            values[indexer] = value
+            values = values.astype(arr_value.dtype)
+
+        # set
+        else:
+            values[indexer] = value
+
+        # coerce and try to infer the dtypes of the result
+        values = self._try_coerce_and_cast_result(values, dtype)
+        block = self.make_block(transf(values), fastpath=True)
+        return block
 
     def putmask(self, mask, new, align=True, inplace=False, axis=0,
                 transpose=False, mgr=None):
@@ -1255,6 +1256,7 @@ class Block(PandasObject):
 
             values, values_mask, other, other_mask = self._try_coerce_args(
                 values, other)
+
             try:
                 return self._try_coerce_result(expressions.where(
                     cond, values, other, raise_on_error=True))
@@ -1534,6 +1536,7 @@ class NonConsolidatableMixIn(object):
             new = new[mask]
 
         mask = _safe_reshape(mask, new_values.shape)
+
         new_values[mask] = new
         new_values = self._try_coerce_result(new_values)
         return [self.make_block(values=new_values)]
@@ -1703,7 +1706,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
         # allow filling with integers to be
         # interpreted as seconds
-        if not isinstance(value, np.timedelta64) and is_integer(value):
+        if not isinstance(value, np.timedelta64):
             value = Timedelta(value, unit='s')
         return super(TimeDeltaBlock, self).fillna(value, **kwargs)
 
@@ -1936,6 +1939,15 @@ class ObjectBlock(Block):
 
     def _can_hold_element(self, element):
         return True
+
+    def _try_coerce_args(self, values, other):
+        """ provide coercion to our input arguments """
+
+        if isinstance(other, ABCDatetimeIndex):
+            # to store DatetimeTZBlock as object
+            other = other.asobject.values
+
+        return values, False, other, False
 
     def _try_cast(self, element):
         return element
@@ -2276,8 +2288,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
                                 "naive Block")
             other_mask = isnull(other)
             other = other.asm8.view('i8')
-        elif hasattr(other, 'dtype') and is_integer_dtype(other):
-            other = other.view('i8')
         else:
             try:
                 other = np.asarray(other)
@@ -2453,6 +2463,8 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
                 raise ValueError("incompatible or non tz-aware value")
             other_mask = isnull(other)
             other = other.value
+        else:
+            raise TypeError
 
         return values, values_mask, other, other_mask
 

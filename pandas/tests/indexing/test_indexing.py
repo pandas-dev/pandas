@@ -1011,18 +1011,25 @@ class TestIndexing(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         # indexing - setting an element
-        df = DataFrame(data=pd.to_datetime(
-            ['2015-03-30 20:12:32', '2015-03-12 00:11:11']), columns=['time'])
+        df = DataFrame(data=pd.to_datetime(['2015-03-30 20:12:32',
+                                            '2015-03-12 00:11:11']),
+                       columns=['time'])
         df['new_col'] = ['new', 'old']
         df.time = df.set_index('time').index.tz_localize('UTC')
         v = df[df.new_col == 'new'].set_index('time').index.tz_convert(
             'US/Pacific')
 
         # trying to set a single element on a part of a different timezone
-        def f():
-            df.loc[df.new_col == 'new', 'time'] = v
+        df2 = df.copy()
+        df2.loc[df2.new_col == 'new', 'time'] = v
 
-        self.assertRaises(ValueError, f)
+        exp = pd.DataFrame({'time': [pd.Timestamp('2015-03-30 13:12:32',
+                                                  tz='US/Pacific'),
+                                     pd.Timestamp('2015-03-12 00:11:11',
+                                                  tz='UTC')],
+                            'new_col': ['new', 'old']},
+                           columns=['time', 'new_col'])
+        tm.assert_frame_equal(df2, exp)
 
         v = df.loc[df.new_col == 'new', 'time'] + pd.Timedelta('1s')
         df.loc[df.new_col == 'new', 'time'] = v
@@ -3412,6 +3419,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tm.assert_frame_equal(df2, expected)
 
         # with an ndarray on rhs
+        # coerces to float64 because values has float64 dtype
+        # GH 14001
+        expected = DataFrame({'FC': ['a', np.nan, 'a', 'b', 'a', 'b'],
+                              'PF': [0, 0, 0, 0, 1, 1],
+                              'col1': [0., 1., 4., 6., 8., 10.],
+                              'col2': [12, 7, 16, np.nan, 20, 22]})
         df2 = df.copy()
         df2.ix[mask, cols] = dft.ix[mask, cols].values
         tm.assert_frame_equal(df2, expected)

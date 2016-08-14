@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 import numpy as np
 from pandas import lib, tslib
-from pandas.tslib import iNaT
+from pandas.tslib import iNaT, NaT, Timestamp
 from pandas.compat import string_types, text_type, PY3
 from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
@@ -19,8 +19,13 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int8, _ensure_int16,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
+<<<<<<< HEAD
                      _POSSIBLY_CAST_DTYPES)
 from .dtypes import ExtensionDtype
+=======
+                     _DATELIKE_DTYPES, _POSSIBLY_CAST_DTYPES)
+from .dtypes import ExtensionDtype, DatetimeTZDtype, PeriodDtype
+>>>>>>> CLN/BUG: fix ndarray assignment may cause unexpected cast
 from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
 from .missing import isnull, notnull
 from .inference import is_list_like
@@ -249,7 +254,7 @@ def _maybe_promote(dtype, fill_value=np.nan):
         else:
             if issubclass(dtype.type, np.datetime64):
                 try:
-                    fill_value = lib.Timestamp(fill_value).value
+                    fill_value = Timestamp(fill_value).value
                 except:
                     # the proper thing to do here would probably be to upcast
                     # to object (but numpy 1.6.1 doesn't do this properly)
@@ -310,16 +315,24 @@ def _maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def _infer_dtype_from_scalar(val):
-    """ interpret the dtype from a scalar """
+def _infer_dtype_from_scalar(val, pandas_dtype=False):
+    """
+    interpret the dtype from a scalar
+
+    Parameters
+    ----------
+    pandas_dtype : bool, default False
+        whether to infer dtype as numpy compat (not include pandas
+        extension types)
+    """
 
     dtype = np.object_
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
+        msg = "invalid ndarray passed to _infer_dtype_from_scalar"
         if val.ndim != 0:
-            raise ValueError(
-                "invalid ndarray passed to _infer_dtype_from_scalar")
+            raise ValueError(msg)
 
         dtype = val.dtype
         val = val.item()
@@ -334,10 +347,18 @@ def _infer_dtype_from_scalar(val):
 
         dtype = np.object_
 
-    elif isinstance(val, (np.datetime64,
-                          datetime)) and getattr(val, 'tzinfo', None) is None:
-        val = lib.Timestamp(val).value
-        dtype = np.dtype('M8[ns]')
+    elif isinstance(val, (np.datetime64, datetime)):
+        val = Timestamp(val)
+        if val is NaT or val.tz is None:
+            dtype = np.dtype('M8[ns]')
+        else:
+
+            if pandas_dtype:
+                dtype = DatetimeTZDtype(unit='ns', tz=val.tz)
+            else:
+                # return datetimetz as object
+                return np.object_, val
+        val = val.value
 
     elif isinstance(val, (np.timedelta64, timedelta)):
         val = lib.Timedelta(val).value
@@ -360,6 +381,12 @@ def _infer_dtype_from_scalar(val):
 
     elif is_complex(val):
         dtype = np.complex_
+
+    elif pandas_dtype:
+        from pandas.tseries.period import Period
+        if isinstance(val, Period):
+            dtype = PeriodDtype(freq=val.freq)
+            val = val.ordinal
 
     return dtype, val
 
@@ -464,7 +491,7 @@ def _coerce_to_dtypes(result, dtypes):
             if isnull(r):
                 pass
             elif dtype == _NS_DTYPE:
-                r = lib.Timestamp(r)
+                r = Timestamp(r)
             elif dtype == _TD_DTYPE:
                 r = _coerce_scalar_to_timedelta_type(r)
             elif dtype == np.bool_:
@@ -890,3 +917,19 @@ def _find_common_type(types):
         return np.dtype('timedelta64[ns]')
 
     return np.find_common_type(types, [])
+
+
+def _cast_scalar_to_array(shape, value, dtype=None):
+    """
+    create np.ndarray of specified shape and dtype, filled with values
+    """
+
+    if dtype is None:
+        dtype, fill_value = _infer_dtype_from_scalar(value)
+    else:
+        fill_value = value
+
+    values = np.empty(shape, dtype=dtype)
+    values.fill(fill_value)
+
+    return values
