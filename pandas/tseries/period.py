@@ -34,7 +34,6 @@ from pandas.core.base import _shared_docs
 from pandas.indexes.base import _index_shared_docs
 
 from pandas import compat
-from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, cache_readonly, Substitution
 from pandas.lib import Timedelta
 import pandas.tslib as tslib
@@ -940,19 +939,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         to_concat = [x.values if isinstance(x, Index) else x
                      for x in to_concat]
         return Index(com._concat_compat(to_concat), name=name)
-
-    def repeat(self, n, *args, **kwargs):
-        """
-        Return a new Index of the values repeated `n` times.
-
-        See also
-        --------
-        numpy.ndarray.repeat
-        """
-        nv.validate_repeat(args, kwargs)
-
-        # overwrites method from DatetimeIndexOpsMixin
-        return self._shallow_copy(self.values.repeat(n))
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""

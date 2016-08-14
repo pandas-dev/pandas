@@ -170,23 +170,39 @@ class TestDatetimeIndexOps(Ops):
             tm.assertRaisesRegexp(ValueError, msg, rng.round, freq='M')
             tm.assertRaisesRegexp(ValueError, msg, elt.round, freq='M')
 
-    def test_repeat(self):
-        reps = 2
+    def test_repeat_range(self):
+        rng = date_range('1/1/2000', '1/1/2001')
+
+        result = rng.repeat(5)
+        self.assertIsNone(result.freq)
+        self.assertEqual(len(result), 5 * len(rng))
 
         for tz in self.tz:
-            rng = pd.date_range(start='2016-01-01', periods=2,
-                                freq='30Min', tz=tz)
+            index = pd.date_range('2001-01-01', periods=2, freq='D', tz=tz)
+            exp = pd.DatetimeIndex(['2001-01-01', '2001-01-01',
+                                    '2001-01-02', '2001-01-02'], tz=tz)
+            for res in [index.repeat(2), np.repeat(index, 2)]:
+                tm.assert_index_equal(res, exp)
+                self.assertIsNone(res.freq)
 
-            expected_rng = DatetimeIndex([
-                Timestamp('2016-01-01 00:00:00', tz=tz, freq='30T'),
-                Timestamp('2016-01-01 00:00:00', tz=tz, freq='30T'),
-                Timestamp('2016-01-01 00:30:00', tz=tz, freq='30T'),
-                Timestamp('2016-01-01 00:30:00', tz=tz, freq='30T'),
-            ])
+            index = pd.date_range('2001-01-01', periods=2, freq='2D', tz=tz)
+            exp = pd.DatetimeIndex(['2001-01-01', '2001-01-01',
+                                    '2001-01-03', '2001-01-03'], tz=tz)
+            for res in [index.repeat(2), np.repeat(index, 2)]:
+                tm.assert_index_equal(res, exp)
+                self.assertIsNone(res.freq)
 
-            tm.assert_index_equal(rng.repeat(reps), expected_rng)
+            index = pd.DatetimeIndex(['2001-01-01', 'NaT', '2003-01-01'],
+                                     tz=tz)
+            exp = pd.DatetimeIndex(['2001-01-01', '2001-01-01', '2001-01-01',
+                                    'NaT', 'NaT', 'NaT',
+                                    '2003-01-01', '2003-01-01', '2003-01-01'],
+                                   tz=tz)
+            for res in [index.repeat(3), np.repeat(index, 3)]:
+                tm.assert_index_equal(res, exp)
+                self.assertIsNone(res.freq)
 
-    def test_numpy_repeat(self):
+    def test_repeat(self):
         reps = 2
         msg = "the 'axis' parameter is not supported"
 
@@ -200,6 +216,10 @@ class TestDatetimeIndexOps(Ops):
                 Timestamp('2016-01-01 00:30:00', tz=tz, freq='30T'),
                 Timestamp('2016-01-01 00:30:00', tz=tz, freq='30T'),
             ])
+
+            res = rng.repeat(reps)
+            tm.assert_index_equal(res, expected_rng)
+            self.assertIsNone(res.freq)
 
             tm.assert_index_equal(np.repeat(rng, reps), expected_rng)
             tm.assertRaisesRegexp(ValueError, msg, np.repeat,
@@ -1605,6 +1625,21 @@ Freq: D"""
                                 name='xxx')
         tm.assert_index_equal(idx.shift(-3, freq='T'), exp)
 
+    def test_repeat(self):
+        index = pd.timedelta_range('1 days', periods=2, freq='D')
+        exp = pd.TimedeltaIndex(['1 days', '1 days', '2 days', '2 days'])
+        for res in [index.repeat(2), np.repeat(index, 2)]:
+            tm.assert_index_equal(res, exp)
+            self.assertIsNone(res.freq)
+
+        index = TimedeltaIndex(['1 days', 'NaT', '3 days'])
+        exp = TimedeltaIndex(['1 days', '1 days', '1 days',
+                              'NaT', 'NaT', 'NaT',
+                              '3 days', '3 days', '3 days'])
+        for res in [index.repeat(3), np.repeat(index, 3)]:
+            tm.assert_index_equal(res, exp)
+            self.assertIsNone(res.freq)
+
 
 class TestPeriodIndexOps(Ops):
     def setUp(self):
@@ -2525,6 +2560,26 @@ Freq: Q-DEC"""
         exp = pd.PeriodIndex(['2011-01-01 07:00', '2011-01-01 08:00'
                               '2011-01-01 09:00'], name='xxx', freq='H')
         tm.assert_index_equal(idx.shift(-3), exp)
+
+    def test_repeat(self):
+        index = pd.period_range('2001-01-01', periods=2, freq='D')
+        exp = pd.PeriodIndex(['2001-01-01', '2001-01-01',
+                              '2001-01-02', '2001-01-02'], freq='D')
+        for res in [index.repeat(2), np.repeat(index, 2)]:
+            tm.assert_index_equal(res, exp)
+
+        index = pd.period_range('2001-01-01', periods=2, freq='2D')
+        exp = pd.PeriodIndex(['2001-01-01', '2001-01-01',
+                              '2001-01-03', '2001-01-03'], freq='2D')
+        for res in [index.repeat(2), np.repeat(index, 2)]:
+            tm.assert_index_equal(res, exp)
+
+        index = pd.PeriodIndex(['2001-01', 'NaT', '2003-01'], freq='M')
+        exp = pd.PeriodIndex(['2001-01', '2001-01', '2001-01',
+                              'NaT', 'NaT', 'NaT',
+                              '2003-01', '2003-01', '2003-01'], freq='M')
+        for res in [index.repeat(3), np.repeat(index, 3)]:
+            tm.assert_index_equal(res, exp)
 
 
 if __name__ == '__main__':

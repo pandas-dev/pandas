@@ -749,7 +749,12 @@ class DatetimeIndexOpsMixin(object):
         Analogous to ndarray.repeat
         """
         nv.validate_repeat(args, kwargs)
-        return self._shallow_copy(self.values.repeat(repeats), freq=None)
+        if isinstance(self, ABCPeriodIndex):
+            freq = self.freq
+        else:
+            freq = None
+        return self._shallow_copy(self.asi8.repeat(repeats),
+                                  freq=freq)
 
     def where(self, cond, other=None):
         """

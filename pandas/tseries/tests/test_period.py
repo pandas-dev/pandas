@@ -2558,15 +2558,6 @@ class TestPeriodIndex(tm.TestCase):
         vals = np.array(vals)
         self.assertRaises(ValueError, PeriodIndex, vals)
 
-    def test_repeat(self):
-        index = period_range('20010101', periods=2)
-        expected = PeriodIndex([
-            Period('2001-01-01'), Period('2001-01-01'),
-            Period('2001-01-02'), Period('2001-01-02'),
-        ])
-
-        tm.assert_index_equal(index.repeat(2), expected)
-
     def test_numpy_repeat(self):
         index = period_range('20010101', periods=2)
         expected = PeriodIndex([Period('2001-01-01'), Period('2001-01-01'),
