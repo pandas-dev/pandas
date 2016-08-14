@@ -156,6 +156,7 @@ def _check_if_can_get_correct_default_credentials():
     # from the environment the tests are running in.
     # See Issue #13577
     test_requirements()
+    import httplib2
     try:
         from googleapiclient.discovery import build
     except ImportError:
@@ -163,7 +164,9 @@ def _check_if_can_get_correct_default_credentials():
     try:
         from oauth2client.client import GoogleCredentials
         credentials = GoogleCredentials.get_application_default()
-        bigquery_service = build('bigquery', 'v2', credentials=credentials)
+        http = httplib2.Http()
+        http = credentials.authorize(http)
+        bigquery_service = build('bigquery', 'v2', http=http)
         jobs = bigquery_service.jobs()
         job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
         jobs.insert(projectId=PROJECT_ID, body=job_data).execute()

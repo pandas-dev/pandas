@@ -188,6 +188,7 @@ class GbqConnector(object):
             from the environment. Or, the retrieved credentials do not
             have access to the project (self.project_id) on BigQuery.
         """
+        import httplib2
         try:
             from googleapiclient.discovery import build
         except ImportError:
@@ -202,11 +203,13 @@ class GbqConnector(object):
         except:
             return None
 
-        # Check if the application has rights to the BigQuery project
-        bigquery_service = build('bigquery', 'v2', credentials=credentials)
-        jobs = bigquery_service.jobs()
-        job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
+        http = httplib2.Http()
         try:
+            http = credentials.authorize(http)
+            bigquery_service = build('bigquery', 'v2', http=http)
+            # Check if the application has rights to the BigQuery project
+            jobs = bigquery_service.jobs()
+            job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
             jobs.insert(projectId=self.project_id, body=job_data).execute()
             return credentials
         except:
