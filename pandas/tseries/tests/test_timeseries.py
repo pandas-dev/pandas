@@ -1342,13 +1342,6 @@ class TestTimeSeries(tm.TestCase):
         ts = Series(1, index=rng)
         repr(ts)
 
-    def test_repeat(self):
-        rng = date_range('1/1/2000', '1/1/2001')
-
-        result = rng.repeat(5)
-        self.assertIsNone(result.freq)
-        self.assertEqual(len(result), 5 * len(rng))
-
     def test_at_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = Series(np.random.randn(len(rng)), index=rng)
