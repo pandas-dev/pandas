@@ -142,6 +142,13 @@ Other API Changes
 - Compression defaults in HDF stores now follow pytable standards. Default is no compression and if ``complib`` is missing and ``complevel`` > 0 ``zlib`` is used (:issue:`15943`)
 - ``Index.get_indexer_non_unique()`` now returns a ndarray indexer rather than an ``Index``; this is consistent with ``Index.get_indexer()`` (:issue:`16819`)
 - Removed the ``@slow`` decorator from ``pandas.util.testing``, which caused issues for some downstream packages' test suites. Use ``@pytest.mark.slow`` instead, which achieves the same thing (:issue:`16850`)
+
+
+.. _whatsnew_0210.api:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
 - Moved definition of ``MergeError`` to the ``pandas.errors`` module.
 
 
@@ -184,6 +191,9 @@ Bug Fixes
 
 Conversion
 ^^^^^^^^^^
+
+- Bug in assignment against datetime-like data with ``int`` may incorrectly converted to datetime-like (:issue:`14145`)
+- Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
 
 
 Indexing
