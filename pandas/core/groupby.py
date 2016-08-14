@@ -1397,7 +1397,7 @@ class GroupBy(_GroupBy):
         """Cumulative sum for each group"""
         nv.validate_groupby_func('cumsum', args, kwargs)
         if axis != 0:
-            return self.apply(lambda x: x.cumprod(axis=axis))
+            return self.apply(lambda x: x.cumsum(axis=axis))
 
         return self._cython_transform('cumsum')
 
