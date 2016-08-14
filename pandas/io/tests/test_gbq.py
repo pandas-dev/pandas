@@ -80,7 +80,6 @@ def _test_imports():
                 from apiclient.discovery import build  # noqa
                 from apiclient.errors import HttpError  # noqa
 
-            from oauth2client.client import GoogleCredentials  # noqa
             from oauth2client.client import OAuth2WebServerFlow  # noqa
             from oauth2client.client import AccessTokenRefreshError  # noqa
 
@@ -157,12 +156,12 @@ def _check_if_can_get_correct_default_credentials():
     # from the environment the tests are running in.
     # See Issue #13577
     test_requirements()
-    from oauth2client.client import GoogleCredentials
     try:
         from googleapiclient.discovery import build
     except ImportError:
         from apiclient.discovery import build
     try:
+        from oauth2client.client import GoogleCredentials
         credentials = GoogleCredentials.get_application_default()
         bigquery_service = build('bigquery', 'v2', credentials=credentials)
         jobs = bigquery_service.jobs()

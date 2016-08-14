@@ -52,7 +52,6 @@ def _test_google_api_imports():
         except:
             from apiclient.discovery import build  # noqa
             from apiclient.errors import HttpError  # noqa
-        from oauth2client.client import GoogleCredentials  # noqa
         from oauth2client.client import AccessTokenRefreshError  # noqa
         from oauth2client.client import OAuth2WebServerFlow  # noqa
         from oauth2client.file import Storage  # noqa
@@ -193,7 +192,10 @@ class GbqConnector(object):
             from googleapiclient.discovery import build
         except ImportError:
             from apiclient.discovery import build
-        from oauth2client.client import GoogleCredentials
+        try:
+            from oauth2client.client import GoogleCredentials
+        except ImportError:
+            return None
 
         try:
             credentials = GoogleCredentials.get_application_default()
