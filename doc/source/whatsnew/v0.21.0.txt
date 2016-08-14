@@ -50,6 +50,7 @@ Backwards incompatible API changes
 - Accessing a non-existent attribute on a closed :class:`HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
 
+
 .. _whatsnew_0210.api:
 
 Other API Changes
@@ -86,6 +87,9 @@ Bug Fixes
 
 Conversion
 ^^^^^^^^^^
+
+- Bug in assignment against datetime-like data with ``int`` may incorrectly converted to datetime-like (:issue:`14145`)
+- Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
 
 
 
