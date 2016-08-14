@@ -355,7 +355,7 @@ Freq: D"""
                                   ['day', 'day', 'day', 'day', 'hour',
                                    'minute', 'second', 'millisecond',
                                    'microsecond']):
-            for tz in [None, 'Asia/Tokyo', 'US/Eastern']:
+            for tz in self.tz:
                 idx = pd.date_range(start='2013-04-01', periods=30, freq=freq,
                                     tz=tz)
                 self.assertEqual(idx.resolution, expected)
@@ -508,7 +508,7 @@ Freq: D"""
 
     def test_value_counts_unique(self):
         # GH 7735
-        for tz in [None, 'UTC', 'Asia/Tokyo', 'US/Eastern']:
+        for tz in self.tz:
             idx = pd.date_range('2011-01-01 09:00', freq='H', periods=10)
             # create repeated values, 'n'th element is repeated by n+1 times
             idx = DatetimeIndex(np.repeat(idx.values, range(1, len(idx) + 1)),
@@ -590,49 +590,50 @@ Freq: D"""
             self.assertEqual(ordered.freq.n, -1)
 
         # without freq
-        idx1 = DatetimeIndex(['2011-01-01', '2011-01-03', '2011-01-05',
-                              '2011-01-02', '2011-01-01'], name='idx1')
-        exp1 = DatetimeIndex(['2011-01-01', '2011-01-01', '2011-01-02',
-                              '2011-01-03', '2011-01-05'], name='idx1')
+        for tz in self.tz:
+            idx1 = DatetimeIndex(['2011-01-01', '2011-01-03', '2011-01-05',
+                                  '2011-01-02', '2011-01-01'],
+                                 tz=tz, name='idx1')
+            exp1 = DatetimeIndex(['2011-01-01', '2011-01-01', '2011-01-02',
+                                  '2011-01-03', '2011-01-05'],
+                                 tz=tz, name='idx1')
 
-        idx2 = DatetimeIndex(['2011-01-01', '2011-01-03', '2011-01-05',
-                              '2011-01-02', '2011-01-01'],
-                             tz='Asia/Tokyo', name='idx2')
+            idx2 = DatetimeIndex(['2011-01-01', '2011-01-03', '2011-01-05',
+                                  '2011-01-02', '2011-01-01'],
+                                 tz=tz, name='idx2')
 
-        # TODO(wesm): unused?
+            exp2 = DatetimeIndex(['2011-01-01', '2011-01-01', '2011-01-02',
+                                  '2011-01-03', '2011-01-05'],
+                                 tz=tz, name='idx2')
 
-        # exp2 = DatetimeIndex(['2011-01-01', '2011-01-01', '2011-01-02',
-        #                       '2011-01-03', '2011-01-05'],
-        #                      tz='Asia/Tokyo', name='idx2')
+            idx3 = DatetimeIndex([pd.NaT, '2011-01-03', '2011-01-05',
+                                  '2011-01-02', pd.NaT], tz=tz, name='idx3')
+            exp3 = DatetimeIndex([pd.NaT, pd.NaT, '2011-01-02', '2011-01-03',
+                                  '2011-01-05'], tz=tz, name='idx3')
 
-        # idx3 = DatetimeIndex([pd.NaT, '2011-01-03', '2011-01-05',
-        #                       '2011-01-02', pd.NaT], name='idx3')
-        # exp3 = DatetimeIndex([pd.NaT, pd.NaT, '2011-01-02', '2011-01-03',
-        #                       '2011-01-05'], name='idx3')
+            for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
+                ordered = idx.sort_values()
+                self.assert_index_equal(ordered, expected)
+                self.assertIsNone(ordered.freq)
 
-        for idx, expected in [(idx1, exp1), (idx1, exp1), (idx1, exp1)]:
-            ordered = idx.sort_values()
-            self.assert_index_equal(ordered, expected)
-            self.assertIsNone(ordered.freq)
+                ordered = idx.sort_values(ascending=False)
+                self.assert_index_equal(ordered, expected[::-1])
+                self.assertIsNone(ordered.freq)
 
-            ordered = idx.sort_values(ascending=False)
-            self.assert_index_equal(ordered, expected[::-1])
-            self.assertIsNone(ordered.freq)
+                ordered, indexer = idx.sort_values(return_indexer=True)
+                self.assert_index_equal(ordered, expected)
 
-            ordered, indexer = idx.sort_values(return_indexer=True)
-            self.assert_index_equal(ordered, expected)
+                exp = np.array([0, 4, 3, 1, 2])
+                self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+                self.assertIsNone(ordered.freq)
 
-            exp = np.array([0, 4, 3, 1, 2])
-            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
-            self.assertIsNone(ordered.freq)
+                ordered, indexer = idx.sort_values(return_indexer=True,
+                                                   ascending=False)
+                self.assert_index_equal(ordered, expected[::-1])
 
-            ordered, indexer = idx.sort_values(return_indexer=True,
-                                               ascending=False)
-            self.assert_index_equal(ordered, expected[::-1])
-
-            exp = np.array([2, 1, 3, 4, 0])
-            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
-            self.assertIsNone(ordered.freq)
+                exp = np.array([2, 1, 3, 4, 0])
+                self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+                self.assertIsNone(ordered.freq)
 
     def test_getitem(self):
         idx1 = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
@@ -782,7 +783,7 @@ Freq: D"""
 
     def test_shift(self):
         # GH 9903
-        for tz in [None, 'US/Eastern', 'Asia/Tokyo']:
+        for tz in self.tz:
             idx = pd.DatetimeIndex([], name='xxx', tz=tz)
             tm.assert_index_equal(idx.shift(0, freq='H'), idx)
             tm.assert_index_equal(idx.shift(3, freq='H'), idx)
@@ -2400,20 +2401,19 @@ Freq: Q-DEC"""
         exp1 = PeriodIndex(['2011-01-01', '2011-01-01', '2011-01-02',
                             '2011-01-03', '2011-01-05'], freq='D', name='idx1')
 
-        # TODO(wesm): unused?
-        # idx2 = PeriodIndex(['2011-01-01', '2011-01-03', '2011-01-05',
-        #                     '2011-01-02', '2011-01-01'],
-        #                    freq='D',  name='idx2')
-        # exp2 = PeriodIndex(['2011-01-01', '2011-01-01', '2011-01-02',
-        #                     '2011-01-03', '2011-01-05'],
-        #                    freq='D', name='idx2')
+        idx2 = PeriodIndex(['2011-01-01', '2011-01-03', '2011-01-05',
+                            '2011-01-02', '2011-01-01'],
+                           freq='D', name='idx2')
+        exp2 = PeriodIndex(['2011-01-01', '2011-01-01', '2011-01-02',
+                            '2011-01-03', '2011-01-05'],
+                           freq='D', name='idx2')
 
-        # idx3 = PeriodIndex([pd.NaT, '2011-01-03', '2011-01-05',
-        #                     '2011-01-02', pd.NaT], freq='D', name='idx3')
-        # exp3 = PeriodIndex([pd.NaT, pd.NaT, '2011-01-02', '2011-01-03',
-        #                     '2011-01-05'], freq='D', name='idx3')
+        idx3 = PeriodIndex([pd.NaT, '2011-01-03', '2011-01-05',
+                            '2011-01-02', pd.NaT], freq='D', name='idx3')
+        exp3 = PeriodIndex([pd.NaT, pd.NaT, '2011-01-02', '2011-01-03',
+                            '2011-01-05'], freq='D', name='idx3')
 
-        for idx, expected in [(idx1, exp1), (idx1, exp1), (idx1, exp1)]:
+        for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
             ordered = idx.sort_values()
             self.assert_index_equal(ordered, expected)
             self.assertEqual(ordered.freq, 'D')
