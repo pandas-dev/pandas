@@ -2973,6 +2973,14 @@ class TestGroupBy(tm.TestCase):
         result = df.groupby('A', as_index=False).cumsum()
         assert_frame_equal(result, expected)
 
+        # GH 13994
+        result = df.groupby('A').cumsum(axis=1)
+        expected = df.cumsum(axis=1)
+        assert_frame_equal(result, expected)
+        result = df.groupby('A').cumprod(axis=1)
+        expected = df.cumprod(axis=1)
+        assert_frame_equal(result, expected)
+
     def test_grouping_ndarray(self):
         grouped = self.df.groupby(self.df['A'].values)
 

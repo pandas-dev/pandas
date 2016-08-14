@@ -855,6 +855,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``groupby().shift()``, which could cause a segfault or corruption in rare circumstances when grouping by columns with missing values (:issue:`13813`)
+- Bug in ``groupby().cumsum()`` calculating ``cumprod`` when ``axis=1``. (:issue:`13994`)
 - Bug in ``pd.read_csv()``, which may cause a segfault or corruption when iterating in large chunks over a stream/file under rare circumstances (:issue:`13703`)
 - Bug in ``pd.read_csv()``, which caused BOM files to be incorrectly parsed by not ignoring the BOM (:issue:`4793`)
 - Bug in ``io.json.json_normalize()``, where non-ascii keys raised an exception (:issue:`13213`)
