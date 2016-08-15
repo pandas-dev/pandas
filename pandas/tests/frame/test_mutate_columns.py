@@ -156,6 +156,13 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         df.insert(0, 'baz', df['c'])
         self.assertEqual(df.columns.name, 'some_name')
 
+        # GH 13522
+        df = DataFrame(index=['A', 'B', 'C'])
+        df['X'] = df.index
+        df['X'] = ['x', 'y', 'z']
+        exp = DataFrame(data={'X': ['x', 'y', 'z']}, index=['A', 'B', 'C'])
+        assert_frame_equal(df, exp)
+
     def test_delitem(self):
         del self.frame['A']
         self.assertNotIn('A', self.frame)
