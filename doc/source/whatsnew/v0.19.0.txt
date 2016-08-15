@@ -163,6 +163,13 @@ New behaviour:
 
    In [2]: pd.read_csv(StringIO(data), names=names)
 
+
+New behaviour:
+
+.. ipython :: python
+
+   In [2]: pd.read_csv(StringIO(data), names=names)
+
 .. _whatsnew_0190.enhancements.semi_month_offsets:
 
 Semi-Month Offsets
@@ -213,6 +220,21 @@ Other enhancements
      s = ['1', 2, 3]
      pd.to_numeric(s, downcast='unsigned')
      pd.to_numeric(s, downcast='integer')
+
+- ``Index`` now supports ``.str.extractall()`` which returns a ``DataFrame``, the see :ref:`docs here <text.extractall>` (:issue:`10008`, :issue:`13156`)
+- ``.to_hdf/read_hdf()`` now accept path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path (:issue:`11773`)
+
+  .. ipython:: python
+
+     idx = pd.Index(["a1a2", "b1", "c1"])
+     idx.str.extractall("[ab](?P<digit>\d)")
+
+- ``Timestamp`` can now accept positional and keyword parameters similar to :func:`datetime.datetime` (:issue:`10758`, :issue:`11630`)
+
+  .. ipython:: python
+
+    pd.Timestamp(2012, 1, 1)
+
 
 - ``Index`` now supports ``.str.extractall()`` which returns a ``DataFrame``, the see :ref:`docs here <text.extractall>` (:issue:`10008`, :issue:`13156`)
 - ``.to_hdf/read_hdf()`` now accept path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path (:issue:`11773`)
@@ -302,6 +324,16 @@ New Behavior:
 
 A ``Series`` will now correctly promote its dtype for assignment with incompat values to the current dtype (:issue:`13234`)
 
+.. ipython:: python
+
+   type(s.tolist()[0])
+
+.. _whatsnew_0190.api.promote:
+
+``Series`` type promotion on assignment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A ``Series`` will now correctly promote its dtype for assignment with incompat values to the current dtype (:issue:`13234`)
 
 .. ipython:: python
 
@@ -456,9 +488,6 @@ Deprecations
 - top-level ``pd.ordered_merge()`` has been renamed to ``pd.merge_ordered()`` and the original name will be removed in a future version (:issue:`13358`)
 - ``Timestamp.offset`` property (and named arg in the constructor), has been deprecated in favor of ``freq`` (:issue:`12160`)
 
-<<<<<<< HEAD
-=======
-
 .. _whatsnew_0190.prior_deprecations:
 
 Removal of prior version deprecations/changes
@@ -467,8 +496,6 @@ Removal of prior version deprecations/changes
 - ``DataFrame.to_csv()`` has dropped the ``engine`` parameter, as was deprecated in 0.17.1 (:issue:`11274`, :issue:`13419`)
 - ``DataFrame.to_dict()`` has dropped the ``outtype`` parameter in favor of ``orient`` (:issue:`13627`, :issue:`8486`)
 
-
->>>>>>> 7c357d2... CLN: Removed outtype in DataFrame.to_dict (#13627)
 .. _whatsnew_0190.performance:
 
 Performance Improvements
@@ -510,12 +537,19 @@ Bug Fixes
 - Bug in ``Series.str.extractall()`` with single group and quantifier  (:issue:`13382`)
 
 - Bug in ``DatetimeIndex`` and ``Period`` subtraction raises ``ValueError`` or ``AttributeError`` rather than ``TypeError`` (:issue:`13078`)
+- Bug in ``DatetimeIndex`` and ``Period`` subtraction raises ``ValueError`` or ``AttributeError`` rather than ``TypeError`` (:issue:`13078`)
+- Bug in ``Index`` and ``Series`` created with ``NaN`` and ``NaT`` mixed data may not have ``datetime64`` dtype  (:issue:`13324`)
+- Bug in ``Index`` and ``Series`` may ignore ``np.datetime64('nat')`` and ``np.timdelta64('nat')`` to infer dtype (:issue:`13324`)
 - Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``PeriodIndex`` construction returning a ``float64`` index in some circumstances (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not changing its ``freq`` appropriately when empty (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not retaining its type or name with an empty ``DataFrame`` appropriately when empty (:issue:`13212`)
 - Bug in ``groupby(..).resample(..)`` where passing some keywords would raise an exception (:issue:`13235`)
+- Bug in ``groupby(..).apply(..)`` when the passed function returns scalar values per group (:issue:`13468`).
+- Bug in ``groupby(..).resample(..)`` where passing some keywords would raise an exception (:issue:`13235`)
 - Bug in ``.tz_convert`` on a tz-aware ``DateTimeIndex`` that relied on index being sorted for correct results (:issue:`13306`)
+- Bug in ``.tz_localize`` with ``dateutil.tz.tzlocal`` may return incorrect result (:issue:`13583`)
+- Bug in ``DatetimeTZDtype`` dtype with ``dateutil.tz.tzlocal`` cannot be regarded as valid dtype (:issue:`13583`)
 - Bug in ``pd.read_hdf()`` where attempting to load an HDF file with a single dataset, that had one or more categorical columns, failed unless the key argument was set to the name of the dataset. (:issue:`13231`)
 - Bug in ``.rolling()`` that allowed a negative integer window in contruction of the ``Rolling()`` object, but would later fail on aggregation (:issue:`13383`)
 
@@ -549,6 +583,8 @@ Bug Fixes
 - Bug in extension dtype creation where the created types were not is/identical (:issue:`13285`)
 
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
+- Bug in ``Series`` comparison may output incorrect result if rhs contains ``NaT`` (:issue:`9005`)
+- Bug in ``Series`` and ``Index`` comparison may output incorrect result if it contains ``NaT`` with ``object`` dtype (:issue:`13592`)
 - Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
 - Bug in ``Peirod`` and ``Series`` or ``Index`` comparison raises ``TypeError`` (:issue:`13200`)
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
@@ -569,4 +605,4 @@ Bug Fixes
 
 - Bug where ``pd.read_gbq()`` could throw ``ImportError: No module named discovery`` as a result of a naming conflict with another python package called apiclient  (:issue:`13454`)
 
-- Bug in ``read_csv()``, where aliases for utf-xx (e.g. UTF-xx, UTF_xx, utf_xx) raised UnicodeDecodeError (:issue:`13549`)
+- Bug in ``pd.read_csv()``, where aliases for utf-xx (e.g. UTF-xx, UTF_xx, utf_xx) raised ``UnicodeDecodeError`` (:issue:`13549`)
