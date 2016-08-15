@@ -633,18 +633,22 @@ Furthermore:
 ``PeriodIndex`` now has ``period`` dtype
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``PeriodIndex`` now has its own ``period`` dtype. ``period`` dtype is a
-pandas extension dtype which extends NumPy dtype like ``"category"``. (:issue:`13941`)
+``PeriodIndex`` now has its own ``period`` dtype. The ``period`` dtype is a
+pandas extension dtype which extends NumPy dtype like ``"category"`` (:issue:`13941`).
+As a consequence of this change, `PeriodIndex` no longer has an integer dtype:
 
 Previous Behavior:
 
 .. code-block:: ipython
 
    In [1]: pi = pd.PeriodIndex(['2016-08-01'], freq='D')
+
    In [2]: pi
    Out[2]: PeriodIndex(['2016-08-01'], dtype='int64', freq='D')
+
    In [3]: pd.api.types.is_integer_dtype(pi)
    Out[3]: True
+
    In [4]: pi.dtype
    Out[4]: dtype('int64')
 
@@ -656,7 +660,6 @@ New Behavior:
    pi
    pd.api.types.is_integer_dtype(pi)
    pd.api.types.is_period_dtype(pi)
-
    pi.dtype
    type(pi.dtype)
 

@@ -1596,6 +1596,40 @@ objects:
 
 ``PeriodIndex`` has its own dtype named ``period``, refer to :ref:`Period Dtypes <timeseries.period_dtype>`.
 
+.. _timeseries.period_dtype:
+
+Period Dtypes
+~~~~~~~~~~~~~
+
+.. versionadded:: 0.19.0
+
+``PeriodIndex`` has a custom ``period`` dtype. This is a pandas extension
+dtype similar to the timezone aware dtype (``datetime64[ns, tz]``).
+
+The ``period`` dtype holds the ``freq`` attribute and is represented with
+``period[freq]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
+
+.. ipython:: python
+
+   pi = pd.period_range('2016-01-01', periods=3, freq='M')
+   pi
+   pi.dtype
+
+The ``period`` dtype can be used in ``.astype(...)``. It allows to change the
+``freq`` of a ``PeriodIndex`` like ``.asfreq()`` and convert a
+``DatetimeIndex`` to ``PeriodIndex`` like ``to_period()``:
+
+.. ipython:: python
+
+   # change monthly freq to daily freq
+   pi.astype('period[D]')
+
+   # convert to PeriodIndex
+   dti = pd.date_range('2011-01-01', freq='M', periods=3)
+   dti
+   dti.astype('period[M]')
+
+
 PeriodIndex Partial String Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -2049,32 +2083,3 @@ a convert on an aware stamp.
    .. ipython:: python
 
       pd.Series(s_aware.values).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
-
-.. _timeseries.period_dtype:
-
-Period Dtypes
-~~~~~~~~~~~~~
-
-.. versionadded:: 0.19.0
-
-``PeriodIndex`` has its own ``period`` dtype. ``period`` dtype is a
-pandas extension dtype as the same as timezone aware dtype, ``datetime64[ns, tz]``.
-
-``period`` dtype is represented with a ``period[freq]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
-
-.. ipython:: python
-
-   pi = pd.period_range('2016-01-01', periods=3, freq='M')
-   pi
-
-``period`` dtype can be used in ``.astype(...)``. It allows change ``freq`` of ``PeriodIndex`` as the same as ``.asfreq()`` and convert ``DatetimeIndex`` to ``PeriodIndex`` like ``to_period()``.
-
-.. ipython:: python
-
-   # change monthly freq to daily freq
-   pi.astype('period[D]')
-
-   # convert to PeriodIndex
-   dti = pd.date_range('2011-01-01', freq='M', periods=3)
-   dti
-   dti.astype('period[M]')
