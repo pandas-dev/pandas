@@ -2420,6 +2420,25 @@ Thur,Lunch,Yes,51.51,17"""
         m_df = pd.Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data), )
 
+    def test_iloc_mi(self):
+        # GH 13797
+
+        ind_nonLex = [
+            ['CC', 'CC', 'CC', 'BB', 'BB'],
+            ['A', 'B', 'B', 'a', 'b']
+        ]
+
+        strCol = pd.DataFrame(
+            ['fooA', 'fooB', 'fooC', 'fooD', 'fooE'])
+
+        dat = np.arange(1, 26).reshape(5, 5)
+        df = pd.concat([strCol, pd.DataFrame(dat)], axis=1)
+        df1 = pd.DataFrame(df.values, index=ind_nonLex)
+
+        assert df1.iloc[0, 0] == 'fooA'
+        assert df1.iloc[4, 0] == 'fooE'
+        assert df1.iloc[4, 5] == 25
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
