@@ -102,7 +102,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         # invalid args
         for i in [Index(['a', 'b']), Series(['a', 'b']), np.array(['a', 'b']),
-                  [], 'foo', datetime(2000, 1, 1, 0, 0), np.arange(0, 10)]:
+                  [], 'foo', datetime(2000, 1, 1, 0, 0), np.arange(0, 10),
+                  np.array([1]), [1]]:
             self.assertRaises(TypeError, lambda: RangeIndex(i))
 
     def test_constructor_same(self):
