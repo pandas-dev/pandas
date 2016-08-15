@@ -108,6 +108,20 @@ class TestSparseArrayArithmetics(tm.TestCase):
         self._check_bool_result(a < b_dense)
         self._assert((a < b_dense).to_dense(), a_dense < b_dense)
 
+    def _check_logical_ops(self, a, b, a_dense, b_dense):
+        # sparse & sparse
+        self._check_bool_result(a & b)
+        self._assert((a & b).to_dense(), a_dense & b_dense)
+
+        self._check_bool_result(a | b)
+        self._assert((a | b).to_dense(), a_dense | b_dense)
+        # sparse & dense
+        self._check_bool_result(a & b_dense)
+        self._assert((a & b_dense).to_dense(), a_dense & b_dense)
+
+        self._check_bool_result(a | b_dense)
+        self._assert((a | b_dense).to_dense(), a_dense | b_dense)
+
     def test_float_scalar(self):
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
@@ -304,6 +318,36 @@ class TestSparseArrayArithmetics(tm.TestCase):
                 a = self._klass(values, dtype=dtype, kind=kind, fill_value=1)
                 b = self._klass(rvalues, dtype=dtype, kind=kind, fill_value=2)
                 self._check_comparison_ops(a, b, values, rvalues)
+
+    def test_bool_same_index(self):
+        # GH 14000
+        # when sp_index are the same
+        for kind in ['integer', 'block']:
+            values = self._base([True, False, True, True], dtype=np.bool)
+            rvalues = self._base([True, False, True, True], dtype=np.bool)
+
+            for fill_value in [True, False, np.nan]:
+                a = self._klass(values, kind=kind, dtype=np.bool,
+                                fill_value=fill_value)
+                b = self._klass(rvalues, kind=kind, dtype=np.bool,
+                                fill_value=fill_value)
+                self._check_logical_ops(a, b, values, rvalues)
+
+    def test_bool_array_logical(self):
+        # GH 14000
+        # when sp_index are the same
+        for kind in ['integer', 'block']:
+            values = self._base([True, False, True, False, True, True],
+                                dtype=np.bool)
+            rvalues = self._base([True, False, False, True, False, True],
+                                 dtype=np.bool)
+
+            for fill_value in [True, False, np.nan]:
+                a = self._klass(values, kind=kind, dtype=np.bool,
+                                fill_value=fill_value)
+                b = self._klass(rvalues, kind=kind, dtype=np.bool,
+                                fill_value=fill_value)
+                self._check_logical_ops(a, b, values, rvalues)
 
 
 class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):

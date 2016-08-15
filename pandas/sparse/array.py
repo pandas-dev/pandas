@@ -98,6 +98,7 @@ def _sparse_array_op(left, right, op, name, series=False):
             right = right.astype(np.float64)
 
     dtype = _maybe_match_dtype(left, right)
+    result_dtype = None
 
     if left.sp_index.ngaps == 0 or right.sp_index.ngaps == 0:
         result = op(left.get_values(), right.get_values())
@@ -116,13 +117,26 @@ def _sparse_array_op(left, right, op, name, series=False):
             left, right = right, left
             name = name[1:]
 
-        opname = 'sparse_{name}_{dtype}'.format(name=name, dtype=dtype)
-        sparse_op = getattr(splib, opname)
+        if name in ('and', 'or') and dtype == 'bool':
+            opname = 'sparse_{name}_uint8'.format(name=name, dtype=dtype)
+            # to make template simple, cast here
+            left_sp_values = left.sp_values.view(np.uint8)
+            right_sp_values = right.sp_values.view(np.uint8)
+            result_dtype = np.bool
+        else:
+            opname = 'sparse_{name}_{dtype}'.format(name=name, dtype=dtype)
+            left_sp_values = left.sp_values
+            right_sp_values = right.sp_values
 
-        result, index, fill = sparse_op(left.sp_values, left.sp_index,
-                                        left.fill_value, right.sp_values,
+        sparse_op = getattr(splib, opname)
+        result, index, fill = sparse_op(left_sp_values, left.sp_index,
+                                        left.fill_value, right_sp_values,
                                         right.sp_index, right.fill_value)
-    return _wrap_result(name, result, index, fill, dtype=result.dtype)
+
+    if result_dtype is None:
+        result_dtype = result.dtype
+
+    return _wrap_result(name, result, index, fill, dtype=result_dtype)
 
 
 def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
@@ -750,4 +764,5 @@ def _make_index(length, indices, kind):
 
 ops.add_special_arithmetic_methods(SparseArray, arith_method=_arith_method,
                                    comp_method=_arith_method,
+                                   bool_method=_arith_method,
                                    use_numexpr=False)

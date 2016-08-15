@@ -762,6 +762,7 @@ Note that the limitation is applied to ``fill_value`` which default is ``np.nan`
    ValueError: unable to coerce current fill_value nan to int64 dtype
 
 - Subclassed ``SparseDataFrame`` and ``SparseSeries`` now preserve class types when slicing or transposing. (:issue:`13787`)
+- ``SparseArray`` with ``bool`` dtype now supports logical (bool) operators (:issue:`14000`)
 - Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing may raise ``IndexError`` (:issue:`13144`)
 - Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing result may have normal ``Index`` (:issue:`13144`)
 - Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)

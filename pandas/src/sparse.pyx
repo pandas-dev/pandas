@@ -758,6 +758,7 @@ cdef class BlockUnion(BlockMerge):
 include "sparse_op_helper.pxi"
 
 
+
 #-------------------------------------------------------------------------------
 # Indexing operations
 
