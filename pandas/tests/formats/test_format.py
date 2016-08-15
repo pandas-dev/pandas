@@ -1964,6 +1964,14 @@ class TestDataFrameFormatting(tm.TestCase):
 
         self.assertEqual(df_s, expected)
 
+    def test_to_string_line_width_no_index(self):
+        df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "x  \\\n1   \n2   \n3   \n\ny  \n4  \n5  \n6"
+
+        self.assertEqual(df_s, expected)
+
     def test_to_string_float_formatting(self):
         self.reset_display_options()
         fmt.set_option('display.precision', 5, 'display.column_space', 12,

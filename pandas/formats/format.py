@@ -68,7 +68,9 @@ common_docstring = """
         Set to False for a DataFrame with a hierarchical index to print every
         multiindex key at each row, default True
     index_names : bool, optional
-        Prints the names of the indexes, default True"""
+        Prints the names of the indexes, default True
+    line_width : int, optional
+        Width to wrap a line in characters, default no wrap"""
 
 justify_docstring = """
     justify : {'left', 'right'}, default None
@@ -632,7 +634,8 @@ class DataFrameFormatter(TableFormatter):
         st = 0
         for i, ed in enumerate(col_bins):
             row = strcols[st:ed]
-            row.insert(0, idx)
+            if self.index:
+                row.insert(0, idx)
             if nbins > 1:
                 if ed <= len(strcols) and i < nbins - 1:
                     row.append([' \\'] + ['  '] * (nrows - 1))
