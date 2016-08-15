@@ -320,10 +320,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """
         return PeriodIndex([item], **self._get_attributes_dict())
 
-    @property
-    def _na_value(self):
-        return self._box_func(tslib.iNaT)
-
     def __contains__(self, key):
         if isinstance(key, Period):
             if key.freq != self.freq:
