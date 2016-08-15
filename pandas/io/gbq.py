@@ -441,9 +441,8 @@ class GbqConnector(object):
         rows = []
         remaining_rows = len(dataframe)
 
-        if self.verbose:
-            total_rows = remaining_rows
-            self._print("\n\n")
+        total_rows = remaining_rows
+        self._print("\n\n")
 
         for index, row in dataframe.reset_index(drop=True).iterrows():
             row_dict = dict()
