@@ -1159,31 +1159,6 @@ class MPLPlot(object):
 
         self.data = numeric_data
 
-    def _compute_plot_data_with_dt(self):
-        data = self.data
-
-        if isinstance(data, Series):
-            label = self.label
-            if label is None and data.name is None:
-                label = 'None'
-            data = data.to_frame(name=label)
-
-        numeric_dt__data = data._convert(datetime=True)._get_numeric_data()
-        time_data = data._convert(datetime=True)._get_dt_data()
-        numeric_dt__data = numeric_dt__data.join(time_data)
-
-        try:
-            is_empty = numeric_dt__data.empty
-        except AttributeError:
-            is_empty = not len(numeric_dt__data)
-
-        # no empty frames or series allowed
-        if is_empty:
-            raise TypeError('Empty {0!r}: no numeric data to '
-                            'plot'.format(numeric_dt__data.__class__.__name__))
-
-        self.data = numeric_dt__data
-
     def _make_plot(self):
         raise AbstractMethodError(self)
 
@@ -1627,6 +1602,30 @@ class PlanePlot(MPLPlot):
         ax.set_ylabel(pprint_thing(y))
         ax.set_xlabel(pprint_thing(x))
 
+    def _compute_plot_data_with_dt(self):
+        data = self.data
+
+        if isinstance(data, Series):
+            label = self.label
+            if label is None and data.name is None:
+                label = 'None'
+            data = data.to_frame(name=label)
+
+        numeric_dt__data = data._convert(datetime=True)._get_numeric_data()
+        time_data = data._convert(datetime=True)._get_dt_data()
+        numeric_dt__data = numeric_dt__data.join(time_data)
+
+        try:
+            is_empty = numeric_dt__data.empty
+        except AttributeError:
+            is_empty = not len(numeric_dt__data)
+
+        # no empty frames or series allowed
+        if is_empty:
+            raise TypeError('Empty {0!r}: no numeric data to '
+                            'plot'.format(numeric_dt__data.__class__.__name__))
+
+        self.data = numeric_dt__data
 
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
