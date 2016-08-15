@@ -1627,6 +1627,7 @@ class PlanePlot(MPLPlot):
 
         self.data = numeric_dt__data
 
+
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
 
