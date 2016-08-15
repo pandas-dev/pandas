@@ -799,13 +799,19 @@ class IPythonDirective(Directive):
             # Store IPython directive to enable better error messages
             self.shell.directive = self
 
-        # reset the execution count if we haven't processed this doc
-        #NOTE: this may be borked if there are multiple seen_doc tmp files
-        #check time stamp?
-        if not self.state.document.current_source in self.seen_docs:
+        """
+        reset the execution count if we haven't processed this doc
+        NOTE: this may be borked if there are multiple seen_doc tmp files
+        check time stamp?
+        """
+        if self.state.document.current_source not in self.seen_docs:
             self.shell.IP.history_manager.reset()
             self.shell.IP.execution_count = 1
-            self.shell.IP.prompt_manager.width = 0
+            try:
+                self.shell.IP.prompt_manager.width = 0
+            except AttributeError:
+                # GH14003: class promptManager has removed after IPython 5.x
+                pass
             self.seen_docs.add(self.state.document.current_source)
 
         # and attach to shell so we don't have to pass them around
