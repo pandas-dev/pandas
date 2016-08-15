@@ -798,6 +798,10 @@ Freq: D"""
                                     '2011-01-01 09:00'], name='xxx', tz=tz)
             tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
 
+    def test_na_value(self):
+        self.assertIs(pd.DatetimeIndex._na_value, pd.NaT)
+        self.assertIs(pd.DatetimeIndex([])._na_value, pd.NaT)
+
 
 class TestTimedeltaIndexOps(Ops):
     def setUp(self):
@@ -1640,6 +1644,10 @@ Freq: D"""
         for res in [index.repeat(3), np.repeat(index, 3)]:
             tm.assert_index_equal(res, exp)
             self.assertIsNone(res.freq)
+
+    def test_na_value(self):
+        self.assertIs(pd.TimedeltaIndex._na_value, pd.NaT)
+        self.assertIs(pd.TimedeltaIndex([])._na_value, pd.NaT)
 
 
 class TestPeriodIndexOps(Ops):
@@ -2580,6 +2588,10 @@ Freq: Q-DEC"""
                               '2003-01', '2003-01', '2003-01'], freq='M')
         for res in [index.repeat(3), np.repeat(index, 3)]:
             tm.assert_index_equal(res, exp)
+
+    def test_na_value(self):
+        self.assertIs(pd.PeriodIndex._na_value, pd.NaT)
+        self.assertIs(pd.PeriodIndex([], freq='M')._na_value, pd.NaT)
 
 
 if __name__ == '__main__':
