@@ -109,6 +109,17 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         result = Series(range(10), dtype='int64')
         assert_series_equal(result, expected)
 
+    def test_constructor_list_like(self):
+
+        # make sure that we are coercing different
+        # list-likes to standard dtypes and not
+        # platform specific
+        expected = Series([1, 2, 3], dtype='int64')
+        for obj in [[1, 2, 3], (1, 2, 3),
+                    np.array([1, 2, 3], dtype='int64')]:
+            result = Series(obj, index=[0, 1, 2])
+            assert_series_equal(result, expected)
+
     def test_constructor_generator(self):
         gen = (i for i in range(10))
 
@@ -370,11 +381,19 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         # coerce datetime64 non-ns properly
         dates = date_range('01-Jan-2015', '01-Dec-2015', freq='M')
         values2 = dates.view(np.ndarray).astype('datetime64[ns]')
-        expected = Series(values2, dates)
+        expected = Series(values2, index=dates)
 
         for dtype in ['s', 'D', 'ms', 'us', 'ns']:
             values1 = dates.view(np.ndarray).astype('M8[{0}]'.format(dtype))
             result = Series(values1, dates)
+            assert_series_equal(result, expected)
+
+        # GH 13876
+        # coerce to non-ns to object properly
+        expected = Series(values2, index=dates, dtype=object)
+        for dtype in ['s', 'D', 'ms', 'us', 'ns']:
+            values1 = dates.view(np.ndarray).astype('M8[{0}]'.format(dtype))
+            result = Series(values1, index=dates, dtype=object)
             assert_series_equal(result, expected)
 
         # leave datetime.date alone

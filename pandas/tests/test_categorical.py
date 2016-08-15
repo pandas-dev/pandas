@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=E1101,E1103,W0232
 
-import os
 import sys
 from datetime import datetime
 from distutils.version import LooseVersion
@@ -98,18 +97,9 @@ class TestCategorical(tm.TestCase):
         factor = Categorical.from_array(arr, ordered=False)
         self.assertFalse(factor.ordered)
 
-        if compat.PY3:
-            self.assertRaises(
-                TypeError, lambda: Categorical.from_array(arr, ordered=True))
-        else:
-            # this however will raise as cannot be sorted (on PY3 or older
-            # numpies)
-            if LooseVersion(np.__version__) < "1.10":
-                self.assertRaises(
-                    TypeError,
-                    lambda: Categorical.from_array(arr, ordered=True))
-            else:
-                Categorical.from_array(arr, ordered=True)
+        # this however will raise as cannot be sorted
+        self.assertRaises(
+            TypeError, lambda: Categorical.from_array(arr, ordered=True))
 
     def test_is_equal_dtype(self):
 
@@ -808,13 +798,12 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         cat2.set_ordered(False, inplace=True)
         self.assertFalse(cat2.ordered)
 
-        # deperecated in v0.16.0
-        with tm.assert_produces_warning(FutureWarning):
-            cat.ordered = False
-            self.assertFalse(cat.ordered)
-        with tm.assert_produces_warning(FutureWarning):
+        # removed in 0.19.0
+        msg = "can\'t set attribute"
+        with tm.assertRaisesRegexp(AttributeError, msg):
             cat.ordered = True
-            self.assertTrue(cat.ordered)
+        with tm.assertRaisesRegexp(AttributeError, msg):
+            cat.ordered = False
 
     def test_set_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -1558,18 +1547,6 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         with tm.assert_produces_warning(FutureWarning):
             res = cat.labels
         self.assert_numpy_array_equal(res, exp)
-
-    def test_deprecated_levels(self):
-        # TODO: levels is deprecated and should be removed in 0.18 or 2017,
-        # whatever is earlier
-        cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        exp = cat.categories
-        with tm.assert_produces_warning(FutureWarning):
-            res = cat.levels
-        self.assert_index_equal(res, exp)
-        with tm.assert_produces_warning(FutureWarning):
-            res = pd.Categorical([1, 2, 3, np.nan], levels=[1, 2, 3])
-        self.assert_index_equal(res.categories, exp)
 
     def test_removed_names_produces_warning(self):
 
@@ -2919,54 +2896,41 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_series_equal(res, exp)
 
     def test_value_counts_with_nan(self):
-        # https://github.com/pydata/pandas/issues/9443
+        # see gh-9443
 
+        # sanity check
         s = pd.Series(["a", "b", "a"], dtype="category")
-        tm.assert_series_equal(
-            s.value_counts(dropna=True),
-            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
-        tm.assert_series_equal(
-            s.value_counts(dropna=False),
-            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
-
-        s = pd.Series(["a", "b", None, "a", None, None], dtype="category")
-        tm.assert_series_equal(
-            s.value_counts(dropna=True),
-            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
-        tm.assert_series_equal(
-            s.value_counts(dropna=False),
-            pd.Series([3, 2, 1], index=pd.CategoricalIndex([np.nan, "a", "b"])))
-        # When we aren't sorting by counts, and np.nan isn't a
-        # category, it should be last.
-        tm.assert_series_equal(
-            s.value_counts(dropna=False, sort=False),
-            pd.Series([2, 1, 3],
-                      index=pd.CategoricalIndex(["a", "b", np.nan])))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            s = pd.Series(pd.Categorical(["a", "b", "a"],
-                                         categories=["a", "b", np.nan]))
-
-        # internal categories are different because of NaN
         exp = pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"]))
-        tm.assert_series_equal(s.value_counts(dropna=True), exp,
-                               check_categorical=False)
-        exp = pd.Series([2, 1, 0],
-                        index=pd.CategoricalIndex(["a", "b", np.nan]))
-        tm.assert_series_equal(s.value_counts(dropna=False), exp,
-                               check_categorical=False)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            s = pd.Series(pd.Categorical(["a", "b", None, "a", None, None],
-                                         categories=["a", "b", np.nan]))
+        res = s.value_counts(dropna=True)
+        tm.assert_series_equal(res, exp)
 
-        exp = pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"]))
-        tm.assert_series_equal(s.value_counts(dropna=True), exp,
-                               check_categorical=False)
-        exp = pd.Series([3, 2, 1],
-                        index=pd.CategoricalIndex([np.nan, "a", "b"]))
-        tm.assert_series_equal(s.value_counts(dropna=False), exp,
-                               check_categorical=False)
+        res = s.value_counts(dropna=True)
+        tm.assert_series_equal(res, exp)
+
+        # same Series via two different constructions --> same behaviour
+        series = [
+            pd.Series(["a", "b", None, "a", None, None], dtype="category"),
+            pd.Series(pd.Categorical(["a", "b", None, "a", None, None],
+                                     categories=["a", "b"]))
+        ]
+
+        for s in series:
+            # None is a NaN value, so we exclude its count here
+            exp = pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"]))
+            res = s.value_counts(dropna=True)
+            tm.assert_series_equal(res, exp)
+
+            # we don't exclude the count of None and sort by counts
+            exp = pd.Series([3, 2, 1], index=pd.CategoricalIndex([np.nan, "a", "b"]))
+            res = s.value_counts(dropna=False)
+            tm.assert_series_equal(res, exp)
+
+            # When we aren't sorting by counts, and np.nan isn't a
+            # category, it should be last.
+            exp = pd.Series([2, 1, 3], index=pd.CategoricalIndex(["a", "b", np.nan]))
+            res = s.value_counts(dropna=False, sort=False)
+            tm.assert_series_equal(res, exp)
 
     def test_groupby(self):
 
@@ -4058,13 +4022,40 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         msg = "the 'axis' parameter is not supported"
         tm.assertRaisesRegexp(ValueError, msg, np.repeat, cat, 2, axis=1)
 
-    def test_numpy_reshape(self):
-        cat = pd.Categorical(["a", "b"], categories=["a", "b"])
-        self.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
+    def test_reshape(self):
+        cat = pd.Categorical([], categories=["a", "b"])
+        tm.assert_produces_warning(FutureWarning, cat.reshape, 0)
 
-        msg = "the 'order' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.reshape,
-                              cat, cat.shape, order='F')
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical([], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape(0), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical([], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape((5, -1)), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape(cat.shape), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            self.assert_categorical_equal(cat.reshape(cat.size), cat)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "can only specify one unknown dimension"
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            tm.assertRaisesRegexp(ValueError, msg, cat.reshape, (-2, -1))
+
+    def test_numpy_reshape(self):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+            self.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "the 'order' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, np.reshape,
+                                  cat, cat.shape, order='F')
 
     def test_na_actions(self):
 
@@ -4099,16 +4090,11 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         res = df.dropna()
         tm.assert_frame_equal(res, df_exp_drop_all)
 
-        # make sure that fillna takes both missing values and NA categories
-        # into account
-        c = Categorical(["a", "b", np.nan])
-        with tm.assert_produces_warning(FutureWarning):
-            c.set_categories(["a", "b", np.nan], rename=True, inplace=True)
-
-        c[0] = np.nan
+        # make sure that fillna takes missing values into account
+        c = Categorical([np.nan, "b", np.nan], categories=["a", "b"])
         df = pd.DataFrame({"cats": c, "vals": [1, 2, 3]})
 
-        cat_exp = Categorical(["a", "b", "a"], categories=["a", "b", np.nan])
+        cat_exp = Categorical(["a", "b", "a"], categories=["a", "b"])
         df_exp = pd.DataFrame({"cats": cat_exp, "vals": [1, 2, 3]})
 
         res = df.fillna("a")
@@ -4404,44 +4390,6 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             invalid.dt
         self.assertFalse(hasattr(invalid, 'str'))
 
-    def test_pickle_v0_14_1(self):
-
-        # we have the name warning
-        # 10482
-        with tm.assert_produces_warning(UserWarning):
-            cat = pd.Categorical(values=['a', 'b', 'c'],
-                                 categories=['a', 'b', 'c', 'd'],
-                                 name='foobar', ordered=False)
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'categorical_0_14_1.pickle')
-        # This code was executed once on v0.14.1 to generate the pickle:
-        #
-        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-        #                   name='foobar')
-        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-        #
-        self.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-    def test_pickle_v0_15_2(self):
-        # ordered -> _ordered
-        # GH 9347
-
-        # we have the name warning
-        # 10482
-        with tm.assert_produces_warning(UserWarning):
-            cat = pd.Categorical(values=['a', 'b', 'c'],
-                                 categories=['a', 'b', 'c', 'd'],
-                                 name='foobar', ordered=False)
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'categorical_0_15_2.pickle')
-        # This code was executed once on v0.15.2 to generate the pickle:
-        #
-        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-        #                   name='foobar')
-        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-        #
-        self.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
     def test_concat_categorical(self):
         # See GH 10177
         df1 = pd.DataFrame(
@@ -4465,6 +4413,36 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
              "two", "two", "one"]))
 
         tm.assert_frame_equal(df_expected, df_concat)
+
+
+class TestCategoricalSubclassing(tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_constructor(self):
+        sc = tm.SubclassedCategorical(['a', 'b', 'c'])
+        self.assertIsInstance(sc, tm.SubclassedCategorical)
+        tm.assert_categorical_equal(sc, Categorical(['a', 'b', 'c']))
+
+    def test_from_array(self):
+        sc = tm.SubclassedCategorical.from_codes([1, 0, 2], ['a', 'b', 'c'])
+        self.assertIsInstance(sc, tm.SubclassedCategorical)
+        exp = Categorical.from_codes([1, 0, 2], ['a', 'b', 'c'])
+        tm.assert_categorical_equal(sc, exp)
+
+    def test_map(self):
+        sc = tm.SubclassedCategorical(['a', 'b', 'c'])
+        res = sc.map(lambda x: x.upper())
+        self.assertIsInstance(res, tm.SubclassedCategorical)
+        exp = Categorical(['A', 'B', 'C'])
+        tm.assert_categorical_equal(res, exp)
+
+    def test_map(self):
+        sc = tm.SubclassedCategorical(['a', 'b', 'c'])
+        res = sc.map(lambda x: x.upper())
+        self.assertIsInstance(res, tm.SubclassedCategorical)
+        exp = Categorical(['A', 'B', 'C'])
+        tm.assert_categorical_equal(res, exp)
 
 
 if __name__ == '__main__':

@@ -218,20 +218,20 @@ class dti_reset_index_tz(object):
         self.df.reset_index()
 
 
-class period_setitem(object):
+class datetime_algorithm(object):
     goal_time = 0.2
 
     def setup(self):
-        self.N = 100000
-        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
-        if hasattr(Series, 'convert'):
-            Series.resample = Series.convert
-        self.ts = Series(np.random.randn(self.N), index=self.rng)
-        self.rng = period_range(start='1/1/1990', freq='S', periods=20000)
-        self.df = DataFrame(index=range(len(self.rng)))
+        N = 100000
+        self.dti = pd.date_range('2011-01-01', freq='H', periods=N).repeat(5)
+        self.dti_tz = pd.date_range('2011-01-01', freq='H', periods=N,
+                                    tz='Asia/Tokyo').repeat(5)
 
-    def time_period_setitem(self):
-        self.df['col'] = self.rng
+    def time_dti_factorize(self):
+        self.dti.factorize()
+
+    def time_dti_tz_factorize(self):
+        self.dti_tz.factorize()
 
 
 class timeseries_1min_5min_mean(object):

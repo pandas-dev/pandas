@@ -5,6 +5,7 @@ import numpy as np
 from datetime import datetime
 from pandas.util import testing as tm
 
+import pandas as pd
 from pandas.core import config as cf
 from pandas.compat import u
 from pandas.tslib import iNaT
@@ -45,99 +46,6 @@ def test_notnull():
             assert (isinstance(isnull(s), Series))
 
 
-def test_isnull():
-    assert not isnull(1.)
-    assert isnull(None)
-    assert isnull(np.NaN)
-    assert not isnull(np.inf)
-    assert not isnull(-np.inf)
-
-    # series
-    for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
-              tm.makeObjectSeries(), tm.makeTimeSeries(),
-              tm.makePeriodSeries()]:
-        assert (isinstance(isnull(s), Series))
-
-    # frame
-    for df in [tm.makeTimeDataFrame(), tm.makePeriodFrame(),
-               tm.makeMixedDataFrame()]:
-        result = isnull(df)
-        expected = df.apply(isnull)
-        tm.assert_frame_equal(result, expected)
-
-    # panel
-    for p in [tm.makePanel(), tm.makePeriodPanel(), tm.add_nans(tm.makePanel())
-              ]:
-        result = isnull(p)
-        expected = p.apply(isnull)
-        tm.assert_panel_equal(result, expected)
-
-    # panel 4d
-    for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
-        result = isnull(p)
-        expected = p.apply(isnull)
-        tm.assert_panel4d_equal(result, expected)
-
-
-def test_isnull_lists():
-    result = isnull([[False]])
-    exp = np.array([[False]])
-    assert (np.array_equal(result, exp))
-
-    result = isnull([[1], [2]])
-    exp = np.array([[False], [False]])
-    assert (np.array_equal(result, exp))
-
-    # list of strings / unicode
-    result = isnull(['foo', 'bar'])
-    assert (not result.any())
-
-    result = isnull([u('foo'), u('bar')])
-    assert (not result.any())
-
-
-def test_isnull_nat():
-    result = isnull([NaT])
-    exp = np.array([True])
-    assert (np.array_equal(result, exp))
-
-    result = isnull(np.array([NaT], dtype=object))
-    exp = np.array([True])
-    assert (np.array_equal(result, exp))
-
-
-def test_isnull_numpy_nat():
-    arr = np.array([NaT, np.datetime64('NaT'), np.timedelta64('NaT'),
-                    np.datetime64('NaT', 's')])
-    result = isnull(arr)
-    expected = np.array([True] * 4)
-    tm.assert_numpy_array_equal(result, expected)
-
-
-def test_isnull_datetime():
-    assert (not isnull(datetime.now()))
-    assert notnull(datetime.now())
-
-    idx = date_range('1/1/1990', periods=20)
-    assert (notnull(idx).all())
-
-    idx = np.asarray(idx)
-    idx[0] = iNaT
-    idx = DatetimeIndex(idx)
-    mask = isnull(idx)
-    assert (mask[0])
-    assert (not mask[1:].any())
-
-    # GH 9129
-    pidx = idx.to_period(freq='M')
-    mask = isnull(pidx)
-    assert (mask[0])
-    assert (not mask[1:].any())
-
-    mask = isnull(pidx[1:])
-    assert (not mask.any())
-
-
 class TestIsNull(tm.TestCase):
 
     def test_0d_array(self):
@@ -148,6 +56,166 @@ class TestIsNull(tm.TestCase):
         self.assertTrue(isnull(np.array(np.nan, dtype=object)))
         self.assertFalse(isnull(np.array(0.0, dtype=object)))
         self.assertFalse(isnull(np.array(0, dtype=object)))
+
+    def test_isnull(self):
+        self.assertFalse(isnull(1.))
+        self.assertTrue(isnull(None))
+        self.assertTrue(isnull(np.NaN))
+        self.assertTrue(float('nan'))
+        self.assertFalse(isnull(np.inf))
+        self.assertFalse(isnull(-np.inf))
+
+        # series
+        for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
+                  tm.makeObjectSeries(), tm.makeTimeSeries(),
+                  tm.makePeriodSeries()]:
+            self.assertIsInstance(isnull(s), Series)
+
+        # frame
+        for df in [tm.makeTimeDataFrame(), tm.makePeriodFrame(),
+                   tm.makeMixedDataFrame()]:
+            result = isnull(df)
+            expected = df.apply(isnull)
+            tm.assert_frame_equal(result, expected)
+
+        # panel
+        for p in [tm.makePanel(), tm.makePeriodPanel(),
+                  tm.add_nans(tm.makePanel())]:
+            result = isnull(p)
+            expected = p.apply(isnull)
+            tm.assert_panel_equal(result, expected)
+
+        # panel 4d
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
+                result = isnull(p)
+                expected = p.apply(isnull)
+                tm.assert_panel4d_equal(result, expected)
+
+    def test_isnull_lists(self):
+        result = isnull([[False]])
+        exp = np.array([[False]])
+        tm.assert_numpy_array_equal(result, exp)
+
+        result = isnull([[1], [2]])
+        exp = np.array([[False], [False]])
+        tm.assert_numpy_array_equal(result, exp)
+
+        # list of strings / unicode
+        result = isnull(['foo', 'bar'])
+        exp = np.array([False, False])
+        tm.assert_numpy_array_equal(result, exp)
+
+        result = isnull([u('foo'), u('bar')])
+        exp = np.array([False, False])
+        tm.assert_numpy_array_equal(result, exp)
+
+    def test_isnull_nat(self):
+        result = isnull([NaT])
+        exp = np.array([True])
+        tm.assert_numpy_array_equal(result, exp)
+
+        result = isnull(np.array([NaT], dtype=object))
+        exp = np.array([True])
+        tm.assert_numpy_array_equal(result, exp)
+
+    def test_isnull_numpy_nat(self):
+        arr = np.array([NaT, np.datetime64('NaT'), np.timedelta64('NaT'),
+                        np.datetime64('NaT', 's')])
+        result = isnull(arr)
+        expected = np.array([True] * 4)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isnull_datetime(self):
+        self.assertFalse(isnull(datetime.now()))
+        self.assertTrue(notnull(datetime.now()))
+
+        idx = date_range('1/1/1990', periods=20)
+        exp = np.ones(len(idx), dtype=bool)
+        tm.assert_numpy_array_equal(notnull(idx), exp)
+
+        idx = np.asarray(idx)
+        idx[0] = iNaT
+        idx = DatetimeIndex(idx)
+        mask = isnull(idx)
+        self.assertTrue(mask[0])
+        exp = np.array([True] + [False] * (len(idx) - 1), dtype=bool)
+        self.assert_numpy_array_equal(mask, exp)
+
+        # GH 9129
+        pidx = idx.to_period(freq='M')
+        mask = isnull(pidx)
+        self.assertTrue(mask[0])
+        exp = np.array([True] + [False] * (len(idx) - 1), dtype=bool)
+        self.assert_numpy_array_equal(mask, exp)
+
+        mask = isnull(pidx[1:])
+        exp = np.zeros(len(mask), dtype=bool)
+        self.assert_numpy_array_equal(mask, exp)
+
+    def test_datetime_other_units(self):
+        idx = pd.DatetimeIndex(['2011-01-01', 'NaT', '2011-01-02'])
+        exp = np.array([False, True, False])
+        tm.assert_numpy_array_equal(isnull(idx), exp)
+        tm.assert_numpy_array_equal(notnull(idx), ~exp)
+        tm.assert_numpy_array_equal(isnull(idx.values), exp)
+        tm.assert_numpy_array_equal(notnull(idx.values), ~exp)
+
+        for dtype in ['datetime64[D]', 'datetime64[h]', 'datetime64[m]',
+                      'datetime64[s]', 'datetime64[ms]', 'datetime64[us]',
+                      'datetime64[ns]']:
+            values = idx.values.astype(dtype)
+
+            exp = np.array([False, True, False])
+            tm.assert_numpy_array_equal(isnull(values), exp)
+            tm.assert_numpy_array_equal(notnull(values), ~exp)
+
+            exp = pd.Series([False, True, False])
+            s = pd.Series(values)
+            tm.assert_series_equal(isnull(s), exp)
+            tm.assert_series_equal(notnull(s), ~exp)
+            s = pd.Series(values, dtype=object)
+            tm.assert_series_equal(isnull(s), exp)
+            tm.assert_series_equal(notnull(s), ~exp)
+
+    def test_timedelta_other_units(self):
+        idx = pd.TimedeltaIndex(['1 days', 'NaT', '2 days'])
+        exp = np.array([False, True, False])
+        tm.assert_numpy_array_equal(isnull(idx), exp)
+        tm.assert_numpy_array_equal(notnull(idx), ~exp)
+        tm.assert_numpy_array_equal(isnull(idx.values), exp)
+        tm.assert_numpy_array_equal(notnull(idx.values), ~exp)
+
+        for dtype in ['timedelta64[D]', 'timedelta64[h]', 'timedelta64[m]',
+                      'timedelta64[s]', 'timedelta64[ms]', 'timedelta64[us]',
+                      'timedelta64[ns]']:
+            values = idx.values.astype(dtype)
+
+            exp = np.array([False, True, False])
+            tm.assert_numpy_array_equal(isnull(values), exp)
+            tm.assert_numpy_array_equal(notnull(values), ~exp)
+
+            exp = pd.Series([False, True, False])
+            s = pd.Series(values)
+            tm.assert_series_equal(isnull(s), exp)
+            tm.assert_series_equal(notnull(s), ~exp)
+            s = pd.Series(values, dtype=object)
+            tm.assert_series_equal(isnull(s), exp)
+            tm.assert_series_equal(notnull(s), ~exp)
+
+    def test_period(self):
+        idx = pd.PeriodIndex(['2011-01', 'NaT', '2012-01'], freq='M')
+        exp = np.array([False, True, False])
+        tm.assert_numpy_array_equal(isnull(idx), exp)
+        tm.assert_numpy_array_equal(notnull(idx), ~exp)
+
+        exp = pd.Series([False, True, False])
+        s = pd.Series(idx)
+        tm.assert_series_equal(isnull(s), exp)
+        tm.assert_series_equal(notnull(s), ~exp)
+        s = pd.Series(idx, dtype=object)
+        tm.assert_series_equal(isnull(s), exp)
+        tm.assert_series_equal(notnull(s), ~exp)
 
 
 def test_array_equivalent():

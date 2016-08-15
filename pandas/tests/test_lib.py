@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pandas as pd
 import pandas.lib as lib
 import pandas.util.testing as tm
 
@@ -184,43 +185,53 @@ class TestIndexing(tm.TestCase):
         self.assertTrue(np.array_equal(result, expected))
 
 
-def test_duplicated_with_nas():
-    keys = np.array([0, 1, np.nan, 0, 2, np.nan], dtype=object)
+class TestNullObj(tm.TestCase):
 
-    result = lib.duplicated(keys)
-    expected = [False, False, False, True, False, True]
-    assert (np.array_equal(result, expected))
+    _1d_methods = ['isnullobj', 'isnullobj_old']
+    _2d_methods = ['isnullobj2d', 'isnullobj2d_old']
 
-    result = lib.duplicated(keys, keep='first')
-    expected = [False, False, False, True, False, True]
-    assert (np.array_equal(result, expected))
+    def _check_behavior(self, arr, expected):
+        for method in TestNullObj._1d_methods:
+            result = getattr(lib, method)(arr)
+            tm.assert_numpy_array_equal(result, expected)
 
-    result = lib.duplicated(keys, keep='last')
-    expected = [True, False, True, False, False, False]
-    assert (np.array_equal(result, expected))
+        arr = np.atleast_2d(arr)
+        expected = np.atleast_2d(expected)
 
-    result = lib.duplicated(keys, keep=False)
-    expected = [True, False, True, True, False, True]
-    assert (np.array_equal(result, expected))
+        for method in TestNullObj._2d_methods:
+            result = getattr(lib, method)(arr)
+            tm.assert_numpy_array_equal(result, expected)
 
-    keys = np.empty(8, dtype=object)
-    for i, t in enumerate(zip([0, 0, np.nan, np.nan] * 2,
-                              [0, np.nan, 0, np.nan] * 2)):
-        keys[i] = t
+    def test_basic(self):
+        arr = np.array([1, None, 'foo', -5.1, pd.NaT, np.nan])
+        expected = np.array([False, True, False, False, True, True])
 
-    result = lib.duplicated(keys)
-    falses = [False] * 4
-    trues = [True] * 4
-    expected = falses + trues
-    assert (np.array_equal(result, expected))
+        self._check_behavior(arr, expected)
 
-    result = lib.duplicated(keys, keep='last')
-    expected = trues + falses
-    assert (np.array_equal(result, expected))
+    def test_non_obj_dtype(self):
+        arr = np.array([1, 3, np.nan, 5], dtype=float)
+        expected = np.array([False, False, True, False])
 
-    result = lib.duplicated(keys, keep=False)
-    expected = trues + trues
-    assert (np.array_equal(result, expected))
+        self._check_behavior(arr, expected)
+
+    def test_empty_arr(self):
+        arr = np.array([])
+        expected = np.array([], dtype=bool)
+
+        self._check_behavior(arr, expected)
+
+    def test_empty_str_inp(self):
+        arr = np.array([""])  # empty but not null
+        expected = np.array([False])
+
+        self._check_behavior(arr, expected)
+
+    def test_empty_like(self):
+        # see gh-13717: no segfaults!
+        arr = np.empty_like([None])
+        expected = np.array([True])
+
+        self._check_behavior(arr, expected)
 
 
 if __name__ == '__main__':

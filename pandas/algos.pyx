@@ -13,6 +13,7 @@ cdef float64_t FP_ERR = 1e-13
 cimport util
 
 from libc.stdlib cimport malloc, free
+from libc.string cimport memmove
 
 from numpy cimport NPY_INT8 as NPY_int8
 from numpy cimport NPY_INT16 as NPY_int16
@@ -41,9 +42,13 @@ cdef extern from "src/headers/math.h":
     double fabs(double) nogil
 
 # this is our util.pxd
-from util cimport numeric
+from util cimport numeric, get_nat
 
+cimport lib
+from lib cimport is_null_datetimelike
 from pandas import lib
+
+cdef int64_t iNaT = get_nat()
 
 cdef:
     int TIEBREAK_AVERAGE = 0
@@ -1334,5 +1339,8 @@ cdef inline float64_t _median_linear(float64_t* a, int n):
 
     return result
 
-include "join.pyx"
-include "generated.pyx"
+
+# generated from template
+include "algos_common_helper.pxi"
+include "algos_groupby_helper.pxi"
+include "algos_take_helper.pxi"

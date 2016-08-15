@@ -16,11 +16,13 @@ environment:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\run_with_env.cmd"
 
   matrix:
-    - PYTHON: "C:\\Python34_64"
-      PYTHON_VERSION: "3.4"
-      PYTHON_ARCH: "64"
-      CONDA_PY: "34"
-      CONDA_NPY: "19"
+
+    # disable python 3.4 ATM
+    #- PYTHON: "C:\\Python34_64"
+    #  PYTHON_VERSION: "3.4"
+    #  PYTHON_ARCH: "64"
+    #  CONDA_PY: "34"
+    #  CONDA_NPY: "19"
 
     - PYTHON: "C:\\Python27_64"
       PYTHON_VERSION: "2.7"
@@ -62,6 +64,12 @@ install:
   # install our build environment
   - cmd: conda config --set show_channel_urls true --set always_yes true --set changeps1 false
   - cmd: conda update -q conda
+
+  # fix conda-build version
+  # https://github.com/conda/conda-build/issues/1001
+  # disabling 3.4 as windows complains upon compiling byte
+  # code
+  - cmd: conda install conda-build=1.21.7
   - cmd: conda config --set ssl_verify false
 
   # add the pandas channel *before* defaults to have defaults take priority

@@ -560,6 +560,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_quarter_end,"Logical indicating if last day of quarter (defined by frequency)"
     is_year_start,"Logical indicating if first day of year (defined by frequency)"
     is_year_end,"Logical indicating if last day of year (defined by frequency)"
+    is_leap_year,"Logical indicating if the date belongs to a leap year"
 
 Furthermore, if you have a ``Series`` with datetimelike values, then you can access these properties via the ``.dt`` accessor, see the :ref:`docs <basics.dt_accessors>`
 
@@ -567,11 +568,11 @@ DateOffset objects
 ------------------
 
 In the preceding examples, we created DatetimeIndex objects at various
-frequencies by passing in frequency strings like 'M', 'W', and 'BM to the
-``freq`` keyword. Under the hood, these frequency strings are being translated
-into an instance of pandas ``DateOffset``, which represents a regular
-frequency increment. Specific offset logic like "month", "business day", or
-"one hour" is represented in its various subclasses.
+frequencies by passing in :ref:`frequency strings <timeseries.offset_aliases>`
+like 'M', 'W', and 'BM to the ``freq`` keyword. Under the hood, these frequency
+strings are being translated into an instance of pandas ``DateOffset``,
+which represents a regular frequency increment. Specific offset logic like
+"month", "business day", or "one hour" is represented in its various subclasses.
 
 .. csv-table::
     :header: "Class name", "Description"
@@ -752,7 +753,7 @@ calculate significantly slower and will raise a ``PerformanceWarning``
    rng + BQuarterEnd()
 
 
-.. _timeseries.alias:
+.. _timeseries.custombusinessdays:
 
 Custom Business Days (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -953,6 +954,8 @@ You can use keyword arguments suported by either ``BusinessHour`` and ``CustomBu
     # Monday is skipped because it's a holiday, business hour starts from 10:00
     dt + bhour_mon * 2
 
+.. _timeseries.offset_aliases:
+
 Offset Aliases
 ~~~~~~~~~~~~~~
 
@@ -1102,48 +1105,6 @@ it is rolled forward to the next anchor point.
 
    pd.Timestamp('2014-01-01') + MonthBegin(n=0)
    pd.Timestamp('2014-01-31') + MonthEnd(n=0)
-
-.. _timeseries.legacyaliases:
-
-Legacy Aliases
-~~~~~~~~~~~~~~
-Note that prior to v0.8.0, time rules had a slightly different look. These are
-deprecated in v0.17.0, and removed in future version.
-
-.. csv-table::
-    :header: "Legacy Time Rule", "Offset Alias"
-    :widths: 15, 65
-
-    "WEEKDAY", "B"
-    "EOM", "BM"
-    "W\@MON", "W\-MON"
-    "W\@TUE", "W\-TUE"
-    "W\@WED", "W\-WED"
-    "W\@THU", "W\-THU"
-    "W\@FRI", "W\-FRI"
-    "W\@SAT", "W\-SAT"
-    "W\@SUN", "W\-SUN"
-    "Q\@JAN", "BQ\-JAN"
-    "Q\@FEB", "BQ\-FEB"
-    "Q\@MAR", "BQ\-MAR"
-    "A\@JAN", "BA\-JAN"
-    "A\@FEB", "BA\-FEB"
-    "A\@MAR", "BA\-MAR"
-    "A\@APR", "BA\-APR"
-    "A\@MAY", "BA\-MAY"
-    "A\@JUN", "BA\-JUN"
-    "A\@JUL", "BA\-JUL"
-    "A\@AUG", "BA\-AUG"
-    "A\@SEP", "BA\-SEP"
-    "A\@OCT", "BA\-OCT"
-    "A\@NOV", "BA\-NOV"
-    "A\@DEC", "BA\-DEC"
-
-
-As you can see, legacy quarterly and annual frequencies are business quarters
-and business year ends. Please also note the legacy time rule for milliseconds
-``ms`` versus the new offset alias for month start ``MS``. This means that
-offset alias parsing is case sensitive.
 
 .. _timeseries.holiday:
 
@@ -1324,7 +1285,11 @@ performing resampling operations during frequency conversion (e.g., converting
 secondly data into 5-minutely data). This is extremely common in, but not
 limited to, financial applications.
 
-``resample`` is a time-based groupby, followed by a reduction method on each of its groups.
+``.resample()`` is a time-based groupby, followed by a reduction method on each of its groups.
+
+.. note::
+
+   ``.resample()`` is similar to using a ``.rolling()`` operation with a time-based offset, see a discussion `here <stats.moments.ts-versus-resampling>`
 
 See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
 

@@ -6,6 +6,7 @@ import numpy as np
 import pandas.tslib as tslib
 from pandas import compat
 from pandas.compat import map
+from pandas.core.algorithms import take_1d
 from .common import (is_categorical_dtype,
                      is_sparse,
                      is_datetimetz,
@@ -210,28 +211,31 @@ def _concat_categorical(to_concat, axis=0):
         return Categorical(concatted, rawcats)
 
 
-def union_categoricals(to_union):
+def union_categoricals(to_union, sort_categories=False):
     """
     Combine list-like of Categoricals, unioning categories. All
-    must have the same dtype, and none can be ordered.
+    categories must have the same dtype.
 
     .. versionadded:: 0.19.0
 
     Parameters
     ----------
     to_union : list-like of Categoricals
+    sort_categories : boolean, default False
+        If true, resulting categories will be lexsorted, otherwise
+        they will be ordered as they appear in the data.
 
     Returns
     -------
-    Categorical
-       A single array, categories will be ordered as they
-       appear in the list
+    result : Categorical
 
     Raises
     ------
     TypeError
-        If any of the categoricals are ordered or all do not
-        have the same dtype
+        - all inputs do not have the same dtype
+        - all inputs do not have the same ordered property
+        - all inputs are ordered and their categories are not identical
+        - sort_categories=True and Categoricals are ordered
     ValueError
         Emmpty list of categoricals passed
     """
@@ -241,23 +245,52 @@ def union_categoricals(to_union):
         raise ValueError('No Categoricals to union')
 
     first = to_union[0]
-    if any(c.ordered for c in to_union):
-        raise TypeError("Can only combine unordered Categoricals")
 
-    if not all(is_dtype_equal(c.categories.dtype, first.categories.dtype)
-               for c in to_union):
+    if not all(is_dtype_equal(other.categories.dtype, first.categories.dtype)
+               for other in to_union[1:]):
         raise TypeError("dtype of categories must be the same")
 
-    cats = first.categories
-    unique_cats = cats.append([c.categories for c in to_union[1:]]).unique()
-    categories = Index(unique_cats)
+    ordered = False
+    if all(first.is_dtype_equal(other) for other in to_union[1:]):
+        # identical categories - fastpath
+        categories = first.categories
+        ordered = first.ordered
+        new_codes = np.concatenate([c.codes for c in to_union])
 
-    new_codes = []
-    for c in to_union:
-        indexer = categories.get_indexer(c.categories)
-        new_codes.append(indexer.take(c.codes))
-    codes = np.concatenate(new_codes)
-    return Categorical(codes, categories=categories, ordered=False,
+        if sort_categories and ordered:
+            raise TypeError("Cannot use sort_categories=True with "
+                            "ordered Categoricals")
+
+        if sort_categories and not categories.is_monotonic_increasing:
+            categories = categories.sort_values()
+            indexer = categories.get_indexer(first.categories)
+            new_codes = take_1d(indexer, new_codes, fill_value=-1)
+    elif all(not c.ordered for c in to_union):
+        # different categories - union and recode
+        cats = first.categories.append([c.categories for c in to_union[1:]])
+        categories = Index(cats.unique())
+        if sort_categories:
+            categories = categories.sort_values()
+
+        new_codes = []
+        for c in to_union:
+            if len(c.categories) > 0:
+                indexer = categories.get_indexer(c.categories)
+                new_codes.append(take_1d(indexer, c.codes, fill_value=-1))
+            else:
+                # must be all NaN
+                new_codes.append(c.codes)
+        new_codes = np.concatenate(new_codes)
+    else:
+        # ordered - to show a proper error message
+        if all(c.ordered for c in to_union):
+            msg = ("to union ordered Categoricals, "
+                   "all categories must be the same")
+            raise TypeError(msg)
+        else:
+            raise TypeError('Categorical.ordered must be the same')
+
+    return Categorical(new_codes, categories=categories, ordered=ordered,
                        fastpath=True)
 
 

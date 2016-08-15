@@ -86,6 +86,14 @@ class TestPickle():
                 comparator(result, expected, typ, version)
         return data
 
+    def compare_sp_series_ts(self, res, exp, typ, version):
+        # SparseTimeSeries integrated into SparseSeries in 0.12.0
+        # and deprecated in 0.17.0
+        if version and LooseVersion(version) <= "0.12.0":
+            tm.assert_sp_series_equal(res, exp, check_series_type=False)
+        else:
+            tm.assert_sp_series_equal(res, exp)
+
     def compare_series_ts(self, result, expected, typ, version):
         # GH 7748
         tm.assert_series_equal(result, expected)
@@ -230,6 +238,44 @@ class TestPickle():
 
                         result = python_unpickler(path)
                         self.compare_element(result, expected, typ)
+
+    def test_pickle_v0_14_1(self):
+
+        # we have the name warning
+        # 10482
+        with tm.assert_produces_warning(UserWarning):
+            cat = pd.Categorical(values=['a', 'b', 'c'],
+                                 categories=['a', 'b', 'c', 'd'],
+                                 name='foobar', ordered=False)
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'categorical_0_14_1.pickle')
+        # This code was executed once on v0.14.1 to generate the pickle:
+        #
+        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
+        #                   name='foobar')
+        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
+        #
+        tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
+
+    def test_pickle_v0_15_2(self):
+        # ordered -> _ordered
+        # GH 9347
+
+        # we have the name warning
+        # 10482
+        with tm.assert_produces_warning(UserWarning):
+            cat = pd.Categorical(values=['a', 'b', 'c'],
+                                 categories=['a', 'b', 'c', 'd'],
+                                 name='foobar', ordered=False)
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'categorical_0_15_2.pickle')
+        # This code was executed once on v0.15.2 to generate the pickle:
+        #
+        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
+        #                   name='foobar')
+        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
+        #
+        tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
 
 if __name__ == '__main__':

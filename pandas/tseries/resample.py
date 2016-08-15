@@ -60,12 +60,15 @@ class Resampler(_GroupBy):
                    'loffset', 'base', 'kind']
 
     # API compat of allowed attributes
-    _deprecated_valids = _attributes + ['_ipython_display_', '__doc__',
-                                        '_cache', '_attributes', 'binner',
-                                        'grouper', 'groupby', 'keys',
-                                        'sort', 'kind', 'squeeze',
-                                        'group_keys', 'as_index',
-                                        'exclusions', '_groupby']
+    _deprecated_valids = _attributes + ['__doc__', '_cache', '_attributes',
+                                        'binner', 'grouper', 'groupby',
+                                        'sort', 'kind', 'squeeze', 'keys',
+                                        'group_keys', 'as_index', 'exclusions',
+                                        '_groupby']
+
+    # don't raise deprecation warning on attributes starting with these
+    # patterns - prevents warnings caused by IPython introspection
+    _deprecated_valid_patterns = ['_ipython', '_repr']
 
     # API compat of disallowed attributes
     _deprecated_invalids = ['iloc', 'loc', 'ix', 'iat', 'at']
@@ -109,9 +112,12 @@ class Resampler(_GroupBy):
             return 'series'
         return 'dataframe'
 
-    def _deprecated(self):
-        warnings.warn(".resample() is now a deferred operation\n"
-                      "use .resample(...).mean() instead of .resample(...)",
+    def _deprecated(self, op):
+        warnings.warn(("\n.resample() is now a deferred operation\n"
+                       "You called {op}(...) on this deferred object "
+                       "which materialized it into a {klass}\nby implicitly "
+                       "taking the mean.  Use .resample(...).mean() "
+                       "instead").format(op=op, klass=self._typ),
                       FutureWarning, stacklevel=3)
         return self.mean()
 
@@ -119,20 +125,20 @@ class Resampler(_GroupBy):
         # op is a string
 
         def _evaluate_numeric_binop(self, other):
-            result = self._deprecated()
+            result = self._deprecated(op)
             return getattr(result, op)(other)
         return _evaluate_numeric_binop
 
-    def _make_deprecated_unary(op):
+    def _make_deprecated_unary(op, name):
         # op is a callable
 
         def _evaluate_numeric_unary(self):
-            result = self._deprecated()
+            result = self._deprecated(name)
             return op(result)
         return _evaluate_numeric_unary
 
     def __array__(self):
-        return self._deprecated().__array__()
+        return self._deprecated('__array__').__array__()
 
     __gt__ = _make_deprecated_binop('__gt__')
     __ge__ = _make_deprecated_binop('__ge__')
@@ -148,10 +154,10 @@ class Resampler(_GroupBy):
     __truediv__ = __rtruediv__ = _make_deprecated_binop('__truediv__')
     if not compat.PY3:
         __div__ = __rdiv__ = _make_deprecated_binop('__div__')
-    __neg__ = _make_deprecated_unary(lambda x: -x)
-    __pos__ = _make_deprecated_unary(lambda x: x)
-    __abs__ = _make_deprecated_unary(lambda x: np.abs(x))
-    __inv__ = _make_deprecated_unary(lambda x: -x)
+    __neg__ = _make_deprecated_unary(lambda x: -x, '__neg__')
+    __pos__ = _make_deprecated_unary(lambda x: x, '__pos__')
+    __abs__ = _make_deprecated_unary(lambda x: np.abs(x), '__abs__')
+    __inv__ = _make_deprecated_unary(lambda x: -x, '__inv__')
 
     def __getattr__(self, attr):
         if attr in self._internal_names_set:
@@ -165,8 +171,12 @@ class Resampler(_GroupBy):
             raise ValueError(".resample() is now a deferred operation\n"
                              "\tuse .resample(...).mean() instead of "
                              ".resample(...)")
-        if attr not in self._deprecated_valids:
-            self = self._deprecated()
+
+        matches_pattern = any(attr.startswith(x) for x
+                              in self._deprecated_valid_patterns)
+        if not matches_pattern and attr not in self._deprecated_valids:
+            self = self._deprecated(attr)
+
         return object.__getattribute__(self, attr)
 
     def __setattr__(self, attr, value):
@@ -182,7 +192,7 @@ class Resampler(_GroupBy):
 
             # compat for deprecated
             if isinstance(self.obj, com.ABCSeries):
-                return self._deprecated()[key]
+                return self._deprecated('__getitem__')[key]
 
             raise
 
@@ -230,7 +240,7 @@ class Resampler(_GroupBy):
     def plot(self, *args, **kwargs):
         # for compat with prior versions, we want to
         # have the warnings shown here and just have this work
-        return self._deprecated().plot(*args, **kwargs)
+        return self._deprecated('plot').plot(*args, **kwargs)
 
     def aggregate(self, arg, *args, **kwargs):
         """
@@ -1046,7 +1056,12 @@ class TimeGrouper(Grouper):
         l = []
         for key, group in grouper.get_iterator(self.ax):
             l.extend([key] * len(group))
-        grouper = binner.__class__(l, freq=binner.freq, name=binner.name)
+
+        if isinstance(self.ax, PeriodIndex):
+            grouper = binner.__class__(l, freq=binner.freq, name=binner.name)
+        else:
+            # resampling causes duplicated values, specifying freq is invalid
+            grouper = binner.__class__(l, name=binner.name)
 
         # since we may have had to sort
         # may need to reorder groups here

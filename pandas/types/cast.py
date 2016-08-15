@@ -19,6 +19,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
                      _DATELIKE_DTYPES, _POSSIBLY_CAST_DTYPES)
+from .dtypes import ExtensionDtype
 from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
 from .missing import isnull, notnull
 from .inference import is_list_like
@@ -33,7 +34,7 @@ def _possibly_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """
 
     if isinstance(values, (list, tuple)):
-        values = lib.list_to_object_array(values)
+        values = lib.list_to_object_array(list(values))
     if getattr(values, 'dtype', None) == np.object_:
         if hasattr(values, '_values'):
             values = values._values
@@ -122,7 +123,8 @@ def _possibly_downcast_to_dtype(result, dtype):
                         return new_result
 
         # a datetimelike
-        elif dtype.kind in ['M', 'm'] and result.dtype.kind in ['i']:
+        # GH12821, iNaT is casted to float
+        elif dtype.kind in ['M', 'm'] and result.dtype.kind in ['i', 'f']:
             try:
                 result = result.astype(dtype)
             except:
@@ -829,6 +831,8 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
         # coerce datetimelike to object
         elif is_datetime64_dtype(value) and not is_datetime64_dtype(dtype):
             if is_object_dtype(dtype):
+                if value.dtype != _NS_DTYPE:
+                    value = value.astype(_NS_DTYPE)
                 ints = np.asarray(value).view('i8')
                 return tslib.ints_to_pydatetime(ints)
 
@@ -858,3 +862,27 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
             value = _possibly_infer_to_datetimelike(value)
 
     return value
+
+
+def _find_common_type(types):
+    """Find a common data type among the given dtypes."""
+
+    if len(types) == 0:
+        raise ValueError('no types given')
+
+    first = types[0]
+    # workaround for find_common_type([np.dtype('datetime64[ns]')] * 2)
+    # => object
+    if all(is_dtype_equal(first, t) for t in types[1:]):
+        return first
+
+    if any(isinstance(t, ExtensionDtype) for t in types):
+        return np.object
+
+    # take lowest unit
+    if all(is_datetime64_dtype(t) for t in types):
+        return np.dtype('datetime64[ns]')
+    if all(is_timedelta64_dtype(t) for t in types):
+        return np.dtype('timedelta64[ns]')
+
+    return np.find_common_type(types, [])

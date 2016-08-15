@@ -291,11 +291,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
             if not isinstance(labels,
                               (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-                labels = DatetimeIndex(labels)
-
-                # need to set here becuase we changed the index
-                if fastpath:
-                    self._data.set_axis(axis, labels)
+                try:
+                    labels = DatetimeIndex(labels)
+                    # need to set here becuase we changed the index
+                    if fastpath:
+                        self._data.set_axis(axis, labels)
+                except tslib.OutOfBoundsDatetime:
+                    pass
         self._set_subtyp(is_all_dates)
 
         object.__setattr__(self, '_index', labels)
@@ -843,14 +845,22 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def reshape(self, *args, **kwargs):
         """
-        Return the values attribute of `self` with shape `args`.
-        However, if the specified shape matches exactly the current
-        shape, `self` is returned for compatibility reasons.
+        DEPRECATED: calling this method will raise an error in a
+        future release. Please call ``.values.reshape(...)`` instead.
+
+        return an ndarray with the values shape
+        if the specified shape matches exactly the current shape, then
+        return self (for compat)
 
         See also
         --------
         numpy.ndarray.reshape
         """
+        warnings.warn("reshape is deprecated and will raise "
+                      "in a subsequent release. Please use "
+                      ".values.reshape(...) instead", FutureWarning,
+                      stacklevel=2)
+
         if len(args) == 1 and hasattr(args[0], '__iter__'):
             shape = args[0]
         else:
@@ -1503,13 +1513,18 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, verify_integrity=False):
+    def append(self, to_append, ignore_index=False, verify_integrity=False):
         """
         Concatenate two or more Series.
 
         Parameters
         ----------
         to_append : Series or list/tuple of Series
+        ignore_index : boolean, default False
+            If True, do not use the index labels.
+
+            .. versionadded: 0.19.0
+
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
 
@@ -1540,6 +1555,17 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         5    6
         dtype: int64
 
+        With `ignore_index` set to True:
+
+        >>> s1.append(s2, ignore_index=True)
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        5    6
+        dtype: int64
+
         With `verify_integrity` set to True:
 
         >>> s1.append(s2, verify_integrity=True)
@@ -1553,7 +1579,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             to_concat = [self] + to_append
         else:
             to_concat = [self, to_append]
-        return concat(to_concat, ignore_index=False,
+        return concat(to_concat, ignore_index=ignore_index,
                       verify_integrity=verify_integrity)
 
     def _binop(self, other, func, level=None, fill_value=None):
@@ -2508,8 +2534,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return result
 
     def to_csv(self, path, index=True, sep=",", na_rep='', float_format=None,
-               header=False, index_label=None, mode='w', nanRep=None,
-               encoding=None, date_format=None, decimal='.'):
+               header=False, index_label=None, mode='w', encoding=None,
+               date_format=None, decimal='.'):
         """
         Write Series to a comma-separated values (csv) file
 
@@ -2546,7 +2572,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         # result is only a string if no path provided, otherwise None
         result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
                            float_format=float_format, header=header,
-                           index_label=index_label, mode=mode, nanRep=nanRep,
+                           index_label=index_label, mode=mode,
                            encoding=encoding, date_format=date_format,
                            decimal=decimal)
         if path is None:
@@ -2812,7 +2838,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr = data.copy()
         return subarr
 
-    elif isinstance(data, list) and len(data) > 0:
+    elif isinstance(data, (list, tuple)) and len(data) > 0:
         if dtype is not None:
             try:
                 subarr = _try_cast(data, False)

@@ -8,13 +8,14 @@ from pandas.types.common import (is_bool_dtype,
                                  is_object_dtype,
                                  is_string_like,
                                  is_list_like,
-                                 is_scalar)
+                                 is_scalar,
+                                 is_integer)
 from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
-from pandas.util.decorators import Appender, deprecate_kwarg
+from pandas.util.decorators import Appender
 import re
 import pandas.lib as lib
 import warnings
@@ -914,6 +915,10 @@ def str_pad(arr, width, side='left', fillchar=' '):
     if len(fillchar) != 1:
         raise TypeError('fillchar must be a character, not str')
 
+    if not is_integer(width):
+        msg = 'width must be of integer type, not {0}'
+        raise TypeError(msg.format(type(width).__name__))
+
     if side == 'left':
         f = lambda x: x.rjust(width, fillchar)
     elif side == 'right':
@@ -1396,8 +1401,6 @@ class StringMethods(NoNewAttributesMixin):
         result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
         return self._wrap_result(result, use_codes=(not self._is_categorical))
 
-    @deprecate_kwarg('return_type', 'expand', mapping={'series': False,
-                                                       'frame': True})
     @copy(str_split)
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._data, pat, n=n)

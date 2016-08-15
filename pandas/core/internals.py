@@ -35,7 +35,8 @@ from pandas.types.cast import (_possibly_downcast_to_dtype,
                                _infer_dtype_from_scalar,
                                _soft_convert_objects,
                                _possibly_convert_objects,
-                               _astype_nansafe)
+                               _astype_nansafe,
+                               _find_common_type)
 from pandas.types.missing import (isnull, array_equivalent,
                                   _is_na_compat,
                                   is_null_datelike_scalar)
@@ -1490,7 +1491,7 @@ class NonConsolidatableMixIn(object):
         if isinstance(new, np.ndarray) and len(new) == len(mask):
             new = new[mask]
 
-        mask = mask.reshape(new_values.shape)
+        mask = _safe_reshape(mask, new_values.shape)
         new_values[mask] = new
         new_values = self._try_coerce_result(new_values)
         return [self.make_block(values=new_values)]
@@ -1839,7 +1840,7 @@ class ObjectBlock(Block):
                 try:
                     values = values.reshape(shape)
                     values = _block_shape(values, ndim=self.ndim)
-                except AttributeError:
+                except (AttributeError, NotImplementedError):
                     pass
                 newb = make_block(values, ndim=self.ndim, placement=[rl])
                 blocks.append(newb)
@@ -2438,15 +2439,14 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         else:
             indexer[:periods] = np.arange(-periods, N)
 
-        # move to UTC & take
-        new_values = self.values.tz_localize(None).asi8.take(indexer)
+        new_values = self.values.asi8.take(indexer)
 
         if periods > 0:
             new_values[:periods] = tslib.iNaT
         else:
             new_values[periods:] = tslib.iNaT
 
-        new_values = DatetimeIndex(new_values, tz=self.values.tz)
+        new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
 
@@ -2504,6 +2504,14 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     def kind(self):
         return self.values.kind
 
+    def _astype(self, dtype, copy=False, raise_on_error=True, values=None,
+                klass=None, mgr=None, **kwargs):
+        if values is None:
+            values = self.values
+        values = values.astype(dtype, copy=copy)
+        return self.make_block_same_class(values=values,
+                                          placement=self.mgr_locs)
+
     def __len__(self):
         try:
             return self.sp_index.length
@@ -2521,7 +2529,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                               copy=False, fastpath=True, **kwargs):
         """ return a new block """
         if dtype is None:
-            dtype = self.dtype
+            dtype = values.dtype
         if fill_value is None and not isinstance(values, SparseArray):
             fill_value = self.values.fill_value
 
@@ -3616,7 +3624,7 @@ class BlockManager(PandasObject):
                 return value
         else:
             if value.ndim == self.ndim - 1:
-                value = value.reshape((1,) + value.shape)
+                value = _safe_reshape(value, (1,) + value.shape)
 
                 def value_getitem(placement):
                     return value
@@ -4428,14 +4436,6 @@ def _interleaved_dtype(blocks):
     for x in blocks:
         counts[type(x)].append(x)
 
-    def _lcd_dtype(l):
-        """ find the lowest dtype that can accomodate the given types """
-        m = l[0].dtype
-        for x in l[1:]:
-            if x.dtype.itemsize > m.itemsize:
-                m = x.dtype
-        return m
-
     have_int = len(counts[IntBlock]) > 0
     have_bool = len(counts[BoolBlock]) > 0
     have_object = len(counts[ObjectBlock]) > 0
@@ -4448,7 +4448,6 @@ def _interleaved_dtype(blocks):
     # TODO: have_sparse is not used
     have_sparse = len(counts[SparseBlock]) > 0  # noqa
     have_numeric = have_float or have_complex or have_int
-
     has_non_numeric = have_dt64 or have_dt64_tz or have_td64 or have_cat
 
     if (have_object or
@@ -4460,10 +4459,9 @@ def _interleaved_dtype(blocks):
     elif have_bool:
         return np.dtype(bool)
     elif have_int and not have_float and not have_complex:
-
         # if we are mixing unsigned and signed, then return
         # the next biggest int type (if we can)
-        lcd = _lcd_dtype(counts[IntBlock])
+        lcd = _find_common_type([b.dtype for b in counts[IntBlock]])
         kinds = set([i.dtype.kind for i in counts[IntBlock]])
         if len(kinds) == 1:
             return lcd
@@ -4479,7 +4477,8 @@ def _interleaved_dtype(blocks):
     elif have_complex:
         return np.dtype('c16')
     else:
-        return _lcd_dtype(counts[FloatBlock] + counts[SparseBlock])
+        introspection_blks = counts[FloatBlock] + counts[SparseBlock]
+        return _find_common_type([b.dtype for b in introspection_blks])
 
 
 def _consolidate(blocks):
@@ -4684,6 +4683,28 @@ def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
 
         return (_transform_index(left, lrenamer),
                 _transform_index(right, rrenamer))
+
+
+def _safe_reshape(arr, new_shape):
+    """
+    If possible, reshape `arr` to have shape `new_shape`,
+    with a couple of exceptions (see gh-13012):
+
+    1) If `arr` is a Categorical or Index, `arr` will be
+       returned as is.
+    2) If `arr` is a Series, the `_values` attribute will
+       be reshaped and returned.
+
+    Parameters
+    ----------
+    arr : array-like, object to be reshaped
+    new_shape : int or tuple of ints, the new shape
+    """
+    if isinstance(arr, ABCSeries):
+        arr = arr._values
+    if not isinstance(arr, Categorical):
+        arr = arr.reshape(new_shape)
+    return arr
 
 
 def _transform_index(index, func):

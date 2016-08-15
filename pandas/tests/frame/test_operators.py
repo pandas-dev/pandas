@@ -1013,44 +1013,52 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         with tm.assert_produces_warning(FutureWarning):
             # trivial
             comb = self.frame.combineAdd(self.frame)
-            assert_frame_equal(comb, self.frame * 2)
+        assert_frame_equal(comb, self.frame * 2)
 
-            # more rigorous
-            a = DataFrame([[1., nan, nan, 2., nan]],
-                          columns=np.arange(5))
-            b = DataFrame([[2., 3., nan, 2., 6., nan]],
-                          columns=np.arange(6))
-            expected = DataFrame([[3., 3., nan, 4., 6., nan]],
-                                 columns=np.arange(6))
+        # more rigorous
+        a = DataFrame([[1., nan, nan, 2., nan]],
+                      columns=np.arange(5))
+        b = DataFrame([[2., 3., nan, 2., 6., nan]],
+                      columns=np.arange(6))
+        expected = DataFrame([[3., 3., nan, 4., 6., nan]],
+                             columns=np.arange(6))
 
+        with tm.assert_produces_warning(FutureWarning):
             result = a.combineAdd(b)
-            assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
             result2 = a.T.combineAdd(b.T)
-            assert_frame_equal(result2, expected.T)
+        assert_frame_equal(result2, expected.T)
 
-            expected2 = a.combine(b, operator.add, fill_value=0.)
-            assert_frame_equal(expected, expected2)
+        expected2 = a.combine(b, operator.add, fill_value=0.)
+        assert_frame_equal(expected, expected2)
 
-            # corner cases
+        # corner cases
+        with tm.assert_produces_warning(FutureWarning):
             comb = self.frame.combineAdd(self.empty)
-            assert_frame_equal(comb, self.frame)
+        assert_frame_equal(comb, self.frame)
 
+        with tm.assert_produces_warning(FutureWarning):
             comb = self.empty.combineAdd(self.frame)
-            assert_frame_equal(comb, self.frame)
+        assert_frame_equal(comb, self.frame)
 
-            # integer corner case
-            df1 = DataFrame({'x': [5]})
-            df2 = DataFrame({'x': [1]})
-            df3 = DataFrame({'x': [6]})
+        # integer corner case
+        df1 = DataFrame({'x': [5]})
+        df2 = DataFrame({'x': [1]})
+        df3 = DataFrame({'x': [6]})
+
+        with tm.assert_produces_warning(FutureWarning):
             comb = df1.combineAdd(df2)
-            assert_frame_equal(comb, df3)
+        assert_frame_equal(comb, df3)
 
-            # mixed type GH2191
-            df1 = DataFrame({'A': [1, 2], 'B': [3, 4]})
-            df2 = DataFrame({'A': [1, 2], 'C': [5, 6]})
+        # mixed type GH2191
+        df1 = DataFrame({'A': [1, 2], 'B': [3, 4]})
+        df2 = DataFrame({'A': [1, 2], 'C': [5, 6]})
+        with tm.assert_produces_warning(FutureWarning):
             rs = df1.combineAdd(df2)
-            xp = DataFrame({'A': [2, 4], 'B': [3, 4.], 'C': [5, 6.]})
-            assert_frame_equal(xp, rs)
+        xp = DataFrame({'A': [2, 4], 'B': [3, 4.], 'C': [5, 6.]})
+        assert_frame_equal(xp, rs)
 
         # TODO: test integer fill corner?
 
@@ -1196,7 +1204,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
         align = pd.core.ops._align_method_FRAME
 
-        for val in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3])]:
+        for val in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3], dtype=np.intp)]:
 
             tm.assert_series_equal(align(df, val, 'index'),
                                    Series([1, 2, 3], index=df.index))

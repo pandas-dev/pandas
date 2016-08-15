@@ -828,6 +828,8 @@ To select a row where each column meets its own criterion:
 
   df[row_mask]
 
+.. _indexing.where_mask:
+
 The :meth:`~pandas.DataFrame.where` Method and Masking
 ------------------------------------------------------
 
@@ -890,6 +892,15 @@ without creating a copy:
    df_orig = df.copy()
    df_orig.where(df > 0, -df, inplace=True);
    df_orig
+
+.. note::
+
+   The signature for :func:`DataFrame.where` differs from :func:`numpy.where`.
+   Roughly ``df1.where(m, df2)`` is equivalent to ``np.where(m, df1, df2)``.
+
+   .. ipython:: python
+
+      df.where(df < 0, -df) == np.where(df < 0, df, -df)
 
 **alignment**
 

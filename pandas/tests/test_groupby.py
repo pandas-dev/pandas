@@ -720,6 +720,32 @@ class TestGroupBy(tm.TestCase):
         grouped = df.groupby(df.index.month)
         list(grouped)
 
+    def test_agg_dict_parameter_cast_result_dtypes(self):
+        # GH 12821
+
+        df = DataFrame(
+            {'class': ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D'],
+             'time': date_range('1/1/2011', periods=8, freq='H')})
+        df.loc[[0, 1, 2, 5], 'time'] = None
+
+        # test for `first` function
+        exp = df.loc[[0, 3, 4, 6]].set_index('class')
+        grouped = df.groupby('class')
+        assert_frame_equal(grouped.first(), exp)
+        assert_frame_equal(grouped.agg('first'), exp)
+        assert_frame_equal(grouped.agg({'time': 'first'}), exp)
+        assert_series_equal(grouped.time.first(), exp['time'])
+        assert_series_equal(grouped.time.agg('first'), exp['time'])
+
+        # test for `last` function
+        exp = df.loc[[0, 3, 4, 7]].set_index('class')
+        grouped = df.groupby('class')
+        assert_frame_equal(grouped.last(), exp)
+        assert_frame_equal(grouped.agg('last'), exp)
+        assert_frame_equal(grouped.agg({'time': 'last'}), exp)
+        assert_series_equal(grouped.time.last(), exp['time'])
+        assert_series_equal(grouped.time.agg('last'), exp['time'])
+
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
         self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
@@ -2947,6 +2973,14 @@ class TestGroupBy(tm.TestCase):
         result = df.groupby('A', as_index=False).cumsum()
         assert_frame_equal(result, expected)
 
+        # GH 13994
+        result = df.groupby('A').cumsum(axis=1)
+        expected = df.cumsum(axis=1)
+        assert_frame_equal(result, expected)
+        result = df.groupby('A').cumprod(axis=1)
+        expected = df.cumprod(axis=1)
+        assert_frame_equal(result, expected)
+
     def test_grouping_ndarray(self):
         grouped = self.df.groupby(self.df['A'].values)
 
@@ -3209,6 +3243,18 @@ class TestGroupBy(tm.TestCase):
         result = grouped.mean()
         expected = df.groupby(df[0]).mean()
         assert_frame_equal(result, expected)
+
+    def test_groupby_mixed_type_columns(self):
+        # GH 13432, unorderable types in py3
+        df = DataFrame([[0, 1, 2]], columns=['A', 'B', 0])
+        expected = DataFrame([[1, 2]], columns=['B', 0],
+                             index=Index([0], name='A'))
+
+        result = df.groupby('A').first()
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby('A').sum()
+        tm.assert_frame_equal(result, expected)
 
     def test_cython_grouper_series_bug_noncontig(self):
         arr = np.empty((100, 100))
@@ -3752,6 +3798,22 @@ class TestGroupBy(tm.TestCase):
         result3 = df.groupby('A')[df.columns[2:4]].mean()
 
         expected = df.ix[:, ['A', 'C', 'D']].groupby('A').mean()
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+        assert_frame_equal(result3, expected)
+
+    def test_getitem_numeric_column_names(self):
+        # GH #13731
+        df = DataFrame({0: list('abcd') * 2,
+                        2: np.random.randn(8),
+                        4: np.random.randn(8),
+                        6: np.random.randn(8)})
+        result = df.groupby(0)[df.columns[1:3]].mean()
+        result2 = df.groupby(0)[2, 4].mean()
+        result3 = df.groupby(0)[[2, 4]].mean()
+
+        expected = df.ix[:, [0, 2, 4]].groupby(0).mean()
 
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
@@ -6531,6 +6593,27 @@ class TestGroupBy(tm.TestCase):
         result = gr.grouper.groupings[0].__repr__()
         expected = "Grouping(('A', 'a'))"
         tm.assert_equal(result, expected)
+
+    def test_group_shift_with_null_key(self):
+        # This test is designed to replicate the segfault in issue #13813.
+        n_rows = 1200
+
+        # Generate a moderately large dataframe with occasional missing
+        # values in column `B`, and then group by [`A`, `B`]. This should
+        # force `-1` in `labels` array of `g.grouper.group_info` exactly
+        # at those places, where the group-by key is partilly missing.
+        df = DataFrame([(i % 12, i % 3 if i % 3 else np.nan, i)
+                        for i in range(n_rows)], dtype=float,
+                       columns=["A", "B", "Z"], index=None)
+        g = df.groupby(["A", "B"])
+
+        expected = DataFrame([(i + 12 if i % 3 and i < n_rows - 12
+                              else np.nan)
+                             for i in range(n_rows)], dtype=float,
+                             columns=["Z"], index=None)
+        result = g.shift(-1)
+
+        assert_frame_equal(result, expected)
 
 
 def assert_fp_equal(a, b):

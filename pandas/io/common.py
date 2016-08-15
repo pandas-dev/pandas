@@ -327,7 +327,9 @@ def _get_handle(path, mode, encoding=None, compression=None, memory_map=False):
 
     if memory_map and hasattr(f, 'fileno'):
         try:
-            f = MMapWrapper(f)
+            g = MMapWrapper(f)
+            f.close()
+            f = g
         except Exception:
             # we catch any errors that may have occurred
             # because that is consistent with the lower-level

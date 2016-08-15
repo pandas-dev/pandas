@@ -4,8 +4,7 @@ from pandas.compat import range
 import numpy as np
 from numpy.random import RandomState
 from numpy import nan
-import datetime
-
+from datetime import datetime
 from pandas import Series, Categorical, CategoricalIndex, Index
 import pandas as pd
 
@@ -13,6 +12,7 @@ from pandas import compat
 import pandas.algos as _algos
 from pandas.compat import lrange
 import pandas.core.algorithms as algos
+import pandas._join as _join
 import pandas.util.testing as tm
 import pandas.hashtable as hashtable
 from pandas.compat.numpy import np_array_datetime64_compat
@@ -54,6 +54,93 @@ class TestMatch(tm.TestCase):
         result = Series(algos.match(to_match, values, np.nan))
         expected = Series(np.array([1, 0, np.nan, 0, 1, 2, np.nan]))
         tm.assert_series_equal(result, expected)
+
+
+class TestSafeSort(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_basic_sort(self):
+        values = [3, 1, 2, 0, 4]
+        result = algos.safe_sort(values)
+        expected = np.array([0, 1, 2, 3, 4])
+        tm.assert_numpy_array_equal(result, expected)
+
+        values = list("baaacb")
+        result = algos.safe_sort(values)
+        expected = np.array(list("aaabbc"))
+        tm.assert_numpy_array_equal(result, expected)
+
+        values = []
+        result = algos.safe_sort(values)
+        expected = np.array([])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_labels(self):
+        values = [3, 1, 2, 0, 4]
+        expected = np.array([0, 1, 2, 3, 4])
+
+        labels = [0, 1, 1, 2, 3, 0, -1, 4]
+        result, result_labels = algos.safe_sort(values, labels)
+        expected_labels = np.array([3, 1, 1, 2, 0, 3, -1, 4])
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+        # na_sentinel
+        labels = [0, 1, 1, 2, 3, 0, 99, 4]
+        result, result_labels = algos.safe_sort(values, labels,
+                                                na_sentinel=99)
+        expected_labels = np.array([3, 1, 1, 2, 0, 3, 99, 4])
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+        # out of bound indices
+        labels = [0, 101, 102, 2, 3, 0, 99, 4]
+        result, result_labels = algos.safe_sort(values, labels)
+        expected_labels = np.array([3, -1, -1, 2, 0, 3, -1, 4])
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+        labels = []
+        result, result_labels = algos.safe_sort(values, labels)
+        expected_labels = np.array([], dtype=np.int_)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+    def test_mixed_integer(self):
+        values = np.array(['b', 1, 0, 'a', 0, 'b'], dtype=object)
+        result = algos.safe_sort(values)
+        expected = np.array([0, 0, 1, 'a', 'b', 'b'], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        values = np.array(['b', 1, 0, 'a'], dtype=object)
+        labels = [0, 1, 2, 3, 0, -1, 1]
+        result, result_labels = algos.safe_sort(values, labels)
+        expected = np.array([0, 1, 'a', 'b'], dtype=object)
+        expected_labels = np.array([3, 1, 0, 2, 3, -1, 1])
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+    def test_unsortable(self):
+        # GH 13714
+        arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
+        if compat.PY2 and not pd._np_version_under1p10:
+            # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
+            with tm.assert_produces_warning(RuntimeWarning):
+                tm.assertRaises(TypeError, algos.safe_sort, arr)
+        else:
+            tm.assertRaises(TypeError, algos.safe_sort, arr)
+
+    def test_exceptions(self):
+        with tm.assertRaisesRegexp(TypeError,
+                                   "Only list-like objects are allowed"):
+            algos.safe_sort(values=1)
+
+        with tm.assertRaisesRegexp(TypeError,
+                                   "Only list-like objects or None"):
+            algos.safe_sort(values=[0, 1, 2], labels=1)
+
+        with tm.assertRaisesRegexp(ValueError, "values should be unique"):
+            algos.safe_sort(values=[0, 1, 2, 1], labels=[0, 1])
 
 
 class TestFactorize(tm.TestCase):
@@ -217,11 +304,11 @@ class TestIndexer(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_outer_join_indexer(self):
-        typemap = [('int32', algos.algos.outer_join_indexer_int32),
-                   ('int64', algos.algos.outer_join_indexer_int64),
-                   ('float32', algos.algos.outer_join_indexer_float32),
-                   ('float64', algos.algos.outer_join_indexer_float64),
-                   ('object', algos.algos.outer_join_indexer_object)]
+        typemap = [('int32', _join.outer_join_indexer_int32),
+                   ('int64', _join.outer_join_indexer_int64),
+                   ('float32', _join.outer_join_indexer_float32),
+                   ('float64', _join.outer_join_indexer_float64),
+                   ('object', _join.outer_join_indexer_object)]
 
         for dtype, indexer in typemap:
             left = np.arange(3, dtype=dtype)
@@ -470,6 +557,24 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(algos.value_counts(dt), exp_dt)
         # TODO same for (timedelta)
 
+    def test_value_counts_datetime_outofbounds(self):
+        # GH 13663
+        s = pd.Series([datetime(3000, 1, 1), datetime(5000, 1, 1),
+                       datetime(5000, 1, 1), datetime(6000, 1, 1),
+                       datetime(3000, 1, 1), datetime(3000, 1, 1)])
+        res = s.value_counts()
+
+        exp_index = pd.Index([datetime(3000, 1, 1), datetime(5000, 1, 1),
+                              datetime(6000, 1, 1)], dtype=object)
+        exp = pd.Series([3, 2, 1], index=exp_index)
+        tm.assert_series_equal(res, exp)
+
+        # GH 12424
+        res = pd.to_datetime(pd.Series(['2362-01-01', np.nan]),
+                             errors='ignore')
+        exp = pd.Series(['2362-01-01', np.nan], dtype=object)
+        tm.assert_series_equal(res, exp)
+
     def test_categorical(self):
         s = Series(pd.Categorical(list('aaabbc')))
         result = s.value_counts()
@@ -567,6 +672,157 @@ class TestValueCounts(tm.TestCase):
             expected = Series([0.5, 0.5],
                               index=Series([2.0, 1.0], dtype=t))
             tm.assert_series_equal(result, expected)
+
+
+class TestDuplicated(tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_duplicated_with_nas(self):
+        keys = np.array([0, 1, np.nan, 0, 2, np.nan], dtype=object)
+
+        result = algos.duplicated(keys)
+        expected = np.array([False, False, False, True, False, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.duplicated(keys, keep='first')
+        expected = np.array([False, False, False, True, False, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.duplicated(keys, keep='last')
+        expected = np.array([True, False, True, False, False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.duplicated(keys, keep=False)
+        expected = np.array([True, False, True, True, False, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        keys = np.empty(8, dtype=object)
+        for i, t in enumerate(zip([0, 0, np.nan, np.nan] * 2,
+                                  [0, np.nan, 0, np.nan] * 2)):
+            keys[i] = t
+
+        result = algos.duplicated(keys)
+        falses = [False] * 4
+        trues = [True] * 4
+        expected = np.array(falses + trues)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.duplicated(keys, keep='last')
+        expected = np.array(trues + falses)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.duplicated(keys, keep=False)
+        expected = np.array(trues + trues)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_numeric_object_likes(self):
+        cases = [np.array([1, 2, 1, 5, 3,
+                           2, 4, 1, 5, 6]),
+                 np.array([1.1, 2.2, 1.1, np.nan, 3.3,
+                           2.2, 4.4, 1.1, np.nan, 6.6]),
+                 np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
+                           2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j]),
+                 np.array(['a', 'b', 'a', 'e', 'c',
+                           'b', 'd', 'a', 'e', 'f'], dtype=object)]
+
+        exp_first = np.array([False, False, True, False, False,
+                              True, False, True, True, False])
+        exp_last = np.array([True, True, True, True, False,
+                             False, False, False, False, False])
+        exp_false = exp_first | exp_last
+
+        for case in cases:
+            res_first = algos.duplicated(case, keep='first')
+            tm.assert_numpy_array_equal(res_first, exp_first)
+
+            res_last = algos.duplicated(case, keep='last')
+            tm.assert_numpy_array_equal(res_last, exp_last)
+
+            res_false = algos.duplicated(case, keep=False)
+            tm.assert_numpy_array_equal(res_false, exp_false)
+
+            # index
+            for idx in [pd.Index(case), pd.Index(case, dtype='category')]:
+                res_first = idx.duplicated(keep='first')
+                tm.assert_numpy_array_equal(res_first, exp_first)
+
+                res_last = idx.duplicated(keep='last')
+                tm.assert_numpy_array_equal(res_last, exp_last)
+
+                res_false = idx.duplicated(keep=False)
+                tm.assert_numpy_array_equal(res_false, exp_false)
+
+            # series
+            for s in [pd.Series(case), pd.Series(case, dtype='category')]:
+                res_first = s.duplicated(keep='first')
+                tm.assert_series_equal(res_first, pd.Series(exp_first))
+
+                res_last = s.duplicated(keep='last')
+                tm.assert_series_equal(res_last, pd.Series(exp_last))
+
+                res_false = s.duplicated(keep=False)
+                tm.assert_series_equal(res_false, pd.Series(exp_false))
+
+    def test_datetime_likes(self):
+
+        dt = ['2011-01-01', '2011-01-02', '2011-01-01', 'NaT', '2011-01-03',
+              '2011-01-02', '2011-01-04', '2011-01-01', 'NaT', '2011-01-06']
+        td = ['1 days', '2 days', '1 days', 'NaT', '3 days',
+              '2 days', '4 days', '1 days', 'NaT', '6 days']
+
+        cases = [np.array([pd.Timestamp(d) for d in dt]),
+                 np.array([pd.Timestamp(d, tz='US/Eastern') for d in dt]),
+                 np.array([pd.Period(d, freq='D') for d in dt]),
+                 np.array([np.datetime64(d) for d in dt]),
+                 np.array([pd.Timedelta(d) for d in td])]
+
+        exp_first = np.array([False, False, True, False, False,
+                              True, False, True, True, False])
+        exp_last = np.array([True, True, True, True, False,
+                             False, False, False, False, False])
+        exp_false = exp_first | exp_last
+
+        for case in cases:
+            res_first = algos.duplicated(case, keep='first')
+            tm.assert_numpy_array_equal(res_first, exp_first)
+
+            res_last = algos.duplicated(case, keep='last')
+            tm.assert_numpy_array_equal(res_last, exp_last)
+
+            res_false = algos.duplicated(case, keep=False)
+            tm.assert_numpy_array_equal(res_false, exp_false)
+
+            # index
+            for idx in [pd.Index(case), pd.Index(case, dtype='category'),
+                        pd.Index(case, dtype=object)]:
+                res_first = idx.duplicated(keep='first')
+                tm.assert_numpy_array_equal(res_first, exp_first)
+
+                res_last = idx.duplicated(keep='last')
+                tm.assert_numpy_array_equal(res_last, exp_last)
+
+                res_false = idx.duplicated(keep=False)
+                tm.assert_numpy_array_equal(res_false, exp_false)
+
+            # series
+            for s in [pd.Series(case), pd.Series(case, dtype='category'),
+                      pd.Series(case, dtype=object)]:
+                res_first = s.duplicated(keep='first')
+                tm.assert_series_equal(res_first, pd.Series(exp_first))
+
+                res_last = s.duplicated(keep='last')
+                tm.assert_series_equal(res_last, pd.Series(exp_last))
+
+                res_false = s.duplicated(keep=False)
+                tm.assert_series_equal(res_false, pd.Series(exp_false))
+
+    def test_unique_index(self):
+        cases = [pd.Index([1, 2, 3]), pd.RangeIndex(0, 3)]
+        for case in cases:
+            self.assertTrue(case.is_unique)
+            tm.assert_numpy_array_equal(case.duplicated(),
+                                        np.array([False, False, False]))
 
 
 class GroupVarTestMixin(object):
@@ -732,7 +988,7 @@ def test_rank():
 def test_pad_backfill_object_segfault():
 
     old = np.array([], dtype='O')
-    new = np.array([datetime.datetime(2010, 12, 31)], dtype='O')
+    new = np.array([datetime(2010, 12, 31)], dtype='O')
 
     result = _algos.pad_object(old, new)
     expected = np.array([-1], dtype=np.int64)
@@ -815,7 +1071,7 @@ def test_left_join_indexer_unique():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([2, 2, 3, 4, 4], dtype=np.int64)
 
-    result = _algos.left_join_indexer_unique_int64(b, a)
+    result = _join.left_join_indexer_unique_int64(b, a)
     expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
     assert (np.array_equal(result, expected))
 
@@ -831,7 +1087,7 @@ def test_left_outer_join_bug():
     right = np.array([3, 1], dtype=np.int64)
     max_groups = 4
 
-    lidx, ridx = _algos.left_outer_join(left, right, max_groups, sort=False)
+    lidx, ridx = _join.left_outer_join(left, right, max_groups, sort=False)
 
     exp_lidx = np.arange(len(left))
     exp_ridx = -np.ones(len(left))
@@ -846,7 +1102,7 @@ def test_inner_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = _algos.inner_join_indexer_int64(a, b)
+    index, ares, bres = _join.inner_join_indexer_int64(a, b)
 
     index_exp = np.array([3, 5], dtype=np.int64)
     assert_almost_equal(index, index_exp)
@@ -859,7 +1115,7 @@ def test_inner_join_indexer():
     a = np.array([5], dtype=np.int64)
     b = np.array([5], dtype=np.int64)
 
-    index, ares, bres = _algos.inner_join_indexer_int64(a, b)
+    index, ares, bres = _join.inner_join_indexer_int64(a, b)
     tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
     tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
     tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
@@ -869,7 +1125,7 @@ def test_outer_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = _algos.outer_join_indexer_int64(a, b)
+    index, ares, bres = _join.outer_join_indexer_int64(a, b)
 
     index_exp = np.array([0, 1, 2, 3, 4, 5, 7, 9], dtype=np.int64)
     assert_almost_equal(index, index_exp)
@@ -882,7 +1138,7 @@ def test_outer_join_indexer():
     a = np.array([5], dtype=np.int64)
     b = np.array([5], dtype=np.int64)
 
-    index, ares, bres = _algos.outer_join_indexer_int64(a, b)
+    index, ares, bres = _join.outer_join_indexer_int64(a, b)
     tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
     tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
     tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
@@ -892,7 +1148,7 @@ def test_left_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = _algos.left_join_indexer_int64(a, b)
+    index, ares, bres = _join.left_join_indexer_int64(a, b)
 
     assert_almost_equal(index, a)
 
@@ -904,7 +1160,7 @@ def test_left_join_indexer():
     a = np.array([5], dtype=np.int64)
     b = np.array([5], dtype=np.int64)
 
-    index, ares, bres = _algos.left_join_indexer_int64(a, b)
+    index, ares, bres = _join.left_join_indexer_int64(a, b)
     tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
     tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
     tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
@@ -914,7 +1170,7 @@ def test_left_join_indexer2():
     idx = Index([1, 1, 2, 5])
     idx2 = Index([1, 2, 5, 7, 9])
 
-    res, lidx, ridx = _algos.left_join_indexer_int64(idx2.values, idx.values)
+    res, lidx, ridx = _join.left_join_indexer_int64(idx2.values, idx.values)
 
     exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
     assert_almost_equal(res, exp_res)
@@ -930,7 +1186,7 @@ def test_outer_join_indexer2():
     idx = Index([1, 1, 2, 5])
     idx2 = Index([1, 2, 5, 7, 9])
 
-    res, lidx, ridx = _algos.outer_join_indexer_int64(idx2.values, idx.values)
+    res, lidx, ridx = _join.outer_join_indexer_int64(idx2.values, idx.values)
 
     exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
     assert_almost_equal(res, exp_res)
@@ -946,7 +1202,7 @@ def test_inner_join_indexer2():
     idx = Index([1, 1, 2, 5])
     idx2 = Index([1, 2, 5, 7, 9])
 
-    res, lidx, ridx = _algos.inner_join_indexer_int64(idx2.values, idx.values)
+    res, lidx, ridx = _join.inner_join_indexer_int64(idx2.values, idx.values)
 
     exp_res = np.array([1, 1, 2, 5], dtype=np.int64)
     assert_almost_equal(res, exp_res)

@@ -29,7 +29,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, Index,
                     MultiIndex, Int64Index, isnull)
 from pandas.core import config
 from pandas.io.common import _stringify_path
-from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
+from pandas.sparse.api import SparseSeries, SparseDataFrame
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
@@ -169,7 +169,6 @@ _TYPE_MAP = {
     SparseDataFrame: u('sparse_frame'),
     Panel: u('wide'),
     Panel4D: u('ndim'),
-    SparsePanel: u('sparse_panel')
 }
 
 # storer class map
@@ -183,7 +182,6 @@ _STORER_MAP = {
     u('frame'): 'FrameFixed',
     u('sparse_frame'): 'SparseFrameFixed',
     u('wide'): 'PanelFixed',
-    u('sparse_panel'): 'SparsePanelFixed',
 }
 
 # table class map
@@ -287,8 +285,8 @@ def read_hdf(path_or_buf, key=None, **kwargs):
 
             .. versionadded:: 0.19.0 support for pathlib, py.path.
 
-        key : group identifier in the store. Can be omitted a HDF file contains
-            a single pandas object.
+        key : group identifier in the store. Can be omitted if the HDF file
+            contains a single pandas object.
         where : list of Term (or convertable) objects, optional
         start : optional, integer (defaults to None), row number to start
             selection
@@ -305,6 +303,10 @@ def read_hdf(path_or_buf, key=None, **kwargs):
 
         """
 
+    if kwargs.get('mode', 'a') not in ['r', 'r+', 'a']:
+        raise ValueError('mode {0} is not allowed while performing a read. '
+                         'Allowed modes are r, r+ and a.'
+                         .format(kwargs.get('mode')))
     # grab the scope
     if 'where' in kwargs:
         kwargs['where'] = _ensure_term(kwargs['where'], scope_level=1)
@@ -2777,39 +2779,6 @@ class SparseFrameFixed(SparseFixed):
         self.write_index('columns', obj.columns)
 
 
-class SparsePanelFixed(SparseFixed):
-    pandas_kind = u('sparse_panel')
-    attributes = ['default_kind', 'default_fill_value']
-
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        items = self.read_index('items')
-
-        sdict = {}
-        for name in items:
-            key = 'sparse_frame_%s' % name
-            s = SparseFrameFixed(self.parent, getattr(self.group, key))
-            s.infer_axes()
-            sdict[name] = s.read()
-        return SparsePanel(sdict, items=items, default_kind=self.default_kind,
-                           default_fill_value=self.default_fill_value)
-
-    def write(self, obj, **kwargs):
-        super(SparsePanelFixed, self).write(obj, **kwargs)
-        self.attrs.default_fill_value = obj.default_fill_value
-        self.attrs.default_kind = obj.default_kind
-        self.write_index('items', obj.items)
-
-        for name, sdf in obj.iteritems():
-            key = 'sparse_frame_%s' % name
-            if key not in self.group._v_children:
-                node = self._handle.create_group(self.group, key)
-            else:
-                node = getattr(self.group, key)
-            s = SparseFrameFixed(self.parent, node)
-            s.write(sdf)
-
-
 class BlockManagerFixed(GenericFixed):
     attributes = ['ndim', 'nblocks']
     is_shape_reversed = False
@@ -4370,9 +4339,10 @@ def _set_tz(values, tz, preserve_UTC=False, coerce=False):
     coerce : if we do not have a passed timezone, coerce to M8[ns] ndarray
     """
     if tz is not None:
+        name = getattr(values, 'name', None)
         values = values.ravel()
         tz = tslib.get_timezone(_ensure_decoded(tz))
-        values = DatetimeIndex(values)
+        values = DatetimeIndex(values, name=name)
         if values.tz is None:
             values = values.tz_localize('UTC').tz_convert(tz)
         if preserve_UTC:

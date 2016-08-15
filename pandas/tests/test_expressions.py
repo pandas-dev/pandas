@@ -208,8 +208,9 @@ class TestExpressions(tm.TestCase):
 
     @slow
     def test_panel4d(self):
-        self.run_panel(tm.makePanel4D(), np.random.randn() + 0.5,
-                       assert_func=assert_panel4d_equal, binary_comp=3)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.run_panel(tm.makePanel4D(), np.random.randn() + 0.5,
+                           assert_func=assert_panel4d_equal, binary_comp=3)
 
     def test_mixed_arithmetic_frame(self):
         # TODO: FIGURE OUT HOW TO GET IT TO WORK...

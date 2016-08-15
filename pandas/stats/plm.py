@@ -18,7 +18,6 @@ from pandas.core.panel import Panel
 from pandas.core.frame import DataFrame
 from pandas.core.reshape import get_dummies
 from pandas.core.series import Series
-from pandas.core.sparse import SparsePanel
 from pandas.stats.ols import OLS, MovingOLS
 import pandas.stats.common as com
 import pandas.stats.math as math
@@ -137,8 +136,7 @@ class PanelOLS(OLS):
             if isinstance(data, Panel):
                 data = data.copy()
 
-            if not isinstance(data, SparsePanel):
-                data, cat_mapping = self._convert_x(data)
+            data, cat_mapping = self._convert_x(data)
 
             if not isinstance(data, Panel):
                 data = Panel.from_dict(data, intersect=True)

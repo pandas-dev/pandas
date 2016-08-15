@@ -30,6 +30,25 @@ class TestTimedeltas(tm.TestCase):
     def setUp(self):
         pass
 
+    def test_get_loc_nat(self):
+        tidx = TimedeltaIndex(['1 days 01:00:00', 'NaT', '2 days 01:00:00'])
+
+        self.assertEqual(tidx.get_loc(pd.NaT), 1)
+        self.assertEqual(tidx.get_loc(None), 1)
+        self.assertEqual(tidx.get_loc(float('nan')), 1)
+        self.assertEqual(tidx.get_loc(np.nan), 1)
+
+    def test_contains(self):
+        # Checking for any NaT-like objects
+        # GH 13603
+        td = to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
+        for v in [pd.NaT, None, float('nan'), np.nan]:
+            self.assertFalse((v in td))
+
+        td = to_timedelta([pd.NaT])
+        for v in [pd.NaT, None, float('nan'), np.nan]:
+            self.assertTrue((v in td))
+
     def test_construction(self):
 
         expected = np.timedelta64(10, 'D').astype('m8[ns]').view('i8')
@@ -169,7 +188,8 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(Timedelta('').value, iNaT)
         self.assertEqual(Timedelta('nat').value, iNaT)
         self.assertEqual(Timedelta('NAT').value, iNaT)
-        self.assertTrue(isnull(Timestamp('nat')))
+        self.assertEqual(Timedelta(None).value, iNaT)
+        self.assertEqual(Timedelta(np.nan).value, iNaT)
         self.assertTrue(isnull(Timedelta('nat')))
 
         # offset

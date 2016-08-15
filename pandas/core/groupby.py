@@ -1205,32 +1205,55 @@ class GroupBy(_GroupBy):
 
         Examples
         --------
-        >>> df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+
+        >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
+        ...                    'B': [np.nan, 2, 3, 4, 5]}, columns=['A', 'B'])
         >>> g = df.groupby('A')
         >>> g.nth(0)
-           A   B
-        0  1 NaN
-        2  5   6
+             B
+        A
+        1  NaN
+        2  3.0
         >>> g.nth(1)
-           A  B
-        1  1  4
+             B
+        A
+        1  2.0
+        2  5.0
         >>> g.nth(-1)
-           A  B
-        1  1  4
-        2  5  6
+             B
+        A
+        1  4.0
+        2  5.0
+        >>> g.nth([0, 1])
+             B
+        A
+        1  NaN
+        1  2.0
+        2  3.0
+        2  5.0
+
+        Specifying ``dropna`` allows count ignoring NaN
+
         >>> g.nth(0, dropna='any')
-           B
-           A
-        1  4
-        5  6
+             B
+        A
+        1  2.0
+        2  3.0
 
         NaNs denote group exhausted when using dropna
 
-        >>> g.nth(1, dropna='any')
+        >>> g.nth(3, dropna='any')
             B
-            A
+        A
         1 NaN
-        5 NaN
+        2 NaN
+
+        Specifying ``as_index=False`` in ``groupby`` keeps the original index.
+
+        >>> df.groupby('A', as_index=False).nth(1)
+           A    B
+        1  1  2.0
+        4  2  5.0
         """
 
         if isinstance(n, int):
@@ -1374,7 +1397,7 @@ class GroupBy(_GroupBy):
         """Cumulative sum for each group"""
         nv.validate_groupby_func('cumsum', args, kwargs)
         if axis != 0:
-            return self.apply(lambda x: x.cumprod(axis=axis))
+            return self.apply(lambda x: x.cumsum(axis=axis))
 
         return self._cython_transform('cumsum')
 
@@ -4399,7 +4422,7 @@ def _groupby_indices(values):
         # bit better than factorizing again
         reverse = dict(enumerate(values.categories))
         codes = values.codes.astype('int64')
-        _, counts = _hash.value_count_scalar64(codes, False)
+        _, counts = _hash.value_count_int64(codes, False)
     else:
         reverse, codes, counts = _algos.group_labels(
             _values_from_object(_ensure_object(values)))

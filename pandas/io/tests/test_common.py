@@ -86,7 +86,6 @@ bar2,12,13,14,15
         it = read_csv(StringIO(self.data1), chunksize=1)
         first = next(it)
         tm.assert_frame_equal(first, expected.iloc[[0]])
-        expected.index = [0 for i in range(len(expected))]
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
 
 
@@ -117,8 +116,8 @@ class TestMMapWrapper(tm.TestCase):
         tm.assertRaisesRegexp(ValueError, msg, common.MMapWrapper, target)
 
     def test_get_attr(self):
-        target = open(self.mmap_file, 'r')
-        wrapper = common.MMapWrapper(target)
+        with open(self.mmap_file, 'r') as target:
+            wrapper = common.MMapWrapper(target)
 
         attrs = dir(wrapper.mmap)
         attrs = [attr for attr in attrs
@@ -131,13 +130,12 @@ class TestMMapWrapper(tm.TestCase):
         self.assertFalse(hasattr(wrapper, 'foo'))
 
     def test_next(self):
-        target = open(self.mmap_file, 'r')
-        wrapper = common.MMapWrapper(target)
-
-        lines = target.readlines()
+        with open(self.mmap_file, 'r') as target:
+            wrapper = common.MMapWrapper(target)
+            lines = target.readlines()
 
         for line in lines:
             next_line = next(wrapper)
-            self.assertEqual(next_line, line)
+            self.assertEqual(next_line.strip(), line.strip())
 
         self.assertRaises(StopIteration, next, wrapper)

@@ -1964,6 +1964,14 @@ class TestDataFrameFormatting(tm.TestCase):
 
         self.assertEqual(df_s, expected)
 
+    def test_to_string_line_width_no_index(self):
+        df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "x  \\\n1   \n2   \n3   \n\ny  \n4  \n5  \n6"
+
+        self.assertEqual(df_s, expected)
+
     def test_to_string_float_formatting(self):
         self.reset_display_options()
         fmt.set_option('display.precision', 5, 'display.column_space', 12,
@@ -3139,10 +3147,6 @@ b &       b &     b \\
             df.to_csv(path, quoting=1)  # 1=QUOTE_ALL
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         expected = """\
 $$,$col$
@@ -3154,17 +3158,10 @@ $1$,$2$
             df.to_csv(path, quoting=1, quotechar="$")
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, quotechar="$", engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         with tm.ensure_clean('test.csv') as path:
             with tm.assertRaisesRegexp(TypeError, 'quotechar'):
                 df.to_csv(path, quoting=1, quotechar=None)
-        with tm.ensure_clean('test.csv') as path:
-            with tm.assertRaisesRegexp(TypeError, 'quotechar'):
-                df.to_csv(path, quoting=1, quotechar=None, engine='python')
 
     def test_to_csv_doublequote(self):
         df = DataFrame({'col': ['a"a', '"bb"']})
@@ -3178,18 +3175,11 @@ $1$,$2$
             df.to_csv(path, quoting=1, doublequote=True)  # QUOTE_ALL
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, doublequote=True, engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         from _csv import Error
         with tm.ensure_clean('test.csv') as path:
             with tm.assertRaisesRegexp(Error, 'escapechar'):
                 df.to_csv(path, doublequote=False)  # no escapechar set
-        with tm.ensure_clean('test.csv') as path:
-            with tm.assertRaisesRegexp(Error, 'escapechar'):
-                df.to_csv(path, doublequote=False, engine='python')
 
     def test_to_csv_escapechar(self):
         df = DataFrame({'col': ['a"a', '"bb"']})
@@ -3203,11 +3193,6 @@ $1$,$2$
             df.to_csv(path, quoting=1, doublequote=False, escapechar='\\')
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, doublequote=False, escapechar='\\',
-                      engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         df = DataFrame({'col': ['a,a', ',bb,']})
         expected = """\
@@ -3218,10 +3203,6 @@ $1$,$2$
 
         with tm.ensure_clean('test.csv') as path:
             df.to_csv(path, quoting=3, escapechar='\\')  # QUOTE_NONE
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=3, escapechar='\\', engine='python')
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
 

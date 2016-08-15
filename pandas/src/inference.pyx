@@ -270,7 +270,7 @@ cdef inline bint is_null_datetimelike(v):
 
 
 cdef inline bint is_null_datetime64(v):
-    # determine if we have a null for a datetime (or integer versions)x,
+    # determine if we have a null for a datetime (or integer versions),
     # excluding np.timedelta64('nat')
     if util._checknull(v):
         return True
@@ -282,7 +282,7 @@ cdef inline bint is_null_datetime64(v):
 
 
 cdef inline bint is_null_timedelta64(v):
-    # determine if we have a null for a timedelta (or integer versions)x,
+    # determine if we have a null for a timedelta (or integer versions),
     # excluding np.datetime64('nat')
     if util._checknull(v):
         return True
@@ -290,6 +290,16 @@ cdef inline bint is_null_timedelta64(v):
         return True
     elif util.is_timedelta64_object(v):
         return v.view('int64') == iNaT
+    return False
+
+
+cdef inline bint is_null_period(v):
+    # determine if we have a null for a Period (or integer versions),
+    # excluding np.datetime64('nat') and np.timedelta64('nat')
+    if util._checknull(v):
+        return True
+    elif v is NaT:
+        return True
     return False
 
 
@@ -531,6 +541,7 @@ def is_timedelta_array(ndarray values):
             return False
     return null_count != n
 
+
 def is_timedelta64_array(ndarray values):
     cdef Py_ssize_t i, null_count = 0, n = len(values)
     cdef object v
@@ -545,6 +556,7 @@ def is_timedelta64_array(ndarray values):
         elif not util.is_timedelta64_object(v):
             return False
     return null_count != n
+
 
 def is_timedelta_or_timedelta64_array(ndarray values):
     """ infer with timedeltas and/or nat/none """
@@ -562,6 +574,7 @@ def is_timedelta_or_timedelta64_array(ndarray values):
             return False
     return null_count != n
 
+
 def is_date_array(ndarray[object] values):
     cdef Py_ssize_t i, n = len(values)
     if n == 0:
@@ -570,6 +583,7 @@ def is_date_array(ndarray[object] values):
         if not is_date(values[i]):
             return False
     return True
+
 
 def is_time_array(ndarray[object] values):
     cdef Py_ssize_t i, n = len(values)
@@ -582,15 +596,21 @@ def is_time_array(ndarray[object] values):
 
 
 def is_period_array(ndarray[object] values):
-    cdef Py_ssize_t i, n = len(values)
-    from pandas.tseries.period import Period
-
+    cdef Py_ssize_t i, null_count = 0, n = len(values)
+    cdef object v
     if n == 0:
         return False
+
+    # return False for all nulls
     for i in range(n):
-        if not isinstance(values[i], Period):
+        v = values[i]
+        if is_null_period(v):
+            # we are a regular null
+            if util._checknull(v):
+                null_count += 1
+        elif not is_period(v):
             return False
-    return True
+    return null_count != n
 
 
 cdef extern from "parse_helper.h":
@@ -666,9 +686,9 @@ def maybe_convert_numeric(object[:] values, set na_values,
                             raise ValueError('integer out of range')
                     else:
                         seen_float = True
-            except:
+            except (TypeError, ValueError) as e:
                 if not coerce_numeric:
-                    raise
+                    raise type(e)(str(e) + ' at position {}'.format(i))
 
                 floats[i] = nan
                 seen_float = True

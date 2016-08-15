@@ -58,19 +58,24 @@ class RangeIndex(Int64Index):
 
         # validate the arguments
         def _ensure_int(value, field):
+            msg = ("RangeIndex(...) must be called with integers,"
+                   " {value} was passed for {field}")
+            if not is_scalar(value):
+                raise TypeError(msg.format(value=type(value).__name__,
+                                           field=field))
             try:
                 new_value = int(value)
                 assert(new_value == value)
-            except (ValueError, AssertionError):
-                raise TypeError("RangeIndex(...) must be called with integers,"
-                                " {value} was passed for {field}".format(
-                                    value=type(value).__name__,
-                                    field=field)
-                                )
+            except (TypeError, ValueError, AssertionError):
+                raise TypeError(msg.format(value=type(value).__name__,
+                                           field=field))
 
             return new_value
 
-        if start is None:
+        if start is None and stop is None and step is None:
+            msg = "RangeIndex(...) must be called with integers"
+            raise TypeError(msg)
+        elif start is None:
             start = 0
         else:
             start = _ensure_int(start, 'start')
@@ -122,8 +127,13 @@ class RangeIndex(Int64Index):
         result = object.__new__(cls)
 
         # handle passed None, non-integers
+        if start is None and stop is None:
+            # empty
+            start, stop, step = 0, 0, 1
+
         if start is None or not is_integer(start):
             try:
+
                 return RangeIndex(start, stop, step, name=name, **kwargs)
             except TypeError:
                 return Index(start, stop, step, name=name, **kwargs)
@@ -220,6 +230,14 @@ class RangeIndex(Int64Index):
     def is_unique(self):
         """ return if the index has unique values """
         return True
+
+    @cache_readonly
+    def is_monotonic_increasing(self):
+        return self._step > 0 or len(self) <= 1
+
+    @cache_readonly
+    def is_monotonic_decreasing(self):
+        return self._step < 0 or len(self) <= 1
 
     @property
     def has_duplicates(self):

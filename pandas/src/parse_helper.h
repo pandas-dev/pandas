@@ -66,7 +66,7 @@ int floatify(PyObject* str, double *result, int *maybe_int) {
     return 0;
 
 parsingerror:
-    PyErr_SetString(PyExc_ValueError, "Unable to parse string");
+    PyErr_Format(PyExc_ValueError, "Unable to parse string \"%s\"", data);
     Py_XDECREF(tmp);
     return -1;
 

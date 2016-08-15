@@ -104,3 +104,15 @@ A,B,C
         result = self.read_csv(StringIO(data), comment='#')
         expected = DataFrame({'a': [1, 4], 'b': [2, 5], 'c': [3, 6]})
         tm.assert_frame_equal(result, expected)
+
+    def test_commment_first_line(self):
+        # see gh-4623
+        data = '# notes\na,b,c\n# more notes\n1,2,3'
+
+        expected = DataFrame([[1, 2, 3]], columns=['a', 'b', 'c'])
+        result = self.read_csv(StringIO(data), comment='#')
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame({0: ['a', '1'], 1: ['b', '2'], 2: ['c', '3']})
+        result = self.read_csv(StringIO(data), comment='#', header=None)
+        tm.assert_frame_equal(result, expected)

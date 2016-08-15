@@ -25,7 +25,7 @@ Statistics and Machine Learning
 -------------------------------
 
 `Statsmodels <http://www.statsmodels.org/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Statsmodels is the prominent python "statistics and econometrics library" and it has
 a long-standing special relationship with pandas. Statsmodels provides powerful statistics,
@@ -78,7 +78,7 @@ more advanced types of plots then those offered by pandas.
 
 The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <https://github.com/trifacta/vega>`__
 (that in turn, leverages `d3 <http://d3js.org/>`__) to create
-plots. Although functional, as of Summer 2016 the Vincent project has not been updated 
+plots. Although functional, as of Summer 2016 the Vincent project has not been updated
 in over two years and is `unlikely to receive further updates <https://github.com/wrobstory/vincent#2015-08-12-update>`__.
 
 `IPython Vega <https://github.com/vega/ipyvega>`__
@@ -92,6 +92,12 @@ targets the IPython Notebook environment.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <http://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
+
+`Pandas-Qt <https://github.com/datalyze-solutions/pandas-qt>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Spun off from the main pandas library, the `Pandas-Qt <https://github.com/datalyze-solutions/pandas-qt>`__
+library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
 
 .. _ecosystem.ide:
 
@@ -124,7 +130,7 @@ qgrid is "an interactive grid for sorting and filtering
 DataFrames in IPython Notebook" built with SlickGrid.
 
 `Spyder <https://github.com/spyder-ide/spyder/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Spyder is a cross-platform Qt-based open-source Python IDE with
 editing, testing, debugging, and introspection features.

@@ -632,6 +632,47 @@ class TestMultiIndex(Base, tm.TestCase):
 
         tm.assert_index_equal(result, result2)
 
+    def test_from_arrays_index_datetimelike_mixed(self):
+        idx1 = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
+                             tz='US/Eastern')
+        idx2 = pd.date_range('2015-01-01 10:00', freq='H', periods=3)
+        idx3 = pd.timedelta_range('1 days', freq='D', periods=3)
+        idx4 = pd.period_range('2011-01-01', freq='D', periods=3)
+
+        result = pd.MultiIndex.from_arrays([idx1, idx2, idx3, idx4])
+        tm.assert_index_equal(result.get_level_values(0), idx1)
+        tm.assert_index_equal(result.get_level_values(1), idx2)
+        tm.assert_index_equal(result.get_level_values(2), idx3)
+        tm.assert_index_equal(result.get_level_values(3), idx4)
+
+        result2 = pd.MultiIndex.from_arrays([pd.Series(idx1),
+                                             pd.Series(idx2),
+                                             pd.Series(idx3),
+                                             pd.Series(idx4)])
+        tm.assert_index_equal(result2.get_level_values(0), idx1)
+        tm.assert_index_equal(result2.get_level_values(1), idx2)
+        tm.assert_index_equal(result2.get_level_values(2), idx3)
+        tm.assert_index_equal(result2.get_level_values(3), idx4)
+
+        tm.assert_index_equal(result, result2)
+
+    def test_from_arrays_different_lengths(self):
+        # GH13599
+        idx1 = [1, 2, 3]
+        idx2 = ['a', 'b']
+        assertRaisesRegexp(ValueError, '^all arrays must be same length$',
+                           MultiIndex.from_arrays, [idx1, idx2])
+
+        idx1 = []
+        idx2 = ['a', 'b']
+        assertRaisesRegexp(ValueError, '^all arrays must be same length$',
+                           MultiIndex.from_arrays, [idx1, idx2])
+
+        idx1 = [1, 2, 3]
+        idx2 = []
+        assertRaisesRegexp(ValueError, '^all arrays must be same length$',
+                           MultiIndex.from_arrays, [idx1, idx2])
+
     def test_from_product(self):
 
         first = ['foo', 'bar', 'buz']
@@ -1843,7 +1884,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         for keep in ['first', 'last', False]:
             left = mi.duplicated(keep=keep)
-            right = pd.lib.duplicated(mi.values, keep=keep)
+            right = pd.hashtable.duplicated_object(mi.values, keep=keep)
             tm.assert_numpy_array_equal(left, right)
 
         # GH5873
@@ -1876,6 +1917,15 @@ class TestMultiIndex(Base, tm.TestCase):
                     index.set_names(['Upper', 'Num']), ]:
             self.assertTrue(idx.has_duplicates)
             self.assertEqual(idx.drop_duplicates().names, idx.names)
+
+    def test_get_unique_index(self):
+        idx = self.index[[0, 1, 0, 1, 1, 0, 0]]
+        expected = self.index._shallow_copy(idx[[0, 1]])
+
+        for dropna in [False, True]:
+            result = idx._get_unique_index(dropna=dropna)
+            self.assertTrue(result.unique)
+            self.assert_index_equal(result, expected)
 
     def test_tolist(self):
         result = self.index.tolist()
@@ -2232,3 +2282,24 @@ class TestMultiIndex(Base, tm.TestCase):
         result = df.index.get_level_values('buzz')
         expected = pd.Int64Index(np.tile(np.arange(10), 10), name='buzz')
         tm.assert_index_equal(result, expected)
+
+    def test_dropna(self):
+        # GH 6194
+        idx = pd.MultiIndex.from_arrays([[1, np.nan, 3, np.nan, 5],
+                                         [1, 2, np.nan, np.nan, 5],
+                                         ['a', 'b', 'c', np.nan, 'e']])
+
+        exp = pd.MultiIndex.from_arrays([[1, 5],
+                                         [1, 5],
+                                         ['a', 'e']])
+        tm.assert_index_equal(idx.dropna(), exp)
+        tm.assert_index_equal(idx.dropna(how='any'), exp)
+
+        exp = pd.MultiIndex.from_arrays([[1, np.nan, 3, 5],
+                                         [1, 2, np.nan, 5],
+                                         ['a', 'b', 'c', 'e']])
+        tm.assert_index_equal(idx.dropna(how='all'), exp)
+
+        msg = "invalid how option: xxx"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.dropna(how='xxx')

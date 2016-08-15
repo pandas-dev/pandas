@@ -1,4 +1,5 @@
 # pylint: disable=W0231,E1101
+import collections
 import warnings
 import operator
 import weakref
@@ -161,7 +162,7 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor(self):
-        """Used when a manipulation result has the same dimesions as the
+        """Used when a manipulation result has the same dimensions as the
         original.
         """
         raise AbstractMethodError(self)
@@ -1016,7 +1017,7 @@ class NDFrame(PandasObject):
 
     def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None):
+                default_handler=None, lines=False):
         """
         Convert the object to a JSON string.
 
@@ -1064,6 +1065,13 @@ class NDFrame(PandasObject):
             Handler to call if object cannot otherwise be converted to a
             suitable format for JSON. Should receive a single argument which is
             the object to convert and return a serialisable object.
+        lines : boolean, defalut False
+            If 'orient' is 'records' write out line delimited json format. Will
+            throw ValueError if incorrect 'orient' since others are not list
+            like.
+
+            .. versionadded:: 0.19.0
+
 
         Returns
         -------
@@ -1076,7 +1084,8 @@ class NDFrame(PandasObject):
                             date_format=date_format,
                             double_precision=double_precision,
                             force_ascii=force_ascii, date_unit=date_unit,
-                            default_handler=default_handler)
+                            default_handler=default_handler,
+                            lines=lines)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
         """Activate the HDFStore.
@@ -1144,7 +1153,7 @@ class NDFrame(PandasObject):
         return packers.to_msgpack(path_or_buf, self, encoding=encoding,
                                   **kwargs)
 
-    def to_sql(self, name, con, flavor='sqlite', schema=None, if_exists='fail',
+    def to_sql(self, name, con, flavor=None, schema=None, if_exists='fail',
                index=True, index_label=None, chunksize=None, dtype=None):
         """
         Write records stored in a DataFrame to a SQL database.
@@ -1155,12 +1164,11 @@ class NDFrame(PandasObject):
             Name of SQL table
         con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
             Using SQLAlchemy makes it possible to use any DB supported by that
-            library.
-            If a DBAPI2 object, only sqlite3 is supported.
-        flavor : {'sqlite', 'mysql'}, default 'sqlite'
-            The flavor of SQL to use. Ignored when using SQLAlchemy engine.
-            'mysql' is deprecated and will be removed in future versions, but
-            it will be further supported through SQLAlchemy engines.
+            library. If a DBAPI2 object, only sqlite3 is supported.
+        flavor : 'sqlite', default None
+            DEPRECATED: this parameter will be removed in a future version,
+            as 'sqlite' is the only supported option if SQLAlchemy is not
+            installed.
         schema : string, default None
             Specify the schema (if database flavor supports this). If None, use
             default schema.
@@ -1663,7 +1671,7 @@ class NDFrame(PandasObject):
 
         return result
 
-    def xs(self, key, axis=0, level=None, copy=None, drop_level=True):
+    def xs(self, key, axis=0, level=None, drop_level=True):
         """
         Returns a cross-section (row(s) or column(s)) from the
         Series/DataFrame. Defaults to cross-section on the rows (axis=0).
@@ -1677,8 +1685,6 @@ class NDFrame(PandasObject):
         level : object, defaults to first n levels (n=1 or len(key))
             In case of a key partially contained in a MultiIndex, indicate
             which levels are used. Levels can be referred by label or position.
-        copy : boolean [deprecated]
-            Whether to make a copy of the data
         drop_level : boolean, default True
             If False, returns object with same levels as self.
 
@@ -1734,10 +1740,6 @@ class NDFrame(PandasObject):
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
-        if copy is not None:
-            warnings.warn("copy keyword is deprecated, "
-                          "default is to return a copy or a view if possible")
-
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
@@ -1792,9 +1794,9 @@ class NDFrame(PandasObject):
             if not is_list_like(new_values) or self.ndim == 1:
                 return _maybe_box_datetimelike(new_values)
 
-            result = self._constructor_sliced(new_values, index=self.columns,
-                                              name=self.index[loc], copy=copy,
-                                              dtype=new_values.dtype)
+            result = self._constructor_sliced(
+                new_values, index=self.columns,
+                name=self.index[loc], dtype=new_values.dtype)
 
         else:
             result = self.iloc[loc]
@@ -1979,7 +1981,8 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------%(optional_by)s
-        axis : %(axes)s to direct sorting, default 0
+        axis : %(axes_single_arg)s, default 0
+            Axis to direct sorting
         ascending : bool or list of bool, default True
              Sort ascending vs. descending. Specify list for multiple sort
              orders.  If this is a list of bools, must match the length of
@@ -2884,7 +2887,8 @@ class NDFrame(PandasObject):
 
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32.  If dtypes are int32 and uint8, dtype will be upcase to
-        int32.
+        int32. By numpy.find_common_type convention, mixing int64 and uint64
+        will result in a flot64 dtype.
 
         This method is provided for backwards compatibility. Generally,
         it is recommended to use '.values'.
@@ -2910,8 +2914,9 @@ class NDFrame(PandasObject):
         with care if you are not dealing with the blocks.
 
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
-        float32.  If dtypes are int32 and uint8, dtype will be upcase to
-        int32.
+        float32.  If dtypes are int32 and uint8, dtype will be upcast to
+        int32. By numpy.find_common_type convention, mixing int64 and uint64
+        will result in a flot64 dtype.
         """
         return self.as_matrix()
 
@@ -3001,7 +3006,11 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        dtype : numpy.dtype or Python type
+        dtype : data type, or dict of column name -> data type
+            Use a numpy.dtype or Python type to cast entire pandas object to
+            the same type. Alternatively, use {col: dtype, ...}, where col is a
+            column label and dtype is a numpy.dtype or Python type to cast one
+            or more of the DataFrame's columns to column-specific types.
         raise_on_error : raise on invalid input
         kwargs : keyword arguments to pass on to the constructor
 
@@ -3009,10 +3018,36 @@ class NDFrame(PandasObject):
         -------
         casted : type of caller
         """
+        if isinstance(dtype, collections.Mapping):
+            if self.ndim == 1:  # i.e. Series
+                if len(dtype) > 1 or list(dtype.keys())[0] != self.name:
+                    raise KeyError('Only the Series name can be used for '
+                                   'the key in Series dtype mappings.')
+                new_type = list(dtype.values())[0]
+                return self.astype(new_type, copy, raise_on_error, **kwargs)
+            elif self.ndim > 2:
+                raise NotImplementedError(
+                    'astype() only accepts a dtype arg of type dict when '
+                    'invoked on Series and DataFrames. A single dtype must be '
+                    'specified when invoked on a Panel.'
+                )
+            for col_name in dtype.keys():
+                if col_name not in self:
+                    raise KeyError('Only a column name can be used for the '
+                                   'key in a dtype mappings argument.')
+            from pandas import concat
+            results = []
+            for col_name, col in self.iteritems():
+                if col_name in dtype:
+                    results.append(col.astype(dtype[col_name], copy=copy))
+                else:
+                    results.append(results.append(col.copy() if copy else col))
+            return concat(results, axis=1, copy=False)
 
-        mgr = self._data.astype(dtype=dtype, copy=copy,
-                                raise_on_error=raise_on_error, **kwargs)
-        return self._constructor(mgr).__finalize__(self)
+        # else, only a single dtype is given
+        new_data = self._data.astype(dtype=dtype, copy=copy,
+                                     raise_on_error=raise_on_error, **kwargs)
+        return self._constructor(new_data).__finalize__(self)
 
     def copy(self, deep=True):
         """
@@ -3952,6 +3987,9 @@ class NDFrame(PandasObject):
         Returns
         -------
         converted : type of caller
+
+        To learn more about the frequency strings, please see `this link
+        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
         """
         from pandas.tseries.resample import asfreq
         return asfreq(self, freq, method=method, how=how, normalize=normalize)
@@ -4022,6 +4060,9 @@ class NDFrame(PandasObject):
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0
 
+
+        To learn more about the offset strings, please see `this link
+        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
         Examples
         --------
@@ -4649,9 +4690,62 @@ class NDFrame(PandasObject):
         Returns
         -------
         wh : same type as caller
+
+        Notes
+        -----
+        The %(name)s method is an application of the if-then idiom. For each
+        element in the calling DataFrame, if ``cond`` is ``%(cond)s`` the
+        element is used; otherwise the corresponding element from the DataFrame
+        ``other`` is used.
+
+        The signature for :func:`DataFrame.where` differs from
+        :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
+        ``np.where(m, df1, df2)``.
+
+        For further details and examples see the ``%(name)s`` documentation in
+        :ref:`indexing <indexing.where_mask>`.
+
+        Examples
+        --------
+        >>> s = pd.Series(range(5))
+        >>> s.where(s > 0)
+        0    NaN
+        1    1.0
+        2    2.0
+        3    3.0
+        4    4.0
+
+        >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
+        >>> m = df %% 3 == 0
+        >>> df.where(m, -df)
+           A  B
+        0  0 -1
+        1 -2  3
+        2 -4 -5
+        3  6 -7
+        4 -8  9
+        >>> df.where(m, -df) == np.where(m, df, -df)
+              A     B
+        0  True  True
+        1  True  True
+        2  True  True
+        3  True  True
+        4  True  True
+        >>> df.where(m, -df) == df.mask(~m, -df)
+              A     B
+        0  True  True
+        1  True  True
+        2  True  True
+        3  True  True
+        4  True  True
+
+        See Also
+        --------
+        :func:`DataFrame.%(name_other)s`
         """)
 
-    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True"))
+    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True",
+                                           name='where', name_other='mask'))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
 
@@ -4659,7 +4753,8 @@ class NDFrame(PandasObject):
         return self._where(cond, other, inplace, axis, level, try_cast,
                            raise_on_error)
 
-    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False"))
+    @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False",
+                                           name='mask', name_other='where'))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
              try_cast=False, raise_on_error=True):
 
@@ -5099,10 +5194,9 @@ class NDFrame(PandasObject):
         if self.ndim == 1:
             return describe_1d(self)
         elif (include is None) and (exclude is None):
-            if len(self._get_numeric_data()._info_axis) > 0:
-                # when some numerics are found, keep only numerics
-                data = self.select_dtypes(include=[np.number])
-            else:
+            # when some numerics are found, keep only numerics
+            data = self.select_dtypes(include=[np.number])
+            if len(data.columns) == 0:
                 data = self
         elif include == 'all':
             if exclude is not None:
@@ -5343,11 +5437,12 @@ class NDFrame(PandasObject):
 
         @Appender(rwindow.rolling.__doc__)
         def rolling(self, window, min_periods=None, freq=None, center=False,
-                    win_type=None, axis=0):
+                    win_type=None, on=None, axis=0):
             axis = self._get_axis_number(axis)
             return rwindow.rolling(self, window=window,
                                    min_periods=min_periods, freq=freq,
-                                   center=center, win_type=win_type, axis=axis)
+                                   center=center, win_type=win_type,
+                                   on=on, axis=axis)
 
         cls.rolling = rolling
 
@@ -5504,7 +5599,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
                        mask_a, mask_b):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
-    @Appender("Return cumulative {0} over requested axis.".format(name) +
+    @Appender("Return {0} over requested axis.".format(desc) +
               _cnum_doc)
     def cum_func(self, axis=None, skipna=True, *args, **kwargs):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)

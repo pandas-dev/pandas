@@ -10,6 +10,7 @@ from pandas.types.common import (is_integer_dtype,
                                  is_list_like,
                                  is_sequence,
                                  is_scalar,
+                                 is_sparse,
                                  _ensure_platform_int)
 from pandas.types.missing import isnull, _infer_fill_value
 
@@ -1217,7 +1218,9 @@ class _NDFrameIndexer(object):
                     else:
                         (indexer,
                          missing) = labels.get_indexer_non_unique(objarr)
-                        check = indexer
+                        # 'indexer' has dupes, create 'check' using 'missing'
+                        check = np.zeros_like(objarr)
+                        check[missing] = -1
 
                 mask = check == -1
                 if mask.any():
@@ -1809,9 +1812,10 @@ def check_bool_indexer(ax, key):
         mask = isnull(result._values)
         if mask.any():
             raise IndexingError('Unalignable boolean Series key provided')
-
         result = result.astype(bool)._values
-
+    elif is_sparse(result):
+        result = result.to_dense()
+        result = np.asarray(result, dtype=bool)
     else:
         # is_bool_indexer has already checked for nulls in the case of an
         # object array key, so no check needed here

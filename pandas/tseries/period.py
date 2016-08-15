@@ -16,8 +16,6 @@ from pandas.types.common import (is_integer,
                                  _ensure_object)
 
 from pandas.types.generic import ABCSeries
-from pandas.types.missing import isnull
-
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
@@ -36,11 +34,9 @@ from pandas.core.base import _shared_docs
 from pandas.indexes.base import _index_shared_docs
 
 from pandas import compat
-from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, cache_readonly, Substitution
 from pandas.lib import Timedelta
 import pandas.tslib as tslib
-import pandas.core.missing as missing
 from pandas.compat import zip, u
 
 
@@ -57,6 +53,7 @@ def dt64arr_to_periodarr(data, freq, tz):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
+    freq = Period._maybe_convert_freq(freq)
     base, mult = _gfc(freq)
     return period.dt64arr_to_periodarr(data.view('i8'), base, tz)
 
@@ -86,22 +83,21 @@ def _period_index_cmp(opname, nat_result=False):
 
             result = getattr(self.values, opname)(other.values)
 
-            mask = (missing.mask_missing(self.values, tslib.iNaT) |
-                    missing.mask_missing(other.values, tslib.iNaT))
+            mask = self._isnan | other._isnan
             if mask.any():
                 result[mask] = nat_result
 
             return result
+        elif other is tslib.NaT:
+            result = np.empty(len(self.values), dtype=bool)
+            result.fill(nat_result)
         else:
             other = Period(other, freq=self.freq)
             func = getattr(self.values, opname)
             result = func(other.ordinal)
 
-        if other.ordinal == tslib.iNaT:
-            result.fill(nat_result)
-        mask = self.values == tslib.iNaT
-        if mask.any():
-            result[mask] = nat_result
+        if self.hasnans:
+            result[self._isnan] = nat_result
 
         return result
     return wrapper
@@ -164,7 +160,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                          'weekofyear', 'week', 'dayofweek', 'weekday',
                          'dayofyear', 'quarter', 'qyear', 'freq',
                          'days_in_month', 'daysinmonth',
-                         'to_timestamp', 'asfreq', 'start_time', 'end_time']
+                         'to_timestamp', 'asfreq', 'start_time', 'end_time',
+                         'is_leap_year']
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
@@ -204,6 +201,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
+        if freq is not None:
+            freq = Period._maybe_convert_freq(freq)
+
         field_count = len(fields)
         if com._count_not_none(start, end) > 0:
             if field_count > 0:
@@ -220,6 +220,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _from_arraylike(cls, data, freq, tz):
+        if freq is not None:
+            freq = Period._maybe_convert_freq(freq)
+
         if not isinstance(data, (np.ndarray, PeriodIndex,
                                  DatetimeIndex, Int64Index)):
             if is_scalar(data) or isinstance(data, Period):
@@ -235,7 +238,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 data = _ensure_int64(data)
                 if freq is None:
                     raise ValueError('freq not specified')
-                data = np.array([Period(x, freq=freq).ordinal for x in data],
+                data = np.array([Period(x, freq=freq) for x in data],
                                 dtype=np.int64)
             except (TypeError, ValueError):
                 data = _ensure_object(data)
@@ -317,20 +320,19 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """
         return PeriodIndex([item], **self._get_attributes_dict())
 
-    @property
-    def _na_value(self):
-        return self._box_func(tslib.iNaT)
-
     def __contains__(self, key):
-        if not isinstance(key, Period) or key.freq != self.freq:
-            if isinstance(key, compat.string_types):
-                try:
-                    self.get_loc(key)
-                    return True
-                except Exception:
-                    return False
+        if isinstance(key, Period):
+            if key.freq != self.freq:
+                return False
+            else:
+                return key.ordinal in self._engine
+        else:
+            try:
+                self.get_loc(key)
+                return True
+            except Exception:
+                return False
             return False
-        return key.ordinal in self._engine
 
     def __array_wrap__(self, result, context=None):
         """
@@ -389,9 +391,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         result[(locs == 0) & (where_idx.values < self.values[first])] = -1
 
         return result
-
-    def _array_values(self):
-        return self.asobject
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -473,7 +472,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """
         how = _validate_end_alias(how)
 
-        freq = frequencies.get_standard_freq(freq)
+        freq = Period._maybe_convert_freq(freq)
 
         base1, mult1 = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
@@ -489,8 +488,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         new_data = period.period_asfreq_arr(ordinal, base1, base2, end)
 
         if self.hasnans:
-            mask = asi8 == tslib.iNaT
-            new_data[mask] = tslib.iNaT
+            new_data[self._isnan] = tslib.iNaT
 
         return self._simple_new(new_data, self.name, freq=freq)
 
@@ -505,16 +503,21 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     second = _field_accessor('second', 7, "The second of the period")
     weekofyear = _field_accessor('week', 8, "The week ordinal of the year")
     week = weekofyear
-    dayofweek = _field_accessor(
-        'dayofweek', 10, "The day of the week with Monday=0, Sunday=6")
+    dayofweek = _field_accessor('dayofweek', 10,
+                                "The day of the week with Monday=0, Sunday=6")
     weekday = dayofweek
-    dayofyear = day_of_year = _field_accessor(
-        'dayofyear', 9, "The ordinal day of the year")
+    dayofyear = day_of_year = _field_accessor('dayofyear', 9,
+                                              "The ordinal day of the year")
     quarter = _field_accessor('quarter', 2, "The quarter of the date")
     qyear = _field_accessor('qyear', 1)
-    days_in_month = _field_accessor(
-        'days_in_month', 11, "The number of days in the month")
+    days_in_month = _field_accessor('days_in_month', 11,
+                                    "The number of days in the month")
     daysinmonth = days_in_month
+
+    @property
+    def is_leap_year(self):
+        """ Logical indicating if the date belongs to a leap year """
+        return tslib._isleapyear_arr(self.year)
 
     @property
     def start_time(self):
@@ -524,14 +527,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def end_time(self):
         return self.to_timestamp(how='end')
 
-    def _get_object_array(self):
-        freq = self.freq
-        return np.array([Period._from_ordinal(ordinal=x, freq=freq)
-                         for x in self.values], copy=False)
-
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return self._get_object_array()
+        return self.asobject.values
 
     def equals(self, other):
         """
@@ -569,6 +567,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if freq is None:
             base, mult = _gfc(self.freq)
             freq = frequencies.get_to_timestamp_base(base)
+        else:
+            freq = Period._maybe_convert_freq(freq)
 
         base, mult = _gfc(freq)
         new_data = self.asfreq(freq, how)
@@ -586,7 +586,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 if nanos % offset_nanos == 0:
                     return nanos // offset_nanos
         elif isinstance(other, offsets.DateOffset):
-            freqstr = frequencies.get_standard_freq(other)
+            freqstr = other.rule_code
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 return other.n
@@ -622,17 +622,12 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
-        if other.ordinal == tslib.iNaT:
-            new_data = np.empty(len(self))
-            new_data.fill(np.nan)
-        else:
-            asi8 = self.asi8
-            new_data = asi8 - other.ordinal
+        asi8 = self.asi8
+        new_data = asi8 - other.ordinal
 
-            if self.hasnans:
-                mask = asi8 == tslib.iNaT
-                new_data = new_data.astype(np.float64)
-                new_data[mask] = np.nan
+        if self.hasnans:
+            new_data = new_data.astype(np.float64)
+            new_data[self._isnan] = np.nan
         # result must be Int64Index or Float64Index
         return Index(new_data, name=self.name)
 
@@ -740,8 +735,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 # we cannot construct the Period
                 # as we have an invalid type
                 raise KeyError(key)
+
             try:
-                return Index.get_loc(self, key.ordinal, method, tolerance)
+                ordinal = tslib.iNaT if key is tslib.NaT else key.ordinal
+                return Index.get_loc(self, ordinal, method, tolerance)
             except KeyError:
                 raise KeyError(key)
 
@@ -883,16 +880,21 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _format_native_types(self, na_rep=u('NaT'), date_format=None,
                              **kwargs):
 
-        values = np.array(list(self), dtype=object)
-        mask = isnull(self.values)
-        values[mask] = na_rep
-        imask = ~mask
+        values = self.asobject.values
 
         if date_format:
             formatter = lambda dt: dt.strftime(date_format)
         else:
             formatter = lambda dt: u('%s') % dt
-        values[imask] = np.array([formatter(dt) for dt in values[imask]])
+
+        if self.hasnans:
+            mask = self._isnan
+            values[mask] = na_rep
+            imask = ~mask
+            values[imask] = np.array([formatter(dt) for dt
+                                      in values[imask]])
+        else:
+            values = np.array([formatter(dt) for dt in values])
         return values
 
     def append(self, other):
@@ -933,19 +935,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         to_concat = [x.values if isinstance(x, Index) else x
                      for x in to_concat]
         return Index(com._concat_compat(to_concat), name=name)
-
-    def repeat(self, n, *args, **kwargs):
-        """
-        Return a new Index of the values repeated `n` times.
-
-        See also
-        --------
-        numpy.ndarray.repeat
-        """
-        nv.validate_repeat(args, kwargs)
-
-        # overwrites method from DatetimeIndexOpsMixin
-        return self._shallow_copy(self.values.repeat(n))
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
@@ -1044,8 +1033,7 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
 
     if is_start_per and is_end_per and start.freq != end.freq:
         raise ValueError('Start and end must have same freq')
-    if ((is_start_per and start.ordinal == tslib.iNaT) or
-            (is_end_per and end.ordinal == tslib.iNaT)):
+    if (start is tslib.NaT or end is tslib.NaT):
         raise ValueError('Start and end must not be NaT')
 
     if freq is None:

@@ -235,12 +235,14 @@ class Timestamp(_Timestamp):
     ----------
     ts_input : datetime-like, str, int, float
         Value to be converted to Timestamp
-    offset : str, DateOffset
+    freq : str, DateOffset
         Offset which Timestamp will have
     tz : string, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : string
         numpy unit used for conversion, if ts_input is int or float
+    offset : str, DateOffset
+        Deprecated, use freq
 
     The other two forms mimic the parameters from ``datetime.datetime``. They
     can be passed by either position or keyword, but not both mixed together.
@@ -262,8 +264,21 @@ class Timestamp(_Timestamp):
 
     @classmethod
     def fromordinal(cls, ordinal, freq=None, tz=None, offset=None):
-        """ passed an ordinal, translate and convert to a ts
-            note: by definition there cannot be any tz info on the ordinal itself """
+        """
+        passed an ordinal, translate and convert to a ts
+        note: by definition there cannot be any tz info on the ordinal itself
+
+        Parameters
+        ----------
+        ordinal : int
+            date corresponding to a proleptic Gregorian ordinal
+        freq : str, DateOffset
+            Offset which Timestamp will have
+        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will have.
+        offset : str, DateOffset
+            Deprecated, use freq
+        """
         return cls(datetime.fromordinal(ordinal), freq=freq, tz=tz, offset=offset)
 
     @classmethod
@@ -531,6 +546,10 @@ class Timestamp(_Timestamp):
     def is_year_end(self):
         return self._get_start_end_field('is_year_end')
 
+    @property
+    def is_leap_year(self):
+        return bool(is_leapyear(self.year))
+
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
@@ -738,6 +757,10 @@ class NaTType(_NaT):
         # GH 10939
         return np.nan
 
+    @property
+    def is_leap_year(self):
+        return False
+
     def __rdiv__(self, other):
         return _nat_rdivide_op(self, other)
 
@@ -756,7 +779,8 @@ class NaTType(_NaT):
 
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek', 'weekday_name']
+          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek',
+          'weekday_name']
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
@@ -835,13 +859,6 @@ cdef inline bint _check_all_nulls(object val):
 
 cdef inline bint _cmp_nat_dt(_NaT lhs, _Timestamp rhs, int op) except -1:
     return _nat_scalar_rules[op]
-
-
-cdef _tz_format(object obj, object zone):
-    try:
-        return obj.strftime(' %%Z, tz=%s' % zone)
-    except:
-        return ', tz=%s' % zone
 
 
 cpdef object get_value_box(ndarray arr, object loc):
@@ -1082,7 +1099,10 @@ cdef class _Timestamp(datetime):
             return Timestamp(self.value + other_int, tz=self.tzinfo, freq=self.freq)
 
         elif is_integer_object(other):
-            if self.freq is None:
+            if self is NaT:
+                # to be compat with Period
+                return NaT
+            elif self.freq is None:
                 raise ValueError("Cannot add integral value to Timestamp "
                                  "without freq.")
             return Timestamp((self.freq * other).apply(self), freq=self.freq)
@@ -1624,14 +1644,6 @@ cdef inline _check_dts_bounds(pandas_datetimestruct *dts):
 
         raise OutOfBoundsDatetime('Out of bounds nanosecond timestamp: %s' % fmt)
 
-# elif isinstance(ts, _Timestamp):
-#     tmp = ts
-#     obj.value = (<_Timestamp> ts).value
-#     obj.dtval =
-# elif isinstance(ts, object):
-#     # If all else fails
-#     obj.value = _dtlike_to_datetime64(ts, &obj.dts)
-#     obj.dtval = _dts_to_pydatetime(&obj.dts)
 
 def datetime_to_datetime64(ndarray[object] values):
     cdef:
@@ -1671,7 +1683,7 @@ def datetime_to_datetime64(ndarray[object] values):
 cdef:
     set _not_datelike_strings = set(['a','A','m','M','p','P','t','T'])
 
-cpdef object _does_string_look_like_datetime(object date_string):
+cpdef bint _does_string_look_like_datetime(object date_string):
     if date_string.startswith('0'):
         # Strings starting with 0 are more consistent with a
         # date-like string than a number
@@ -1809,8 +1821,14 @@ def parse_datetime_string(object date_string, object freq=None,
     except ValueError:
         pass
 
-    dt = parse_date(date_string, default=_DEFAULT_DATETIME,
-                    dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+    try:
+        dt = parse_date(date_string, default=_DEFAULT_DATETIME,
+                        dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+    except TypeError:
+        # following may be raised from dateutil
+        # TypeError: 'NoneType' object is not iterable
+        raise ValueError('Given date string not likely a datetime.')
+
     return dt
 
 
@@ -2077,7 +2095,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         # if we have nulls that are not type-compat
         # then need to iterate
         try:
-            iresult = values.astype('i8')
+            iresult = values.astype('i8', casting='same_kind', copy=False)
             mask = iresult == iNaT
             iresult[mask] = 0
             fvalues = iresult.astype('f8') * m
@@ -2196,7 +2214,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
 
 
 cpdef array_to_datetime(ndarray[object] values, errors='raise',
-                        dayfirst=False, yearfirst=False, freq=None,
+                        dayfirst=False, yearfirst=False,
                         format=None, utc=None,
                         require_iso8601=False):
     cdef:
@@ -2325,7 +2343,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
                     try:
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
-                                                      yearfirst=yearfirst, freq=freq)
+                                                      yearfirst=yearfirst)
                     except Exception:
                         if is_coerce:
                             iresult[i] = NPY_NAT
@@ -2378,10 +2396,10 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
             # set as nan except if its a NaT
             if _checknull_with_nat(val):
-                if val.view('i8') == NPY_NAT:
-                    oresult[i] = NaT
-                else:
+                if PyFloat_Check(val):
                     oresult[i] = np.nan
+                else:
+                    oresult[i] = NaT
             elif util.is_datetime64_object(val):
                 if get_datetime64_value(val) == NPY_NAT:
                     oresult[i] = NaT
@@ -2405,7 +2423,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
                 try:
                     oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
-                                                    yearfirst=yearfirst, freq=freq)
+                                                    yearfirst=yearfirst)
                     _pydatetime_to_dts(oresult[i], &dts)
                     _check_dts_bounds(&dts)
                 except Exception:
@@ -2420,28 +2438,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         return oresult
 
-def parse_str_array_to_datetime(ndarray values, dayfirst=False,
-                                yearfirst=False, object freq=None):
-    """Shortcut to parse str array for quicker DatetimeIndex construction"""
-    cdef:
-        Py_ssize_t i, n = len(values)
-        object val, py_dt
-        ndarray[int64_t] iresult
-        _TSObject _ts
-
-    iresult = np.empty(n, dtype='i8')
-
-    for i in range(n):
-        val = values[i]
-        try:
-            py_dt = parse_datetime_string(val, dayfirst=dayfirst,
-                                          yearfirst=yearfirst, freq=freq)
-        except Exception:
-            raise ValueError
-        _ts = convert_to_tsobject(py_dt, None, None, 0, 0)
-        iresult[i] = _ts.value
-
-    return iresult
 
 # Similar to Timestamp/datetime, this is a construction requirement for timedeltas
 # we need to do object instantiation in python
@@ -2507,20 +2503,19 @@ cdef class _Timedelta(timedelta):
         """
         compute the components
         """
-        cdef int64_t sfrac, ifrac, ivalue = self.value
-        cdef float64_t frac
+        cdef int64_t sfrac, ifrac, frac, ivalue = self.value
 
         if self.is_populated:
             return
 
         # put frac in seconds
-        frac = float(ivalue)/1e9
+        frac = ivalue/(1000*1000*1000)
         if frac < 0:
             self._sign = -1
 
             # even fraction
-            if int(-frac/86400) != -frac/86400.0:
-                self._d = int(-frac/86400.0+1)
+            if (-frac % 86400) != 0:
+                self._d = -frac/86400 + 1
                 frac += 86400*self._d
             else:
                 frac = -frac
@@ -2529,39 +2524,37 @@ cdef class _Timedelta(timedelta):
             self._d = 0
 
         if frac >= 86400:
-            self._d += int(frac / 86400)
+            self._d += frac / 86400
             frac   -= self._d * 86400
 
         if frac >= 3600:
-            self._h  = int(frac / 3600)
+            self._h  = frac / 3600
             frac    -= self._h * 3600
         else:
             self._h = 0
 
         if frac >= 60:
-            self._m = int(frac / 60)
+            self._m = frac / 60
             frac   -= self._m * 60
         else:
             self._m = 0
 
         if frac >= 0:
-            self._s = int(frac)
+            self._s = frac
             frac   -= self._s
         else:
             self._s = 0
 
-        if frac != 0:
+        sfrac = (self._h*3600 + self._m*60 + self._s)*(1000*1000*1000)
+        if self._sign < 0:
+            ifrac = ivalue + self._d*DAY_NS - sfrac
+        else:
+            ifrac = ivalue - (self._d*DAY_NS + sfrac)
 
-            # reset so we don't lose precision
-            sfrac = int((self._h*3600 + self._m*60 + self._s)*1e9)
-            if self._sign < 0:
-                ifrac = ivalue + self._d*DAY_NS - sfrac
-            else:
-                ifrac = ivalue - (self._d*DAY_NS + sfrac)
-
-            self._ms = int(ifrac/1e6)
+        if ifrac != 0:
+            self._ms = ifrac/(1000*1000)
             ifrac -= self._ms*1000*1000
-            self._us = int(ifrac/1e3)
+            self._us = ifrac/1000
             ifrac -= self._us*1000
             self._ns = ifrac
         else:
@@ -2608,10 +2601,10 @@ class Timedelta(_Timedelta):
 
     """
 
-    def __new__(cls, object value=None, unit=None, **kwargs):
+    def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
 
-        if value is None:
+        if value is _no_input:
             if not len(kwargs):
                 raise ValueError("cannot construct a Timedelta without a value/unit or descriptive keywords (days,seconds....)")
 
@@ -3010,7 +3003,7 @@ cdef inline bint is_timedelta(object o):
 
 def array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
     """ convert an ndarray to an array of ints that are timedeltas
-        force conversion if coerce = True,
+        force conversion if errors = 'coerce',
         else will raise if cannot convert """
     cdef:
         Py_ssize_t i, n
@@ -4447,6 +4440,8 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
                 out[i] = days_in_month(dts)
         return out
+    elif field == 'is_leap_year':
+        return _isleapyear_arr(get_date_field(dtindex, 'Y'))
 
     raise ValueError("Field %s not supported" % field)
 
@@ -4837,8 +4832,18 @@ def dates_normalized(ndarray[int64_t] stamps, tz=None):
 # Some general helper functions
 #----------------------------------------------------------------------
 
-def isleapyear(int64_t year):
-    return is_leapyear(year)
+
+cpdef _isleapyear_arr(ndarray years):
+    cdef:
+        ndarray[int8_t] out
+
+    # to make NaT result as False
+    out = np.zeros(len(years), dtype='int8')
+    out[np.logical_or(years % 400 == 0,
+                      np.logical_and(years % 4 == 0,
+                                     years % 100 > 0))] = 1
+    return out.view(bool)
+
 
 def monthrange(int64_t year, int64_t month):
     cdef:

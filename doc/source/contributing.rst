@@ -575,42 +575,35 @@ To install asv::
 
     pip install git+https://github.com/spacetelescope/asv
 
-If you need to run a benchmark, change your directory to ``/asv_bench/`` and run
-the following if you have been developing on ``master``::
+If you need to run a benchmark, change your directory to ``asv_bench/`` and run::
 
-    asv continuous master
+    asv continuous -f 1.1 upstream/master HEAD
 
-This command uses ``conda`` by default for creating the benchmark
+You can replace ``HEAD`` with the name of the branch you are working on,
+and report benchmarks that changed by more than 10%.
+The command uses ``conda`` by default for creating the benchmark
 environments. If you want to use virtualenv instead, write::
 
-    asv continuous -E virtualenv master
+    asv continuous -f 1.1 -E virtualenv upstream/master HEAD
 
 The ``-E virtualenv`` option should be added to all ``asv`` commands
 that run benchmarks. The default value is defined in ``asv.conf.json``.
 
-If you are working on another branch, either of the following can be used::
+Running the full test suite can take up to one hour and use up to 3GB of RAM.
+Usually it is sufficient to paste only a subset of the results into the pull
+request to show that the committed changes do not cause unexpected performance
+regressions.  You can run specific benchmarks using the ``-b`` flag, which
+takes a regular expression.  For example, this will only run tests from a
+``pandas/asv_bench/benchmarks/groupby.py`` file::
 
-    asv continuous master HEAD
-    asv continuous master your_branch
-
-This will check out the master revision and run the suite on both master and
-your commit.  Running the full test suite can take up to one hour and use up
-to 3GB of RAM.  Usually it is sufficient to paste only a subset of the results into
-the pull request to show that the committed changes do not cause unexpected
-performance regressions.
-
-You can run specific benchmarks using the ``-b`` flag, which takes a regular expression.
-For example, this will only run tests from a ``pandas/asv_bench/benchmarks/groupby.py``
-file::
-
-    asv continuous master -b groupby
+    asv continuous -f 1.1 upstream/master HEAD -b ^groupby
 
 If you want to only run a specific group of tests from a file, you can do it
 using ``.`` as a separator. For example::
 
-    asv continuous master -b groupby.groupby_agg_builtins1
+    asv continuous -f 1.1 upstream/master HEAD -b groupby.groupby_agg_builtins
 
-will only run a ``groupby_agg_builtins1`` test defined in a ``groupby`` file.
+will only run the ``groupby_agg_builtins`` benchmark defined in ``groupby.py``.
 
 You can also run the benchmark suite using the version of ``pandas``
 already installed in your current Python environment. This can be

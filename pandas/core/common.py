@@ -14,7 +14,7 @@ from pandas import compat
 from pandas.compat import long, zip, iteritems
 from pandas.core.config import get_option
 from pandas.types.generic import ABCSeries
-from pandas.types.common import _NS_DTYPE, is_integer
+from pandas.types.common import _NS_DTYPE
 from pandas.types.inference import _iterable_not_string
 from pandas.types.missing import isnull
 from pandas.api import types
@@ -31,7 +31,7 @@ for t in [t for t in dir(types) if not t.startswith('_')]:
             warnings.warn("pandas.core.common.{t} is deprecated. "
                           "import from the public API: "
                           "pandas.api.types.{t} instead".format(t=t),
-                          FutureWarning, stacklevel=2)
+                          DeprecationWarning, stacklevel=3)
             return getattr(types, t)(*args, **kwargs)
         return wrapper
 
@@ -57,7 +57,7 @@ for t in ['is_datetime_arraylike',
                           "These are not longer public API functions, "
                           "but can be imported from "
                           "pandas.types.common.{t} instead".format(t=t),
-                          FutureWarning, stacklevel=2)
+                          DeprecationWarning, stacklevel=3)
             return getattr(common, t)(*args, **kwargs)
         return wrapper
 
@@ -578,7 +578,7 @@ def _random_state(state=None):
     np.random.RandomState
     """
 
-    if is_integer(state):
+    if types.is_integer(state):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
         return state

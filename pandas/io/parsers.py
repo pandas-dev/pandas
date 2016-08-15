@@ -11,12 +11,13 @@ import datetime
 import numpy as np
 
 from pandas import compat
-from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
+from pandas.compat import (range, lrange, StringIO, lzip,
+                           zip, string_types, map, u)
 from pandas.types.common import (is_integer, _ensure_object,
                                  is_list_like, is_integer_dtype,
                                  is_float,
                                  is_scalar)
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, MultiIndex, RangeIndex
 from pandas.core.frame import DataFrame
 from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
@@ -39,6 +40,12 @@ _NA_VALUES = set([
     '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
     'N/A', 'NA', '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''
 ])
+
+# BOM character (byte order mark)
+# This exists at the beginning of a file to indicate endianness
+# of a file (stream). Unfortunately, this marker screws up parsing,
+# so we need to remove it if we see it.
+_BOM = u('\ufeff')
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -125,6 +132,8 @@ skiprows : list-like or integer, default None
     at the start of the file
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c')
+skip_footer : int, default 0
+    DEPRECATED: use the `skipfooter` parameter instead, as they are identical
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 na_values : str or list-like or dict, default None
@@ -277,11 +286,11 @@ _engine_doc = """engine : {'c', 'python'}, optional
     Parser engine to use. The C engine is faster while the python engine is
     currently more feature-complete."""
 
-_sep_doc = """sep : str, default {default}
+_sep_doc = r"""sep : str, default {default}
     Delimiter to use. If sep is None, will try to automatically determine
-    this. Separators longer than 1 character and different from '\s+' will be
-    interpreted as regular expressions, will force use of the python parsing
-    engine and will ignore quotes in the data. Regex example: '\\r\\t'"""
+    this. Separators longer than 1 character and different from ``'\s+'`` will
+    be interpreted as regular expressions, will force use of the python parsing
+    engine and will ignore quotes in the data. Regex example: ``'\r\t'``"""
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
@@ -391,11 +400,15 @@ def _read(filepath_or_buffer, kwds):
         raise NotImplementedError("'nrows' and 'chunksize' cannot be used"
                                   " together yet.")
     elif nrows is not None:
-        return parser.read(nrows)
+        data = parser.read(nrows)
+        parser.close()
+        return data
     elif chunksize or iterator:
         return parser
 
-    return parser.read()
+    data = parser.read()
+    parser.close()
+    return data
 
 _parser_defaults = {
     'delimiter': None,
@@ -415,8 +428,8 @@ _parser_defaults = {
     'na_values': None,
     'true_values': None,
     'false_values': None,
-    'skip_footer': 0,
     'converters': None,
+    'skipfooter': 0,
 
     'keep_default_na': True,
     'thousands': None,
@@ -465,7 +478,7 @@ _fwf_defaults = {
     'widths': None,
 }
 
-_c_unsupported = set(['skip_footer'])
+_c_unsupported = set(['skipfooter'])
 _python_unsupported = set([
     'low_memory',
     'buffer_lines',
@@ -507,7 +520,6 @@ def _make_parser_function(name, sep=','):
                  false_values=None,
                  skipinitialspace=False,
                  skiprows=None,
-                 skipfooter=None,
                  nrows=None,
 
                  # NA and Missing Data Handling
@@ -545,8 +557,8 @@ def _make_parser_function(name, sep=','):
                  error_bad_lines=True,
                  warn_bad_lines=True,
 
-                 # Deprecated
-                 skip_footer=0,
+                 skipfooter=0,
+                 skip_footer=0,  # deprecated
 
                  # Internal
                  doublequote=True,
@@ -573,6 +585,13 @@ def _make_parser_function(name, sep=','):
         else:
             engine = 'c'
             engine_specified = False
+
+        if skip_footer != 0:
+            warnings.warn("The 'skip_footer' argument has "
+                          "been deprecated and will be removed "
+                          "in a future version. Please use the "
+                          "'skipfooter' argument instead.",
+                          FutureWarning, stacklevel=2)
 
         kwds = dict(delimiter=delimiter,
                     engine=engine,
@@ -704,6 +723,7 @@ class TextFileReader(BaseIterator):
         # miscellanea
         self.engine = engine
         self._engine = None
+        self._currow = 0
 
         options = self._get_options_with_defaults(engine)
 
@@ -718,10 +738,7 @@ class TextFileReader(BaseIterator):
         self._make_engine(self.engine)
 
     def close(self):
-        try:
-            self._engine._reader.close()
-        except:
-            pass
+        self._engine.close()
 
     def _get_options_with_defaults(self, engine):
         kwds = self.orig_options
@@ -771,9 +788,9 @@ class TextFileReader(BaseIterator):
 
         # C engine not supported yet
         if engine == 'c':
-            if options['skip_footer'] > 0:
+            if options['skipfooter'] > 0:
                 fallback_reason = "the 'c' engine does not support"\
-                                  " skip_footer"
+                                  " skipfooter"
                 engine = 'python'
 
         if sep is None and not delim_whitespace:
@@ -889,7 +906,11 @@ class TextFileReader(BaseIterator):
         return result, engine
 
     def __next__(self):
-        return self.get_chunk()
+        try:
+            return self.get_chunk()
+        except StopIteration:
+            self.close()
+            raise
 
     def _make_engine(self, engine='c'):
         if engine == 'c':
@@ -906,8 +927,8 @@ class TextFileReader(BaseIterator):
 
     def read(self, nrows=None):
         if nrows is not None:
-            if self.options.get('skip_footer'):
-                raise ValueError('skip_footer not supported for iteration')
+            if self.options.get('skipfooter'):
+                raise ValueError('skipfooter not supported for iteration')
 
         ret = self._engine.read(nrows)
 
@@ -917,7 +938,19 @@ class TextFileReader(BaseIterator):
         # May alter columns / col_dict
         index, columns, col_dict = self._create_index(ret)
 
+        if index is None:
+            if col_dict:
+                # Any column is actually fine:
+                new_rows = len(compat.next(compat.itervalues(col_dict)))
+                index = RangeIndex(self._currow, self._currow + new_rows)
+            else:
+                new_rows = 0
+        else:
+            new_rows = len(index)
+
         df = DataFrame(col_dict, columns=columns, index=index)
+
+        self._currow += new_rows
 
         if self.squeeze and len(df.columns) == 1:
             return df[df.columns[0]].copy()
@@ -1036,8 +1069,13 @@ class ParserBase(object):
 
         self._first_chunk = True
 
+        # GH 13932
+        # keep references to file handles opened by the parser itself
+        self.handles = []
+
     def close(self):
-        self._reader.close()
+        for f in self.handles:
+            f.close()
 
     @property
     def _has_complex_date_col(self):
@@ -1335,6 +1373,7 @@ class CParserWrapper(ParserBase):
         if 'utf-16' in (kwds.get('encoding') or ''):
             if isinstance(src, compat.string_types):
                 src = open(src, 'rb')
+                self.handles.append(src)
             src = UTF8Recoder(src, kwds['encoding'])
             kwds['encoding'] = 'utf-8'
 
@@ -1407,6 +1446,14 @@ class CParserWrapper(ParserBase):
                 self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
+
+    def close(self):
+        for f in self.handles:
+            f.close()
+        try:
+            self._reader.close()
+        except:
+            pass
 
     def _set_noconvert_columns(self):
         names = self.orig_names
@@ -1582,7 +1629,7 @@ def TextParser(*args, **kwds):
     date_parser : function, default None
     skiprows : list of integers
         Row numbers to skip
-    skip_footer : int
+    skipfooter : int
         Number of line at bottom of file to skip
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
@@ -1695,7 +1742,7 @@ class PythonParser(ParserBase):
         self.memory_map = kwds['memory_map']
         self.skiprows = kwds['skiprows']
 
-        self.skip_footer = kwds['skip_footer']
+        self.skipfooter = kwds['skipfooter']
         self.delimiter = kwds['delimiter']
 
         self.quotechar = kwds['quotechar']
@@ -1730,13 +1777,16 @@ class PythonParser(ParserBase):
             f = _get_handle(f, 'r', encoding=self.encoding,
                             compression=self.compression,
                             memory_map=self.memory_map)
+            self.handles.append(f)
         elif self.compression:
             f = _wrap_compressed(f, self.compression, self.encoding)
+            self.handles.append(f)
         # in Python 3, convert BytesIO or fileobjects passed with an encoding
         elif compat.PY3 and isinstance(f, compat.BytesIO):
             from io import TextIOWrapper
 
             f = TextIOWrapper(f, encoding=self.encoding)
+            self.handles.append(f)
 
         # Set self.data to something that can read lines.
         if hasattr(f, 'readline'):
@@ -1875,6 +1925,10 @@ class PythonParser(ParserBase):
         else:
             def _read():
                 line = f.readline()
+
+                if compat.PY2 and self.encoding:
+                    line = line.decode(self.encoding)
+
                 pat = re.compile(sep)
                 yield pat.split(line.strip())
                 for line in f:
@@ -2143,6 +2197,67 @@ class PythonParser(ParserBase):
         else:
             return self._next_line()
 
+    def _check_for_bom(self, first_row):
+        """
+        Checks whether the file begins with the BOM character.
+        If it does, remove it. In addition, if there is quoting
+        in the field subsequent to the BOM, remove it as well
+        because it technically takes place at the beginning of
+        the name, not the middle of it.
+        """
+        # first_row will be a list, so we need to check
+        # that that list is not empty before proceeding.
+        if not first_row:
+            return first_row
+
+        # The first element of this row is the one that could have the
+        # BOM that we want to remove. Check that the first element is a
+        # string before proceeding.
+        if not isinstance(first_row[0], compat.string_types):
+            return first_row
+
+        # Check that the string is not empty, as that would
+        # obviously not have a BOM at the start of it.
+        if not first_row[0]:
+            return first_row
+
+        # Since the string is non-empty, check that it does
+        # in fact begin with a BOM.
+        first_elt = first_row[0][0]
+
+        # This is to avoid warnings we get in Python 2.x if
+        # we find ourselves comparing with non-Unicode
+        if compat.PY2 and not isinstance(first_elt, unicode):  # noqa
+            try:
+                first_elt = u(first_elt)
+            except UnicodeDecodeError:
+                return first_row
+
+        if first_elt != _BOM:
+            return first_row
+
+        first_row = first_row[0]
+
+        if len(first_row) > 1 and first_row[1] == self.quotechar:
+            start = 2
+            quote = first_row[1]
+            end = first_row[2:].index(quote) + 2
+
+            # Extract the data between the quotation marks
+            new_row = first_row[start:end]
+
+            # Extract any remaining data after the second
+            # quotation mark.
+            if len(first_row) > end + 1:
+                new_row += first_row[end + 1:]
+            return [new_row]
+        elif len(first_row) > 1:
+            return [first_row[1:]]
+        else:
+            # First row is just the BOM, so we
+            # return an empty string.
+            return [""]
+
     def _empty(self, line):
         return not line or all(not x for x in line)
 
@@ -2172,7 +2287,17 @@ class PythonParser(ParserBase):
                 next(self.data)
 
             while True:
-                orig_line = next(self.data)
+                try:
+                    orig_line = next(self.data)
+                except csv.Error as e:
+                    if 'NULL byte' in str(e):
+                        raise csv.Error(
+                            'NULL byte detected. This byte '
+                            'cannot be processed in Python\'s '
+                            'native csv library at the moment, '
+                            'so please pass in engine=\'c\' instead.')
+                    else:
+                        raise
                 line = self._check_comments([orig_line])[0]
                 self.pos += 1
                 if (not self.skip_blank_lines and
@@ -2183,6 +2308,12 @@ class PythonParser(ParserBase):
                     if ret:
                         line = ret[0]
                         break
+
+        # This was the first line of the file,
+        # which could contain the BOM at the
+        # beginning of it.
+        if self.pos == 1:
+            line = self._check_for_bom(line)
 
         self.line_pos += 1
         self.buf.append(line)
@@ -2327,7 +2458,7 @@ class PythonParser(ParserBase):
             content, min_width=col_len).T)
         zip_len = len(zipped_content)
 
-        if self.skip_footer < 0:
+        if self.skipfooter < 0:
             raise ValueError('skip footer cannot be negative')
 
         # Loop through rows to verify lengths are correct.
@@ -2340,8 +2471,8 @@ class PythonParser(ParserBase):
                     break
 
             footers = 0
-            if self.skip_footer:
-                footers = self.skip_footer
+            if self.skipfooter:
+                footers = self.skipfooter
 
             row_num = self.pos - (len(content) - i + footers)
 
@@ -2427,8 +2558,8 @@ class PythonParser(ParserBase):
         else:
             lines = new_rows
 
-        if self.skip_footer:
-            lines = lines[:-self.skip_footer]
+        if self.skipfooter:
+            lines = lines[:-self.skipfooter]
 
         lines = self._check_comments(lines)
         if self.skip_blank_lines:
@@ -2444,7 +2575,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
             strs = _concat_date_cols(date_cols)
 
             try:
-                return tools._to_datetime(
+                return tools.to_datetime(
                     _ensure_object(strs),
                     utc=None,
                     box=False,

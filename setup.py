@@ -90,11 +90,58 @@ try:
 except ImportError:
     cython = False
 
+
+if cython:
+    try:
+        try:
+            from Cython import Tempita as tempita
+        except ImportError:
+            import tempita
+    except ImportError:
+        raise ImportError('Building pandas requires Tempita: '
+                          'pip install Tempita')
+
+
 from os.path import join as pjoin
+
+
+_pxipath = pjoin('pandas', 'src')
+_pxi_dep_template = {
+    'algos': ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
+              'algos_take_helper.pxi.in'],
+    '_join': ['join_helper.pxi.in', 'joins_func_helper.pxi.in'],
+    'hashtable': ['hashtable_class_helper.pxi.in',
+                  'hashtable_func_helper.pxi.in'],
+    '_sparse': ['sparse_op_helper.pxi.in']
+}
+_pxifiles = []
+_pxi_dep = {}
+for module, files in _pxi_dep_template.items():
+    pxi_files = [pjoin(_pxipath, x) for x in files]
+    _pxifiles.extend(pxi_files)
+    _pxi_dep[module] = pxi_files
 
 
 class build_ext(_build_ext):
     def build_extensions(self):
+
+        for pxifile in _pxifiles:
+            # build pxifiles first, template extention must be .pxi.in
+            assert pxifile.endswith('.pxi.in')
+            outfile = pxifile[:-3]
+
+            if (os.path.exists(outfile) and
+               os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
+                # if .pxi.in is not updated, no need to output .pxi
+                continue
+
+            with open(pxifile, "r") as f:
+                tmpl = f.read()
+            pyxcontent = tempita.sub(tmpl)
+
+            with open(outfile, "w") as f:
+                f.write(pyxcontent)
+
         numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
 
         for ext in self.extensions:
@@ -270,6 +317,7 @@ class CheckSDist(sdist_class):
                  'pandas/tslib.pyx',
                  'pandas/index.pyx',
                  'pandas/algos.pyx',
+                 'pandas/join.pyx',
                  'pandas/window.pyx',
                  'pandas/parser.pyx',
                  'pandas/src/period.pyx',
@@ -411,7 +459,8 @@ ext_data = dict(
          'depends': lib_depends},
     hashtable={'pyxfile': 'hashtable',
                'pxdfiles': ['hashtable'],
-               'depends': ['pandas/src/klib/khash_python.h']},
+               'depends': (['pandas/src/klib/khash_python.h']
+                           + _pxi_dep['hashtable'])},
     tslib={'pyxfile': 'tslib',
            'depends': tseries_depends,
            'sources': ['pandas/src/datetime/np_datetime.c',
@@ -427,12 +476,14 @@ ext_data = dict(
                        'pandas/src/datetime/np_datetime_strings.c']},
     algos={'pyxfile': 'algos',
            'pxdfiles': ['src/util'],
-           'depends': [srcpath('generated', suffix='.pyx'),
-                       srcpath('join', suffix='.pyx')]},
+           'depends': _pxi_dep['algos']},
+    _join={'pyxfile': 'src/join',
+           'pxdfiles': ['src/util'],
+           'depends': _pxi_dep['_join']},
     _window={'pyxfile': 'window',
-            'pxdfiles': ['src/skiplist','src/util'],
-            'depends': ['pandas/src/skiplist.pyx',
-                        'pandas/src/skiplist.h']},
+             'pxdfiles': ['src/skiplist', 'src/util'],
+             'depends': ['pandas/src/skiplist.pyx',
+                         'pandas/src/skiplist.h']},
     parser={'pyxfile': 'parser',
             'depends': ['pandas/src/parser/tokenizer.h',
                         'pandas/src/parser/io.h',
@@ -440,7 +491,8 @@ ext_data = dict(
             'sources': ['pandas/src/parser/tokenizer.c',
                         'pandas/src/parser/io.c']},
     _sparse={'pyxfile': 'src/sparse',
-             'depends': [srcpath('sparse', suffix='.pyx')]},
+             'depends': ([srcpath('sparse', suffix='.pyx')]
+                         + _pxi_dep['_sparse'])},
     _testing={'pyxfile': 'src/testing',
               'depends': [srcpath('testing', suffix='.pyx')]},
 )
@@ -560,7 +612,6 @@ setup(name=DISTNAME,
                 'pandas.io.sas',
                 'pandas.formats',
                 'pandas.rpy',
-                'pandas.sandbox',
                 'pandas.sparse',
                 'pandas.sparse.tests',
                 'pandas.stats',
@@ -572,6 +623,7 @@ setup(name=DISTNAME,
                 'pandas.tests.formats',
                 'pandas.tests.types',
                 'pandas.tests.test_msgpack',
+                'pandas.tests.plotting',
                 'pandas.tools',
                 'pandas.tools.tests',
                 'pandas.tseries',
@@ -589,6 +641,7 @@ setup(name=DISTNAME,
                                   'tests/data/legacy_msgpack/*/*.msgpack',
                                   'tests/data/*.csv*',
                                   'tests/data/*.dta',
+                                  'tests/data/*.pickle',
                                   'tests/data/*.txt',
                                   'tests/data/*.xls',
                                   'tests/data/*.xlsx',
@@ -605,8 +658,7 @@ setup(name=DISTNAME,
                                   'tests/data/html_encoding/*.html',
                                   'tests/json/data/*.json'],
                     'pandas.tools': ['tests/data/*.csv'],
-                    'pandas.tests': ['data/*.pickle',
-                                     'data/*.csv'],
+                    'pandas.tests': ['data/*.csv'],
                     'pandas.tests.formats': ['data/*.csv'],
                     'pandas.tests.indexes': ['data/*.pickle'],
                     'pandas.tseries.tests': ['data/*.pickle',

@@ -28,7 +28,7 @@ class TestPDApi(Base, tm.TestCase):
 
     # these are optionally imported based on testing
     # & need to be ignored
-    ignored = ['tests', 'rpy', 'sandbox', 'locale']
+    ignored = ['tests', 'rpy', 'locale']
 
     # top-level sub-packages
     lib = ['api', 'compat', 'computation', 'core',
@@ -57,12 +57,11 @@ class TestPDApi(Base, tm.TestCase):
                'TimedeltaIndex', 'Timestamp']
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['SparsePanel', 'TimeSeries', 'WidePanel',
-                          'SparseTimeSeries']
+    deprecated_classes = ['TimeSeries', 'WidePanel',
+                          'SparseTimeSeries', 'Panel4D']
 
     # these should be deperecated in the future
-    deprecated_classes_in_future = ['Panel', 'Panel4D',
-                                    'SparseList', 'Term']
+    deprecated_classes_in_future = ['SparseList', 'Term', 'Panel']
 
     # these should be removed from top-level namespace
     remove_classes_from_top_level_namespace = ['Expr']
@@ -164,7 +163,7 @@ class TestTypes(Base, tm.TestCase):
         self.check(types, self.allowed)
 
     def check_deprecation(self, fold, fnew):
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(DeprecationWarning):
             try:
                 result = fold('foo')
                 expected = fnew('foo')

@@ -9,7 +9,7 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
                       ABCSparseArray, ABCSparseSeries)
-from .inference import is_integer, is_string_like
+from .inference import is_string_like
 from .inference import *  # noqa
 
 
@@ -230,7 +230,8 @@ def is_datetimelike_v_object(a, b):
 
 def needs_i8_conversion(arr_or_dtype):
     return (is_datetime_or_timedelta_dtype(arr_or_dtype) or
-            is_datetime64tz_dtype(arr_or_dtype))
+            is_datetime64tz_dtype(arr_or_dtype) or
+            isinstance(arr_or_dtype, ABCPeriodIndex))
 
 
 def is_numeric_dtype(arr_or_dtype):
@@ -384,33 +385,6 @@ def _validate_date_like_dtype(dtype):
         raise ValueError('%r is too specific of a frequency, try passing %r' %
                          (dtype.name, dtype.type.__name__))
 
-
-def _lcd_dtypes(a_dtype, b_dtype):
-    """ return the lcd dtype to hold these types """
-
-    if is_datetime64_dtype(a_dtype) or is_datetime64_dtype(b_dtype):
-        return _NS_DTYPE
-    elif is_timedelta64_dtype(a_dtype) or is_timedelta64_dtype(b_dtype):
-        return _TD_DTYPE
-    elif is_complex_dtype(a_dtype):
-        if is_complex_dtype(b_dtype):
-            return a_dtype
-        return np.float64
-    elif is_integer_dtype(a_dtype):
-        if is_integer_dtype(b_dtype):
-            if a_dtype.itemsize == b_dtype.itemsize:
-                return a_dtype
-            return np.int64
-        return np.float64
-    elif is_float_dtype(a_dtype):
-        if is_float_dtype(b_dtype):
-            if a_dtype.itemsize == b_dtype.itemsize:
-                return a_dtype
-            else:
-                return np.float64
-        elif is_integer(b_dtype):
-            return np.float64
-    return np.object
 
 _string_dtypes = frozenset(map(_get_dtype_from_object, (binary_type,
                                                         text_type)))

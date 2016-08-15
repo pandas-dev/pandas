@@ -597,6 +597,19 @@ class MultiIndex(Index):
         # isnull is not implemented for MultiIndex
         raise NotImplementedError('isnull is not defined for MultiIndex')
 
+    @Appender(_index_shared_docs['dropna'])
+    def dropna(self, how='any'):
+        nans = [label == -1 for label in self.labels]
+        if how == 'any':
+            indexer = np.any(nans, axis=0)
+        elif how == 'all':
+            indexer = np.all(nans, axis=0)
+        else:
+            raise ValueError("invalid how option: {0}".format(how))
+
+        new_labels = [label[~indexer] for label in self.labels]
+        return self.copy(labels=new_labels, deep=True)
+
     def get_value(self, series, key):
         # somewhat broken encapsulation
         from pandas.core.indexing import maybe_droplevels
@@ -674,10 +687,7 @@ class MultiIndex(Index):
         labels = self.labels[num]
         filled = algos.take_1d(unique.values, labels,
                                fill_value=unique._na_value)
-        _simple_new = unique._simple_new
-        values = _simple_new(filled, name=self.names[num],
-                             freq=getattr(unique, 'freq', None),
-                             tz=getattr(unique, 'tz', None))
+        values = unique._shallow_copy(filled)
         return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
@@ -847,6 +857,12 @@ class MultiIndex(Index):
         if len(arrays) == 1:
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
+
+        # Check if lengths of all arrays are equal or not,
+        # raise ValueError, if not
+        for i in range(1, len(arrays)):
+            if len(arrays[i]) != len(arrays[i - 1]):
+                raise ValueError('all arrays must be same length')
 
         cats = [Categorical.from_array(arr, ordered=True) for arr in arrays]
         levels = [c.categories for c in cats]

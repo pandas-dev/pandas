@@ -32,7 +32,7 @@ from pandas.tseries.offsets import Tick, DateOffset
 
 import pandas.lib as lib
 import pandas.tslib as tslib
-import pandas.algos as _algos
+import pandas._join as _join
 import pandas.index as _index
 
 Timedelta = tslib.Timedelta
@@ -110,6 +110,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         the 'left', 'right', or both sides (None)
     name : object
         Name to be stored in the index
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
 
     _typ = 'timedeltaindex'
@@ -119,11 +122,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return DatetimeIndexOpsMixin._join_i8_wrapper(
             joinf, dtype='m8[ns]', **kwargs)
 
-    _inner_indexer = _join_i8_wrapper(_algos.inner_join_indexer_int64)
-    _outer_indexer = _join_i8_wrapper(_algos.outer_join_indexer_int64)
-    _left_indexer = _join_i8_wrapper(_algos.left_join_indexer_int64)
+    _inner_indexer = _join_i8_wrapper(_join.inner_join_indexer_int64)
+    _outer_indexer = _join_i8_wrapper(_join.outer_join_indexer_int64)
+    _left_indexer = _join_i8_wrapper(_join.left_join_indexer_int64)
     _left_indexer_unique = _join_i8_wrapper(
-        _algos.left_join_indexer_unique_int64, with_indexers=False)
+        _join.left_join_indexer_unique_int64, with_indexers=False)
     _arrmap = None
     _datetimelike_ops = ['days', 'seconds', 'microseconds', 'nanoseconds',
                          'freq', 'components']
@@ -278,9 +281,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         result.freq = freq
         result._reset_identity()
         return result
-
-    _na_value = tslib.NaT
-    """The expected NA value to use with this index."""
 
     @property
     def _formatter_func(self):
@@ -697,6 +697,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         loc : int
         """
+
+        if isnull(key):
+            key = tslib.NaT
+
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by
             # the try/except clauses below
@@ -754,7 +758,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
-        if is_integer(key) or is_float(key):
+        if is_integer(key) or is_float(key) or key is tslib.NaT:
             self._invalid_indexer('slice', key)
         loc = self._partial_td_slice(key, freq, use_lhs=use_lhs,
                                      use_rhs=use_rhs)
@@ -1003,13 +1007,16 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
-    Notes
-    -----
-    2 of start, end, or periods must be specified
-
     Returns
     -------
     rng : TimedeltaIndex
+
+    Notes
+    -----
+    2 of start, end, or periods must be specified.
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
     return TimedeltaIndex(start=start, end=end, periods=periods,
                           freq=freq, name=name,

@@ -15,7 +15,10 @@ from pandas.types.cast import (_possibly_downcast_to_dtype,
                                _possibly_convert_objects,
                                _infer_dtype_from_scalar,
                                _maybe_convert_string_to_object,
-                               _maybe_convert_scalar)
+                               _maybe_convert_scalar,
+                               _find_common_type)
+from pandas.types.dtypes import (CategoricalDtype,
+                                 DatetimeTZDtype)
 from pandas.util import testing as tm
 
 _multiprocess_can_split_ = True
@@ -186,6 +189,72 @@ class TestConvert(tm.TestCase):
 
         out = _possibly_convert_objects(values, copy=True)
         self.assertTrue(values is not out)
+
+
+class TestCommonTypes(tm.TestCase):
+
+    def test_numpy_dtypes(self):
+        # (source_types, destination_type)
+        testcases = (
+            # identity
+            ((np.int64,), np.int64),
+            ((np.uint64,), np.uint64),
+            ((np.float32,), np.float32),
+            ((np.object,), np.object),
+
+            # into ints
+            ((np.int16, np.int64), np.int64),
+            ((np.int32, np.uint32), np.int64),
+            ((np.uint16, np.uint64), np.uint64),
+
+            # into floats
+            ((np.float16, np.float32), np.float32),
+            ((np.float16, np.int16), np.float32),
+            ((np.float32, np.int16), np.float32),
+            ((np.uint64, np.int64), np.float64),
+            ((np.int16, np.float64), np.float64),
+            ((np.float16, np.int64), np.float64),
+
+            # into others
+            ((np.complex128, np.int32), np.complex128),
+            ((np.object, np.float32), np.object),
+            ((np.object, np.int16), np.object),
+
+            ((np.dtype('datetime64[ns]'), np.dtype('datetime64[ns]')),
+             np.dtype('datetime64[ns]')),
+            ((np.dtype('timedelta64[ns]'), np.dtype('timedelta64[ns]')),
+             np.dtype('timedelta64[ns]')),
+
+            ((np.dtype('datetime64[ns]'), np.dtype('datetime64[ms]')),
+             np.dtype('datetime64[ns]')),
+            ((np.dtype('timedelta64[ms]'), np.dtype('timedelta64[ns]')),
+             np.dtype('timedelta64[ns]')),
+
+            ((np.dtype('datetime64[ns]'), np.dtype('timedelta64[ns]')),
+             np.object),
+            ((np.dtype('datetime64[ns]'), np.int64), np.object)
+        )
+        for src, common in testcases:
+            self.assertEqual(_find_common_type(src), common)
+
+        with tm.assertRaises(ValueError):
+            # empty
+            _find_common_type([])
+
+    def test_pandas_dtypes(self):
+        dtype = CategoricalDtype()
+        self.assertEqual(_find_common_type([dtype]), 'category')
+        self.assertEqual(_find_common_type([dtype, dtype]), 'category')
+        self.assertEqual(_find_common_type([np.object, dtype]), np.object)
+
+        dtype = DatetimeTZDtype(unit='ns', tz='US/Eastern')
+        self.assertEqual(_find_common_type([dtype, dtype]),
+                         'datetime64[ns, US/Eastern]')
+
+        for dtype2 in [DatetimeTZDtype(unit='ns', tz='Asia/Tokyo'),
+                       np.dtype('datetime64[ns]'), np.object, np.int64]:
+            self.assertEqual(_find_common_type([dtype, dtype2]), np.object)
+            self.assertEqual(_find_common_type([dtype2, dtype]), np.object)
 
 
 if __name__ == '__main__':

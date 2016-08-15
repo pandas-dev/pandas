@@ -145,13 +145,14 @@ class GbqConnector(object):
     scope = 'https://www.googleapis.com/auth/bigquery'
 
     def __init__(self, project_id, reauth=False, verbose=False,
-                 private_key=None):
+                 private_key=None, dialect='legacy'):
         _check_google_client_version()
         _test_google_api_imports()
         self.project_id = project_id
         self.reauth = reauth
         self.verbose = verbose
         self.private_key = private_key
+        self.dialect = dialect
         self.credentials = self.get_credentials()
         self.service = self.get_service()
 
@@ -334,7 +335,8 @@ class GbqConnector(object):
         job_data = {
             'configuration': {
                 'query': {
-                    'query': query
+                    'query': query,
+                    'useLegacySql': self.dialect == 'legacy'
                     # 'allowLargeResults', 'createDisposition',
                     # 'preserveNulls', destinationTable, useQueryCache
                 }
@@ -439,9 +441,8 @@ class GbqConnector(object):
         rows = []
         remaining_rows = len(dataframe)
 
-        if self.verbose:
-            total_rows = remaining_rows
-            self._print("\n\n")
+        total_rows = remaining_rows
+        self._print("\n\n")
 
         for index, row in dataframe.reset_index(drop=True).iterrows():
             row_dict = dict()
@@ -563,7 +564,7 @@ def _parse_entry(field_value, field_type):
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None):
+             reauth=False, verbose=True, private_key=None, dialect='legacy'):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -602,6 +603,17 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         or string contents. This is useful for remote server
         authentication (eg. jupyter iPython notebook on remote host)
 
+        .. versionadded:: 0.18.1
+
+    dialect : {'legacy', 'standard'}, default 'legacy'
+        'legacy' : Use BigQuery's legacy SQL dialect.
+        'standard' : Use BigQuery's standard SQL (beta), which is
+        compliant with the SQL 2011 standard. For more information
+        see `BigQuery SQL Reference
+        <https://cloud.google.com/bigquery/sql-reference/>`__
+
+        .. versionadded:: 0.19.0
+
     Returns
     -------
     df: DataFrame
@@ -612,8 +624,12 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     if not project_id:
         raise TypeError("Missing required parameter: project_id")
 
+    if dialect not in ('legacy', 'standard'):
+        raise ValueError("'{0}' is not valid for dialect".format(dialect))
+
     connector = GbqConnector(project_id, reauth=reauth, verbose=verbose,
-                             private_key=private_key)
+                             private_key=private_key,
+                             dialect=dialect)
     schema, pages = connector.run_query(query)
     dataframe_list = []
     while len(pages) > 0:

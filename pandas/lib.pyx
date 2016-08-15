@@ -342,10 +342,12 @@ def item_from_zerodim(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj(ndarray[object] arr):
+def isnullobj(ndarray arr):
     cdef Py_ssize_t i, n
     cdef object val
     cdef ndarray[uint8_t] result
+
+    assert arr.ndim == 1, "'arr' must be 1-D."
 
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
@@ -356,10 +358,12 @@ def isnullobj(ndarray[object] arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj_old(ndarray[object] arr):
+def isnullobj_old(ndarray arr):
     cdef Py_ssize_t i, n
     cdef object val
     cdef ndarray[uint8_t] result
+
+    assert arr.ndim == 1, "'arr' must be 1-D."
 
     n = len(arr)
     result = np.zeros(n, dtype=np.uint8)
@@ -370,10 +374,12 @@ def isnullobj_old(ndarray[object] arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj2d(ndarray[object, ndim=2] arr):
+def isnullobj2d(ndarray arr):
     cdef Py_ssize_t i, j, n, m
     cdef object val
     cdef ndarray[uint8_t, ndim=2] result
+
+    assert arr.ndim == 2, "'arr' must be 2-D."
 
     n, m = (<object> arr).shape
     result = np.zeros((n, m), dtype=np.uint8)
@@ -386,10 +392,12 @@ def isnullobj2d(ndarray[object, ndim=2] arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj2d_old(ndarray[object, ndim=2] arr):
+def isnullobj2d_old(ndarray arr):
     cdef Py_ssize_t i, j, n, m
     cdef object val
     cdef ndarray[uint8_t, ndim=2] result
+
+    assert arr.ndim == 2, "'arr' must be 2-D."
 
     n, m = (<object> arr).shape
     result = np.zeros((n, m), dtype=np.uint8)
@@ -1384,46 +1392,6 @@ def fast_zip_fillna(list ndarrays, fill_value=pandas_null):
             PyArray_ITER_NEXT(it)
 
     return result
-
-
-def duplicated(ndarray[object] values, object keep='first'):
-    cdef:
-        Py_ssize_t i, n
-        dict seen = dict()
-        object row
-
-    n = len(values)
-    cdef ndarray[uint8_t] result = np.zeros(n, dtype=np.uint8)
-
-    if keep == 'last':
-        for i from n > i >= 0:
-            row = values[i]
-            if row in seen:
-                result[i] = 1
-            else:
-                seen[row] = i
-                result[i] = 0
-    elif keep == 'first':
-        for i from 0 <= i < n:
-            row = values[i]
-            if row in seen:
-                result[i] = 1
-            else:
-                seen[row] = i
-                result[i] = 0
-    elif keep is False:
-        for i from 0 <= i < n:
-            row = values[i]
-            if row in seen:
-                result[i] = 1
-                result[seen[row]] = 1
-            else:
-                seen[row] = i
-                result[i] = 0
-    else:
-        raise ValueError('keep must be either "first", "last" or False')
-
-    return result.view(np.bool_)
 
 
 def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
