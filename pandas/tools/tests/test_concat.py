@@ -1444,6 +1444,20 @@ bar2,12,13,14,15
         tm.assert_frame_equal(res, exp, check_index_type=True,
                               check_column_type=True)
 
+    def test_concat_multiindex_rangeindex(self):
+        # GH13542
+        # when multi-index levels are RangeIndex objects
+        # there is a bug in concat with objects of len 1
+
+        df = DataFrame(np.random.randn(9, 2))
+        df.index = MultiIndex(levels=[pd.RangeIndex(3), pd.RangeIndex(3)],
+                              labels=[np.repeat(np.arange(3), 3),
+                                      np.tile(np.arange(3), 3)])
+
+        res = concat([df.iloc[[2, 3, 4], :], df.iloc[[5], :]])
+        exp = df.iloc[[2, 3, 4, 5], :]
+        tm.assert_frame_equal(res, exp)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

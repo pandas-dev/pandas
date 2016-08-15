@@ -979,6 +979,7 @@ Bug Fixes
 - Bugs in ``Index.difference`` and ``DataFrame.join`` raise in Python3 when using mixed-integer indexes (:issue:`13432`, :issue:`12814`)
 - Bug in ``.to_excel()`` when DataFrame contains a MultiIndex which contains a label with a NaN value (:issue:`13511`)
 - Bug in invalid frequency offset string like "D1", "-2-3H" may not raise ``ValueError (:issue:`13930`)
+- Bug in ``concat`` and ``groupby`` for hierarchical frames with ``RangeIndex`` levels (:issue:`13542`).
 
 - Bug in ``agg()`` function on groupby dataframe changes dtype of ``datetime64[ns]`` column to ``float64`` (:issue:`12821`)
 

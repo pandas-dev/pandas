@@ -58,15 +58,17 @@ class RangeIndex(Int64Index):
 
         # validate the arguments
         def _ensure_int(value, field):
+            msg = ("RangeIndex(...) must be called with integers,"
+                   " {value} was passed for {field}")
+            if not is_scalar(value):
+                raise TypeError(msg.format(value=type(value).__name__,
+                                           field=field))
             try:
                 new_value = int(value)
                 assert(new_value == value)
-            except (ValueError, AssertionError):
-                raise TypeError("RangeIndex(...) must be called with integers,"
-                                " {value} was passed for {field}".format(
-                                    value=type(value).__name__,
-                                    field=field)
-                                )
+            except (TypeError, ValueError, AssertionError):
+                raise TypeError(msg.format(value=type(value).__name__,
+                                           field=field))
 
             return new_value
 
