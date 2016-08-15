@@ -1487,7 +1487,10 @@ class NonConsolidatableMixIn(object):
         -------
         a new block(s), the result of the putmask
         """
-        new_values = self.values if inplace else self.values.copy()
+
+        # use block's copy logic.
+        # .values may be an Index which does shallow copy by default
+        new_values = self.values if inplace else self.copy().values
         new_values, _, new, _ = self._try_coerce_args(new_values, new)
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
@@ -2314,7 +2317,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         if dtype is not None:
             if isinstance(dtype, compat.string_types):
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
-            values = values.tz_localize('UTC').tz_convert(dtype.tz)
+            values = values._shallow_copy(tz=dtype.tz)
 
         if values.tz is None:
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
@@ -2381,12 +2384,14 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         base-type values, values mask, base-type other, other mask
         """
         values_mask = _block_shape(isnull(values), ndim=self.ndim)
-        values = _block_shape(values.tz_localize(None).asi8, ndim=self.ndim)
+        # asi8 is a view, needs copy
+        values = _block_shape(values.asi8, ndim=self.ndim)
         other_mask = False
 
         if isinstance(other, ABCSeries):
             other = self._holder(other)
             other_mask = isnull(other)
+
         if isinstance(other, bool):
             raise TypeError
         elif is_null_datelike_scalar(other):
@@ -2395,7 +2400,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
-            other = other.tz_localize(None).asi8
+            other = other.asi8
             other_mask = isnull(other)
         elif isinstance(other, (np.datetime64, datetime, date)):
             other = lib.Timestamp(other)
@@ -2405,7 +2410,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             if tz is None or str(tz) != str(self.values.tz):
                 raise ValueError("incompatible or non tz-aware value")
             other_mask = isnull(other)
-            other = other.tz_localize(None).value
+            other = other.value
 
         return values, values_mask, other, other_mask
 
@@ -2415,12 +2420,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('M8[ns]')
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
-            result = lib.Timestamp(result).tz_localize(self.values.tz)
+            result = lib.Timestamp(result, tz=self.values.tz)
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
                 result = result.reshape(len(result))
-            result = self._holder(result).tz_localize(self.values.tz)
+            result = self.values._shallow_copy(result)
 
         return result
 

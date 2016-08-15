@@ -229,7 +229,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
         # datetime64 + int -> object
         # ToDo: The result must be object
         exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.Timestamp(1).tz_localize(tz),
+                         pd.Timestamp(1, tz=tz),
                          pd.Timestamp('2011-01-03', tz=tz),
                          pd.Timestamp('2011-01-04', tz=tz)])
         self._assert_setitem_series_conversion(obj, 1, exp,
@@ -1038,7 +1038,7 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
         # datetime64tz + int => datetime64tz
         # ToDo: must be object
         exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.Timestamp(1).tz_localize(tz=tz),
+                         pd.Timestamp(1, tz=tz),
                          pd.Timestamp('2011-01-03', tz=tz),
                          pd.Timestamp('2011-01-04', tz=tz)])
         self._assert_fillna_conversion(obj, 1, exp,
