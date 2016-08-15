@@ -1737,7 +1737,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # keep MultiIndex
         jidx, lidx, ridx = midx.join(idx, how='left', return_indexers=True)
         exp_ridx = np.array([-1, 0, 1, -1, -1, 0, 1, -1, -1, 0, 1, -1, -1, 0,
-                             1, -1], dtype=np.int64)
+                             1, -1], dtype=np.intp)
         self.assert_index_equal(jidx, midx)
         self.assertIsNone(lidx)
         self.assert_numpy_array_equal(ridx, exp_ridx)

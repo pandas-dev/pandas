@@ -642,8 +642,8 @@ class TestInt64Index(Numeric, tm.TestCase):
         res2 = self.index.intersection(other_mono)
         self.assert_index_equal(res, res2)
 
-        elidx = np.array([1, 6], dtype=np.int64)
-        eridx = np.array([1, 4], dtype=np.int64)
+        elidx = np.array([1, 6], dtype=np.intp)
+        eridx = np.array([1, 4], dtype=np.intp)
         tm.assertIsInstance(res, Int64Index)
         self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
@@ -680,8 +680,8 @@ class TestInt64Index(Numeric, tm.TestCase):
         idx2 = Index([1, 2, 5, 7, 9])
         res, lidx, ridx = idx2.join(idx, how='left', return_indexers=True)
         eres = Index([1, 1, 2, 5, 7, 9])  # 1 is in idx2, so it should be x2
-        eridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
-        elidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.int64)
+        eridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
+        elidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
         self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
@@ -705,7 +705,7 @@ class TestInt64Index(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other_mono, how='right',
                                           return_indexers=True)
         eres = other_mono
-        elidx = np.array([-1, 1, -1, -1, 6, -1], dtype=np.int64)
+        elidx = np.array([-1, 1, -1, -1, 6, -1], dtype=np.intp)
         tm.assertIsInstance(other, Int64Index)
         self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
@@ -716,8 +716,8 @@ class TestInt64Index(Numeric, tm.TestCase):
         idx2 = Index([1, 2, 5, 7, 9])
         res, lidx, ridx = idx.join(idx2, how='right', return_indexers=True)
         eres = Index([1, 1, 2, 5, 7, 9])  # 1 is in idx2, so it should be x2
-        elidx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
-        eridx = np.array([0, 0, 1, 2, 3, 4], dtype=np.int64)
+        elidx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
+        eridx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
         self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
