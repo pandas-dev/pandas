@@ -32,3 +32,18 @@ class timedelta_convert_string_seconds(object):
 
     def time_timedelta_convert_string_seconds(self):
         to_timedelta(self.arr)
+
+
+class timedelta_convert_bad_parse(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.arr = np.random.randint(0, 1000, size=10000)
+        self.arr = ['{0} days'.format(i) for i in self.arr]
+        self.arr[-1] = 'apple'
+
+    def time_timedelta_convert_coerce(self):
+        to_timedelta(self.arr, errors='coerce')
+
+    def time_timedelta_convert_ignore(self):
+        to_timedelta(self.arr, errors='ignore')

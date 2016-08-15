@@ -2619,7 +2619,7 @@ class Timedelta(_Timedelta):
 
             try:
                 nano = kwargs.pop('nanoseconds',0)
-                value = convert_to_timedelta64(timedelta(**kwargs),'ns',False) + nano
+                value = convert_to_timedelta64(timedelta(**kwargs),'ns') + nano
             except TypeError as e:
                 raise ValueError("cannot construct a Timedelta from the passed arguments, allowed keywords are "
                                  "[weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds]")
@@ -2627,9 +2627,9 @@ class Timedelta(_Timedelta):
         if isinstance(value, Timedelta):
             value = value.value
         elif util.is_string_object(value):
-            value = np.timedelta64(parse_timedelta_string(value, False))
+            value = np.timedelta64(parse_timedelta_string(value))
         elif isinstance(value, timedelta):
-            value = convert_to_timedelta64(value,'ns',False)
+            value = convert_to_timedelta64(value,'ns')
         elif isinstance(value, np.timedelta64):
             if unit is not None:
                 value = value.astype('timedelta64[{0}]'.format(unit))
@@ -2638,7 +2638,7 @@ class Timedelta(_Timedelta):
             value = np.timedelta64(_delta_to_nanoseconds(value.delta),'ns')
         elif is_integer_object(value) or util.is_float_object(value):
             # unit=None is de-facto 'ns'
-            value = convert_to_timedelta64(value,unit,False)
+            value = convert_to_timedelta64(value,unit)
         elif _checknull_with_nat(value):
             return NaT
         else:
@@ -3001,37 +3001,41 @@ cdef PyTypeObject* td_type = <PyTypeObject*> Timedelta
 cdef inline bint is_timedelta(object o):
     return Py_TYPE(o) == td_type # isinstance(o, Timedelta)
 
-def array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
-    """ convert an ndarray to an array of ints that are timedeltas
-        force conversion if errors = 'coerce',
-        else will raise if cannot convert """
+cpdef array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
+    """
+    Convert an ndarray to an array of timedeltas. If errors == 'coerce',
+    coerce non-convertible objects to NaT. Otherwise, raise.
+    """
+
     cdef:
         Py_ssize_t i, n
         ndarray[int64_t] iresult
-        bint is_raise=errors=='raise', is_ignore=errors=='ignore', is_coerce=errors=='coerce'
 
-    assert is_raise or is_ignore or is_coerce
+    if errors not in ('ignore', 'raise', 'coerce'):
+        raise ValueError("errors must be one of 'ignore', "
+                         "'raise', or 'coerce'}")
 
     n = values.shape[0]
     result = np.empty(n, dtype='m8[ns]')
     iresult = result.view('i8')
 
-    # usually we have all strings
-    # if so then we hit the fast path
+    # Usually, we have all strings. If so, we hit the fast path.
+    # If this path fails, we try conversion a different way, and
+    # this is where all of the error handling will take place.
     try:
         for i in range(n):
-            result[i] = parse_timedelta_string(values[i], is_coerce)
+            result[i] = parse_timedelta_string(values[i])
     except:
         for i in range(n):
-            result[i] = convert_to_timedelta64(values[i], unit, is_coerce)
+            try:
+                result[i] = convert_to_timedelta64(values[i], unit)
+            except ValueError:
+                if errors == 'coerce':
+                    result[i] = NPY_NAT
+                else:
+                    raise
+
     return iresult
-
-
-def convert_to_timedelta(object ts, object unit='ns', errors='raise'):
-    cdef bint is_raise=errors=='raise', is_ignore=errors=='ignore', is_coerce=errors=='coerce'
-
-    assert is_raise or is_ignore or is_coerce
-    return convert_to_timedelta64(ts, unit, is_coerce)
 
 cdef dict timedelta_abbrevs = { 'D' : 'd',
                                 'd' : 'd',
@@ -3099,15 +3103,10 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     n = ''.join(number) + '.' + ''.join(frac)
     return cast_from_unit(float(n), unit)
 
-cdef inline parse_timedelta_string(object ts, coerce=False):
+cdef inline parse_timedelta_string(object ts):
     """
-    Parse an regular format timedelta string
-
-    Return an int64_t or raise a ValueError on an invalid parse
-
-    if coerce, set a non-valid value to NaT
-
-    Return a ns based int64
+    Parse a regular format timedelta string. Return an int64_t (in ns)
+    or raise a ValueError on an invalid parse.
     """
 
     cdef:
@@ -3163,13 +3162,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
                 number.append(c)
 
             else:
-
-                try:
-                    r = timedelta_from_spec(number, frac, unit)
-                except ValueError:
-                    if coerce:
-                        return NPY_NAT
-                    raise
+                r = timedelta_from_spec(number, frac, unit)
                 unit, number, frac = [], [c], []
 
                 result += timedelta_as_neg(r, neg)
@@ -3196,9 +3189,9 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
                 result += timedelta_as_neg(r, neg)
                 have_hhmmss = 1
             else:
-                if coerce:
-                    return NPY_NAT
-                raise ValueError("expecting hh:mm:ss format, received: {0}".format(ts))
+                raise ValueError("expecting hh:mm:ss format, "
+                                 "received: {0}".format(ts))
+
             unit, number = [], []
 
         # after the decimal point
@@ -3228,21 +3221,15 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
     # we had a dot, but we have a fractional
     # value since we have an unit
     if have_dot and len(unit):
-        try:
-            r = timedelta_from_spec(number, frac, unit)
-            result += timedelta_as_neg(r, neg)
-        except ValueError:
-            if coerce:
-                return NPY_NAT
-            raise
+        r = timedelta_from_spec(number, frac, unit)
+        result += timedelta_as_neg(r, neg)
 
     # we have a dot as part of a regular format
     # e.g. hh:mm:ss.fffffff
     elif have_dot:
 
-        if (len(number) or len(frac)) and not len(unit) and current_unit is None:
-            if coerce:
-                return NPY_NAT
+        if ((len(number) or len(frac)) and not len(unit)
+            and current_unit is None):
             raise ValueError("no units specified")
 
         if len(frac) > 0 and len(frac) <= 3:
@@ -3266,38 +3253,24 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
 
     # we have a last abbreviation
     elif len(unit):
-
         if len(number):
-            try:
-                r = timedelta_from_spec(number, frac, unit)
-                result += timedelta_as_neg(r, neg)
-            except ValueError:
-                if coerce:
-                    return NPY_NAT
-                raise
+            r = timedelta_from_spec(number, frac, unit)
+            result += timedelta_as_neg(r, neg)
         else:
-            if coerce:
-                return NPY_NAT
             raise ValueError("unit abbreviation w/o a number")
 
     # treat as nanoseconds
     # but only if we don't have anything else
     else:
-
         if have_value:
             raise ValueError("have leftover units")
         if len(number):
-            try:
-                r = timedelta_from_spec(number, frac, 'ns')
-                result += timedelta_as_neg(r, neg)
-            except ValueError:
-                if coerce:
-                    return NPY_NAT
-                raise
+            r = timedelta_from_spec(number, frac, 'ns')
+            result += timedelta_as_neg(r, neg)
 
     return result
 
-cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
+cpdef convert_to_timedelta64(object ts, object unit):
     """
     Convert an incoming object to a timedelta64 if possible
 
@@ -3308,9 +3281,7 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
         - np.int64 (with unit providing a possible modifier)
         - None/NaT
 
-    if coerce, set a non-valid value to NaT
-
-    Return a ns based int64
+    Return an ns based int64
 
     # kludgy here until we have a timedelta scalar
     # handle the numpy < 1.7 case
@@ -3346,16 +3317,15 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts)
     elif util.is_string_object(ts):
-        ts = np.timedelta64(parse_timedelta_string(ts, coerce))
+        ts = np.timedelta64(parse_timedelta_string(ts))
     elif hasattr(ts,'delta'):
         ts = np.timedelta64(_delta_to_nanoseconds(ts),'ns')
 
     if isinstance(ts, timedelta):
         ts = np.timedelta64(ts)
     elif not isinstance(ts, np.timedelta64):
-        if coerce:
-            return np.timedelta64(NPY_NAT)
-        raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
+        raise ValueError("Invalid type for timedelta "
+                         "scalar: %s" % type(ts))
     return ts.astype('timedelta64[ns]')
 
 def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='raise'):

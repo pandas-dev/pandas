@@ -845,6 +845,11 @@ class TestTimedeltas(tm.TestCase):
 
     def test_to_timedelta_invalid(self):
 
+        # bad value for errors parameter
+        msg = "errors must be one of"
+        tm.assertRaisesRegexp(ValueError, msg, to_timedelta,
+                              ['foo'], errors='never')
+
         # these will error
         self.assertRaises(ValueError, lambda: to_timedelta([1, 2], unit='foo'))
         self.assertRaises(ValueError, lambda: to_timedelta(1, unit='foo'))
@@ -861,6 +866,24 @@ class TestTimedeltas(tm.TestCase):
         tm.assert_index_equal(TimedeltaIndex(['1 day', pd.NaT, '1 min']),
                               to_timedelta(['1 day', 'bar', '1 min'],
                                            errors='coerce'))
+
+        # gh-13613: these should not error because errors='ignore'
+        invalid_data = 'apple'
+        self.assertEqual(invalid_data, to_timedelta(
+            invalid_data, errors='ignore'))
+
+        invalid_data = ['apple', '1 days']
+        tm.assert_numpy_array_equal(
+            np.array(invalid_data, dtype=object),
+            to_timedelta(invalid_data, errors='ignore'))
+
+        invalid_data = pd.Index(['apple', '1 days'])
+        tm.assert_index_equal(invalid_data, to_timedelta(
+            invalid_data, errors='ignore'))
+
+        invalid_data = Series(['apple', '1 days'])
+        tm.assert_series_equal(invalid_data, to_timedelta(
+            invalid_data, errors='ignore'))
 
     def test_to_timedelta_via_apply(self):
         # GH 5458
