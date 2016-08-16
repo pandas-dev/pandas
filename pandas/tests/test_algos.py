@@ -5,6 +5,7 @@ import numpy as np
 from numpy.random import RandomState
 from numpy import nan
 from datetime import datetime
+from itertools import permutations
 from pandas import Series, Categorical, CategoricalIndex, Index
 import pandas as pd
 
@@ -1268,6 +1269,35 @@ def test_groupsort_indexer():
     result = _algos.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
     assert (np.array_equal(result, expected))
+
+
+def test_infinity_sort():
+    # GH 13445
+    # numpy's argsort can be unhappy if something is less than
+    # itself.  Instead, let's give our infinities a self-consistent
+    # ordering, but outside the float extended real line.
+
+    Inf = _algos.Infinity()
+    NegInf = _algos.NegInfinity()
+
+    ref_nums = [NegInf, float("-inf"), -1e100, 0, 1e100, float("inf"), Inf]
+
+    assert all(Inf >= x for x in ref_nums)
+    assert all(Inf > x or x is Inf for x in ref_nums)
+    assert Inf >= Inf and Inf == Inf
+    assert not Inf < Inf and not Inf > Inf
+
+    assert all(NegInf <= x for x in ref_nums)
+    assert all(NegInf < x or x is NegInf for x in ref_nums)
+    assert NegInf <= NegInf and NegInf == NegInf
+    assert not NegInf < NegInf and not NegInf > NegInf
+
+    for perm in permutations(ref_nums):
+        assert sorted(perm) == ref_nums
+
+    # smoke tests
+    np.array([_algos.Infinity()] * 32).argsort()
+    np.array([_algos.NegInfinity()] * 32).argsort()
 
 
 def test_ensure_platform_int():
