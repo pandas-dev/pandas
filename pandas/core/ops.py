@@ -929,7 +929,32 @@ _op_descriptions = {'add': {'op': '+',
                     'floordiv': {'op': '//',
                                  'desc': 'Integer division',
                                  'reversed': False,
-                                 'reverse': 'rfloordiv'}}
+                                 'reverse': 'rfloordiv'},
+
+                    'eq': {'op': '==',
+                                 'desc': 'Equal to',
+                                 'reversed': False,
+                                 'reverse': None},
+                    'ne': {'op': '!=',
+                                 'desc': 'Not equal to',
+                                 'reversed': False,
+                                 'reverse': None},
+                    'lt': {'op': '<',
+                                 'desc': 'Less than',
+                                 'reversed': False,
+                                 'reverse': None},
+                    'le': {'op': '<=',
+                                 'desc': 'Less than or equal to',
+                                 'reversed': False,
+                                 'reverse': None},
+                    'gt': {'op': '>',
+                                 'desc': 'Greater than',
+                                 'reversed': False,
+                                 'reverse': None},
+                    'ge': {'op': '>=',
+                                 'desc': 'Greater than or equal to',
+                                 'reversed': False,
+                                 'reverse': None}}
 
 _op_names = list(_op_descriptions.keys())
 for k in _op_names:
@@ -980,10 +1005,11 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None, fill_zeros=None,
     @Appender(doc)
     def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
         # validate axis
-        self._get_axis_number(axis)
+        if axis is not None:
+            self._get_axis_number(axis)
         if isinstance(other, ABCSeries):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (np.ndarray, ABCSeries, list, tuple)):
+        elif isinstance(other, (np.ndarray, list, tuple)):
             if len(other) != len(self):
                 raise ValueError('Lengths must be equal')
             return self._binop(self._constructor(other, self.index), op,
@@ -992,7 +1018,7 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None, fill_zeros=None,
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._constructor(op(self.values, other),
+            return self._constructor(op(self, other),
                                      self.index).__finalize__(self)
 
     flex_wrapper.__name__ = name
@@ -1000,7 +1026,7 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None, fill_zeros=None,
 
 
 series_flex_funcs = dict(flex_arith_method=_flex_method_SERIES,
-                         flex_comp_method=_comp_method_SERIES)
+                         flex_comp_method=_flex_method_SERIES)
 
 series_special_funcs = dict(arith_method=_arith_method_SERIES,
                             comp_method=_comp_method_SERIES,

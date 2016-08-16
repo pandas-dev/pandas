@@ -43,8 +43,9 @@ class TestSeriesOperators(TestData, tm.TestCase):
         s2 = Series([False, True, False])
 
         # it works!
-        s == s2
-        s2 == s
+        exp = Series([False, False, False])
+        tm.assert_series_equal(s == s2, exp)
+        tm.assert_series_equal(s2 == s, exp)
 
     def test_op_method(self):
         def check(series, other, check_reverse=False):
@@ -1167,6 +1168,76 @@ class TestSeriesOperators(TestData, tm.TestCase):
             assert_series_equal(result, expected)
         for v in [np.nan]:
             self.assertRaises(TypeError, lambda: t & v)
+
+    def test_comparison_flex_basic(self):
+        left = pd.Series(np.random.randn(10))
+        right = pd.Series(np.random.randn(10))
+
+        tm.assert_series_equal(left.eq(right), left == right)
+        tm.assert_series_equal(left.ne(right), left != right)
+        tm.assert_series_equal(left.le(right), left < right)
+        tm.assert_series_equal(left.lt(right), left <= right)
+        tm.assert_series_equal(left.gt(right), left > right)
+        tm.assert_series_equal(left.ge(right), left >= right)
+
+        # axis
+        for axis in [0, None, 'index']:
+            tm.assert_series_equal(left.eq(right, axis=axis), left == right)
+            tm.assert_series_equal(left.ne(right, axis=axis), left != right)
+            tm.assert_series_equal(left.le(right, axis=axis), left < right)
+            tm.assert_series_equal(left.lt(right, axis=axis), left <= right)
+            tm.assert_series_equal(left.gt(right, axis=axis), left > right)
+            tm.assert_series_equal(left.ge(right, axis=axis), left >= right)
+
+        #
+        msg = 'No axis named 1 for object type'
+        for op in ['eq', 'ne', 'le', 'le', 'gt', 'ge']:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                getattr(left, op)(right, axis=1)
+
+    def test_comparison_flex_alignment(self):
+        left = Series([1, 3, 2], index=list('abc'))
+        right = Series([2, 2, 2], index=list('bcd'))
+
+        exp = pd.Series([False, False, True, False], index=list('abcd'))
+        tm.assert_series_equal(left.eq(right), exp)
+
+        exp = pd.Series([True, True, False, True], index=list('abcd'))
+        tm.assert_series_equal(left.ne(right), exp)
+
+        exp = pd.Series([False, False, True, False], index=list('abcd'))
+        tm.assert_series_equal(left.le(right), exp)
+
+        exp = pd.Series([False, False, False, False], index=list('abcd'))
+        tm.assert_series_equal(left.lt(right), exp)
+
+        exp = pd.Series([False, True, True, False], index=list('abcd'))
+        tm.assert_series_equal(left.ge(right), exp)
+
+        exp = pd.Series([False, True, False, False], index=list('abcd'))
+        tm.assert_series_equal(left.gt(right), exp)
+
+    def test_comparison_flex_alignment_fill(self):
+        left = Series([1, 3, 2], index=list('abc'))
+        right = Series([2, 2, 2], index=list('bcd'))
+
+        exp = pd.Series([False, False, True, True], index=list('abcd'))
+        tm.assert_series_equal(left.eq(right, fill_value=2), exp)
+
+        exp = pd.Series([True, True, False, False], index=list('abcd'))
+        tm.assert_series_equal(left.ne(right, fill_value=2), exp)
+
+        exp = pd.Series([False, False, True, True], index=list('abcd'))
+        tm.assert_series_equal(left.le(right, fill_value=0), exp)
+
+        exp = pd.Series([False, False, False, True], index=list('abcd'))
+        tm.assert_series_equal(left.lt(right, fill_value=0), exp)
+
+        exp = pd.Series([True, True, True, False], index=list('abcd'))
+        tm.assert_series_equal(left.ge(right, fill_value=0), exp)
+
+        exp = pd.Series([True, True, False, False], index=list('abcd'))
+        tm.assert_series_equal(left.gt(right, fill_value=0), exp)
 
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types
