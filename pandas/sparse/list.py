@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from pandas.core.base import PandasObject
 from pandas.formats.printing import pprint_thing
@@ -20,6 +21,11 @@ class SparseList(PandasObject):
     """
 
     def __init__(self, data=None, fill_value=np.nan):
+
+        # see gh-13784
+        warnings.warn("SparseList is deprecated and will be removed "
+                      "in a future version", FutureWarning, stacklevel=2)
+
         self.fill_value = fill_value
         self._chunks = []
 

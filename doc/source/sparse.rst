@@ -90,6 +90,8 @@ can be converted back to a regular ndarray by calling ``to_dense``:
 SparseList
 ----------
 
+.. note:: The ``SparseList`` class has been deprecated and will be removed in a future version.
+
 ``SparseList`` is a list-like data structure for managing a dynamic collection
 of SparseArrays. To create one, simply call the ``SparseList`` constructor with
 a ``fill_value`` (defaulting to ``NaN``):
