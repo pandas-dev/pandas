@@ -567,28 +567,25 @@ cdef inline are_diff(object left, object right):
     except TypeError:
         return left != right
 
-_return_false = lambda self, other: False
-_return_true = lambda self, other: True
 
 class Infinity(object):
 
-    __lt__ = _return_false
-    __le__ = _return_false
-    __eq__ = _return_false
-    __ne__ = _return_true
-    __gt__ = _return_true
-    __ge__ = _return_true
-    __cmp__ = _return_false
+    __lt__ = lambda self, other: False
+    __le__ = lambda self, other: self is other
+    __eq__ = lambda self, other: self is other
+    __ne__ = lambda self, other: self is not other
+    __gt__ = lambda self, other: self is not other
+    __ge__ = lambda self, other: True
 
 class NegInfinity(object):
 
-    __lt__ = _return_true
-    __le__ = _return_true
-    __eq__ = _return_false
-    __ne__ = _return_true
-    __gt__ = _return_false
-    __ge__ = _return_false
-    __cmp__ = _return_true
+    __lt__ = lambda self, other: self is not other
+    __le__ = lambda self, other: True
+    __eq__ = lambda self, other: self is other
+    __ne__ = lambda self, other: self is not other
+    __gt__ = lambda self, other: False
+    __ge__ = lambda self, other: self is other
+    
 
 def rank_2d_generic(object in_arr, axis=0, ties_method='average',
                     ascending=True, na_option='keep', pct=False):
