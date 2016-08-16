@@ -216,7 +216,7 @@ class DatetimeConverter(dates.DateConverter):
                 else:
                     values = [_dt_to_float_ordinal(x) for x in values]
             except Exception:
-                pass
+                values = _dt_to_float_ordinal(values)
 
         return values
 
