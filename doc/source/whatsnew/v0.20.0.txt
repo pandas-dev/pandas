@@ -81,4 +81,3 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-Bug when building docs with IPython 5.x (:issue:`14003`)

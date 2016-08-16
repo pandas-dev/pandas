@@ -799,11 +799,10 @@ class IPythonDirective(Directive):
             # Store IPython directive to enable better error messages
             self.shell.directive = self
 
-        """
-        reset the execution count if we haven't processed this doc
-        NOTE: this may be borked if there are multiple seen_doc tmp files
-        check time stamp?
-        """
+        
+        # reset the execution count if we haven't processed this doc
+        #NOTE: this may be borked if there are multiple seen_doc tmp files
+        #check time stamp?
         if self.state.document.current_source not in self.seen_docs:
             self.shell.IP.history_manager.reset()
             self.shell.IP.execution_count = 1
