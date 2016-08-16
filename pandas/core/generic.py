@@ -4040,8 +4040,10 @@ class NDFrame(PandasObject):
                  label=None, convention='start', kind=None, loffset=None,
                  limit=None, base=0, on=None, level=None):
         """
-        Convenience method for frequency conversion and resampling of regular
-        time-series data.
+        Convenience method for frequency conversion and resampling of time
+        series.  Object must have a datetime-like index (DatetimeIndex,
+        PeriodIndex, or TimedeltaIndex), or pass datetime-like values
+        to the on or level keyword.
 
         Parameters
         ----------
@@ -4060,11 +4062,11 @@ class NDFrame(PandasObject):
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0
         on : string, optional
-            For a DataFrame, column to use for resampling, rather than
-            the index
+            For a DataFrame, column to use instead of index for resampling.
+            Column must be datetime-like.
         level : string or int, optional
             For a MultiIndex, level (name or number) to use for
-            resampling
+            resampling.  Level must be datetime-like.
 
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.

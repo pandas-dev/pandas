@@ -1002,6 +1002,7 @@ class TimeGrouper(Grouper):
         TypeError if incompatible axis
 
         """
+        import pdb; pdb.set_trace()
         self._set_grouper(obj)
 
         ax = self.ax

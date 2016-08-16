@@ -371,212 +371,6 @@ class TestResampleAPI(tm.TestCase):
             result = t.apply(lambda x: x)
             assert_series_equal(result, self.series)
 
-    def test_agg(self):
-        # test with both a Resampler and a TimeGrouper
-
-        np.random.seed(1234)
-        df = pd.DataFrame(np.random.rand(10, 2),
-                          columns=list('AB'),
-                          index=pd.date_range('2010-01-01 09:00:00',
-                                              periods=10,
-                                              freq='s'))
-
-        r = df.resample('2s')
-        g = df.groupby(pd.Grouper(freq='2s'))
-        a_mean = r['A'].mean()
-        a_std = r['A'].std()
-        a_sum = r['A'].sum()
-        b_mean = r['B'].mean()
-        b_std = r['B'].std()
-        b_sum = r['B'].sum()
-
-        expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
-        expected.columns = pd.MultiIndex.from_product([['A', 'B'],
-                                                       ['mean', 'std']])
-        for t in [r, g]:
-            result = t.aggregate([np.mean, np.std])
-            assert_frame_equal(result, expected)
-
-        expected = pd.concat([a_mean, b_std], axis=1)
-        for t in [r, g]:
-            result = t.aggregate({'A': np.mean,
-                                  'B': np.std})
-            assert_frame_equal(result, expected, check_like=True)
-
-        expected = pd.concat([a_mean, a_std], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
-                                                      ('A', 'std')])
-        for t in [r, g]:
-            result = t.aggregate({'A': ['mean', 'std']})
-            assert_frame_equal(result, expected)
-
-        expected = pd.concat([a_mean, a_sum], axis=1)
-        expected.columns = ['mean', 'sum']
-        for t in [r, g]:
-            result = t['A'].aggregate(['mean', 'sum'])
-        assert_frame_equal(result, expected)
-
-        expected = pd.concat([a_mean, a_sum], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
-                                                      ('A', 'sum')])
-        for t in [r, g]:
-            result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
-            assert_frame_equal(result, expected, check_like=True)
-
-        expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
-                                                      ('A', 'sum'),
-                                                      ('B', 'mean2'),
-                                                      ('B', 'sum2')])
-        for t in [r, g]:
-            result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'},
-                                  'B': {'mean2': 'mean', 'sum2': 'sum'}})
-            assert_frame_equal(result, expected, check_like=True)
-
-        expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
-                                                      ('A', 'std'),
-                                                      ('B', 'mean'),
-                                                      ('B', 'std')])
-        for t in [r, g]:
-            result = t.aggregate({'A': ['mean', 'std'],
-                                  'B': ['mean', 'std']})
-            assert_frame_equal(result, expected, check_like=True)
-
-        expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('r1', 'A', 'mean'),
-                                                      ('r1', 'A', 'sum'),
-                                                      ('r2', 'B', 'mean'),
-                                                      ('r2', 'B', 'sum')])
-
-    def test_agg_misc(self):
-        # test with all three Resampler apis and TimeGrouper
-
-        np.random.seed(1234)
-        df = pd.DataFrame(np.random.rand(10, 2),
-                          columns=list('AB'),
-                          index=pd.date_range('2010-01-01 09:00:00',
-                                              periods=10,
-                                              freq='s',
-                                              name='date'))
-        df_col = df.reset_index()
-        df_mult = df_col.copy()
-        df_mult.index = pd.MultiIndex.from_arrays([range(10), df.index],
-                                                  names=['index', 'date'])
-
-        r = df.resample('2s')
-        cases = [
-            r,
-            df_col.resample('2s', on='date'),
-            df_mult.resample('2s', level='date'),
-            df.groupby(pd.Grouper(freq='2s'))
-        ]
-
-        # passed lambda
-        for t in cases:
-            result = t.agg({'A': np.sum,
-                            'B': lambda x: np.std(x, ddof=1)})
-            rcustom = t['B'].apply(lambda x: np.std(x, ddof=1))
-            expected = pd.concat([r['A'].sum(), rcustom], axis=1)
-            assert_frame_equal(result, expected, check_like=True)
-
-        # agg with renamers
-        expected = pd.concat([t['A'].sum(),
-                              t['B'].sum(),
-                              t['A'].mean(),
-                              t['B'].mean()],
-                             axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('result1', 'A'),
-                                                      ('result1', 'B'),
-                                                      ('result2', 'A'),
-                                                      ('result2', 'B')])
-        for t in cases:
-            result = t[['A', 'B']].agg(OrderedDict([('result1', np.sum),
-                                                    ('result2', np.mean)]))
-            assert_frame_equal(result, expected, check_like=True)
-
-        # agg with different hows
-        expected = pd.concat([t['A'].sum(),
-                              t['A'].std(),
-                              t['B'].mean(),
-                              t['B'].std()],
-                             axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
-                                                      ('A', 'std'),
-                                                      ('B', 'mean'),
-                                                      ('B', 'std')])
-        for t in cases:
-            result = t.agg(OrderedDict([('A', ['sum', 'std']),
-                                        ('B', ['mean', 'std'])]))
-            assert_frame_equal(result, expected, check_like=True)
-
-        # equivalent of using a selection list / or not
-        for t in cases:
-            result = t[['A', 'B']].agg({'A': ['sum', 'std'],
-                                        'B': ['mean', 'std']})
-            assert_frame_equal(result, expected, check_like=True)
-
-        # series like aggs
-        for t in cases:
-            result = t['A'].agg({'A': ['sum', 'std']})
-            expected = pd.concat([t['A'].sum(),
-                                  t['A'].std()],
-                                 axis=1)
-            expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
-                                                          ('A', 'std')])
-            assert_frame_equal(result, expected, check_like=True)
-
-            expected = pd.concat([t['A'].agg(['sum', 'std']),
-                                  t['A'].agg(['mean', 'std'])],
-                                 axis=1)
-            expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
-                                                          ('A', 'std'),
-                                                          ('B', 'mean'),
-                                                          ('B', 'std')])
-            result = t['A'].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
-            assert_frame_equal(result, expected, check_like=True)
-
-        # errors
-        # invalid names in the agg specification
-        for t in cases:
-            def f():
-                t[['A']].agg({'A': ['sum', 'std'],
-                              'B': ['mean', 'std']})
-
-            self.assertRaises(SpecificationError, f)
-
-    def test_agg_nested_dicts(self):
-
-        np.random.seed(1234)
-        df = pd.DataFrame(np.random.rand(10, 2),
-                          columns=list('AB'),
-                          index=pd.date_range('2010-01-01 09:00:00',
-                                              periods=10,
-                                              freq='s'))
-
-        r = df.resample('2s')
-        g = df.groupby(pd.Grouper(freq='2s'))
-
-        for t in [r, g]:
-            def f():
-                t.aggregate({'r1': {'A': ['mean', 'sum']},
-                             'r2': {'B': ['mean', 'sum']}})
-                self.assertRaises(ValueError, f)
-
-        for t in [r, g]:
-            expected = pd.concat([t['A'].mean(), t['A'].std(), t['B'].mean(),
-                                  t['B'].std()], axis=1)
-            expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
-                'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
-
-            result = t[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
-                                        'B': {'rb': ['mean', 'std']}})
-            assert_frame_equal(result, expected, check_like=True)
-
-            result = t.agg({'A': {'ra': ['mean', 'std']},
-                            'B': {'rb': ['mean', 'std']}})
-            assert_frame_equal(result, expected, check_like=True)
-
     def test_agg_consistency(self):
 
         # make sure that we are consistent across
@@ -591,42 +385,7 @@ class TestResampleAPI(tm.TestCase):
         result = r.agg({'r1': 'mean', 'r2': 'sum'})
         assert_frame_equal(result, expected)
 
-    def test_api_validation(self):
-        # GH 13500
-        dates = pd.date_range('2015-01-01', freq='W', periods=10)
-        df = pd.DataFrame({'date': dates,
-                           'a': np.arange(10, dtype='int64')},
-                          index=pd.MultiIndex.from_arrays([
-                              np.arange(10),
-                              dates], names=['v', 'd']))
 
-        exp_index = pd.date_range('2015-01-31', periods=3,
-                                  freq='M', name='date')
-        expected = pd.DataFrame({'a': [6, 22, 17]},
-                                index=exp_index)
-
-        actual = df.resample('M', on='date').sum()
-        assert_frame_equal(actual, expected)
-
-        expected.index.name = 'd'
-        actual = df.resample('M', level='d').sum()
-        assert_frame_equal(actual, expected)
-
-        actual = df.resample('M', level=1).sum()
-        assert_frame_equal(actual, expected)
-
-        # non DatetimeIndex
-        with tm.assertRaises(TypeError):
-            df.resample('M', level='v')
-
-        with tm.assertRaises(ValueError):
-            df.resample('M', on='date', level='d')
-
-        with tm.assertRaises(TypeError):
-            df.resample('M', on=['a', 'date'])
-
-        with tm.assertRaises(KeyError):
-            df.resample('M', level=['a', 'date'])
 
 
 class Base(object):
@@ -745,6 +504,260 @@ class Base(object):
                         # Ignore these since some combinations are invalid
                         # (ex: doing mean with dtype of np.object)
                         pass
+
+    def test_agg(self):
+        # test with all three Resampler apis and TimeGrouper
+
+        np.random.seed(1234)
+        index = self.create_series().index
+        index.name = 'date'
+        df = pd.DataFrame(np.random.rand(10, 2),
+                          columns=list('AB'),
+                          index=index)
+        df_col = df.reset_index()
+        print df_col
+        df_mult = df_col.copy()
+        df_mult.index = pd.MultiIndex.from_arrays([range(10), df.index],
+                                                  names=['index', 'date'])
+        r = df.resample('2D')
+        cases = [
+            r,
+            df_col.resample('2D', on='date'),
+            df_mult.resample('2D', level='date'),
+            df.groupby(pd.Grouper(freq='2D'))
+        ]
+
+        a_mean = r['A'].mean()
+        a_std = r['A'].std()
+        a_sum = r['A'].sum()
+        b_mean = r['B'].mean()
+        b_std = r['B'].std()
+        b_sum = r['B'].sum()
+
+        expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
+        expected.columns = pd.MultiIndex.from_product([['A', 'B'],
+                                                       ['mean', 'std']])
+        for t in cases:
+            result = t.aggregate([np.mean, np.std])
+            assert_frame_equal(result, expected)
+
+        expected = pd.concat([a_mean, b_std], axis=1)
+        for t in cases:
+            result = t.aggregate({'A': np.mean,
+                                  'B': np.std})
+            assert_frame_equal(result, expected, check_like=True)
+
+        expected = pd.concat([a_mean, a_std], axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
+                                                      ('A', 'std')])
+        for t in cases:
+            result = t.aggregate({'A': ['mean', 'std']})
+            assert_frame_equal(result, expected)
+
+        expected = pd.concat([a_mean, a_sum], axis=1)
+        expected.columns = ['mean', 'sum']
+        for t in cases:
+            result = t['A'].aggregate(['mean', 'sum'])
+        assert_frame_equal(result, expected)
+
+        expected = pd.concat([a_mean, a_sum], axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
+                                                      ('A', 'sum')])
+        for t in cases:
+            result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
+            assert_frame_equal(result, expected, check_like=True)
+
+        expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
+                                                      ('A', 'sum'),
+                                                      ('B', 'mean2'),
+                                                      ('B', 'sum2')])
+        for t in cases:
+            result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'},
+                                  'B': {'mean2': 'mean', 'sum2': 'sum'}})
+            assert_frame_equal(result, expected, check_like=True)
+
+        expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
+                                                      ('A', 'std'),
+                                                      ('B', 'mean'),
+                                                      ('B', 'std')])
+        for t in cases:
+            result = t.aggregate({'A': ['mean', 'std'],
+                                  'B': ['mean', 'std']})
+            assert_frame_equal(result, expected, check_like=True)
+
+        expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('r1', 'A', 'mean'),
+                                                      ('r1', 'A', 'sum'),
+                                                      ('r2', 'B', 'mean'),
+                                                      ('r2', 'B', 'sum')])
+
+    def test_agg_misc(self):
+        # test with all three Resampler apis and TimeGrouper
+
+        np.random.seed(1234)
+        index = self.create_series().index
+        index.name = 'date'
+        df = pd.DataFrame(np.random.rand(10, 2),
+                          columns=list('AB'),
+                          index=index)
+        df_col = df.reset_index()
+        df_mult = df_col.copy()
+        df_mult.index = pd.MultiIndex.from_arrays([range(10), df.index],
+                                                  names=['index', 'date'])
+
+        r = df.resample('2D')
+        cases = [
+            r,
+            df_col.resample('2D', on='date'),
+            df_mult.resample('2D', level='date'),
+            df.groupby(pd.Grouper(freq='2D'))
+        ]
+
+        # passed lambda
+        for t in cases:
+            result = t.agg({'A': np.sum,
+                            'B': lambda x: np.std(x, ddof=1)})
+            rcustom = t['B'].apply(lambda x: np.std(x, ddof=1))
+            expected = pd.concat([r['A'].sum(), rcustom], axis=1)
+            assert_frame_equal(result, expected, check_like=True)
+
+        # agg with renamers
+        expected = pd.concat([t['A'].sum(),
+                              t['B'].sum(),
+                              t['A'].mean(),
+                              t['B'].mean()],
+                             axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('result1', 'A'),
+                                                      ('result1', 'B'),
+                                                      ('result2', 'A'),
+                                                      ('result2', 'B')])
+        for t in cases:
+            result = t[['A', 'B']].agg(OrderedDict([('result1', np.sum),
+                                                    ('result2', np.mean)]))
+            assert_frame_equal(result, expected, check_like=True)
+
+        # agg with different hows
+        expected = pd.concat([t['A'].sum(),
+                              t['A'].std(),
+                              t['B'].mean(),
+                              t['B'].std()],
+                             axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
+                                                      ('A', 'std'),
+                                                      ('B', 'mean'),
+                                                      ('B', 'std')])
+        for t in cases:
+            result = t.agg(OrderedDict([('A', ['sum', 'std']),
+                                        ('B', ['mean', 'std'])]))
+            assert_frame_equal(result, expected, check_like=True)
+
+        # equivalent of using a selection list / or not
+        for t in cases:
+            result = t[['A', 'B']].agg({'A': ['sum', 'std'],
+                                        'B': ['mean', 'std']})
+            assert_frame_equal(result, expected, check_like=True)
+
+        # series like aggs
+        for t in cases:
+            result = t['A'].agg({'A': ['sum', 'std']})
+            expected = pd.concat([t['A'].sum(),
+                                  t['A'].std()],
+                                 axis=1)
+            expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
+                                                          ('A', 'std')])
+            assert_frame_equal(result, expected, check_like=True)
+
+            expected = pd.concat([t['A'].agg(['sum', 'std']),
+                                  t['A'].agg(['mean', 'std'])],
+                                 axis=1)
+            expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
+                                                          ('A', 'std'),
+                                                          ('B', 'mean'),
+                                                          ('B', 'std')])
+            result = t['A'].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+            assert_frame_equal(result, expected, check_like=True)
+
+        # errors
+        # invalid names in the agg specification
+        for t in cases:
+            def f():
+                t[['A']].agg({'A': ['sum', 'std'],
+                              'B': ['mean', 'std']})
+
+            self.assertRaises(SpecificationError, f)
+
+    def test_agg_nested_dicts(self):
+
+        np.random.seed(1234)
+        index = self.create_series().index
+        index.name = 'date'
+        df = pd.DataFrame(np.random.rand(10, 2),
+                          columns=list('AB'),
+                          index=index)
+        df_col = df.reset_index()
+        df_mult = df_col.copy()
+        df_mult.index = pd.MultiIndex.from_arrays([range(10), df.index],
+                                                  names=['index', 'date'])
+        r = df.resample('2D')
+        cases = [
+            r,
+            df_col.resample('2D', on='date'),
+            df_mult.resample('2D', level='date'),
+            df.groupby(pd.Grouper(freq='2D'))
+        ]
+
+        for t in cases:
+            def f():
+                t.aggregate({'r1': {'A': ['mean', 'sum']},
+                             'r2': {'B': ['mean', 'sum']}})
+                self.assertRaises(ValueError, f)
+
+        for t in cases:
+            expected = pd.concat([t['A'].mean(), t['A'].std(), t['B'].mean(),
+                                  t['B'].std()], axis=1)
+            expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
+                'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
+
+            result = t[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
+                                        'B': {'rb': ['mean', 'std']}})
+            assert_frame_equal(result, expected, check_like=True)
+
+            result = t.agg({'A': {'ra': ['mean', 'std']},
+                            'B': {'rb': ['mean', 'std']}})
+            assert_frame_equal(result, expected, check_like=True)
+
+    def test_selection_api_validation(self):
+        # GH 13500
+        index = self.create_series().index
+        df = pd.DataFrame({'date': index,
+                           'a': np.arange(len(index), dtype=np.int64)},
+                           index=pd.MultiIndex.from_arrays([
+                               np.arange(len(index), dtype=np.int64),
+                               index], names=['v', 'd']))
+        df_exp = pd.DataFrame({'a': np.arange(len(index), dtype=np.int64)},
+                               index=index)
+
+        # non DatetimeIndex
+        with tm.assertRaises(TypeError):
+            df.resample('M', level='v')
+
+        with tm.assertRaises(ValueError):
+            df.resample('M', on='date', level='d')
+
+        with tm.assertRaises(TypeError):
+            df.resample('M', on=['a', 'date'])
+
+        with tm.assertRaises(KeyError):
+            df.resample('M', level=['a', 'date'])
+
+        exp = df_exp.resample('2D').sum()
+        exp.index.name = 'date'
+        assert_frame_equal(exp, df.resample('2D', on='date').sum())
+
+        exp.index.name = 'd'
+        assert_frame_equal(exp, df.resample('2D', level='d').sum())
 
 
 class TestDatetimeIndex(Base, tm.TestCase):
