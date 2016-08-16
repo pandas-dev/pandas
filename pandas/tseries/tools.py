@@ -308,7 +308,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     Using non-epoch origins to parse date
 
-    >>> pd.to_datetime([1,2,3], unit='D', origin=Timestamp('1960-01-01'))
+    >>> pd.to_datetime([1,2,3], unit='D', origin=pd.Timestamp('1960-01-01'))
     0    1960-01-01
     1    1960-01-02
     ...
@@ -427,6 +427,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 raise e
 
     def result_without_offset(arg):
+        if origin == 'julian':
+            if unit != 'D':
+                raise ValueError("unit must be 'D' for origin='julian'")
+            arg = arg - tslib.Timestamp(0).to_julian_date()
         if arg is None:
             return arg
         elif isinstance(arg, tslib.Timestamp):
@@ -442,11 +446,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         elif is_list_like(arg):
             return _convert_listlike(arg, box, format)
         return _convert_listlike(np.array([arg]), box, format)[0]
-
-    if origin == 'julian':
-        if unit != 'D':
-            raise ValueError("unit must be 'D' for origin='julian'")
-        arg = arg - tslib.Timestamp(0).to_julian_date()
 
     result = result_without_offset(arg)
 
