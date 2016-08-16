@@ -3096,6 +3096,25 @@ class TestPeriodIndex(tm.TestCase):
         pi = dti.to_period(freq='H')
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
+    def test_period_astype_to_timestamp(self):
+        pi = pd.PeriodIndex(['2011-01', '2011-02', '2011-03'], freq='M')
+
+        exp = pd.DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01'])
+        tm.assert_index_equal(pi.astype('datetime64[ns]'), exp)
+
+        exp = pd.DatetimeIndex(['2011-01-31', '2011-02-28', '2011-03-31'])
+        tm.assert_index_equal(pi.astype('datetime64[ns]', how='end'), exp)
+
+        exp = pd.DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01'],
+                               tz='US/Eastern')
+        res = pi.astype('datetime64[ns, US/Eastern]')
+        tm.assert_index_equal(pi.astype('datetime64[ns, US/Eastern]'), exp)
+
+        exp = pd.DatetimeIndex(['2011-01-31', '2011-02-28', '2011-03-31'],
+                               tz='US/Eastern')
+        res = pi.astype('datetime64[ns, US/Eastern]', how='end')
+        tm.assert_index_equal(res, exp)
+
     def test_to_period_quarterly(self):
         # make sure we can make the round trip
         for month in MONTHS:

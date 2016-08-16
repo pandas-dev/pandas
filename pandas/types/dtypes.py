@@ -286,10 +286,8 @@ class PeriodDtype(ExtensionDtype):
             # empty constructor for pickle compat
             return object.__new__(cls)
 
-        from pandas._period import Period
-        try:
-            freq = Period._maybe_convert_freq(freq)
-        except ValueError:
+        from pandas.tseries.offsets import DateOffset
+        if not isinstance(freq, DateOffset):
             freq = cls._parse_dtype_strict(freq)
 
         try:
@@ -302,16 +300,16 @@ class PeriodDtype(ExtensionDtype):
 
     @classmethod
     def _parse_dtype_strict(cls, freq):
-        try:
-            m = cls._match.search(freq)
-            if m is not None:
-                from pandas._period import Period
-                freq = m.group('freq')
-                freq = Period._maybe_convert_freq(freq)
-                if freq is not None:
-                    return freq
-        except:
-            pass
+        if isinstance(freq, compat.string_types):
+            if freq.startswith('period[') or freq.startswith('Period['):
+                m = cls._match.search(freq)
+                if m is not None:
+                    freq = m.group('freq')
+            from pandas.tseries.frequencies import to_offset
+            freq = to_offset(freq)
+            if freq is not None:
+                return freq
+
         raise ValueError("could not construct PeriodDtype")
 
     @classmethod
@@ -342,7 +340,7 @@ class PeriodDtype(ExtensionDtype):
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
-            return other == self.name
+            return other == self.name or other == self.name.title()
 
         return isinstance(other, PeriodDtype) and self.freq == other.freq
 
@@ -356,11 +354,14 @@ class PeriodDtype(ExtensionDtype):
         if isinstance(dtype, compat.string_types):
             # PeriodDtype can be instanciated from freq string like "U",
             # but dosn't regard freq str like "U" as dtype.
-            try:
-                if cls._parse_dtype_strict(dtype) is not None:
-                    return True
-                else:
+            if dtype.startswith('period[') or dtype.startswith('Period['):
+                try:
+                    if cls._parse_dtype_strict(dtype) is not None:
+                        return True
+                    else:
+                        return False
+                except ValueError:
                     return False
-            except ValueError:
+            else:
                 return False
         return super(PeriodDtype, cls).is_dtype(dtype)

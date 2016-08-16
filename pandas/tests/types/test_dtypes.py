@@ -12,7 +12,7 @@ from pandas.types.common import (is_categorical_dtype, is_categorical,
                                  is_period_dtype, is_period,
                                  is_dtype_equal, is_datetime64_ns_dtype,
                                  is_datetime64_dtype, is_string_dtype,
-                                 _coerce_to_dtype, pandas_dtype)
+                                 _coerce_to_dtype)
 import pandas.util.testing as tm
 
 _multiprocess_can_split_ = True
@@ -268,25 +268,6 @@ class TestPeriodDtype(Base, tm.TestCase):
         self.assertEqual(_coerce_to_dtype('period[3M]'),
                          PeriodDtype('period[3M]'))
 
-    def test_pandas_dtype(self):
-        self.assertEqual(pandas_dtype('period[D]'),
-                         PeriodDtype('period[D]'))
-        self.assertEqual(pandas_dtype('period[3M]'),
-                         PeriodDtype('period[3M]'))
-        self.assertEqual(pandas_dtype('period[U]'),
-                         PeriodDtype('period[U]'))
-        # capital P
-        self.assertEqual(pandas_dtype('Period[D]'),
-                         PeriodDtype('period[D]'))
-        self.assertEqual(pandas_dtype('Period[3M]'),
-                         PeriodDtype('period[3M]'))
-        self.assertEqual(pandas_dtype('Period[U]'),
-                         PeriodDtype('period[U]'))
-
-        # do not parse freq-like string as period dtype
-        self.assertEqual(pandas_dtype('U'), np.dtype('U'))
-        self.assertEqual(pandas_dtype('S'), np.dtype('S'))
-
     def test_compat(self):
         self.assertFalse(is_datetime64_ns_dtype(self.dtype))
         self.assertFalse(is_datetime64_ns_dtype('period[D]'))
@@ -304,6 +285,11 @@ class TestPeriodDtype(Base, tm.TestCase):
             PeriodDtype.construct_from_string('period[foo]')
         with tm.assertRaises(TypeError):
             PeriodDtype.construct_from_string('foo[D]')
+
+        with tm.assertRaises(TypeError):
+            PeriodDtype.construct_from_string('datetime64[ns]')
+        with tm.assertRaises(TypeError):
+            PeriodDtype.construct_from_string('datetime64[ns, US/Eastern]')
 
     def test_is_dtype(self):
         self.assertTrue(PeriodDtype.is_dtype(self.dtype))

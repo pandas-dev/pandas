@@ -634,8 +634,8 @@ Furthermore:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``PeriodIndex`` now has its own ``period`` dtype. The ``period`` dtype is a
-pandas extension dtype which extends NumPy dtype like ``"category"`` (:issue:`13941`).
-As a consequence of this change, `PeriodIndex` no longer has an integer dtype:
+pandas extension dtype like ``category`` or :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``). (:issue:`13941`).
+As a consequence of this change, ``PeriodIndex`` no longer has an integer dtype:
 
 Previous Behavior:
 

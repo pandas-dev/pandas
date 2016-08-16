@@ -10,6 +10,8 @@ from pandas.types.common import (is_integer,
                                  is_integer_dtype,
                                  is_float_dtype,
                                  is_scalar,
+                                 is_datetime64_dtype,
+                                 is_datetime64tz_dtype,
                                  is_timedelta64_dtype,
                                  is_period_dtype,
                                  is_bool_dtype,
@@ -411,13 +413,17 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return result
 
     @Appender(_index_shared_docs['astype'])
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
         if is_object_dtype(dtype):
             return self.asobject
         elif is_integer_dtype(dtype):
             return Index(self.values.astype('i8', copy=copy), name=self.name,
                          dtype='i8')
+        elif is_datetime64_dtype(dtype):
+            return self.to_timestamp(how=how)
+        elif is_datetime64tz_dtype(dtype):
+            return self.to_timestamp(how=how).tz_localize(dtype.tz)
         elif is_period_dtype(dtype):
             return self.asfreq(freq=dtype.freq)
         raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)

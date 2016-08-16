@@ -1604,10 +1604,12 @@ Period Dtypes
 .. versionadded:: 0.19.0
 
 ``PeriodIndex`` has a custom ``period`` dtype. This is a pandas extension
-dtype similar to the timezone aware dtype (``datetime64[ns, tz]``).
+dtype similar to the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``).
+
+.. _timeseries.timezone_series:
 
 The ``period`` dtype holds the ``freq`` attribute and is represented with
-``period[freq]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
+``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
 
 .. ipython:: python
 
@@ -1615,7 +1617,7 @@ The ``period`` dtype holds the ``freq`` attribute and is represented with
    pi
    pi.dtype
 
-The ``period`` dtype can be used in ``.astype(...)``. It allows to change the
+The ``period`` dtype can be used in ``.astype(...)``. It allows one to change the
 ``freq`` of a ``PeriodIndex`` like ``.asfreq()`` and convert a
 ``DatetimeIndex`` to ``PeriodIndex`` like ``to_period()``:
 
@@ -1623,6 +1625,9 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows to change the
 
    # change monthly freq to daily freq
    pi.astype('period[D]')
+
+   # convert to DatetimeIndex
+   pi.astype('datetime64[ns]')
 
    # convert to PeriodIndex
    dti = pd.date_range('2011-01-01', freq='M', periods=3)

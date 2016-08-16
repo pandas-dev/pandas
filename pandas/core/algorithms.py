@@ -405,6 +405,7 @@ def _value_counts_arraylike(values, dropna=True):
 
     if needs_i8_conversion(dtype) or is_period_type:
 
+        from pandas.tseries.index import DatetimeIndex
         from pandas.tseries.period import PeriodIndex
 
         if is_period_type:
@@ -424,7 +425,6 @@ def _value_counts_arraylike(values, dropna=True):
 
         # dtype handling
         if is_datetimetz_type:
-            from pandas.tseries.index import DatetimeIndex
             keys = DatetimeIndex._simple_new(keys, tz=orig.dtype.tz)
         if is_period_type:
             keys = PeriodIndex._simple_new(keys, freq=freq)

@@ -6,16 +6,39 @@ import numpy as np
 from pandas.types.dtypes import DatetimeTZDtype, PeriodDtype, CategoricalDtype
 from pandas.types.common import pandas_dtype, is_dtype_equal
 
+import pandas.util.testing as tm
+
 _multiprocess_can_split_ = True
 
 
-def test_pandas_dtype():
+class TestPandasDtype(tm.TestCase):
 
-    assert pandas_dtype('datetime64[ns, US/Eastern]') == DatetimeTZDtype(
-        'datetime64[ns, US/Eastern]')
-    assert pandas_dtype('category') == CategoricalDtype()
-    for dtype in ['M8[ns]', 'm8[ns]', 'object', 'float64', 'int64']:
-        assert pandas_dtype(dtype) == np.dtype(dtype)
+    def test_numpy_dtype(self):
+        for dtype in ['M8[ns]', 'm8[ns]', 'object', 'float64', 'int64']:
+            self.assertEqual(pandas_dtype(dtype), np.dtype(dtype))
+
+    def test_numpy_string_dtype(self):
+        # do not parse freq-like string as period dtype
+        self.assertEqual(pandas_dtype('U'), np.dtype('U'))
+        self.assertEqual(pandas_dtype('S'), np.dtype('S'))
+
+    def test_datetimetz_dtype(self):
+        for dtype in ['datetime64[ns, US/Eastern]',
+                      'datetime64[ns, Asia/Tokyo]',
+                      'datetime64[ns, UTC]']:
+            self.assertIs(pandas_dtype(dtype), DatetimeTZDtype(dtype))
+            self.assertEqual(pandas_dtype(dtype), DatetimeTZDtype(dtype))
+            self.assertEqual(pandas_dtype(dtype), dtype)
+
+    def test_categorical_dtype(self):
+        self.assertEqual(pandas_dtype('category'), CategoricalDtype())
+
+    def test_period_dtype(self):
+        for dtype in ['period[D]', 'period[3M]', 'period[U]',
+                      'Period[D]', 'Period[3M]', 'Period[U]']:
+            self.assertIs(pandas_dtype(dtype), PeriodDtype(dtype))
+            self.assertEqual(pandas_dtype(dtype), PeriodDtype(dtype))
+            self.assertEqual(pandas_dtype(dtype), dtype)
 
 
 def test_dtype_equal():
