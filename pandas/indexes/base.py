@@ -2859,8 +2859,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             left_indexer, right_indexer = right_indexer, left_indexer
 
         if return_indexers:
-            left_indexer = None if left_indexer is None else _ensure_platform_int(left_indexer)
-            right_indexer = None if right_indexer is None else _ensure_platform_int(right_indexer)
+            left_indexer = (None if left_indexer is None
+                            else _ensure_platform_int(left_indexer))
+            right_indexer = (None if right_indexer is None
+                             else _ensure_platform_int(right_indexer))
             return join_index, left_indexer, right_indexer
         else:
             return join_index
