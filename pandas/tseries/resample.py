@@ -87,7 +87,8 @@ class Resampler(_GroupBy):
         self.grouper = None
 
         if self.groupby is not None:
-            self.groupby._set_grouper(self._convert_obj(obj), sort=True)
+            obj, converter = self._convert_obj(obj)
+            self.groupby._set_grouper(obj, sort=True, converter=converter)
 
     def __unicode__(self):
         """ provide a nice str repr of our rolling object """
@@ -203,13 +204,20 @@ class Resampler(_GroupBy):
     def _convert_obj(self, obj):
         """
         provide any conversions for the object in order to correctly handle
+        and returns a converter function to be applied to grouping selection
 
         Parameters
         ----------
         obj : the object to be resampled
+
+        Returns
+        -------
+        obj : converted object
+        converter : callable, optional
+            converter to apply after selection
         """
         obj = obj.consolidate()
-        return obj
+        return obj, None
 
     def _get_binner_for_time(self):
         raise AbstractMethodError(self)
@@ -703,6 +711,7 @@ class DatetimeIndexResampler(Resampler):
         .fillna
 
         """
+        # import pdb; pdb.set_trace()
         self._set_binner()
         if self.axis:
             raise AssertionError('axis must be 0')
@@ -751,7 +760,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         return PeriodIndexResamplerGroupby
 
     def _convert_obj(self, obj):
-        obj = super(PeriodIndexResampler, self)._convert_obj(obj)
+        obj, _ = super(PeriodIndexResampler, self)._convert_obj(obj)
 
         offset = to_offset(self.freq)
         if offset.n > 1:
@@ -761,10 +770,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             # Cannot have multiple of periods, convert to timestamp
             self.kind = 'timestamp'
 
+        converter = None
         # convert to timestamp
         if not (self.kind is None or self.kind == 'period'):
-            obj = obj.to_timestamp(how=self.convention)
-        return obj
+            converter = lambda x: x.to_timestamp(how=self.convention)
+        return obj, converter
 
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
@@ -1002,7 +1012,6 @@ class TimeGrouper(Grouper):
         TypeError if incompatible axis
 
         """
-        import pdb; pdb.set_trace()
         self._set_grouper(obj)
 
         ax = self.ax
