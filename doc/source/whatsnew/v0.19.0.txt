@@ -882,6 +882,7 @@ Bug Fixes
 
 - Bug in ``SeriesGroupBy.transform`` with datetime values and missing groups (:issue:`13191`)
 
+- Bug in ``pd.read_csv()`` in the C engine where the NULL character was not being parsed as NULL (:issue:`14012`)
 - Bug in ``Series.str.extractall()`` with ``str`` index raises ``ValueError``  (:issue:`13156`)
 - Bug in ``Series.str.extractall()`` with single group and quantifier  (:issue:`13382`)
 - Bug in ``DatetimeIndex`` and ``Period`` subtraction raises ``ValueError`` or ``AttributeError`` rather than ``TypeError`` (:issue:`13078`)
