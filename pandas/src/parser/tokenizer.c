@@ -684,13 +684,18 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 
 #define IS_WHITESPACE(c) ((c == ' ' || c == '\t'))
 
-#define IS_TERMINATOR(c) ((self->lineterminator == '\0' &&          \
-                           c == '\n') || c == self->lineterminator)
+#define IS_TERMINATOR(c) ((self->lineterminator == '\0' && c == '\n') || \
+                          (self->lineterminator != '\0' &&               \
+                           c == self->lineterminator))
 
 #define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
 
 // don't parse '\r' with a custom line terminator
 #define IS_CARRIAGE(c) ((self->lineterminator == '\0' && c == '\r'))
+
+#define IS_COMMENT_CHAR(c) ((self->commentchar != '\0' && c == self->commentchar))
+
+#define IS_ESCAPE_CHAR(c) ((self->escapechar != '\0' && c == self->escapechar))
 
 #define IS_SKIPPABLE_SPACE(c) ((!self->delim_whitespace && c == ' ' && \
                                 self->skipinitialspace))
@@ -866,7 +871,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
                     self->state = EAT_CRNL;
                 }
                 break;
-            } else if (c == self->commentchar) {
+            } else if (IS_COMMENT_CHAR(c)) {
                 self->state = EAT_LINE_COMMENT;
                 break;
             } else if (IS_WHITESPACE(c)) {
@@ -899,7 +904,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
             } else if (IS_QUOTE(c)) {
                 // start quoted field
                 self->state = IN_QUOTED_FIELD;
-            } else if (c == self->escapechar) {
+            } else if (IS_ESCAPE_CHAR(c)) {
                 // possible escaped character
                 self->state = ESCAPED_CHAR;
             } else if (IS_SKIPPABLE_SPACE(c)) {
@@ -912,7 +917,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
                     // save empty field
                     END_FIELD();
                 }
-            } else if (c == self->commentchar) {
+            } else if (IS_COMMENT_CHAR(c)) {
                 END_FIELD();
                 self->state = EAT_COMMENT;
             } else {
@@ -950,7 +955,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
             } else if (IS_CARRIAGE(c)) {
                 END_FIELD();
                 self->state = EAT_CRNL;
-            } else if (c == self->escapechar) {
+            } else if (IS_ESCAPE_CHAR(c)) {
                 // possible escaped character
                 self->state = ESCAPED_CHAR;
             } else if (IS_DELIMITER(c)) {
@@ -962,7 +967,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
                 } else {
                     self->state = START_FIELD;
                 }
-            } else if (c == self->commentchar) {
+            } else if (IS_COMMENT_CHAR(c)) {
                 END_FIELD();
                 self->state = EAT_COMMENT;
             } else {
@@ -973,7 +978,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
 
         case IN_QUOTED_FIELD:
             // in quoted field
-            if (c == self->escapechar) {
+            if (IS_ESCAPE_CHAR(c)) {
                 // possible escape character
                 self->state = ESCAPE_IN_QUOTED_FIELD;
             } else if (IS_QUOTE(c)) {
