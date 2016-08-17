@@ -4475,14 +4475,13 @@ Additional information on service accounts can be found
 
 You will need to install an additional dependency: `oauth2client <https://github.com/google/oauth2client>`__.
 
-.. versionadded:: 0.19.0
-
 Authentication via ``application default credentials`` is also possible. This is only valid
 if the parameter ``private_key`` is not provided. This method also requires that
 the credentials can be fetched from the environment the code is running in.
 Otherwise, the OAuth2 client-side authentication is used.
-Additional information on ``application default credentials`` can be found
-`here <https://developers.google.com/identity/protocols/application-default-credentials>`__.
+Additional information on `application default credentials <https://developers.google.com/identity/protocols/application-default-credentials>`__.
+
+.. versionadded:: 0.19.0
 
 .. note::
 
