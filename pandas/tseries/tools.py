@@ -240,13 +240,14 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         speed by ~5-10x.
     origin : scalar convertible to Timestamp / string ('julian', 'epoch'),
         default 'epoch'.
-        Define relative offset for the returned dates.
+        Define reference date. The numeric values would be parsed as number
+        of units (defined by `unit`) since this reference date.
 
-        - If 'epoch', offset is set to 1970-01-01.
-        - If 'julian', unit must be 'D', and offset is set to beginning of
+        - If 'epoch', origin is set to 1970-01-01.
+        - If 'julian', unit must be 'D', and origin is set to beginning of
           Julian Calendar. Julian day number 0 is assigned to the day starting
           at noon on January 1, 4713 BC.
-        - If Timestamp convertible, offset is set to Timestamp identified by
+        - If Timestamp convertible, origin is set to Timestamp identified by
           origin.
 
         .. versionadded: 0.19.0
@@ -454,7 +455,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         try:
             offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
         except ValueError:
-            raise ValueError("Invalid Origin or Origin Out of Bound")
+            raise ValueError("Invalid 'origin' or 'origin' Out of Bound")
 
     if offset is not None:
         result = result + offset
