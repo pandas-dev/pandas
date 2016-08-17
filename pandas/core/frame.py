@@ -2638,6 +2638,8 @@ class DataFrame(NDFrame):
                     value = com._asarray_tuplesafe(value)
             elif value.ndim == 2:
                 value = value.copy().T
+            elif isinstance(value, Index):
+                value = value.copy(deep=True)
             else:
                 value = value.copy()
 
