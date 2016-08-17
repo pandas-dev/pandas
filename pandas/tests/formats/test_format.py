@@ -2781,6 +2781,13 @@ c  10  11  12  13  14\
                 self.assertTrue(('+10' in line) or skip)
             skip = False
 
+    def test_put_lines(self):
+        from io import StringIO
+        buf = StringIO()
+        lines = ["<class 'pandas.core.frame.DataFrame'>", 'Index: 0 entries', 'Empty DataFrame']
+        fmt._put_lines(buf, lines)
+        assert (buf.getvalue() == "<class 'pandas.core.frame.DataFrame'>\nIndex: 0 entries\nEmpty DataFrame")
+
     def test_dict_entries(self):
         df = DataFrame({'A': [{'a': 1, 'b': 2}]})
 
