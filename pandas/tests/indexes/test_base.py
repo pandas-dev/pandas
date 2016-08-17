@@ -149,8 +149,8 @@ class TestIndex(Base, tm.TestCase):
 
         expected = DatetimeIndex([Timestamp('20110101'), Timestamp('20120101'),
                                   Timestamp('20130101')])
-        s = Series([Timestamp('20110101'), Timestamp('20120101'), Timestamp(
-            '20130101')])
+        s = Series([Timestamp('20110101'), Timestamp('20120101'),
+                    Timestamp('20130101')])
         result = Index(s)
         self.assert_index_equal(result, expected)
         result = DatetimeIndex(s)

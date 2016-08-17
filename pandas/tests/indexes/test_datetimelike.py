@@ -791,8 +791,6 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         self.assertRaises(ValueError, idx.astype, float)
         self.assertRaises(ValueError, idx.astype, 'timedelta64')
         self.assertRaises(ValueError, idx.astype, 'timedelta64[ns]')
-        self.assertRaises(ValueError, idx.astype, 'datetime64')
-        self.assertRaises(ValueError, idx.astype, 'datetime64[ns]')
 
     def test_shift(self):
 

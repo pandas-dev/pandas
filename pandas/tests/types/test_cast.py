@@ -18,7 +18,7 @@ from pandas.types.cast import (_possibly_downcast_to_dtype,
                                _maybe_convert_scalar,
                                _find_common_type)
 from pandas.types.dtypes import (CategoricalDtype,
-                                 DatetimeTZDtype)
+                                 DatetimeTZDtype, PeriodDtype)
 from pandas.util import testing as tm
 
 _multiprocess_can_split_ = True
@@ -241,17 +241,28 @@ class TestCommonTypes(tm.TestCase):
             # empty
             _find_common_type([])
 
-    def test_pandas_dtypes(self):
+    def test_categorical_dtype(self):
         dtype = CategoricalDtype()
         self.assertEqual(_find_common_type([dtype]), 'category')
         self.assertEqual(_find_common_type([dtype, dtype]), 'category')
         self.assertEqual(_find_common_type([np.object, dtype]), np.object)
 
+    def test_datetimetz_dtype(self):
         dtype = DatetimeTZDtype(unit='ns', tz='US/Eastern')
         self.assertEqual(_find_common_type([dtype, dtype]),
                          'datetime64[ns, US/Eastern]')
 
         for dtype2 in [DatetimeTZDtype(unit='ns', tz='Asia/Tokyo'),
+                       np.dtype('datetime64[ns]'), np.object, np.int64]:
+            self.assertEqual(_find_common_type([dtype, dtype2]), np.object)
+            self.assertEqual(_find_common_type([dtype2, dtype]), np.object)
+
+    def test_period_dtype(self):
+        dtype = PeriodDtype(freq='D')
+        self.assertEqual(_find_common_type([dtype, dtype]), 'period[D]')
+
+        for dtype2 in [DatetimeTZDtype(unit='ns', tz='Asia/Tokyo'),
+                       PeriodDtype(freq='2D'), PeriodDtype(freq='H'),
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
             self.assertEqual(_find_common_type([dtype, dtype2]), np.object)
             self.assertEqual(_find_common_type([dtype2, dtype]), np.object)

@@ -1594,6 +1594,47 @@ objects:
    idx
    idx + MonthEnd(3)
 
+``PeriodIndex`` has its own dtype named ``period``, refer to :ref:`Period Dtypes <timeseries.period_dtype>`.
+
+.. _timeseries.period_dtype:
+
+Period Dtypes
+~~~~~~~~~~~~~
+
+.. versionadded:: 0.19.0
+
+``PeriodIndex`` has a custom ``period`` dtype. This is a pandas extension
+dtype similar to the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``).
+
+.. _timeseries.timezone_series:
+
+The ``period`` dtype holds the ``freq`` attribute and is represented with
+``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
+
+.. ipython:: python
+
+   pi = pd.period_range('2016-01-01', periods=3, freq='M')
+   pi
+   pi.dtype
+
+The ``period`` dtype can be used in ``.astype(...)``. It allows one to change the
+``freq`` of a ``PeriodIndex`` like ``.asfreq()`` and convert a
+``DatetimeIndex`` to ``PeriodIndex`` like ``to_period()``:
+
+.. ipython:: python
+
+   # change monthly freq to daily freq
+   pi.astype('period[D]')
+
+   # convert to DatetimeIndex
+   pi.astype('datetime64[ns]')
+
+   # convert to PeriodIndex
+   dti = pd.date_range('2011-01-01', freq='M', periods=3)
+   dti
+   dti.astype('period[M]')
+
+
 PeriodIndex Partial String Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

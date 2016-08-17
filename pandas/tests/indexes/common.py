@@ -149,10 +149,7 @@ class Base(object):
         for idx in self.indices.values():
             dtype = idx.dtype_str
             self.assertIsInstance(dtype, compat.string_types)
-            if isinstance(idx, PeriodIndex):
-                self.assertEqual(dtype, 'period')
-            else:
-                self.assertEqual(dtype, str(idx.dtype))
+            self.assertEqual(dtype, str(idx.dtype))
 
     def test_repr_max_seq_item_setting(self):
         # GH10182
