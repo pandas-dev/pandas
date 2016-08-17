@@ -957,7 +957,8 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` with ``engine='python'`` when reading from a ``tempfile.TemporaryFile`` on Windows with Python 3 (:issue:`13398`)
 - Bug in ``pd.read_csv()`` that prevents ``usecols`` kwarg from accepting single-byte unicode strings (:issue:`13219`)
 - Bug in ``pd.read_csv()`` that prevents ``usecols`` from being an empty set (:issue:`13402`)
-- Bug in ``pd.read_csv()`` with ``engine='c'`` in which null ``quotechar`` was not accepted even though ``quoting`` was specified as ``None`` (:issue:`13411`)
+- Bug in ``pd.read_csv()`` in the C engine where the NULL character was not being parsed as NULL (:issue:`14012`)
+- Bug in ``pd.read_csv()`` with ``engine='c'`` in which NULL ``quotechar`` was not accepted even though ``quoting`` was specified as ``None`` (:issue:`13411`)
 - Bug in ``pd.read_csv()`` with ``engine='c'`` in which fields were not properly cast to float when quoting was specified as non-numeric (:issue:`13411`)
 - Bug in ``pd.read_csv``, ``pd.read_table``, ``pd.read_fwf``, ``pd.read_stata`` and ``pd.read_sas`` where files were opened by parsers but not closed if both ``chunksize`` and ``iterator`` were ``None``. (:issue:`13940`)
 - Bug in ``StataReader``, ``StataWriter``, ``XportReader`` and ``SAS7BDATReader`` where a file was not properly closed when an error was raised. (:issue:`13940`)
@@ -970,8 +971,8 @@ Bug Fixes
 
 - Bug in ``Series`` arithmetic raises ``TypeError`` if it contains datetime-like as ``object`` dtype (:issue:`13043`)
 
-- Bug ``Series.isnull`` and ``Series.notnull`` ignore ``Period('NaT')``  (:issue:`13737`)
-- Bug ``Series.fillna`` and ``Series.dropna`` don't affect to ``Period('NaT')``  (:issue:`13737`)
+- Bug ``Series.isnull()`` and ``Series.notnull()`` ignore ``Period('NaT')``  (:issue:`13737`)
+- Bug ``Series.fillna()`` and ``Series.dropna()`` don't affect to ``Period('NaT')``  (:issue:`13737`)
 
 - Bug in extension dtype creation where the created types were not is/identical (:issue:`13285`)
 - Bug in ``.resample(..)`` where incorrect warnings were triggered by IPython introspection (:issue:`13618`)
@@ -1008,8 +1009,8 @@ Bug Fixes
 - Bug in ``DatetimeIndex`` may raise ``OutOfBoundsDatetime`` if input ``np.datetime64`` has other unit than ``ns`` (:issue:`9114`)
 - Bug in ``Series`` creation with ``np.datetime64`` which has other unit than ``ns`` as ``object`` dtype results in incorrect values (:issue:`13876`)
 
-- Bug in ``isnull`` ``notnull`` raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
-- Bug in ``.merge`` may raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
+- Bug in ``pd.isnull()`` ``pd.notnull()`` raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
+- Bug in ``pd.merge()`` may raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
 
 - Bug in ``HDFStore``/``read_hdf()`` discarded ``DatetimeIndex.name`` if ``tz`` was set (:issue:`13884`)
 
