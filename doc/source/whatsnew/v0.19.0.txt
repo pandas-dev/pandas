@@ -411,7 +411,7 @@ Other enhancements
      df.sort_values(by='row2', axis=1)
 
 - Added documentation to :ref:`I/O<io.dtypes>` regarding the perils of reading in columns with mixed dtypes and how to handle it (:issue:`13746`)
-- Raise ImportError for in the sql functions when sqlalchemy is not installed and a connection string is used (:issue:`11920`).
+- Raise ``ImportError`` in the sql functions when ``sqlalchemy`` is not installed and a connection string is used (:issue:`11920`).
 
 
 .. _whatsnew_0190.api:
@@ -505,10 +505,9 @@ New Behavior:
 
 .. _whatsnew_0190.api.to_datetime_coerce:
 
-``.to_datetime()`` when coercing
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``.to_datetime()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A bug is fixed in ``.to_datetime()`` when passing integers or floats, and no ``unit`` and ``errors='coerce'`` (:issue:`13180`).
 Previously if ``.to_datetime()`` encountered mixed integers/floats and strings, but no datetimes with ``errors='coerce'`` it would convert all to ``NaT``.
 
 Previous Behavior:
@@ -523,6 +522,12 @@ This will now convert integers/floats with the default unit of ``ns``.
 .. ipython:: python
 
    pd.to_datetime([1, 'foo'], errors='coerce')
+
+- Bug in ``pd.to_datetime()`` when passing integers or floats, and no ``unit`` and ``errors='coerce'`` (:issue:`13180`).
+- Bug in ``pd.to_datetime()`` when passing invalid datatypes (e.g. bool); will now respect the ``errors`` keyword (:issue:`13176`)
+- Bug in ``pd.to_datetime()`` which overflowed on ``int8``, and ``int16`` dtypes (:issue:`13451`)
+- Bug in ``pd.to_datetime()`` raise ``AttributeError`` with NaN and the other string is not valid when errors='ignore' (:issue:`12424`)
+- Bug in ``pd.to_datetime()`` did not cast floats correctly when ``unit`` was specified, resulting in truncated datetime (:issue:`13845`)
 
 .. _whatsnew_0190.api.merging:
 
@@ -762,6 +767,7 @@ Note that the limitation is applied to ``fill_value`` which default is ``np.nan`
    ValueError: unable to coerce current fill_value nan to int64 dtype
 
 - Subclassed ``SparseDataFrame`` and ``SparseSeries`` now preserve class types when slicing or transposing. (:issue:`13787`)
+- ``SparseArray`` with ``bool`` dtype now supports logical (bool) operators (:issue:`14000`)
 - Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing may raise ``IndexError`` (:issue:`13144`)
 - Bug in ``SparseSeries`` with ``MultiIndex`` ``[]`` indexing result may have normal ``Index`` (:issue:`13144`)
 - Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)
@@ -779,6 +785,7 @@ Deprecations
 - ``Categorical.reshape`` has been deprecated and will be removed in a subsequent release (:issue:`12882`)
 - ``Series.reshape`` has been deprecated and will be removed in a subsequent release (:issue:`12882`)
 
+- ``SparseList`` has been deprecated and will be removed in a future version (:issue:`13784`)
 - ``DataFrame.to_html()`` and ``DataFrame.to_latex()`` have dropped the ``colSpace`` parameter in favor of ``col_space`` (:issue:`13857`)
 - ``DataFrame.to_sql()`` has deprecated the ``flavor`` parameter, as it is superfluous when SQLAlchemy is not installed (:issue:`13611`)
 - ``compact_ints`` and ``use_unsigned`` have been deprecated in ``pd.read_csv()`` and will be removed in a future version (:issue:`13320`)
@@ -893,6 +900,7 @@ Bug Fixes
 - Bug in ``.rolling()`` that allowed a negative integer window in contruction of the ``Rolling()`` object, but would later fail on aggregation (:issue:`13383`)
 
 - Bug in printing ``pd.DataFrame`` where unusual elements with the ``object`` dtype were causing segfaults (:issue:`13717`)
+- Bug in ranking ``Series`` which could result in segfaults (:issue:`13445`)
 - Bug in various index types, which did not propagate the name of passed index (:issue:`12309`)
 - Bug in ``DatetimeIndex``, which did not honour the ``copy=True`` (:issue:`13205`)
 - Bug in ``DatetimeIndex.is_normalized`` returns incorrectly for normalized date_range in case of local timezones (:issue:`13459`)
@@ -927,8 +935,6 @@ Bug Fixes
 - Bug ``Series.isnull`` and ``Series.notnull`` ignore ``Period('NaT')``  (:issue:`13737`)
 - Bug ``Series.fillna`` and ``Series.dropna`` don't affect to ``Period('NaT')``  (:issue:`13737`)
 
-- Bug in ``pd.to_datetime()`` when passing invalid datatypes (e.g. bool); will now respect the ``errors`` keyword (:issue:`13176`)
-- Bug in ``pd.to_datetime()`` which overflowed on ``int8``, and ``int16`` dtypes (:issue:`13451`)
 - Bug in extension dtype creation where the created types were not is/identical (:issue:`13285`)
 - Bug in ``.resample(..)`` where incorrect warnings were triggered by IPython introspection (:issue:`13618`)
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
@@ -943,7 +949,6 @@ Bug Fixes
 - Bug in ``.set_index`` raises ``AmbiguousTimeError`` if new index contains DST boundary and multi levels (:issue:`12920`)
 - Bug in ``.shift`` raises ``AmbiguousTimeError`` if data contains datetime near DST boundary (:issue:`13926`)
 - Bug in ``pd.read_hdf()`` returns incorrect result when a ``DataFrame`` with a ``categorical`` column and a query which doesn't match any values (:issue:`13792`)
-- Bug in ``pd.to_datetime()`` raise ``AttributeError`` with NaN and the other string is not valid when errors='ignore' (:issue:`12424`)
 
 
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
@@ -990,5 +995,4 @@ Bug Fixes
 
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
 - Bug in ``Period`` and ``PeriodIndex`` creating wrong dates when frequency has combined offset aliases (:issue:`13874`)
-- Bug in ``pd.to_datetime()`` did not cast floats correctly when ``unit`` was specified, resulting in truncated datetime (:issue:`13845`)
 - Bug in ``.to_string()`` when called with an integer ``line_width`` and ``index=False`` raises an UnboundLocalError exception because ``idx`` referenced before assignment.

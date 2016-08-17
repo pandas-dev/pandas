@@ -1222,6 +1222,14 @@ class TestTSPlot(TestPlotBase):
         self.assertEqual(left, ts_irregular.index.min().toordinal())
         self.assertEqual(right, ts_irregular.index.max().toordinal())
 
+    def test_plot_outofbounds_datetime(self):
+        # 2579 - checking this does not raise
+        values = [date(1677, 1, 1), date(1677, 1, 2)]
+        self.plt.plot(values)
+
+        values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
+        self.plt.plot(values)
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt

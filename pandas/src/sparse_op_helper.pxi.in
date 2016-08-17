@@ -90,8 +90,12 @@ cdef inline {{dtype}}_t __mod_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
 
 {{py:
 
-# dtype
-dtypes = ['float64', 'int64']
+# dtype, arith_comp_group, logical_group
+dtypes = [('float64', True, False),
+          ('int64', True, True),
+          ('uint8', False, True)]
+# do not generate arithmetic / comparison template for uint8,
+# it should be done in fused types
 
 def get_op(tup):
     assert isinstance(tup, tuple)
@@ -112,7 +116,10 @@ def get_op(tup):
                 'lt': '{0} < {1}',
                 'gt': '{0} > {1}',
                 'le': '{0} <= {1}',
-                'ge': '{0} >= {1}'}
+                'ge': '{0} >= {1}',
+
+                'and': '{0} & {1}',     # logical op
+                'or': '{0} | {1}'}
 
     return ops_dict[opname].format(lval, rval, dtype)
 
@@ -120,19 +127,30 @@ def get_op(tup):
 def get_dispatch(dtypes):
 
     ops_list = ['add', 'sub', 'mul', 'div', 'mod', 'truediv',
-                'floordiv', 'pow', 'eq', 'ne', 'lt', 'gt', 'le', 'ge']
+                'floordiv', 'pow',
+                'eq', 'ne', 'lt', 'gt', 'le', 'ge',
+                'and', 'or']
 
     for opname in ops_list:
-        for dtype in dtypes:
+        for dtype, arith_comp_group, logical_group in dtypes:
 
             if opname in ('div', 'truediv'):
                 rdtype = 'float64'
             elif opname in ('eq', 'ne', 'lt', 'gt', 'le', 'ge'):
+                # comparison op
+                rdtype = 'uint8'
+            elif opname in ('and', 'or'):
+                # logical op
                 rdtype = 'uint8'
             else:
                 rdtype = dtype
 
-            yield opname, dtype, rdtype
+            if opname in ('and', 'or'):
+                if logical_group:
+                    yield opname, dtype, rdtype
+            else:
+                if arith_comp_group:
+                    yield opname, dtype, rdtype
 
 }}
 
@@ -314,20 +332,6 @@ cpdef sparse_{{opname}}_{{dtype}}(ndarray[{{dtype}}_t, ndim=1] x,
                                            y, yindex.to_int_index(), yfill)
     else:
         raise NotImplementedError
-
-
-cpdef sparse_align_{{opname}}_{{dtype}}(ndarray[{{dtype}}_t, ndim=1] x,
-                                        ndarray[{{dtype}}_t, ndim=1] y):
-    """ to return NumPy compat result """
-    cdef:
-        Py_ssize_t i = 0
-        ndarray[{{rdtype}}_t, ndim=1] out
-
-    out = np.empty(len(x), dtype=np.{{rdtype}})
-
-    for i in range(len(x)):
-        out[i] = {{(opname, 'x[i]', 'y[i]', dtype) | get_op}}
-    return out
 
 
 cpdef sparse_fill_{{opname}}_{{dtype}}({{dtype}}_t xfill,

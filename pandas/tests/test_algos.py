@@ -5,6 +5,7 @@ import numpy as np
 from numpy.random import RandomState
 from numpy import nan
 from datetime import datetime
+from itertools import permutations
 from pandas import Series, Categorical, CategoricalIndex, Index
 import pandas as pd
 
@@ -12,7 +13,6 @@ from pandas import compat
 import pandas.algos as _algos
 from pandas.compat import lrange
 import pandas.core.algorithms as algos
-import pandas._join as _join
 import pandas.util.testing as tm
 import pandas.hashtable as hashtable
 from pandas.compat.numpy import np_array_datetime64_compat
@@ -298,46 +298,6 @@ class TestFactorize(tm.TestCase):
             # resizing to empty is a special case
             _test_vector_resize(tbl(), vect(), dtype, 0)
             _test_vector_resize(tbl(), vect(), dtype, 10)
-
-
-class TestIndexer(tm.TestCase):
-    _multiprocess_can_split_ = True
-
-    def test_outer_join_indexer(self):
-        typemap = [('int32', _join.outer_join_indexer_int32),
-                   ('int64', _join.outer_join_indexer_int64),
-                   ('float32', _join.outer_join_indexer_float32),
-                   ('float64', _join.outer_join_indexer_float64),
-                   ('object', _join.outer_join_indexer_object)]
-
-        for dtype, indexer in typemap:
-            left = np.arange(3, dtype=dtype)
-            right = np.arange(2, 5, dtype=dtype)
-            empty = np.array([], dtype=dtype)
-
-            result, lindexer, rindexer = indexer(left, right)
-            tm.assertIsInstance(result, np.ndarray)
-            tm.assertIsInstance(lindexer, np.ndarray)
-            tm.assertIsInstance(rindexer, np.ndarray)
-            tm.assert_numpy_array_equal(result, np.arange(5, dtype=dtype))
-            exp = np.array([0, 1, 2, -1, -1], dtype=np.int64)
-            tm.assert_numpy_array_equal(lindexer, exp)
-            exp = np.array([-1, -1, 0, 1, 2], dtype=np.int64)
-            tm.assert_numpy_array_equal(rindexer, exp)
-
-            result, lindexer, rindexer = indexer(empty, right)
-            tm.assert_numpy_array_equal(result, right)
-            exp = np.array([-1, -1, -1], dtype=np.int64)
-            tm.assert_numpy_array_equal(lindexer, exp)
-            exp = np.array([0, 1, 2], dtype=np.int64)
-            tm.assert_numpy_array_equal(rindexer, exp)
-
-            result, lindexer, rindexer = indexer(left, empty)
-            tm.assert_numpy_array_equal(result, left)
-            exp = np.array([0, 1, 2], dtype=np.int64)
-            tm.assert_numpy_array_equal(lindexer, exp)
-            exp = np.array([-1, -1, -1], dtype=np.int64)
-            tm.assert_numpy_array_equal(rindexer, exp)
 
 
 class TestUnique(tm.TestCase):
@@ -1067,153 +1027,6 @@ class TestTseriesUtil(tm.TestCase):
         self.assert_numpy_array_equal(filler, expect_filler)
 
 
-def test_left_join_indexer_unique():
-    a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
-    b = np.array([2, 2, 3, 4, 4], dtype=np.int64)
-
-    result = _join.left_join_indexer_unique_int64(b, a)
-    expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
-    assert (np.array_equal(result, expected))
-
-
-def test_left_outer_join_bug():
-    left = np.array([0, 1, 0, 1, 1, 2, 3, 1, 0, 2, 1, 2, 0, 1, 1, 2, 3, 2, 3,
-                     2, 1, 1, 3, 0, 3, 2, 3, 0, 0, 2, 3, 2, 0, 3, 1, 3, 0, 1,
-                     3, 0, 0, 1, 0, 3, 1, 0, 1, 0, 1, 1, 0, 2, 2, 2, 2, 2, 0,
-                     3, 1, 2, 0, 0, 3, 1, 3, 2, 2, 0, 1, 3, 0, 2, 3, 2, 3, 3,
-                     2, 3, 3, 1, 3, 2, 0, 0, 3, 1, 1, 1, 0, 2, 3, 3, 1, 2, 0,
-                     3, 1, 2, 0, 2], dtype=np.int64)
-
-    right = np.array([3, 1], dtype=np.int64)
-    max_groups = 4
-
-    lidx, ridx = _join.left_outer_join(left, right, max_groups, sort=False)
-
-    exp_lidx = np.arange(len(left))
-    exp_ridx = -np.ones(len(left))
-    exp_ridx[left == 1] = 1
-    exp_ridx[left == 3] = 0
-
-    assert (np.array_equal(lidx, exp_lidx))
-    assert (np.array_equal(ridx, exp_ridx))
-
-
-def test_inner_join_indexer():
-    a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
-    b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
-
-    index, ares, bres = _join.inner_join_indexer_int64(a, b)
-
-    index_exp = np.array([3, 5], dtype=np.int64)
-    assert_almost_equal(index, index_exp)
-
-    aexp = np.array([2, 4], dtype=np.int64)
-    bexp = np.array([1, 2], dtype=np.int64)
-    assert_almost_equal(ares, aexp)
-    assert_almost_equal(bres, bexp)
-
-    a = np.array([5], dtype=np.int64)
-    b = np.array([5], dtype=np.int64)
-
-    index, ares, bres = _join.inner_join_indexer_int64(a, b)
-    tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
-    tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
-    tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
-
-
-def test_outer_join_indexer():
-    a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
-    b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
-
-    index, ares, bres = _join.outer_join_indexer_int64(a, b)
-
-    index_exp = np.array([0, 1, 2, 3, 4, 5, 7, 9], dtype=np.int64)
-    assert_almost_equal(index, index_exp)
-
-    aexp = np.array([-1, 0, 1, 2, 3, 4, -1, -1], dtype=np.int64)
-    bexp = np.array([0, -1, -1, 1, -1, 2, 3, 4], dtype=np.int64)
-    assert_almost_equal(ares, aexp)
-    assert_almost_equal(bres, bexp)
-
-    a = np.array([5], dtype=np.int64)
-    b = np.array([5], dtype=np.int64)
-
-    index, ares, bres = _join.outer_join_indexer_int64(a, b)
-    tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
-    tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
-    tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
-
-
-def test_left_join_indexer():
-    a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
-    b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
-
-    index, ares, bres = _join.left_join_indexer_int64(a, b)
-
-    assert_almost_equal(index, a)
-
-    aexp = np.array([0, 1, 2, 3, 4], dtype=np.int64)
-    bexp = np.array([-1, -1, 1, -1, 2], dtype=np.int64)
-    assert_almost_equal(ares, aexp)
-    assert_almost_equal(bres, bexp)
-
-    a = np.array([5], dtype=np.int64)
-    b = np.array([5], dtype=np.int64)
-
-    index, ares, bres = _join.left_join_indexer_int64(a, b)
-    tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
-    tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
-    tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
-
-
-def test_left_join_indexer2():
-    idx = Index([1, 1, 2, 5])
-    idx2 = Index([1, 2, 5, 7, 9])
-
-    res, lidx, ridx = _join.left_join_indexer_int64(idx2.values, idx.values)
-
-    exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
-    assert_almost_equal(res, exp_res)
-
-    exp_lidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.int64)
-    assert_almost_equal(lidx, exp_lidx)
-
-    exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
-    assert_almost_equal(ridx, exp_ridx)
-
-
-def test_outer_join_indexer2():
-    idx = Index([1, 1, 2, 5])
-    idx2 = Index([1, 2, 5, 7, 9])
-
-    res, lidx, ridx = _join.outer_join_indexer_int64(idx2.values, idx.values)
-
-    exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
-    assert_almost_equal(res, exp_res)
-
-    exp_lidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.int64)
-    assert_almost_equal(lidx, exp_lidx)
-
-    exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
-    assert_almost_equal(ridx, exp_ridx)
-
-
-def test_inner_join_indexer2():
-    idx = Index([1, 1, 2, 5])
-    idx2 = Index([1, 2, 5, 7, 9])
-
-    res, lidx, ridx = _join.inner_join_indexer_int64(idx2.values, idx.values)
-
-    exp_res = np.array([1, 1, 2, 5], dtype=np.int64)
-    assert_almost_equal(res, exp_res)
-
-    exp_lidx = np.array([0, 0, 1, 2], dtype=np.int64)
-    assert_almost_equal(lidx, exp_lidx)
-
-    exp_ridx = np.array([0, 1, 2, 3], dtype=np.int64)
-    assert_almost_equal(ridx, exp_ridx)
-
-
 def test_is_lexsorted():
     failure = [
         np.array([3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -1268,6 +1081,35 @@ def test_groupsort_indexer():
     result = _algos.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
     assert (np.array_equal(result, expected))
+
+
+def test_infinity_sort():
+    # GH 13445
+    # numpy's argsort can be unhappy if something is less than
+    # itself.  Instead, let's give our infinities a self-consistent
+    # ordering, but outside the float extended real line.
+
+    Inf = _algos.Infinity()
+    NegInf = _algos.NegInfinity()
+
+    ref_nums = [NegInf, float("-inf"), -1e100, 0, 1e100, float("inf"), Inf]
+
+    assert all(Inf >= x for x in ref_nums)
+    assert all(Inf > x or x is Inf for x in ref_nums)
+    assert Inf >= Inf and Inf == Inf
+    assert not Inf < Inf and not Inf > Inf
+
+    assert all(NegInf <= x for x in ref_nums)
+    assert all(NegInf < x or x is NegInf for x in ref_nums)
+    assert NegInf <= NegInf and NegInf == NegInf
+    assert not NegInf < NegInf and not NegInf > NegInf
+
+    for perm in permutations(ref_nums):
+        assert sorted(perm) == ref_nums
+
+    # smoke tests
+    np.array([_algos.Infinity()] * 32).argsort()
+    np.array([_algos.NegInfinity()] * 32).argsort()
 
 
 def test_ensure_platform_int():
