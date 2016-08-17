@@ -748,11 +748,11 @@ class TestIndexOps(Ops):
             o = orig.copy()
 
             if isinstance(o, Index) and o.is_boolean():
-                exp_arr = np.array([0, 1] + [0] * 8)
+                exp_arr = np.array([0, 1] + [0] * 8, dtype=np.intp)
                 exp_uniques = o
                 exp_uniques = Index([False, True])
             else:
-                exp_arr = np.array(range(len(o)))
+                exp_arr = np.array(range(len(o)), dtype=np.intp)
                 exp_uniques = o
             labels, uniques = o.factorize()
 
@@ -782,7 +782,8 @@ class TestIndexOps(Ops):
                 o = o.take(indexer)
                 n = o[5:].append(o)
 
-            exp_arr = np.array([5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+            exp_arr = np.array([5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                               dtype=np.intp)
             labels, uniques = n.factorize(sort=True)
 
             self.assert_numpy_array_equal(labels, exp_arr)
@@ -792,7 +793,8 @@ class TestIndexOps(Ops):
             else:
                 self.assert_index_equal(uniques, o, check_names=False)
 
-            exp_arr = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4])
+            exp_arr = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4],
+                               np.intp)
             labels, uniques = n.factorize(sort=False)
             self.assert_numpy_array_equal(labels, exp_arr)
 

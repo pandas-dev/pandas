@@ -32,7 +32,8 @@ float64 = np.dtype(np.float64)
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
-from pandas.algos import groupsort_indexer
+from pandas.algos import groupsort_indexer, ensure_platform_int
+from pandas.core.algorithms import take_nd
 
 include "joins_func_helper.pxi"
 
@@ -148,16 +149,14 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
             # no multiple matches for any row on the left
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case
-            if left_sorter.dtype != np.int_:
-                left_sorter = left_sorter.astype(np.int_)
+            left_sorter = ensure_platform_int(left_sorter)
 
-            rev = np.empty(len(left), dtype=np.int_)
+            rev = np.empty(len(left), dtype=np.intp)
             rev.put(left_sorter, np.arange(len(left)))
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
-        if rev.dtype != np.int_:
-            rev = rev.astype(np.int_)
+        rev = ensure_platform_int(rev)
         right_indexer = right_indexer.take(rev)
         left_indexer = left_indexer.take(rev)
 
@@ -228,11 +227,8 @@ def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
 
 
 def _get_result_indexer(sorter, indexer):
-    if indexer.dtype != np.int_:
-        indexer = indexer.astype(np.int_)
     if len(sorter) > 0:
-        res = sorter.take(indexer)
-        np.putmask(res, indexer == -1, -1)
+        res = take_nd(sorter, indexer, fill_value=-1)
     else:
         # length-0 case
         res = np.empty(len(indexer), dtype=np.int64)

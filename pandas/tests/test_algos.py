@@ -81,7 +81,7 @@ class TestSafeSort(tm.TestCase):
 
         labels = [0, 1, 1, 2, 3, 0, -1, 4]
         result, result_labels = algos.safe_sort(values, labels)
-        expected_labels = np.array([3, 1, 1, 2, 0, 3, -1, 4])
+        expected_labels = np.array([3, 1, 1, 2, 0, 3, -1, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
@@ -89,20 +89,20 @@ class TestSafeSort(tm.TestCase):
         labels = [0, 1, 1, 2, 3, 0, 99, 4]
         result, result_labels = algos.safe_sort(values, labels,
                                                 na_sentinel=99)
-        expected_labels = np.array([3, 1, 1, 2, 0, 3, 99, 4])
+        expected_labels = np.array([3, 1, 1, 2, 0, 3, 99, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
         # out of bound indices
         labels = [0, 101, 102, 2, 3, 0, 99, 4]
         result, result_labels = algos.safe_sort(values, labels)
-        expected_labels = np.array([3, -1, -1, 2, 0, 3, -1, 4])
+        expected_labels = np.array([3, -1, -1, 2, 0, 3, -1, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
         labels = []
         result, result_labels = algos.safe_sort(values, labels)
-        expected_labels = np.array([], dtype=np.int_)
+        expected_labels = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
@@ -116,7 +116,7 @@ class TestSafeSort(tm.TestCase):
         labels = [0, 1, 2, 3, 0, -1, 1]
         result, result_labels = algos.safe_sort(values, labels)
         expected = np.array([0, 1, 'a', 'b'], dtype=object)
-        expected_labels = np.array([3, 1, 0, 2, 3, -1, 1])
+        expected_labels = np.array([3, 1, 0, 2, 3, -1, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
@@ -155,33 +155,33 @@ class TestFactorize(tm.TestCase):
 
         labels, uniques = algos.factorize(['a', 'b', 'b', 'a',
                                            'a', 'c', 'c', 'c'], sort=True)
-        exp = np.array([0, 1, 1, 0, 0, 2, 2, 2], dtype=np.int_)
+        exp = np.array([0, 1, 1, 0, 0, 2, 2, 2], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         exp = np.array(['a', 'b', 'c'], dtype=object)
         self.assert_numpy_array_equal(uniques, exp)
 
         labels, uniques = algos.factorize(list(reversed(range(5))))
-        exp = np.array([0, 1, 2, 3, 4], dtype=np.int_)
+        exp = np.array([0, 1, 2, 3, 4], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         exp = np.array([4, 3, 2, 1, 0], dtype=np.int64)
         self.assert_numpy_array_equal(uniques, exp)
 
         labels, uniques = algos.factorize(list(reversed(range(5))), sort=True)
 
-        exp = np.array([4, 3, 2, 1, 0], dtype=np.int_)
+        exp = np.array([4, 3, 2, 1, 0], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         exp = np.array([0, 1, 2, 3, 4], dtype=np.int64)
         self.assert_numpy_array_equal(uniques, exp)
 
         labels, uniques = algos.factorize(list(reversed(np.arange(5.))))
-        exp = np.array([0, 1, 2, 3, 4], dtype=np.int_)
+        exp = np.array([0, 1, 2, 3, 4], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         exp = np.array([4., 3., 2., 1., 0.], dtype=np.float64)
         self.assert_numpy_array_equal(uniques, exp)
 
         labels, uniques = algos.factorize(list(reversed(np.arange(5.))),
                                           sort=True)
-        exp = np.array([4, 3, 2, 1, 0], dtype=np.int_)
+        exp = np.array([4, 3, 2, 1, 0], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         exp = np.array([0., 1., 2., 3., 4.], dtype=np.float64)
         self.assert_numpy_array_equal(uniques, exp)
@@ -192,13 +192,13 @@ class TestFactorize(tm.TestCase):
         x = Series(['A', 'A', np.nan, 'B', 3.14, np.inf])
         labels, uniques = algos.factorize(x)
 
-        exp = np.array([0, 0, -1, 1, 2, 3], dtype=np.int_)
+        exp = np.array([0, 0, -1, 1, 2, 3], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         exp = pd.Index(['A', 'B', 3.14, np.inf])
         tm.assert_index_equal(uniques, exp)
 
         labels, uniques = algos.factorize(x, sort=True)
-        exp = np.array([2, 2, -1, 3, 0, 1], dtype=np.int_)
+        exp = np.array([2, 2, -1, 3, 0, 1], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         exp = pd.Index([3.14, np.inf, 'A', 'B'])
         tm.assert_index_equal(uniques, exp)
@@ -211,13 +211,13 @@ class TestFactorize(tm.TestCase):
         x = Series([v1, v1, v1, v2, v2, v1])
         labels, uniques = algos.factorize(x)
 
-        exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.int_)
+        exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         exp = pd.DatetimeIndex([v1, v2])
         self.assert_index_equal(uniques, exp)
 
         labels, uniques = algos.factorize(x, sort=True)
-        exp = np.array([1, 1, 1, 0, 0, 1], dtype=np.int_)
+        exp = np.array([1, 1, 1, 0, 0, 1], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         exp = pd.DatetimeIndex([v2, v1])
         self.assert_index_equal(uniques, exp)
@@ -229,12 +229,12 @@ class TestFactorize(tm.TestCase):
 
         # periods are not 'sorted' as they are converted back into an index
         labels, uniques = algos.factorize(x)
-        exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.int_)
+        exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         self.assert_index_equal(uniques, pd.PeriodIndex([v1, v2]))
 
         labels, uniques = algos.factorize(x, sort=True)
-        exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.int_)
+        exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         self.assert_index_equal(uniques, pd.PeriodIndex([v1, v2]))
 
@@ -243,12 +243,12 @@ class TestFactorize(tm.TestCase):
         v2 = pd.to_timedelta('1 day')
         x = Series([v1, v2, v1, v1, v2, v2, v1])
         labels, uniques = algos.factorize(x)
-        exp = np.array([0, 1, 0, 0, 1, 1, 0], dtype=np.int_)
+        exp = np.array([0, 1, 0, 0, 1, 1, 0], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         self.assert_index_equal(uniques, pd.to_timedelta([v1, v2]))
 
         labels, uniques = algos.factorize(x, sort=True)
-        exp = np.array([1, 0, 1, 1, 0, 0, 1], dtype=np.int_)
+        exp = np.array([1, 0, 1, 1, 0, 0, 1], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
         self.assert_index_equal(uniques, pd.to_timedelta([v2, v1]))
 
@@ -1113,7 +1113,7 @@ def test_infinity_sort():
 
 
 def test_ensure_platform_int():
-    arr = np.arange(100)
+    arr = np.arange(100, dtype=np.intp)
 
     result = _algos.ensure_platform_int(arr)
     assert (result is arr)
