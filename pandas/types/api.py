@@ -18,6 +18,8 @@ from .common import (pandas_dtype,
                      is_datetime64_ns_dtype,
                      is_timedelta64_dtype,
                      is_timedelta64_ns_dtype,
+                     is_period,
+                     is_period_dtype,
 
                      # string-like
                      is_string_dtype,

@@ -5,6 +5,7 @@ from pandas.compat import string_types, text_type, binary_type
 from pandas import lib, algos
 from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      DatetimeTZDtype, DatetimeTZDtypeType,
+                     PeriodDtype, PeriodDtypeType,
                      ExtensionDtype)
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
@@ -63,6 +64,11 @@ def is_datetimetz(array):
             is_datetime64tz_dtype(array))
 
 
+def is_period(array):
+    """ return if we are a period array """
+    return isinstance(array, ABCPeriodIndex) or is_period_arraylike(array)
+
+
 def is_datetime64_dtype(arr_or_dtype):
     try:
         tipo = _get_dtype_type(arr_or_dtype)
@@ -80,13 +86,17 @@ def is_timedelta64_dtype(arr_or_dtype):
     return issubclass(tipo, np.timedelta64)
 
 
+def is_period_dtype(arr_or_dtype):
+    return PeriodDtype.is_dtype(arr_or_dtype)
+
+
 def is_categorical_dtype(arr_or_dtype):
     return CategoricalDtype.is_dtype(arr_or_dtype)
 
 
 def is_string_dtype(arr_or_dtype):
     dtype = _get_dtype(arr_or_dtype)
-    return dtype.kind in ('O', 'S', 'U')
+    return dtype.kind in ('O', 'S', 'U') and not is_period_dtype(dtype)
 
 
 def is_period_arraylike(arr):
@@ -231,7 +241,7 @@ def is_datetimelike_v_object(a, b):
 def needs_i8_conversion(arr_or_dtype):
     return (is_datetime_or_timedelta_dtype(arr_or_dtype) or
             is_datetime64tz_dtype(arr_or_dtype) or
-            isinstance(arr_or_dtype, ABCPeriodIndex))
+            is_period_dtype(arr_or_dtype))
 
 
 def is_numeric_dtype(arr_or_dtype):
@@ -290,6 +300,8 @@ def _coerce_to_dtype(dtype):
         dtype = CategoricalDtype()
     elif is_datetime64tz_dtype(dtype):
         dtype = DatetimeTZDtype(dtype)
+    elif is_period_dtype(dtype):
+        dtype = PeriodDtype(dtype)
     else:
         dtype = np.dtype(dtype)
     return dtype
@@ -304,11 +316,15 @@ def _get_dtype(arr_or_dtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, DatetimeTZDtype):
         return arr_or_dtype
+    elif isinstance(arr_or_dtype, PeriodDtype):
+        return arr_or_dtype
     elif isinstance(arr_or_dtype, string_types):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtype.construct_from_string(arr_or_dtype)
         elif is_datetime64tz_dtype(arr_or_dtype):
             return DatetimeTZDtype.construct_from_string(arr_or_dtype)
+        elif is_period_dtype(arr_or_dtype):
+            return PeriodDtype.construct_from_string(arr_or_dtype)
 
     if hasattr(arr_or_dtype, 'dtype'):
         arr_or_dtype = arr_or_dtype.dtype
@@ -324,11 +340,15 @@ def _get_dtype_type(arr_or_dtype):
         return CategoricalDtypeType
     elif isinstance(arr_or_dtype, DatetimeTZDtype):
         return DatetimeTZDtypeType
+    elif isinstance(arr_or_dtype, PeriodDtype):
+        return PeriodDtypeType
     elif isinstance(arr_or_dtype, string_types):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtypeType
         elif is_datetime64tz_dtype(arr_or_dtype):
             return DatetimeTZDtypeType
+        elif is_period_dtype(arr_or_dtype):
+            return PeriodDtypeType
         return _get_dtype_type(np.dtype(arr_or_dtype))
     try:
         return arr_or_dtype.dtype.type
@@ -404,6 +424,8 @@ def pandas_dtype(dtype):
     """
     if isinstance(dtype, DatetimeTZDtype):
         return dtype
+    elif isinstance(dtype, PeriodDtype):
+        return dtype
     elif isinstance(dtype, CategoricalDtype):
         return dtype
     elif isinstance(dtype, string_types):
@@ -411,6 +433,13 @@ def pandas_dtype(dtype):
             return DatetimeTZDtype.construct_from_string(dtype)
         except TypeError:
             pass
+
+        if dtype.startswith('period[') or dtype.startswith('Period['):
+            # do not parse string like U as period[U]
+            try:
+                return PeriodDtype.construct_from_string(dtype)
+            except TypeError:
+                pass
 
         try:
             return CategoricalDtype.construct_from_string(dtype)

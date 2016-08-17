@@ -10,11 +10,15 @@ from pandas.types.common import (is_integer,
                                  is_integer_dtype,
                                  is_float_dtype,
                                  is_scalar,
+                                 is_datetime64_dtype,
+                                 is_datetime64tz_dtype,
                                  is_timedelta64_dtype,
+                                 is_period_dtype,
                                  is_bool_dtype,
+                                 pandas_dtype,
                                  _ensure_int64,
                                  _ensure_object)
-
+from pandas.types.dtypes import PeriodDtype
 from pandas.types.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
@@ -123,7 +127,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     ----------
     data : array-like (1-dimensional), optional
         Optional period-like data to construct index with
-    dtype : NumPy dtype (default: i8)
     copy : bool
         Make a copy of input ndarray
     freq : string or period object, optional
@@ -146,6 +149,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     second : int, array, or Series, default None
     tz : object, default None
         Timezone for converting datetime64 data to Periods
+    dtype : str or PeriodDtype, default None
 
     Examples
     --------
@@ -175,7 +179,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     __ge__ = _period_index_cmp('__ge__')
 
     def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
-                periods=None, copy=False, name=None, tz=None, **kwargs):
+                periods=None, copy=False, name=None, tz=None, dtype=None,
+                **kwargs):
 
         if periods is not None:
             if is_float(periods):
@@ -186,6 +191,16 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
         if name is None and hasattr(data, 'name'):
             name = data.name
+
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+            if not is_period_dtype(dtype):
+                raise ValueError('dtype must be PeriodDtype')
+            if freq is None:
+                freq = dtype.freq
+            elif freq != dtype.freq:
+                msg = 'specified freq and dtype are different'
+                raise IncompatibleFrequency(msg)
 
         if data is None:
             if ordinal is not None:
@@ -372,6 +387,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _formatter_func(self):
         return lambda x: "'%s'" % x
 
+    @property
+    def _int64index(self):
+        # do not cache, same as .asi8
+        return Int64Index(self.asi8, name=self.name, fastpath=True)
+
     def asof_locs(self, where, mask):
         """
         where : array of timestamps
@@ -393,13 +413,19 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return result
 
     @Appender(_index_shared_docs['astype'])
-    def astype(self, dtype, copy=True):
-        dtype = np.dtype(dtype)
+    def astype(self, dtype, copy=True, how='start'):
+        dtype = pandas_dtype(dtype)
         if is_object_dtype(dtype):
             return self.asobject
         elif is_integer_dtype(dtype):
             return Index(self.values.astype('i8', copy=copy), name=self.name,
                          dtype='i8')
+        elif is_datetime64_dtype(dtype):
+            return self.to_timestamp(how=how)
+        elif is_datetime64tz_dtype(dtype):
+            return self.to_timestamp(how=how).tz_localize(dtype.tz)
+        elif is_period_dtype(dtype):
+            return self.asfreq(freq=dtype.freq)
         raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
     @Substitution(klass='PeriodIndex', value='key')
@@ -650,9 +676,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return PeriodIndex(data=values, name=self.name, freq=self.freq)
 
     @cache_readonly
-    def dtype_str(self):
-        """ return the dtype str of the underlying data """
-        return self.inferred_type
+    def dtype(self):
+        return PeriodDtype.construct_from_string(self.freq)
 
     @property
     def inferred_type(self):
@@ -738,7 +763,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
             try:
                 ordinal = tslib.iNaT if key is tslib.NaT else key.ordinal
-                return Index.get_loc(self, ordinal, method, tolerance)
+                if tolerance is not None:
+                    tolerance = self._convert_tolerance(tolerance)
+                return self._int64index.get_loc(ordinal, method, tolerance)
+
             except KeyError:
                 raise KeyError(key)
 

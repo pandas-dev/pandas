@@ -13,10 +13,12 @@ from pandas.types.common import (_NS_DTYPE, _INT64_DTYPE,
                                  is_integer, is_float,
                                  is_integer_dtype,
                                  is_datetime64_ns_dtype,
+                                 is_period_dtype,
                                  is_bool_dtype,
                                  is_string_dtype,
                                  is_list_like,
                                  is_scalar,
+                                 pandas_dtype,
                                  _ensure_int64)
 from pandas.types.generic import ABCSeries
 from pandas.types.dtypes import DatetimeTZDtype
@@ -802,8 +804,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
-        dtype = np.dtype(dtype)
-
+        dtype = pandas_dtype(dtype)
         if is_object_dtype(dtype):
             return self.asobject
         elif is_integer_dtype(dtype):
@@ -817,6 +818,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return self
         elif is_string_dtype(dtype):
             return Index(self.format(), name=self.name, dtype=object)
+        elif is_period_dtype(dtype):
+            return self.to_period(freq=dtype.freq)
         raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
 
     def _get_time_micros(self):
