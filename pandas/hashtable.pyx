@@ -64,10 +64,10 @@ cdef class Factorizer:
         mask = (labels == na_sentinel)
         # sort on
         if sort:
-            if labels.dtype != np.int_:
-                labels = labels.astype(np.int_)
+            if labels.dtype != np.intp:
+                labels = labels.astype(np.intp)
             sorter = self.uniques.to_array().argsort()
-            reverse_indexer = np.empty(len(sorter), dtype=np.int_)
+            reverse_indexer = np.empty(len(sorter), dtype=np.intp)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
             labels = reverse_indexer.take(labels, mode='clip')
             labels[mask] = na_sentinel
@@ -100,11 +100,11 @@ cdef class Int64Factorizer:
 
         # sort on
         if sort:
-            if labels.dtype != np.int_:
-                labels = labels.astype(np.int_)
+            if labels.dtype != np.intp:
+                labels = labels.astype(np.intp)
 
             sorter = self.uniques.to_array().argsort()
-            reverse_indexer = np.empty(len(sorter), dtype=np.int_)
+            reverse_indexer = np.empty(len(sorter), dtype=np.intp)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
             labels = reverse_indexer.take(labels)

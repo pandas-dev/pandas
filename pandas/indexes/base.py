@@ -2820,7 +2820,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             new_levels[level] = new_level
 
             if keep_order:  # just drop missing values. o.w. keep order
-                left_indexer = np.arange(len(left))
+                left_indexer = np.arange(len(left), dtype=np.intp)
                 mask = new_lev_labels != -1
                 if not mask.all():
                     new_labels = [lab[mask] for lab in new_labels]
@@ -2863,6 +2863,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             left_indexer, right_indexer = right_indexer, left_indexer
 
         if return_indexers:
+            left_indexer = (None if left_indexer is None
+                            else _ensure_platform_int(left_indexer))
+            right_indexer = (None if right_indexer is None
+                             else _ensure_platform_int(right_indexer))
             return join_index, left_indexer, right_indexer
         else:
             return join_index
@@ -2906,6 +2910,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             join_index = self._wrap_joined_index(join_index, other)
 
         if return_indexers:
+            lidx = None if lidx is None else _ensure_platform_int(lidx)
+            ridx = None if ridx is None else _ensure_platform_int(ridx)
             return join_index, lidx, ridx
         else:
             return join_index

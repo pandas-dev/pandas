@@ -3793,7 +3793,7 @@ class TestDatetimeIndex(tm.TestCase):
         idx1 = DatetimeIndex(['2014-01', '2014-01', '2014-02', '2014-02',
                               '2014-03', '2014-03'])
 
-        exp_arr = np.array([0, 0, 1, 1, 2, 2])
+        exp_arr = np.array([0, 0, 1, 1, 2, 2], dtype=np.intp)
         exp_idx = DatetimeIndex(['2014-01', '2014-02', '2014-03'])
 
         arr, idx = idx1.factorize()
@@ -3815,13 +3815,13 @@ class TestDatetimeIndex(tm.TestCase):
         idx2 = pd.DatetimeIndex(['2014-03', '2014-03', '2014-02', '2014-01',
                                  '2014-03', '2014-01'])
 
-        exp_arr = np.array([2, 2, 1, 0, 2, 0])
+        exp_arr = np.array([2, 2, 1, 0, 2, 0], dtype=np.intp)
         exp_idx = DatetimeIndex(['2014-01', '2014-02', '2014-03'])
         arr, idx = idx2.factorize(sort=True)
         self.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
-        exp_arr = np.array([0, 0, 1, 2, 0, 2])
+        exp_arr = np.array([0, 0, 1, 2, 0, 2], dtype=np.intp)
         exp_idx = DatetimeIndex(['2014-03', '2014-02', '2014-01'])
         arr, idx = idx2.factorize()
         self.assert_numpy_array_equal(arr, exp_arr)
@@ -3829,7 +3829,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         # freq must be preserved
         idx3 = date_range('2000-01', periods=4, freq='M', tz='Asia/Tokyo')
-        exp_arr = np.array([0, 1, 2, 3])
+        exp_arr = np.array([0, 1, 2, 3], dtype=np.intp)
         arr, idx = idx3.factorize()
         self.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
@@ -3840,7 +3840,7 @@ class TestDatetimeIndex(tm.TestCase):
             base = pd.date_range('2016-11-05', freq='H', periods=100, tz=tz)
             idx = base.repeat(5)
 
-            exp_arr = np.arange(100).repeat(5)
+            exp_arr = np.arange(100, dtype=np.intp).repeat(5)
 
             for obj in [idx, pd.Series(idx)]:
                 arr, res = obj.factorize()
@@ -3854,7 +3854,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         for obj in [idx, pd.Series(idx)]:
             arr, res = obj.factorize()
-            self.assert_numpy_array_equal(arr, np.arange(12))
+            self.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
             tm.assert_index_equal(res, idx)
 
         idx = pd.date_range('2016-06-13', freq='H', periods=12,
@@ -3862,7 +3862,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         for obj in [idx, pd.Series(idx)]:
             arr, res = obj.factorize()
-            self.assert_numpy_array_equal(arr, np.arange(12))
+            self.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
             tm.assert_index_equal(res, idx)
 
     def test_slice_with_negative_step(self):

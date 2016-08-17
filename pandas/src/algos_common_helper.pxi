@@ -2848,16 +2848,18 @@ def put2d_int64_float64(ndarray[int64_t, ndim=2, cast=True] values,
 # ensure_dtype
 #----------------------------------------------------------------------
 
-cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.int_)).descr.type_num
+cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.intp)).descr.type_num
 
 cpdef ensure_platform_int(object arr):
+    # GH3033, GH1392
+    # platform int is the size of the int pointer, e.g. np.intp
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == PLATFORM_INT:
             return arr
         else:
-            return arr.astype(np.int_)
+            return arr.astype(np.intp)
     else:
-        return np.array(arr, dtype=np.int_)
+        return np.array(arr, dtype=np.intp)
 
 cpdef ensure_object(object arr):
     if util.is_array(arr):
