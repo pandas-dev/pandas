@@ -236,16 +236,25 @@ class DatetimeIndexOpsMixin(object):
 
             attribs = self._get_attributes_dict()
 
-            freq = None
-            if isinstance(key, slice):
-                if self.freq is not None and key.step is not None:
-                    freq = key.step * self.freq
-                else:
-                    freq = self.freq
+            is_period = isinstance(self, ABCPeriodIndex)
+            if is_period:
+                freq = self.freq
+            else:
+                freq = None
+                if isinstance(key, slice):
+                    if self.freq is not None and key.step is not None:
+                        freq = key.step * self.freq
+                    else:
+                        freq = self.freq
+
             attribs['freq'] = freq
 
             result = getitem(key)
             if result.ndim > 1:
+                # To support MPL which performs slicing with 2 dim
+                # even though it only has 1 dim by definition
+                if is_period:
+                    return self._simple_new(result, **attribs)
                 return result
 
             return self._simple_new(result, **attribs)
