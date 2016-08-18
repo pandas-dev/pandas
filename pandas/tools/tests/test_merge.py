@@ -719,6 +719,7 @@ class TestMerge(tm.TestCase):
         result = pd.concat([df, df], keys=cat_index)
 
         self.assertIsInstance(result.index.levels[0], pd.CategoricalIndex)
+        self.assertTrue(cat_index.equals(result.index.levels[0]))
         assert_frame_equal(result, expected)
 
 
