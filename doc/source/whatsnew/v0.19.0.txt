@@ -1065,6 +1065,7 @@ Bug Fixes
 - Bug in ``concat`` and ``groupby`` for hierarchical frames with ``RangeIndex`` levels (:issue:`13542`).
 
 - Bug in ``agg()`` function on groupby dataframe changes dtype of ``datetime64[ns]`` column to ``float64`` (:issue:`12821`)
+- Bug in using NumPy ufunc with ``PeriodIndex`` to add or subtract integer raise ``IncompatibleFrequency``. Note that using standard operator like ``+`` or ``-`` is recommended, because standard operators use more efficient path (:issue:`13980`)
 
 - Bug in operations on ``NaT`` returning ``float`` instead of ``datetime64[ns]`` (:issue:`12941`)
 

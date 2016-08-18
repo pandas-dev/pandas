@@ -359,9 +359,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if isinstance(context, tuple) and len(context) > 0:
             func = context[0]
             if (func is np.add):
-                return self._add_delta(context[1][1])
+                try:
+                    return self._add_delta(context[1][1])
+                except IncompatibleFrequency:
+                    raise TypeError
             elif (func is np.subtract):
-                return self._add_delta(-context[1][1])
+                try:
+                    return self._add_delta(-context[1][1])
+                except IncompatibleFrequency:
+                    raise TypeError
             elif isinstance(func, np.ufunc):
                 if 'M->M' not in func.types:
                     msg = "ufunc '{0}' not supported for the PeriodIndex"
@@ -371,7 +377,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
         if is_bool_dtype(result):
             return result
-        return PeriodIndex(result, freq=self.freq, name=self.name)
+        return self._shallow_copy(result)
 
     @property
     def _box_func(self):
@@ -628,6 +634,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                     offset_nanos = tslib._delta_to_nanoseconds(offset)
                     if (nanos % offset_nanos).all() == 0:
                         return nanos // offset_nanos
+        elif is_integer(other):
+            # integer is passed to .shift via
+            # _add_datetimelike_methods basically
+            # but ufunc may pass integer to _add_delta
+            return other
         # raise when input doesn't have freq
         msg = "Input has different freq from PeriodIndex(freq={0})"
         raise IncompatibleFrequency(msg.format(self.freqstr))
