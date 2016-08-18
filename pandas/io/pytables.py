@@ -935,8 +935,10 @@ class HDFStore(StringMixin):
                        / selecting subsets of the data
         append       : boolean, default True, append the input data to the
             existing
-        data_columns : list of columns to create as data columns, or True to
-            use all columns
+        data_columns : list of columns, or True, default None
+            This will create additional indexed columns for on-disk queries,
+            by default only 'index' and 'columns' are indexed. True will index
+            all columns.
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep      : string to use as string nan represenation
         chunksize    : size to chunk the writing
