@@ -719,10 +719,10 @@ class DatetimeIndexResampler(Resampler):
         if self.axis:
             raise AssertionError('axis must be 0')
         if self.from_selection:
-            raise NotImplementedError("Upsampling from level= or on= selection "
-                                      "is not supported, use .set_index(...) "
-                                      "to explicitly set index to "
-                                      "datetime-like")
+            raise NotImplementedError("Upsampling from level= or on= selection"
+                                      " is not supported, use .set_index(...)"
+                                      " to explicitly set index to"
+                                      " datetime-like")
 
         ax = self.ax
         obj = self._selected_obj
@@ -864,12 +864,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         .fillna
 
         """
-        # import pdb; pdb.set_trace()
         if self.from_selection:
-            raise NotImplementedError("Upsampling from level= or on= selection "
-                                      "is not supported, use .set_index(...) "
-                                      "to explicitly set index to "
-                                      "datetime-like")
+            raise NotImplementedError("Upsampling from level= or on= selection"
+                                      " is not supported, use .set_index(...)"
+                                      " to explicitly set index to"
+                                      " datetime-like")
         # we may need to actually resample as if we are timestamps
         if self.kind == 'timestamp':
             return super(PeriodIndexResampler, self)._upsample(method,

@@ -386,8 +386,6 @@ class TestResampleAPI(tm.TestCase):
         assert_frame_equal(result, expected)
 
 
-
-
 class Base(object):
     """
     base class for resampling testing, calling
@@ -515,7 +513,6 @@ class Base(object):
                           columns=list('AB'),
                           index=index)
         df_col = df.reset_index()
-        print df_col
         df_mult = df_col.copy()
         df_mult.index = pd.MultiIndex.from_arrays([range(10), df.index],
                                                   names=['index', 'date'])
@@ -733,11 +730,11 @@ class Base(object):
         index = self.create_series().index
         df = pd.DataFrame({'date': index,
                            'a': np.arange(len(index), dtype=np.int64)},
-                           index=pd.MultiIndex.from_arrays([
-                               np.arange(len(index), dtype=np.int64),
-                               index], names=['v', 'd']))
+                          index=pd.MultiIndex.from_arrays([
+                              np.arange(len(index), dtype=np.int64),
+                              index], names=['v', 'd']))
         df_exp = pd.DataFrame({'a': np.arange(len(index), dtype=np.int64)},
-                               index=index)
+                              index=index)
 
         # non DatetimeIndex
         with tm.assertRaises(TypeError):
