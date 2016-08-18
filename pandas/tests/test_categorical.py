@@ -94,12 +94,34 @@ class TestCategorical(tm.TestCase):
 
         # it works!
         arr = np.array([1, 2, 3, datetime.now()], dtype='O')
-        factor = Categorical.from_array(arr, ordered=False)
-        self.assertFalse(factor.ordered)
+        msg = "Categoricals cannot be object dtype unless all values are " \
+              "strings or all are periods."
+        with tm.assertRaisesRegexp(TypeError, msg):
+            factor = Categorical.from_array(arr, ordered=False)
 
         # this however will raise as cannot be sorted
         self.assertRaises(
             TypeError, lambda: Categorical.from_array(arr, ordered=True))
+
+    def test_constructor_object_dtype(self):
+        #GH 13919
+
+        #categories must be of single dtype
+        arr = np.array([1, 2, 3, 's'], dtype=object)
+        msg = "Categoricals cannot be object dtype unless all values are " \
+              "strings or all are periods."
+        with tm.assertRaisesRegexp(TypeError, msg):
+            c = Categorical.from_array(arr)
+
+        # object dtype allowed when all strs
+        exp_arr = np.array(list('abcd'), dtype=object)
+        c = Categorical.from_array(exp_arr)
+        tm.assert_numpy_array_equal(c.__array__(), exp_arr)
+
+        # object dtype also allowed when all periods
+        idx = pd.period_range('1/1/2000', freq='D', periods=5)
+        c = Categorical(idx)
+        tm.assert_index_equal(c.categories, idx)
 
     def test_is_equal_dtype(self):
 
