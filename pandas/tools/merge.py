@@ -1367,7 +1367,10 @@ class _Concatenator(object):
                 clean_keys.append(k)
                 clean_objs.append(v)
             objs = clean_objs
-            keys = clean_keys
+            if isinstance(keys, cat.CategoricalIndex):
+                keys = keys._shallow_copy(clean_keys)
+            else:
+                keys = clean_keys
 
         if len(objs) == 0:
             raise ValueError('All objects passed were None')
@@ -1637,7 +1640,10 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         else:
             levels = [_ensure_index(x) for x in levels]
     else:
-        zipped = [keys]
+        if isinstance(keys, cat.CategoricalIndex):
+            zipped = lzip(*keys)
+        else:
+            zipped = [keys]
         if names is None:
             names = [None]
 
