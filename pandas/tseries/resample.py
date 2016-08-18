@@ -64,7 +64,7 @@ class Resampler(_GroupBy):
                                         'binner', 'grouper', 'groupby',
                                         'sort', 'kind', 'squeeze', 'keys',
                                         'group_keys', 'as_index', 'exclusions',
-                                        '_groupby']
+                                        '_groupby', 'from_selection']
 
     # don't raise deprecation warning on attributes starting with these
     # patterns - prevents warnings caused by IPython introspection
@@ -85,8 +85,12 @@ class Resampler(_GroupBy):
         self.exclusions = set()
         self.binner = None
         self.grouper = None
+        self.from_selection = False
 
         if self.groupby is not None:
+            # bookeeping to disallow upsampling if not resampling on index
+            self.from_selection = (self.groupby.key is not None or
+                                   self.groupby.level is not None)
             obj, converter = self._convert_obj(obj)
             self.groupby._set_grouper(obj, sort=True, converter=converter)
 
@@ -711,10 +715,14 @@ class DatetimeIndexResampler(Resampler):
         .fillna
 
         """
-        # import pdb; pdb.set_trace()
         self._set_binner()
         if self.axis:
             raise AssertionError('axis must be 0')
+        if self.from_selection:
+            raise NotImplementedError("Upsampling from level= or on= selection "
+                                      "is not supported, use .set_index(...) "
+                                      "to explicitly set index to "
+                                      "datetime-like")
 
         ax = self.ax
         obj = self._selected_obj
@@ -773,7 +781,13 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         converter = None
         # convert to timestamp
         if not (self.kind is None or self.kind == 'period'):
-            converter = lambda x: x.to_timestamp(how=self.convention)
+            # if periondindex is the actual index obj, just convert it
+            # otherwise, converter callback will be used on selection
+            if self.from_selection:
+                converter = lambda x: x.to_timestamp(how=self.convention)
+            else:
+                obj = obj.to_timestamp(how=self.convention)
+
         return obj, converter
 
     def aggregate(self, arg, *args, **kwargs):
@@ -850,6 +864,12 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         .fillna
 
         """
+        # import pdb; pdb.set_trace()
+        if self.from_selection:
+            raise NotImplementedError("Upsampling from level= or on= selection "
+                                      "is not supported, use .set_index(...) "
+                                      "to explicitly set index to "
+                                      "datetime-like")
         # we may need to actually resample as if we are timestamps
         if self.kind == 'timestamp':
             return super(PeriodIndexResampler, self)._upsample(method,

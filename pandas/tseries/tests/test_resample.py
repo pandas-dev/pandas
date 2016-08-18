@@ -741,16 +741,22 @@ class Base(object):
 
         # non DatetimeIndex
         with tm.assertRaises(TypeError):
-            df.resample('M', level='v')
+            df.resample('2D', level='v')
 
         with tm.assertRaises(ValueError):
-            df.resample('M', on='date', level='d')
+            df.resample('2D', on='date', level='d')
 
         with tm.assertRaises(TypeError):
-            df.resample('M', on=['a', 'date'])
+            df.resample('2D', on=['a', 'date'])
 
         with tm.assertRaises(KeyError):
-            df.resample('M', level=['a', 'date'])
+            df.resample('2D', level=['a', 'date'])
+
+        with tm.assertRaises(NotImplementedError):
+            df.resample('2D', level='d').asfreq()
+
+        with tm.assertRaises(NotImplementedError):
+            df.resample('2D', on='date').asfreq()
 
         exp = df_exp.resample('2D').sum()
         exp.index.name = 'date'
