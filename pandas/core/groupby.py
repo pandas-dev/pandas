@@ -4369,8 +4369,8 @@ def _get_group_index_sorter(group_index, ngroups):
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    with np.errstate(divide='ignore', invalid='ignore'):
-        do_groupsort = alpha + beta * ngroups < count * np.log(count)
+    do_groupsort = (count > 0 and ((alpha + beta * ngroups) <
+                                   (count * np.log(count))))
     if do_groupsort:
         sorter, _ = _algos.groupsort_indexer(_ensure_int64(group_index),
                                              ngroups)
