@@ -894,6 +894,7 @@ Removal of prior version deprecations/changes
 - ``Panel.shift()`` has dropped the ``lags`` parameter in favour of ``periods`` (:issue:`14041`)
 - ``pd.Index`` has dropped the ``diff`` method in favour of ``difference`` (:issue:`13669`)
 
+- ``pd.DataFrame`` has dropped the ``to_wide`` method in favour of ``to_panel`` (:issue:`14039`)
 - ``Series.to_csv`` has dropped the ``nanRep`` parameter in favor of ``na_rep`` (:issue:`13804`)
 - ``Series.xs``, ``DataFrame.xs``, ``Panel.xs``, ``Panel.major_xs``, and ``Panel.minor_xs`` have dropped the ``copy`` parameter (:issue:`13781`)
 - ``str.split`` has dropped the ``return_type`` parameter in favor of ``expand`` (:issue:`13701`)

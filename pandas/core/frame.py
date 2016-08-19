@@ -78,8 +78,7 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import (deprecate, Appender, Substitution,
-                                    deprecate_kwarg)
+from pandas.util.decorators import deprecate_kwarg, Appender, Substitution
 
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
@@ -1299,8 +1298,6 @@ class DataFrame(NDFrame):
                                               ref_items=selfsorted.columns)
 
         return self._constructor_expanddim(new_mgr)
-
-    to_wide = deprecate('to_wide', to_panel)
 
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
