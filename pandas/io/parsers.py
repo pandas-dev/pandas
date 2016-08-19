@@ -350,6 +350,13 @@ def _validate_nrows(nrows):
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
     encoding = kwds.get('encoding', None)
+    if encoding is not None:
+        encoding = re.sub('_', '-', encoding).lower()
+        kwds['encoding'] = encoding
+
+    skipfooter = kwds.pop('skipfooter', None)
+    if skipfooter is not None:
+        kwds['skip_footer'] = skipfooter
 
     # If the input could be a filename, check for a recognizable compression
     # extension.  If we're reading from a URL, the `get_filepath_or_buffer`

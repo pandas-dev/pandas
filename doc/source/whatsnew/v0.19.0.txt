@@ -233,6 +233,13 @@ New behaviour:
    In [2]: pd.read_csv(StringIO(data), names=names)
 
 
+<<<<<<< HEAD
+New behaviour:
+
+.. ipython :: python
+
+   In [2]: pd.read_csv(StringIO(data), names=names)
+=======
 .. _whatsnew_0190.enhancements.read_csv_categorical:
 
 :func:`read_csv` supports parsing ``Categorical`` directly
@@ -271,6 +278,7 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
       df['col3']
       df['col3'].cat.categories = pd.to_numeric(df['col3'].cat.categories)
       df['col3']
+>>>>>>> f93ad1ca828dc70a865445f1555958acbf132af1
 
 .. _whatsnew_0190.enhancements.semi_month_offsets:
 
@@ -381,6 +389,21 @@ Other enhancements
 
     pd.Timestamp(2012, 1, 1)
 
+
+- ``Index`` now supports ``.str.extractall()`` which returns a ``DataFrame``, the see :ref:`docs here <text.extractall>` (:issue:`10008`, :issue:`13156`)
+- ``.to_hdf/read_hdf()`` now accept path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path (:issue:`11773`)
+
+  .. ipython:: python
+
+     idx = pd.Index(["a1a2", "b1", "c1"])
+     idx.str.extractall("[ab](?P<digit>\d)")
+
+- ``Timestamp`` can now accept positional and keyword parameters similar to :func:`datetime.datetime` (:issue:`10758`, :issue:`11630`)
+
+  .. ipython:: python
+
+    pd.Timestamp(2012, 1, 1)
+
     pd.Timestamp(year=2012, month=1, day=1, hour=8, minute=30)
 
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``decimal`` option (:issue:`12933`)
@@ -482,6 +505,16 @@ New Behavior:
 
 A ``Series`` will now correctly promote its dtype for assignment with incompat values to the current dtype (:issue:`13234`)
 
+.. ipython:: python
+
+   type(s.tolist()[0])
+
+.. _whatsnew_0190.api.promote:
+
+``Series`` type promotion on assignment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A ``Series`` will now correctly promote its dtype for assignment with incompat values to the current dtype (:issue:`13234`)
 
 .. ipython:: python
 
@@ -875,7 +908,6 @@ Deprecations
 - ``pandas.tseries.frequencies.get_standard_freq`` is deprecated. Use  ``pandas.tseries.frequencies.to_offset(freq).rule_code`` instead. (:issue:`13874`)
 - ``pandas.tseries.frequencies.to_offset``'s ``freqstr`` keyword is deprecated in favor of ``freq``. (:issue:`13874`)
 
-
 .. _whatsnew_0190.prior_deprecations:
 
 Removal of prior version deprecations/changes
@@ -910,7 +942,6 @@ Removal of prior version deprecations/changes
   Now legacy time rules raises ``ValueError``. For the list of currently supported offsets, see :ref:`here <timeseries.offset_aliases>`
 
 - The ``tquery`` and ``uquery`` functions in the ``pandas.io.sql`` module are removed (:issue:`5950`).
-
 
 .. _whatsnew_0190.performance:
 
@@ -961,6 +992,8 @@ Bug Fixes
 
 - Bug in ``Series.str.extractall()`` with ``str`` index raises ``ValueError``  (:issue:`13156`)
 - Bug in ``Series.str.extractall()`` with single group and quantifier  (:issue:`13382`)
+
+- Bug in ``DatetimeIndex`` and ``Period`` subtraction raises ``ValueError`` or ``AttributeError`` rather than ``TypeError`` (:issue:`13078`)
 - Bug in ``DatetimeIndex`` and ``Period`` subtraction raises ``ValueError`` or ``AttributeError`` rather than ``TypeError`` (:issue:`13078`)
 - Bug in ``Index`` and ``Series`` created with ``NaN`` and ``NaT`` mixed data may not have ``datetime64`` dtype  (:issue:`13324`)
 - Bug in ``Index`` and ``Series`` may ignore ``np.datetime64('nat')`` and ``np.timdelta64('nat')`` to infer dtype (:issue:`13324`)
@@ -968,6 +1001,7 @@ Bug Fixes
 - Bug in ``PeriodIndex`` construction returning a ``float64`` index in some circumstances (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not changing its ``freq`` appropriately when empty (:issue:`13067`)
 - Bug in ``.resample(..)`` with a ``PeriodIndex`` not retaining its type or name with an empty ``DataFrame`` appropriately when empty (:issue:`13212`)
+- Bug in ``groupby(..).resample(..)`` where passing some keywords would raise an exception (:issue:`13235`)
 - Bug in ``groupby(..).apply(..)`` when the passed function returns scalar values per group (:issue:`13468`).
 - Bug in ``groupby(..).resample(..)`` where passing some keywords would raise an exception (:issue:`13235`)
 - Bug in ``.tz_convert`` on a tz-aware ``DateTimeIndex`` that relied on index being sorted for correct results (:issue:`13306`)
@@ -1075,3 +1109,4 @@ Bug Fixes
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
 - Bug in ``Period`` and ``PeriodIndex`` creating wrong dates when frequency has combined offset aliases (:issue:`13874`)
 - Bug in ``.to_string()`` when called with an integer ``line_width`` and ``index=False`` raises an UnboundLocalError exception because ``idx`` referenced before assignment.
+- Bug in ``pd.read_csv()``, where aliases for utf-xx (e.g. UTF-xx, UTF_xx, utf_xx) raised ``UnicodeDecodeError`` (:issue:`13549`)
