@@ -310,11 +310,9 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     Using non-epoch origins to parse date
 
     >>> pd.to_datetime([1,2,3], unit='D', origin=pd.Timestamp('1960-01-01'))
-    0    1960-01-01
-    1    1960-01-02
-    ...
-    98   1960-04-08
-    99   1960-04-09
+    0    1960-01-02
+    1    1960-01-03
+    2    1960-01-04
 
     """
     from pandas.tseries.index import DatetimeIndex
