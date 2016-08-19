@@ -956,7 +956,9 @@ class IndexOpsMixin(object):
         """
         Return array of unique values in the object. Significantly faster than
         numpy.unique. Includes NA values.
-
+        
+        Called on values of timezone aware datetimes, this will return non
+        timezone aware datetimes.
         Returns
         -------
         uniques : ndarray
