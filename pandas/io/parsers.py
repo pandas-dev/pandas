@@ -25,7 +25,7 @@ from pandas.io.date_converters import generic_parser
 from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
                               _get_handle, UnicodeReader, UTF8Recoder,
                               BaseIterator, CParserError, EmptyDataError,
-                              ParserWarning)
+                              ParserWarning, _NA_VALUES)
 from pandas.tseries import tools
 
 from pandas.util.decorators import Appender
@@ -33,13 +33,6 @@ from pandas.util.decorators import Appender
 import pandas.lib as lib
 import pandas.parser as _parser
 
-# common NA values
-# no longer excluding inf representations
-# '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = set([
-    '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
-    'N/A', 'NA', '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''
-])
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness
