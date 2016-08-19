@@ -35,7 +35,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.ops import _op_descriptions
 from pandas.core.series import Series
 from pandas.tools.util import cartesian_product
-from pandas.util.decorators import (deprecate, Appender, deprecate_kwarg)
+from pandas.util.decorators import (deprecate, Appender)
 
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
@@ -1234,7 +1234,6 @@ class Panel(NDFrame):
 
         return self._wrap_result(result, axis)
 
-    @deprecate_kwarg(old_arg_name='lags', new_arg_name='periods')
     def shift(self, periods=1, freq=None, axis='major'):
         """
         Shift index by desired number of periods with an optional time freq.
