@@ -36,7 +36,7 @@ from pandas.types.common import (is_categorical_dtype,
                                  is_object_dtype,
                                  is_extension_type,
                                  is_datetimetz,
-                                 is_datetime64_dtype,
+                                 is_datetime64_any_dtype,
                                  is_datetime64tz_dtype,
                                  is_bool_dtype,
                                  is_integer_dtype,
@@ -1086,7 +1086,7 @@ class DataFrame(NDFrame):
         y : recarray
         """
         if index:
-            if is_datetime64_dtype(self.index) and convert_datetime64:
+            if is_datetime64_any_dtype(self.index) and convert_datetime64:
                 ix_vals = [self.index.to_pydatetime()]
             else:
                 if isinstance(self.index, MultiIndex):

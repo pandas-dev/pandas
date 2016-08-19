@@ -2,15 +2,11 @@
 
 from __future__ import print_function
 
-from numpy import nan
 import numpy as np
-
-from pandas import compat
-from pandas import (DataFrame, Series, MultiIndex, Timestamp,
-                    date_range)
+from numpy import nan
 
 import pandas.util.testing as tm
-
+from pandas import DataFrame, MultiIndex, Series, Timestamp, compat, date_range
 from pandas.tests.frame.common import TestData
 
 
@@ -192,3 +188,43 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
                    "formats": ['<i8', '<f8']}
         )
         tm.assert_almost_equal(result, expected)
+
+    def test_to_records_with_tz(self):
+        # GH13937
+        date_range_tz_utc = date_range('2016-01-01', periods=10,
+                                       freq='S', tz='UTC')
+        date_range_tz_gmt = date_range('2016-01-01', periods=10,
+                                       freq='S', tz='GMT')
+
+        df_utc = DataFrame({'datetime': date_range_tz_utc},
+                           index=date_range_tz_utc)
+        df_gmt = DataFrame({'datetime': date_range_tz_gmt},
+                           index=date_range_tz_gmt)
+
+        df_utc_expected = df_utc.to_records()
+        df_gmt_result = df_utc.tz_convert("GMT").to_records()
+
+        df_gmt_expected = df_gmt.to_records()
+        df_utc_result = df_gmt.tz_convert("UTC").to_records()
+
+        # Check that it does not shows same time zone after conversion.
+        tm.assertIsNot(df_utc_expected.index[0].tzinfo,
+                       df_gmt_result.index[0].tzinfo)
+
+        # Check df.to_records() are generated properly
+        tm.assert_numpy_array_equal(df_utc_expected,
+                                    df_gmt_result)
+
+        # Test DataFrame.to_records() with timezone conversion to UTC
+
+        expected = df_utc_expected['datetime']
+
+        result = df_gmt_result['datetime']
+
+        tm.assert_numpy_array_equal(expected, result)
+
+        tm.assertIsNot(df_gmt_expected.index[0].tzinfo,
+                       df_utc_result.index[0].tzinfo)
+
+        tm.assert_numpy_array_equal(df_utc_expected,
+                                    df_gmt_result)
