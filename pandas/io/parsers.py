@@ -350,6 +350,9 @@ def _validate_nrows(nrows):
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
     encoding = kwds.get('encoding', None)
+    if encoding is not None:
+        encoding = re.sub('_', '-', encoding).lower()
+        kwds['encoding'] = encoding
 
     # If the input could be a filename, check for a recognizable compression
     # extension.  If we're reading from a URL, the `get_filepath_or_buffer`
