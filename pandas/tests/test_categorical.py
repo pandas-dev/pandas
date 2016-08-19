@@ -4100,6 +4100,31 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         res = df.fillna("a")
         tm.assert_frame_equal(res, df_exp)
 
+        # GH 14021
+        cat = Categorical([np.nan, 2, np.nan])
+        val = Categorical([np.nan, np.nan, np.nan])
+        df = DataFrame({"cats": cat, "vals": val})
+        res = df.fillna(df.median())
+        v_exp = [np.nan, np.nan, np.nan]
+        df_exp = pd.DataFrame({"cats": [2, 2, 2], "vals": v_exp},
+                              dtype='category')
+        tm.assert_frame_equal(res, df_exp)
+
+        idx = pd.DatetimeIndex(['2011-01-01 09:00', '2016-01-01 23:45',
+                                '2011-01-01 09:00', pd.NaT, pd.NaT])
+        df = DataFrame({'a': pd.Categorical(idx)})
+        tm.assert_frame_equal(df.fillna(value=pd.NaT), df)
+
+        idx = pd.PeriodIndex(['2011-01', '2011-01', '2011-01',
+                              pd.NaT, pd.NaT], freq='M')
+        df = DataFrame({'a': pd.Categorical(idx)})
+        tm.assert_frame_equal(df.fillna(value=pd.NaT), df)
+
+        idx = pd.TimedeltaIndex(['1 days', '2 days',
+                                 '1 days', pd.NaT, pd.NaT])
+        df = pd.DataFrame({'a': pd.Categorical(idx)})
+        tm.assert_frame_equal(df.fillna(value=pd.NaT), df)
+
     def test_astype_to_other(self):
 
         s = self.cat['value_group']
