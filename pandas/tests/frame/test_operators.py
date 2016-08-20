@@ -217,7 +217,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         # numpy has a slightly different (wrong) treatement
-        result2 = DataFrame(p.values % p.values, index=p.index,
+        with np.errstate(all='ignore'):
+            arr = p.values % p.values
+        result2 = DataFrame(arr, index=p.index,
                             columns=p.columns, dtype='float64')
         result2.iloc[0:3, 1] = np.nan
         assert_frame_equal(result2, expected)
@@ -227,8 +229,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         # numpy has a slightly different (wrong) treatement
-        result2 = DataFrame(p.values.astype('float64') %
-                            0, index=p.index, columns=p.columns)
+        with np.errstate(all='ignore'):
+            arr = p.values.astype('float64') % 0
+        result2 = DataFrame(arr, index=p.index, columns=p.columns)
         assert_frame_equal(result2, expected)
 
         # not commutative with series
@@ -248,7 +251,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
                               'second': Series([nan, nan, nan, 1])})
         assert_frame_equal(result, expected)
 
-        result2 = DataFrame(p.values.astype('float') / p.values, index=p.index,
+        with np.errstate(all='ignore'):
+            arr = p.values.astype('float') / p.values
+        result2 = DataFrame(arr, index=p.index,
                             columns=p.columns)
         assert_frame_equal(result2, expected)
 
@@ -258,7 +263,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         # numpy has a slightly different (wrong) treatement
-        result2 = DataFrame(p.values.astype('float64') / 0, index=p.index,
+        with np.errstate(all='ignore'):
+            arr = p.values.astype('float64') / 0
+        result2 = DataFrame(arr, index=p.index,
                             columns=p.columns)
         assert_frame_equal(result2, expected)
 
@@ -921,6 +928,15 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         test_comp(operator.gt)
         test_comp(operator.ge)
         test_comp(operator.le)
+
+    def test_comparison_protected_from_errstate(self):
+        missing_df = tm.makeDataFrame()
+        missing_df.iloc[0]['A'] = np.nan
+        with np.errstate(invalid='ignore'):
+            expected = missing_df.values < 0
+        with np.errstate(invalid='raise'):
+            result = (missing_df < 0).values
+        self.assert_numpy_array_equal(result, expected)
 
     def test_string_comparison(self):
         df = DataFrame([{"a": 1, "b": "foo"}, {"a": 2, "b": "bar"}])

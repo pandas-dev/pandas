@@ -45,7 +45,8 @@ class disallow(object):
                                 'this dtype'.format(
                                     f.__name__.replace('nan', '')))
             try:
-                return f(*args, **kwargs)
+                with np.errstate(invalid='ignore'):
+                    return f(*args, **kwargs)
             except ValueError as e:
                 # we want to transform an object array
                 # ValueError message to the more typical TypeError
@@ -513,7 +514,8 @@ def nanskew(values, axis=None, skipna=True):
     m2 = _zero_out_fperr(m2)
     m3 = _zero_out_fperr(m3)
 
-    result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2 ** 1.5)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2 ** 1.5)
 
     dtype = values.dtype
     if is_float_dtype(dtype):
@@ -562,10 +564,11 @@ def nankurt(values, axis=None, skipna=True):
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m4 = adjusted4.sum(axis, dtype=np.float64)
 
-    adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
-    numer = count * (count + 1) * (count - 1) * m4
-    denom = (count - 2) * (count - 3) * m2**2
-    result = numer / denom - adj
+    with np.errstate(invalid='ignore', divide='ignore'):
+        adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
+        numer = count * (count + 1) * (count - 1) * m4
+        denom = (count - 2) * (count - 3) * m2**2
+        result = numer / denom - adj
 
     # floating point error
     numer = _zero_out_fperr(numer)
@@ -579,7 +582,8 @@ def nankurt(values, axis=None, skipna=True):
         if denom == 0:
             return 0
 
-    result = numer / denom - adj
+    with np.errstate(invalid='ignore', divide='ignore'):
+        result = numer / denom - adj
 
     dtype = values.dtype
     if is_float_dtype(dtype):
@@ -658,7 +662,8 @@ def _maybe_null_out(result, axis, mask):
 
 def _zero_out_fperr(arg):
     if isinstance(arg, np.ndarray):
-        return np.where(np.abs(arg) < 1e-14, 0, arg)
+        with np.errstate(invalid='ignore'):
+            return np.where(np.abs(arg) < 1e-14, 0, arg)
     else:
         return arg.dtype.type(0) if np.abs(arg) < 1e-14 else arg
 
@@ -760,7 +765,8 @@ def make_nancomp(op):
         ymask = isnull(y)
         mask = xmask | ymask
 
-        result = op(x, y)
+        with np.errstate(all='ignore'):
+            result = op(x, y)
 
         if mask.any():
             if is_bool_dtype(result):

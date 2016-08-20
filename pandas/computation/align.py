@@ -95,7 +95,7 @@ def _align_core(terms):
                 term_axis_size = len(ti.axes[axis])
                 reindexer_size = len(reindexer)
 
-                ordm = np.log10(abs(reindexer_size - term_axis_size))
+                ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
                 if ordm >= 1 and reindexer_size >= 10000:
                     warnings.warn('Alignment difference on axis {0} is larger '
                                   'than an order of magnitude on term {1!r}, '

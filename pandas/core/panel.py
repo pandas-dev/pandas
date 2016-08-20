@@ -713,7 +713,8 @@ class Panel(NDFrame):
                                       (str(type(other)), str(type(self))))
 
     def _combine_const(self, other, func):
-        new_values = func(self.values, other)
+        with np.errstate(all='ignore'):
+            new_values = func(self.values, other)
         d = self._construct_axes_dict()
         return self._constructor(new_values, **d)
 
@@ -723,14 +724,15 @@ class Panel(NDFrame):
 
         other = other.reindex(index=index, columns=columns)
 
-        if axis == 0:
-            new_values = func(self.values, other.values)
-        elif axis == 1:
-            new_values = func(self.values.swapaxes(0, 1), other.values.T)
-            new_values = new_values.swapaxes(0, 1)
-        elif axis == 2:
-            new_values = func(self.values.swapaxes(0, 2), other.values)
-            new_values = new_values.swapaxes(0, 2)
+        with np.errstate(all='ignore'):
+            if axis == 0:
+                new_values = func(self.values, other.values)
+            elif axis == 1:
+                new_values = func(self.values.swapaxes(0, 1), other.values.T)
+                new_values = new_values.swapaxes(0, 1)
+            elif axis == 2:
+                new_values = func(self.values.swapaxes(0, 2), other.values)
+                new_values = new_values.swapaxes(0, 2)
 
         return self._constructor(new_values, self.items, self.major_axis,
                                  self.minor_axis)
@@ -744,7 +746,8 @@ class Panel(NDFrame):
         this = self.reindex(items=items, major=major, minor=minor)
         other = other.reindex(items=items, major=major, minor=minor)
 
-        result_values = func(this.values, other.values)
+        with np.errstate(all='ignore'):
+            result_values = func(this.values, other.values)
 
         return self._constructor(result_values, items, major, minor)
 
@@ -1011,7 +1014,8 @@ class Panel(NDFrame):
         # try ufunc like
         if isinstance(f, np.ufunc):
             try:
-                result = np.apply_along_axis(func, axis, self.values)
+                with np.errstate(all='ignore'):
+                    result = np.apply_along_axis(func, axis, self.values)
                 return self._wrap_result(result, axis=axis)
             except (AttributeError):
                 pass
@@ -1113,7 +1117,8 @@ class Panel(NDFrame):
         axis_number = self._get_axis_number(axis_name)
         f = lambda x: op(x, axis=axis_number, skipna=skipna, **kwds)
 
-        result = f(self.values)
+        with np.errstate(all='ignore'):
+            result = f(self.values)
 
         axes = self._get_plane_axes(axis_name)
         if result.ndim == 2 and axis_name != self._info_axis_name:

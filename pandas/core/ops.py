@@ -636,7 +636,8 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
     def safe_na_op(lvalues, rvalues):
         try:
-            return na_op(lvalues, rvalues)
+            with np.errstate(all='ignore'):
+                return na_op(lvalues, rvalues)
         except Exception:
             if isinstance(rvalues, ABCSeries):
                 if is_object_dtype(rvalues):
@@ -743,7 +744,8 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 x = x.view('i8')
 
             try:
-                result = getattr(x, name)(y)
+                with np.errstate(all='ignore'):
+                    result = getattr(x, name)(y)
                 if result is NotImplemented:
                     raise TypeError("invalid type comparison")
             except AttributeError:
@@ -796,13 +798,15 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             # which would then not take categories ordering into account
             # we can go directly to op, as the na_op would just test again and
             # dispatch to it.
-            res = op(self.values, other)
+            with np.errstate(all='ignore'):
+                res = op(self.values, other)
         else:
             values = self.get_values()
             if isinstance(other, (list, np.ndarray)):
                 other = np.asarray(other)
 
-            res = na_op(values, other)
+            with np.errstate(all='ignore'):
+                res = na_op(values, other)
             if isscalar(res):
                 raise TypeError('Could not compare %s type with Series' %
                                 type(other))
@@ -1096,13 +1100,15 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                 xrav = xrav[mask]
                 yrav = yrav[mask]
                 if np.prod(xrav.shape) and np.prod(yrav.shape):
-                    result[mask] = op(xrav, yrav)
+                    with np.errstate(all='ignore'):
+                        result[mask] = op(xrav, yrav)
             elif hasattr(x, 'size'):
                 result = np.empty(x.size, dtype=x.dtype)
                 mask = notnull(xrav)
                 xrav = xrav[mask]
                 if np.prod(xrav.shape):
-                    result[mask] = op(xrav, y)
+                    with np.errstate(all='ignore'):
+                        result[mask] = op(xrav, y)
             else:
                 raise TypeError("cannot perform operation {op} between "
                                 "objects of type {x} and {y}".format(

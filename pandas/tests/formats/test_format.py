@@ -1668,7 +1668,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_repr_corner(self):
         # representing infs poses no problems
-        df = DataFrame({'foo': np.inf * np.empty(10)})
+        df = DataFrame({'foo': [-np.inf, np.inf]})
         repr(df)
 
     def test_frame_info_encoding(self):
