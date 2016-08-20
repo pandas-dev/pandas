@@ -593,14 +593,14 @@ class _TimeOp(_Op):
 
 
 def _align_method_SERIES(left, right, align_asobject=False):
-    """ algin lhs and rhs Series """
+    """ align lhs and rhs Series """
 
     # ToDo: Different from _align_method_FRAME, list, tuple and ndarray
     # are not coerced here
     # because Series has inconsistencies described in #13637
 
     if isinstance(right, ABCSeries):
-        # avoid repated alignment
+        # avoid repeated alignment
         if not left.index.equals(right.index):
 
             if align_asobject:
