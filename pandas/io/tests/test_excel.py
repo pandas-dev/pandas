@@ -244,6 +244,21 @@ class ReadingTestsBase(SharedItems):
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
+        # 13967
+        excel = self.get_excelfile('test5')
+
+        parsed = read_excel(excel, 'Sheet1', keep_default_na=False,
+                            na_values=['apple'])
+        expected = DataFrame([['1.#QNAN'], [1], ['nan'], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
+        parsed = read_excel(excel, 'Sheet1', keep_default_na=True,
+                            na_values=['apple'])
+        expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
     def test_excel_table_sheet_by_index(self):
 
         excel = self.get_excelfile('test1')
