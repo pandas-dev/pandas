@@ -133,7 +133,7 @@ def _sparse_array_op(left, right, op, name, series=False):
             right_sp_values = right.sp_values
 
         sparse_op = getattr(splib, opname)
-        with np.seterr(all='ignore'):
+        with np.errstate(all='ignore'):
             result, index, fill = sparse_op(left_sp_values, left.sp_index,
                                             left.fill_value, right_sp_values,
                                             right.sp_index, right.fill_value)
