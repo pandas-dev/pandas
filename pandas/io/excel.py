@@ -16,7 +16,8 @@ from pandas.types.common import (is_integer, is_float,
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
-                              EmptyDataError, get_filepath_or_buffer)
+                              EmptyDataError, get_filepath_or_buffer,
+                              _NA_VALUES)
 from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
@@ -27,11 +28,104 @@ import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
+from pandas.util.decorators import Appender
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
 _writer_extensions = ["xlsx", "xls", "xlsm"]
 _writers = {}
+
+_read_excel_doc = """
+Read an Excel table into a pandas DataFrame
+
+Parameters
+----------
+io : string, path object (pathlib.Path or py._path.local.LocalPath),
+    file-like object, pandas ExcelFile, or xlrd workbook.
+    The string could be a URL. Valid URL schemes include http, ftp, s3,
+    and file. For file URLs, a host is expected. For instance, a local
+    file could be file://localhost/path/to/workbook.xlsx
+sheetname : string, int, mixed list of strings/ints, or None, default 0
+
+    Strings are used for sheet names, Integers are used in zero-indexed
+    sheet positions.
+
+    Lists of strings/integers are used to request multiple sheets.
+
+    Specify None to get all sheets.
+
+    str|int -> DataFrame is returned.
+    list|None -> Dict of DataFrames is returned, with keys representing
+    sheets.
+
+    Available Cases
+
+    * Defaults to 0 -> 1st sheet as a DataFrame
+    * 1 -> 2nd sheet as a DataFrame
+    * "Sheet1" -> 1st sheet as a DataFrame
+    * [0,1,"Sheet5"] -> 1st, 2nd & 5th sheet as a dictionary of DataFrames
+    * None -> All sheets as a dictionary of DataFrames
+
+header : int, list of ints, default 0
+    Row (0-indexed) to use for the column labels of the parsed
+    DataFrame. If a list of integers is passed those row positions will
+    be combined into a ``MultiIndex``
+skiprows : list-like
+    Rows to skip at the beginning (0-indexed)
+skip_footer : int, default 0
+    Rows at the end to skip (0-indexed)
+index_col : int, list of ints, default None
+    Column (0-indexed) to use as the row labels of the DataFrame.
+    Pass None if there is no such column.  If a list is passed,
+    those columns will be combined into a ``MultiIndex``
+names : array-like, default None
+    List of column names to use. If file contains no header row,
+    then you should explicitly pass header=None
+converters : dict, default None
+    Dict of functions for converting values in certain columns. Keys can
+    either be integers or column labels, values are functions that take one
+    input argument, the Excel cell content, and return the transformed
+    content.
+parse_cols : int or list, default None
+    * If None then parse all columns,
+    * If int then indicates last column to be parsed
+    * If list of ints then indicates list of column numbers to be parsed
+    * If string then indicates comma separated list of column names and
+      column ranges (e.g. "A:E" or "A,C,E:F")
+squeeze : boolean, default False
+    If the parsed data only contains one column then return a Series
+na_values : str or list-like or dict, default None
+    Additional strings to recognize as NA/NaN. If dict passed, specific
+    per-column NA values. By default the following values are interpreted
+    as NaN: '""" + "', '".join(sorted(_NA_VALUES)) + """'.
+thousands : str, default None
+    Thousands separator for parsing string columns to numeric.  Note that
+    this parameter is only necessary for columns stored as TEXT in Excel,
+    any numeric columns will automatically be parsed, regardless of display
+    format.
+keep_default_na : bool, default True
+    If na_values are specified and keep_default_na is False the default NaN
+    values are overridden, otherwise they're appended to.
+verbose : boolean, default False
+    Indicate number of NA values placed in non-numeric columns
+engine: string, default None
+    If io is not a buffer or path, this must be set to identify io.
+    Acceptable values are None or xlrd
+convert_float : boolean, default True
+    convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
+    data will be read in as floats: Excel stores all numbers as floats
+    internally
+has_index_names : boolean, default None
+    DEPRECATED: for version 0.17+ index names will be automatically
+    inferred based on index_col.  To read Excel output from 0.16.2 and
+    prior that had saved index names, use True.
+
+Returns
+-------
+parsed : DataFrame or Dict of DataFrames
+    DataFrame from the passed in Excel file.  See notes in sheetname
+    argument for more information on when a Dict of Dataframes is returned.
+"""
 
 
 def register_writer(klass):
@@ -74,100 +168,13 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '%s'" % engine_name)
 
 
+@Appender(_read_excel_doc)
 def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, parse_cols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
                convert_float=True, has_index_names=None, converters=None,
                engine=None, squeeze=False, **kwds):
-    """
-    Read an Excel table into a pandas DataFrame
 
-    Parameters
-    ----------
-    io : string, path object (pathlib.Path or py._path.local.LocalPath),
-        file-like object, pandas ExcelFile, or xlrd workbook.
-        The string could be a URL. Valid URL schemes include http, ftp, s3,
-        and file. For file URLs, a host is expected. For instance, a local
-        file could be file://localhost/path/to/workbook.xlsx
-    sheetname : string, int, mixed list of strings/ints, or None, default 0
-
-        Strings are used for sheet names, Integers are used in zero-indexed
-        sheet positions.
-
-        Lists of strings/integers are used to request multiple sheets.
-
-        Specify None to get all sheets.
-
-        str|int -> DataFrame is returned.
-        list|None -> Dict of DataFrames is returned, with keys representing
-        sheets.
-
-        Available Cases
-
-        * Defaults to 0 -> 1st sheet as a DataFrame
-        * 1 -> 2nd sheet as a DataFrame
-        * "Sheet1" -> 1st sheet as a DataFrame
-        * [0,1,"Sheet5"] -> 1st, 2nd & 5th sheet as a dictionary of DataFrames
-        * None -> All sheets as a dictionary of DataFrames
-
-    header : int, list of ints, default 0
-        Row (0-indexed) to use for the column labels of the parsed
-        DataFrame. If a list of integers is passed those row positions will
-        be combined into a ``MultiIndex``
-    skiprows : list-like
-        Rows to skip at the beginning (0-indexed)
-    skip_footer : int, default 0
-        Rows at the end to skip (0-indexed)
-    index_col : int, list of ints, default None
-        Column (0-indexed) to use as the row labels of the DataFrame.
-        Pass None if there is no such column.  If a list is passed,
-        those columns will be combined into a ``MultiIndex``
-    names : array-like, default None
-        List of column names to use. If file contains no header row,
-        then you should explicitly pass header=None
-    converters : dict, default None
-        Dict of functions for converting values in certain columns. Keys can
-        either be integers or column labels, values are functions that take one
-        input argument, the Excel cell content, and return the transformed
-        content.
-    parse_cols : int or list, default None
-        * If None then parse all columns,
-        * If int then indicates last column to be parsed
-        * If list of ints then indicates list of column numbers to be parsed
-        * If string then indicates comma separated list of column names and
-          column ranges (e.g. "A:E" or "A,C,E:F")
-    squeeze : boolean, default False
-        If the parsed data only contains one column then return a Series
-    na_values : list-like, default None
-        List of additional strings to recognize as NA/NaN
-    thousands : str, default None
-        Thousands separator for parsing string columns to numeric.  Note that
-        this parameter is only necessary for columns stored as TEXT in Excel,
-        any numeric columns will automatically be parsed, regardless of display
-        format.
-    keep_default_na : bool, default True
-        If na_values are specified and keep_default_na is False the default NaN
-        values are overridden, otherwise they're appended to
-    verbose : boolean, default False
-        Indicate number of NA values placed in non-numeric columns
-    engine: string, default None
-        If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None or xlrd
-    convert_float : boolean, default True
-        convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
-        data will be read in as floats: Excel stores all numbers as floats
-        internally
-    has_index_names : boolean, default None
-        DEPRECATED: for version 0.17+ index names will be automatically
-        inferred based on index_col.  To read Excel output from 0.16.2 and
-        prior that had saved index names, use True.
-
-    Returns
-    -------
-    parsed : DataFrame or Dict of DataFrames
-        DataFrame from the passed in Excel file.  See notes in sheetname
-        argument for more information on when a Dict of Dataframes is returned.
-    """
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 

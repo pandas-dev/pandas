@@ -14,6 +14,14 @@ from pandas.formats.printing import pprint_thing
 from pandas.core.common import AbstractMethodError
 from pandas.types.common import is_number
 
+# common NA values
+# no longer excluding inf representations
+# '1.#INF','-1.#INF', '1.#INF000000',
+_NA_VALUES = set([
+    '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
+    'N/A', 'NA', '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''
+])
+
 try:
     import pathlib
     _PATHLIB_INSTALLED = True
