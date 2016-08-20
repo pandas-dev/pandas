@@ -188,9 +188,17 @@ class SparseArray(PandasObject, np.ndarray):
             values.fill(data)
             data = values
 
+        if isinstance(data, ABCSparseSeries):
+            data = data.values
+        is_sparse_array = isinstance(data, SparseArray)
+
         if dtype is not None:
             dtype = np.dtype(dtype)
-        is_sparse_array = isinstance(data, SparseArray)
+        if is_sparse_array:
+            # temp, always inherit passed SparseArray dtype
+            # can be removed after GH 13849
+            dtype = data.dtype
+
         if fill_value is None:
             if is_sparse_array:
                 fill_value = data.fill_value
@@ -211,7 +219,6 @@ class SparseArray(PandasObject, np.ndarray):
                     raise AssertionError("Non array-like type {0} must have"
                                          " the same length as the"
                                          " index".format(type(values)))
-
         # Create array, do *not* copy data by default
         if copy:
             try:

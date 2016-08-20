@@ -814,6 +814,9 @@ Note that the limitation is applied to ``fill_value`` which default is ``np.nan`
 - Bug in ``SparseSeries.abs`` incorrectly keeps negative ``fill_value`` (:issue:`13853`)
 - Bug in single row slicing on multi-type ``SparseDataFrame``s, types were previously forced to float (:issue:`13917`)
 - Bug in sparse indexing using ``SparseArray`` with ``bool`` dtype may return incorrect result  (:issue:`13985`)
+- Bug in ``SparseArray`` created from ``SparseSeries`` may lose ``dtype`` (:issue:`13999`)
+- Bug in ``SparseSeries`` comparison with dense returns normal ``Series`` rather than ``SparseSeries`` (:issue:`13999`)
+
 
 .. _whatsnew_0190.indexer_dtype:
 

@@ -7,7 +7,7 @@ from numpy import nan
 import numpy as np
 
 from pandas import _np_version_under1p8
-from pandas.sparse.api import SparseArray
+from pandas.sparse.api import SparseArray, SparseSeries
 from pandas._sparse import IntIndex
 from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
 import pandas.util.testing as tm
@@ -101,6 +101,32 @@ class TestSparseArray(tm.TestCase):
         tm.assert_sp_array_equal(arr, exp)
         self.assertEqual(arr.dtype, np.int64)
         self.assertEqual(arr.fill_value, 0)
+
+    def test_sparseseries_roundtrip(self):
+        # GH 13999
+        for kind in ['integer', 'block']:
+            for fill in [1, np.nan, 0]:
+                arr = SparseArray([np.nan, 1, np.nan, 2, 3], kind=kind,
+                                  fill_value=fill)
+                res = SparseArray(SparseSeries(arr))
+                tm.assert_sp_array_equal(arr, res)
+
+                arr = SparseArray([0, 0, 0, 1, 1, 2], dtype=np.int64,
+                                  kind=kind, fill_value=fill)
+                res = SparseArray(SparseSeries(arr), dtype=np.int64)
+                tm.assert_sp_array_equal(arr, res)
+
+                res = SparseArray(SparseSeries(arr))
+                tm.assert_sp_array_equal(arr, res)
+
+            for fill in [True, False, np.nan]:
+                arr = SparseArray([True, False, True, True], dtype=np.bool,
+                                  kind=kind, fill_value=fill)
+                res = SparseArray(SparseSeries(arr))
+                tm.assert_sp_array_equal(arr, res)
+
+                res = SparseArray(SparseSeries(arr))
+                tm.assert_sp_array_equal(arr, res)
 
     def test_get_item(self):
 
