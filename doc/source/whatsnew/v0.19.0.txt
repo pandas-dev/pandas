@@ -948,7 +948,7 @@ Bug Fixes
 - Bug in ``pd.read_hdf()`` returns incorrect result when a ``DataFrame`` with a ``categorical`` column and a query which doesn't match any values (:issue:`13792`)
 - Bug in ``pd.to_datetime()`` raise ``AttributeError`` with NaN and the other string is not valid when errors='ignore' (:issue:`12424`)
 
-- Bug in ``groupby`` where a ``TimeGrouper`` selection is used with the ``key`` or ``level`` arguments with a ``PeriodIndex`` (:issue:`14008`)
+
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
 - Bug in ``groupby`` where ``apply`` returns different result depending on whether first result is ``None`` or not (:issue:`12824`)
 - Bug in ``groupby(..).nth()`` where the group key is included inconsistently if called after ``.head()/.tail()`` (:issue:`12839`)

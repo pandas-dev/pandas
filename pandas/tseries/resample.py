@@ -88,11 +88,13 @@ class Resampler(_GroupBy):
         self.from_selection = False
 
         if self.groupby is not None:
-            # bookeeping to disallow upsampling if not resampling on index
+            # upsampling and PeriodIndex resampling do not work
+            # if resampling on a column or mi level
+            # this is state used to catch and raise an error
             self.from_selection = (self.groupby.key is not None or
                                    self.groupby.level is not None)
-            obj, converter = self._convert_obj(obj)
-            self.groupby._set_grouper(obj, sort=True, converter=converter)
+            obj = self._convert_obj(obj)
+            self.groupby._set_grouper(obj, sort=True)
 
     def __unicode__(self):
         """ provide a nice str repr of our rolling object """
@@ -208,7 +210,6 @@ class Resampler(_GroupBy):
     def _convert_obj(self, obj):
         """
         provide any conversions for the object in order to correctly handle
-        and returns a converter function to be applied to grouping selection
 
         Parameters
         ----------
@@ -217,11 +218,9 @@ class Resampler(_GroupBy):
         Returns
         -------
         obj : converted object
-        converter : callable, optional
-            converter to apply after selection
         """
         obj = obj.consolidate()
-        return obj, None
+        return obj
 
     def _get_binner_for_time(self):
         raise AbstractMethodError(self)
@@ -768,7 +767,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         return PeriodIndexResamplerGroupby
 
     def _convert_obj(self, obj):
-        obj, _ = super(PeriodIndexResampler, self)._convert_obj(obj)
+        obj = super(PeriodIndexResampler, self)._convert_obj(obj)
 
         offset = to_offset(self.freq)
         if offset.n > 1:
@@ -778,17 +777,18 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             # Cannot have multiple of periods, convert to timestamp
             self.kind = 'timestamp'
 
-        converter = None
         # convert to timestamp
         if not (self.kind is None or self.kind == 'period'):
-            # if periondindex is the actual index obj, just convert it
-            # otherwise, converter callback will be used on selection
             if self.from_selection:
-                converter = lambda x: x.to_timestamp(how=self.convention)
+                # see GH 14008, GH 12871
+                msg = ("Resampling from level= or on= selection"
+                       " with a PeriodIndex is not currently supported,"
+                       " use .set_index(...) to explicitly set index")
+                raise NotImplementedError(msg)
             else:
                 obj = obj.to_timestamp(how=self.convention)
 
-        return obj, converter
+        return obj
 
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)

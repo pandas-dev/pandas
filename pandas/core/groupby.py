@@ -257,8 +257,6 @@ class Grouper(object):
         obj : the subject object
         sort : bool, default False
             whether the resulting grouper should be sorted
-        converter : callable, optional
-            conversion to apply the grouper after selection
         """
 
         if self.key is not None and self.level is not None:
@@ -298,8 +296,6 @@ class Grouper(object):
                            convert=False, is_copy=False)
 
         self.obj = obj
-        if converter is not None:
-            ax = converter(ax)
         self.grouper = ax
         return self.grouper
 
