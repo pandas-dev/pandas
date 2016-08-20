@@ -358,11 +358,6 @@ class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
     def _assert(self, a, b):
         tm.assert_series_equal(a, b)
 
-    def _check_bool_result(self, res):
-        # ToDo: Must return SparseSeries after GH 667
-        tm.assertIsInstance(res, self._base)
-        self.assertEqual(res.dtype, np.bool)
-
     def test_alignment(self):
         da = pd.Series(np.arange(4))
         db = pd.Series(np.arange(4), index=[1, 2, 3, 4])
