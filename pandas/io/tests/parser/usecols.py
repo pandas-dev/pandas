@@ -8,6 +8,7 @@ for all of the parsers defined in parsers.py
 from datetime import datetime
 import nose
 
+import numpy as np
 import pandas.util.testing as tm
 
 from pandas import DataFrame
@@ -360,4 +361,13 @@ a,b,c
         data = 'a,b,c\n1,2,3\n4,5,6'
         expected = DataFrame()
         result = self.read_csv(StringIO(data), usecols=set([]))
+        tm.assert_frame_equal(result, expected)
+
+    def test_np_array_usecols(self):
+        # See gh-12546
+        data = 'a,b,c\n1,2,3'
+        usecols = np.array(['a', 'b'])
+
+        expected = DataFrame([[1, 2]], columns=usecols)
+        result = self.read_csv(StringIO(data), usecols=usecols)
         tm.assert_frame_equal(result, expected)

@@ -972,6 +972,7 @@ def _validate_usecols_arg(usecols):
                                  'string', 'unicode'):
             raise ValueError(msg)
 
+        return set(usecols)
     return usecols
 
 

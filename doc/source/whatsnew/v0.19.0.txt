@@ -945,6 +945,7 @@ Bug Fixes
 - Bug in ``groupby().cumsum()`` calculating ``cumprod`` when ``axis=1``. (:issue:`13994`)
 - Bug in ``pd.read_csv()``, which may cause a segfault or corruption when iterating in large chunks over a stream/file under rare circumstances (:issue:`13703`)
 - Bug in ``pd.read_csv()``, which caused BOM files to be incorrectly parsed by not ignoring the BOM (:issue:`4793`)
+- Bug in ``pd.read_csv()`` with ``engine='python'`` which raised errors when a numpy array was passed in for ``usecols`` (:issue:`12546`)
 - Bug in ``pd.to_timedelta()`` in which the ``errors`` parameter was not being respected (:issue:`13613`)
 - Bug in ``io.json.json_normalize()``, where non-ascii keys raised an exception (:issue:`13213`)
 - Bug when passing a not-default-indexed ``Series`` as ``xerr`` or ``yerr`` in ``.plot()`` (:issue:`11858`)
