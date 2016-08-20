@@ -4064,9 +4064,14 @@ class NDFrame(PandasObject):
         on : string, optional
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
+
+            .. versionadded:: 0.19.0
+
         level : string or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling.  Level must be datetime-like.
+
+            .. versionadded:: 0.19.0
 
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.

@@ -1473,8 +1473,9 @@ Furthermore, you can also specify multiple aggregation functions for each column
    r.agg({'A' : ['sum','std'], 'B' : ['mean','std'] })
 
 
-If a ``DataFrame`` does not have a ``DatetimeIndex``, but instead you want
-to resample based on column in the frame, it can passed to the ``on`` keyword.
+If a ``DataFrame`` does not have a datetimelike index, but instead you want
+to resample based on datetimelike column in the frame, it can passed to the
+``on`` keyword.
 
 .. ipython:: python
 
@@ -1487,8 +1488,9 @@ to resample based on column in the frame, it can passed to the ``on`` keyword.
    df
    df.resample('M', on='date').sum()
 
-Similarly, if you instead want to resample by a level of ``MultiIndex``, its
-name or location can be passed to the ``level`` keyword.
+Similarly, if you instead want to resample by a datetimelike
+level of ``MultiIndex``, its name or location can be passed to the
+``level`` keyword.
 
 .. ipython:: python
 

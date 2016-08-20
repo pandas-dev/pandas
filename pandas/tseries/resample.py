@@ -90,11 +90,10 @@ class Resampler(_GroupBy):
         if self.groupby is not None:
             # upsampling and PeriodIndex resampling do not work
             # if resampling on a column or mi level
-            # this is state used to catch and raise an error
+            # this state used to catch and raise an error
             self.from_selection = (self.groupby.key is not None or
                                    self.groupby.level is not None)
-            obj = self._convert_obj(obj)
-            self.groupby._set_grouper(obj, sort=True)
+            self.groupby._set_grouper(self._convert_obj(obj), sort=True)
 
     def __unicode__(self):
         """ provide a nice str repr of our rolling object """

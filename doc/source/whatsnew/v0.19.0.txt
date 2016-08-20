@@ -377,7 +377,7 @@ Other enhancements
 
     pd.Timestamp(year=2012, month=1, day=1, hour=8, minute=30)
 
-- the ``.resample()`` function now accepts a ``on=`` or ``level=`` parameter for resampling on a column or ``MultiIndex`` level (:issue:`13500`)
+- the ``.resample()`` function now accepts a ``on=`` or ``level=`` parameter for resampling on a datetimelike column or ``MultiIndex`` level (:issue:`13500`)
 
   .. ipython:: python
 

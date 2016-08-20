@@ -247,7 +247,7 @@ class Grouper(object):
                                                           sort=self.sort)
         return self.binner, self.grouper, self.obj
 
-    def _set_grouper(self, obj, sort=False, converter=None):
+    def _set_grouper(self, obj, sort=False):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
