@@ -129,7 +129,7 @@ skip_footer : int, default 0
     DEPRECATED: use the `skipfooter` parameter instead, as they are identical
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
-na_values : str or list-like or dict, default None
+na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values.  By default the following values are interpreted as
     NaN: `'""" + "'`, `'".join(sorted(_NA_VALUES)) + """'`.
@@ -1604,8 +1604,8 @@ def TextParser(*args, **kwds):
     has_index_names: boolean, default False
         True if the cols defined in index_col have an index name and are
         not in the header
-    na_values : iterable, default None
-        Custom NA values
+    na_values : scalar, str, list-like, or dict, default None
+        Additional strings to recognize as NA/NaN.
     keep_default_na : bool, default True
     thousands : str, default None
         Thousands separator
@@ -2687,7 +2687,9 @@ def _clean_na_values(na_values, keep_default_na=True):
     elif isinstance(na_values, dict):
         if keep_default_na:
             for k, v in compat.iteritems(na_values):
-                v = set(list(v)) | _NA_VALUES
+                if not is_list_like(v):
+                    v = [v]
+                v = set(v) | _NA_VALUES
                 na_values[k] = v
         na_fvalues = dict([
             (k, _floatify_na_values(v)) for k, v in na_values.items()  # noqa

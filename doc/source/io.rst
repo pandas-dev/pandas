@@ -208,7 +208,7 @@ memory_map : boolean, default False
 NA and Missing Data Handling
 ++++++++++++++++++++++++++++
 
-na_values : str, list-like or dict, default ``None``
+na_values : scalar, str, list-like, or dict, default ``None``
   Additional strings to recognize as NA/NaN. If dict passed, specific per-column
   NA values. By default the following values are interpreted as NaN:
   ``'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'NA',
