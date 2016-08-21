@@ -94,7 +94,7 @@ parse_cols : int or list, default None
       column ranges (e.g. "A:E" or "A,C,E:F")
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
-na_values : str or list-like or dict, default None
+na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
     as NaN: '""" + "', '".join(sorted(_NA_VALUES)) + """'.
