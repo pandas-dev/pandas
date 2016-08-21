@@ -250,3 +250,19 @@ nan,B
         result = self.read_csv(StringIO(data))
         self.assertEqual(result['Date'][1], '2012-05-12')
         self.assertTrue(result['UnitPrice'].isnull().all())
+
+    def test_na_values_scalar(self):
+        # see gh-12224
+        names = ['a', 'b']
+        data = '1,2\n2,1'
+
+        expected = DataFrame([[np.nan, 2.0], [2.0, np.nan]],
+                             columns=names)
+        out = self.read_csv(StringIO(data), names=names, na_values=1)
+        tm.assert_frame_equal(out, expected)
+
+        expected = DataFrame([[1.0, 2.0], [np.nan, np.nan]],
+                             columns=names)
+        out = self.read_csv(StringIO(data), names=names,
+                            na_values={'a': 2, 'b': 1})
+        tm.assert_frame_equal(out, expected)
