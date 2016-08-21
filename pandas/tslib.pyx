@@ -1516,8 +1516,12 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day, obj.dts.hour,
                       obj.dts.min, obj.dts.sec, obj.dts.us, tz)
         delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
-        pandas_datetime_to_datetimestruct(obj.value + delta,
-                                          PANDAS_FR_ns, &obj.dts)
+        if obj.value != NPY_NAT:
+            pandas_datetime_to_datetimestruct(obj.value + delta,
+                                              PANDAS_FR_ns, &obj.dts)
+        else:
+            pandas_datetime_to_datetimestruct(obj.value,
+                                              PANDAS_FR_ns, &obj.dts)
         obj.tzinfo = tz
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
@@ -1529,7 +1533,7 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         # static/pytz/dateutil specific code
         if _is_fixed_offset(tz):
             # statictzinfo
-            if len(deltas) > 0:
+            if len(deltas) > 0 and obj.value != NPY_NAT:
                 pandas_datetime_to_datetimestruct(obj.value + deltas[0],
                                                   PANDAS_FR_ns, &obj.dts)
             else:
@@ -1537,12 +1541,20 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
             obj.tzinfo = tz
         elif _treat_tz_as_pytz(tz):
             inf = tz._transition_info[pos]
-            pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
-                                              PANDAS_FR_ns, &obj.dts)
+            if obj.value != NPY_NAT:
+                pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
+                                                  PANDAS_FR_ns, &obj.dts)
+            else:
+                pandas_datetime_to_datetimestruct(obj.value,
+                                                  PANDAS_FR_ns, &obj.dts)
             obj.tzinfo = tz._tzinfos[inf]
         elif _treat_tz_as_dateutil(tz):
-            pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
-                                              PANDAS_FR_ns, &obj.dts)
+            if obj.value != NPY_NAT:
+                pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
+                                                  PANDAS_FR_ns, &obj.dts)
+            else:
+                pandas_datetime_to_datetimestruct(obj.value,
+                                                  PANDAS_FR_ns, &obj.dts)
             obj.tzinfo = tz
         else:
             obj.tzinfo = tz

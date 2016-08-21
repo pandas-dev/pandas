@@ -542,15 +542,17 @@ class TestSparseArray(tm.TestCase):
             tmp = arr1.copy()
             self.assertRaises(NotImplementedError, op, tmp, arr2)
 
-        bin_ops = [operator.add, operator.sub, operator.mul, operator.truediv,
-                   operator.floordiv, operator.pow]
-        for op in bin_ops:
-            _check_op(op, arr1, arr2)
-            _check_op(op, farr1, farr2)
+        with np.errstate(all='ignore'):
+            bin_ops = [operator.add, operator.sub, operator.mul,
+                       operator.truediv, operator.floordiv, operator.pow]
+            for op in bin_ops:
+                _check_op(op, arr1, arr2)
+                _check_op(op, farr1, farr2)
 
-        inplace_ops = ['iadd', 'isub', 'imul', 'itruediv', 'ifloordiv', 'ipow']
-        for op in inplace_ops:
-            _check_inplace_op(getattr(operator, op))
+            inplace_ops = ['iadd', 'isub', 'imul', 'itruediv', 'ifloordiv',
+                           'ipow']
+            for op in inplace_ops:
+                _check_inplace_op(getattr(operator, op))
 
     def test_pickle(self):
         def _check_roundtrip(obj):

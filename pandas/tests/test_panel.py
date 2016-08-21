@@ -824,12 +824,13 @@ class CheckIndexing(object):
             self.assert_numpy_array_equal(result3.values,
                                           func(self.panel.values, 0))
 
-        test_comp(operator.eq)
-        test_comp(operator.ne)
-        test_comp(operator.lt)
-        test_comp(operator.gt)
-        test_comp(operator.ge)
-        test_comp(operator.le)
+        with np.errstate(invalid='ignore'):
+            test_comp(operator.eq)
+            test_comp(operator.ne)
+            test_comp(operator.lt)
+            test_comp(operator.gt)
+            test_comp(operator.ge)
+            test_comp(operator.le)
 
     def test_get_value(self):
         for item in self.panel.items:
@@ -1186,8 +1187,9 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
         # ufunc
         applied = self.panel.apply(np.sqrt)
-        self.assertTrue(assert_almost_equal(applied.values, np.sqrt(
-            self.panel.values)))
+        with np.errstate(invalid='ignore'):
+            expected = np.sqrt(self.panel.values)
+        assert_almost_equal(applied.values, expected)
 
         # ufunc same shape
         result = self.panel.apply(lambda x: x * 2, axis='items')

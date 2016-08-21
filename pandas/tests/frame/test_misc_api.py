@@ -207,7 +207,8 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         self.assertIsNone(df2.index.name)
 
     def test_array_interface(self):
-        result = np.sqrt(self.frame)
+        with np.errstate(all='ignore'):
+            result = np.sqrt(self.frame)
         tm.assertIsInstance(result, type(self.frame))
         self.assertIs(result.index, self.frame.index)
         self.assertIs(result.columns, self.frame.columns)

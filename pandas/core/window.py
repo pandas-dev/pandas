@@ -733,10 +733,11 @@ class _Rolling(_Window):
                 def calc(x):
                     return func(x, window, min_periods=self.min_periods)
 
-            if values.ndim > 1:
-                result = np.apply_along_axis(calc, self.axis, values)
-            else:
-                result = calc(values)
+            with np.errstate(all='ignore'):
+                if values.ndim > 1:
+                    result = np.apply_along_axis(calc, self.axis, values)
+                else:
+                    result = calc(values)
 
             if center:
                 result = self._center_window(result, window)
@@ -1617,10 +1618,11 @@ class EWM(_Rolling):
 
             x_values = X._prep_values()
             y_values = Y._prep_values()
-            cov = _cov(x_values, y_values)
-            x_var = _cov(x_values, x_values)
-            y_var = _cov(y_values, y_values)
-            corr = cov / _zsqrt(x_var * y_var)
+            with np.errstate(all='ignore'):
+                cov = _cov(x_values, y_values)
+                x_var = _cov(x_values, x_values)
+                y_var = _cov(y_values, y_values)
+                corr = cov / _zsqrt(x_var * y_var)
             return X._wrap_result(corr)
 
         return _flex_binary_moment(self._selected_obj, other._selected_obj,
@@ -1757,8 +1759,9 @@ def _use_window(minp, window):
 
 
 def _zsqrt(x):
-    result = np.sqrt(x)
-    mask = x < 0
+    with np.errstate(all='ignore'):
+        result = np.sqrt(x)
+        mask = x < 0
 
     from pandas import DataFrame
     if isinstance(x, DataFrame):

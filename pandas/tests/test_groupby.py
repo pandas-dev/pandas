@@ -2595,9 +2595,11 @@ class TestGroupBy(tm.TestCase):
 
     def test_apply_series_to_frame(self):
         def f(piece):
+            with np.errstate(invalid='ignore'):
+                logged = np.log(piece)
             return DataFrame({'value': piece,
                               'demeaned': piece - piece.mean(),
-                              'logged': np.log(piece)})
+                              'logged': logged})
 
         dr = bdate_range('1/1/2000', periods=100)
         ts = Series(np.random.randn(100), index=dr)

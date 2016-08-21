@@ -18,17 +18,18 @@ class TestSeriesApply(TestData, tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_apply(self):
-        assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
+        with np.errstate(all='ignore'):
+            assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
 
-        # elementwise-apply
-        import math
-        assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
+            # elementwise-apply
+            import math
+            assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
 
-        # how to handle Series result, #2316
-        result = self.ts.apply(lambda x: Series(
-            [x, x ** 2], index=['x', 'x^2']))
-        expected = DataFrame({'x': self.ts, 'x^2': self.ts ** 2})
-        tm.assert_frame_equal(result, expected)
+            # how to handle Series result, #2316
+            result = self.ts.apply(lambda x: Series(
+                [x, x ** 2], index=['x', 'x^2']))
+            expected = DataFrame({'x': self.ts, 'x^2': self.ts ** 2})
+            tm.assert_frame_equal(result, expected)
 
         # empty series
         s = Series(dtype=object, name='foo', index=pd.Index([], name='bar'))

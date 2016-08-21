@@ -22,18 +22,19 @@ class TestDataFrameApply(tm.TestCase, TestData):
     _multiprocess_can_split_ = True
 
     def test_apply(self):
-        # ufunc
-        applied = self.frame.apply(np.sqrt)
-        assert_series_equal(np.sqrt(self.frame['A']), applied['A'])
+        with np.errstate(all='ignore'):
+            # ufunc
+            applied = self.frame.apply(np.sqrt)
+            assert_series_equal(np.sqrt(self.frame['A']), applied['A'])
 
-        # aggregator
-        applied = self.frame.apply(np.mean)
-        self.assertEqual(applied['A'], np.mean(self.frame['A']))
+            # aggregator
+            applied = self.frame.apply(np.mean)
+            self.assertEqual(applied['A'], np.mean(self.frame['A']))
 
-        d = self.frame.index[0]
-        applied = self.frame.apply(np.mean, axis=1)
-        self.assertEqual(applied[d], np.mean(self.frame.xs(d)))
-        self.assertIs(applied.index, self.frame.index)  # want this
+            d = self.frame.index[0]
+            applied = self.frame.apply(np.mean, axis=1)
+            self.assertEqual(applied[d], np.mean(self.frame.xs(d)))
+            self.assertIs(applied.index, self.frame.index)  # want this
 
         # invalid axis
         df = DataFrame(
@@ -187,10 +188,11 @@ class TestDataFrameApply(tm.TestCase, TestData):
             _checkit(raw=True)
             _checkit(axis=0, raw=True)
 
-        _check(no_cols, lambda x: x)
-        _check(no_cols, lambda x: x.mean())
-        _check(no_index, lambda x: x)
-        _check(no_index, lambda x: x.mean())
+        with np.errstate(all='ignore'):
+            _check(no_cols, lambda x: x)
+            _check(no_cols, lambda x: x.mean())
+            _check(no_index, lambda x: x)
+            _check(no_index, lambda x: x.mean())
 
         result = no_cols.apply(lambda x: x.mean(), broadcast=True)
         tm.assertIsInstance(result, DataFrame)

@@ -348,7 +348,8 @@ class Block(PandasObject):
         """ apply the function to my values; return a block if we are not
         one
         """
-        result = func(self.values, **kwargs)
+        with np.errstate(all='ignore'):
+            result = func(self.values, **kwargs)
         if not isinstance(result, Block):
             result = self.make_block(values=_block_shape(result,
                                                          ndim=self.ndim))
@@ -1156,7 +1157,8 @@ class Block(PandasObject):
 
         # get the result
         try:
-            result = get_result(other)
+            with np.errstate(all='ignore'):
+                result = get_result(other)
 
         # if we have an invalid shape/broadcast error
         # GH4576, so raise instead of allowing to pass through

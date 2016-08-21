@@ -461,12 +461,13 @@ class CheckIndexing(object):
                 self.assert_numpy_array_equal(result3.values,
                                               func(self.panel4d.values, 0))
 
-            test_comp(operator.eq)
-            test_comp(operator.ne)
-            test_comp(operator.lt)
-            test_comp(operator.gt)
-            test_comp(operator.ge)
-            test_comp(operator.le)
+            with np.errstate(invalid='ignore'):
+                test_comp(operator.eq)
+                test_comp(operator.ne)
+                test_comp(operator.lt)
+                test_comp(operator.gt)
+                test_comp(operator.ge)
+                test_comp(operator.le)
 
     def test_major_xs(self):
         ref = self.panel4d['l1']['ItemA']

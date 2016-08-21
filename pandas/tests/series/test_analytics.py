@@ -622,39 +622,40 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertRaises(NotImplementedError, s.all, bool_only=True)
 
     def test_modulo(self):
+        with np.errstate(all='ignore'):
 
-        # GH3590, modulo as ints
-        p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-        result = p['first'] % p['second']
-        expected = Series(p['first'].values % p['second'].values,
-                          dtype='float64')
-        expected.iloc[0:3] = np.nan
-        assert_series_equal(result, expected)
+            # GH3590, modulo as ints
+            p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+            result = p['first'] % p['second']
+            expected = Series(p['first'].values % p['second'].values,
+                              dtype='float64')
+            expected.iloc[0:3] = np.nan
+            assert_series_equal(result, expected)
 
-        result = p['first'] % 0
-        expected = Series(np.nan, index=p.index, name='first')
-        assert_series_equal(result, expected)
+            result = p['first'] % 0
+            expected = Series(np.nan, index=p.index, name='first')
+            assert_series_equal(result, expected)
 
-        p = p.astype('float64')
-        result = p['first'] % p['second']
-        expected = Series(p['first'].values % p['second'].values)
-        assert_series_equal(result, expected)
+            p = p.astype('float64')
+            result = p['first'] % p['second']
+            expected = Series(p['first'].values % p['second'].values)
+            assert_series_equal(result, expected)
 
-        p = p.astype('float64')
-        result = p['first'] % p['second']
-        result2 = p['second'] % p['first']
-        self.assertFalse(np.array_equal(result, result2))
+            p = p.astype('float64')
+            result = p['first'] % p['second']
+            result2 = p['second'] % p['first']
+            self.assertFalse(np.array_equal(result, result2))
 
-        # GH 9144
-        s = Series([0, 1])
+            # GH 9144
+            s = Series([0, 1])
 
-        result = s % 0
-        expected = Series([nan, nan])
-        assert_series_equal(result, expected)
+            result = s % 0
+            expected = Series([nan, nan])
+            assert_series_equal(result, expected)
 
-        result = 0 % s
-        expected = Series([nan, 0.0])
-        assert_series_equal(result, expected)
+            result = 0 % s
+            expected = Series([nan, 0.0])
+            assert_series_equal(result, expected)
 
     def test_ops_consistency_on_empty(self):
 

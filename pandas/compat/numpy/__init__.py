@@ -5,8 +5,6 @@ import numpy as np
 from distutils.version import LooseVersion
 from pandas.compat import string_types, string_and_binary_types
 
-# turn off all numpy warnings
-np.seterr(all='ignore')
 
 # numpy versioning
 _np_version = np.version.short_version
