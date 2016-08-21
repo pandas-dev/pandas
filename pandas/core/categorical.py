@@ -231,6 +231,8 @@ class Categorical(PandasObject):
     def __init__(self, values, categories=None, ordered=False,
                  name=None, fastpath=False):
 
+        self._validate_ordered(ordered)
+
         if fastpath:
             # fast path
             self._codes = _coerce_indexer_dtype(values, categories)
@@ -503,6 +505,25 @@ class Categorical(PandasObject):
     _categories = None
 
     @classmethod
+    def _validate_ordered(cls, ordered):
+        """
+        Validates that we have a valid ordered parameter. If
+        it is not a boolean, a TypeError will be raised.
+
+        Parameters
+        ----------
+        ordered : object
+            The parameter to be verified.
+
+        Raises
+        ------
+        TypeError
+            If 'ordered' is not a boolean.
+        """
+        if not is_bool(ordered):
+            raise TypeError("'ordered' must either be 'True' or 'False'")
+
+    @classmethod
     def _validate_categories(cls, categories, fastpath=False):
         """
         Validates that we have good categories
@@ -588,8 +609,7 @@ class Categorical(PandasObject):
            Whether or not to set the ordered attribute inplace or return a copy
            of this categorical with ordered set to the value
         """
-        if not is_bool(value):
-            raise TypeError("ordered must be a boolean value")
+        self._validate_ordered(value)
         cat = self if inplace else self.copy()
         cat._ordered = value
         if not inplace:

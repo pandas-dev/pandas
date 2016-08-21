@@ -398,6 +398,24 @@ class TestCategorical(tm.TestCase):
             codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
             pd.Categorical.from_codes(codes, categories=["train", "test"])
 
+    def test_validate_ordered(self):
+        # see gh-14058
+        exp_msg = "'ordered' must either be 'True' or 'False'"
+        exp_err = TypeError
+
+        # This should be a boolean.
+        ordered = np.array([0, 1, 2])
+
+        with tm.assertRaisesRegexp(exp_err, exp_msg):
+            Categorical([1, 2, 3], ordered=ordered)
+
+        with tm.assertRaisesRegexp(exp_err, exp_msg):
+            Categorical.from_array([1, 2, 3], ordered=ordered)
+
+        with tm.assertRaisesRegexp(exp_err, exp_msg):
+            Categorical.from_codes([0, 0, 1], categories=['a', 'b', 'c'],
+                                   ordered=ordered)
+
     def test_comparisons(self):
 
         result = self.factor[self.factor == 'a']
