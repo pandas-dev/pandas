@@ -966,6 +966,7 @@ Bug Fixes
 - Bug in ``DataFrame`` assignment with an object-dtyped ``Index`` where the resultant column is mutable to the original object. (:issue:`13522`)
 - Bug in matplotlib ``AutoDataFormatter``; this restores the second scaled formatting and re-adds micro-second scaled formatting (:issue:`13131`)
 - Bug in selection from a ``HDFStore`` with a fixed format and ``start`` and/or ``stop`` specified will now return the selected range (:issue:`8287`)
+- Bug in ``Categorical.from_codes()`` where an unhelpful error was raised when an invalid ``ordered`` parameter was passed in (:issue:`14058`)
 - Bug in ``Series`` construction from a tuple of integers on windows not returning default dtype (int64) (:issue:`13646`)
 
 - Bug in ``.groupby(..).resample(..)`` when the same object is called multiple times (:issue:`13174`)

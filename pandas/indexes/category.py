@@ -123,6 +123,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         Categorical
         """
         if not isinstance(data, ABCCategorical):
+            ordered = False if ordered is None else ordered
             from pandas.core.categorical import Categorical
             data = Categorical(data, categories=categories, ordered=ordered)
         else:
