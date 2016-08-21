@@ -20,7 +20,8 @@ from pandas.types.common import (_ensure_int64,
                                  is_categorical_dtype,
                                  is_integer_dtype, is_bool,
                                  is_list_like, is_sequence,
-                                 is_scalar)
+                                 is_scalar,
+                                 is_object_dtype)
 from pandas.core.common import is_null_slice
 
 from pandas.core.algorithms import factorize, take_1d
@@ -191,6 +192,8 @@ class Categorical(PandasObject):
         If an explicit ``ordered=True`` is given but no `categories` and the
         `values` are not sortable.
 
+        If an `object` dtype is passed and `values` contains dtypes other
+        than all strings or all periods.
 
     Examples
     --------
@@ -325,6 +328,18 @@ class Categorical(PandasObject):
                 warn("None of the categories were found in values. Did you "
                      "mean to use\n'Categorical.from_codes(codes, "
                      "categories)'?", RuntimeWarning, stacklevel=2)
+
+        # TODO: disallow period when they stop being handled as object dtype
+        # categoricals w/ object dtype shouldn't allow non-strings
+        if is_object_dtype(categories) and len(categories) > 0:
+            from pandas.lib import infer_dtype
+            mask = notnull(categories)
+            if infer_dtype(categories[mask]) not in ['period',
+                                                     'unicode',
+                                                     'string']:
+                raise TypeError(
+                    "Categoricals cannot be object dtype unless"
+                    " all values are strings or all are periods.")
 
         self.set_ordered(ordered or False, inplace=True)
         self._categories = categories
