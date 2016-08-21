@@ -57,7 +57,8 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
         elif isinstance(other, DataFrame):
             return NotImplemented
         elif is_scalar(other):
-            new_values = op(self.values, other)
+            with np.errstate(all='ignore'):
+                new_values = op(self.values, other)
             return self._constructor(new_values,
                                      index=self.index,
                                      name=self.name)
@@ -310,7 +311,8 @@ class SparseSeries(Series):
         if isinstance(context, tuple) and len(context) == 3:
             ufunc, args, domain = context
             args = [getattr(a, 'fill_value', a) for a in args]
-            fill_value = ufunc(self.fill_value, *args[1:])
+            with np.errstate(all='ignore'):
+                fill_value = ufunc(self.fill_value, *args[1:])
         else:
             fill_value = self.fill_value
 

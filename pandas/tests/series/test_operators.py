@@ -34,7 +34,8 @@ class TestSeriesOperators(TestData, tm.TestCase):
         left[:3] = np.nan
 
         result = nanops.nangt(left, right)
-        expected = (left > right).astype('O')
+        with np.errstate(invalid='ignore'):
+            expected = (left > right).astype('O')
         expected[:3] = np.nan
 
         assert_almost_equal(result, expected)
@@ -81,62 +82,63 @@ class TestSeriesOperators(TestData, tm.TestCase):
         assert_series_equal(-(self.series < 0), ~(self.series < 0))
 
     def test_div(self):
+        with np.errstate(all='ignore'):
+            # no longer do integer div for any ops, but deal with the 0's
+            p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+            result = p['first'] / p['second']
+            expected = Series(
+                p['first'].values.astype(float) / p['second'].values,
+                dtype='float64')
+            expected.iloc[0:3] = np.inf
+            assert_series_equal(result, expected)
 
-        # no longer do integer div for any ops, but deal with the 0's
-        p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-        result = p['first'] / p['second']
-        expected = Series(p['first'].values.astype(float) / p['second'].values,
-                          dtype='float64')
-        expected.iloc[0:3] = np.inf
-        assert_series_equal(result, expected)
+            result = p['first'] / 0
+            expected = Series(np.inf, index=p.index, name='first')
+            assert_series_equal(result, expected)
 
-        result = p['first'] / 0
-        expected = Series(np.inf, index=p.index, name='first')
-        assert_series_equal(result, expected)
+            p = p.astype('float64')
+            result = p['first'] / p['second']
+            expected = Series(p['first'].values / p['second'].values)
+            assert_series_equal(result, expected)
 
-        p = p.astype('float64')
-        result = p['first'] / p['second']
-        expected = Series(p['first'].values / p['second'].values)
-        assert_series_equal(result, expected)
+            p = DataFrame({'first': [3, 4, 5, 8], 'second': [1, 1, 1, 1]})
+            result = p['first'] / p['second']
+            assert_series_equal(result, p['first'].astype('float64'),
+                                check_names=False)
+            self.assertTrue(result.name is None)
+            self.assertFalse(np.array_equal(result, p['second'] / p['first']))
 
-        p = DataFrame({'first': [3, 4, 5, 8], 'second': [1, 1, 1, 1]})
-        result = p['first'] / p['second']
-        assert_series_equal(result, p['first'].astype('float64'),
-                            check_names=False)
-        self.assertTrue(result.name is None)
-        self.assertFalse(np.array_equal(result, p['second'] / p['first']))
+            # inf signing
+            s = Series([np.nan, 1., -1.])
+            result = s / 0
+            expected = Series([np.nan, np.inf, -np.inf])
+            assert_series_equal(result, expected)
 
-        # inf signing
-        s = Series([np.nan, 1., -1.])
-        result = s / 0
-        expected = Series([np.nan, np.inf, -np.inf])
-        assert_series_equal(result, expected)
+            # float/integer issue
+            # GH 7785
+            p = DataFrame({'first': (1, 0), 'second': (-0.01, -0.02)})
+            expected = Series([-0.01, -np.inf])
 
-        # float/integer issue
-        # GH 7785
-        p = DataFrame({'first': (1, 0), 'second': (-0.01, -0.02)})
-        expected = Series([-0.01, -np.inf])
+            result = p['second'].div(p['first'])
+            assert_series_equal(result, expected, check_names=False)
 
-        result = p['second'].div(p['first'])
-        assert_series_equal(result, expected, check_names=False)
+            result = p['second'] / p['first']
+            assert_series_equal(result, expected)
 
-        result = p['second'] / p['first']
-        assert_series_equal(result, expected)
+            # GH 9144
+            s = Series([-1, 0, 1])
 
-        # GH 9144
-        s = Series([-1, 0, 1])
+            result = 0 / s
+            expected = Series([0.0, nan, 0.0])
+            assert_series_equal(result, expected)
 
-        result = 0 / s
-        expected = Series([0.0, nan, 0.0])
-        assert_series_equal(result, expected)
+            result = s / 0
+            expected = Series([-inf, nan, inf])
+            assert_series_equal(result, expected)
 
-        result = s / 0
-        expected = Series([-inf, nan, inf])
-        assert_series_equal(result, expected)
-
-        result = s // 0
-        expected = Series([-inf, nan, inf])
-        assert_series_equal(result, expected)
+            result = s // 0
+            expected = Series([-inf, nan, inf])
+            assert_series_equal(result, expected)
 
     def test_operators(self):
         def _check_op(series, other, op, pos_only=False,
@@ -1432,18 +1434,19 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
             exp_values = []
             for i in range(len(exp_index)):
-                if amask[i]:
-                    if bmask[i]:
-                        exp_values.append(nan)
-                        continue
-                    exp_values.append(op(fill_value, b[i]))
-                elif bmask[i]:
+                with np.errstate(all='ignore'):
                     if amask[i]:
-                        exp_values.append(nan)
-                        continue
-                    exp_values.append(op(a[i], fill_value))
-                else:
-                    exp_values.append(op(a[i], b[i]))
+                        if bmask[i]:
+                            exp_values.append(nan)
+                            continue
+                        exp_values.append(op(fill_value, b[i]))
+                    elif bmask[i]:
+                        if amask[i]:
+                            exp_values.append(nan)
+                            continue
+                        exp_values.append(op(a[i], fill_value))
+                    else:
+                        exp_values.append(op(a[i], b[i]))
 
             result = meth(a, b, fill_value=fill_value)
             expected = Series(exp_values, exp_index)

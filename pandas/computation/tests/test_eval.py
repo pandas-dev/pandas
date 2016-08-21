@@ -1613,7 +1613,8 @@ class TestMathPythonPython(tm.TestCase):
         for fn in self.unary_fns:
             expr = "{0}(a)".format(fn)
             got = self.eval(expr)
-            expect = getattr(np, fn)(a)
+            with np.errstate(all='ignore'):
+                expect = getattr(np, fn)(a)
             tm.assert_series_equal(got, expect, check_names=False)
 
     def test_binary_functions(self):
@@ -1624,7 +1625,8 @@ class TestMathPythonPython(tm.TestCase):
         for fn in self.binary_fns:
             expr = "{0}(a, b)".format(fn)
             got = self.eval(expr)
-            expect = getattr(np, fn)(a, b)
+            with np.errstate(all='ignore'):
+                expect = getattr(np, fn)(a, b)
             tm.assert_almost_equal(got, expect, check_names=False)
 
     def test_df_use_case(self):

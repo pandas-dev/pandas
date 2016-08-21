@@ -59,7 +59,8 @@ def _evaluate_standard(op, op_str, a, b, raise_on_error=True, **eval_kwargs):
     """ standard evaluation """
     if _TEST_MODE:
         _store_test_result(False)
-    return op(a, b)
+    with np.errstate(all='ignore'):
+        return op(a, b)
 
 
 def _can_use_numexpr(op, op_str, a, b, dtype_check):

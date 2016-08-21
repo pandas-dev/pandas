@@ -576,7 +576,8 @@ class RangeIndex(Int64Index):
                 try:
                     # alppy if we have an override
                     if step:
-                        rstep = step(self._step, other)
+                        with np.errstate(all='ignore'):
+                            rstep = step(self._step, other)
 
                         # we don't have a representable op
                         # so return a base index
@@ -586,8 +587,9 @@ class RangeIndex(Int64Index):
                     else:
                         rstep = self._step
 
-                    rstart = op(self._start, other)
-                    rstop = op(self._stop, other)
+                    with np.errstate(all='ignore'):
+                        rstart = op(self._start, other)
+                        rstop = op(self._stop, other)
 
                     result = RangeIndex(rstart,
                                         rstop,
@@ -612,7 +614,9 @@ class RangeIndex(Int64Index):
                 if isinstance(other, RangeIndex):
                     other = other.values
 
-                return Index(op(self, other), **attrs)
+                with np.errstate(all='ignore'):
+                    results = op(self, other)
+                return Index(results, **attrs)
 
             return _evaluate_numeric_binop
 

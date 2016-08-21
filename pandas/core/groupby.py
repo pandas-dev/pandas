@@ -678,7 +678,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
                 @wraps(func)
                 def f(g):
-                    return func(g, *args, **kwargs)
+                    with np.errstate(all='ignore'):
+                        return func(g, *args, **kwargs)
             else:
                 raise ValueError('func must be a callable if args or '
                                  'kwargs are supplied')
@@ -4126,7 +4127,10 @@ def get_group_index(labels, shape, sort, xnull):
         out = stride * labels[0].astype('i8', subok=False, copy=False)
 
         for i in range(1, nlev):
-            stride //= shape[i]
+            if shape[i] == 0:
+                stride = 0
+            else:
+                stride //= shape[i]
             out += labels[i] * stride
 
         if xnull:  # exclude nulls
@@ -4365,7 +4369,9 @@ def _get_group_index_sorter(group_index, ngroups):
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    if alpha + beta * ngroups < count * np.log(count):
+    do_groupsort = (count > 0 and ((alpha + beta * ngroups) <
+                                   (count * np.log(count))))
+    if do_groupsort:
         sorter, _ = _algos.groupsort_indexer(_ensure_int64(group_index),
                                              ngroups)
         return _ensure_platform_int(sorter)

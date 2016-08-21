@@ -1626,7 +1626,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             this_vals[this_mask & mask] = fill_value
             other_vals[other_mask & mask] = fill_value
 
-        result = func(this_vals, other_vals)
+        with np.errstate(all='ignore'):
+            result = func(this_vals, other_vals)
         name = _maybe_match_name(self, other)
         result = self._constructor(result, index=new_index, name=name)
         result = result.__finalize__(self)
@@ -1658,10 +1659,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             for i, idx in enumerate(new_index):
                 lv = self.get(idx, fill_value)
                 rv = other.get(idx, fill_value)
-                new_values[i] = func(lv, rv)
+                with np.errstate(all='ignore'):
+                    new_values[i] = func(lv, rv)
         else:
             new_index = self.index
-            new_values = func(self._values, other)
+            with np.errstate(all='ignore'):
+                new_values = func(self._values, other)
             new_name = self.name
         return self._constructor(new_values, index=new_index, name=new_name)
 
@@ -2240,14 +2243,15 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         else:
             f = func
 
-        if isinstance(f, np.ufunc):
-            return f(self)
+        with np.errstate(all='ignore'):
+            if isinstance(f, np.ufunc):
+                return f(self)
 
-        if is_extension_type(self.dtype):
-            mapped = self._values.map(f)
-        else:
-            values = self.asobject
-            mapped = lib.map_infer(values, f, convert=convert_dtype)
+            if is_extension_type(self.dtype):
+                mapped = self._values.map(f)
+            else:
+                values = self.asobject
+                mapped = lib.map_infer(values, f, convert=convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], Series):
             from pandas.core.frame import DataFrame
@@ -2272,7 +2276,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             if numeric_only:
                 raise NotImplementedError('Series.{0} does not implement '
                                           'numeric_only.'.format(name))
-            return op(delegate, skipna=skipna, **kwds)
+            with np.errstate(all='ignore'):
+                return op(delegate, skipna=skipna, **kwds)
 
         return delegate._reduce(op=op, name=name, axis=axis, skipna=skipna,
                                 numeric_only=numeric_only,
