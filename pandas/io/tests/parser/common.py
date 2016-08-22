@@ -1583,3 +1583,13 @@ j,-inF"""
         new_file.close()
         expected = DataFrame([[0, 0]])
         tm.assert_frame_equal(result, expected)
+
+    def test_read_csv_utf_aliases(self):
+        # see gh issue 13549
+        expected = pd.DataFrame({'mb_num': [4.8], 'multibyte': ['test']})
+        for byte in [8, 16]:
+            for fmt in ['utf-{0}', 'utf_{0}', 'UTF-{0}', 'UTF_{0}']:
+                encoding = fmt.format(byte)
+                data = 'mb_num,multibyte\n4.8,test'.encode(encoding)
+                result = self.read_csv(BytesIO(data), encoding=encoding)
+                tm.assert_frame_equal(result, expected)
