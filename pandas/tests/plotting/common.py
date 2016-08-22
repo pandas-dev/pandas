@@ -52,6 +52,7 @@ class TestPlotBase(tm.TestCase):
         self.mpl_ge_1_3_1 = plotting._mpl_ge_1_3_1()
         self.mpl_ge_1_4_0 = plotting._mpl_ge_1_4_0()
         self.mpl_ge_1_5_0 = plotting._mpl_ge_1_5_0()
+        self.mpl_ge_2_0_0 = plotting._mpl_ge_2_0_0()
 
         if self.mpl_ge_1_4_0:
             self.bp_n_objects = 7
@@ -64,6 +65,11 @@ class TestPlotBase(tm.TestCase):
         else:
             self.polycollection_factor = 1
 
+        if self.mpl_ge_2_0_0:
+            self.default_figsize = (6.4, 4.8)
+        else:
+            self.default_figsize = (8.0, 6.0)
+        self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
         # common test data
         from pandas import read_csv
         path = os.path.join(os.path.dirname(curpath()), 'data', 'iris.csv')
@@ -189,7 +195,9 @@ class TestPlotBase(tm.TestCase):
         """
 
         from matplotlib.lines import Line2D
-        from matplotlib.collections import Collection, PolyCollection
+        from matplotlib.collections import (
+            Collection, PolyCollection, LineCollection
+        )
         conv = self.colorconverter
         if linecolors is not None:
 
@@ -203,7 +211,7 @@ class TestPlotBase(tm.TestCase):
                     result = patch.get_color()
                     # Line2D may contains string color expression
                     result = conv.to_rgba(result)
-                elif isinstance(patch, PolyCollection):
+                elif isinstance(patch, (PolyCollection, LineCollection)):
                     result = tuple(patch.get_edgecolor()[0])
                 else:
                     result = patch.get_edgecolor()
@@ -318,7 +326,7 @@ class TestPlotBase(tm.TestCase):
             self.assertEqual(ax.yaxis.get_scale(), yaxis)
 
     def _check_axes_shape(self, axes, axes_num=None, layout=None,
-                          figsize=(8.0, 6.0)):
+                          figsize=None):
         """
         Check expected number of axes is drawn in expected layout
 
@@ -333,6 +341,8 @@ class TestPlotBase(tm.TestCase):
         figsize : tuple
             expected figsize. default is matplotlib default
         """
+        if figsize is None:
+            figsize = self.default_figsize
         visible_axes = self._flatten_visible(axes)
 
         if axes_num is not None:
@@ -346,7 +356,7 @@ class TestPlotBase(tm.TestCase):
             self.assertEqual(result, layout)
 
         self.assert_numpy_array_equal(
-            np.round(visible_axes[0].figure.get_size_inches()),
+            visible_axes[0].figure.get_size_inches(),
             np.array(figsize, dtype=np.float64))
 
     def _get_axes_layout(self, axes):

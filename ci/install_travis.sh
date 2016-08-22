@@ -138,5 +138,9 @@ else
 
 fi
 
+if [ "$JOB_NAME" == "34_slow" ]; then
+    conda install -c conda-forge/label/rc -c conda-forge matplotlib
+fi
+
 echo "done"
 exit 0
