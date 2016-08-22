@@ -2538,16 +2538,17 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         return result
 
-    def to_csv(self, path, index=True, sep=",", na_rep='', float_format=None,
-               header=False, index_label=None, mode='w', encoding=None,
-               date_format=None, decimal='.'):
+    def to_csv(self, path=None, index=True, sep=",", na_rep='',
+               float_format=None, header=False, index_label=None,
+               mode='w', encoding=None, date_format=None, decimal='.'):
         """
         Write Series to a comma-separated values (csv) file
 
         Parameters
         ----------
-        path : string file path or file handle / StringIO. If None is provided
-            the result is returned as a string.
+        path : string or file handle, default None
+            File path or object, if None is provided the result is returned as
+            a string.
         na_rep : string, default ''
             Missing data representation
         float_format : string, default None
