@@ -8,7 +8,6 @@ import codecs
 import re
 import sys
 from datetime import datetime
-from io import BytesIO
 
 import nose
 import numpy as np
