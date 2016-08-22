@@ -427,7 +427,7 @@ Other enhancements
 
 - Added documentation to :ref:`I/O<io.dtypes>` regarding the perils of reading in columns with mixed dtypes and how to handle it (:issue:`13746`)
 - Raise ``ImportError`` in the sql functions when ``sqlalchemy`` is not installed and a connection string is used (:issue:`11920`).
-
+- Compatibility with matplotlib 2.0. Older versions of pandas should also work with matplotlib 2.0 (:issue:`13333`)
 
 .. _whatsnew_0190.api:
 

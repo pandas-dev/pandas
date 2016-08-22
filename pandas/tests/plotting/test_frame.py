@@ -10,6 +10,7 @@ from datetime import datetime, date
 import pandas as pd
 from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
                     bdate_range)
+from pandas.types.api import is_list_like
 from pandas.compat import (range, lrange, StringIO, lmap, lzip, u, zip, PY3)
 from pandas.formats.printing import pprint_thing
 import pandas.util.testing as tm
@@ -952,9 +953,12 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assertRaises(TypeError):
             df.plot.scatter(x='a', y='b', c='c', color='green')
 
+        default_colors = self._maybe_unpack_cycler(self.plt.rcParams)
+
         ax = df.plot.scatter(x='a', y='b', c='c')
-        tm.assert_numpy_array_equal(ax.collections[0].get_facecolor()[0],
-                                    np.array([0, 0, 1, 1], dtype=np.float64))
+        tm.assert_numpy_array_equal(
+            ax.collections[0].get_facecolor()[0],
+            np.array(self.colorconverter.to_rgba(default_colors[0])))
 
         ax = df.plot.scatter(x='a', y='b', color='white')
         tm.assert_numpy_array_equal(ax.collections[0].get_facecolor()[0],
@@ -1623,6 +1627,8 @@ class TestDataFramePlots(TestPlotBase):
 
         axes = df.plot(subplots=True)
         for ax, c in zip(axes, list(default_colors)):
+            if self.mpl_ge_2_0_0:
+                c = [c]
             self._check_colors(ax.get_lines(), linecolors=c)
         tm.close()
 
@@ -1703,9 +1709,14 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(poly, facecolors=custom_colors)
 
         handles, labels = ax.get_legend_handles_labels()
-        # legend is stored as Line2D, thus check linecolors
-        linehandles = [x for x in handles if not isinstance(x, PolyCollection)]
-        self._check_colors(linehandles, linecolors=custom_colors)
+        if self.mpl_ge_1_5_0:
+            self._check_colors(handles, facecolors=custom_colors)
+        else:
+            # legend is stored as Line2D, thus check linecolors
+            linehandles = [x for x in handles
+                           if not isinstance(x, PolyCollection)]
+            self._check_colors(linehandles, linecolors=custom_colors)
+
         for h in handles:
             self.assertTrue(h.get_alpha() is None)
         tm.close()
@@ -1717,8 +1728,12 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(poly, facecolors=jet_colors)
 
         handles, labels = ax.get_legend_handles_labels()
-        linehandles = [x for x in handles if not isinstance(x, PolyCollection)]
-        self._check_colors(linehandles, linecolors=jet_colors)
+        if self.mpl_ge_1_5_0:
+            self._check_colors(handles, facecolors=jet_colors)
+        else:
+            linehandles = [x for x in handles
+                           if not isinstance(x, PolyCollection)]
+            self._check_colors(linehandles, linecolors=jet_colors)
         for h in handles:
             self.assertTrue(h.get_alpha() is None)
         tm.close()
@@ -1731,8 +1746,12 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(poly, facecolors=jet_with_alpha)
 
         handles, labels = ax.get_legend_handles_labels()
-        # Line2D can't have alpha in its linecolor
-        self._check_colors(handles[:len(jet_colors)], linecolors=jet_colors)
+        if self.mpl_ge_1_5_0:
+            linecolors = jet_with_alpha
+        else:
+            # Line2D can't have alpha in its linecolor
+            linecolors = jet_colors
+        self._check_colors(handles[:len(jet_colors)], linecolors=linecolors)
         for h in handles:
             self.assertEqual(h.get_alpha(), 0.5)
 
@@ -1855,7 +1874,10 @@ class TestDataFramePlots(TestPlotBase):
     @slow
     def test_boxplot_colors(self):
         def _check_colors(bp, box_c, whiskers_c, medians_c, caps_c='k',
-                          fliers_c='b'):
+                          fliers_c=None):
+            # TODO: outside this func?
+            if fliers_c is None:
+                fliers_c = 'k' if self.mpl_ge_2_0_0 else 'b'
             self._check_colors(bp['boxes'],
                                linecolors=[box_c] * len(bp['boxes']))
             self._check_colors(bp['whiskers'],
@@ -2232,16 +2254,24 @@ class TestDataFramePlots(TestPlotBase):
         np.random.seed(0)
         err = np.random.rand(3, 2, 5)
 
-        data = np.random.randn(5, 3)
-        df = DataFrame(data)
+        # each column is [0, 1, 2, 3, 4], [3, 4, 5, 6, 7]...
+        df = DataFrame(np.arange(15).reshape(3, 5)).T
+        data = df.values
 
         ax = df.plot(yerr=err, xerr=err / 2)
 
-        self.assertEqual(ax.lines[7].get_ydata()[0], data[0, 1] - err[1, 0, 0])
-        self.assertEqual(ax.lines[8].get_ydata()[0], data[0, 1] + err[1, 1, 0])
+        if self.mpl_ge_2_0_0:
+            yerr_0_0 = ax.collections[1].get_paths()[0].vertices[:, 1]
+            expected_0_0 = err[0, :, 0] * np.array([-1, 1])
+            tm.assert_almost_equal(yerr_0_0, expected_0_0)
+        else:
+            self.assertEqual(ax.lines[7].get_ydata()[0],
+                             data[0, 1] - err[1, 0, 0])
+            self.assertEqual(ax.lines[8].get_ydata()[0],
+                             data[0, 1] + err[1, 1, 0])
 
-        self.assertEqual(ax.lines[5].get_xdata()[0], -err[1, 0, 0] / 2)
-        self.assertEqual(ax.lines[6].get_xdata()[0], err[1, 1, 0] / 2)
+            self.assertEqual(ax.lines[5].get_xdata()[0], -err[1, 0, 0] / 2)
+            self.assertEqual(ax.lines[6].get_xdata()[0], err[1, 1, 0] / 2)
 
         with tm.assertRaises(ValueError):
             df.plot(yerr=err.T)
@@ -2277,9 +2307,17 @@ class TestDataFramePlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=1, yerr=1)
 
         def _check_errorbar_color(containers, expected, has_err='has_xerr'):
-            errs = [c.lines[1][0]
-                    for c in ax.containers if getattr(c, has_err, False)]
-            self._check_colors(errs, linecolors=[expected] * len(errs))
+            lines = []
+            errs = [c.lines
+                    for c in ax.containers if getattr(c, has_err, False)][0]
+            for el in errs:
+                if is_list_like(el):
+                    lines.extend(el)
+                else:
+                    lines.append(el)
+            err_lines = [x for x in lines if x in ax.collections]
+            self._check_colors(
+                err_lines, linecolors=np.array([expected] * len(err_lines)))
 
         # GH 8081
         df = DataFrame(

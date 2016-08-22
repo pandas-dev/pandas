@@ -26,6 +26,7 @@ class TestTSPlot(TestPlotBase):
 
     def setUp(self):
         TestPlotBase.setUp(self)
+
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
         idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
         self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
@@ -122,7 +123,8 @@ class TestTSPlot(TestPlotBase):
             _check_plot_works(s.plot, ax=ax)
 
         ax = ts.plot(style='k')
-        self.assertEqual((0., 0., 0.), ax.get_lines()[0].get_color())
+        color = (0., 0., 0., 1) if self.mpl_ge_2_0_0 else (0., 0., 0.)
+        self.assertEqual(color, ax.get_lines()[0].get_color())
 
     def test_both_style_and_color(self):
         import matplotlib.pyplot as plt  # noqa
@@ -575,7 +577,8 @@ class TestTSPlot(TestPlotBase):
         plt.close(fig)
 
         ax2 = ser2.plot()
-        self.assertEqual(ax2.get_yaxis().get_ticks_position(), 'default')
+        self.assertEqual(ax2.get_yaxis().get_ticks_position(),
+                         self.default_tick_position)
         plt.close(ax2.get_figure())
 
         ax = ser2.plot()
@@ -605,7 +608,8 @@ class TestTSPlot(TestPlotBase):
         plt.close(fig)
 
         ax2 = ser2.plot()
-        self.assertEqual(ax2.get_yaxis().get_ticks_position(), 'default')
+        self.assertEqual(ax2.get_yaxis().get_ticks_position(),
+                         self.default_tick_position)
         plt.close(ax2.get_figure())
 
         ax = ser2.plot()
@@ -639,7 +643,8 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame(np.random.randn(5, 3), columns=['a', 'b', 'c'])
         axes = df.plot(secondary_y=['a', 'c'], subplots=True)
         self.assertEqual(axes[0].get_yaxis().get_ticks_position(), 'right')
-        self.assertEqual(axes[1].get_yaxis().get_ticks_position(), 'default')
+        self.assertEqual(axes[1].get_yaxis().get_ticks_position(),
+                         self.default_tick_position)
         self.assertEqual(axes[2].get_yaxis().get_ticks_position(), 'right')
 
     @slow
@@ -647,7 +652,8 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame(np.random.randn(5, 3), columns=['a', 'b', 'c'])
         axes = df.plot(kind='bar', secondary_y=['a', 'c'], subplots=True)
         self.assertEqual(axes[0].get_yaxis().get_ticks_position(), 'right')
-        self.assertEqual(axes[1].get_yaxis().get_ticks_position(), 'default')
+        self.assertEqual(axes[1].get_yaxis().get_ticks_position(),
+                         self.default_tick_position)
         self.assertEqual(axes[2].get_yaxis().get_ticks_position(), 'right')
 
     def test_mixed_freq_regular_first(self):
