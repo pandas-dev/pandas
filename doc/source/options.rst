@@ -392,6 +392,9 @@ display.width              80           Width of the display in characters.
                                         IPython qtconsole, or IDLE do not run in a
                                         terminal and hence it is not possible
                                         to correctly detect the width.
+html.border                1            A ``border=value`` attribute is
+                                        inserted in the ``<table>`` tag
+                                        for the DataFrame HTML repr.
 io.excel.xls.writer        xlwt         The default Excel writer engine for
                                         'xls' files.
 io.excel.xlsm.writer       openpyxl     The default Excel writer engine for

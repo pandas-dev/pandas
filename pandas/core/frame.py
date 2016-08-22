@@ -1560,7 +1560,8 @@ class DataFrame(NDFrame):
                 index=True, na_rep='NaN', formatters=None, float_format=None,
                 sparsify=None, index_names=True, justify=None, bold_rows=True,
                 classes=None, escape=True, max_rows=None, max_cols=None,
-                show_dimensions=False, notebook=False, decimal='.'):
+                show_dimensions=False, notebook=False, decimal='.',
+                border=None):
         """
         Render a DataFrame as an HTML table.
 
@@ -1582,6 +1583,11 @@ class DataFrame(NDFrame):
             Character recognized as decimal separator, e.g. ',' in Europe
 
             .. versionadded:: 0.18.0
+        border : int
+            A ``border=border`` attribute is included in the opening
+            `<table>` tag. Default ``pd.options.html.border``.
+
+            .. versionadded:: 0.19.0
         """
 
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
@@ -1597,7 +1603,7 @@ class DataFrame(NDFrame):
                                            show_dimensions=show_dimensions,
                                            decimal=decimal)
         # TODO: a generic formatter wld b in DataFrameFormatter
-        formatter.to_html(classes=classes, notebook=notebook)
+        formatter.to_html(classes=classes, notebook=notebook, border=border)
 
         if buf is None:
             return formatter.buf.getvalue()
