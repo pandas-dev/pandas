@@ -1095,3 +1095,5 @@ Bug Fixes
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
 - Bug in ``Period`` and ``PeriodIndex`` creating wrong dates when frequency has combined offset aliases (:issue:`13874`)
 - Bug in ``.to_string()`` when called with an integer ``line_width`` and ``index=False`` raises an UnboundLocalError exception because ``idx`` referenced before assignment.
+
+- Bug in ``read_csv()``, where aliases for utf-xx (e.g. UTF-xx, UTF_xx, utf_xx) raised UnicodeDecodeError (:issue:`13549`)
