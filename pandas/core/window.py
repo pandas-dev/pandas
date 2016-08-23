@@ -54,11 +54,12 @@ pandas.DataFrame.%(name)s
 
 class _Window(PandasObject, SelectionMixin):
     _attributes = ['window', 'min_periods', 'freq', 'center', 'win_type',
-                   'axis', 'on']
+                   'axis', 'on', 'closed']
     exclusions = set()
 
     def __init__(self, obj, window=None, min_periods=None, freq=None,
-                 center=False, win_type=None, axis=0, on=None, **kwargs):
+                 center=False, win_type=None, axis=0, on=None, closed='right',
+                 **kwargs):
 
         if freq is not None:
             warnings.warn("The freq kw is deprecated and will be removed in a "
@@ -69,6 +70,7 @@ class _Window(PandasObject, SelectionMixin):
         self.blocks = []
         self.obj = obj
         self.on = on
+        self.closed = closed
         self.window = window
         self.min_periods = min_periods
         self.freq = freq
@@ -99,6 +101,8 @@ class _Window(PandasObject, SelectionMixin):
         if self.min_periods is not None and not \
            is_integer(self.min_periods):
             raise ValueError("min_periods must be an integer")
+        if self.closed not in ['right', 'both']:
+            raise ValueError("closed must be right or both")
 
     def _convert_freq(self, how=None):
         """ resample according to the how, return a new object """
@@ -376,6 +380,9 @@ class Window(_Window):
         .. versionadded:: 0.19.0
 
     axis : int or string, default 0
+
+        .. versionadded:: 0.19.0
+
     closed: 'right' or 'both', default 'right'
         For offset-based windows, make the interval closed only on the right
         or on both endpoints.
@@ -457,6 +464,9 @@ class Window(_Window):
     2013-01-01 09:00:03  3.0
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
+
+    For time-based windows, it is possible to make the resulting window
+    contain its left edge by setting closed='both'.
 
     >>> df.rolling('2s', closed='both').sum()
                            B
@@ -1008,17 +1018,6 @@ class _Rolling_and_Expanding(_Rolling):
 
 
 class Rolling(_Rolling_and_Expanding):
-    _attributes = ['window', 'min_periods', 'freq', 'center', 'win_type',
-                   'axis', 'on', 'closed']
-
-    def __init__(self, obj, window=None, min_periods=None, freq=None,
-                 center=False, win_type=None, axis=0, on=None,
-                 closed='right', **kwargs):
-        self.closed = closed
-        super(Rolling, self).__init__(obj=obj, window=window,
-                                      min_periods=min_periods, freq=freq,
-                                      center=center, win_type=win_type,
-                                      axis=axis, on=on, **kwargs)
 
     @cache_readonly
     def is_datetimelike(self):
@@ -1042,9 +1041,6 @@ class Rolling(_Rolling_and_Expanding):
 
     def validate(self):
         super(Rolling, self).validate()
-
-        if self.closed not in ['right', 'both']:
-            raise ValueError("closed must be right or both")
 
         # we allow rolling on a datetimelike index
         if (self.is_datetimelike and
