@@ -16,7 +16,7 @@ Highlights include:
 - :func:`merge_asof` for asof-style time-series joining, see :ref:`here <whatsnew_0190.enhancements.asof_merge>`
 - ``.rolling()`` are now time-series aware, see :ref:`here <whatsnew_0190.enhancements.rolling_ts>`
 - pandas development api, see :ref:`here <whatsnew_0190.dev_api>`
-- ``PeriodIndex`` now has its own ``period`` dtype. see ref:`here <whatsnew_0190.api.perioddtype>`
+- ``PeriodIndex`` now has its own ``period`` dtype, and changed to be more consistent with other ``Index`` classes. See ref:`here <whatsnew_0190.api.period>`
 
 .. contents:: What's new in v0.19.0
     :local:
@@ -643,10 +643,13 @@ Furthermore:
 - Passing duplicated ``percentiles`` will now raise a ``ValueError``.
 - Bug in ``.describe()`` on a DataFrame with a mixed-dtype column index, which would previously raise a ``TypeError`` (:issue:`13288`)
 
-.. _whatsnew_0190.api.perioddtype:
+.. _whatsnew_0190.api.period:
+
+``Period`` changes
+^^^^^^^^^^^^^^^^^^
 
 ``PeriodIndex`` now has ``period`` dtype
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""""""""""""""""
 
 ``PeriodIndex`` now has its own ``period`` dtype. The ``period`` dtype is a
 pandas extension dtype like ``category`` or :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``). (:issue:`13941`).
@@ -681,7 +684,7 @@ New Behavior:
 .. _whatsnew_0190.api.periodnat:
 
 ``Period('NaT')`` now returns ``pd.NaT``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""""""""""""""""
 
 Previously, ``Period`` has its own ``Period('NaT')`` representation different from ``pd.NaT``. Now ``Period('NaT')`` has been changed to return ``pd.NaT``. (:issue:`12759`, :issue:`13582`)
 
@@ -719,6 +722,21 @@ New Behavior:
    pd.NaT + 1
    pd.NaT - 1
 
+``PeriodIndex.values`` now returns array of ``Period`` object
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+``.values`` is changed to return array of ``Period`` object, rather than array
+of ``int64`` (:issue:`13988`)
+
+.. code-block:: ipython
+   In [6]: pi = pd.PeriodIndex(['2011-01', '2011-02'], freq='M')
+   In [7]: pi.values
+   array([492, 493])
+
+.. ipython:: python
+
+   pi = pd.PeriodIndex(['2011-01', '2011-02'], freq='M')
+   pi.values
 
 .. _whatsnew_0190.api.difference:
 

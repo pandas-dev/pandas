@@ -1747,8 +1747,12 @@ class TestPeriodIndex(tm.TestCase):
     def test_constructor_fromarraylike(self):
         idx = period_range('2007-01', periods=20, freq='M')
 
-        self.assertRaises(ValueError, PeriodIndex, idx.values)
-        self.assertRaises(ValueError, PeriodIndex, list(idx.values))
+        # values is an array of Period, thus can retrieve freq
+        tm.assert_index_equal(PeriodIndex(idx.values), idx)
+        tm.assert_index_equal(PeriodIndex(list(idx.values)), idx)
+
+        self.assertRaises(ValueError, PeriodIndex, idx._values)
+        self.assertRaises(ValueError, PeriodIndex, list(idx._values))
         self.assertRaises(ValueError, PeriodIndex,
                           data=Period('2007', freq='A'))
 
@@ -2027,26 +2031,29 @@ class TestPeriodIndex(tm.TestCase):
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
     def test_values(self):
-        # ToDo: .values and .get_values() should return Period as object
-        # dtype array. ._values shouldn't be changed
         idx = pd.PeriodIndex([], freq='M')
 
-        exp = np.array([], dtype=np.int64)
+        exp = np.array([], dtype=np.object)
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.get_values(), exp)
+        exp = np.array([], dtype=np.int64)
         tm.assert_numpy_array_equal(idx._values, exp)
 
         idx = pd.PeriodIndex(['2011-01', pd.NaT], freq='M')
 
-        exp = np.array([492, -9223372036854775808], dtype=np.int64)
+        exp = np.array([pd.Period('2011-01', freq='M'), pd.NaT], dtype=object)
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.get_values(), exp)
+        exp = np.array([492, -9223372036854775808], dtype=np.int64)
         tm.assert_numpy_array_equal(idx._values, exp)
 
-        exp = np.array([14975, -9223372036854775808], dtype=np.int64)
         idx = pd.PeriodIndex(['2011-01-01', pd.NaT], freq='D')
+
+        exp = np.array([pd.Period('2011-01-01', freq='D'), pd.NaT],
+                       dtype=object)
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.get_values(), exp)
+        exp = np.array([14975, -9223372036854775808], dtype=np.int64)
         tm.assert_numpy_array_equal(idx._values, exp)
 
     def test_asobject_like(self):
@@ -2100,7 +2107,7 @@ class TestPeriodIndex(tm.TestCase):
         result = idx[:, None]
         # MPL kludge, internally has incorrect shape
         tm.assertIsInstance(result, PeriodIndex)
-        self.assertEqual(result.shape, (len(idx), 1))
+        self.assertEqual(result.shape, (len(idx), ))
 
     def test_getitem_index(self):
         idx = period_range('2007-01', periods=10, freq='M', name='x')
@@ -4153,19 +4160,23 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
                 with tm.assertRaisesRegexp(TypeError, msg):
                     obj - ng
 
-            # ToDo: currently, it accepts float because PeriodIndex.values
-            # is internally int. Should be fixed after GH13988
-            # msg is different depending on NumPy version
-            if not _np_version_under1p9:
-                for ng in ["str"]:
-                    with tm.assertRaises(TypeError):
-                        np.add(obj, ng)
+                with tm.assertRaises(TypeError):
+                    np.add(obj, ng)
 
+                if _np_version_under1p9:
+                    self.assertIs(np.add(ng, obj), NotImplemented)
+                else:
                     with tm.assertRaises(TypeError):
                         np.add(ng, obj)
 
+                with tm.assertRaises(TypeError):
+                    np.subtract(obj, ng)
+
+                if _np_version_under1p9:
+                    self.assertIs(np.subtract(ng, obj), NotImplemented)
+                else:
                     with tm.assertRaises(TypeError):
-                            np.subtract(ng, obj)
+                        np.subtract(ng, obj)
 
     def test_pi_ops_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
@@ -4260,9 +4271,18 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
         exp = pd.Index([-12, -11, -10, -9], name='idx')
         tm.assert_index_equal(result, exp)
 
+        result = np.subtract(idx, pd.Period('2012-01', freq='M'))
+        tm.assert_index_equal(result, exp)
+
         result = pd.Period('2012-01', freq='M') - idx
         exp = pd.Index([12, 11, 10, 9], name='idx')
         tm.assert_index_equal(result, exp)
+
+        result = np.subtract(pd.Period('2012-01', freq='M'), idx)
+        if _np_version_under1p9:
+            self.assertIs(result, NotImplemented)
+        else:
+            tm.assert_index_equal(result, exp)
 
         exp = pd.TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name='idx')
         tm.assert_index_equal(idx - pd.Period('NaT', freq='M'), exp)
@@ -4407,7 +4427,8 @@ class TestPeriodRepresentation(tm.TestCase):
     def _check_freq(self, freq, base_date):
         rng = PeriodIndex(start=base_date, periods=10, freq=freq)
         exp = np.arange(10, dtype=np.int64)
-        self.assert_numpy_array_equal(rng.values, exp)
+        self.assert_numpy_array_equal(rng._values, exp)
+        self.assert_numpy_array_equal(rng.asi8, exp)
 
     def test_negone_ordinals(self):
         freqs = ['A', 'M', 'Q', 'D', 'H', 'T', 'S']
