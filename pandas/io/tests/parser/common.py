@@ -1593,3 +1593,11 @@ j,-inF"""
                 data = 'mb_num,multibyte\n4.8,test'.encode(encoding)
                 result = self.read_csv(BytesIO(data), encoding=encoding)
                 tm.assert_frame_equal(result, expected)
+
+    def test_internal_eof_byte(self):
+        # see gh-5500
+        data = "a,b\n1\x1a,2"
+
+        expected = pd.DataFrame([["1\x1a", 2]], columns=['a', 'b'])
+        result = self.read_csv(StringIO(data))
+        tm.assert_frame_equal(result, expected)
