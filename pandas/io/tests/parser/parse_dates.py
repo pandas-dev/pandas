@@ -474,3 +474,35 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         result = self.read_csv(StringIO(data), parse_dates=["Date"],
                                na_filter=False)
         self.assertTrue(result['Date'].isnull()[1])
+
+    def test_parse_dates_noconvert_thousands(self):
+        # see gh-14066
+        data = 'a\n04.15.2016'
+
+        expected = DataFrame([datetime(2016, 4, 15)], columns=['a'])
+        result = self.read_csv(StringIO(data), parse_dates=['a'],
+                               thousands='.')
+        tm.assert_frame_equal(result, expected)
+
+        exp_index = DatetimeIndex(['2016-04-15'], name='a')
+        expected = DataFrame(index=exp_index)
+        result = self.read_csv(StringIO(data), index_col=0,
+                               parse_dates=True, thousands='.')
+        tm.assert_frame_equal(result, expected)
+
+        data = 'a,b\n04.15.2016,09.16.2013'
+
+        expected = DataFrame([[datetime(2016, 4, 15),
+                               datetime(2013, 9, 16)]],
+                             columns=['a', 'b'])
+        result = self.read_csv(StringIO(data), parse_dates=['a', 'b'],
+                               thousands='.')
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame([[datetime(2016, 4, 15),
+                               datetime(2013, 9, 16)]],
+                             columns=['a', 'b'])
+        expected = expected.set_index(['a', 'b'])
+        result = self.read_csv(StringIO(data), index_col=[0, 1],
+                               parse_dates=True, thousands='.')
+        tm.assert_frame_equal(result, expected)
