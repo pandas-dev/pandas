@@ -781,7 +781,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         idx = period_range('1990', '2009', freq='A')
         result = idx.astype('i8')
         self.assert_index_equal(result, Index(idx.asi8))
-        self.assert_numpy_array_equal(result.values, idx.values)
+        self.assert_numpy_array_equal(result.values, idx.asi8)
 
     def test_astype_raises(self):
         # GH 13149, GH 13209

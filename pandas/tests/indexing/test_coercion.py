@@ -490,16 +490,30 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
         self._assert_insert_conversion(obj, pd.Period('2012-01', freq='M'),
                                        exp, 'period[M]')
 
-        # ToDo: must coerce to object?
-        exp = pd.PeriodIndex(['2011-01', '2012-01', '2011-02',
-                              '2011-03', '2011-04'], freq='M')
+        # period + datetime64 => object
+        exp = pd.Index([pd.Period('2011-01', freq='M'),
+                        pd.Timestamp('2012-01-01'),
+                        pd.Period('2011-02', freq='M'),
+                        pd.Period('2011-03', freq='M'),
+                        pd.Period('2011-04', freq='M')], freq='M')
         self._assert_insert_conversion(obj, pd.Timestamp('2012-01-01'),
-                                       exp, 'period[M]')
+                                       exp, np.object)
 
         # period + int => object
-        msg = "Given date string not likely a datetime."
-        with tm.assertRaisesRegexp(ValueError, msg):
-            print(obj.insert(1, 1))
+        exp = pd.Index([pd.Period('2011-01', freq='M'),
+                        1,
+                        pd.Period('2011-02', freq='M'),
+                        pd.Period('2011-03', freq='M'),
+                        pd.Period('2011-04', freq='M')], freq='M')
+        self._assert_insert_conversion(obj, 1, exp, np.object)
+
+        # period + object => object
+        exp = pd.Index([pd.Period('2011-01', freq='M'),
+                        'x',
+                        pd.Period('2011-02', freq='M'),
+                        pd.Period('2011-03', freq='M'),
+                        pd.Period('2011-04', freq='M')], freq='M')
+        self._assert_insert_conversion(obj, 'x', exp, np.object)
 
 
 class TestWhereCoercion(CoercionBase, tm.TestCase):

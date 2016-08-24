@@ -141,11 +141,11 @@ class PeriodConverter(dates.DateConverter):
                 is_float(values)):
             return get_datevalue(values, axis.freq)
         if isinstance(values, PeriodIndex):
-            return values.asfreq(axis.freq).values
+            return values.asfreq(axis.freq)._values
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
         if is_period_arraylike(values):
-            return PeriodIndex(values, freq=axis.freq).values
+            return PeriodIndex(values, freq=axis.freq)._values
         if isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
@@ -518,7 +518,7 @@ def _daily_finder(vmin, vmax, freq):
     info = np.zeros(span,
                     dtype=[('val', np.int64), ('maj', bool),
                            ('min', bool), ('fmt', '|S20')])
-    info['val'][:] = dates_.values
+    info['val'][:] = dates_._values
     info['fmt'][:] = ''
     info['maj'][[0, -1]] = True
     # .. and set some shortcuts

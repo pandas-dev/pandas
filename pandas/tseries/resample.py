@@ -784,7 +784,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         else:
             start = ax[0].asfreq(self.freq, how=self.convention)
             end = ax[-1].asfreq(self.freq, how='end')
-            values = period_range(start, end, freq=self.freq).values
+            values = period_range(start, end, freq=self.freq).asi8
 
         return ax._shallow_copy(values, freq=self.freq)
 
@@ -815,7 +815,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             if len(new_index) == 0:
                 bins = []
             else:
-                rng = np.arange(memb.values[0], memb.values[-1] + 1)
+                i8 = memb.asi8
+                rng = np.arange(i8[0], i8[-1] + 1)
                 bins = memb.searchsorted(rng, side='right')
             grouper = BinGrouper(bins, new_index)
             return self._groupby_and_aggregate(how, grouper=grouper)

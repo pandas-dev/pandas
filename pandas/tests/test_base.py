@@ -393,7 +393,7 @@ class TestIndexOps(Ops):
                 if not isinstance(o, PeriodIndex):
                     expected = getattr(o.values, op)()
                 else:
-                    expected = pd.Period(ordinal=getattr(o.values, op)(),
+                    expected = pd.Period(ordinal=getattr(o._values, op)(),
                                          freq=o.freq)
                 try:
                     self.assertEqual(result, expected)
