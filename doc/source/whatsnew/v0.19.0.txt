@@ -488,6 +488,143 @@ New Behavior:
 
    type(s.tolist()[0])
 
+.. _whatsnew_0190.api.series_ops:
+
+``Series`` operators for different indexes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Following ``Series`` operators has been changed to make all operators consistent,
+including ``DataFrame`` (:issue:`1134`, :issue:`4581`, :issue:`13538`)
+
+- ``Series`` comparison operators now raise ``ValueError`` when ``index`` are different.
+- ``Series`` logical operators align both ``index``.
+
+.. warning::
+   Until 0.18.1, comparing ``Series`` with the same length has been succeeded even if
+   these ``index`` are different (the result ignores ``index``). As of 0.19.0, it raises ``ValueError`` to be more strict. This section also describes how to keep previous behaviour or align different indexes using flexible comparison methods like ``.eq``.
+
+
+As a result, ``Series`` and ``DataFrame`` operators behave as below:
+
+Arithmetic operators
+""""""""""""""""""""
+
+Arithmetic operators align both ``index`` (no changes).
+
+.. ipython:: python
+
+   s1 = pd.Series([1, 2, 3], index=list('ABC'))
+   s2 = pd.Series([2, 2, 2], index=list('ABD'))
+   s1 + s2
+
+   df1 = pd.DataFrame([1, 2, 3], index=list('ABC'))
+   df2 = pd.DataFrame([2, 2, 2], index=list('ABD'))
+   df1 + df2
+
+Comparison operators
+""""""""""""""""""""
+
+Comparison operators raise ``ValueError`` when ``index`` are different.
+
+Previous Behavior (``Series``):
+
+``Series`` compares values ignoring ``index`` as long as both lengthes are the same.
+
+.. code-block:: ipython
+
+   In [1]: s1 == s2
+   Out[1]:
+   A    False
+   B     True
+   C    False
+   dtype: bool
+
+New Behavior (``Series``):
+
+.. code-block:: ipython
+
+   In [2]: s1 == s2
+   Out[2]:
+   ValueError: Can only compare identically-labeled Series objects
+
+.. note::
+   To achieve the same result as previous versions (compare values based on locations ignoring ``index``), compare both ``.values``.
+
+   .. ipython:: python
+
+      s1.values == s2.values
+
+   If you want to compare ``Series`` aligning its ``index``, see flexible comparison methods section below.
+
+Current Behavior (``DataFrame``, no change):
+
+.. code-block:: ipython
+
+   In [3]: df1 == df2
+   Out[3]:
+   ValueError: Can only compare identically-labeled DataFrame objects
+
+Logical operators
+"""""""""""""""""
+
+Logical operators align both ``index``.
+
+Previous Behavior (``Series``):
+
+Only left hand side ``index`` is kept.
+
+.. code-block:: ipython
+
+   In [4]: s1 = pd.Series([True, False, True], index=list('ABC'))
+   In [5]: s2 = pd.Series([True, True, True], index=list('ABD'))
+   In [6]: s1 & s2
+   Out[6]:
+   A     True
+   B    False
+   C    False
+   dtype: bool
+
+New Behavior (``Series``):
+
+.. ipython:: python
+
+   s1 = pd.Series([True, False, True], index=list('ABC'))
+   s2 = pd.Series([True, True, True], index=list('ABD'))
+   s1 & s2
+
+.. note::
+   ``Series`` logical operators fill ``NaN`` result with ``False``.
+
+.. note::
+   To achieve the same result as previous versions (compare values based on locations ignoring ``index``), compare both ``.values``.
+
+   .. ipython:: python
+
+      s1.values & s2.values
+
+Current Behavior (``DataFrame``, no change):
+
+.. ipython:: python
+
+   df1 = pd.DataFrame([True, False, True], index=list('ABC'))
+   df2 = pd.DataFrame([True, True, True], index=list('ABD'))
+   df1 & df2
+
+Flexible comparison methods
+"""""""""""""""""""""""""""
+
+``Series`` flexible comparison methods like ``eq``, ``ne``, ``le``, ``lt``, ``ge`` and ``gt`` now align both ``index``. Use these operators if you want to compare two ``Series``
+which has the different ``index``.
+
+.. ipython:: python
+
+   s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   s2 = pd.Series([2, 2, 2], index=['b', 'c', 'd'])
+   s1.eq(s2)
+   s1.ge(s2)
+
+Previously, it worked as the same as comparison operators (see above).
+
 .. _whatsnew_0190.api.promote:
 
 ``Series`` type promotion on assignment
@@ -1107,6 +1244,7 @@ Bug Fixes
 - Bug in using NumPy ufunc with ``PeriodIndex`` to add or subtract integer raise ``IncompatibleFrequency``. Note that using standard operator like ``+`` or ``-`` is recommended, because standard operators use more efficient path (:issue:`13980`)
 
 - Bug in operations on ``NaT`` returning ``float`` instead of ``datetime64[ns]`` (:issue:`12941`)
+- Bug in ``Series`` flexible arithmetic methods (like ``.add()``) raises ``ValueError`` when ``axis=None`` (:issue:`13894`)
 
 - Bug in ``pd.read_csv`` in Python 2.x with non-UTF8 encoded, multi-character separated data (:issue:`3404`)
 
