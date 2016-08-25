@@ -311,17 +311,6 @@ class _Op(object):
         is_datetime_lhs = (is_datetime64_dtype(left) or
                            is_datetime64tz_dtype(left))
 
-        if isinstance(left, ABCSeries) and isinstance(right, ABCSeries):
-            # avoid repated alignment
-            if not left.index.equals(right.index):
-                left, right = left.align(right, copy=False)
-
-                index, lidx, ridx = left.index.join(right.index, how='outer',
-                                                    return_indexers=True)
-                # if DatetimeIndex have different tz, convert to UTC
-                left.index = index
-                right.index = index
-
         if not (is_datetime_lhs or is_timedelta_lhs):
             return _Op(left, right, name, na_op)
         else:
@@ -603,6 +592,33 @@ class _TimeOp(_Op):
             return False
 
 
+def _align_method_SERIES(left, right, align_asobject=False):
+    """ align lhs and rhs Series """
+
+    # ToDo: Different from _align_method_FRAME, list, tuple and ndarray
+    # are not coerced here
+    # because Series has inconsistencies described in #13637
+
+    if isinstance(right, ABCSeries):
+        # avoid repeated alignment
+        if not left.index.equals(right.index):
+
+            if align_asobject:
+                # to keep original value's dtype for bool ops
+                left = left.astype(object)
+                right = right.astype(object)
+
+            left, right = left.align(right, copy=False)
+
+            index, lidx, ridx = left.index.join(right.index, how='outer',
+                                                return_indexers=True)
+            # if DatetimeIndex have different tz, convert to UTC
+            left.index = index
+            right.index = index
+
+    return left, right
+
+
 def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                          **eval_kwargs):
     """
@@ -654,6 +670,8 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
         if isinstance(right, pd.DataFrame):
             return NotImplemented
+
+        left, right = _align_method_SERIES(left, right)
 
         converted = _Op.get_op(left, right, name, na_op)
 
@@ -763,8 +781,9 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
         if isinstance(other, ABCSeries):
             name = _maybe_match_name(self, other)
-            if len(self) != len(other):
-                raise ValueError('Series lengths must match to compare')
+            if not self._indexed_same(other):
+                msg = 'Can only compare identically-labeled Series objects'
+                raise ValueError(msg)
             return self._constructor(na_op(self.values, other.values),
                                      index=self.index, name=name)
         elif isinstance(other, pd.DataFrame):  # pragma: no cover
@@ -786,6 +805,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
             return self._constructor(na_op(self.values, np.asarray(other)),
                                      index=self.index).__finalize__(self)
+
         elif isinstance(other, pd.Categorical):
             if not is_categorical_dtype(self):
                 msg = ("Cannot compare a Categorical for op {op} with Series "
@@ -860,9 +880,10 @@ def _bool_method_SERIES(op, name, str_rep):
         fill_int = lambda x: x.fillna(0)
         fill_bool = lambda x: x.fillna(False).astype(bool)
 
+        self, other = _align_method_SERIES(self, other, align_asobject=True)
+
         if isinstance(other, ABCSeries):
             name = _maybe_match_name(self, other)
-            other = other.reindex_like(self)
             is_other_int_dtype = is_integer_dtype(other.dtype)
             other = fill_int(other) if is_other_int_dtype else fill_bool(other)
 
@@ -912,7 +933,32 @@ _op_descriptions = {'add': {'op': '+',
                     'floordiv': {'op': '//',
                                  'desc': 'Integer division',
                                  'reversed': False,
-                                 'reverse': 'rfloordiv'}}
+                                 'reverse': 'rfloordiv'},
+
+                    'eq': {'op': '==',
+                                 'desc': 'Equal to',
+                                 'reversed': False,
+                                 'reverse': None},
+                    'ne': {'op': '!=',
+                                 'desc': 'Not equal to',
+                                 'reversed': False,
+                                 'reverse': None},
+                    'lt': {'op': '<',
+                                 'desc': 'Less than',
+                                 'reversed': False,
+                                 'reverse': None},
+                    'le': {'op': '<=',
+                                 'desc': 'Less than or equal to',
+                                 'reversed': False,
+                                 'reverse': None},
+                    'gt': {'op': '>',
+                                 'desc': 'Greater than',
+                                 'reversed': False,
+                                 'reverse': None},
+                    'ge': {'op': '>=',
+                                 'desc': 'Greater than or equal to',
+                                 'reversed': False,
+                                 'reverse': None}}
 
 _op_names = list(_op_descriptions.keys())
 for k in _op_names:
@@ -963,10 +1009,11 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None, fill_zeros=None,
     @Appender(doc)
     def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
         # validate axis
-        self._get_axis_number(axis)
+        if axis is not None:
+            self._get_axis_number(axis)
         if isinstance(other, ABCSeries):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (np.ndarray, ABCSeries, list, tuple)):
+        elif isinstance(other, (np.ndarray, list, tuple)):
             if len(other) != len(self):
                 raise ValueError('Lengths must be equal')
             return self._binop(self._constructor(other, self.index), op,
@@ -975,7 +1022,7 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None, fill_zeros=None,
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._constructor(op(self.values, other),
+            return self._constructor(op(self, other),
                                      self.index).__finalize__(self)
 
     flex_wrapper.__name__ = name
@@ -983,7 +1030,7 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None, fill_zeros=None,
 
 
 series_flex_funcs = dict(flex_arith_method=_flex_method_SERIES,
-                         flex_comp_method=_comp_method_SERIES)
+                         flex_comp_method=_flex_method_SERIES)
 
 series_special_funcs = dict(arith_method=_arith_method_SERIES,
                             comp_method=_comp_method_SERIES,
