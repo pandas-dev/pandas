@@ -1,7 +1,7 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-from datetime import datetime
+from datetime import datetime, date
 
 import numpy as np
 import pandas as pd
@@ -410,3 +410,15 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         result = s[s.between(s[3], s[17], inclusive=False)]
         expected = s[5:16].dropna()
         assert_series_equal(result, expected)
+
+    def test_date_tz(self):
+        # GH11757
+        rng = pd.DatetimeIndex(['2014-04-04 23:56',
+                                '2014-07-18 21:24',
+                                '2015-11-22 22:14'], tz="US/Eastern")
+        s = Series(rng)
+        expected = Series([date(2014, 4, 4),
+                           date(2014, 7, 18),
+                           date(2015, 11, 22)])
+        assert_series_equal(s.dt.date, expected)
+        assert_series_equal(s.apply(lambda x: x.date()), expected)
