@@ -1597,7 +1597,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     @property
     def date(self):
         """
-        Returns numpy array of datetime.date. The date part of the Timestamps.
+        Returns numpy array of python datetime.date objects (namely, the date
+        part of Timestamps without timezone information).
         """
         return self._maybe_mask_results(_algos.arrmap_object(
             self.asobject.values, lambda x: x.date()))
