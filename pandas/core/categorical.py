@@ -1464,7 +1464,10 @@ class Categorical(PandasObject):
             mask = values == -1
             if mask.any():
                 values = values.copy()
-                values[mask] = self.categories.get_loc(value)
+                if isnull(value):
+                    values[mask] = -1
+                else:
+                    values[mask] = self.categories.get_loc(value)
 
         return self._constructor(values, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
