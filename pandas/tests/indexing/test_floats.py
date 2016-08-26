@@ -676,3 +676,8 @@ class TestFloatIndexers(tm.TestCase):
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, Series([1], index=[2.5]))
+
+    def test_floating_tuples(self):
+        s = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.1, 0.2])
+        result = s[0.0]
+        assert result == (1, 1)
