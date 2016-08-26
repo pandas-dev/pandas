@@ -293,19 +293,11 @@ class Float64Index(NumericIndex):
         if not is_scalar(key):
             raise InvalidIndexError
 
-        from pandas.core.indexing import maybe_droplevels
-        from pandas.core.series import Series
-
         k = _values_from_object(key)
         loc = self.get_loc(k)
         new_values = _values_from_object(series)[loc]
 
-        if is_scalar(new_values) or new_values is None:
-            return new_values
-
-        new_index = self[loc]
-        new_index = maybe_droplevels(new_index, k)
-        return Series(new_values, index=new_index, name=series.name)
+        return new_values
 
     def equals(self, other):
         """
