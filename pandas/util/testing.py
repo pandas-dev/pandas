@@ -1104,10 +1104,10 @@ def assert_series_equal(left, right, check_dtype=True,
     right : Series
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
-    check_index_type : bool / string {'equiv'}, default False
+    check_index_type : bool / string {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_series_type : bool, default False
+    check_series_type : bool, default True
         Whether to check the Series class is identical.
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
