@@ -3296,12 +3296,16 @@ class NDFrame(PandasObject):
             return self._constructor(new_data).__finalize__(self)
 
     def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
-        """Synonym for NDFrame.fillna(method='ffill')"""
+        """
+        Synonym for :meth:`DataFrame.fillna(method='ffill') <DataFrame.fillna>`
+        """
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
     def bfill(self, axis=None, inplace=False, limit=None, downcast=None):
-        """Synonym for NDFrame.fillna(method='bfill')"""
+        """
+        Synonym for :meth:`DataFrame.fillna(method='bfill') <DataFrame.fillna>`
+        """
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
