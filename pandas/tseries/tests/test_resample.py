@@ -385,6 +385,8 @@ class TestResampleAPI(tm.TestCase):
         result = r.agg({'r1': 'mean', 'r2': 'sum'})
         assert_frame_equal(result, expected)
 
+    # TODO: once GH 14008 is fixed, move these tests into
+    # `Base` test class
     def test_agg(self):
         # test with all three Resampler apis and TimeGrouper
 
@@ -635,10 +637,11 @@ class TestResampleAPI(tm.TestCase):
         with tm.assertRaises(KeyError):
             df.resample('2D', level=['a', 'date'])
 
-        with tm.assertRaises(NotImplementedError):
+        # upsampling not allowed
+        with tm.assertRaises(ValueError):
             df.resample('2D', level='d').asfreq()
 
-        with tm.assertRaises(NotImplementedError):
+        with tm.assertRaises(ValueError):
             df.resample('2D', on='date').asfreq()
 
         exp = df_exp.resample('2D').sum()

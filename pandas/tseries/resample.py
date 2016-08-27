@@ -64,7 +64,7 @@ class Resampler(_GroupBy):
                                         'binner', 'grouper', 'groupby',
                                         'sort', 'kind', 'squeeze', 'keys',
                                         'group_keys', 'as_index', 'exclusions',
-                                        '_groupby', 'from_selection']
+                                        '_groupby', '_from_selection']
 
     # don't raise deprecation warning on attributes starting with these
     # patterns - prevents warnings caused by IPython introspection
@@ -85,14 +85,14 @@ class Resampler(_GroupBy):
         self.exclusions = set()
         self.binner = None
         self.grouper = None
-        self.from_selection = False
+        self._from_selection = False
 
         if self.groupby is not None:
             # upsampling and PeriodIndex resampling do not work
             # if resampling on a column or mi level
             # this state used to catch and raise an error
-            self.from_selection = (self.groupby.key is not None or
-                                   self.groupby.level is not None)
+            self._from_selection = (self.groupby.key is not None or
+                                    self.groupby.level is not None)
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
 
     def __unicode__(self):
@@ -716,11 +716,11 @@ class DatetimeIndexResampler(Resampler):
         self._set_binner()
         if self.axis:
             raise AssertionError('axis must be 0')
-        if self.from_selection:
-            raise NotImplementedError("Upsampling from level= or on= selection"
-                                      " is not supported, use .set_index(...)"
-                                      " to explicitly set index to"
-                                      " datetime-like")
+        if self._from_selection:
+            raise ValueError("Upsampling from level= or on= selection"
+                             " is not supported, use .set_index(...)"
+                             " to explicitly set index to"
+                             " datetime-like")
 
         ax = self.ax
         obj = self._selected_obj
@@ -778,7 +778,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         # convert to timestamp
         if not (self.kind is None or self.kind == 'period'):
-            if self.from_selection:
+            if self._from_selection:
                 # see GH 14008, GH 12871
                 msg = ("Resampling from level= or on= selection"
                        " with a PeriodIndex is not currently supported,"
@@ -863,11 +863,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         .fillna
 
         """
-        if self.from_selection:
-            raise NotImplementedError("Upsampling from level= or on= selection"
-                                      " is not supported, use .set_index(...)"
-                                      " to explicitly set index to"
-                                      " datetime-like")
+        if self._from_selection:
+            raise ValueError("Upsampling from level= or on= selection"
+                             " is not supported, use .set_index(...)"
+                             " to explicitly set index to"
+                             " datetime-like")
         # we may need to actually resample as if we are timestamps
         if self.kind == 'timestamp':
             return super(PeriodIndexResampler, self)._upsample(method,
