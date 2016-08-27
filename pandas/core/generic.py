@@ -5363,16 +5363,16 @@ class NDFrame(PandasObject):
 
         cls.cummin = _make_cum_function(
             cls, 'cummin', name, name2, axis_descr, "cumulative minimum",
-            lambda y, axis: np.minimum.accumulate(y, axis), np.inf, np.nan)
+            lambda y, axis: np.minimum.accumulate(y, axis), "min", np.inf, np.nan)
         cls.cumsum = _make_cum_function(
             cls, 'cumsum', name, name2, axis_descr, "cumulative sum",
-            lambda y, axis: y.cumsum(axis), 0., np.nan)
+            lambda y, axis: y.cumsum(axis), "sum", 0., np.nan)
         cls.cumprod = _make_cum_function(
             cls, 'cumprod', name, name2, axis_descr, "cumulative product",
-            lambda y, axis: y.cumprod(axis), 1., np.nan)
+            lambda y, axis: y.cumprod(axis), "prod", 1., np.nan)
         cls.cummax = _make_cum_function(
             cls, 'cummax', name, name2, axis_descr, "cumulative max",
-            lambda y, axis: np.maximum.accumulate(y, axis), -np.inf, np.nan)
+            lambda y, axis: np.maximum.accumulate(y, axis), "max", -np.inf, np.nan)
 
         cls.sum = _make_stat_function(
             cls, 'sum', name, name2, axis_descr,
@@ -5560,7 +5560,15 @@ skipna : boolean, default True
 
 Returns
 -------
-%(outname)s : %(name1)s\n"""
+%(outname)s : %(name1)s\n
+
+
+See also
+--------
+pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
+    but ignores ``NaN`` values.
+
+"""
 
 
 def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
@@ -5603,10 +5611,10 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
     return set_function_name(stat_func, name, cls)
 
 
-def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
-                       mask_a, mask_b):
+def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
+                       accum_func, accum_func_name, mask_a, mask_b):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr)
+                  axis_descr=axis_descr, accum_func_name=accum_func_name)
     @Appender("Return {0} over requested axis.".format(desc) +
               _cnum_doc)
     def cum_func(self, axis=None, skipna=True, *args, **kwargs):
