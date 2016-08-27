@@ -1031,6 +1031,7 @@ Deprecations
 - ``Categorical.reshape`` has been deprecated and will be removed in a subsequent release (:issue:`12882`)
 - ``Series.reshape`` has been deprecated and will be removed in a subsequent release (:issue:`12882`)
 
+- ``Timestamp.to_datetime`` has been deprecated in favour of ``Timestamp.to_pydatetime`` (:issue:`8254`)
 - ``Index.to_datetime`` and ``DatetimeIndex.to_datetime`` have been deprecated in favour of ``pd.to_datetime`` (:issue:`8254`)
 - ``SparseList`` has been deprecated and will be removed in a future version (:issue:`13784`)
 - ``DataFrame.to_html()`` and ``DataFrame.to_latex()`` have dropped the ``colSpace`` parameter in favor of ``col_space`` (:issue:`13857`)

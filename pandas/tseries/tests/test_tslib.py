@@ -616,6 +616,16 @@ class TestTimestamp(tm.TestCase):
  'foo': 1}"""
         self.assertEqual(result, expected)
 
+    def to_datetime_depr(self):
+        # see gh-8254
+        ts = Timestamp('2011-01-01')
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = datetime.datetime(2011, 1, 1)
+            result = ts.to_datetime()
+            self.assertEqual(result, expected)
+
 
 class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):

@@ -908,17 +908,17 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         ts = Timestamp('2013-01-10 05:00:00Z')
         self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
-        dt = ts.to_datetime()
+        dt = ts.to_pydatetime()
         self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
 
         ts = Timestamp('2013-01-10 00:00:00', tz='US/Eastern')
         self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
-        dt = ts.to_datetime()
+        dt = ts.to_pydatetime()
         self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
 
         ts = Timestamp('2013-01-10 00:00:00-0500')
         self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
-        dt = ts.to_datetime()
+        dt = ts.to_pydatetime()
         self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
 
     def test_tz_range_is_utc(self):
