@@ -19,11 +19,10 @@
    import matplotlib.pyplot as plt
    plt.close('all')
 
-   from pandas import *
-   options.display.max_rows=15
    import pandas.util.testing as tm
-   clipdf = DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']},
-                      index=['x','y','z'])
+   pd.options.display.max_rows=15
+   clipdf = pd.DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']},
+                         index=['x','y','z'])
 
 ===============================
 IO Tools (Text, CSV, HDF5, ...)
@@ -1390,7 +1389,7 @@ class of the csv module. For this, you have to specify ``sep=None``.
 .. ipython:: python
    :suppress:
 
-   df = DataFrame(np.random.randn(10, 4))
+   df = pd.DataFrame(np.random.randn(10, 4))
    df.to_csv('tmp.sv', sep='|')
    df.to_csv('tmp2.sv', sep=':')
 
@@ -1571,7 +1570,7 @@ Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datet
 
 .. ipython:: python
 
-   dfj = DataFrame(randn(5, 2), columns=list('AB'))
+   dfj = pd.DataFrame(randn(5, 2), columns=list('AB'))
    json = dfj.to_json()
    json
 
@@ -1583,10 +1582,10 @@ file / string. Consider the following DataFrame and Series:
 
 .. ipython:: python
 
-  dfjo = DataFrame(dict(A=range(1, 4), B=range(4, 7), C=range(7, 10)),
-                   columns=list('ABC'), index=list('xyz'))
+  dfjo = pd.DataFrame(dict(A=range(1, 4), B=range(4, 7), C=range(7, 10)),
+                      columns=list('ABC'), index=list('xyz'))
   dfjo
-  sjo = Series(dict(x=15, y=16, z=17), name='D')
+  sjo = pd.Series(dict(x=15, y=16, z=17), name='D')
   sjo
 
 **Column oriented** (the default for ``DataFrame``) serializes the data as
@@ -1643,8 +1642,8 @@ Writing in ISO date format
 
 .. ipython:: python
 
-   dfd = DataFrame(randn(5, 2), columns=list('AB'))
-   dfd['date'] = Timestamp('20130101')
+   dfd = pd.DataFrame(randn(5, 2), columns=list('AB'))
+   dfd['date'] = pd.Timestamp('20130101')
    dfd = dfd.sort_index(1, ascending=False)
    json = dfd.to_json(date_format='iso')
    json
@@ -1668,10 +1667,10 @@ Writing to a file, with a date index and a date column
 .. ipython:: python
 
    dfj2 = dfj.copy()
-   dfj2['date'] = Timestamp('20130101')
+   dfj2['date'] = pd.Timestamp('20130101')
    dfj2['ints'] = list(range(5))
    dfj2['bools'] = True
-   dfj2.index = date_range('20130101', periods=5)
+   dfj2.index = pd.date_range('20130101', periods=5)
    dfj2.to_json('test.json')
    open('test.json').read()
 
@@ -1707,7 +1706,7 @@ can be dealt with by specifying a simple ``default_handler``:
 
 .. ipython:: python
 
-   DataFrame([1.0, 2.0, complex(1.0, 2.0)]).to_json(default_handler=str)
+   pd.DataFrame([1.0, 2.0, complex(1.0, 2.0)]).to_json(default_handler=str)
 
 .. _io.json_reader:
 
@@ -1820,7 +1819,7 @@ Preserve string indices:
 
 .. ipython:: python
 
-   si = DataFrame(np.zeros((4, 4)),
+   si = pd.DataFrame(np.zeros((4, 4)),
             columns=list(range(4)),
             index=[str(i) for i in range(4)])
    si
@@ -1868,17 +1867,17 @@ data:
 
    randfloats = np.random.uniform(-100, 1000, 10000)
    randfloats.shape = (1000, 10)
-   dffloats = DataFrame(randfloats, columns=list('ABCDEFGHIJ'))
+   dffloats = pd.DataFrame(randfloats, columns=list('ABCDEFGHIJ'))
 
    jsonfloats = dffloats.to_json()
 
 .. ipython:: python
 
-   timeit read_json(jsonfloats)
+   timeit pd.read_json(jsonfloats)
 
 .. ipython:: python
 
-   timeit read_json(jsonfloats, numpy=True)
+   timeit pd.read_json(jsonfloats, numpy=True)
 
 The speedup is less noticeable for smaller datasets:
 
@@ -1888,11 +1887,11 @@ The speedup is less noticeable for smaller datasets:
 
 .. ipython:: python
 
-   timeit read_json(jsonfloats)
+   timeit pd.read_json(jsonfloats)
 
 .. ipython:: python
 
-   timeit read_json(jsonfloats, numpy=True)
+   timeit pd.read_json(jsonfloats, numpy=True)
 
 .. warning::
 
@@ -1997,7 +1996,7 @@ Read a URL with no options
 .. ipython:: python
 
    url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
-   dfs = read_html(url)
+   dfs = pd.read_html(url)
    dfs
 
 .. note::
@@ -2017,7 +2016,7 @@ as a string
 .. ipython:: python
 
    with open(file_path, 'r') as f:
-       dfs = read_html(f.read())
+       dfs = pd.read_html(f.read())
    dfs
 
 You can even pass in an instance of ``StringIO`` if you so desire
@@ -2027,7 +2026,7 @@ You can even pass in an instance of ``StringIO`` if you so desire
    with open(file_path, 'r') as f:
        sio = StringIO(f.read())
 
-   dfs = read_html(sio)
+   dfs = pd.read_html(sio)
    dfs
 
 .. note::
@@ -2044,7 +2043,7 @@ Read a URL and match a table that contains specific text
 .. code-block:: python
 
    match = 'Metcalf Bank'
-   df_list = read_html(url, match=match)
+   df_list = pd.read_html(url, match=match)
 
 Specify a header row (by default ``<th>`` elements are used to form the column
 index); if specified, the header row is taken from the data minus the parsed
@@ -2052,40 +2051,40 @@ header elements (``<th>`` elements).
 
 .. code-block:: python
 
-   dfs = read_html(url, header=0)
+   dfs = pd.read_html(url, header=0)
 
 Specify an index column
 
 .. code-block:: python
 
-   dfs = read_html(url, index_col=0)
+   dfs = pd.read_html(url, index_col=0)
 
 Specify a number of rows to skip
 
 .. code-block:: python
 
-   dfs = read_html(url, skiprows=0)
+   dfs = pd.read_html(url, skiprows=0)
 
 Specify a number of rows to skip using a list (``xrange`` (Python 2 only) works
 as well)
 
 .. code-block:: python
 
-   dfs = read_html(url, skiprows=range(2))
+   dfs = pd.read_html(url, skiprows=range(2))
 
 Specify an HTML attribute
 
 .. code-block:: python
 
-   dfs1 = read_html(url, attrs={'id': 'table'})
-   dfs2 = read_html(url, attrs={'class': 'sortable'})
+   dfs1 = pd.read_html(url, attrs={'id': 'table'})
+   dfs2 = pd.read_html(url, attrs={'class': 'sortable'})
    print(np.array_equal(dfs1[0], dfs2[0]))  # Should be True
 
 Specify values that should be converted to NaN
 
 .. code-block:: python
 
-   dfs = read_html(url, na_values=['No Acquirer'])
+   dfs = pd.read_html(url, na_values=['No Acquirer'])
 
 .. versionadded:: 0.19
 
@@ -2093,7 +2092,7 @@ Specify whether to keep the default set of NaN values
 
 .. code-block:: python
 
-   dfs = read_html(url, keep_default_na=False)
+   dfs = pd.read_html(url, keep_default_na=False)
 
 .. versionadded:: 0.19
 
@@ -2105,7 +2104,7 @@ columns to strings.
 .. code-block:: python
 
    url_mcc = 'https://en.wikipedia.org/wiki/Mobile_country_code'
-   dfs = read_html(url_mcc, match='Telekom Albania', header=0, converters={'MNC':
+   dfs = pd.read_html(url_mcc, match='Telekom Albania', header=0, converters={'MNC':
    str})
 
 .. versionadded:: 0.19
@@ -2114,15 +2113,15 @@ Use some combination of the above
 
 .. code-block:: python
 
-   dfs = read_html(url, match='Metcalf Bank', index_col=0)
+   dfs = pd.read_html(url, match='Metcalf Bank', index_col=0)
 
 Read in pandas ``to_html`` output (with some loss of floating point precision)
 
 .. code-block:: python
 
-   df = DataFrame(randn(2, 2))
+   df = pd.DataFrame(randn(2, 2))
    s = df.to_html(float_format='{0:.40g}'.format)
-   dfin = read_html(s, index_col=0)
+   dfin = pd.read_html(s, index_col=0)
 
 The ``lxml`` backend will raise an error on a failed parse if that is the only
 parser you provide (if you only have a single parser you can provide just a
@@ -2131,13 +2130,13 @@ for example, the function expects a sequence of strings)
 
 .. code-block:: python
 
-   dfs = read_html(url, 'Metcalf Bank', index_col=0, flavor=['lxml'])
+   dfs = pd.read_html(url, 'Metcalf Bank', index_col=0, flavor=['lxml'])
 
 or
 
 .. code-block:: python
 
-   dfs = read_html(url, 'Metcalf Bank', index_col=0, flavor='lxml')
+   dfs = pd.read_html(url, 'Metcalf Bank', index_col=0, flavor='lxml')
 
 However, if you have bs4 and html5lib installed and pass ``None`` or ``['lxml',
 'bs4']`` then the parse will most likely succeed. Note that *as soon as a parse
@@ -2145,7 +2144,7 @@ succeeds, the function will return*.
 
 .. code-block:: python
 
-   dfs = read_html(url, 'Metcalf Bank', index_col=0, flavor=['lxml', 'bs4'])
+   dfs = pd.read_html(url, 'Metcalf Bank', index_col=0, flavor=['lxml', 'bs4'])
 
 
 .. _io.html:
@@ -2173,7 +2172,7 @@ in the method ``to_string`` described above.
 
 .. ipython:: python
 
-   df = DataFrame(randn(2, 2))
+   df = pd.DataFrame(randn(2, 2))
    df
    print(df.to_html())  # raw html
 
@@ -2249,7 +2248,7 @@ Finally, the ``escape`` argument allows you to control whether the
 
 .. ipython:: python
 
-   df = DataFrame({'a': list('&<>'), 'b': randn(3)})
+   df = pd.DataFrame({'a': list('&<>'), 'b': randn(3)})
 
 
 .. ipython:: python
@@ -2701,7 +2700,7 @@ DataFrame into clipboard and reading it back.
 
 .. ipython:: python
 
-    df=pd.DataFrame(randn(5,3))
+    df = pd.DataFrame(randn(5,3))
     df
     df.to_clipboard()
     pd.read_clipboard()
@@ -2731,7 +2730,7 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. ipython:: python
 
-   read_pickle('foo.pkl')
+   pd.read_pickle('foo.pkl')
 
 .. ipython:: python
    :suppress:
@@ -2795,10 +2794,10 @@ both on the writing (serialization), and reading (deserialization).
 
 .. ipython:: python
 
-   df = DataFrame(np.random.rand(5,2),columns=list('AB'))
+   df = pd.DataFrame(np.random.rand(5,2),columns=list('AB'))
    df.to_msgpack('foo.msg')
    pd.read_msgpack('foo.msg')
-   s = Series(np.random.rand(5),index=date_range('20130101',periods=5))
+   s = pd.Series(np.random.rand(5),index=pd.date_range('20130101',periods=5))
 
 You can pass a list of objects and you will receive them back on deserialization.
 
@@ -2883,7 +2882,7 @@ for some advanced strategies
 
 .. ipython:: python
 
-   store = HDFStore('store.h5')
+   store = pd.HDFStore('store.h5')
    print(store)
 
 Objects can be written to the file just like adding key-value pairs to a
@@ -2892,13 +2891,13 @@ dict:
 .. ipython:: python
 
    np.random.seed(1234)
-   index = date_range('1/1/2000', periods=8)
-   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
-   df = DataFrame(randn(8, 3), index=index,
-                  columns=['A', 'B', 'C'])
-   wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-              major_axis=date_range('1/1/2000', periods=5),
-              minor_axis=['A', 'B', 'C', 'D'])
+   index = pd.date_range('1/1/2000', periods=8)
+   s = pd.Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   df = pd.DataFrame(randn(8, 3), index=index,
+                     columns=['A', 'B', 'C'])
+   wp = pd.Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+                 major_axis=pd.date_range('1/1/2000', periods=5),
+                 minor_axis=['A', 'B', 'C', 'D'])
 
    # store.put('s', s) is an equivalent method
    store['s'] = s
@@ -2941,7 +2940,7 @@ Closing a Store, Context Manager
 
    # Working with, and automatically closing the store with the context
    # manager
-   with HDFStore('store.h5') as store:
+   with pd.HDFStore('store.h5') as store:
        store.keys()
 
 .. ipython:: python
@@ -2961,9 +2960,9 @@ similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
 
 .. ipython:: python
 
-   df_tl = DataFrame(dict(A=list(range(5)), B=list(range(5))))
+   df_tl = pd.DataFrame(dict(A=list(range(5)), B=list(range(5))))
    df_tl.to_hdf('store_tl.h5','table',append=True)
-   read_hdf('store_tl.h5', 'table', where = ['index>2'])
+   pd.read_hdf('store_tl.h5', 'table', where = ['index>2'])
 
 .. ipython:: python
    :suppress:
@@ -3008,7 +3007,7 @@ This is also true for the major axis of a ``Panel``:
           [[np.nan, np.nan, np.nan], [np.nan,5,6]],
           [[np.nan, np.nan, np.nan],[np.nan,3,np.nan]]]
 
-   panel_with_major_axis_all_missing = Panel(matrix,
+   panel_with_major_axis_all_missing = pd.Panel(matrix,
            items=['Item1', 'Item2','Item3'],
            major_axis=[1,2],
            minor_axis=['A', 'B', 'C'])
@@ -3019,7 +3018,7 @@ This is also true for the major axis of a ``Panel``:
                                            dropna = True,
                                            format='table',
                                            mode='w')
-   reloaded = read_hdf('file.h5', 'panel')
+   reloaded = pd.read_hdf('file.h5', 'panel')
    reloaded
 
 
@@ -3052,7 +3051,7 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    .. code-block:: python
 
-       DataFrame(randn(10,2)).to_hdf('test_fixed.h5','df')
+       pd.DataFrame(randn(10,2)).to_hdf('test_fixed.h5','df')
 
        pd.read_hdf('test_fixed.h5','df',where='index>5')
        TypeError: cannot pass a where specification when reading a fixed format.
@@ -3084,7 +3083,7 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 
 .. ipython:: python
 
-   store = HDFStore('store.h5')
+   store = pd.HDFStore('store.h5')
    df1 = df[0:4]
    df2 = df[4:]
 
@@ -3172,14 +3171,14 @@ defaults to `nan`.
 
 .. ipython:: python
 
-    df_mixed = DataFrame({ 'A' : randn(8),
-                           'B' : randn(8),
-                           'C' : np.array(randn(8),dtype='float32'),
-                           'string' :'string',
-                           'int' : 1,
-                           'bool' : True,
-                           'datetime64' : Timestamp('20010102')},
-                         index=list(range(8)))
+    df_mixed = pd.DataFrame({ 'A' : randn(8),
+                              'B' : randn(8),
+                              'C' : np.array(randn(8),dtype='float32'),
+                              'string' :'string',
+                              'int' : 1,
+                              'bool' : True,
+                              'datetime64' : pd.Timestamp('20010102')},
+                            index=list(range(8)))
     df_mixed.ix[3:5,['A', 'B', 'string', 'datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = {'values': 50})
@@ -3198,13 +3197,13 @@ storing/selecting from homogeneous index DataFrames.
 
 .. ipython:: python
 
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                                   ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                           names=['foo', 'bar'])
-        df_mi = DataFrame(np.random.randn(10, 3), index=index,
-                          columns=['A', 'B', 'C'])
+        index = pd.MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                      ['one', 'two', 'three']],
+                              labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                      [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                              names=['foo', 'bar'])
+        df_mi = pd.DataFrame(np.random.randn(10, 3), index=index,
+                             columns=['A', 'B', 'C'])
         df_mi
 
         store.append('df_mi',df_mi)
@@ -3319,14 +3318,14 @@ Here are some examples:
 
 .. ipython:: python
 
-    dfq = DataFrame(randn(10,4),columns=list('ABCD'),index=date_range('20130101',periods=10))
+    dfq = pd.DataFrame(randn(10,4),columns=list('ABCD'),index=pd.date_range('20130101',periods=10))
     store.append('dfq',dfq,format='table',data_columns=True)
 
 Use boolean expressions, with in-line function evaluation.
 
 .. ipython:: python
 
-    store.select('dfq',"index>Timestamp('20130104') & columns=['A', 'B']")
+    store.select('dfq',"index>pd.Timestamp('20130104') & columns=['A', 'B']")
 
 Use and inline column reference
 
@@ -3340,7 +3339,7 @@ Works with a Panel as well.
 
    store.append('wp',wp)
    store
-   store.select('wp', "major_axis>Timestamp('20000102') & minor_axis=['A', 'B']")
+   store.select('wp', "major_axis>pd.Timestamp('20000102') & minor_axis=['A', 'B']")
 
 The ``columns`` keyword can be supplied to select a list of columns to be
 returned, this is equivalent to passing a
@@ -3385,7 +3384,7 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
 .. ipython:: python
 
    from datetime import timedelta
-   dftd = DataFrame(dict(A = Timestamp('20130101'), B = [ Timestamp('20130101') + timedelta(days=i,seconds=10) for i in range(10) ]))
+   dftd = pd.DataFrame(dict(A = pd.Timestamp('20130101'), B = [ pd.Timestamp('20130101') + timedelta(days=i,seconds=10) for i in range(10) ]))
    dftd['C'] = dftd['A']-dftd['B']
    dftd
    store.append('dftd',dftd,data_columns=True)
@@ -3421,8 +3420,8 @@ Oftentimes when appending large amounts of data to a store, it is useful to turn
 
 .. ipython:: python
 
-   df_1 = DataFrame(randn(10,2),columns=list('AB'))
-   df_2 = DataFrame(randn(10,2),columns=list('AB'))
+   df_1 = pd.DataFrame(randn(10,2),columns=list('AB'))
+   df_2 = pd.DataFrame(randn(10,2),columns=list('AB'))
 
    st = pd.HDFStore('appends.h5',mode='w')
    st.append('df', df_1, data_columns=['B'], index=False)
@@ -3468,7 +3467,7 @@ be data_columns
 
    # on-disk operations
    store.append('df_dc', df_dc, data_columns = ['B', 'C', 'string', 'string2'])
-   store.select('df_dc', [ Term('B>0') ])
+   store.select('df_dc', [ pd.Term('B>0') ])
 
    # getting creative
    store.select('df_dc', 'B > 0 & C > 0 & string == foo')
@@ -3507,7 +3506,7 @@ The default is 50,000 rows returned in a chunk.
 
    .. code-block:: python
 
-      for df in read_hdf('store.h5','df', chunksize=3):
+      for df in pd.read_hdf('store.h5','df', chunksize=3):
           print(df)
 
 Note, that the chunksize keyword applies to the **source** rows. So if you
@@ -3519,7 +3518,7 @@ chunks.
 
 .. ipython:: python
 
-   dfeq = DataFrame({'number': np.arange(1,11)})
+   dfeq = pd.DataFrame({'number': np.arange(1,11)})
    dfeq
 
    store.append('dfeq', dfeq, data_columns=['number'])
@@ -3559,7 +3558,7 @@ Sometimes you want to get the coordinates (a.k.a the index locations) of your qu
 
 .. ipython:: python
 
-   df_coord = DataFrame(np.random.randn(1000,2),index=date_range('20000101',periods=1000))
+   df_coord = pd.DataFrame(np.random.randn(1000,2),index=pd.date_range('20000101',periods=1000))
    store.append('df_coord',df_coord)
    c = store.select_as_coordinates('df_coord','index>20020101')
    c.summary()
@@ -3576,10 +3575,10 @@ a datetimeindex which are 5.
 
 .. ipython:: python
 
-   df_mask = DataFrame(np.random.randn(1000,2),index=date_range('20000101',periods=1000))
+   df_mask = pd.DataFrame(np.random.randn(1000,2),index=pd.date_range('20000101',periods=1000))
    store.append('df_mask',df_mask)
    c = store.select_column('df_mask','index')
-   where = c[DatetimeIndex(c).month==5].index
+   where = c[pd.DatetimeIndex(c).month==5].index
    store.select('df_mask',where=where)
 
 Storer Object
@@ -3624,8 +3623,8 @@ results.
 
 .. ipython:: python
 
-   df_mt = DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8),
-                                  columns=['A', 'B', 'C', 'D', 'E', 'F'])
+   df_mt = pd.DataFrame(randn(8, 6), index=pd.date_range('1/1/2000', periods=8),
+                                     columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
    df_mt.ix[1, ('A', 'B')] = np.nan
 
@@ -3716,7 +3715,7 @@ Compression for all objects within the file
 
 .. code-block:: python
 
-   store_compressed = HDFStore('store_compressed.h5', complevel=9, complib='blosc')
+   store_compressed = pd.HDFStore('store_compressed.h5', complevel=9, complib='blosc')
 
 Or on-the-fly compression (this only applies to tables). You can turn
 off file compression for a specific table by passing ``complevel=0``
@@ -3814,8 +3813,8 @@ stored in a more efficient manner.
 
 .. ipython:: python
 
-   dfcat = DataFrame({ 'A' : Series(list('aabbcdba')).astype('category'),
-                       'B' : np.random.randn(8) })
+   dfcat = pd.DataFrame({ 'A' : pd.Series(list('aabbcdba')).astype('category'),
+                          'B' : np.random.randn(8) })
    dfcat
    dfcat.dtypes
    cstore = pd.HDFStore('cats.h5', mode='w')
@@ -3872,7 +3871,7 @@ Starting in 0.11.0, passing a ``min_itemsize`` dict will cause all passed column
 
 .. ipython:: python
 
-   dfs = DataFrame(dict(A = 'foo', B = 'bar'),index=list(range(5)))
+   dfs = pd.DataFrame(dict(A = 'foo', B = 'bar'),index=list(range(5)))
    dfs
 
    # A and B have a size of 30
@@ -3891,7 +3890,7 @@ You could inadvertently turn an actual ``nan`` value into a missing value.
 
 .. ipython:: python
 
-   dfss = DataFrame(dict(A = ['foo','bar','nan']))
+   dfss = pd.DataFrame(dict(A = ['foo','bar','nan']))
    dfss
 
    store.append('dfss', dfss)
@@ -3925,7 +3924,7 @@ It is possible to write an ``HDFStore`` object that can easily be imported into 
                             index=range(100))
    df_for_r.head()
 
-   store_export = HDFStore('export.h5')
+   store_export = pd.HDFStore('export.h5')
    store_export.append('df_for_r', df_for_r, data_columns=df_dc.columns)
    store_export
 
@@ -4015,7 +4014,7 @@ number of options, please see the docstring.
    :okwarning:
 
    # a legacy store
-   legacy_store = HDFStore(legacy_file_path,'r')
+   legacy_store = pd.HDFStore(legacy_file_path,'r')
    legacy_store
 
    # copy (and return the new handle)
@@ -4062,7 +4061,7 @@ HDFStore supports ``Panel4D`` storage.
 .. ipython:: python
    :okwarning:
 
-   p4d = Panel4D({ 'l1' : wp })
+   p4d = pd.Panel4D({ 'l1' : wp })
    p4d
    store.append('p4d', p4d)
    store
@@ -4079,7 +4078,7 @@ object). This cannot be changed after table creation.
 
    store.append('p4d2', p4d, axes=['labels', 'major_axis', 'minor_axis'])
    store
-   store.select('p4d2', [ Term('labels=l1'), Term('items=Item1'), Term('minor_axis=A_big_strings') ])
+   store.select('p4d2', [ pd.Term('labels=l1'), pd.Term('items=Item1'), pd.Term('minor_axis=A_big_strings') ])
 
 .. ipython:: python
    :suppress:
@@ -4181,7 +4180,7 @@ the database using :func:`~pandas.DataFrame.to_sql`.
    (42, datetime.datetime(2010,10,19), 'Y', -12.5, False),
    (63, datetime.datetime(2010,10,20), 'Z', 5.73, True)]
 
-   data  = DataFrame(d, columns=c)
+   data  = pd.DataFrame(d, columns=c)
 
 .. ipython:: python
 
@@ -4677,7 +4676,7 @@ into a .dta file. The format version of this file is always 115 (Stata 12).
 
 .. ipython:: python
 
-   df = DataFrame(randn(10, 2), columns=list('AB'))
+   df = pd.DataFrame(randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 
 *Stata* data files have limited data type support; only strings with
@@ -4902,7 +4901,7 @@ This is an informal comparison of various IO methods, using pandas 0.13.1.
 
 .. code-block:: ipython
 
-   In [1]: df = DataFrame(randn(1000000,2),columns=list('AB'))
+   In [1]: df = pd.DataFrame(randn(1000000,2),columns=list('AB'))
 
    In [2]: df.info()
    <class 'pandas.core.frame.DataFrame'>
@@ -4976,7 +4975,7 @@ And here's the code
    import os
    from pandas.io import sql
 
-   df = DataFrame(randn(1000000,2),columns=list('AB'))
+   df = pd.DataFrame(randn(1000000,2),columns=list('AB'))
 
    def test_sql_write(df):
        if os.path.exists('test.sql'):
