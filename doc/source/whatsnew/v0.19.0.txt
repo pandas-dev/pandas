@@ -1126,6 +1126,7 @@ Bug Fixes
 - Bug in ``Categorical.from_codes()`` where an unhelpful error was raised when an invalid ``ordered`` parameter was passed in (:issue:`14058`)
 - Bug in ``Series`` construction from a tuple of integers on windows not returning default dtype (int64) (:issue:`13646`)
 
+- Bug in ``pd.read_csv()`` where the index columns were being incorrectly parsed when parsed as dates with a ``thousands`` parameter (:issue:`14066`)
 - Bug in ``.groupby(..).resample(..)`` when the same object is called multiple times (:issue:`13174`)
 - Bug in ``.to_records()`` when index name is a unicode string (:issue:`13172`)
 

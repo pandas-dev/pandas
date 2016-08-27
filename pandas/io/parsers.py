@@ -1474,6 +1474,13 @@ class CParserWrapper(ParserBase):
                 else:
                     _set(val)
 
+        elif self.parse_dates:
+            if isinstance(self.index_col, list):
+                for k in self.index_col:
+                    _set(k)
+            elif self.index_col is not None:
+                _set(self.index_col)
+
     def set_error_bad_lines(self, status):
         self._reader.set_error_bad_lines(int(status))
 
@@ -1856,6 +1863,14 @@ class PythonParser(ParserBase):
                         _set(k)
                 else:
                     _set(val)
+
+        elif self.parse_dates:
+            if isinstance(self.index_col, list):
+                for k in self.index_col:
+                    _set(k)
+            elif self.index_col is not None:
+                _set(self.index_col)
+
         return noconvert_columns
 
     def _make_reader(self, f):
