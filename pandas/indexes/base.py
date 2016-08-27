@@ -851,9 +851,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def to_datetime(self, dayfirst=False):
         """
+        DEPRECATED: use :meth:`pandas.to_datetime` instead.
+
         For an Index containing strings or datetime.datetime objects, attempt
         conversion to DatetimeIndex
         """
+        warnings.warn("to_datetime is deprecated. Use pd.to_datetime(...)",
+                      FutureWarning, stacklevel=2)
+
         from pandas.tseries.index import DatetimeIndex
         if self.inferred_type == 'string':
             from dateutil.parser import parse

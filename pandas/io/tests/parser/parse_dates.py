@@ -20,8 +20,7 @@ import pandas.util.testing as tm
 
 from pandas import DataFrame, Series, Index, DatetimeIndex
 from pandas import compat
-from pandas.compat import(parse_date, StringIO,
-                          lrange, lmap)
+from pandas.compat import parse_date, StringIO, lrange
 from pandas.tseries.index import date_range
 
 
@@ -291,33 +290,18 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         tm.assert_frame_equal(rs, xp)
 
     def test_parse_dates_column_list(self):
-        from pandas.core.datetools import to_datetime
+        data = 'a,b,c\n01/01/2010,1,15/02/2010'
 
-        data = '''date;destination;ventilationcode;unitcode;units;aux_date
-01/01/2010;P;P;50;1;12/1/2011
-01/01/2010;P;R;50;1;13/1/2011
-15/01/2010;P;P;50;1;14/1/2011
-01/05/2010;P;P;50;1;15/1/2011'''
+        expected = DataFrame({'a': [datetime(2010, 1, 1)], 'b': [1],
+                              'c': [datetime(2010, 2, 15)]})
+        expected = expected.set_index(['a', 'b'])
 
-        expected = self.read_csv(StringIO(data), sep=";", index_col=lrange(4))
-
-        lev = expected.index.levels[0]
-        levels = list(expected.index.levels)
-        levels[0] = lev.to_datetime(dayfirst=True)
-        # hack to get this to work - remove for final test
-        levels[0].name = lev.name
-        expected.index.set_levels(levels, inplace=True)
-        expected['aux_date'] = to_datetime(expected['aux_date'],
-                                           dayfirst=True)
-        expected['aux_date'] = lmap(Timestamp, expected['aux_date'])
-        tm.assertIsInstance(expected['aux_date'][0], datetime)
-
-        df = self.read_csv(StringIO(data), sep=";", index_col=lrange(4),
-                           parse_dates=[0, 5], dayfirst=True)
+        df = self.read_csv(StringIO(data), index_col=[0, 1],
+                           parse_dates=[0, 2], dayfirst=True)
         tm.assert_frame_equal(df, expected)
 
-        df = self.read_csv(StringIO(data), sep=";", index_col=lrange(4),
-                           parse_dates=['date', 'aux_date'], dayfirst=True)
+        df = self.read_csv(StringIO(data), index_col=[0, 1],
+                           parse_dates=['a', 'c'], dayfirst=True)
         tm.assert_frame_equal(df, expected)
 
     def test_multi_index_parse_dates(self):
