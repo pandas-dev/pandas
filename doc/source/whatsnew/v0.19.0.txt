@@ -436,6 +436,7 @@ API changes
 ~~~~~~~~~~~
 
 
+- ``Timestamp.to_pydatetime`` will issue a ``UserWarning`` when ``warn=True``, and the instance has a non-zero number of nanoseconds (:issue:`14101`)
 - ``Panel.to_sparse`` will raise a ``NotImplementedError`` exception when called (:issue:`13778`)
 - ``Index.reshape`` will raise a ``NotImplementedError`` exception when called (:issue:`12882`)
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)

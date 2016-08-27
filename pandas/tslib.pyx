@@ -1034,7 +1034,7 @@ cdef class _Timestamp(datetime):
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
-        cdef datetime dtval = self.to_pydatetime(warn=False)
+        cdef datetime dtval = self.to_pydatetime()
 
         self._assert_tzawareness_compat(other)
 
@@ -1084,7 +1084,8 @@ cdef class _Timestamp(datetime):
             _TSObject ts
 
         if self.nanosecond != 0 and warn:
-            print 'Warning: discarding nonzero nanoseconds'
+            warnings.warn("Discarding nonzero nanoseconds in conversion",
+                          UserWarning, stacklevel=2)
         ts = convert_to_tsobject(self, self.tzinfo, None, 0, 0)
         dts = ts.dts
         return datetime(dts.year, dts.month, dts.day,

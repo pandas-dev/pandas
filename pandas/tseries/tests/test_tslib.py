@@ -47,12 +47,17 @@ class TestTsUtil(tm.TestCase):
     def test_to_datetime_bijective(self):
         # Ensure that converting to datetime and back only loses precision
         # by going from nanoseconds to microseconds.
-        self.assertEqual(
-            Timestamp(Timestamp.max.to_pydatetime()).value / 1000,
-            Timestamp.max.value / 1000)
-        self.assertEqual(
-            Timestamp(Timestamp.min.to_pydatetime()).value / 1000,
-            Timestamp.min.value / 1000)
+        exp_warning = None if Timestamp.max.nanosecond == 0 else UserWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            self.assertEqual(
+                Timestamp(Timestamp.max.to_pydatetime()).value / 1000,
+                Timestamp.max.value / 1000)
+
+        exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            self.assertEqual(
+                Timestamp(Timestamp.min.to_pydatetime()).value / 1000,
+                Timestamp.min.value / 1000)
 
 
 class TestTimestamp(tm.TestCase):
@@ -624,6 +629,16 @@ class TestTimestamp(tm.TestCase):
                                         check_stacklevel=False):
             expected = datetime.datetime(2011, 1, 1)
             result = ts.to_datetime()
+            self.assertEqual(result, expected)
+
+    def to_pydatetime_nonzero_nano(self):
+        ts = Timestamp('2011-01-01 9:00:00.123456789')
+
+        # Warn the user of data loss (nanoseconds).
+        with tm.assert_produces_warning(UserWarning,
+                                        check_stacklevel=False):
+            expected = datetime.datetime(2011, 1, 1, 9, 0, 0, 123456)
+            result = ts.to_pydatetime()
             self.assertEqual(result, expected)
 
 

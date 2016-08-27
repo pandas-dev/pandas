@@ -261,8 +261,19 @@ class TestCommon(Base):
         self.assertTrue(isinstance(result, Timestamp))
         self.assertEqual(result, expected)
 
-        # test nano second is preserved
-        result = func(Timestamp(dt) + Nano(5))
+        # see gh-14101
+        exp_warning = None
+        ts = Timestamp(dt) + Nano(5)
+
+        if (offset_s.__class__.__name__ == 'DateOffset' and
+                (funcname == 'apply' or normalize) and
+                ts.nanosecond > 0):
+            exp_warning = UserWarning
+
+        # test nanosecond is preserved
+        with tm.assert_produces_warning(exp_warning,
+                                        check_stacklevel=False):
+            result = func(ts)
         self.assertTrue(isinstance(result, Timestamp))
         if normalize is False:
             self.assertEqual(result, expected + Nano(5))
@@ -289,8 +300,19 @@ class TestCommon(Base):
             self.assertTrue(isinstance(result, Timestamp))
             self.assertEqual(result, expected_localize)
 
-            # test nano second is preserved
-            result = func(Timestamp(dt, tz=tz) + Nano(5))
+            # see gh-14101
+            exp_warning = None
+            ts = Timestamp(dt, tz=tz) + Nano(5)
+
+            if (offset_s.__class__.__name__ == 'DateOffset' and
+                    (funcname == 'apply' or normalize) and
+                    ts.nanosecond > 0):
+                exp_warning = UserWarning
+
+            # test nanosecond is preserved
+            with tm.assert_produces_warning(exp_warning,
+                                            check_stacklevel=False):
+                result = func(ts)
             self.assertTrue(isinstance(result, Timestamp))
             if normalize is False:
                 self.assertEqual(result, expected_localize + Nano(5))
