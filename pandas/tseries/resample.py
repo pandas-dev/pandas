@@ -64,7 +64,7 @@ class Resampler(_GroupBy):
                                         'binner', 'grouper', 'groupby',
                                         'sort', 'kind', 'squeeze', 'keys',
                                         'group_keys', 'as_index', 'exclusions',
-                                        '_groupby', '_from_selection']
+                                        '_groupby']
 
     # don't raise deprecation warning on attributes starting with these
     # patterns - prevents warnings caused by IPython introspection
@@ -85,14 +85,8 @@ class Resampler(_GroupBy):
         self.exclusions = set()
         self.binner = None
         self.grouper = None
-        self._from_selection = False
 
         if self.groupby is not None:
-            # upsampling and PeriodIndex resampling do not work
-            # if resampling on a column or mi level
-            # this state used to catch and raise an error
-            self._from_selection = (self.groupby.key is not None or
-                                    self.groupby.level is not None)
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
 
     def __unicode__(self):
@@ -117,6 +111,15 @@ class Resampler(_GroupBy):
         if isinstance(self._selected_obj, pd.Series):
             return 'series'
         return 'dataframe'
+
+    @property
+    def _from_selection(self):
+        """ is the resampling from a DataFrame column or MultiIndex level """
+        # upsampling and PeriodIndex resampling do not work
+        # with selection, this state used to catch and raise an error
+        return (self.groupby is not None and
+                (self.groupby.key is not None or
+                 self.groupby.level is not None))
 
     def _deprecated(self, op):
         warnings.warn(("\n.resample() is now a deferred operation\n"
