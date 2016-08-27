@@ -2535,15 +2535,19 @@ class TestToDatetime(tm.TestCase):
     def test_index_to_datetime(self):
         idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
 
-        result = idx.to_datetime()
-        expected = DatetimeIndex(datetools.to_datetime(idx.values))
-        tm.assert_index_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = idx.to_datetime()
+            expected = DatetimeIndex(datetools.to_datetime(idx.values))
+            tm.assert_index_equal(result, expected)
 
-        today = datetime.today()
-        idx = Index([today], dtype=object)
-        result = idx.to_datetime()
-        expected = DatetimeIndex([today])
-        tm.assert_index_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            today = datetime.today()
+            idx = Index([today], dtype=object)
+            result = idx.to_datetime()
+            expected = DatetimeIndex([today])
+            tm.assert_index_equal(result, expected)
 
     def test_dataframe(self):
 
