@@ -1061,6 +1061,7 @@ Deprecations
 - ``Categorical.reshape`` has been deprecated and will be removed in a subsequent release (:issue:`12882`)
 - ``Series.reshape`` has been deprecated and will be removed in a subsequent release (:issue:`12882`)
 
+- ``PeriodIndex.to_datetime`` has been deprecated in favour of ``PeriodIndex.to_timestamp`` (:issue:`8254`)
 - ``Timestamp.to_datetime`` has been deprecated in favour of ``Timestamp.to_pydatetime`` (:issue:`8254`)
 - ``Index.to_datetime`` and ``DatetimeIndex.to_datetime`` have been deprecated in favour of ``pd.to_datetime`` (:issue:`8254`)
 - ``SparseList`` has been deprecated and will be removed in a future version (:issue:`13784`)

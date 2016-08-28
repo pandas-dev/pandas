@@ -1,6 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 from datetime import datetime, timedelta
 import numpy as np
+import warnings
 
 
 from pandas.core import common as com
@@ -550,6 +551,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return self._simple_new(new_data, self.name, freq=freq)
 
     def to_datetime(self, dayfirst=False):
+        """
+        DEPRECATED: use :meth:`to_timestamp` instead.
+
+        Cast to DatetimeIndex.
+        """
+        warnings.warn("to_datetime is deprecated. Use self.to_timestamp(...)",
+                      FutureWarning, stacklevel=2)
         return self.to_timestamp()
 
     year = _field_accessor('year', 0, "The year of the period")
