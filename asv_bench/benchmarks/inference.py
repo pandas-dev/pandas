@@ -146,14 +146,15 @@ class to_numeric(object):
               [None, 'integer', 'signed', 'unsigned', 'float']]
 
     N = 500000
+    N2 = int(N / 2)
 
     data_dict = {
-        'string-int': (['1'] * (N // 2)) + ([2] * (N // 2)),
-        'string-nint': (['-1'] * (N // 2)) + ([2] * (N // 2)),
+        'string-int': (['1'] * N2) + ([2] * N2),
+        'string-nint': (['-1'] * N2) + ([2] * N2),
         'datetime64': np.repeat(np.array(['1970-01-01', '1970-01-02'],
                                          dtype='datetime64[D]'), N),
-        'string-float': (['1.1'] * (N // 2)) + ([2] * (N // 2)),
-        'int-list': ([1] * (N // 2)) + ([2] * (N // 2)),
+        'string-float': (['1.1'] * N2) + ([2] * N2),
+        'int-list': ([1] * N2) + ([2] * N2),
         'int32': np.repeat(np.int32(1), N)
         }
 

@@ -3,7 +3,7 @@ import pandas as pd
 from pandas.util import testing as tm
 
 
-class algorithm(object):
+class Algorithms(object):
     goal_time = 0.2
 
     def setup(self):
@@ -24,19 +24,19 @@ class algorithm(object):
         self.arrneg = np.arange(-1000000, 0)
         self.arrmixed = np.array([1, -1]).repeat(500000)
 
-    def time_int_factorize(self):
+    def time_factorize_int(self):
         self.int.factorize()
 
-    def time_float_factorize(self):
+    def time_factorize_float(self):
         self.int.factorize()
 
-    def time_int_unique_duplicated(self):
+    def time_duplicated_int_unique(self):
         self.int_unique.duplicated()
 
-    def time_int_duplicated(self):
+    def time_duplicated_int(self):
         self.int.duplicated()
 
-    def time_float_duplicated(self):
+    def time_duplicated_float(self):
         self.float.duplicated()
 
     def time_add_overflow_pos_scalar(self):
