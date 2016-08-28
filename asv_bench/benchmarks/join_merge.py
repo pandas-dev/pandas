@@ -183,62 +183,6 @@ class JoinIndex(object):
         self.left.join(self.right, on='jim')
 
 
-class merge_asof_noby(object):
-
-    def setup(self):
-        np.random.seed(0)
-        one_count = 200000
-        two_count = 1000000
-        self.df1 = pd.DataFrame({'time': np.random.randint(0, one_count/20, one_count),
-                                 'value1': np.random.randn(one_count)})
-        self.df2 = pd.DataFrame({'time': np.random.randint(0, two_count/20, two_count),
-                                 'value2': np.random.randn(two_count)})
-        self.df1 = self.df1.sort_values('time')
-        self.df2 = self.df2.sort_values('time')
-
-    def time_merge_asof_noby(self):
-        merge_asof(self.df1, self.df2, on='time')
-
-
-class merge_asof_by_object(object):
-
-    def setup(self):
-        import string
-        np.random.seed(0)
-        one_count = 200000
-        two_count = 1000000
-        self.df1 = pd.DataFrame({'time': np.random.randint(0, one_count/20, one_count),
-                                 'key': np.random.choice(list(string.uppercase), one_count),
-                                 'value1': np.random.randn(one_count)})
-        self.df2 = pd.DataFrame({'time': np.random.randint(0, two_count/20, two_count),
-                                 'key': np.random.choice(list(string.uppercase), two_count),
-                                 'value2': np.random.randn(two_count)})
-        self.df1 = self.df1.sort_values('time')
-        self.df2 = self.df2.sort_values('time')
-
-    def time_merge_asof_by_object(self):
-        merge_asof(self.df1, self.df2, on='time', by='key')
-
-
-class merge_asof_by_int(object):
-
-    def setup(self):
-        np.random.seed(0)
-        one_count = 200000
-        two_count = 1000000
-        self.df1 = pd.DataFrame({'time': np.random.randint(0, one_count/20, one_count),
-                                 'key': np.random.randint(0, 25, one_count),
-                                 'value1': np.random.randn(one_count)})
-        self.df2 = pd.DataFrame({'time': np.random.randint(0, two_count/20, two_count),
-                                 'key': np.random.randint(0, 25, two_count),
-                                 'value2': np.random.randn(two_count)})
-        self.df1 = self.df1.sort_values('time')
-        self.df2 = self.df2.sort_values('time')
-
-    def time_merge_asof_by_int(self):
-        merge_asof(self.df1, self.df2, on='time', by='key')
-
-
 class join_non_unique_equal(object):
     # outer join of non-unique
     # GH 6329
@@ -331,6 +275,48 @@ class MergeOrdered(object):
 
     def time_merge_ordered(self):
         merge_ordered(self.left, self.right, on='key', left_by='group')
+
+
+# ----------------------------------------------------------------------
+# asof merge
+
+class MergeAsof(object):
+
+    def setup(self):
+        import string
+        np.random.seed(0)
+        one_count = 200000
+        two_count = 1000000
+
+        self.df1 = pd.DataFrame(
+            {'time': np.random.randint(0, one_count / 20, one_count),
+             'key': np.random.choice(list(string.uppercase), one_count),
+             'key2': np.random.randint(0, 25, one_count),
+             'value1': np.random.randn(one_count)})
+        self.df2 = pd.DataFrame(
+            {'time': np.random.randint(0, two_count / 20, two_count),
+             'key': np.random.choice(list(string.uppercase), two_count),
+             'key2': np.random.randint(0, 25, two_count),
+             'value2': np.random.randn(two_count)})
+
+        self.df1 = self.df1.sort_values('time')
+        self.df2 = self.df2.sort_values('time')
+
+        self.df1a = self.df1[['time', 'value1']]
+        self.df2a = self.df2[['time', 'value2']]
+        self.df1b = self.df1[['time', 'key', 'value1']]
+        self.df2b = self.df2[['time', 'key', 'value2']]
+        self.df1c = self.df1[['time', 'key2', 'value1']]
+        self.df2c = self.df2[['time', 'key2', 'value2']]
+
+    def time_noby(self):
+        merge_asof(self.df1a, self.df2a, on='time')
+
+    def time_by_object(self):
+        merge_asof(self.df1b, self.df2b, on='time', by='key')
+
+    def time_by_int(self):
+        merge_asof(self.df1c, self.df2c, on='time', by='key2')
 
 
 #----------------------------------------------------------------------
