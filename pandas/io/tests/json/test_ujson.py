@@ -1321,20 +1321,22 @@ class PandasJSONTests(TestCase):
                                        numpy=True))
         outp = Series(**dec)
 
+        exp_np = Series(np.array([10, 20, 30, 40, 50, 60]))
+        exp_pd = Series([10, 20, 30, 40, 50, 60])
         outp = Series(ujson.decode(ujson.encode(s, orient="records"),
                                    numpy=True))
-        exp = Series([10, 20, 30, 40, 50, 60])
-        tm.assert_series_equal(outp, exp)
+        tm.assert_series_equal(outp, exp_np)
 
         outp = Series(ujson.decode(ujson.encode(s, orient="records")))
-        tm.assert_series_equal(outp, exp)
+        exp = Series([10, 20, 30, 40, 50, 60])
+        tm.assert_series_equal(outp, exp_pd)
 
         outp = Series(ujson.decode(ujson.encode(s, orient="values"),
                                    numpy=True))
-        tm.assert_series_equal(outp, exp)
+        tm.assert_series_equal(outp, exp_np)
 
         outp = Series(ujson.decode(ujson.encode(s, orient="values")))
-        tm.assert_series_equal(outp, exp)
+        tm.assert_series_equal(outp, exp_pd)
 
         outp = Series(ujson.decode(ujson.encode(
             s, orient="index"))).sort_values()
