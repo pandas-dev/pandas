@@ -42,9 +42,9 @@ from pandas.core.internals import BlockManager
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.missing as missing
-import pandas.core.datetools as datetools
 from pandas.formats.printing import pprint_thing
 from pandas.formats.format import format_percentiles
+from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lrange, string_types,
@@ -4792,7 +4792,7 @@ class NDFrame(PandasObject):
         periods : int
             Number of periods to move, can be positive or negative
         freq : DateOffset, timedelta, or time rule string, optional
-            Increment to use from datetools module or time rule (e.g. 'EOM').
+            Increment to use from the tseries module or time rule (e.g. 'EOM').
             See Notes.
         axis : %(axes_single_arg)s
 
@@ -4865,7 +4865,7 @@ class NDFrame(PandasObject):
         periods : int
             Number of periods to move, can be positive or negative
         freq : DateOffset, timedelta, or time rule string, default None
-            Increment to use from datetools module or time rule (e.g. 'EOM')
+            Increment to use from the tseries module or time rule (e.g. 'EOM')
         axis : int or basestring
             Corresponds to the axis that contains the Index
 
@@ -4895,11 +4895,11 @@ class NDFrame(PandasObject):
             return self
 
         if isinstance(freq, string_types):
-            freq = datetools.to_offset(freq)
+            freq = to_offset(freq)
 
         block_axis = self._get_block_manager_axis(axis)
         if isinstance(index, PeriodIndex):
-            orig_freq = datetools.to_offset(index.freq)
+            orig_freq = to_offset(index.freq)
             if freq == orig_freq:
                 new_data = self._data.copy()
                 new_data.axes[block_axis] = index.shift(periods)
