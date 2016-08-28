@@ -116,6 +116,21 @@ matrix:
           packages:
           - xsel
 #    In allow_failures
+    - python: 3.4
+      env:
+        - JOB_NAME: "34_slow_ascii"
+        - JOB_TAG=_SLOW
+        - NOSE_ARGS="slow and not network and not disabled"
+        - LOCALE_OVERRIDE="C"
+        - FULL_DEPS=true
+        - CLIPBOARD=xsel
+        - CACHE_NAME="34_slow_ascii"
+        - USE_CACHE=true
+      addons:
+        apt:
+          packages:
+          - xsel
+#    In allow_failures
     - python: 2.7
       env:
         - JOB_NAME: "27_build_test_conda"
@@ -179,6 +194,20 @@ matrix:
         - FULL_DEPS=true
         - CLIPBOARD=xsel
         - CACHE_NAME="34_slow"
+        - USE_CACHE=true
+        addons:
+          apt:
+            packages:
+            - xsel
+      - python: 3.4
+        env:
+        - JOB_NAME: "34_slow_ascii"
+        - JOB_TAG=_SLOW
+        - NOSE_ARGS="slow and not network and not disabled"
+        - LOCALE_OVERRIDE="C"
+        - FULL_DEPS=true
+        - CLIPBOARD=xsel
+        - CACHE_NAME="34_slow_ascii"
         - USE_CACHE=true
         addons:
           apt:
