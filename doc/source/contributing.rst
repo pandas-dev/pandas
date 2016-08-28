@@ -46,8 +46,8 @@ Bug reports must:
    <http://github.github.com/github-flavored-markdown/>`_::
 
       ```python
-      >>> import pandas as pd
-      >>> df = pd.DataFrame(...)
+      >>> from pandas import DataFrame
+      >>> df = DataFrame(...)
       ...
       ```
 
