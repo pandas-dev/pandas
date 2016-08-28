@@ -299,6 +299,16 @@ class TestFactorize(tm.TestCase):
             _test_vector_resize(tbl(), vect(), dtype, 0)
             _test_vector_resize(tbl(), vect(), dtype, 10)
 
+    def test_complex_sorting(self):
+        # gh 12666 - check no segfault
+        # Test not valid numpy versions older than 1.11
+        if pd._np_version_under1p11:
+            self.skipTest("Test valid only for numpy 1.11+")
+
+        x17 = np.array([complex(i) for i in range(17)], dtype=object)
+
+        self.assertRaises(TypeError, algos.factorize, x17[::-1], sort=True)
+
 
 class TestUnique(tm.TestCase):
     _multiprocess_can_split_ = True
