@@ -702,10 +702,10 @@ all accept are:
 
    The output of the ``.rolling`` and ``.expanding`` methods do not return a
    ``NaN`` if there are at least ``min_periods`` non-null values in the current
-   window. This differs from :meth:`~DataFrame.cumsum`, :meth:`~DataFrame.cumprod`,
-   :meth:`~DataFrame.cummax`, and :meth:`~DataFrame.cummin`,
-   which return ``NaN`` in the output wherever a ``NaN``
-   is encountered in the input.
+   window. This differs from :meth:`~DataFrame.cumsum`,
+   :meth:`~DataFrame.cumprod`, :meth:`~DataFrame.cummax`,
+   and :meth:`~DataFrame.cummin`, which return ``NaN`` in the output wherever
+   a ``NaN`` is encountered in the input.
 
    Please see the example below. In order to match the output of ``cumsum``
    with ``expanding``, use :meth:`~DataFrame.fillna`.

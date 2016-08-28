@@ -5363,7 +5363,8 @@ class NDFrame(PandasObject):
 
         cls.cummin = _make_cum_function(
             cls, 'cummin', name, name2, axis_descr, "cumulative minimum",
-            lambda y, axis: np.minimum.accumulate(y, axis), "min", np.inf, np.nan)
+            lambda y, axis: np.minimum.accumulate(y, axis), "min",
+            np.inf, np.nan)
         cls.cumsum = _make_cum_function(
             cls, 'cumsum', name, name2, axis_descr, "cumulative sum",
             lambda y, axis: y.cumsum(axis), "sum", 0., np.nan)
@@ -5372,7 +5373,8 @@ class NDFrame(PandasObject):
             lambda y, axis: y.cumprod(axis), "prod", 1., np.nan)
         cls.cummax = _make_cum_function(
             cls, 'cummax', name, name2, axis_descr, "cumulative max",
-            lambda y, axis: np.maximum.accumulate(y, axis), "max", -np.inf, np.nan)
+            lambda y, axis: np.maximum.accumulate(y, axis), "max",
+            -np.inf, np.nan)
 
         cls.sum = _make_stat_function(
             cls, 'sum', name, name2, axis_descr,
