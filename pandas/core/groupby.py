@@ -2554,7 +2554,7 @@ def %(name)s(self) :
             # GroupBy._make_wrapper won't know whether
             # we passed in an axis parameter.
             args_by_name = ['{0}={0}'.format(arg) for arg in args[1:]]
-            # if the original signature takes either *args or **kwargs, pass them along in the same manner
+            # include *args or **kwargs if the original signature takes them
             args_by_name.extend(
                 declitem for declitem in decl if declitem.startswith('*')
             )
