@@ -16,7 +16,6 @@ from pandas.tseries.tools import to_datetime
 import pandas.tseries.period as period
 import pandas.tseries.offsets as offsets
 
-import pandas.core.datetools as datetools
 import pandas as pd
 import numpy as np
 from numpy.random import randn
@@ -2910,9 +2909,9 @@ class TestPeriodIndex(tm.TestCase):
         tm.assert_index_equal(result.index, index.asfreq('D', how='start'))
 
     def test_badinput(self):
-        self.assertRaises(datetools.DateParseError, Period, '1/1/-2000', 'A')
-        # self.assertRaises(datetools.DateParseError, Period, '-2000', 'A')
-        # self.assertRaises(datetools.DateParseError, Period, '0', 'A')
+        self.assertRaises(ValueError, Period, '-2000', 'A')
+        self.assertRaises(tslib.DateParseError, Period, '0', 'A')
+        self.assertRaises(tslib.DateParseError, Period, '1/1/-2000', 'A')
 
     def test_negative_ordinals(self):
         Period(ordinal=-1000, freq='A')

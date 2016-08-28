@@ -12,15 +12,15 @@ from pandas import Index, Series, DataFrame, isnull, date_range
 from pandas.core.index import MultiIndex
 from pandas.core.indexing import IndexingError
 from pandas.tseries.index import Timestamp
+from pandas.tseries.offsets import BDay
 from pandas.tseries.tdi import Timedelta
 
-import pandas.core.datetools as datetools
 from pandas.compat import lrange, range
 from pandas import compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
-from .common import TestData
+from pandas.tests.series.common import TestData
 
 JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
@@ -153,7 +153,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         self.assertEqual(self.series[5], self.series.get(self.series.index[5]))
 
         # missing
-        d = self.ts.index[0] - datetools.bday
+        d = self.ts.index[0] - BDay()
         self.assertRaises(KeyError, self.ts.__getitem__, d)
 
         # None
@@ -321,7 +321,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_getitem_setitem_boolean_corner(self):
         ts = self.ts
-        mask_shifted = ts.shift(1, freq=datetools.bday) > ts.median()
+        mask_shifted = ts.shift(1, freq=BDay()) > ts.median()
 
         # these used to raise...??
 
@@ -1856,3 +1856,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         result2 = s.ix['foo']
         self.assertEqual(result.name, s.name)
         self.assertEqual(result2.name, s.name)
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

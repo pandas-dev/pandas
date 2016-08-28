@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 
 from pandas.types.common import is_float_dtype
-from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
-from pandas.core.datetools import bday
+from pandas import (Series, DataFrame, Index, date_range, isnull, notnull,
+                    pivot, MultiIndex)
 from pandas.core.nanops import nanall, nanany
 from pandas.core.panel import Panel
 from pandas.core.series import remove_na
@@ -20,6 +20,7 @@ from pandas.formats.printing import pprint_thing
 from pandas import compat
 from pandas.compat import range, lrange, StringIO, OrderedDict, signature
 
+from pandas.tseries.offsets import BDay, MonthEnd
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
                                  ensure_clean, assertRaisesRegexp,
@@ -500,11 +501,9 @@ class CheckIndexing(object):
             p[0] = np.random.randn(4, 2)
 
     def test_setitem_ndarray(self):
-        from pandas import date_range, datetools
-
         timeidx = date_range(start=datetime(2009, 1, 1),
                              end=datetime(2009, 12, 31),
-                             freq=datetools.MonthEnd())
+                             freq=MonthEnd())
         lons_coarse = np.linspace(-177.5, 177.5, 72)
         lats_coarse = np.linspace(-87.5, 87.5, 36)
         P = Panel(items=timeidx, major_axis=lons_coarse,
@@ -542,7 +541,7 @@ class CheckIndexing(object):
         self.assertEqual(result.name, 'ItemA')
 
         # not contained
-        idx = self.panel.major_axis[0] - bday
+        idx = self.panel.major_axis[0] - BDay()
         self.assertRaises(Exception, self.panel.major_xs, idx)
 
     def test_major_xs_mixed(self):
@@ -1878,7 +1877,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         shifted2 = ps.tshift(freq='B')
         assert_panel_equal(shifted, shifted2)
 
-        shifted3 = ps.tshift(freq=bday)
+        shifted3 = ps.tshift(freq=BDay())
         assert_panel_equal(shifted, shifted3)
 
         assertRaisesRegexp(ValueError, 'does not match', ps.tshift, freq='M')

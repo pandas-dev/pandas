@@ -8,7 +8,7 @@ import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range, Panel
 from pandas.tseries.index import DatetimeIndex
-import pandas.core.datetools as datetools
+from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 from pandas.compat import lrange
 from pandas import compat
@@ -850,8 +850,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
             exp = exp.to_sparse(frame.default_fill_value)
             tm.assert_frame_equal(shifted, exp)
 
-            shifted = frame.shift(2, freq=datetools.bday)
-            exp = orig.shift(2, freq=datetools.bday)
+            shifted = frame.shift(2, freq=BDay())
+            exp = orig.shift(2, freq=BDay())
             exp = exp.to_sparse(frame.default_fill_value)
             tm.assert_frame_equal(shifted, exp)
 

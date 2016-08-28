@@ -16,7 +16,7 @@ import numpy as np
 
 from pandas import date_range, bdate_range
 from pandas.core.panel import Panel
-from pandas import DataFrame, Index, Series, notnull, datetools
+from pandas import DataFrame, Index, Series, notnull, offsets
 from pandas.stats.api import ols
 from pandas.stats.ols import _filter_data
 from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
@@ -24,7 +24,7 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assertRaisesRegexp, slow)
 import pandas.util.testing as tm
 import pandas.compat as compat
-from .common import BaseTest
+from pandas.stats.tests.common import BaseTest
 
 _have_statsmodels = True
 try:
@@ -898,22 +898,22 @@ class TestOLSFilter(tm.TestCase):
 
     def setUp(self):
         date_index = date_range(datetime(2009, 12, 11), periods=3,
-                                freq=datetools.bday)
+                                freq=offsets.BDay())
         ts = Series([3, 1, 4], index=date_index)
         self.TS1 = ts
 
         date_index = date_range(datetime(2009, 12, 11), periods=5,
-                                freq=datetools.bday)
+                                freq=offsets.BDay())
         ts = Series([1, 5, 9, 2, 6], index=date_index)
         self.TS2 = ts
 
         date_index = date_range(datetime(2009, 12, 11), periods=3,
-                                freq=datetools.bday)
+                                freq=offsets.BDay())
         ts = Series([5, np.nan, 3], index=date_index)
         self.TS3 = ts
 
         date_index = date_range(datetime(2009, 12, 11), periods=5,
-                                freq=datetools.bday)
+                                freq=offsets.BDay())
         ts = Series([np.nan, 5, 8, 9, 7], index=date_index)
         self.TS4 = ts
 
