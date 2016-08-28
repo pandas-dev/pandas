@@ -791,11 +791,11 @@ def _make_nan_func(func_name):
     f.__name__ = func_name
     return f
 
-_nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
+_nat_methods = ['date', 'now', 'replace', 'to_pydatetime', 'today']
 
 _nan_methods = ['weekday', 'isoweekday', 'total_seconds']
 
-_implemented_methods = ['to_datetime64', 'isoformat']
+_implemented_methods = ['to_datetime', 'to_datetime64', 'isoformat']
 _implemented_methods.extend(_nat_methods)
 _implemented_methods.extend(_nan_methods)
 
