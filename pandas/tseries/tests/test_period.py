@@ -2180,6 +2180,13 @@ class TestPeriodIndex(tm.TestCase):
                          pd.Period('2011-01', freq='M'))
         self.assertIs(s[pd.NaT], tslib.NaT)
 
+    def test_getitem_list_periods(self):
+        # GH 7710
+        rng = period_range(start='2012-01-01', periods=10, freq='D')
+        ts = Series(lrange(len(rng)), index=rng)
+        exp = ts.iloc[[1]]
+        tm.assert_series_equal(ts[[Period('2012-01-02', freq='D')]], exp)
+
     def test_slice_with_negative_step(self):
         ts = Series(np.arange(20),
                     period_range('2014-01', periods=20, freq='M'))
