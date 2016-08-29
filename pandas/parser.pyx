@@ -34,6 +34,7 @@ import numpy as np
 cimport util
 
 import pandas.lib as lib
+import pandas.compat as compat
 from pandas.types.common import (is_categorical_dtype, CategoricalDtype,
                                  is_integer_dtype, is_float_dtype,
                                  is_bool_dtype, is_object_dtype,
@@ -631,7 +632,6 @@ cdef class TextReader:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
-                from pandas import compat
                 lzma = compat.import_lzma()
 
                 if isinstance(source, basestring):
@@ -663,7 +663,7 @@ cdef class TextReader:
 
             if ptr == NULL:
                 if not os.path.exists(source):
-                    raise IOError('File %s does not exist' % source)
+                    raise compat.FileNotFoundError('File %s does not exist' % source)
                 raise IOError('Initializing from file failed')
 
             self.parser.source = ptr
