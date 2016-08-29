@@ -7,8 +7,7 @@ import numpy as np
 
 from pandas.types.missing import isnull
 from pandas.types.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.types.common import (is_object_dtype,
-                                 is_list_like, is_scalar)
+from pandas.types.common import is_object_dtype, is_list_like, is_scalar
 
 from pandas.core import common as com
 import pandas.core.nanops as nanops
@@ -21,7 +20,7 @@ from pandas.formats.printing import pprint_thing
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
-                            duplicated='IndexOpsMixin')
+                            unique='IndexOpsMixin', duplicated='IndexOpsMixin')
 
 
 class StringMixin(object):
@@ -952,21 +951,27 @@ class IndexOpsMixin(object):
                               normalize=normalize, bins=bins, dropna=dropna)
         return result
 
-    def unique(self):
+    _shared_docs['unique'] = (
         """
-        Return array of unique values in the object. Significantly faster than
-        numpy.unique. Includes NA values.
+        Return %(unique)s of unique values in the object.
+        Significantly faster than numpy.unique. Includes NA values.
+        The order of the original is preserved.
 
         Returns
         -------
-        uniques : ndarray
-        """
-        from pandas.core.nanops import unique1d
-        values = self.values
-        if hasattr(values, 'unique'):
-            return values.unique()
+        uniques : %(unique)s
+        """)
 
-        return unique1d(values)
+    @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)
+    def unique(self):
+        values = self._values
+
+        if hasattr(values, 'unique'):
+            result = values.unique()
+        else:
+            from pandas.core.nanops import unique1d
+            result = unique1d(values)
+        return result
 
     def nunique(self, dropna=True):
         """

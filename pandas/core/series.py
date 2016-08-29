@@ -18,6 +18,7 @@ from pandas.types.common import (_coerce_to_dtype, is_categorical_dtype,
                                  is_float_dtype,
                                  is_extension_type, is_datetimetz,
                                  is_datetimelike,
+                                 is_datetime64tz_dtype,
                                  is_timedelta64_dtype,
                                  is_list_like,
                                  is_hashable,
@@ -77,7 +78,7 @@ _shared_doc_kwargs = dict(
     axes='index', klass='Series', axes_single_arg="{0, 'index'}",
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
-    duplicated='Series',
+    unique='np.ndarray', duplicated='Series',
     optional_by='')
 
 
@@ -1230,6 +1231,15 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """
         # TODO: Add option for bins like value_counts()
         return algos.mode(self)
+
+    @Appender(base._shared_docs['unique'] % _shared_doc_kwargs)
+    def unique(self):
+        result = super(Series, self).unique()
+        if is_datetime64tz_dtype(self.dtype):
+            # to return array of Timestamp with tz
+            # ToDo: it must return DatetimeArray with tz in pandas 2.0
+            return result.asobject.values
+        return result
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})

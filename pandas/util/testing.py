@@ -1534,7 +1534,7 @@ def makeStringIndex(k=10, name=None):
 
 
 def makeUnicodeIndex(k=10, name=None):
-    return Index(randu_array(nchars=10, size=k))
+    return Index(randu_array(nchars=10, size=k), name=name)
 
 
 def makeCategoricalIndex(k=10, n=3, name=None):
