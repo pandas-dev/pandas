@@ -89,7 +89,8 @@ def _possibly_downcast_to_dtype(result, dtype):
 
         if issubclass(dtype.type, np.floating):
             return result.astype(dtype)
-        elif dtype == np.bool_ or issubclass(dtype.type, np.integer):
+        elif (dtype == np.bool_ or issubclass(dtype.type, np.integer) and
+                dtype.kind != 'm'):
 
             # if we don't have any elements, just astype it
             if not np.prod(result.shape):
