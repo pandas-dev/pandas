@@ -148,7 +148,7 @@ pip install pandas
 - [pytz](http://pytz.sourceforge.net)
     - Needed for time zone support with ``pandas.date_range``
 
-See the [full installation instructions](http://pandas.pydata.org/pandas-docs/stable/install.html)
+See the [full installation instructions](http://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
 for recommended and optional dependencies.
 
 ## Installation from sources
