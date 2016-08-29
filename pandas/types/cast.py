@@ -12,7 +12,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_timedelta64_dtype, is_dtype_equal,
                      is_float_dtype, is_complex_dtype,
                      is_integer_dtype, is_datetime_or_timedelta_dtype,
-                     is_scalar,
+                     is_bool_dtype, is_scalar,
                      _string_dtypes,
                      _coerce_to_dtype,
                      _ensure_int8, _ensure_int16,
@@ -89,8 +89,7 @@ def _possibly_downcast_to_dtype(result, dtype):
 
         if issubclass(dtype.type, np.floating):
             return result.astype(dtype)
-        elif (dtype == np.bool_ or issubclass(dtype.type, np.integer) and
-                dtype.kind != 'm'):
+        elif is_bool_dtype(dtype) or is_integer_dtype(dtype):
 
             # if we don't have any elements, just astype it
             if not np.prod(result.shape):
