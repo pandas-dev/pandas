@@ -1,5 +1,7 @@
 # cython: profile=False
 
+import warnings
+
 cimport numpy as np
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
@@ -637,22 +639,6 @@ class Timestamp(_Timestamp):
         return Timestamp(datetime.replace(self, **kwds),
                          freq=self.freq)
 
-    def to_pydatetime(self, warn=True):
-        """
-        If warn=True, issue warning if nanoseconds is nonzero
-        """
-        cdef:
-            pandas_datetimestruct dts
-            _TSObject ts
-
-        if self.nanosecond != 0 and warn:
-            print 'Warning: discarding nonzero nanoseconds'
-        ts = convert_to_tsobject(self, self.tzinfo, None, 0, 0)
-
-        return datetime(ts.dts.year, ts.dts.month, ts.dts.day,
-                        ts.dts.hour, ts.dts.min, ts.dts.sec,
-                        ts.dts.us, ts.tzinfo)
-
     def isoformat(self, sep='T'):
         base = super(_Timestamp, self).isoformat(sep=sep)
         if self.nanosecond == 0:
@@ -805,11 +791,11 @@ def _make_nan_func(func_name):
     f.__name__ = func_name
     return f
 
-_nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
+_nat_methods = ['date', 'now', 'replace', 'to_pydatetime', 'today']
 
 _nan_methods = ['weekday', 'isoweekday', 'total_seconds']
 
-_implemented_methods = ['to_datetime64', 'isoformat']
+_implemented_methods = ['to_datetime', 'to_datetime64', 'isoformat']
 _implemented_methods.extend(_nat_methods)
 _implemented_methods.extend(_nan_methods)
 
@@ -986,7 +972,7 @@ cdef class _Timestamp(datetime):
             ots = other
         elif isinstance(other, datetime):
             if self.nanosecond == 0:
-                val = self.to_datetime()
+                val = self.to_pydatetime()
                 return PyObject_RichCompareBool(val, other, op)
 
             try:
@@ -1048,7 +1034,7 @@ cdef class _Timestamp(datetime):
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
-        cdef datetime dtval = self.to_datetime()
+        cdef datetime dtval = self.to_pydatetime()
 
         self._assert_tzawareness_compat(other)
 
@@ -1078,9 +1064,28 @@ cdef class _Timestamp(datetime):
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
     cpdef datetime to_datetime(_Timestamp self):
+        """
+        DEPRECATED: use :meth:`to_pydatetime` instead.
+
+        Convert a Timestamp object to a native Python datetime object.
+        """
+        warnings.warn("to_datetime is deprecated. Use self.to_pydatetime()",
+                      FutureWarning, stacklevel=2)
+        return self.to_pydatetime(warn=False)
+
+    cpdef datetime to_pydatetime(_Timestamp self, warn=True):
+        """
+        Convert a Timestamp object to a native Python datetime object.
+
+        If warn=True, issue a warning if nanoseconds is nonzero.
+        """
         cdef:
             pandas_datetimestruct dts
             _TSObject ts
+
+        if self.nanosecond != 0 and warn:
+            warnings.warn("Discarding nonzero nanoseconds in conversion",
+                          UserWarning, stacklevel=2)
         ts = convert_to_tsobject(self, self.tzinfo, None, 0, 0)
         dts = ts.dts
         return datetime(dts.year, dts.month, dts.day,
