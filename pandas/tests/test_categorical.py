@@ -1302,6 +1302,30 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
                               ordered=True)
         tm.assert_categorical_equal(res, exp_cat)
 
+    def test_unique_index_series(self):
+        c = Categorical([3, 1, 2, 2, 1], categories=[3, 2, 1])
+        # Categorical.unique sorts categories by appearance order
+        # if ordered=False
+        exp = Categorical([3, 1, 2], categories=[3, 1, 2])
+        tm.assert_categorical_equal(c.unique(), exp)
+
+        tm.assert_index_equal(Index(c).unique(), Index(exp))
+        tm.assert_categorical_equal(pd.Series(c).unique(), exp)
+
+        c = Categorical([1, 1, 2, 2], categories=[3, 2, 1])
+        exp = Categorical([1, 2], categories=[1, 2])
+        tm.assert_categorical_equal(c.unique(), exp)
+        tm.assert_index_equal(Index(c).unique(), Index(exp))
+        tm.assert_categorical_equal(pd.Series(c).unique(), exp)
+
+        c = Categorical([3, 1, 2, 2, 1], categories=[3, 2, 1], ordered=True)
+        # Categorical.unique keeps categories order if ordered=True
+        exp = Categorical([3, 1, 2], categories=[3, 2, 1], ordered=True)
+        tm.assert_categorical_equal(c.unique(), exp)
+
+        tm.assert_index_equal(Index(c).unique(), Index(exp))
+        tm.assert_categorical_equal(pd.Series(c).unique(), exp)
+
     def test_mode(self):
         s = Categorical([1, 1, 2, 4, 5, 5, 5], categories=[5, 4, 3, 2, 1],
                         ordered=True)

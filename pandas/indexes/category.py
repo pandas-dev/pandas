@@ -283,6 +283,14 @@ class CategoricalIndex(Index, base.PandasDelegate):
     def is_unique(self):
         return not self.duplicated().any()
 
+    @Appender(base._shared_docs['unique'] % ibase._index_doc_kwargs)
+    def unique(self):
+        result = base.IndexOpsMixin.unique(self)
+        # CategoricalIndex._shallow_copy uses keeps original categories
+        # and ordered if not otherwise specified
+        return self._shallow_copy(result, categories=result.categories,
+                                  ordered=result.ordered)
+
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})
     @Appender(base._shared_docs['duplicated'] % ibase._index_doc_kwargs)

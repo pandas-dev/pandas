@@ -743,19 +743,6 @@ class DatetimeIndexOpsMixin(object):
         attribs['end'] = end
         return type(self)(**attribs)
 
-    def unique(self):
-        """
-        Index.unique with handling for DatetimeIndex/PeriodIndex metadata
-
-        Returns
-        -------
-        result : DatetimeIndex or PeriodIndex
-        """
-        from pandas.core.index import Int64Index
-        result = Int64Index.unique(self)
-        return self._simple_new(result, name=self.name, freq=self.freq,
-                                tz=getattr(self, 'tz', None))
-
     def repeat(self, repeats, *args, **kwargs):
         """
         Analogous to ndarray.repeat

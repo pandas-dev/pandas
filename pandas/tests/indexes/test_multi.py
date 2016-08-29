@@ -1927,6 +1927,38 @@ class TestMultiIndex(Base, tm.TestCase):
             self.assertTrue(result.unique)
             self.assert_index_equal(result, expected)
 
+    def test_unique(self):
+        mi = pd.MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]])
+
+        res = mi.unique()
+        exp = pd.MultiIndex.from_arrays([[1, 2, 2], [1, 1, 2]])
+        tm.assert_index_equal(res, exp)
+
+        mi = pd.MultiIndex.from_arrays([list('aaaa'), list('abab')])
+        res = mi.unique()
+        exp = pd.MultiIndex.from_arrays([list('aa'), list('ab')])
+        tm.assert_index_equal(res, exp)
+
+        mi = pd.MultiIndex.from_arrays([list('aaaa'), list('aaaa')])
+        res = mi.unique()
+        exp = pd.MultiIndex.from_arrays([['a'], ['a']])
+        tm.assert_index_equal(res, exp)
+
+    def test_unique_datetimelike(self):
+        idx1 = pd.DatetimeIndex(['2015-01-01', '2015-01-01', '2015-01-01',
+                                 '2015-01-01', 'NaT', 'NaT'])
+        idx2 = pd.DatetimeIndex(['2015-01-01', '2015-01-01', '2015-01-02',
+                                 '2015-01-02', 'NaT', '2015-01-01'],
+                                tz='Asia/Tokyo')
+        result = pd.MultiIndex.from_arrays([idx1, idx2]).unique()
+
+        eidx1 = pd.DatetimeIndex(['2015-01-01', '2015-01-01', 'NaT', 'NaT'])
+        eidx2 = pd.DatetimeIndex(['2015-01-01', '2015-01-02',
+                                  'NaT', '2015-01-01'],
+                                 tz='Asia/Tokyo')
+        exp = pd.MultiIndex.from_arrays([eidx1, eidx2])
+        tm.assert_index_equal(result, exp)
+
     def test_tolist(self):
         result = self.index.tolist()
         exp = list(self.index.values)
