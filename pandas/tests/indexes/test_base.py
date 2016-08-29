@@ -502,7 +502,7 @@ class TestIndex(Base, tm.TestCase):
         d = self.dateIndex[-1]
         self.assertEqual(self.dateIndex.asof(d + timedelta(1)), d)
 
-        d = self.dateIndex[0].to_datetime()
+        d = self.dateIndex[0].to_pydatetime()
         tm.assertIsInstance(self.dateIndex.asof(d), Timestamp)
 
     def test_asof_datetime_partial(self):

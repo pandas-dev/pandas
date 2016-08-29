@@ -169,7 +169,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         from dateutil.tz import tzoffset
         tzinfo = tzoffset(None, 7200)
         expected = Timestamp('3/11/2012 04:00', tz=tzinfo)
-        result = Timestamp(expected.to_datetime())
+        result = Timestamp(expected.to_pydatetime())
         self.assertEqual(expected, result)
 
     def test_timedelta_push_over_dst_boundary(self):

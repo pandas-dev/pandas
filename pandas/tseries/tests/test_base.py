@@ -1127,11 +1127,11 @@ Freq: D"""
         # check that dt/dti subtraction ops with tz are validated
         dti = date_range('20130101', periods=3)
         ts = Timestamp('20130101')
-        dt = ts.to_datetime()
+        dt = ts.to_pydatetime()
         dti_tz = date_range('20130101', periods=3).tz_localize('US/Eastern')
         ts_tz = Timestamp('20130101').tz_localize('US/Eastern')
         ts_tz2 = Timestamp('20130101').tz_localize('CET')
-        dt_tz = ts_tz.to_datetime()
+        dt_tz = ts_tz.to_pydatetime()
         td = Timedelta('1 days')
 
         def _check(result, expected):

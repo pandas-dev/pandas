@@ -779,7 +779,7 @@ class TestGroupBy(tm.TestCase):
         g = df.groupby('DATE')
         key = list(g.groups)[0]
         result1 = g.get_group(key)
-        result2 = g.get_group(Timestamp(key).to_datetime())
+        result2 = g.get_group(Timestamp(key).to_pydatetime())
         result3 = g.get_group(str(Timestamp(key)))
         assert_frame_equal(result1, result2)
         assert_frame_equal(result1, result3)
@@ -788,7 +788,7 @@ class TestGroupBy(tm.TestCase):
 
         key = list(g.groups)[0]
         result1 = g.get_group(key)
-        result2 = g.get_group((Timestamp(key[0]).to_datetime(), key[1]))
+        result2 = g.get_group((Timestamp(key[0]).to_pydatetime(), key[1]))
         result3 = g.get_group((str(Timestamp(key[0])), key[1]))
         assert_frame_equal(result1, result2)
         assert_frame_equal(result1, result3)

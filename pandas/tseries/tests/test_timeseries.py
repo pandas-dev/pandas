@@ -1020,7 +1020,13 @@ class TestTimeSeries(tm.TestCase):
 
         for method in nat_methods:
             if hasattr(NaT, method):
-                self.assertIs(getattr(NaT, method)(), NaT)
+                # see gh-8254
+                exp_warning = None
+                if method == 'to_datetime':
+                    exp_warning = FutureWarning
+                with tm.assert_produces_warning(
+                        exp_warning, check_stacklevel=False):
+                    self.assertIs(getattr(NaT, method)(), NaT)
 
         # GH 12300
         self.assertEqual(NaT.isoformat(), 'NaT')
