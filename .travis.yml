@@ -116,15 +116,14 @@ matrix:
           packages:
           - xsel
 #    In allow_failures
-    - python: 3.4
+    - python: 3.5
       env:
-        - JOB_NAME: "34_slow_ascii"
-        - JOB_TAG=_SLOW
-        - NOSE_ARGS="slow and not network and not disabled"
+        - JOB_NAME: "35_ascii"
+        - NOSE_ARGS="not slow and not network and not disabled"
         - LOCALE_OVERRIDE="C"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
-        - CACHE_NAME="34_slow_ascii"
+        - CACHE_NAME="35_ascii"
         - USE_CACHE=true
       addons:
         apt:
@@ -199,15 +198,14 @@ matrix:
           apt:
             packages:
             - xsel
-      - python: 3.4
+      - python: 3.5
         env:
-        - JOB_NAME: "34_slow_ascii"
-        - JOB_TAG=_SLOW
+        - JOB_NAME: "35_ascii"
         - NOSE_ARGS="slow and not network and not disabled"
         - LOCALE_OVERRIDE="C"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
-        - CACHE_NAME="34_slow_ascii"
+        - CACHE_NAME="35_ascii"
         - USE_CACHE=true
         addons:
           apt:
