@@ -6,3 +6,4 @@ oauth2client==1.5.0
 pathlib
 backports.lzma
 py
+PyCrypto
