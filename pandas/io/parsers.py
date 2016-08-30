@@ -5,6 +5,7 @@ from __future__ import print_function
 from collections import defaultdict
 import re
 import csv
+import sys
 import warnings
 import datetime
 
@@ -782,6 +783,7 @@ class TextFileReader(BaseIterator):
                                   " skipfooter"
                 engine = 'python'
 
+        encoding = sys.getfilesystemencoding() or 'utf-8'
         if sep is None and not delim_whitespace:
             if engine == 'c':
                 fallback_reason = "the 'c' engine does not support"\
@@ -797,6 +799,14 @@ class TextFileReader(BaseIterator):
                                   " regex separators (separators > 1 char and"\
                                   " different from '\s+' are"\
                                   " interpreted as regex)"
+                engine = 'python'
+
+        elif len(sep.encode(encoding)) > 1:
+            if engine not in ('python', 'python-fwf'):
+                fallback_reason = "the separator encoded in {encoding}"\
+                                  " is > 1 char long, and the 'c' engine"\
+                                  " does not support such separators".format(
+                                      encoding=encoding)
                 engine = 'python'
         elif delim_whitespace:
             if 'python' in engine:
