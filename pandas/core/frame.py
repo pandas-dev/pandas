@@ -2266,7 +2266,7 @@ class DataFrame(NDFrame):
             resolvers = dict(self.iteritems()), index_resolvers
         if 'target' not in kwargs:
             kwargs['target'] = self
-        kwargs['resolvers'] = kwargs.get('resolvers', ()) + resolvers
+        kwargs['resolvers'] = kwargs.get('resolvers', ()) + tuple(resolvers)
         return _eval(expr, inplace=inplace, **kwargs)
 
     def select_dtypes(self, include=None, exclude=None):
