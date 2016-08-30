@@ -29,6 +29,7 @@ import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
 from pandas.util.decorators import Appender
+from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
@@ -97,7 +98,7 @@ squeeze : boolean, default False
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
-    as NaN: '""" + "', '".join(sorted(_NA_VALUES)) + """'.
+    as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 80) + """'.
 thousands : str, default None
     Thousands separator for parsing string columns to numeric.  Note that
     this parameter is only necessary for columns stored as TEXT in Excel,
@@ -168,7 +169,20 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '%s'" % engine_name)
 
 
-@Appender(_read_excel_doc)
+def split_doc(doc_string, word_wrap=80):
+    doc_lines = doc_string.split('\n')
+    doc_string = ''
+    for line in doc_lines:
+        if len(line) > word_wrap:
+            break_pos = line[:word_wrap].rfind(' ')
+            indent_width = len(line) - len(line.lstrip())
+            line = line[:break_pos] + '\n' + \
+                ' ' * indent_width + line[break_pos + 1:]
+        doc_string += (line + '\n')
+    return doc_string
+
+
+@Appender(split_doc(_read_excel_doc))
 def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, parse_cols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
