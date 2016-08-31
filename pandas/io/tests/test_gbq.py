@@ -210,6 +210,30 @@ def _check_if_can_get_correct_default_credentials():
         return False
 
 
+def _check_if_can_get_correct_default_credentials():
+    # Checks if "Application Default Credentials" can be fetched
+    # from the environment the tests are running in.
+    # See Issue #13577
+    test_requirements()
+    import httplib2
+    try:
+        from googleapiclient.discovery import build
+    except ImportError:
+        from apiclient.discovery import build
+    try:
+        from oauth2client.client import GoogleCredentials
+        credentials = GoogleCredentials.get_application_default()
+        http = httplib2.Http()
+        http = credentials.authorize(http)
+        bigquery_service = build('bigquery', 'v2', http=http)
+        jobs = bigquery_service.jobs()
+        job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
+        jobs.insert(projectId=PROJECT_ID, body=job_data).execute()
+        return True
+    except:
+        return False
+
+
 def clean_gbq_environment(private_key=None):
     dataset = gbq._Dataset(_get_project_id(), private_key=private_key)
 
