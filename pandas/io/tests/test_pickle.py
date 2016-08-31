@@ -163,6 +163,13 @@ class TestPickle():
         tm.assert_equal(result.freqstr, 'M')
         tm.assert_index_equal(result.shift(2), expected.shift(2))
 
+    def compare_sp_frame_float(self, result, expected, typ, version):
+        if LooseVersion(version) <= '0.18.1':
+            tm.assert_sp_frame_equal(result, expected, exact_indices=False,
+                                     check_dtype=False)
+        else:
+            tm.assert_sp_frame_equal(result, expected)
+
     def read_pickles(self, version):
         if not is_platform_little_endian():
             raise nose.SkipTest("known failure on non-little endian")

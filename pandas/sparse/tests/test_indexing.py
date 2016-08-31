@@ -49,6 +49,21 @@ class TestSparseSeriesIndexing(tm.TestCase):
         tm.assert_sp_series_equal(sparse[::2], orig[::2].to_sparse())
         tm.assert_sp_series_equal(sparse[-5:], orig[-5:].to_sparse())
 
+    def test_getitem_int_dtype(self):
+        # GH 8292
+        s = pd.SparseSeries([0, 1, 2, 3, 4, 5, 6], name='xxx')
+        res = s[::2]
+        exp = pd.SparseSeries([0, 2, 4, 6], index=[0, 2, 4, 6], name='xxx')
+        tm.assert_sp_series_equal(res, exp)
+        self.assertEqual(res.dtype, np.int64)
+
+        s = pd.SparseSeries([0, 1, 2, 3, 4, 5, 6], fill_value=0, name='xxx')
+        res = s[::2]
+        exp = pd.SparseSeries([0, 2, 4, 6], index=[0, 2, 4, 6],
+                              fill_value=0, name='xxx')
+        tm.assert_sp_series_equal(res, exp)
+        self.assertEqual(res.dtype, np.int64)
+
     def test_getitem_fill_value(self):
         orig = pd.Series([1, np.nan, 0, 3, 0])
         sparse = orig.to_sparse(fill_value=0)

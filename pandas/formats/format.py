@@ -21,6 +21,7 @@ from pandas.types.common import (is_categorical_dtype,
                                  is_numeric_dtype,
                                  is_datetime64_dtype,
                                  is_timedelta64_dtype)
+from pandas.types.generic import ABCSparseArray
 
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -1966,6 +1967,8 @@ class GenericArrayFormatter(object):
         vals = self.values
         if isinstance(vals, Index):
             vals = vals._values
+        elif isinstance(vals, ABCSparseArray):
+            vals = vals.values
 
         is_float_type = lib.map_infer(vals, is_float) & notnull(vals)
         leading_space = is_float_type.any()

@@ -40,16 +40,33 @@ class TestSparseSeriesSubclassing(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_subclass_sparse_slice(self):
+        # int64
         s = tm.SubclassedSparseSeries([1, 2, 3, 4, 5])
-        tm.assert_sp_series_equal(s.loc[1:3],
-                                  tm.SubclassedSparseSeries([2.0, 3.0, 4.0],
-                                                            index=[1, 2, 3]))
-        tm.assert_sp_series_equal(s.iloc[1:3],
-                                  tm.SubclassedSparseSeries([2.0, 3.0],
-                                                            index=[1, 2]))
-        tm.assert_sp_series_equal(s[1:3],
-                                  tm.SubclassedSparseSeries([2.0, 3.0],
-                                                            index=[1, 2]))
+        exp = tm.SubclassedSparseSeries([2, 3, 4], index=[1, 2, 3])
+        tm.assert_sp_series_equal(s.loc[1:3], exp)
+        self.assertEqual(s.loc[1:3].dtype, np.int64)
+
+        exp = tm.SubclassedSparseSeries([2, 3], index=[1, 2])
+        tm.assert_sp_series_equal(s.iloc[1:3], exp)
+        self.assertEqual(s.iloc[1:3].dtype, np.int64)
+
+        exp = tm.SubclassedSparseSeries([2, 3], index=[1, 2])
+        tm.assert_sp_series_equal(s[1:3], exp)
+        self.assertEqual(s[1:3].dtype, np.int64)
+
+        # float64
+        s = tm.SubclassedSparseSeries([1., 2., 3., 4., 5.])
+        exp = tm.SubclassedSparseSeries([2., 3., 4.], index=[1, 2, 3])
+        tm.assert_sp_series_equal(s.loc[1:3], exp)
+        self.assertEqual(s.loc[1:3].dtype, np.float64)
+
+        exp = tm.SubclassedSparseSeries([2., 3.], index=[1, 2])
+        tm.assert_sp_series_equal(s.iloc[1:3], exp)
+        self.assertEqual(s.iloc[1:3].dtype, np.float64)
+
+        exp = tm.SubclassedSparseSeries([2., 3.], index=[1, 2])
+        tm.assert_sp_series_equal(s[1:3], exp)
+        self.assertEqual(s[1:3].dtype, np.float64)
 
     def test_subclass_sparse_addition(self):
         s1 = tm.SubclassedSparseSeries([1, 3, 5])
@@ -66,9 +83,17 @@ class TestSparseSeriesSubclassing(tm.TestCase):
         s = tm.SubclassedSparseSeries([1, 2], index=list('abcd'), name='xxx')
         res = s.to_frame()
 
-        exp_arr = pd.SparseArray([1, 2], dtype=np.int64, kind='block')
+        exp_arr = pd.SparseArray([1, 2], dtype=np.int64, kind='block',
+                                 fill_value=0)
         exp = tm.SubclassedSparseDataFrame({'xxx': exp_arr},
-                                           index=list('abcd'))
+                                           index=list('abcd'),
+                                           default_fill_value=0)
+        tm.assert_sp_frame_equal(res, exp)
+
+        # create from int dict
+        res = tm.SubclassedSparseDataFrame({'xxx': [1, 2]},
+                                           index=list('abcd'),
+                                           default_fill_value=0)
         tm.assert_sp_frame_equal(res, exp)
 
         s = tm.SubclassedSparseSeries([1.1, 2.1], index=list('abcd'),

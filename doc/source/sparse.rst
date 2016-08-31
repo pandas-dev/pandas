@@ -132,6 +132,61 @@ keeps an arrays of all of the locations where the data are not equal to the
 fill value. The ``block`` format tracks only the locations and sizes of blocks
 of data.
 
+.. _sparse.dtype:
+
+Sparse Dtypes
+-------------
+
+Sparse data should have the same dtype as its dense representation. Currently,
+``float64``, ``int64`` and ``bool`` dtypes are supported. Depending on the original
+dtype, ``fill_value`` default changes:
+
+- ``float64``: ``np.nan``
+- ``int64``: ``0``
+- ``bool``: ``False``
+
+.. ipython:: python
+
+   s = pd.Series([1, np.nan, np.nan])
+   s
+   s.to_sparse()
+
+   s = pd.Series([1, 0, 0])
+   s
+   s.to_sparse()
+
+   s = pd.Series([True, False, True])
+   s
+   s.to_sparse()
+
+You can change the dtype using ``.astype()``, the result is also sparse. Note that
+``.astype()`` also affects to the ``fill_value`` to keep its dense represantation.
+
+
+.. ipython:: python
+
+   s = pd.Series([1, 0, 0, 0, 0])
+   s
+   ss = s.to_sparse()
+   ss
+   ss.astype(np.float64)
+
+It raises if any value cannot be coerced to specified dtype.
+
+.. code-block:: ipython
+
+   In [1]: ss = pd.Series([1, np.nan, np.nan]).to_sparse()
+   0    1.0
+   1    NaN
+   2    NaN
+   dtype: float64
+   BlockIndex
+   Block locations: array([0], dtype=int32)
+   Block lengths: array([1], dtype=int32)
+
+   In [2]: ss.astype(np.int64)
+   ValueError: unable to coerce current fill_value nan to int64 dtype
+
 .. _sparse.calculation:
 
 Sparse Calculation

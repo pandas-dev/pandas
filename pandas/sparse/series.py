@@ -8,7 +8,7 @@ with float64 data
 import numpy as np
 import warnings
 
-from pandas.types.missing import isnull
+from pandas.types.missing import isnull, notnull
 from pandas.types.common import is_scalar
 from pandas.core.common import _values_from_object, _maybe_match_name
 
@@ -91,7 +91,8 @@ class SparseSeries(Series):
     data : {array-like, Series, SparseSeries, dict}
     kind : {'block', 'integer'}
     fill_value : float
-        Defaults to NaN (code for missing)
+        Code for missing value. Defaults depends on dtype.
+        0 for int dtype, False for bool dtype, and NaN for other dtypes
     sparse_index : {BlockIndex, IntIndex}, optional
         Only if you have one. Mainly used internally
 
@@ -125,26 +126,20 @@ class SparseSeries(Series):
             if isinstance(data, Series) and name is None:
                 name = data.name
 
-            is_sparse_array = isinstance(data, SparseArray)
-            if fill_value is None:
-                if is_sparse_array:
-                    fill_value = data.fill_value
-                else:
-                    fill_value = np.nan
-
-            if is_sparse_array:
-                if isinstance(data, SparseSeries) and index is None:
-                    index = data.index.view()
-                elif index is not None:
+            if isinstance(data, SparseArray):
+                if index is not None:
                     assert (len(index) == len(data))
-
                 sparse_index = data.sp_index
+                if fill_value is None:
+                    fill_value = data.fill_value
+
                 data = np.asarray(data)
 
             elif isinstance(data, SparseSeries):
                 if index is None:
                     index = data.index.view()
-
+                if fill_value is None:
+                    fill_value = data.fill_value
                 # extract the SingleBlockManager
                 data = data._data
 
@@ -153,14 +148,14 @@ class SparseSeries(Series):
                     index = data.index.view()
 
                 data = Series(data)
-                data, sparse_index = make_sparse(data, kind=kind,
-                                                 fill_value=fill_value)
+                res = make_sparse(data, kind=kind, fill_value=fill_value)
+                data, sparse_index, fill_value = res
 
             elif isinstance(data, (tuple, list, np.ndarray)):
                 # array-like
                 if sparse_index is None:
-                    data, sparse_index = make_sparse(data, kind=kind,
-                                                     fill_value=fill_value)
+                    res = make_sparse(data, kind=kind, fill_value=fill_value)
+                    data, sparse_index, fill_value = res
                 else:
                     assert (len(data) == sparse_index.npoints)
 
@@ -635,6 +630,20 @@ class SparseSeries(Series):
                 sparse_index=new_array.sp_index).__finalize__(self)
         # TODO: gh-12855 - return a SparseSeries here
         return Series(new_array, index=self.index).__finalize__(self)
+
+    @Appender(generic._shared_docs['isnull'])
+    def isnull(self):
+        arr = SparseArray(isnull(self.values.sp_values),
+                          sparse_index=self.values.sp_index,
+                          fill_value=isnull(self.fill_value))
+        return self._constructor(arr, index=self.index).__finalize__(self)
+
+    @Appender(generic._shared_docs['isnotnull'])
+    def isnotnull(self):
+        arr = SparseArray(notnull(self.values.sp_values),
+                          sparse_index=self.values.sp_index,
+                          fill_value=notnull(self.fill_value))
+        return self._constructor(arr, index=self.index).__finalize__(self)
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """

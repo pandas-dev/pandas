@@ -3779,24 +3779,29 @@ class NDFrame(PandasObject):
     # ----------------------------------------------------------------------
     # Action Methods
 
-    def isnull(self):
-        """
+    _shared_docs['isnull'] = """
         Return a boolean same-sized object indicating if the values are null.
 
         See Also
         --------
         notnull : boolean inverse of isnull
         """
+
+    @Appender(_shared_docs['isnull'])
+    def isnull(self):
         return isnull(self).__finalize__(self)
 
-    def notnull(self):
-        """Return a boolean same-sized object indicating if the values are
+    _shared_docs['isnotnull'] = """
+        Return a boolean same-sized object indicating if the values are
         not null.
 
         See Also
         --------
         isnull : boolean inverse of notnull
         """
+
+    @Appender(_shared_docs['isnotnull'])
+    def notnull(self):
         return notnull(self).__finalize__(self)
 
     def clip(self, lower=None, upper=None, axis=None, *args, **kwargs):
