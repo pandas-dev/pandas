@@ -153,6 +153,8 @@ class TestDataFrameEval(tm.TestCase, TestData):
         dict2 = {'b': 2}
         self.assertTrue(df.eval('a + b', resolvers=[dict1, dict2]) ==
                         dict1['a'] + dict2['b'])
+        self.assertTrue(pd.eval('a + b', resolvers=[dict1, dict2]) ==
+                        dict1['a'] + dict2['b'])
 
 
 class TestDataFrameQueryWithMultiIndex(tm.TestCase):
