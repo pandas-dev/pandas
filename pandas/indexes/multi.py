@@ -2219,6 +2219,7 @@ class MultiIndex(Index):
 
 
 MultiIndex._add_numeric_methods_disabled()
+MultiIndex._add_numeric_methods_add_sub_disabled()
 MultiIndex._add_logical_methods_disabled()
 
 
