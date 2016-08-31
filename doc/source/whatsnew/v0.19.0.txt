@@ -414,12 +414,12 @@ Other enhancements
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``decimal`` option (:issue:`12933`)
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``na_filter`` option (:issue:`13321`)
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the ``memory_map`` option (:issue:`13381`)
+- Consistent with the Python API, ``pd.read_csv()`` will now interpret ``+inf`` as positive infinity (:issue:`13274`)
 
 - The ``pd.read_html()`` has gained support for the ``na_values``, ``converters``, ``keep_default_na``  options (:issue:`13461`)
 
 - ``Categorical.astype()`` now accepts an optional boolean argument ``copy``, effective when dtype is categorical (:issue:`13209`)
 - ``DataFrame`` has gained the ``.asof()`` method to return the last non-NaN values according to the selected subset (:issue:`13358`)
-- Consistent with the Python API, ``pd.read_csv()`` will now interpret ``+inf`` as positive infinity (:issue:`13274`)
 - The ``DataFrame`` constructor will now respect key ordering if a list of ``OrderedDict`` objects are passed in (:issue:`13304`)
 - ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
 - A function :func:`union_categorical` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`:13763`, issue:`13846`)
@@ -473,6 +473,7 @@ API changes
 - ``pd.Timedelta(None)`` is now accepted and will return ``NaT``, mirroring ``pd.Timestamp`` (:issue:`13687`)
 - ``Timestamp``, ``Period``, ``DatetimeIndex``, ``PeriodIndex`` and ``.dt`` accessor have gained a ``.is_leap_year`` property to check whether the date belongs to a leap year. (:issue:`13727`)
 - ``pd.read_hdf`` will now raise a ``ValueError`` instead of ``KeyError``, if a mode other than ``r``, ``r+`` and ``a`` is supplied. (:issue:`13623`)
+- ``pd.read_csv()`` in the C engine will now issue a ``ParserWarning`` or raise a ``ValueError`` when ``sep`` encoded is more than one character long (:issue:`14065`)
 - ``DataFrame.values`` will now return ``float64`` with a ``DataFrame`` of mixed ``int64`` and ``uint64`` dtypes, conforming to ``np.find_common_type`` (:issue:`10364`, :issue:`13917`)
 - ``Series.unique()`` with datetime and timezone now returns return array of ``Timestamp`` with timezone (:issue:`13565`)
 
@@ -1211,10 +1212,6 @@ Bug Fixes
 
 - Bug in ``groupby().shift()``, which could cause a segfault or corruption in rare circumstances when grouping by columns with missing values (:issue:`13813`)
 - Bug in ``groupby().cumsum()`` calculating ``cumprod`` when ``axis=1``. (:issue:`13994`)
-- Bug in ``pd.read_csv()``, which may cause a segfault or corruption when iterating in large chunks over a stream/file under rare circumstances (:issue:`13703`)
-- Bug in ``pd.read_csv()``, which caused errors to be raised when a dictionary containing scalars is passed in for ``na_values`` (:issue:`12224`)
-- Bug in ``pd.read_csv()``, which caused BOM files to be incorrectly parsed by not ignoring the BOM (:issue:`4793`)
-- Bug in ``pd.read_csv()`` with ``engine='python'`` which raised errors when a numpy array was passed in for ``usecols`` (:issue:`12546`)
 - Bug in ``pd.to_timedelta()`` in which the ``errors`` parameter was not being respected (:issue:`13613`)
 - Bug in ``io.json.json_normalize()``, where non-ascii keys raised an exception (:issue:`13213`)
 - Bug when passing a not-default-indexed ``Series`` as ``xerr`` or ``yerr`` in ``.plot()`` (:issue:`11858`)
@@ -1225,7 +1222,6 @@ Bug Fixes
 - Bug in ``Categorical.from_codes()`` where an unhelpful error was raised when an invalid ``ordered`` parameter was passed in (:issue:`14058`)
 - Bug in ``Series`` construction from a tuple of integers on windows not returning default dtype (int64) (:issue:`13646`)
 
-- Bug in ``pd.read_csv()`` where the index columns were being incorrectly parsed when parsed as dates with a ``thousands`` parameter (:issue:`14066`)
 - Bug in ``.groupby(..).resample(..)`` when the same object is called multiple times (:issue:`13174`)
 - Bug in ``.to_records()`` when index name is a unicode string (:issue:`13172`)
 
@@ -1267,6 +1263,11 @@ Bug Fixes
 - Bug in ``MultiIndex.from_arrays`` which didn't check for input array lengths matching (:issue:`13599`)
 
 
+- Bug in ``pd.read_csv()`` which may cause a segfault or corruption when iterating in large chunks over a stream/file under rare circumstances (:issue:`13703`)
+- Bug in ``pd.read_csv()`` which caused errors to be raised when a dictionary containing scalars is passed in for ``na_values`` (:issue:`12224`)
+- Bug in ``pd.read_csv()`` which caused BOM files to be incorrectly parsed by not ignoring the BOM (:issue:`4793`)
+- Bug in ``pd.read_csv()`` with ``engine='python'`` which raised errors when a numpy array was passed in for ``usecols`` (:issue:`12546`)
+- Bug in ``pd.read_csv()`` where the index columns were being incorrectly parsed when parsed as dates with a ``thousands`` parameter (:issue:`14066`)
 - Bug in ``pd.read_csv()`` with ``engine='python'`` in which ``NaN`` values weren't being detected after data was converted to numeric values (:issue:`13314`)
 - Bug in ``pd.read_csv()`` in which the ``nrows`` argument was not properly validated for both engines (:issue:`10476`)
 - Bug in ``pd.read_csv()`` with ``engine='python'`` in which infinities of mixed-case forms were not being interpreted properly (:issue:`13274`)
@@ -1277,6 +1278,8 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` in the C engine where the NULL character was not being parsed as NULL (:issue:`14012`)
 - Bug in ``pd.read_csv()`` with ``engine='c'`` in which NULL ``quotechar`` was not accepted even though ``quoting`` was specified as ``None`` (:issue:`13411`)
 - Bug in ``pd.read_csv()`` with ``engine='c'`` in which fields were not properly cast to float when quoting was specified as non-numeric (:issue:`13411`)
+- Bug in ``pd.read_csv()`` in Python 2.x with non-UTF8 encoded, multi-character separated data (:issue:`3404`)
+- Bug in ``pd.read_csv()``, where aliases for utf-xx (e.g. UTF-xx, UTF_xx, utf_xx) raised UnicodeDecodeError (:issue:`13549`)
 - Bug in ``pd.read_csv``, ``pd.read_table``, ``pd.read_fwf``, ``pd.read_stata`` and ``pd.read_sas`` where files were opened by parsers but not closed if both ``chunksize`` and ``iterator`` were ``None``. (:issue:`13940`)
 - Bug in ``StataReader``, ``StataWriter``, ``XportReader`` and ``SAS7BDATReader`` where a file was not properly closed when an error was raised. (:issue:`13940`)
 
@@ -1351,11 +1354,9 @@ Bug Fixes
 - Bug in operations on ``NaT`` returning ``float`` instead of ``datetime64[ns]`` (:issue:`12941`)
 - Bug in ``Series`` flexible arithmetic methods (like ``.add()``) raises ``ValueError`` when ``axis=None`` (:issue:`13894`)
 
-- Bug in ``pd.read_csv`` in Python 2.x with non-UTF8 encoded, multi-character separated data (:issue:`3404`)
 
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
 - Bug in ``Period`` and ``PeriodIndex`` creating wrong dates when frequency has combined offset aliases (:issue:`13874`)
 - Bug in ``.to_string()`` when called with an integer ``line_width`` and ``index=False`` raises an UnboundLocalError exception because ``idx`` referenced before assignment.
 
-- Bug in ``read_csv()``, where aliases for utf-xx (e.g. UTF-xx, UTF_xx, utf_xx) raised UnicodeDecodeError (:issue:`13549`)
 - Bug in ``eval()`` where the ``resolvers`` argument would not accept a list (:issue`14095`)
