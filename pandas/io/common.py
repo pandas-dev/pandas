@@ -40,6 +40,13 @@ except:
     _PY_PATH_INSTALLED = False
 
 
+try:
+    from os import fspath, PathLike
+    _OS_FSPATH_INSTALLED = True
+except:
+    _OS_FSPATH_INSTALLED = False
+
+
 if compat.PY3:
     from urllib.request import urlopen, pathname2url
     _urlopen = urlopen
@@ -183,6 +190,10 @@ def _stringify_path(filepath_or_buffer):
     -------
     str_filepath_or_buffer : a the string version of the input path
     """
+    if _OS_FSPATH_INSTALLED and isinstance(filepath_or_buffer, PathLike):
+        return fspath(filepath_or_buffer)
+    elif hasattr(filepath_or_buffer, "__fspath__"):
+        return filepath_or_buffer.__fspath__()
     if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
         return text_type(filepath_or_buffer)
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
