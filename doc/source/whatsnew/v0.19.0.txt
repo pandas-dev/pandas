@@ -1358,3 +1358,4 @@ Bug Fixes
 - Bug in ``.to_string()`` when called with an integer ``line_width`` and ``index=False`` raises an UnboundLocalError exception because ``idx`` referenced before assignment.
 
 - Bug in ``read_csv()``, where aliases for utf-xx (e.g. UTF-xx, UTF_xx, utf_xx) raised UnicodeDecodeError (:issue:`13549`)
+- Bug in ``eval()`` where the ``resolvers`` argument would not accept a list (:issue`14095`)

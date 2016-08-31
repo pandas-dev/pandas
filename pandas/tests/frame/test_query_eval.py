@@ -147,6 +147,16 @@ class TestDataFrameEval(tm.TestCase, TestData):
         with tm.assertRaisesRegexp(ValueError, msg):
             df.query(111)
 
+    def test_eval_resolvers_as_list(self):
+        # GH 14095
+        df = DataFrame(randn(10, 2), columns=list('ab'))
+        dict1 = {'a': 1}
+        dict2 = {'b': 2}
+        self.assertTrue(df.eval('a + b', resolvers=[dict1, dict2]) ==
+                        dict1['a'] + dict2['b'])
+        self.assertTrue(pd.eval('a + b', resolvers=[dict1, dict2]) ==
+                        dict1['a'] + dict2['b'])
+
 
 class TestDataFrameQueryWithMultiIndex(tm.TestCase):
 
