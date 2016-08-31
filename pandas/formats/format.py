@@ -671,20 +671,28 @@ class DataFrameFormatter(TableFormatter):
                             float_format=self.float_format, na_rep=self.na_rep,
                             space=self.col_space, decimal=self.decimal)
 
-    def to_html(self, classes=None, notebook=False):
+    def to_html(self, classes=None, notebook=False, border=None):
         """
         Render a DataFrame to a html table.
 
         Parameters
         ----------
+        classes : str or list-like
+            classes to include in the `class` attribute of the opening
+            ``<table>`` tag, in addition to the default "dataframe".
         notebook : {True, False}, optional, default False
             Whether the generated HTML is for IPython Notebook.
+        border : int
+            A ``border=border`` attribute is included in the opening
+            ``<table>`` tag. Default ``pd.options.html.border``.
 
-        """
+            .. versionadded:: 0.19.0
+         """
         html_renderer = HTMLFormatter(self, classes=classes,
                                       max_rows=self.max_rows,
                                       max_cols=self.max_cols,
-                                      notebook=notebook)
+                                      notebook=notebook,
+                                      border=border)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -910,7 +918,7 @@ class HTMLFormatter(TableFormatter):
     indent_delta = 2
 
     def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
-                 notebook=False):
+                 notebook=False, border=None):
         self.fmt = formatter
         self.classes = classes
 
@@ -926,6 +934,9 @@ class HTMLFormatter(TableFormatter):
         self.is_truncated = (self.max_rows < len(self.fmt.frame) or
                              self.max_cols < len(self.fmt.columns))
         self.notebook = notebook
+        if border is None:
+            border = get_option('html.border')
+        self.border = border
 
     def write(self, s, indent=0):
         rs = pprint_thing(s)
@@ -1001,7 +1012,8 @@ class HTMLFormatter(TableFormatter):
 
             self.write('<div{0}>'.format(div_style))
 
-        self.write('<table border="1" class="%s">' % ' '.join(_classes),
+        self.write('<table border="%s" class="%s">' % (self.border,
+                                                       ' '.join(_classes)),
                    indent)
 
         indent += self.indent_delta

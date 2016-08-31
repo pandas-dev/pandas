@@ -1650,6 +1650,23 @@ class TestDataFrameFormatting(tm.TestCase):
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
 
+    def test_to_html_border(self):
+        df = DataFrame({'A': [1, 2]})
+        result = df.to_html()
+        assert 'border="1"' in result
+
+    def test_to_html_border_option(self):
+        df = DataFrame({'A': [1, 2]})
+        with pd.option_context('html.border', 0):
+            result = df.to_html()
+            self.assertTrue('border="0"' in result)
+            self.assertTrue('border="0"' in df._repr_html_())
+
+    def test_to_html_border_zero(self):
+        df = DataFrame({'A': [1, 2]})
+        result = df.to_html(border=0)
+        self.assertTrue('border="0"' in result)
+
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()
