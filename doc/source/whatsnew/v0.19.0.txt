@@ -1260,7 +1260,7 @@ Bug Fixes
 - Bug in ``.value_counts`` raises ``OutOfBoundsDatetime`` if data exceeds ``datetime64[ns]`` bounds (:issue:`13663`)
 - Bug in ``DatetimeIndex`` may raise ``OutOfBoundsDatetime`` if input ``np.datetime64`` has other unit than ``ns`` (:issue:`9114`)
 - Bug in ``Series`` creation with ``np.datetime64`` which has other unit than ``ns`` as ``object`` dtype results in incorrect values (:issue:`13876`)
-
+- Bug in ``resample`` with timedelta data where data was casted to float (:issue:`13119`).
 - Bug in ``pd.isnull()`` ``pd.notnull()`` raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
 - Bug in ``pd.merge()`` may raise ``TypeError`` if input datetime-like has other unit than ``ns`` (:issue:`13389`)
 

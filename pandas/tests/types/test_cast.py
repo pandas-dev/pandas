@@ -24,44 +24,56 @@ from pandas.util import testing as tm
 _multiprocess_can_split_ = True
 
 
-def test_downcast_conv():
-    # test downcasting
+class TestPossiblyDowncast(tm.TestCase):
 
-    arr = np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995])
-    result = _possibly_downcast_to_dtype(arr, 'infer')
-    assert (np.array_equal(result, arr))
+    def test_downcast_conv(self):
+        # test downcasting
 
-    arr = np.array([8., 8., 8., 8., 8.9999999999995])
-    result = _possibly_downcast_to_dtype(arr, 'infer')
-    expected = np.array([8, 8, 8, 8, 9])
-    assert (np.array_equal(result, expected))
-
-    arr = np.array([8., 8., 8., 8., 9.0000000000005])
-    result = _possibly_downcast_to_dtype(arr, 'infer')
-    expected = np.array([8, 8, 8, 8, 9])
-    assert (np.array_equal(result, expected))
-
-    # conversions
-
-    expected = np.array([1, 2])
-    for dtype in [np.float64, object, np.int64]:
-        arr = np.array([1.0, 2.0], dtype=dtype)
+        arr = np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995])
         result = _possibly_downcast_to_dtype(arr, 'infer')
-        tm.assert_almost_equal(result, expected, check_dtype=False)
+        assert (np.array_equal(result, arr))
 
-    for dtype in [np.float64, object]:
-        expected = np.array([1.0, 2.0, np.nan], dtype=dtype)
-        arr = np.array([1.0, 2.0, np.nan], dtype=dtype)
+        arr = np.array([8., 8., 8., 8., 8.9999999999995])
         result = _possibly_downcast_to_dtype(arr, 'infer')
-        tm.assert_almost_equal(result, expected)
+        expected = np.array([8, 8, 8, 8, 9])
+        assert (np.array_equal(result, expected))
 
-    # empties
-    for dtype in [np.int32, np.float64, np.float32, np.bool_,
-                  np.int64, object]:
-        arr = np.array([], dtype=dtype)
-        result = _possibly_downcast_to_dtype(arr, 'int64')
-        tm.assert_almost_equal(result, np.array([], dtype=np.int64))
-        assert result.dtype == np.int64
+        arr = np.array([8., 8., 8., 8., 9.0000000000005])
+        result = _possibly_downcast_to_dtype(arr, 'infer')
+        expected = np.array([8, 8, 8, 8, 9])
+        assert (np.array_equal(result, expected))
+
+        # conversions
+
+        expected = np.array([1, 2])
+        for dtype in [np.float64, object, np.int64]:
+            arr = np.array([1.0, 2.0], dtype=dtype)
+            result = _possibly_downcast_to_dtype(arr, 'infer')
+            tm.assert_almost_equal(result, expected, check_dtype=False)
+
+        for dtype in [np.float64, object]:
+            expected = np.array([1.0, 2.0, np.nan], dtype=dtype)
+            arr = np.array([1.0, 2.0, np.nan], dtype=dtype)
+            result = _possibly_downcast_to_dtype(arr, 'infer')
+            tm.assert_almost_equal(result, expected)
+
+        # empties
+        for dtype in [np.int32, np.float64, np.float32, np.bool_,
+                      np.int64, object]:
+            arr = np.array([], dtype=dtype)
+            result = _possibly_downcast_to_dtype(arr, 'int64')
+            tm.assert_almost_equal(result, np.array([], dtype=np.int64))
+            assert result.dtype == np.int64
+
+    def test_datetimelikes_nan(self):
+        arr = np.array([1, 2, np.nan])
+        exp = np.array([1, 2, np.datetime64('NaT')], dtype='datetime64[ns]')
+        res = _possibly_downcast_to_dtype(arr, 'datetime64[ns]')
+        tm.assert_numpy_array_equal(res, exp)
+
+        exp = np.array([1, 2, np.timedelta64('NaT')], dtype='timedelta64[ns]')
+        res = _possibly_downcast_to_dtype(arr, 'timedelta64[ns]')
+        tm.assert_numpy_array_equal(res, exp)
 
 
 class TestInferDtype(tm.TestCase):
