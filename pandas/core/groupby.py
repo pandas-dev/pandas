@@ -255,7 +255,8 @@ class Grouper(object):
         Parameters
         ----------
         obj : the subject object
-
+        sort : bool, default False
+            whether the resulting grouper should be sorted
         """
 
         if self.key is not None and self.level is not None:
