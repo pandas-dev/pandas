@@ -3567,11 +3567,19 @@ class TestPeriodIndex(tm.TestCase):
 
         tm.assertIsInstance(s.index.values[0][0], Period)
 
-    def test_to_datetime_1703(self):
+    def test_to_timestamp_1703(self):
         index = period_range('1/1/2012', periods=4, freq='D')
 
-        result = index.to_datetime()
+        result = index.to_timestamp()
         self.assertEqual(result[0], Timestamp('1/1/2012'))
+
+    def test_to_datetime_depr(self):
+        index = period_range('1/1/2012', periods=4, freq='D')
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = index.to_datetime()
+            self.assertEqual(result[0], Timestamp('1/1/2012'))
 
     def test_get_loc_msg(self):
         idx = period_range('2000-1-1', freq='A', periods=10)
