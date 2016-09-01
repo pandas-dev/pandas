@@ -4400,6 +4400,14 @@ class TestSeriesDatetime64(tm.TestCase):
         result = df.values.squeeze()
         self.assertTrue((result[:, 0] == expected.values).all())
 
+    def test_nat_operations(self):
+        # GH 8617
+        s = Series([0, pd.NaT], dtype='m8[ns]')
+        exp = s[0]
+        self.assertEqual(s.median(), exp)
+        self.assertEqual(s.min(), exp)
+        self.assertEqual(s.max(), exp)
+
 
 class TestTimestamp(tm.TestCase):
     def test_class_ops_pytz(self):
