@@ -3327,6 +3327,33 @@ $1$,$2$
         self.assertEqual(df_sec_grouped.mean().to_csv(date_format='%Y-%m-%d'),
                          expected_ymd_sec)
 
+    def test_to_csv_multi_index(self):
+        # see gh-6618
+        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1],[2]]))
+
+        exp = ",1\n,2\n0,1\n"
+        self.assertEqual(df.to_csv(), exp)
+
+        exp = "1\n2\n1\n"
+        self.assertEqual(df.to_csv(index=False), exp)
+
+        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1],[2]]),
+                       index=pd.MultiIndex.from_arrays([[1],[2]]))
+
+        exp = ",,1\n,,2\n1,2,1\n"
+        self.assertEqual(df.to_csv(), exp)
+
+        exp = "1\n2\n1\n"
+        self.assertEqual(df.to_csv(index=False), exp)
+
+        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([['foo'],['bar']]))
+
+        exp = ",foo\n,bar\n0,1\n"
+        self.assertEqual(df.to_csv(), exp)
+
+        exp = "foo\nbar\n1\n"
+        self.assertEqual(df.to_csv(index=False), exp)
+
     def test_period(self):
         # GH 12615
         df = pd.DataFrame({'A': pd.period_range('2013-01',
