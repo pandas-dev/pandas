@@ -777,6 +777,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return Index.get_indexer(self._int64index, target, method,
                                  limit, tolerance)
 
+    def _get_unique_index(self, dropna=False):
+        """
+        wrap Index._get_unique_index to handle NaT
+        """
+        res = super(PeriodIndex, self)._get_unique_index(dropna=dropna)
+        if dropna:
+            res = res.dropna()
+        return res
+
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label

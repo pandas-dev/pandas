@@ -8,6 +8,7 @@ import numpy as np
 from pandas import (Series, Index, Float64Index, Int64Index, RangeIndex,
                     MultiIndex, CategoricalIndex, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, notnull)
+from pandas.types.common import needs_i8_conversion
 from pandas.util.testing import assertRaisesRegexp
 
 import pandas.util.testing as tm
@@ -319,12 +320,20 @@ class Base(object):
             if not ind._can_hold_na:
                 continue
 
-            vals = ind.values[[0] * 5]
-            vals[0] = np.nan
+            if needs_i8_conversion(ind):
+                vals = ind.asi8[[0] * 5]
+                vals[0] = pd.tslib.iNaT
+            else:
+                vals = ind.values[[0] * 5]
+                vals[0] = np.nan
+
             vals_unique = vals[:2]
             idx_nan = ind._shallow_copy(vals)
             idx_unique_nan = ind._shallow_copy(vals_unique)
             self.assertTrue(idx_unique_nan.is_unique)
+
+            self.assertEqual(idx_nan.dtype, ind.dtype)
+            self.assertEqual(idx_unique_nan.dtype, ind.dtype)
 
             for dropna, expected in zip([False, True],
                                         [idx_unique_nan, idx_unique]):
