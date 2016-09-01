@@ -919,7 +919,8 @@ class MultiIndex(Index):
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_product(cls, iterables, sortorder=None, names=None):
+    def from_product(cls, iterables, sortorder=None, sort_levels=True,
+                     names=None):
         """
         Make a MultiIndex from the cartesian product of multiple iterables
 
@@ -930,6 +931,10 @@ class MultiIndex(Index):
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
             level).
+        sort_levels : boolean
+            Whether or not to sort internal levels on the resulting index. The
+            order of values in the result is the same either way, but disabling
+            this option ensures that it's fully lex-sorted.
         names : list / sequence of strings or None
             Names for the levels in the index.
 
@@ -955,12 +960,17 @@ class MultiIndex(Index):
         from pandas.core.categorical import Categorical
         from pandas.tools.util import cartesian_product
 
-        categoricals = [Categorical.from_array(it, ordered=True)
-                        for it in iterables]
-        labels = cartesian_product([c.codes for c in categoricals])
+        if sort_levels:
+            categoricals = [Categorical.from_array(it, ordered=True)
+                            for it in iterables]
+            levels = [c.categories for c in categoricals]
+            labels = cartesian_product([c.codes for c in categoricals])
+        else:
+            sortorder = 0
+            levels = iterables
+            labels = cartesian_product([np.arange(len(it)) for it in iterables])
 
-        return MultiIndex(levels=[c.categories for c in categoricals],
-                          labels=labels, sortorder=sortorder, names=names)
+        return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
     @property
     def nlevels(self):
