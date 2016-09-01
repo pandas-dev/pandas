@@ -291,10 +291,10 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                 elif r_dtype == 'p':
                     r_dtype = 'O'
                     recons.index = np.array(
-                        list(map(Timestamp, recons.index.to_datetime())),
+                        list(map(Timestamp, to_datetime(recons.index))),
                         dtype=r_dtype)
                     df.index = np.array(
-                        list(map(Timestamp, df.index.to_datetime())),
+                        list(map(Timestamp, df.index.to_timestamp())),
                         dtype=r_dtype)
                 else:
                     r_dtype = type_map.get(r_dtype)
@@ -316,10 +316,10 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                 elif c_dtype == 'p':
                     c_dtype = 'O'
                     recons.columns = np.array(
-                        lmap(Timestamp, recons.columns.to_datetime()),
+                        lmap(Timestamp, to_datetime(recons.columns)),
                         dtype=c_dtype)
                     df.columns = np.array(
-                        lmap(Timestamp, df.columns.to_datetime()),
+                        lmap(Timestamp, df.columns.to_timestamp()),
                         dtype=c_dtype)
                 else:
                     c_dtype = type_map.get(c_dtype)
@@ -1157,3 +1157,9 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         df = df.set_index(['a', 'b'])
         expected = '"a","b","c"\n"1","3","5"\n"2","4","6"\n'
         self.assertEqual(df.to_csv(quoting=csv.QUOTE_ALL), expected)
+
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)
