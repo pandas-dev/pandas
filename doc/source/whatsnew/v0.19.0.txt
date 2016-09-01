@@ -455,6 +455,7 @@ API changes
 - ``Timestamp.to_pydatetime`` will issue a ``UserWarning`` when ``warn=True``, and the instance has a non-zero number of nanoseconds (:issue:`14101`)
 - ``Panel.to_sparse`` will raise a ``NotImplementedError`` exception when called (:issue:`13778`)
 - ``Index.reshape`` will raise a ``NotImplementedError`` exception when called (:issue:`12882`)
+- ``pd.read_csv()``, ``pd.read_table()``, and ``pd.read_hdf()`` raise the builtin ``FileNotFoundError`` exception for Python 3.x when called on a nonexistent file, and this is back-ported as IOError in Python 2.x (:issue:`14086`)
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
 - ``eval``'s upcasting rules for ``float32`` types have been updated to be more consistent with NumPy's rules.  New behavior will not upcast to ``float64`` if you multiply a pandas ``float32`` object by a scalar float64. (:issue:`12388`)
 - An ``UnsupportedFunctionCall`` error is now raised if NumPy ufuncs like ``np.mean`` are called on groupby or resample objects (:issue:`12811`)

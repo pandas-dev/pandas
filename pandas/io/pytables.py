@@ -322,7 +322,8 @@ def read_hdf(path_or_buf, key=None, **kwargs):
             exists = False
 
         if not exists:
-            raise IOError('File %s does not exist' % path_or_buf)
+            raise compat.FileNotFoundError(
+                'File %s does not exist' % path_or_buf)
 
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator

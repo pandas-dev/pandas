@@ -339,7 +339,8 @@ class TestHDFStore(Base, tm.TestCase):
 
         # File path doesn't exist
         path = ""
-        self.assertRaises(IOError, read_hdf, path, 'df')
+        self.assertRaises(compat.FileNotFoundError,
+                          read_hdf, path, 'df')
 
     def test_api_default_format(self):
 

@@ -654,9 +654,10 @@ bar"""
         tm.assert_frame_equal(url_table, local_table)
 
     def test_nonexistent_path(self):
-        # don't segfault pls #2428
+        # gh-2428: pls no segfault
+        # gh-14086: raise more helpful FileNotFoundError
         path = '%s.csv' % tm.rands(10)
-        self.assertRaises(IOError, self.read_csv, path)
+        self.assertRaises(compat.FileNotFoundError, self.read_csv, path)
 
     def test_missing_trailing_delimiters(self):
         data = """A,B,C,D

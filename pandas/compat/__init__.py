@@ -107,6 +107,10 @@ if PY3:
     long = int
     unichr = chr
 
+    # This was introduced in Python 3.3, but we don't support
+    # Python 3.x < 3.4, so checking PY3 is safe.
+    FileNotFoundError = FileNotFoundError
+
     # list-producing versions of the major Python iterating functions
     def lrange(*args, **kwargs):
         return list(range(*args, **kwargs))
@@ -124,6 +128,8 @@ else:
     # Python 2
     import re
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
+
+    FileNotFoundError = IOError
 
     def isidentifier(s, dotted=False):
         return bool(_name_re.match(s))
