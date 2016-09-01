@@ -9,7 +9,8 @@ import numpy as np
 
 import pandas as pd
 import pandas.compat as compat
-from pandas.types.common import is_object_dtype, is_datetimetz
+from pandas.types.common import (is_object_dtype, is_datetimetz,
+                                 needs_i8_conversion)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta)
@@ -17,7 +18,6 @@ from pandas.compat import u, StringIO
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.base import (FrozenList, FrozenNDArray, PandasDelegate,
                               NoNewAttributesMixin)
-from pandas.types.common import is_datetime64_dtype
 from pandas.tseries.base import DatetimeIndexOpsMixin
 
 
@@ -450,7 +450,6 @@ class TestIndexOps(Ops):
 
     def test_value_counts_unique_nunique(self):
         for orig in self.objs:
-
             o = orig.copy()
             klass = type(o)
             values = o._values
@@ -504,9 +503,10 @@ class TestIndexOps(Ops):
     def test_value_counts_unique_nunique_null(self):
 
         for null_obj in [np.nan, None]:
-            for o in self.objs:
+            for orig in self.objs:
+                o = orig.copy()
                 klass = type(o)
-                values = o.values
+                values = o._values
 
                 if not self._allow_na_ops(o):
                     continue
@@ -522,34 +522,43 @@ class TestIndexOps(Ops):
                         o[0:2] = pd.tslib.iNaT
                         values = o._values
 
-                elif is_datetime64_dtype(o) or isinstance(o, PeriodIndex):
+                elif needs_i8_conversion(o):
                     values[0:2] = pd.tslib.iNaT
+                    values = o._shallow_copy(values)
                 else:
                     values[0:2] = null_obj
                 # check values has the same dtype as the original
+
                 self.assertEqual(values.dtype, o.dtype)
 
                 # create repeated values, 'n'th element is repeated by n+1
                 # times
-                if isinstance(o, PeriodIndex):
-                    # freq must be specified because repeat makes freq
-                    # ambiguous
+                if isinstance(o, (DatetimeIndex, PeriodIndex)):
+                    expected_index = o.copy()
+                    expected_index.name = None
 
-                    # resets name from Index
-                    expected_index = pd.Index(o, name=None)
                     # attach name to klass
-                    o = klass(np.repeat(values, range(1, len(o) + 1)),
-                              freq=o.freq, name='a')
-                elif isinstance(o, Index):
-                    expected_index = pd.Index(values, name=None)
-                    o = klass(
-                        np.repeat(values, range(1, len(o) + 1)), name='a')
+                    o = klass(values.repeat(range(1, len(o) + 1)))
+                    o.name = 'a'
                 else:
-                    expected_index = pd.Index(values, name=None)
-                    idx = np.repeat(o.index.values, range(1, len(o) + 1))
-                    o = klass(
-                        np.repeat(values, range(
-                            1, len(o) + 1)), index=idx, name='a')
+                    if is_datetimetz(o):
+                        expected_index = orig._values._shallow_copy(values)
+                    else:
+                        expected_index = pd.Index(values)
+                    expected_index.name = None
+                    o = o.repeat(range(1, len(o) + 1))
+                    o.name = 'a'
+
+                # check values has the same dtype as the original
+                self.assertEqual(o.dtype, orig.dtype)
+                # check values correctly have NaN
+                nanloc = np.zeros(len(o), dtype=np.bool)
+                nanloc[:3] = True
+                if isinstance(o, Index):
+                    self.assert_numpy_array_equal(pd.isnull(o), nanloc)
+                else:
+                    exp = pd.Series(nanloc, o.index, name='a')
+                    self.assert_series_equal(pd.isnull(o), exp)
 
                 expected_s_na = Series(list(range(10, 2, -1)) + [3],
                                        index=expected_index[9:0:-1],
@@ -578,7 +587,9 @@ class TestIndexOps(Ops):
                     self.assertIs(result[0], pd.NaT)
                 else:
                     tm.assert_numpy_array_equal(result[1:], values[2:])
+
                     self.assertTrue(pd.isnull(result[0]))
+                    self.assertEqual(result.dtype, orig.dtype)
 
                 self.assertEqual(o.nunique(), 8)
                 self.assertEqual(o.nunique(dropna=False), 9)
@@ -942,18 +953,14 @@ class TestIndexOps(Ops):
         # # GH 11343
         # though Index.fillna and Series.fillna has separate impl,
         # test here to confirm these works as the same
-        def get_fill_value(obj):
-            if isinstance(obj, pd.tseries.base.DatetimeIndexOpsMixin):
-                return obj.asobject.values[0]
-            else:
-                return obj.values[0]
 
-        for o in self.objs:
-            klass = type(o)
+        for orig in self.objs:
+
+            o = orig.copy()
             values = o.values
 
             # values will not be changed
-            result = o.fillna(get_fill_value(o))
+            result = o.fillna(o.astype(object).values[0])
             if isinstance(o, Index):
                 self.assert_index_equal(o, result)
             else:
@@ -962,33 +969,30 @@ class TestIndexOps(Ops):
             self.assertFalse(o is result)
 
         for null_obj in [np.nan, None]:
-            for o in self.objs:
+            for orig in self.objs:
+                o = orig.copy()
                 klass = type(o)
-                values = o.values.copy()
 
                 if not self._allow_na_ops(o):
                     continue
 
-                # value for filling
-                fill_value = get_fill_value(o)
+                if needs_i8_conversion(o):
 
-                # special assign to the numpy array
-                if o.values.dtype == 'datetime64[ns]' or isinstance(
-                        o, PeriodIndex):
-                    values[0:2] = pd.tslib.iNaT
+                    values = o.astype(object).values
+                    fill_value = values[0]
+                    values[0:2] = pd.NaT
                 else:
+                    values = o.values.copy()
+                    fill_value = o.values[0]
                     values[0:2] = null_obj
 
-                if isinstance(o, PeriodIndex):
-                    # freq must be specified because repeat makes freq
-                    # ambiguous
-                    expected = [fill_value.ordinal] * 2 + list(values[2:])
-                    expected = klass(ordinal=expected, freq=o.freq)
-                    o = klass(ordinal=values, freq=o.freq)
-                else:
-                    expected = [fill_value] * 2 + list(values[2:])
-                    expected = klass(expected)
-                    o = klass(values)
+                expected = [fill_value] * 2 + list(values[2:])
+
+                expected = klass(expected)
+                o = klass(values)
+
+                # check values has the same dtype as the original
+                self.assertEqual(o.dtype, orig.dtype)
 
                 result = o.fillna(fill_value)
                 if isinstance(o, Index):

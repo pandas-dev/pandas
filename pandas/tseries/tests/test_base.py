@@ -555,8 +555,8 @@ Freq: D"""
 
     def test_order(self):
         # with freq
-        idx1 = DatetimeIndex(
-            ['2011-01-01', '2011-01-02', '2011-01-03'], freq='D', name='idx')
+        idx1 = DatetimeIndex(['2011-01-01', '2011-01-02',
+                              '2011-01-03'], freq='D', name='idx')
         idx2 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00',
                               '2011-01-01 11:00'], freq='H',
                              tz='Asia/Tokyo', name='tzidx')
@@ -798,9 +798,26 @@ Freq: D"""
                                     '2011-01-01 09:00'], name='xxx', tz=tz)
             tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
 
-    def test_na_value(self):
+    def test_nat(self):
         self.assertIs(pd.DatetimeIndex._na_value, pd.NaT)
         self.assertIs(pd.DatetimeIndex([])._na_value, pd.NaT)
+
+        for tz in [None, 'US/Eastern', 'UTC']:
+            idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], tz=tz)
+            self.assertTrue(idx._can_hold_na)
+
+            tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
+            self.assertFalse(idx.hasnans)
+            tm.assert_numpy_array_equal(idx._nan_idxs,
+                                        np.array([], dtype=np.int64))
+
+            idx = pd.DatetimeIndex(['2011-01-01', 'NaT'], tz=tz)
+            self.assertTrue(idx._can_hold_na)
+
+            tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
+            self.assertTrue(idx.hasnans)
+            tm.assert_numpy_array_equal(idx._nan_idxs,
+                                        np.array([1], dtype=np.int64))
 
 
 class TestTimedeltaIndexOps(Ops):
@@ -1645,9 +1662,25 @@ Freq: D"""
             tm.assert_index_equal(res, exp)
             self.assertIsNone(res.freq)
 
-    def test_na_value(self):
+    def test_nat(self):
         self.assertIs(pd.TimedeltaIndex._na_value, pd.NaT)
         self.assertIs(pd.TimedeltaIndex([])._na_value, pd.NaT)
+
+        idx = pd.TimedeltaIndex(['1 days', '2 days'])
+        self.assertTrue(idx._can_hold_na)
+
+        tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
+        self.assertFalse(idx.hasnans)
+        tm.assert_numpy_array_equal(idx._nan_idxs,
+                                    np.array([], dtype=np.int64))
+
+        idx = pd.TimedeltaIndex(['1 days', 'NaT'])
+        self.assertTrue(idx._can_hold_na)
+
+        tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
+        self.assertTrue(idx.hasnans)
+        tm.assert_numpy_array_equal(idx._nan_idxs,
+                                    np.array([1], dtype=np.int64))
 
 
 class TestPeriodIndexOps(Ops):
@@ -2593,9 +2626,25 @@ Freq: Q-DEC"""
         for res in [index.repeat(3), np.repeat(index, 3)]:
             tm.assert_index_equal(res, exp)
 
-    def test_na_value(self):
+    def test_nat(self):
         self.assertIs(pd.PeriodIndex._na_value, pd.NaT)
         self.assertIs(pd.PeriodIndex([], freq='M')._na_value, pd.NaT)
+
+        idx = pd.PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
+        self.assertTrue(idx._can_hold_na)
+
+        tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
+        self.assertFalse(idx.hasnans)
+        tm.assert_numpy_array_equal(idx._nan_idxs,
+                                    np.array([], dtype=np.int64))
+
+        idx = pd.PeriodIndex(['2011-01-01', 'NaT'], freq='D')
+        self.assertTrue(idx._can_hold_na)
+
+        tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
+        self.assertTrue(idx.hasnans)
+        tm.assert_numpy_array_equal(idx._nan_idxs,
+                                    np.array([1], dtype=np.int64))
 
 
 if __name__ == '__main__':
