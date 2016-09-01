@@ -101,7 +101,10 @@ def show_versions(as_json=False):
     deps_blob = list()
     for (modname, ver_f) in deps:
         try:
-            mod = importlib.import_module(modname)
+            if modname in sys.modules:
+                mod = sys.modules[modname]
+            else:
+                mod = importlib.import_module(modname)
             ver = ver_f(mod)
             deps_blob.append((modname, ver))
         except:
