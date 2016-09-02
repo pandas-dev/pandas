@@ -23,7 +23,8 @@ cdef extern from "../src/msgpack/pack.h":
     int msgpack_pack_false(msgpack_packer* pk)
     int msgpack_pack_long(msgpack_packer* pk, long d)
     int msgpack_pack_long_long(msgpack_packer* pk, long long d)
-    int msgpack_pack_unsigned_long_long(msgpack_packer* pk, unsigned long long d)
+    int msgpack_pack_unsigned_long_long(msgpack_packer* pk,
+                                        unsigned long long d)
     int msgpack_pack_float(msgpack_packer* pk, float d)
     int msgpack_pack_double(msgpack_packer* pk, double d)
     int msgpack_pack_array(msgpack_packer* pk, size_t l)
@@ -58,8 +59,10 @@ cdef class Packer(object):
     :param bool use_single_float:
         Use single precision float type for float. (default: False)
     :param bool autoreset:
-        Reset buffer after each pack and return it's content as `bytes`. (default: True).
-        If set this to false, use `bytes()` to get content and `.reset()` to clear buffer.
+        Reset buffer after each pack and return it's
+        content as `bytes`. (default: True).
+        If set this to false, use `bytes()` to get
+        content and `.reset()` to clear buffer.
     :param bool use_bin_type:
         Use bin type introduced in msgpack spec 2.0 for bytes.
         It also enable str8 type for unicode.
@@ -74,15 +77,16 @@ cdef class Packer(object):
     cdef bint autoreset
 
     def __cinit__(self):
-        cdef int buf_size = 1024*1024
-        self.pk.buf = <char*> malloc(buf_size);
+        cdef int buf_size = 1024 * 1024
+        self.pk.buf = <char*> malloc(buf_size)
         if self.pk.buf == NULL:
             raise MemoryError("Unable to allocate internal buffer.")
         self.pk.buf_size = buf_size
         self.pk.length = 0
 
-    def __init__(self, default=None, encoding='utf-8', unicode_errors='strict',
-                 use_single_float=False, bint autoreset=1, bint use_bin_type=0):
+    def __init__(self, default=None, encoding='utf-8',
+                 unicode_errors='strict', use_single_float=False,
+                 bint autoreset=1, bint use_bin_type=0):
         """
         """
         self.use_float = use_single_float
@@ -110,7 +114,8 @@ cdef class Packer(object):
     def __dealloc__(self):
         free(self.pk.buf);
 
-    cdef int _pack(self, object o, int nest_limit=DEFAULT_RECURSE_LIMIT) except -1:
+    cdef int _pack(self, object o,
+                   int nest_limit=DEFAULT_RECURSE_LIMIT) except -1:
         cdef long long llval
         cdef unsigned long long ullval
         cdef long longval
@@ -147,14 +152,14 @@ cdef class Packer(object):
                 ret = msgpack_pack_long(&self.pk, longval)
             elif PyFloat_Check(o):
                 if self.use_float:
-                   fval = o
-                   ret = msgpack_pack_float(&self.pk, fval)
+                    fval = o
+                    ret = msgpack_pack_float(&self.pk, fval)
                 else:
-                   dval = o
-                   ret = msgpack_pack_double(&self.pk, dval)
+                    dval = o
+                    ret = msgpack_pack_double(&self.pk, dval)
             elif PyBytes_Check(o):
                 L = len(o)
-                if L > (2**32)-1:
+                if L > (2**32) - 1:
                     raise ValueError("bytes is too large")
                 rawval = o
                 ret = msgpack_pack_bin(&self.pk, L)
@@ -162,10 +167,12 @@ cdef class Packer(object):
                     ret = msgpack_pack_raw_body(&self.pk, rawval, L)
             elif PyUnicode_Check(o):
                 if not self.encoding:
-                    raise TypeError("Can't encode unicode string: no encoding is specified")
-                o = PyUnicode_AsEncodedString(o, self.encoding, self.unicode_errors)
+                    raise TypeError("Can't encode unicode string: "
+                                    "no encoding is specified")
+                o = PyUnicode_AsEncodedString(o, self.encoding,
+                                              self.unicode_errors)
                 L = len(o)
-                if L > (2**32)-1:
+                if L > (2**32) - 1:
                     raise ValueError("dict is too large")
                 rawval = o
                 ret = msgpack_pack_raw(&self.pk, len(o))
@@ -174,43 +181,43 @@ cdef class Packer(object):
             elif PyDict_CheckExact(o):
                 d = <dict>o
                 L = len(d)
-                if L > (2**32)-1:
+                if L > (2**32) - 1:
                     raise ValueError("dict is too large")
                 ret = msgpack_pack_map(&self.pk, L)
                 if ret == 0:
                     for k, v in d.iteritems():
-                        ret = self._pack(k, nest_limit-1)
+                        ret = self._pack(k, nest_limit - 1)
                         if ret != 0: break
-                        ret = self._pack(v, nest_limit-1)
+                        ret = self._pack(v, nest_limit - 1)
                         if ret != 0: break
             elif PyDict_Check(o):
                 L = len(o)
-                if L > (2**32)-1:
+                if L > (2**32) - 1:
                     raise ValueError("dict is too large")
                 ret = msgpack_pack_map(&self.pk, L)
                 if ret == 0:
                     for k, v in o.items():
-                        ret = self._pack(k, nest_limit-1)
+                        ret = self._pack(k, nest_limit - 1)
                         if ret != 0: break
-                        ret = self._pack(v, nest_limit-1)
+                        ret = self._pack(v, nest_limit - 1)
                         if ret != 0: break
             elif isinstance(o, ExtType):
                 # This should be before Tuple because ExtType is namedtuple.
                 longval = o.code
                 rawval = o.data
                 L = len(o.data)
-                if L > (2**32)-1:
+                if L > (2**32) - 1:
                     raise ValueError("EXT data is too large")
                 ret = msgpack_pack_ext(&self.pk, longval, L)
                 ret = msgpack_pack_raw_body(&self.pk, rawval, L)
             elif PyTuple_Check(o) or PyList_Check(o):
                 L = len(o)
-                if L > (2**32)-1:
+                if L > (2**32) - 1:
                     raise ValueError("list is too large")
                 ret = msgpack_pack_array(&self.pk, L)
                 if ret == 0:
                     for v in o:
-                        ret = self._pack(v, nest_limit-1)
+                        ret = self._pack(v, nest_limit - 1)
                         if ret != 0: break
             elif not default_used and self._default:
                 o = self._default(o)
@@ -237,7 +244,7 @@ cdef class Packer(object):
         msgpack_pack_raw_body(&self.pk, data, len(data))
 
     def pack_array_header(self, size_t size):
-        if size > (2**32-1):
+        if size > (2**32) - 1:
             raise ValueError
         cdef int ret = msgpack_pack_array(&self.pk, size)
         if ret == -1:
@@ -250,7 +257,7 @@ cdef class Packer(object):
             return buf
 
     def pack_map_header(self, size_t size):
-        if size > (2**32-1):
+        if size > (2**32) - 1:
             raise ValueError
         cdef int ret = msgpack_pack_map(&self.pk, size)
         if ret == -1:

@@ -20,7 +20,7 @@ _np_version_under1p11 = LooseVersion(_np_version) < '1.11'
 np.import_array()
 np.import_ufunc()
 
-#-------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Preamble stuff
 
 cdef float64_t NaN = <float64_t> np.NaN
@@ -29,7 +29,7 @@ cdef float64_t INF = <float64_t> np.inf
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
-#-------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 cdef class SparseIndex:
@@ -112,7 +112,8 @@ cdef class IntIndex(SparseIndex):
 
         xindices = self.indices
         yindices = y.indices
-        new_indices = np.empty(min(len(xindices), len(yindices)), dtype=np.int32)
+        new_indices = np.empty(min(
+            len(xindices), len(yindices)), dtype=np.int32)
 
         for xi from 0 <= xi < self.npoints:
             xind = xindices[xi]
@@ -171,7 +172,8 @@ cdef class IntIndex(SparseIndex):
             return -1
 
     @cython.wraparound(False)
-    cpdef ndarray[int32_t] lookup_array(self, ndarray[int32_t, ndim=1] indexer):
+    cpdef ndarray[int32_t] lookup_array(self, ndarray[
+            int32_t, ndim=1] indexer):
         """
         Vectorized lookup, returns ndarray[int32_t]
         """
@@ -279,7 +281,7 @@ cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     lens = lens[:result_indexer]
     return locs, lens
 
-#-------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # BlockIndex
 
 cdef class BlockIndex(SparseIndex):
@@ -350,7 +352,7 @@ cdef class BlockIndex(SparseIndex):
 
         for i from 0 <= i < self.nblocks:
             if i > 0:
-                if blocs[i] <= blocs[i-1]:
+                if blocs[i] <= blocs[i - 1]:
                     raise ValueError('Locations not in ascending order')
 
             if i < self.nblocks - 1:
@@ -524,7 +526,8 @@ cdef class BlockIndex(SparseIndex):
         return -1
 
     @cython.wraparound(False)
-    cpdef ndarray[int32_t] lookup_array(self, ndarray[int32_t, ndim=1] indexer):
+    cpdef ndarray[int32_t] lookup_array(self, ndarray[
+            int32_t, ndim=1] indexer):
         """
         Vectorized lookup, returns ndarray[int32_t]
         """
@@ -642,7 +645,8 @@ cdef class BlockUnion(BlockMerge):
 
     cdef _make_merged_blocks(self):
         cdef:
-            ndarray[int32_t, ndim=1] xstart, xend, ystart, yend, out_bloc, out_blen
+            ndarray[int32_t, ndim=1] xstart, xend, ystart
+            ndarray[int32_t, ndim=1] yend, out_bloc, out_blen
             int32_t nstart, nend, diff
             Py_ssize_t max_len, result_indexer = 0
 
@@ -752,14 +756,13 @@ cdef class BlockUnion(BlockMerge):
                 return self._find_next_block_end(1 - mode)
 
 
-#-------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Sparse arithmetic
 
 include "sparse_op_helper.pxi"
 
 
-
-#-------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Indexing operations
 
 def get_reindexer(ndarray[object, ndim=1] values, dict index_map):

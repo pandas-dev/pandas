@@ -192,7 +192,7 @@ def mode_object(ndarray[object] values, ndarray[uint8_t, cast=True] mask):
 
     kh_destroy_pymap(table)
 
-    return modes[:j+1]
+    return modes[:j + 1]
 
 
 @cython.wraparound(False)
@@ -227,7 +227,7 @@ def mode_int64(int64_t[:] values):
 
     kh_destroy_int64(table)
 
-    return modes[:j+1]
+    return modes[:j + 1]
 
 
 @cython.wraparound(False)
