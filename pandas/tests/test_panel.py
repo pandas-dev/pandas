@@ -2429,18 +2429,18 @@ class TestLongPanel(tm.TestCase):
     def test_axis_dummies(self):
         from pandas.core.reshape import make_axis_dummies
 
-        minor_dummies = make_axis_dummies(self.panel, 'minor')
+        minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
         self.assertEqual(len(minor_dummies.columns),
                          len(self.panel.index.levels[1]))
 
-        major_dummies = make_axis_dummies(self.panel, 'major')
+        major_dummies = make_axis_dummies(self.panel, 'major').astype(np.uint8)
         self.assertEqual(len(major_dummies.columns),
                          len(self.panel.index.levels[0]))
 
         mapping = {'A': 'one', 'B': 'one', 'C': 'two', 'D': 'two'}
 
         transformed = make_axis_dummies(self.panel, 'minor',
-                                        transform=mapping.get)
+                                        transform=mapping.get).astype(np.uint8)
         self.assertEqual(len(transformed.columns), 2)
         self.assert_index_equal(transformed.columns, Index(['one', 'two']))
 
@@ -2450,7 +2450,7 @@ class TestLongPanel(tm.TestCase):
         from pandas.core.reshape import get_dummies, make_axis_dummies
 
         self.panel['Label'] = self.panel.index.labels[1]
-        minor_dummies = make_axis_dummies(self.panel, 'minor')
+        minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
         dummies = get_dummies(self.panel['Label'])
         self.assert_numpy_array_equal(dummies.values, minor_dummies.values)
 
