@@ -11,6 +11,8 @@ import pandas.compat as compat
 
 from pandas import (Categorical, DataFrame, Series,
                     Index, MultiIndex, Timedelta)
+from pandas.core.categorical import (_factorize_from_iterable,
+                                     _factorize_from_iterables)
 from pandas.core.frame import _merge_doc
 from pandas.types.generic import ABCSeries
 from pandas.types.common import (is_datetime64tz_dtype,
@@ -1632,8 +1634,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = [None] * len(zipped)
 
         if levels is None:
-            levels = [Categorical.from_array(
-                zp, ordered=True).categories for zp in zipped]
+            _, levels = _factorize_from_iterables(zipped)
         else:
             levels = [_ensure_index(x) for x in levels]
     else:
@@ -1671,9 +1672,9 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.extend(concat_index.levels)
             label_list.extend(concat_index.labels)
         else:
-            factor = Categorical.from_array(concat_index, ordered=True)
-            levels.append(factor.categories)
-            label_list.append(factor.codes)
+            codes, categories = _factorize_from_iterable(concat_index)
+            levels.append(categories)
+            label_list.append(codes)
 
         if len(names) == len(levels):
             names = list(names)

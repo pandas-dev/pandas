@@ -852,8 +852,6 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        from pandas.core.categorical import Categorical
-
         if len(arrays) == 1:
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
@@ -864,9 +862,9 @@ class MultiIndex(Index):
             if len(arrays[i]) != len(arrays[i - 1]):
                 raise ValueError('all arrays must be same length')
 
-        cats = [Categorical.from_array(arr, ordered=True) for arr in arrays]
-        levels = [c.categories for c in cats]
-        labels = [c.codes for c in cats]
+        from pandas.core.categorical import _factorize_from_iterables
+
+        labels, levels = _factorize_from_iterables(arrays)
         if names is None:
             names = [getattr(arr, "name", None) for arr in arrays]
 
@@ -952,15 +950,14 @@ class MultiIndex(Index):
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex
         """
-        from pandas.core.categorical import Categorical
+        from pandas.core.categorical import _factorize_from_iterables
         from pandas.tools.util import cartesian_product
 
-        categoricals = [Categorical.from_array(it, ordered=True)
-                        for it in iterables]
-        labels = cartesian_product([c.codes for c in categoricals])
+        labels, levels = _factorize_from_iterables(iterables)
+        labels = cartesian_product(labels)
 
-        return MultiIndex(levels=[c.categories for c in categoricals],
-                          labels=labels, sortorder=sortorder, names=names)
+        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder,
+                          names=names)
 
     @property
     def nlevels(self):
