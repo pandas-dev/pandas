@@ -1524,9 +1524,9 @@ class CSVFormatter(object):
 
         if not has_mi_columns:
             encoded_labels += list(write_cols)
-
-        # write out the mi
-        if has_mi_columns:
+            writer.writerow(encoded_labels)
+        else:
+            # write out the mi
             columns = obj.columns
 
             # write out the names for each level, then ALL of the values for
@@ -1547,12 +1547,12 @@ class CSVFormatter(object):
 
                 writer.writerow(col_line)
 
-            # add blanks for the columns, so that we
-            # have consistent seps
-            encoded_labels.extend([''] * len(columns))
-
-        # write out the index label line
-        writer.writerow(encoded_labels)
+            # Write out the index line if it's not empty.
+            # Otherwise, we will print out an extraneous
+            # blank line between the mi and the data rows.
+            if encoded_labels and set(encoded_labels) != set(['']):
+                encoded_labels.extend([''] * len(columns))
+                writer.writerow(encoded_labels)
 
     def _save(self):
 
