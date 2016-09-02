@@ -587,21 +587,9 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             df = _make_frame(True)
             df.to_csv(path, tupleize_cols=False)
 
-            # catch invalid headers
-            with assertRaisesRegexp(CParserError,
-                                    'Passed header=\[0,1,2\] are too many '
-                                    'rows for this multi_index of columns'):
-                read_csv(path, tupleize_cols=False,
-                         header=lrange(3), index_col=0)
-
-            with assertRaisesRegexp(CParserError,
-                                    'Passed header=\[0,1,2,3,4,5,6\], len of '
-                                    '7, but only 6 lines in file'):
-                read_csv(path, tupleize_cols=False,
-                         header=lrange(7), index_col=0)
-
-            for i in [4, 5, 6]:
-                with tm.assertRaises(CParserError):
+            for i in [5, 6, 7]:
+                msg = 'len of {i}, but only 5 lines in file'.format(i=i)
+                with assertRaisesRegexp(CParserError, msg):
                     read_csv(path, tupleize_cols=False,
                              header=lrange(i), index_col=0)
 
