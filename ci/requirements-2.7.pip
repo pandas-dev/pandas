@@ -1,4 +1,4 @@
-blosc
+blosc==1.4.1
 httplib2
 google-api-python-client==1.2
 python-gflags==2.0
