@@ -371,6 +371,32 @@ Previous versions of pandas would permanently silence numpy's ufunc error handli
 
 After upgrading pandas, you may see *new* ``RuntimeWarnings`` being issued from your code. These are likely legitimate, and the underlying cause likely existed in the code when using previous versions of pandas that simply silenced the warning. Use `numpy.errstate <http://docs.scipy.org/doc/numpy/reference/generated/numpy.errstate.html>`__ around the source of the ``RuntimeWarning`` to control how these conditions are handled.
 
+.. _whatsnew_0190.get_dummies_dtypes:
+
+get_dummies dtypes
+^^^^^^^^^^^^^^^^^^
+
+The ``pd.get_dummies`` function now returns dummy-encoded columns as small integers, rather than floats (:issue:`8725`)
+
+Previous behaviour:
+
+.. code-block:: ipython
+
+   In [1]:    pd.get_dummies(['a', 'b', 'a', 'c']).dtypes
+
+   Out[1]:
+   a    float64
+   b    float64
+   c    float64
+   dtype: object
+
+New Behavior:
+
+.. ipython:: python
+
+   pd.get_dummies(['a', 'b', 'a', 'c']).dtypes
+
+
 .. _whatsnew_0190.enhancements.other:
 
 Other enhancements
@@ -477,7 +503,6 @@ API changes
 - ``pd.read_csv()`` in the C engine will now issue a ``ParserWarning`` or raise a ``ValueError`` when ``sep`` encoded is more than one character long (:issue:`14065`)
 - ``DataFrame.values`` will now return ``float64`` with a ``DataFrame`` of mixed ``int64`` and ``uint64`` dtypes, conforming to ``np.find_common_type`` (:issue:`10364`, :issue:`13917`)
 - ``Series.unique()`` with datetime and timezone now returns return array of ``Timestamp`` with timezone (:issue:`13565`)
-
 
 
 .. _whatsnew_0190.api.tolist:
@@ -1355,7 +1380,7 @@ Bug Fixes
 - Bug in using NumPy ufunc with ``PeriodIndex`` to add or subtract integer raise ``IncompatibleFrequency``. Note that using standard operator like ``+`` or ``-`` is recommended, because standard operators use more efficient path (:issue:`13980`)
 - Bug in operations on ``NaT`` returning ``float`` instead of ``datetime64[ns]`` (:issue:`12941`)
 - Bug in ``Series`` flexible arithmetic methods (like ``.add()``) raises ``ValueError`` when ``axis=None`` (:issue:`13894`)
-- Bug in ``DataFrame.to_csv()`` with ``MultiIndex`` columns in which a stray empty line was added (:issue:`6618`) 
+- Bug in ``DataFrame.to_csv()`` with ``MultiIndex`` columns in which a stray empty line was added (:issue:`6618`)
 
 
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
