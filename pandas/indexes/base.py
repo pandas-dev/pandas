@@ -1392,33 +1392,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         else:
             return result
 
-    def _ensure_compat_append(self, other):
-        """
-        prepare the append
-
-        Returns
-        -------
-        list of to_concat, name of result Index
-        """
-        name = self.name
-        to_concat = [self]
-
-        if isinstance(other, (list, tuple)):
-            to_concat = to_concat + list(other)
-        else:
-            to_concat.append(other)
-
-        for obj in to_concat:
-            if (isinstance(obj, Index) and obj.name != name and
-                    obj.name is not None):
-                name = None
-                break
-
-        to_concat = self._ensure_compat_concat(to_concat)
-        to_concat = [x._values if isinstance(x, Index) else x
-                     for x in to_concat]
-        return to_concat, name
-
     def append(self, other):
         """
         Append a collection of Index options together
@@ -1431,24 +1404,38 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         -------
         appended : Index
         """
-        to_concat, name = self._ensure_compat_append(other)
-        attribs = self._get_attributes_dict()
-        attribs['name'] = name
-        return self._shallow_copy_with_infer(
-            np.concatenate(to_concat), **attribs)
 
-    @staticmethod
-    def _ensure_compat_concat(indexes):
-        from pandas.tseries.api import (DatetimeIndex, PeriodIndex,
-                                        TimedeltaIndex)
-        klasses = DatetimeIndex, PeriodIndex, TimedeltaIndex
+        to_concat = [self]
 
-        is_ts = [isinstance(idx, klasses) for idx in indexes]
+        if isinstance(other, (list, tuple)):
+            to_concat = to_concat + list(other)
+        else:
+            to_concat.append(other)
 
-        if any(is_ts) and not all(is_ts):
-            return [_maybe_box(idx) for idx in indexes]
+        for obj in to_concat:
+            if not isinstance(obj, Index):
+                raise TypeError('all inputs must be Index')
 
-        return indexes
+        names = set([obj.name for obj in to_concat])
+        name = None if len(names) > 1 else self.name
+
+        typs = _concat.get_dtype_kinds(to_concat)
+
+        if 'category' in typs:
+            # if any of the to_concat is category
+            from pandas.indexes.category import CategoricalIndex
+            return CategoricalIndex._append_same_dtype(self, to_concat, name)
+
+        if len(typs) == 1:
+            return self._append_same_dtype(to_concat, name=name)
+        return _concat._concat_index_asobject(to_concat, name=name)
+
+    def _append_same_dtype(self, to_concat, name):
+        """
+        Concatenate to_concat which has the same class
+        """
+        # must be overrided in specific classes
+        return _concat._concat_index_asobject(to_concat, name)
 
     _index_shared_docs['take'] = """
         return a new %(klass)s of the values selected by the indices
@@ -3632,16 +3619,6 @@ def _ensure_has_len(seq):
         return list(seq)
     else:
         return seq
-
-
-def _maybe_box(idx):
-    from pandas.tseries.api import DatetimeIndex, PeriodIndex, TimedeltaIndex
-    klasses = DatetimeIndex, PeriodIndex, TimedeltaIndex
-
-    if isinstance(idx, klasses):
-        return idx.asobject
-
-    return idx
 
 
 def _trim_front(strings):

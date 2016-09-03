@@ -523,6 +523,9 @@ def _normalize(table, normalize, margins):
         column_margin = table.loc[:, 'All'].drop('All')
         index_margin = table.loc['All', :].drop('All')
         table = table.drop('All', axis=1).drop('All')
+        # to keep index and columns names
+        table_index_names = table.index.names
+        table_columns_names = table.columns.names
 
         # Normalize core
         table = _normalize(table, normalize=normalize, margins=False)
@@ -549,6 +552,9 @@ def _normalize(table, normalize, margins):
 
         else:
             raise ValueError("Not a valid normalize argument")
+
+        table.index.names = table_index_names
+        table.columns.names = table_columns_names
 
     else:
         raise ValueError("Not a valid margins argument")

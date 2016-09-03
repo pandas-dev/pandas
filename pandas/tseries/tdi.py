@@ -505,34 +505,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                     result.freq = to_offset(result.inferred_freq)
             return result
 
-    def append(self, other):
-        """
-        Append a collection of Index options together
-
-        Parameters
-        ----------
-        other : Index or list/tuple of indices
-
-        Returns
-        -------
-        appended : Index
-        """
-        name = self.name
-        to_concat = [self]
-
-        if isinstance(other, (list, tuple)):
-            to_concat = to_concat + list(other)
-        else:
-            to_concat.append(other)
-
-        for obj in to_concat:
-            if isinstance(obj, Index) and obj.name != name:
-                name = None
-                break
-
-        to_concat = self._ensure_compat_concat(to_concat)
-        return Index(_concat._concat_compat(to_concat), name=name)
-
     def join(self, other, how='left', level=None, return_indexers=False):
         """
         See Index.join
