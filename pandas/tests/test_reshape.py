@@ -323,7 +323,7 @@ class TestGetDummies(tm.TestCase):
                               [3, 1, 0, 0, 1]],
                              columns=['C', 'bad_a', 'bad_b', 'bad_b', 'bad_c'],
                              dtype=np.uint8)
-        expected = expected.astype({"C": np.int})
+        expected = expected.astype({"C": np.int64})
         assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_subset(self):

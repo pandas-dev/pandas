@@ -1385,11 +1385,22 @@ assert_panel4d_equal = partial(assert_panelnd_equal,
 # Sparse
 
 
-def assert_sp_array_equal(left, right):
+def assert_sp_array_equal(left, right, check_dtype=True):
+    """Check that the left and right SparseArray are equal.
+
+    Parameters
+    ----------
+    left : SparseArray
+    right : SparseArray
+    check_dtype : bool, default True
+        Whether to check the data dtype is identical.
+    """
+
     assertIsInstance(left, pd.SparseArray, '[SparseArray]')
     assertIsInstance(right, pd.SparseArray, '[SparseArray]')
 
-    assert_numpy_array_equal(left.sp_values, right.sp_values)
+    assert_numpy_array_equal(left.sp_values, right.sp_values,
+                             check_dtype=check_dtype)
 
     # SparseIndex comparison
     assertIsInstance(left.sp_index, pd._sparse.SparseIndex, '[SparseIndex]')
@@ -1400,8 +1411,10 @@ def assert_sp_array_equal(left, right):
                             left.sp_index, right.sp_index)
 
     assert_attr_equal('fill_value', left, right)
-    assert_attr_equal('dtype', left, right)
-    assert_numpy_array_equal(left.values, right.values)
+    if check_dtype:
+        assert_attr_equal('dtype', left, right)
+    assert_numpy_array_equal(left.values, right.values,
+                             check_dtype=check_dtype)
 
 
 def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,

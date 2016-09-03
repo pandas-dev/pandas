@@ -60,8 +60,11 @@ class TestSparseList(unittest.TestCase):
             splist.append(arr[5])
             splist.append(arr[6:])
 
+            # list always produces int64, but SA constructor
+            # is platform dtype aware
             sparr = splist.to_array()
-            tm.assert_sp_array_equal(sparr, SparseArray(arr, fill_value=0))
+            exp = SparseArray(arr, fill_value=0)
+            tm.assert_sp_array_equal(sparr, exp, check_dtype=False)
 
     def test_consolidate(self):
         with tm.assert_produces_warning(FutureWarning,
