@@ -1436,6 +1436,7 @@ class MultiIndex(Index):
                                                   return_indexers=True,
                                                   keep_order=False)
         else:
+            target = _ensure_index(target)
             if self.equals(target):
                 indexer = None
             else:
@@ -1983,6 +1984,9 @@ class MultiIndex(Index):
         """
         if self.is_(other):
             return True
+
+        if not isinstance(other, Index):
+            return False
 
         if not isinstance(other, MultiIndex):
             return array_equivalent(self._values,

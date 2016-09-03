@@ -1605,8 +1605,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        return array_equivalent(_values_from_object(self),
-                                _values_from_object(other))
+        if is_object_dtype(self) and not is_object_dtype(other):
+            # if other is not object, use other's logic for coercion
+            return other.equals(self)
+
+        try:
+            return array_equivalent(_values_from_object(self),
+                                    _values_from_object(other))
+        except:
+            return False
 
     def identical(self, other):
         """Similar to equals, but check that other comparable attributes are

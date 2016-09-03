@@ -7,7 +7,7 @@ import pandas.index as _index
 from pandas.types.common import (is_dtype_equal, pandas_dtype,
                                  is_float_dtype, is_object_dtype,
                                  is_integer_dtype, is_scalar)
-from pandas.types.missing import array_equivalent, isnull
+from pandas.types.missing import isnull
 from pandas.core.common import _values_from_object
 
 from pandas import compat
@@ -160,16 +160,6 @@ class Int64Index(NumericIndex):
         return (super(Int64Index, self)
                 ._convert_scalar_indexer(key, kind=kind))
 
-    def equals(self, other):
-        """
-        Determines if two Index objects contain the same elements.
-        """
-        if self.is_(other):
-            return True
-
-        return array_equivalent(_values_from_object(self),
-                                _values_from_object(other))
-
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
         return Int64Index(joined, name=name)
@@ -305,6 +295,9 @@ class Float64Index(NumericIndex):
         """
         if self is other:
             return True
+
+        if not isinstance(other, Index):
+            return False
 
         # need to compare nans locations and make sure that they are the same
         # since nans don't compare equal this is a bit tricky

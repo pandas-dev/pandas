@@ -1266,7 +1266,7 @@ class TestMultiIndex(Base, tm.TestCase):
     def test_bounds(self):
         self.index._bounds
 
-    def test_equals(self):
+    def test_equals_multi(self):
         self.assertTrue(self.index.equals(self.index))
         self.assertTrue(self.index.equal_levels(self.index))
 

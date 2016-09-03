@@ -196,6 +196,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
         if self.is_(other):
             return True
 
+        if not isinstance(other, Index):
+            return False
+
         try:
             other = self._is_dtype_compat(other)
             return array_equivalent(self._data, other)
