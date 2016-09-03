@@ -337,7 +337,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertTrue(index.is_monotonic_increasing)
         self.assertTrue(index.is_monotonic_decreasing)
 
-    def test_equals(self):
+    def test_equals_range(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
                        (RangeIndex(0), RangeIndex(1, -1, 3)),
                        (RangeIndex(1, 2, 3), RangeIndex(1, 3, 4)),

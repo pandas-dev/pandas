@@ -1523,7 +1523,7 @@ class TestTimedeltaIndex(tm.TestCase):
         tm.assertIsInstance(list(result.values())[0][0], Timedelta)
 
         idx = TimedeltaIndex(['3d', '1d', '2d'])
-        self.assertTrue(idx.equals(list(idx)))
+        self.assertFalse(idx.equals(list(idx)))
 
         non_td = Index(list('abc'))
         self.assertFalse(idx.equals(list(non_td)))

@@ -1625,26 +1625,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _resolution(self):
         return period.resolution(self.asi8, self.tz)
 
-    def equals(self, other):
-        """
-        Determines if two Index objects contain the same elements.
-        """
-        if self.is_(other):
-            return True
-
-        if (not hasattr(other, 'inferred_type') or
-                other.inferred_type != 'datetime64'):
-            if self.offset is not None:
-                return False
-            try:
-                other = DatetimeIndex(other)
-            except:
-                return False
-
-        if self._has_same_tz(other):
-            return np.array_equal(self.asi8, other.asi8)
-        return False
-
     def insert(self, loc, item):
         """
         Make new Index inserting new item at location

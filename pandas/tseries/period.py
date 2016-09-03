@@ -596,21 +596,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         # how to represent ourselves to matplotlib
         return self.asobject.values
 
-    def equals(self, other):
-        """
-        Determines if two Index objects contain the same elements.
-        """
-        if self.is_(other):
-            return True
-
-        if not isinstance(other, PeriodIndex):
-            try:
-                other = PeriodIndex(other)
-            except:
-                return False
-
-        return np.array_equal(self.asi8, other.asi8)
-
     def to_timestamp(self, freq=None, how='start'):
         """
         Cast to DatetimeIndex

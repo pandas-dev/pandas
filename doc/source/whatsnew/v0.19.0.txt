@@ -1461,6 +1461,7 @@ Bug Fixes
 - Bug in operations on ``NaT`` returning ``float`` instead of ``datetime64[ns]`` (:issue:`12941`)
 - Bug in ``Series`` flexible arithmetic methods (like ``.add()``) raises ``ValueError`` when ``axis=None`` (:issue:`13894`)
 - Bug in ``DataFrame.to_csv()`` with ``MultiIndex`` columns in which a stray empty line was added (:issue:`6618`)
+- Bug in ``DatetimeIndex``, ``TimedeltaIndex`` and ``PeriodIndex.equals()`` may return ``True`` when input isn't ``Index`` but contains the same values (:issue:`13107`)
 
 
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)

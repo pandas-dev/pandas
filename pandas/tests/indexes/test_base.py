@@ -400,7 +400,7 @@ class TestIndex(Base, tm.TestCase):
         casted = self.intIndex.astype('i8')
         self.assertEqual(casted.name, 'foobar')
 
-    def test_equals(self):
+    def test_equals_object(self):
         # same
         self.assertTrue(Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'c'])))
 

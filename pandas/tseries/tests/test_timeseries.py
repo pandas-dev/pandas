@@ -3032,7 +3032,7 @@ class TestDatetimeIndex(tm.TestCase):
         tm.assertIsInstance(list(result.values())[0][0], Timestamp)
 
         idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
-        self.assertTrue(idx.equals(list(idx)))
+        self.assertFalse(idx.equals(list(idx)))
 
         non_datetime = Index(list('abc'))
         self.assertFalse(idx.equals(list(non_datetime)))

@@ -819,6 +819,37 @@ Freq: D"""
             tm.assert_numpy_array_equal(idx._nan_idxs,
                                         np.array([1], dtype=np.int64))
 
+    def test_equals(self):
+        # GH 13107
+        for tz in [None, 'UTC', 'US/Eastern', 'Asia/Tokyo']:
+            idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02', 'NaT'])
+            self.assertTrue(idx.equals(idx))
+            self.assertTrue(idx.equals(idx.copy()))
+            self.assertTrue(idx.equals(idx.asobject))
+            self.assertTrue(idx.asobject.equals(idx))
+            self.assertTrue(idx.asobject.equals(idx.asobject))
+            self.assertFalse(idx.equals(list(idx)))
+            self.assertFalse(idx.equals(pd.Series(idx)))
+
+            idx2 = pd.DatetimeIndex(['2011-01-01', '2011-01-02', 'NaT'],
+                                    tz='US/Pacific')
+            self.assertFalse(idx.equals(idx2))
+            self.assertFalse(idx.equals(idx2.copy()))
+            self.assertFalse(idx.equals(idx2.asobject))
+            self.assertFalse(idx.asobject.equals(idx2))
+            self.assertFalse(idx.equals(list(idx2)))
+            self.assertFalse(idx.equals(pd.Series(idx2)))
+
+            # same internal, different tz
+            idx3 = pd.DatetimeIndex._simple_new(idx.asi8, tz='US/Pacific')
+            tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
+            self.assertFalse(idx.equals(idx3))
+            self.assertFalse(idx.equals(idx3.copy()))
+            self.assertFalse(idx.equals(idx3.asobject))
+            self.assertFalse(idx.asobject.equals(idx3))
+            self.assertFalse(idx.equals(list(idx3)))
+            self.assertFalse(idx.equals(pd.Series(idx3)))
+
 
 class TestTimedeltaIndexOps(Ops):
     def setUp(self):
@@ -1681,6 +1712,26 @@ Freq: D"""
         self.assertTrue(idx.hasnans)
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.int64))
+
+    def test_equals(self):
+        # GH 13107
+        idx = pd.TimedeltaIndex(['1 days', '2 days', 'NaT'])
+        self.assertTrue(idx.equals(idx))
+        self.assertTrue(idx.equals(idx.copy()))
+        self.assertTrue(idx.equals(idx.asobject))
+        self.assertTrue(idx.asobject.equals(idx))
+        self.assertTrue(idx.asobject.equals(idx.asobject))
+        self.assertFalse(idx.equals(list(idx)))
+        self.assertFalse(idx.equals(pd.Series(idx)))
+
+        idx2 = pd.TimedeltaIndex(['2 days', '1 days', 'NaT'])
+        self.assertFalse(idx.equals(idx2))
+        self.assertFalse(idx.equals(idx2.copy()))
+        self.assertFalse(idx.equals(idx2.asobject))
+        self.assertFalse(idx.asobject.equals(idx2))
+        self.assertFalse(idx.asobject.equals(idx2.asobject))
+        self.assertFalse(idx.equals(list(idx2)))
+        self.assertFalse(idx.equals(pd.Series(idx2)))
 
 
 class TestPeriodIndexOps(Ops):
@@ -2645,6 +2696,38 @@ Freq: Q-DEC"""
         self.assertTrue(idx.hasnans)
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.int64))
+
+    def test_equals(self):
+        # GH 13107
+        for freq in ['D', 'M']:
+            idx = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
+                                 freq=freq)
+            self.assertTrue(idx.equals(idx))
+            self.assertTrue(idx.equals(idx.copy()))
+            self.assertTrue(idx.equals(idx.asobject))
+            self.assertTrue(idx.asobject.equals(idx))
+            self.assertTrue(idx.asobject.equals(idx.asobject))
+            self.assertFalse(idx.equals(list(idx)))
+            self.assertFalse(idx.equals(pd.Series(idx)))
+
+            idx2 = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
+                                  freq='H')
+            self.assertFalse(idx.equals(idx2))
+            self.assertFalse(idx.equals(idx2.copy()))
+            self.assertFalse(idx.equals(idx2.asobject))
+            self.assertFalse(idx.asobject.equals(idx2))
+            self.assertFalse(idx.equals(list(idx2)))
+            self.assertFalse(idx.equals(pd.Series(idx2)))
+
+            # same internal, different tz
+            idx3 = pd.PeriodIndex._simple_new(idx.asi8, freq='H')
+            tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
+            self.assertFalse(idx.equals(idx3))
+            self.assertFalse(idx.equals(idx3.copy()))
+            self.assertFalse(idx.equals(idx3.asobject))
+            self.assertFalse(idx.asobject.equals(idx3))
+            self.assertFalse(idx.equals(list(idx3)))
+            self.assertFalse(idx.equals(pd.Series(idx3)))
 
 
 if __name__ == '__main__':
