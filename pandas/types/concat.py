@@ -12,11 +12,14 @@ from .common import (is_categorical_dtype,
                      is_datetimetz,
                      is_datetime64_dtype,
                      is_timedelta64_dtype,
+                     is_period_dtype,
                      is_object_dtype,
                      is_bool_dtype,
                      is_dtype_equal,
                      _NS_DTYPE,
                      _TD_DTYPE)
+from pandas.types.generic import (ABCDatetimeIndex, ABCTimedeltaIndex,
+                                  ABCPeriodIndex)
 
 
 def get_dtype_kinds(l):
@@ -39,7 +42,9 @@ def get_dtype_kinds(l):
         elif is_sparse(arr):
             typ = 'sparse'
         elif is_datetimetz(arr):
-            typ = 'datetimetz'
+            # if to_concat contains different tz,
+            # the result must be object dtype
+            typ = str(arr.dtype)
         elif is_datetime64_dtype(dtype):
             typ = 'datetime'
         elif is_timedelta64_dtype(dtype):
@@ -48,6 +53,8 @@ def get_dtype_kinds(l):
             typ = 'object'
         elif is_bool_dtype(dtype):
             typ = 'bool'
+        elif is_period_dtype(dtype):
+            typ = str(arr.dtype)
         else:
             typ = dtype.kind
         typs.add(typ)
@@ -127,7 +134,10 @@ def _concat_compat(to_concat, axis=0):
     typs = get_dtype_kinds(to_concat)
 
     # these are mandated to handle empties as well
-    if 'datetime' in typs or 'datetimetz' in typs or 'timedelta' in typs:
+    _contains_datetime = any(typ.startswith('datetime') for typ in typs)
+    _contains_period = any(typ.startswith('period') for typ in typs)
+
+    if _contains_datetime or 'timedelta' in typs or _contains_period:
         return _concat_datetime(to_concat, axis=axis, typs=typs)
 
     elif 'sparse' in typs:
@@ -319,12 +329,13 @@ def _concat_datetime(to_concat, axis=0, typs=None):
                 x = x.asobject.values
             else:
                 shape = x.shape
-                x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
+                x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(),
+                                             box=True)
                 x = x.reshape(shape)
 
         elif x.dtype == _TD_DTYPE:
             shape = x.shape
-            x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel())
+            x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
             x = x.reshape(shape)
 
         if axis == 1:
@@ -336,32 +347,69 @@ def _concat_datetime(to_concat, axis=0, typs=None):
 
     # must be single dtype
     if len(typs) == 1:
+        _contains_datetime = any(typ.startswith('datetime') for typ in typs)
+        _contains_period = any(typ.startswith('period') for typ in typs)
 
-        if 'datetimetz' in typs:
-            # datetime with no tz should be stored as "datetime" in typs,
-            # thus no need to care
+        if _contains_datetime:
 
-            # we require ALL of the same tz for datetimetz
-            tzs = set([str(x.tz) for x in to_concat])
-            if len(tzs) == 1:
-                from pandas.tseries.index import DatetimeIndex
-                new_values = np.concatenate([x.tz_localize(None).asi8
-                                             for x in to_concat])
-                return DatetimeIndex(new_values, tz=list(tzs)[0])
-
-        elif 'datetime' in typs:
-            new_values = np.concatenate([x.view(np.int64) for x in to_concat],
-                                        axis=axis)
-            return new_values.view(_NS_DTYPE)
+            if 'datetime' in typs:
+                new_values = np.concatenate([x.view(np.int64) for x in
+                                             to_concat], axis=axis)
+                return new_values.view(_NS_DTYPE)
+            else:
+                # when to_concat has different tz, len(typs) > 1.
+                # thus no need to care
+                return _concat_datetimetz(to_concat)
 
         elif 'timedelta' in typs:
             new_values = np.concatenate([x.view(np.int64) for x in to_concat],
                                         axis=axis)
             return new_values.view(_TD_DTYPE)
 
+        elif _contains_period:
+            # PeriodIndex must be handled by PeriodIndex,
+            # Thus can't meet this condition ATM
+            # Must be changed when we adding PeriodDtype
+            raise NotImplementedError
+
     # need to coerce to object
     to_concat = [convert_to_pydatetime(x, axis) for x in to_concat]
     return np.concatenate(to_concat, axis=axis)
+
+
+def _concat_datetimetz(to_concat, name=None):
+    """
+    concat DatetimeIndex with the same tz
+    all inputs must be DatetimeIndex
+    it is used in DatetimeIndex.append also
+    """
+    # do not pass tz to set because tzlocal cannot be hashed
+    if len(set([str(x.dtype) for x in to_concat])) != 1:
+        raise ValueError('to_concat must have the same tz')
+    tz = to_concat[0].tz
+    # no need to localize because internal repr will not be changed
+    new_values = np.concatenate([x.asi8 for x in to_concat])
+    return to_concat[0]._simple_new(new_values, tz=tz, name=name)
+
+
+def _concat_index_asobject(to_concat, name=None):
+    """
+    concat all inputs as object. DatetimeIndex, TimedeltaIndex and
+    PeriodIndex are converted to object dtype before concatenation
+    """
+
+    klasses = ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex
+    to_concat = [x.asobject if isinstance(x, klasses) else x
+                 for x in to_concat]
+
+    from pandas import Index
+    self = to_concat[0]
+    attribs = self._get_attributes_dict()
+    attribs['name'] = name
+
+    to_concat = [x._values if isinstance(x, Index) else x
+                 for x in to_concat]
+    return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
 
 
 def _concat_sparse(to_concat, axis=0, typs=None):

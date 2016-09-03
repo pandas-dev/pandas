@@ -895,7 +895,9 @@ class TestCrosstab(tm.TestCase):
 
         all_cols = result['All', '']
         exp_cols = df.groupby(['a']).size().astype('i8')
-        exp_cols = exp_cols.append(Series([len(df)], index=['All']))
+        # to keep index.name
+        exp_margin = Series([len(df)], index=Index(['All'], name='a'))
+        exp_cols = exp_cols.append(exp_margin)
         exp_cols.name = ('All', '')
 
         tm.assert_series_equal(all_cols, exp_cols)
@@ -1084,7 +1086,6 @@ class TestCrosstab(tm.TestCase):
                                                          dtype='object'),
                                           columns=pd.Index([3, 4, 'All'],
                                                            name='b'))
-
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index',
                                           margins=True), row_normal_margins)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns',

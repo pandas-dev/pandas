@@ -271,12 +271,12 @@ class TestCategoricalIndex(Base, tm.TestCase):
             lambda: ci.append(ci.values.reorder_categories(list('abc'))))
 
         # with objects
-        result = ci.append(['c', 'a'])
+        result = ci.append(Index(['c', 'a']))
         expected = CategoricalIndex(list('aabbcaca'), categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid objects
-        self.assertRaises(TypeError, lambda: ci.append(['a', 'd']))
+        self.assertRaises(TypeError, lambda: ci.append(Index(['a', 'd'])))
 
     def test_insert(self):
 
