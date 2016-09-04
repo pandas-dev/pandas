@@ -93,6 +93,12 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual(len(ax.get_lines()), len(lines))
 
     @slow
+    def test_boxplot_return_type_none(self):
+        # GH 12216; return_type=None & by=None -> axes
+        result = self.hist_df.boxplot()
+        self.assertTrue(isinstance(result, self.plt.Axes))
+
+    @slow
     def test_boxplot_return_type_legacy(self):
         # API change in https://github.com/pydata/pandas/pull/7096
         import matplotlib as mpl  # noqa
@@ -103,10 +109,8 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assertRaises(ValueError):
             df.boxplot(return_type='NOTATYPE')
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.boxplot()
-        # change to Axes in future
-        self._check_box_return_type(result, 'dict')
+        result = df.boxplot()
+        self._check_box_return_type(result, 'axes')
 
         with tm.assert_produces_warning(False):
             result = df.boxplot(return_type='dict')
@@ -140,6 +144,7 @@ class TestDataFramePlots(TestPlotBase):
         p = df.boxplot(['height', 'weight', 'age'], by='category')
         height_ax, weight_ax, age_ax = p[0, 0], p[0, 1], p[1, 0]
         dummy_ax = p[1, 1]
+
         _check_ax_limits(df['height'], height_ax)
         _check_ax_limits(df['weight'], weight_ax)
         _check_ax_limits(df['age'], age_ax)
@@ -163,8 +168,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         grouped = self.hist_df.groupby(by='gender')
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type='axes')
-        self._check_axes_shape(list(axes.values()), axes_num=2, layout=(1, 2))
-
+        self._check_axes_shape(list(axes.values), axes_num=2, layout=(1, 2))
         axes = _check_plot_works(grouped.boxplot, subplots=False,
                                  return_type='axes')
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
@@ -175,7 +179,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         grouped = df.groupby(level=1)
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type='axes')
-        self._check_axes_shape(list(axes.values()), axes_num=10, layout=(4, 3))
+        self._check_axes_shape(list(axes.values), axes_num=10, layout=(4, 3))
 
         axes = _check_plot_works(grouped.boxplot, subplots=False,
                                  return_type='axes')
@@ -184,8 +188,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type='axes')
-        self._check_axes_shape(list(axes.values()), axes_num=3, layout=(2, 2))
-
+        self._check_axes_shape(list(axes.values), axes_num=3, layout=(2, 2))
         axes = _check_plot_works(grouped.boxplot, subplots=False,
                                  return_type='axes')
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
@@ -226,8 +229,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             expected_keys=['height', 'weight', 'category'])
 
         # now for groupby
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.groupby('gender').boxplot()
+        result = df.groupby('gender').boxplot(return_type='dict')
         self._check_box_return_type(
             result, 'dict', expected_keys=['Male', 'Female'])
 
@@ -347,7 +349,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         with tm.assert_produces_warning(UserWarning):
             returned = df.boxplot(column=['height', 'weight', 'category'],
                                   by='gender', return_type='axes', ax=axes[0])
-        returned = np.array(list(returned.values()))
+        returned = np.array(list(returned.values))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         self.assert_numpy_array_equal(returned, axes[0])
         self.assertIs(returned[0].figure, fig)
@@ -357,7 +359,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             returned = df.groupby('classroom').boxplot(
                 column=['height', 'weight', 'category'],
                 return_type='axes', ax=axes[1])
-        returned = np.array(list(returned.values()))
+        returned = np.array(list(returned.values))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         self.assert_numpy_array_equal(returned, axes[1])
         self.assertIs(returned[0].figure, fig)

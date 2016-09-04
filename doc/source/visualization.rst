@@ -456,28 +456,29 @@ columns:
 
 .. _visualization.box.return:
 
-Basically, plot functions return :class:`matplotlib Axes <matplotlib.axes.Axes>` as a return value.
-In ``boxplot``, the return type can be changed by argument ``return_type``, and whether the subplots is enabled (``subplots=True`` in ``plot`` or ``by`` is specified in ``boxplot``).
+.. warning::
 
-When ``subplots=False`` / ``by`` is ``None``:
+   The default changed from ``'dict'`` to ``'axes'`` in version 0.19.0.
 
-* if ``return_type`` is ``'dict'``, a dictionary containing the :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned. The keys are "boxes", "caps", "fliers", "medians", and "whiskers".
-   This is the default of ``boxplot`` in historical reason.
-   Note that ``plot.box()`` returns ``Axes`` by default same as other plots.
-* if ``return_type`` is ``'axes'``, a :class:`matplotlib Axes <matplotlib.axes.Axes>` containing the boxplot is returned.
-* if ``return_type`` is ``'both'`` a namedtuple containing the :class:`matplotlib Axes <matplotlib.axes.Axes>`
-   and :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned
+In ``boxplot``, the return type can be controlled by the ``return_type``, keyword. The valid choices are ``{"axes", "dict", "both", None}``.
+Faceting, created by ``DataFrame.boxplot`` with the ``by``
+keyword, will affect the output type as well:
 
-When ``subplots=True`` / ``by`` is some column of the DataFrame:
+================ ======= ==========================
+``return_type=`` Faceted Output type
+---------------- ------- --------------------------
 
-* A dict of ``return_type`` is returned, where the keys are the columns
-  of the DataFrame. The plot has a facet for each column of
-  the DataFrame, with a separate box for each value of ``by``.
+``None``         No      axes
+``None``         Yes     2-D ndarray of axes
+``'axes'``       No      axes
+``'axes'``       Yes     Series of axes
+``'dict'``       No      dict of artists
+``'dict'``       Yes     Series of dicts of artists
+``'both'``       No      namedtuple
+``'both'``       Yes     Series of namedtuples
+================ ======= ==========================
 
-Finally, when calling boxplot on a :class:`Groupby` object, a dict of ``return_type``
-is returned, where the keys are the same as the Groupby object. The plot has a
-facet for each key, with each facet containing a box for each column of the
-DataFrame.
+``Groupby.boxplot`` always returns a Series of ``return_type``.
 
 .. ipython:: python
    :okwarning:
