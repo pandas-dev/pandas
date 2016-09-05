@@ -725,7 +725,7 @@ Bug fixes related to ``.to_datetime()``:
 - Bug in ``pd.to_datetime()`` when passing invalid datatypes (e.g. bool); will now respect the ``errors`` keyword (:issue:`13176`)
 - Bug in ``pd.to_datetime()`` which overflowed on ``int8``, and ``int16`` dtypes (:issue:`13451`)
 - Bug in ``pd.to_datetime()`` raise ``AttributeError`` with ``NaN`` and the other string is not valid when ``errors='ignore'`` (:issue:`12424`)
-- Bug in ``pd.to_datetime()`` did not cast floats correctly when ``unit`` was specified, resulting in truncated datetime (:issue:`13845`)
+- Bug in ``pd.to_datetime()`` did not cast floats correctly when ``unit`` was specified, resulting in truncated datetime (:issue:`13834`)
 
 .. _whatsnew_0190.api.merging:
 
