@@ -1327,6 +1327,7 @@ Other API Changes
 - More informative exceptions are passed through the csv parser. The exception type would now be the original exception type instead of ``CParserError``. (:issue:`13652`)
 - ``pd.read_csv()`` in the C engine will now issue a ``ParserWarning`` or raise a ``ValueError`` when ``sep`` encoded is more than one character long (:issue:`14065`)
 - ``DataFrame.values`` will now return ``float64`` with a ``DataFrame`` of mixed ``int64`` and ``uint64`` dtypes, conforming to ``np.find_common_type`` (:issue:`10364`, :issue:`13917`)
+- ``pd.read_stata()`` can now handle some format 111 files, which are produced by SAS when generating Stata dta files (:issue:`11526`)
 
 .. _whatsnew_0190.deprecations:
 

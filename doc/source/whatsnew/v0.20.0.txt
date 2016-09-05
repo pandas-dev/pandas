@@ -33,8 +33,6 @@ Other enhancements
 
 
 
-
-
 .. _whatsnew_0200.api_breaking:
 
 Backwards incompatible API changes
@@ -81,4 +79,3 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-
