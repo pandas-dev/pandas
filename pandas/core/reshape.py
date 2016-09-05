@@ -984,7 +984,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
         .. versionadded:: 0.16.1
     drop_first : bool, default False
-        Whether to get k-1 dummies out of n categorical levels by removing the
+        Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
 
         .. versionadded:: 0.18.0
