@@ -160,14 +160,8 @@ matrix:
         - JOB_TAG=_ASCII
         - NOSE_ARGS="not slow and not network and not disabled"
         - LOCALE_OVERRIDE="C"
-        - FULL_DEPS=true
-        - CLIPBOARD=xsel
         - CACHE_NAME="35_ascii"
         - USE_CACHE=true
-      addons:
-        apt:
-          packages:
-          - xsel
 #    In allow_failures
     - python: 2.7
       env:
@@ -240,14 +234,8 @@ matrix:
         - JOB_TAG=_ASCII
         - NOSE_ARGS="not slow and not network and not disabled"
         - LOCALE_OVERRIDE="C"
-        - FULL_DEPS=true
-        - CLIPBOARD=xsel
         - CACHE_NAME="35_ascii"
         - USE_CACHE=true
-        addons:
-          apt:
-            packages:
-            - xsel
       - python: 2.7
         env:
         - JOB_NAME: "doc_build"
