@@ -4,6 +4,7 @@ import pandas.lib as lib
 from pandas.types.common import (is_number,
                                  is_numeric_dtype,
                                  is_datetime_or_timedelta_dtype,
+                                 is_list_like,
                                  _ensure_object)
 from pandas.types.cast import _possibly_downcast_to_dtype
 
@@ -24,13 +25,35 @@ def cartesian_product(X):
     Numpy version of itertools.product or pandas.compat.product.
     Sometimes faster (for large inputs)...
 
+    Parameters
+    ----------
+    X : list-like of list-likes
+
+    Returns
+    -------
+    product : list of ndarrays
+
     Examples
     --------
     >>> cartesian_product([list('ABC'), [1, 2]])
     [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='|S1'),
     array([1, 2, 1, 2, 1, 2])]
 
+    See also
+    --------
+    itertools.product : Cartesian product of input iterables.  Equivalent to
+        nested for-loops.
+    pandas.compat.product : An alias for itertools.product.
     """
+    msg = "Input must be a list-like of list-likes"
+    if not is_list_like(X):
+        raise TypeError(msg)
+    for x in X:
+        if not is_list_like(x):
+            raise TypeError(msg)
+
+    if len(X) == 0:
+        return []
 
     lenX = np.fromiter((len(x) for x in X), dtype=int)
     cumprodX = np.cumproduct(lenX)
@@ -38,7 +61,11 @@ def cartesian_product(X):
     a = np.roll(cumprodX, 1)
     a[0] = 1
 
-    b = cumprodX[-1] / cumprodX
+    if cumprodX[-1] != 0:
+        b = cumprodX[-1] / cumprodX
+    else:
+        # if any factor is empty, the cartesian product is empty
+        b = np.zeros_like(cumprodX)
 
     return [np.tile(np.repeat(np.asarray(com._values_from_object(x)), b[i]),
                     np.product(a[i]))
