@@ -54,7 +54,8 @@ cdef inline is_definitely_invalid_key(object val):
 
     # we have a _data, means we are a NDFrame
     return (PySlice_Check(val) or cnp.PyArray_Check(val)
-            or PyList_Check(val) or hasattr(val,'_data'))
+            or PyList_Check(val) or hasattr(val, '_data'))
+
 
 def get_value_at(ndarray arr, object loc):
     if arr.descr.type_num == NPY_DATETIME:
@@ -62,6 +63,7 @@ def get_value_at(ndarray arr, object loc):
     elif arr.descr.type_num == NPY_TIMEDELTA:
         return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
+
 
 def set_value_at(ndarray arr, object loc, object val):
     return util.set_value_at(arr, loc, val)
@@ -302,7 +304,7 @@ cdef class IndexEngine:
         else:
             n_alloc = n
 
-        result  = np.empty(n_alloc, dtype=np.int64)
+        result = np.empty(n_alloc, dtype=np.int64)
         missing = np.empty(n_t, dtype=np.int64)
 
         # form the set of the results (like ismember)
@@ -311,7 +313,7 @@ cdef class IndexEngine:
             val = util.get_value_1d(values, i)
             if val in stargets:
                 if val not in d:
-                   d[val] = []
+                    d[val] = []
                 d[val].append(i)
 
         for i in range(n_t):
@@ -322,20 +324,20 @@ cdef class IndexEngine:
             if val in d:
                 for j in d[val]:
 
-                   # realloc if needed
-                   if count >= n_alloc:
-                      n_alloc += 10000
-                      result = np.resize(result, n_alloc)
+                    # realloc if needed
+                    if count >= n_alloc:
+                        n_alloc += 10000
+                        result = np.resize(result, n_alloc)
 
-                   result[count] = j
-                   count += 1
+                    result[count] = j
+                    count += 1
 
             # value not found
             else:
 
                 if count >= n_alloc:
-                     n_alloc += 10000
-                     result = np.resize(result, n_alloc)
+                    n_alloc += 10000
+                    result = np.resize(result, n_alloc)
                 result[count] = -1
                 count += 1
                 missing[count_missing] = i
@@ -479,9 +481,9 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         return mid + 1
 
 _pad_functions = {
-    'object' : algos.pad_object,
-    'int64' : algos.pad_int64,
-    'float64' : algos.pad_float64
+    'object': algos.pad_object,
+    'int64': algos.pad_int64,
+    'float64': algos.pad_float64
 }
 
 _backfill_functions = {
@@ -606,7 +608,7 @@ cdef class TimedeltaEngine(DatetimeEngine):
 
 cpdef convert_scalar(ndarray arr, object value):
     if arr.descr.type_num == NPY_DATETIME:
-        if isinstance(value,np.ndarray):
+        if isinstance(value, np.ndarray):
             pass
         elif isinstance(value, Timestamp):
             return value.value
@@ -615,7 +617,7 @@ cpdef convert_scalar(ndarray arr, object value):
         else:
             return Timestamp(value).value
     elif arr.descr.type_num == NPY_TIMEDELTA:
-        if isinstance(value,np.ndarray):
+        if isinstance(value, np.ndarray):
             pass
         elif isinstance(value, Timedelta):
             return value.value
@@ -639,7 +641,8 @@ cdef inline _to_i8(object val):
             return get_datetime64_value(val)
         elif PyDateTime_Check(val):
             tzinfo = getattr(val, 'tzinfo', None)
-            ival = _pydatetime_to_dts(val, &dts)  # Save the original date value so we can get the utcoffset from it.
+            # Save the original date value so we can get the utcoffset from it.
+            ival = _pydatetime_to_dts(val, &dts)
             if tzinfo is not None and not _is_utc(tzinfo):
                 offset = tslib._get_utcoffset(tzinfo, val)
                 ival -= tslib._delta_to_nanoseconds(offset)
