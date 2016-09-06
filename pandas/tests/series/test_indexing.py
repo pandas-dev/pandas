@@ -1324,6 +1324,13 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s.loc['A'] = timedelta(1)
         tm.assert_series_equal(s, expected)
 
+        # GH 14155
+        s = Series(10 * [np.timedelta64(10, 'm')])
+        s.loc[[1, 2, 3]] = np.timedelta64(20, 'm')
+        expected = pd.Series(10 * [np.timedelta64(10, 'm')])
+        expected.loc[[1, 2, 3]] = pd.Timedelta(np.timedelta64(20, 'm'))
+        tm.assert_series_equal(s, expected)
+
     def test_underlying_data_conversion(self):
 
         # GH 4080
