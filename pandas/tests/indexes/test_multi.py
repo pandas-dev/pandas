@@ -1408,21 +1408,24 @@ class TestMultiIndex(Base, tm.TestCase):
         # result = self.index & tuples
         # self.assertTrue(result.equals(tuples))
 
+    def test_sub(self):
+
+        first = self.index
+
+        # - now raises (previously was set op difference)
+        with tm.assertRaises(TypeError):
+            first - self.index[-3:]
+        with tm.assertRaises(TypeError):
+            self.index[-3:] - first
+        with tm.assertRaises(TypeError):
+            self.index[-3:] - first.tolist()
+        with tm.assertRaises(TypeError):
+            first.tolist() - self.index[-3:]
+
     def test_difference(self):
 
         first = self.index
         result = first.difference(self.index[-3:])
-
-        # - API change GH 8226
-        with tm.assert_produces_warning():
-            first - self.index[-3:]
-        with tm.assert_produces_warning():
-            self.index[-3:] - first
-        with tm.assert_produces_warning():
-            self.index[-3:] - first.tolist()
-
-        self.assertRaises(TypeError, lambda: first.tolist() - self.index[-3:])
-
         expected = MultiIndex.from_tuples(sorted(self.index[:-3].values),
                                           sortorder=0,
                                           names=self.index.names)

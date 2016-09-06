@@ -730,16 +730,6 @@ class TestIndex(Base, tm.TestCase):
         expected = Index(list('ab'), name='A')
         tm.assert_index_equal(union, expected)
 
-    def test_add(self):
-
-        # - API change GH 8226
-        with tm.assert_produces_warning():
-            self.strIndex + self.strIndex
-        with tm.assert_produces_warning():
-            self.strIndex + self.strIndex.tolist()
-        with tm.assert_produces_warning():
-            self.strIndex.tolist() + self.strIndex
-
         with tm.assert_produces_warning(RuntimeWarning):
             firstCat = self.strIndex.union(self.dateIndex)
         secondCat = self.strIndex.union(self.strIndex)
@@ -755,12 +745,26 @@ class TestIndex(Base, tm.TestCase):
         tm.assert_contains_all(self.strIndex, secondCat)
         tm.assert_contains_all(self.dateIndex, firstCat)
 
+    def test_add(self):
+        idx = self.strIndex
+        expected = Index(self.strIndex.values * 2)
+        self.assert_index_equal(idx + idx, expected)
+        self.assert_index_equal(idx + idx.tolist(), expected)
+        self.assert_index_equal(idx.tolist() + idx, expected)
+
         # test add and radd
         idx = Index(list('abc'))
         expected = Index(['a1', 'b1', 'c1'])
         self.assert_index_equal(idx + '1', expected)
         expected = Index(['1a', '1b', '1c'])
         self.assert_index_equal('1' + idx, expected)
+
+    def test_sub(self):
+        idx = self.strIndex
+        self.assertRaises(TypeError, lambda: idx - 'a')
+        self.assertRaises(TypeError, lambda: idx - idx)
+        self.assertRaises(TypeError, lambda: idx - idx.tolist())
+        self.assertRaises(TypeError, lambda: idx.tolist() - idx)
 
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])

@@ -649,7 +649,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
             typ='method', overwrite=True)
 
 
-CategoricalIndex._add_numericlike_set_methods_disabled()
+CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()
 CategoricalIndex._add_comparison_methods()

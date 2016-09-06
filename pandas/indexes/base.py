@@ -1739,28 +1739,16 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return result.argsort(*args, **kwargs)
 
     def __add__(self, other):
-        if is_list_like(other):
-            warnings.warn("using '+' to provide set union with Indexes is "
-                          "deprecated, use '|' or .union()", FutureWarning,
-                          stacklevel=2)
-        if isinstance(other, Index):
-            return self.union(other)
         return Index(np.array(self) + other)
 
     def __radd__(self, other):
-        if is_list_like(other):
-            warnings.warn("using '+' to provide set union with Indexes is "
-                          "deprecated, use '|' or .union()", FutureWarning,
-                          stacklevel=2)
         return Index(other + np.array(self))
 
     __iadd__ = __add__
 
     def __sub__(self, other):
-        warnings.warn("using '-' to provide set differences with Indexes is "
-                      "deprecated, use .difference()", FutureWarning,
-                      stacklevel=2)
-        return self.difference(other)
+        raise TypeError("cannot perform __sub__ with this index type: "
+                        "{typ}".format(typ=type(self)))
 
     def __and__(self, other):
         return self.intersection(other)
@@ -1990,7 +1978,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         -----
         ``symmetric_difference`` contains elements that appear in either
         ``idx1`` or ``idx2`` but not both. Equivalent to the Index created by
-        ``(idx1 - idx2) + (idx2 - idx1)`` with duplicates dropped.
+        ``idx1.difference(idx2) | idx2.difference(idx1)`` with duplicates
+         dropped.
 
         Examples
         --------
@@ -3333,8 +3322,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         cls.__ge__ = _make_compare(operator.ge)
 
     @classmethod
-    def _add_numericlike_set_methods_disabled(cls):
-        """ add in the numeric set-like methods to disable """
+    def _add_numeric_methods_add_sub_disabled(cls):
+        """ add in the numeric add/sub methods to disable """
 
         def _make_invalid_op(name):
             def invalid_op(self, other=None):
@@ -3349,7 +3338,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     @classmethod
     def _add_numeric_methods_disabled(cls):
-        """ add in numeric methods to disable """
+        """ add in numeric methods to disable other than add/sub """
 
         def _make_invalid_op(name):
             def invalid_op(self, other=None):
