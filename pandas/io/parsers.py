@@ -800,17 +800,22 @@ class TextFileReader(BaseIterator):
                                   " different from '\s+' are"\
                                   " interpreted as regex)"
                 engine = 'python'
-
-        elif len(sep.encode(encoding)) > 1:
-            if engine not in ('python', 'python-fwf'):
-                fallback_reason = "the separator encoded in {encoding}"\
-                                  " is > 1 char long, and the 'c' engine"\
-                                  " does not support such separators".format(
-                                      encoding=encoding)
-                engine = 'python'
         elif delim_whitespace:
             if 'python' in engine:
                 result['delimiter'] = '\s+'
+        elif sep is not None:
+            encodeable = True
+            try:
+                if len(sep.encode(encoding)) > 1:
+                    encodeable = False
+            except UnicodeDecodeError:
+                encodeable = False
+            if not encodeable and engine not in ('python', 'python-fwf'):
+                fallback_reason = "the separator encoded in {encoding}" \
+                                  " is > 1 char long, and the 'c' engine" \
+                                  " does not support such separators".format(
+                                      encoding=encoding)
+                engine = 'python'
 
         if fallback_reason and engine_specified:
             raise ValueError(fallback_reason)
