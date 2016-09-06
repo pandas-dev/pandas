@@ -96,7 +96,7 @@ def _get_frame_result_type(result, objs):
         return objs[0]
 
 
-def _concat_compat(to_concat, axis=0, union_categoricals=False):
+def _concat_compat(to_concat, axis=0):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -138,8 +138,7 @@ def _concat_compat(to_concat, axis=0, union_categoricals=False):
     if 'category' in typs:
         # this must be priort to _concat_datetime,
         # to support Categorical + datetime-like
-        return _concat_categorical(to_concat, axis=axis,
-                                   _union_categoricals=union_categoricals)
+        return _concat_categorical(to_concat, axis=axis)
 
     elif _contains_datetime or 'timedelta' in typs or _contains_period:
         return _concat_datetime(to_concat, axis=axis, typs=typs)
@@ -166,7 +165,7 @@ def _concat_compat(to_concat, axis=0, union_categoricals=False):
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_categorical(to_concat, axis=0, _union_categoricals=False):
+def _concat_categorical(to_concat, axis=0):
     """Concatenate an object/categorical array of arrays, each of which is a
     single dtype
 
@@ -200,12 +199,6 @@ def _concat_categorical(to_concat, axis=0, _union_categoricals=False):
     # validate the categories
     if len(categoricals) != len(to_concat):
         pass
-    elif _union_categoricals:
-        try:
-            # this trial may fail in ordered categories
-            return union_categoricals(categoricals)
-        except TypeError:
-            pass
     else:
         # when all categories are identical
         first = to_concat[0]

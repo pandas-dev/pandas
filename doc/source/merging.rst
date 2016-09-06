@@ -79,7 +79,7 @@ some configurable handling of "what to do with the other axes":
 
     pd.concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
               keys=None, levels=None, names=None, verify_integrity=False,
-              union_categoricals=False, copy=True)
+              copy=True)
 
 - ``objs`` : a sequence or mapping of Series, DataFrame, or Panel objects. If a
   dict is passed, the sorted keys will be used as the `keys` argument, unless
@@ -107,11 +107,6 @@ some configurable handling of "what to do with the other axes":
 - ``verify_integrity`` : boolean, default False. Check whether the new
   concatenated axis contains duplicates. This can be very expensive relative
   to the actual data concatenation.
-- ``union_categoricals`` : boolean, default False.
-  If True, use union_categoricals rule to concat category dtype.
-  If False, category dtype is kept if both categories are identical,
-  otherwise results in object dtype.
-  See :ref:`Categoricals Concatenation<categorical.concat>` for detail.
 - ``copy`` : boolean, default True. If False, do not copy data unnecessarily.
 
 Without a little bit of context and example many of these arguments don't make

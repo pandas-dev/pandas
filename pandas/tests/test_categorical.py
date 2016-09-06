@@ -3896,7 +3896,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_frame_equal(pd.concat([df, df]), exp)
         tm.assert_frame_equal(df.append(df), exp)
 
-        # GH 13524 can concat different categories using union_categoricals
+        # GH 13524 can concat different categories
         cat3 = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
         vals3 = [1, 2]
         df_different_categories = pd.DataFrame({"cats": cat3, "vals": vals3})
@@ -3906,16 +3906,6 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_frame_equal(res, exp)
 
         res = df.append(df_different_categories, ignore_index=True)
-        tm.assert_frame_equal(res, exp)
-
-        res = pd.concat([df, df_different_categories], ignore_index=True,
-                        union_categoricals=True)
-        exp_cat = pd.Categorical(list('abab'), categories=["a", "b", "c"])
-        exp = pd.DataFrame({"cats": exp_cat, "vals": [1, 2, 1, 2]})
-        tm.assert_frame_equal(res, exp)
-
-        res = df.append(df_different_categories, ignore_index=True,
-                        union_categoricals=True)
         tm.assert_frame_equal(res, exp)
 
     def test_concat_append_gh7864(self):
@@ -3946,7 +3936,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
     def test_concat_preserve(self):
 
         # GH 8641  series concat not preserving category dtype
-        # GH 13524 can concat different categories using union_categoricals
+        # GH 13524 can concat different categories
         s = Series(list('abc'), dtype='category')
         s2 = Series(list('abd'), dtype='category')
 
@@ -3954,22 +3944,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         res = pd.concat([s, s2], ignore_index=True)
         tm.assert_series_equal(res, exp)
 
-        exp = Series(Categorical(list('abcabd'), categories=list('abcd')))
-        res = pd.concat([s, s2], ignore_index=True, union_categoricals=True)
-        tm.assert_series_equal(res, exp)
-
         exp = Series(list('abcabc'), dtype='category')
         res = pd.concat([s, s], ignore_index=True)
-        tm.assert_series_equal(res, exp)
-
-        res = pd.concat([s, s], ignore_index=True, union_categoricals=True)
         tm.assert_series_equal(res, exp)
 
         exp = Series(list('abcabc'), index=[0, 1, 2, 0, 1, 2],
                      dtype='category')
         res = pd.concat([s, s])
-        tm.assert_series_equal(res, exp)
-        result = pd.concat([s, s], union_categoricals=True)
         tm.assert_series_equal(res, exp)
 
         a = Series(np.arange(6, dtype='int64'))
@@ -4485,9 +4466,6 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                             'h': [None] * 6 + cat_values})
         tm.assert_frame_equal(res, exp)
 
-        res = pd.concat((df1, df2), axis=0, ignore_index=True,
-                        union_categoricals=True)
-        tm.assert_frame_equal(res, exp)
 
 class TestCategoricalSubclassing(tm.TestCase):
 

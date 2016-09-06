@@ -1269,7 +1269,7 @@ def _get_join_keys(llab, rlab, shape, sort):
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            keys=None, levels=None, names=None, verify_integrity=False,
-           union_categoricals=False, copy=True):
+           copy=True):
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes. Can also add a layer of hierarchical indexing on the
@@ -1307,10 +1307,6 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     verify_integrity : boolean, default False
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation
-    union_categoricals : boolean, default False
-        If True, use ``union_categoricals`` to concat category dtype.
-        If False, category dtype is kept if both categories are identical,
-        otherwise results in object dtype.
     copy : boolean, default True
         If False, do not copy data unnecessarily
 
@@ -1326,7 +1322,6 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
                        ignore_index=ignore_index, join=join,
                        keys=keys, levels=levels, names=names,
                        verify_integrity=verify_integrity,
-                       union_categoricals=union_categoricals,
                        copy=copy)
     return op.get_result()
 
@@ -1338,8 +1333,7 @@ class _Concatenator(object):
 
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
                  keys=None, levels=None, names=None,
-                 ignore_index=False, verify_integrity=False,
-                 union_categoricals=False, copy=True):
+                 ignore_index=False, verify_integrity=False, copy=True):
         if isinstance(objs, (NDFrame, compat.string_types)):
             raise TypeError('first argument must be an iterable of pandas '
                             'objects, you passed an object of type '
@@ -1465,7 +1459,6 @@ class _Concatenator(object):
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
-        self.union_categoricals = union_categoricals
         self.copy = copy
 
         self.new_axes = self._get_new_axes()
@@ -1483,8 +1476,7 @@ class _Concatenator(object):
                     values = [x._values for x in non_empties]
                 else:
                     values = [x._values for x in self.objs]
-                new_data = _concat._concat_compat(
-                    values, union_categoricals=self.union_categoricals)
+                new_data = _concat._concat_compat(values)
 
                 name = com._consensus_name_attr(self.objs)
                 cons = _concat._get_series_result_type(new_data)
@@ -1522,7 +1514,7 @@ class _Concatenator(object):
 
             new_data = concatenate_block_managers(
                 mgrs_indexers, self.new_axes, concat_axis=self.axis,
-                union_categoricals=self.union_categoricals, copy=self.copy)
+                copy=self.copy)
             if not self.copy:
                 new_data._consolidate_inplace()
 

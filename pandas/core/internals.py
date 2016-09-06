@@ -1144,7 +1144,7 @@ class Block(PandasObject):
             return self._try_coerce_result(result)
 
         # error handler if we have an issue operating with the function
-        def handle_error(detail):
+        def handle_error():
 
             if raise_on_error:
                 raise TypeError('Could not operate %s with block values %s' %
@@ -1165,7 +1165,7 @@ class Block(PandasObject):
         except ValueError as detail:
             raise
         except Exception as detail:
-            result = handle_error(detail)
+            result = handle_error()
 
         # technically a broadcast error in numpy can 'work' by returning a
         # boolean False
@@ -4771,8 +4771,7 @@ def _putmask_smart(v, m, n):
     return nv
 
 
-def concatenate_block_managers(mgrs_indexers, axes, concat_axis,
-                               copy, union_categoricals=False):
+def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
     """
     Concatenate block managers into one.
 
@@ -4782,10 +4781,6 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis,
     axes : list of Index
     concat_axis : int
     copy : bool
-    union_categoricals : bool, default False
-            If True, use union_categoricals rule to concat CategoricalBlock.
-            If False, CategoricalBlock is kept if both categories are
-            identical, otherwise results in ObjectBlock.
 
     """
     concat_plan = combine_concat_plans(
@@ -4793,8 +4788,7 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis,
          for mgr, indexers in mgrs_indexers], concat_axis)
 
     blocks = [make_block(
-        concatenate_join_units(join_units, concat_axis, copy=copy,
-                               union_categoricals=union_categoricals),
+        concatenate_join_units(join_units, concat_axis, copy=copy),
         placement=placement) for placement, join_units in concat_plan]
 
     return BlockManager(blocks, axes)
@@ -4880,8 +4874,7 @@ def get_empty_dtype_and_na(join_units):
         raise AssertionError("invalid dtype determination in get_concat_dtype")
 
 
-def concatenate_join_units(join_units, concat_axis, copy,
-                           union_categoricals=False):
+def concatenate_join_units(join_units, concat_axis, copy):
     """
     Concatenate values from several join units along selected axis.
     """
@@ -4901,8 +4894,7 @@ def concatenate_join_units(join_units, concat_axis, copy,
         if copy and concat_values.base is not None:
             concat_values = concat_values.copy()
     else:
-        concat_values = _concat._concat_compat(
-            to_concat, axis=concat_axis, union_categoricals=union_categoricals)
+        concat_values = _concat._concat_compat(to_concat, axis=concat_axis)
 
     return concat_values
 
