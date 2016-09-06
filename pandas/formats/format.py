@@ -650,13 +650,17 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return '\n\n'.join(str_lst)
 
-    def to_latex(self, column_format=None, longtable=False, encoding=None):
+    def to_latex(self, column_format=None, longtable=False, encoding=None,
+                 multicolumn=False, multicolumn_format=None, multirow=False):
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
 
         latex_renderer = LatexFormatter(self, column_format=column_format,
-                                        longtable=longtable)
+                                        longtable=longtable,
+                                        multicolumn=multicolumn,
+                                        multicolumn_format=multicolumn_format,
+                                        multirow=multirow)
 
         if encoding is None:
             encoding = 'ascii' if compat.PY2 else 'utf-8'
@@ -824,11 +828,15 @@ class LatexFormatter(TableFormatter):
     HTMLFormatter
     """
 
-    def __init__(self, formatter, column_format=None, longtable=False):
+    def __init__(self, formatter, column_format=None, longtable=False,
+                 multicolumn=False, multicolumn_format=None, multirow=False):
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.column_format = column_format
         self.longtable = longtable
+        self.multicolumn = multicolumn
+        self.multicolumn_format = multicolumn_format
+        self.multirow = multirow
 
     def write_result(self, buf):
         """
@@ -850,14 +858,21 @@ class LatexFormatter(TableFormatter):
             else:
                 return 'l'
 
+        # reestablish the MultiIndex that has been joined by _to_str_column
         if self.fmt.index and isinstance(self.frame.index, MultiIndex):
             clevels = self.frame.columns.nlevels
             strcols.pop(0)
             name = any(self.frame.index.names)
+            cname = any(self.frame.columns.names)
+            lastcol = self.frame.index.nlevels - 1
             for i, lev in enumerate(self.frame.index.levels):
                 lev2 = lev.format()
                 blank = ' ' * len(lev2[0])
-                lev3 = [blank] * clevels
+                # display column names in last index-column
+                if cname and i == lastcol:
+                    lev3 = [x if x else '{}' for x in self.frame.columns.names]
+                else:
+                    lev3 = [blank] * clevels
                 if name:
                     lev3.append(lev.name)
                 for level_idx, group in itertools.groupby(
@@ -885,10 +900,15 @@ class LatexFormatter(TableFormatter):
             buf.write('\\begin{longtable}{%s}\n' % column_format)
             buf.write('\\toprule\n')
 
-        nlevels = self.frame.columns.nlevels
+        ilevels = self.frame.index.nlevels
+        clevels = self.frame.columns.nlevels
+        nlevels = clevels
         if any(self.frame.index.names):
             nlevels += 1
-        for i, row in enumerate(zip(*strcols)):
+        strrows = list(zip(*strcols))
+        self.clinebuf = []
+
+        for i, row in enumerate(strrows):
             if i == nlevels and self.fmt.header:
                 buf.write('\\midrule\n')  # End of header
                 if self.longtable:
@@ -910,14 +930,94 @@ class LatexFormatter(TableFormatter):
                          if x else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
+            if i < clevels and self.fmt.header and self.multicolumn:
+                # sum up columns to multicolumns
+                crow = self._format_multicolumn(crow, ilevels)
+            if (i >= nlevels and self.fmt.index and self.multirow and
+               ilevels > 1):
+                # sum up rows to multirows
+                crow = self._format_multirow(crow, ilevels, i, strrows)
             buf.write(' & '.join(crow))
             buf.write(' \\\\\n')
+            if self.multirow and i < len(strrows) - 1:
+                self._print_cline(buf, i, len(strcols))
 
         if not self.longtable:
             buf.write('\\bottomrule\n')
             buf.write('\\end{tabular}\n')
         else:
             buf.write('\\end{longtable}\n')
+
+    def _format_multicolumn(self, row, ilevels):
+        """
+        Combine columns belonging to a group to a single multicolumn entry
+        according to self.multicolumn_format
+
+        e.g.:
+        a &  &  & b & c &
+        will become
+        \multicolumn{3}{l}{a} & b & \multicolumn{2}{l}{c}
+        """
+        row2 = list(row[:ilevels])
+        ncol = 1
+        coltext = ''
+
+        def append_col():
+            # write multicolumn if needed
+            if ncol > 1:
+                row2.append('\\multicolumn{{{0:d}}}{{{1:s}}}{{{2:s}}}'
+                            .format(ncol, self.multicolumn_format,
+                                    coltext.strip()))
+            # don't modify where not needed
+            else:
+                row2.append(coltext)
+        for c in row[ilevels:]:
+            if c.strip():  # if next col has text, write the previous
+                if coltext:
+                    append_col()
+                coltext = c
+                ncol = 1
+            else:  # if not, add it to the previous multicolumn
+                ncol += 1
+        if coltext:  # write last column name
+            append_col()
+        return row2
+
+    def _format_multirow(self, row, ilevels, i, rows):
+        """
+        Check following rows, whether row should be a multirow
+
+        e.g.:     becomes:
+        a & 0 &   \multirow{2}{*}{a} & 0 &
+          & 1 &     & 1 &
+        b & 0 &   \cline{1-2}
+                  b & 0 &
+        """
+        for j in range(ilevels):
+            if row[j].strip():
+                nrow = 1
+                for r in rows[i + 1:]:
+                    if not r[j].strip():
+                        nrow += 1
+                    else:
+                        break
+                if nrow > 1:
+                    # overwrite non-multirow entry
+                    row[j] = '\\multirow{{{0:d}}}{{*}}{{{1:s}}}'.format(
+                        nrow, row[j].strip())
+                    # save when to end the current block with \cline
+                    self.clinebuf.append([i + nrow - 1, j + 1])
+        return row
+
+    def _print_cline(self, buf, i, icol):
+        """
+        Print clines after multirow-blocks are finished
+        """
+        for cl in self.clinebuf:
+            if cl[0] == i:
+                buf.write('\cline{{{0:d}-{1:d}}}\n'.format(cl[1], icol))
+        #remove entries that have been written to buffer
+        self.clinebuf = [x for x in self.clinebuf if x[0] != i]
 
 
 class HTMLFormatter(TableFormatter):
