@@ -1696,7 +1696,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             other = other.value
         elif isinstance(other, np.timedelta64):
             other_mask = isnull(other)
-            other = other.view('i8')
+            other = Timedelta(other).value
         elif isinstance(other, timedelta):
             other = Timedelta(other).value
         elif isinstance(other, np.ndarray):
