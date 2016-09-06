@@ -59,11 +59,11 @@ cdef:
     int TIEBREAK_DENSE = 5
 
 tiebreakers = {
-    'average' : TIEBREAK_AVERAGE,
-    'min' : TIEBREAK_MIN,
-    'max' : TIEBREAK_MAX,
-    'first' : TIEBREAK_FIRST,
-    'dense' : TIEBREAK_DENSE,
+    'average': TIEBREAK_AVERAGE,
+    'min': TIEBREAK_MIN,
+    'max': TIEBREAK_MAX,
+    'first': TIEBREAK_FIRST,
+    'dense': TIEBREAK_DENSE,
 }
 
 
@@ -489,7 +489,6 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
         bint keep_na = 0
         float count = 0.0
 
-
     tiebreak = tiebreakers[ties_method]
 
     keep_na = na_option == 'keep'
@@ -577,6 +576,7 @@ class Infinity(object):
     __ne__ = lambda self, other: self is not other
     __gt__ = lambda self, other: self is not other
     __ge__ = lambda self, other: True
+
 
 class NegInfinity(object):
     """ provide a negative Infinity comparision method for ranking """
@@ -705,7 +705,6 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
 #     return result
 
 
-
 cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil except -1:
     cdef numeric t
 
@@ -747,11 +746,11 @@ cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k):
 
 cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
     cdef:
-        Py_ssize_t i,j,l,m
+        Py_ssize_t i, j, l, m
         double_t x, t
 
     l = 0
-    m = n-1
+    m = n -1
     while (l<m):
         x = a[k]
         i = l
@@ -793,13 +792,13 @@ cpdef numeric median(numeric[:] arr):
 
 def max_subseq(ndarray[double_t] arr):
     cdef:
-        Py_ssize_t i=0,s=0,e=0,T,n
+        Py_ssize_t i=0, s=0, e=0, T, n
         double m, S
 
     n = len(arr)
 
     if len(arr) == 0:
-        return (-1,-1,None)
+        return (-1, -1, None)
 
     m = arr[0]
     S = m
@@ -819,6 +818,7 @@ def max_subseq(ndarray[double_t] arr):
 
     return (s, e, m)
 
+
 def min_subseq(ndarray[double_t] arr):
     cdef:
         Py_ssize_t s, e
@@ -830,6 +830,7 @@ def min_subseq(ndarray[double_t] arr):
 
 #----------------------------------------------------------------------
 # Pairwise correlation/covariance
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -889,6 +890,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, cov=False, minp=None):
 
 #----------------------------------------------------------------------
 # Pairwise Spearman correlation
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -953,6 +955,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
 #----------------------------------------------------------------------
 # group operations
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def is_lexsorted(list list_of_arrays):
@@ -967,16 +970,14 @@ def is_lexsorted(list list_of_arrays):
 
     cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
     for i from 0 <= i < nlevels:
-        # vecs[i] = <int64_t *> (<ndarray> list_of_arrays[i]).data
-
         arr = list_of_arrays[i]
-        vecs[i] = <int64_t *> arr.data
-    # assume uniqueness??
+        vecs[i] = <int64_t*> arr.data
 
+    # Assume uniqueness??
     for i from 1 <= i < n:
         for k from 0 <= k < nlevels:
             cur = vecs[k][i]
-            pre = vecs[k][i-1]
+            pre = vecs[k][i -1]
             if cur == pre:
                 continue
             elif cur > pre:
@@ -988,7 +989,8 @@ def is_lexsorted(list list_of_arrays):
 
 
 @cython.boundscheck(False)
-def groupby_indices(dict ids, ndarray[int64_t] labels, ndarray[int64_t] counts):
+def groupby_indices(dict ids, ndarray[int64_t] labels,
+                    ndarray[int64_t] counts):
     """
     turn group_labels output into a combined indexer maping the labels to
     indexers
@@ -1020,7 +1022,7 @@ def groupby_indices(dict ids, ndarray[int64_t] labels, ndarray[int64_t] counts):
     for i from 0 <= i < len(counts):
         arr = np.empty(counts[i], dtype=np.int64)
         result[ids[i]] = arr
-        vecs[i] = <int64_t *> arr.data
+        vecs[i] = <int64_t*> arr.data
 
     for i from 0 <= i < n:
         k = labels[i]
@@ -1035,6 +1037,7 @@ def groupby_indices(dict ids, ndarray[int64_t] labels, ndarray[int64_t] counts):
 
     free(vecs)
     return result
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1116,6 +1119,7 @@ def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
 #----------------------------------------------------------------------
 # first, nth, last
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_nth_object(ndarray[object, ndim=2] out,
@@ -1159,6 +1163,7 @@ def group_nth_object(ndarray[object, ndim=2] out,
                 out[i, j] = <object> nan
             else:
                 out[i, j] = resx[i, j]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1210,6 +1215,7 @@ def group_nth_bin_object(ndarray[object, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_last_object(ndarray[object, ndim=2] out,
@@ -1251,6 +1257,7 @@ def group_last_object(ndarray[object, ndim=2] out,
                 out[i, j] = nan
             else:
                 out[i, j] = resx[i, j]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1325,7 +1332,6 @@ cdef inline float64_t _median_linear(float64_t* a, int n):
 
         a = tmp
         n -= na_count
-
 
     if n % 2:
         result = kth_smallest_c( a, n / 2, n)

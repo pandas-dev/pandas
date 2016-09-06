@@ -162,7 +162,7 @@ cdef class YearOffset(_Offset):
     cpdef prev(self):
         cdef int64_t days
 
-        days = 365 + is_leapyear(self.y - (1-self.ly))
+        days = 365 + is_leapyear(self.y - (1 - self.ly))
 
         self.t -= days * us_in_day
         self.y -= 1
@@ -204,8 +204,8 @@ cdef class MonthOffset(_Offset):
         self.t = ts.value + (self.dayoffset * us_in_day)
 
         # for day counting
-        self.m  = ts.dts.month - 1
-        self.y  = ts.dts.year
+        self.m = ts.dts.month - 1
+        self.y = ts.dts.year
         self.ly = is_leapyear(self.y)
 
         if self.biz != 0:

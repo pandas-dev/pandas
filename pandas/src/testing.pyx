@@ -68,13 +68,14 @@ cpdef assert_almost_equal(a, b,
     b : object
     check_less_precise : bool or int, default False
         Specify comparison precision.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If an integer, then this will be the number of decimal points to compare
+        5 digits (False) or 3 digits (True) after decimal points are
+        compared. If an integer, then this will be the number of decimal
+        points to compare
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray
     obj : str, default None
-        Specify object name being compared, internally used to show appropriate
-        assertion message
+        Specify object name being compared, internally used to show
+        appropriate assertion message
     lobj : str, default None
         Specify left object name being compared, internally used to show
         appropriate assertion message
@@ -129,8 +130,9 @@ cpdef assert_almost_equal(a, b,
             na, nb = a.size, b.size
             if a.shape != b.shape:
                 from pandas.util.testing import raise_assert_detail
-                raise_assert_detail(obj, '{0} shapes are different'.format(obj),
-                                    a.shape, b.shape)
+                raise_assert_detail(
+                    obj, '{0} shapes are different'.format(obj),
+                    a.shape, b.shape)
 
             if check_dtype and not is_dtype_equal(a, b):
                 from pandas.util.testing import assert_attr_equal
@@ -148,7 +150,7 @@ cpdef assert_almost_equal(a, b,
             from pandas.util.testing import raise_assert_detail
 
             # if we have a small diff set, print it
-            if abs(na-nb) < 10:
+            if abs(na - nb) < 10:
                 r = list(set(a) ^ set(b))
             else:
                 r = None
@@ -158,14 +160,16 @@ cpdef assert_almost_equal(a, b,
 
         for i in xrange(len(a)):
             try:
-                assert_almost_equal(a[i], b[i], check_less_precise=check_less_precise)
+                assert_almost_equal(a[i], b[i],
+                                    check_less_precise=check_less_precise)
             except AssertionError:
                 is_unequal = True
                 diff += 1
 
         if is_unequal:
             from pandas.util.testing import raise_assert_detail
-            msg = '{0} values are different ({1} %)'.format(obj, np.round(diff * 100.0 / na, 5))
+            msg = '{0} values are different ({1} %)'.format(
+                obj, np.round(diff * 100.0 / na, 5))
             raise_assert_detail(obj, msg, lobj, robj)
 
         return True
@@ -198,12 +202,12 @@ cpdef assert_almost_equal(a, b,
         # case for zero
         if abs(fa) < 1e-5:
             if not decimal_almost_equal(fa, fb, decimal):
-                assert False, (
-                    '(very low values) expected %.5f but got %.5f, with decimal %d' % (fb, fa, decimal)
-                )
+                assert False, ('(very low values) expected %.5f but '
+                               'got %.5f, with decimal %d' % (fb, fa, decimal))
         else:
             if not decimal_almost_equal(1, fb / fa, decimal):
-                assert False, 'expected %.5f but got %.5f, with decimal %d' % (fb, fa, decimal)
+                assert False, ('expected %.5f but got %.5f, '
+                               'with decimal %d' % (fb, fa, decimal))
         return True
 
     raise AssertionError("{0} != {1}".format(a, b))

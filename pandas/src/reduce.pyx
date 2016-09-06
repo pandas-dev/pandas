@@ -46,11 +46,11 @@ cdef class Reducer:
             self.chunksize = k
             self.increment = k * arr.dtype.itemsize
 
-
         self.f = f
         self.arr = arr
         self.labels = labels
-        self.dummy, self.typ, self.index, self.ityp = self._check_dummy(dummy=dummy)
+        self.dummy, self.typ, self.index, self.ityp = self._check_dummy(
+            dummy=dummy)
 
     def _check_dummy(self, dummy=None):
         cdef object index=None, typ=None, ityp=None
@@ -65,16 +65,17 @@ cdef class Reducer:
         else:
 
             # we passed a series-like
-            if hasattr(dummy,'values'):
+            if hasattr(dummy, 'values'):
 
                 typ = type(dummy)
-                index = getattr(dummy,'index',None)
+                index = getattr(dummy, 'index', None)
                 dummy = dummy.values
 
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
-                raise ValueError('Dummy array must be length %d' % self.chunksize)
+                raise ValueError('Dummy array must be length %d' %
+                                 self.chunksize)
 
         return dummy, typ, index, ityp
 
@@ -111,15 +112,16 @@ cdef class Reducer:
 
                     if self.typ is not None:
 
-                         # recreate with the index if supplied
-                         if has_index:
+                        # recreate with the index if supplied
+                        if has_index:
 
-                             cached_typ = self.typ(chunk, index=self.index, name=name)
+                            cached_typ = self.typ(
+                                chunk, index=self.index, name=name)
 
-                         else:
+                        else:
 
-                             # use the passsed typ, sans index
-                             cached_typ = self.typ(chunk, name=name)
+                            # use the passsed typ, sans index
+                            cached_typ = self.typ(chunk, name=name)
 
                 # use the cached_typ if possible
                 if cached_typ is not None:
@@ -127,13 +129,15 @@ cdef class Reducer:
                     if has_index:
                         object.__setattr__(cached_typ, 'index', self.index)
 
-                    object.__setattr__(cached_typ._data._block, 'values', chunk)
+                    object.__setattr__(
+                        cached_typ._data._block, 'values', chunk)
                     object.__setattr__(cached_typ, 'name', name)
                     res = self.f(cached_typ)
                 else:
                     res = self.f(chunk)
 
-                if hasattr(res,'values') and isinstance(res.values, np.ndarray):
+                if hasattr(res, 'values') and isinstance(
+                        res.values, np.ndarray):
                     res = res.values
                 if i == 0:
                     result = _get_result_array(res,
@@ -167,7 +171,8 @@ cdef class SeriesBinGrouper:
         bint passed_dummy
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index, values, f, bins, typ, ityp, name
+        object arr, index, dummy_arr, dummy_index
+        object values, f, bins, typ, ityp, name
 
     def __init__(self, object series, object f, object bins, object dummy):
         n = len(series)
@@ -182,7 +187,7 @@ cdef class SeriesBinGrouper:
         self.typ = series._constructor
         self.ityp = series.index._constructor
         self.index = series.index.values
-        self.name = getattr(series,'name',None)
+        self.name = getattr(series, 'name', None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
@@ -205,7 +210,7 @@ cdef class SeriesBinGrouper:
                 raise ValueError('Dummy array must be same dtype')
             if not values.flags.contiguous:
                 values = values.copy()
-            index  = dummy.index.values
+            index = dummy.index.values
             if not index.flags.contiguous:
                 index = index.copy()
 
@@ -227,9 +232,9 @@ cdef class SeriesBinGrouper:
             counts[0] = self.bins[0]
             for i in range(1, self.ngroups):
                 if i == self.ngroups - 1:
-                    counts[i] = len(self.arr) - self.bins[i-1]
+                    counts[i] = len(self.arr) - self.bins[i - 1]
                 else:
-                    counts[i] = self.bins[i] - self.bins[i-1]
+                    counts[i] = self.bins[i] - self.bins[i - 1]
 
         group_size = 0
         n = len(self.arr)
@@ -252,7 +257,8 @@ cdef class SeriesBinGrouper:
                 else:
                     object.__setattr__(cached_ityp, '_data', islider.buf)
                     cached_ityp._engine.clear_mapping()
-                    object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
+                    object.__setattr__(
+                        cached_typ._data._block, 'values', vslider.buf)
                     object.__setattr__(cached_typ, '_index', cached_ityp)
                     object.__setattr__(cached_typ, 'name', name)
 
@@ -293,7 +299,8 @@ cdef class SeriesGrouper:
         bint passed_dummy
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index, f, labels, values, typ, ityp, name
+        object arr, index, dummy_arr, dummy_index
+        object f, labels, values, typ, ityp, name
 
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups, object dummy):
@@ -309,7 +316,7 @@ cdef class SeriesGrouper:
         self.typ = series._constructor
         self.ityp = series.index._constructor
         self.index = series.index.values
-        self.name = getattr(series,'name',None)
+        self.name = getattr(series, 'name', None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
@@ -320,14 +327,14 @@ cdef class SeriesGrouper:
 
         if dummy is None:
             values = np.empty(0, dtype=self.arr.dtype)
-            index  = None
+            index = None
         else:
             values = dummy.values
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if not values.flags.contiguous:
                 values = values.copy()
-            index  = dummy.index.values
+            index = dummy.index.values
             if not index.flags.contiguous:
                 index = index.copy()
 
@@ -375,7 +382,8 @@ cdef class SeriesGrouper:
                     else:
                         object.__setattr__(cached_ityp, '_data', islider.buf)
                         cached_ityp._engine.clear_mapping()
-                        object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
+                        object.__setattr__(
+                            cached_typ._data._block, 'values', vslider.buf)
                         object.__setattr__(cached_typ, '_index', cached_ityp)
                         object.__setattr__(cached_typ, 'name', name)
 
@@ -411,14 +419,14 @@ cdef class SeriesGrouper:
 cdef inline _extract_result(object res):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
-    if hasattr(res,'values'):
-       res = res.values
+    if hasattr(res, 'values'):
+        res = res.values
     if not np.isscalar(res):
-       if isinstance(res, np.ndarray):
-          if res.ndim == 0:
-             res = res.item()
-          elif res.ndim == 1 and len(res) == 1:
-             res = res[0]
+        if isinstance(res, np.ndarray):
+            if res.ndim == 0:
+                res = res.item()
+            elif res.ndim == 1 and len(res) == 1:
+                res = res[0]
     return res
 
 cdef class Slider:
@@ -467,8 +475,10 @@ cdef class Slider:
         self.buf.data = self.orig_data
         self.buf.strides[0] = self.orig_stride
 
+
 class InvalidApply(Exception):
     pass
+
 
 def apply_frame_axis0(object frame, object f, object names,
                       ndarray[int64_t] starts, ndarray[int64_t] ends):
@@ -482,7 +492,6 @@ def apply_frame_axis0(object frame, object f, object names,
     if frame.index._has_complex_internals:
         raise InvalidApply('Cannot modify frame index internals')
 
-
     results = []
 
     # Need to infer if our low-level mucking is going to cause a segfault
@@ -495,7 +504,6 @@ def apply_frame_axis0(object frame, object f, object names,
                 raise InvalidApply('Function unsafe for fast apply')
         except:
             raise InvalidApply('Let this error raise above us')
-
 
     slider = BlockSlider(frame)
 
@@ -550,7 +558,8 @@ cdef class BlockSlider:
             util.set_array_not_contiguous(x)
 
         self.nblocks = len(self.blocks)
-        self.idx_slider = Slider(self.frame.index.values, self.dummy.index.values)
+        self.idx_slider = Slider(
+            self.frame.index.values, self.dummy.index.values)
 
         self.base_ptrs = <char**> malloc(sizeof(char*) * len(self.blocks))
         for i, block in enumerate(self.blocks):
@@ -574,7 +583,7 @@ cdef class BlockSlider:
 
         # move and set the index
         self.idx_slider.move(start, end)
-        object.__setattr__(self.index,'_data',self.idx_slider.buf)
+        object.__setattr__(self.index, '_data', self.idx_slider.buf)
         self.index._engine.clear_mapping()
 
     cdef reset(self):
@@ -588,6 +597,7 @@ cdef class BlockSlider:
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i]
             arr.shape[1] = 0
+
 
 def reduce(arr, f, axis=0, dummy=None, labels=None):
     """
@@ -606,7 +616,7 @@ def reduce(arr, f, axis=0, dummy=None, labels=None):
             raise Exception('Cannot use shortcut')
 
         # pass as an ndarray
-        if hasattr(labels,'values'):
+        if hasattr(labels, 'values'):
             labels = labels.values
 
     reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)

@@ -84,6 +84,7 @@ PyDateTime_IMPORT
 import_array()
 import_ufunc()
 
+
 def values_from_object(object o):
     """ return my values or the object if we are say an ndarray """
     cdef f
@@ -159,6 +160,7 @@ def ismember(ndarray arr, set values):
 
     return result.view(np.bool_)
 
+
 def ismember_int64(ndarray[int64_t] arr, set values):
     """
     Checks whether
@@ -183,6 +185,7 @@ def ismember_int64(ndarray[int64_t] arr, set values):
         result[i] = arr[i] in values
 
     return result.view(np.bool_)
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -217,11 +220,14 @@ cdef inline int64_t gmtime(object date):
     days = pydate(y, m, 1).toordinal() - _EPOCH_ORD + d - 1
     return ((<int64_t> (((days * 24 + h) * 60 + mn))) * 60 + s) * 1000
 
+
 cpdef object to_datetime(int64_t timestamp):
     return pydatetime.utcfromtimestamp(timestamp / 1000.0)
 
+
 cpdef object to_timestamp(object dt):
     return gmtime(dt)
+
 
 def array_to_timestamp(ndarray[object, ndim=1] arr):
     cdef int i, n
@@ -234,6 +240,7 @@ def array_to_timestamp(ndarray[object, ndim=1] arr):
         result[i] = gmtime(arr[i])
 
     return result
+
 
 def time64_to_datetime(ndarray[int64_t, ndim=1] arr):
     cdef int i, n
@@ -254,6 +261,7 @@ def time64_to_datetime(ndarray[int64_t, ndim=1] arr):
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
+
 cpdef checknull(object val):
     if util.is_float_object(val) or util.is_complex_object(val):
         return val != val # and val != INF and val != NEGINF
@@ -267,6 +275,7 @@ cpdef checknull(object val):
         return False
     else:
         return _checknull(val)
+
 
 cpdef checknull_old(object val):
     if util.is_float_object(val) or util.is_complex_object(val):
@@ -282,17 +291,20 @@ cpdef checknull_old(object val):
     else:
         return util._checknull(val)
 
+
 cpdef isposinf_scalar(object val):
     if util.is_float_object(val) and val == INF:
         return True
     else:
         return False
 
+
 cpdef isneginf_scalar(object val):
     if util.is_float_object(val) and val == NEGINF:
         return True
     else:
         return False
+
 
 def isscalar(object val):
     """
@@ -356,6 +368,7 @@ def isnullobj(ndarray arr):
         result[i] = _check_all_nulls(val)
     return result.view(np.bool_)
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def isnullobj_old(ndarray arr):
@@ -371,6 +384,7 @@ def isnullobj_old(ndarray arr):
         val = arr[i]
         result[i] = val is NaT or util._checknull_old(val)
     return result.view(np.bool_)
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -389,6 +403,7 @@ def isnullobj2d(ndarray arr):
             if checknull(val):
                 result[i, j] = 1
     return result.view(np.bool_)
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -413,8 +428,8 @@ def isnullobj2d_old(ndarray arr):
 @cython.boundscheck(False)
 cpdef ndarray[object] list_to_object_array(list obj):
     """
-    Convert list to object ndarray. Seriously can\'t believe I had to write this
-    function
+    Convert list to object ndarray. Seriously can\'t believe
+    I had to write this function.
     """
     cdef:
         Py_ssize_t i, n = len(obj)
@@ -447,6 +462,7 @@ def fast_unique(ndarray[object] values):
 
     return uniques
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def fast_unique_multiple(list arrays):
@@ -473,6 +489,7 @@ def fast_unique_multiple(list arrays):
 
     return uniques
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def fast_unique_multiple_list(list lists):
@@ -498,6 +515,7 @@ def fast_unique_multiple_list(list lists):
         pass
 
     return uniques
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -538,6 +556,7 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
 
     return uniques
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def dicts_to_array(list dicts, list columns):
@@ -562,6 +581,7 @@ def dicts_to_array(list dicts, list columns):
                 result[i, j] = onan
 
     return result
+
 
 def fast_zip(list ndarrays):
     """
@@ -604,6 +624,7 @@ def fast_zip(list ndarrays):
 
     return result
 
+
 def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
     """
     Reverse indexing operation.
@@ -645,6 +666,7 @@ def has_infs_f4(ndarray[float32_t] arr):
             return True
     return False
 
+
 def has_infs_f8(ndarray[float64_t] arr):
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -658,6 +680,7 @@ def has_infs_f8(ndarray[float64_t] arr):
         if val == inf or val == neginf:
             return True
     return False
+
 
 def convert_timestamps(ndarray values):
     cdef:
@@ -911,6 +934,7 @@ def scalar_binop(ndarray[object] values, object val, object op):
 
     return maybe_convert_bool(result)
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def vec_binop(ndarray[object] left, ndarray[object] right, object op):
@@ -948,17 +972,18 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
         ndarray result
 
     # on 32-bit, 1.6.2 numpy M8[ns] is a subdtype of integer, which is weird
-    is_datelike = new_dtype in ['M8[ns]','m8[ns]']
+    is_datelike = new_dtype in ['M8[ns]', 'm8[ns]']
 
     result = np.empty(n, dtype=new_dtype)
     for i in range(n):
         v = arr[i]
         if is_datelike and checknull(v):
-           result[i] = NPY_NAT
+            result[i] = NPY_NAT
         else:
-           util.set_value_at(result, i, v)
+            util.set_value_at(result, i, v)
 
     return result
+
 
 cpdef ndarray[object] astype_unicode(ndarray arr):
     cdef:
@@ -970,6 +995,7 @@ cpdef ndarray[object] astype_unicode(ndarray arr):
 
     return result
 
+
 cpdef ndarray[object] astype_str(ndarray arr):
     cdef:
         Py_ssize_t i, n = arr.size
@@ -979,6 +1005,7 @@ cpdef ndarray[object] astype_str(ndarray arr):
         util.set_value_at(result, i, str(arr[i]))
 
     return result
+
 
 def clean_index_list(list obj):
     """
@@ -992,7 +1019,7 @@ def clean_index_list(list obj):
 
     for i in range(n):
         v = obj[i]
-        if not (PyList_Check(v) or np.PyArray_Check(v) or hasattr(v,'_data')):
+        if not (PyList_Check(v) or np.PyArray_Check(v) or hasattr(v, '_data')):
             all_arrays = 0
             break
 
@@ -1002,7 +1029,7 @@ def clean_index_list(list obj):
     converted = np.empty(n, dtype=object)
     for i in range(n):
         v = obj[i]
-        if PyList_Check(v) or np.PyArray_Check(v) or hasattr(v,'_data'):
+        if PyList_Check(v) or np.PyArray_Check(v) or hasattr(v, '_data'):
             converted[i] = tuple(v)
         else:
             converted[i] = v
@@ -1038,10 +1065,16 @@ cpdef Py_ssize_t max_len_string_array(pandas_string[:] arr):
 
     return m
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def string_array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_rep, object replace = None):
-    """ replace the values in the array with replacement if they are nan_rep; return the same array """
+def string_array_replace_from_nan_rep(
+        ndarray[object, ndim=1] arr, object nan_rep,
+        object replace=None):
+    """
+    Replace the values in the array with 'replacement' if
+    they are 'nan_rep'. Return the same array.
+    """
 
     cdef int length = arr.shape[0], i = 0
     if replace is None:
@@ -1053,9 +1086,11 @@ def string_array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_re
 
     return arr
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def write_csv_rows(list data, ndarray data_index, int nlevels, ndarray cols, object writer):
+def write_csv_rows(list data, ndarray data_index,
+                   int nlevels, ndarray cols, object writer):
 
     cdef int N, j, i, ncols
     cdef list rows
@@ -1066,7 +1101,7 @@ def write_csv_rows(list data, ndarray data_index, int nlevels, ndarray cols, obj
 
     # pre-allocate  rows
     ncols = len(cols)
-    rows = [[None]*(nlevels+ncols) for x in range(N)]
+    rows = [[None] * (nlevels + ncols) for x in range(N)]
 
     j = -1
     if nlevels == 1:
@@ -1074,18 +1109,18 @@ def write_csv_rows(list data, ndarray data_index, int nlevels, ndarray cols, obj
             row = rows[j % N]
             row[0] = data_index[j]
             for i in range(ncols):
-                row[1+i] = data[i][j]
+                row[1 + i] = data[i][j]
 
-            if j >= N-1 and j % N == N-1:
+            if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
     elif nlevels > 1:
         for j in range(len(data_index)):
             row = rows[j % N]
             row[:nlevels] = list(data_index[j])
             for i in range(ncols):
-                row[nlevels+i] = data[i][j]
+                row[nlevels + i] = data[i][j]
 
-            if j >= N-1 and j % N == N-1:
+            if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
     else:
         for j in range(len(data_index)):
@@ -1093,15 +1128,15 @@ def write_csv_rows(list data, ndarray data_index, int nlevels, ndarray cols, obj
             for i in range(ncols):
                 row[i] = data[i][j]
 
-            if j >= N-1 and j % N == N-1:
+            if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
 
-    if  j >= 0 and (j < N-1 or (j % N) != N-1 ):
-        writer.writerows(rows[:((j+1) % N)])
+    if  j >= 0 and (j < N - 1 or (j % N) != N - 1):
+        writer.writerows(rows[:((j + 1) % N)])
 
-#-------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
 # Groupby-related functions
-
 @cython.boundscheck(False)
 def arrmap(ndarray[object] index, object func):
     cdef int length = index.shape[0]
@@ -1113,6 +1148,7 @@ def arrmap(ndarray[object] index, object func):
         result[i] = func(index[i])
 
     return result
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1128,16 +1164,14 @@ def is_lexsorted(list list_of_arrays):
 
     cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
     for i from 0 <= i < nlevels:
-        # vecs[i] = <int64_t *> (<ndarray> list_of_arrays[i]).data
-
         arr = list_of_arrays[i]
         vecs[i] = <int64_t *> arr.data
-    # assume uniqueness??
 
+    # Assume uniqueness??
     for i from 1 <= i < n:
         for k from 0 <= k < nlevels:
             cur = vecs[k][i]
-            pre = vecs[k][i-1]
+            pre = vecs[k][i - 1]
             if cur == pre:
                 continue
             elif cur > pre:
@@ -1148,11 +1182,9 @@ def is_lexsorted(list list_of_arrays):
     return True
 
 
-
 # TODO: could do even better if we know something about the data. eg, index has
 # 1-min data, binner has 5-min data, then  bins are just strides in index. This
 # is a general, O(max(len(values), len(binner))) method.
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
@@ -1182,18 +1214,18 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
     if values[0] < binner[0]:
         raise ValueError("Values falls before first bin")
 
-    if values[lenidx-1] > binner[lenbin-1]:
+    if values[lenidx - 1] > binner[lenbin - 1]:
         raise ValueError("Values falls after last bin")
 
     bins = np.empty(lenbin - 1, dtype=np.int64)
 
-    j  = 0 # index into values
+    j = 0  # index into values
     bc = 0 # bin count
 
     # linear scan
     if right_closed:
         for i in range(0, lenbin - 1):
-            r_bin = binner[i+1]
+            r_bin = binner[i + 1]
             # count values in current bin, advance to next bin
             while j < lenidx and values[j] <= r_bin:
                 j += 1
@@ -1201,7 +1233,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
             bc += 1
     else:
         for i in range(0, lenbin - 1):
-            r_bin = binner[i+1]
+            r_bin = binner[i + 1]
             # count values in current bin, advance to next bin
             while j < lenidx and values[j] < r_bin:
                 j += 1
@@ -1214,8 +1246,6 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
         bins = np.insert(bins, 0, nat_count)
 
     return bins
-
-
 
 
 @cython.boundscheck(False)
@@ -1239,6 +1269,7 @@ def row_bool_subset(ndarray[float64_t, ndim=2] values,
 
     return out
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def row_bool_subset_object(ndarray[object, ndim=2] values,
@@ -1259,6 +1290,7 @@ def row_bool_subset_object(ndarray[object, ndim=2] values,
             pos += 1
 
     return out
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1282,6 +1314,7 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label,
 
     return out
 
+
 def group_count(ndarray[int64_t] values, Py_ssize_t size):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -1291,6 +1324,7 @@ def group_count(ndarray[int64_t] values, Py_ssize_t size):
     for i in range(n):
         counts[values[i]] += 1
     return counts
+
 
 def lookup_values(ndarray[object] values, dict mapping):
     cdef:
@@ -1331,6 +1365,7 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
 
     return counts
 
+
 cdef class _PandasNull:
 
     def __richcmp__(_PandasNull self, object other, int op):
@@ -1345,6 +1380,7 @@ cdef class _PandasNull:
         return 0
 
 pandas_null = _PandasNull()
+
 
 def fast_zip_fillna(list ndarrays, fill_value=pandas_null):
     """
@@ -1445,7 +1481,7 @@ def indices_fast(object index, ndarray[int64_t] labels, list keys,
                 tup = PyTuple_New(k)
                 for j in range(k):
                     val = util.get_value_at(keys[j],
-                                            sorted_labels[j][i-1])
+                                            sorted_labels[j][i - 1])
                     PyTuple_SET_ITEM(tup, j, val)
                     Py_INCREF(val)
 
@@ -1574,7 +1610,7 @@ cpdef slice indexer_as_slice(int64_t[:] vals):
         return None
 
     for i in range(2, n):
-        if vals[i] < 0 or vals[i] - vals[i-1] != d:
+        if vals[i] < 0 or vals[i] - vals[i - 1] != d:
             return None
 
     start = vals[0]
@@ -1645,12 +1681,13 @@ cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     if slc is None:
         raise TypeError("slc should be a slice")
 
-    PySlice_GetIndicesEx(<PySliceObject*>slc, objlen,
+    PySlice_GetIndicesEx(<PySliceObject *>slc, objlen,
                          &start, &stop, &step, &length)
     return start, stop, step, length
 
 
-cpdef Py_ssize_t slice_len(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -1:
+cpdef Py_ssize_t slice_len(
+        slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -1:
     """
     Get length of a bounded slice.
 
@@ -1668,7 +1705,7 @@ cpdef Py_ssize_t slice_len(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -
     if slc is None:
         raise TypeError("slc must be slice")
 
-    PySlice_GetIndicesEx(<PySliceObject*>slc, objlen,
+    PySlice_GetIndicesEx(<PySliceObject *>slc, objlen,
                          &start, &stop, &step, &length)
 
     return length
