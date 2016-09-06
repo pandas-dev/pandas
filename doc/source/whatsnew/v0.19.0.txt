@@ -926,6 +926,43 @@ New Behavior:
    pi = pd.PeriodIndex(['2011-01', '2011-02'], freq='M')
    pi.values
 
+
+.. _whatsnew_0190.api.setops:
+
+Index ``+`` / ``-`` no longer used for set operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Addition and subtraction of the base Index type (not the numeric subclasses)
+previously performed set operations (set union and difference). This
+behaviour was already deprecated since 0.15.0 (in favor using the specific
+``.union()`` and ``.difference()`` methods), and is now disabled. When
+possible, ``+`` and ``-`` are now used for element-wise operations, for
+example for concatenating strings  (:issue:`8227`, :issue:`14127`).
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [1]: pd.Index(['a', 'b']) + pd.Index(['a', 'c'])
+    FutureWarning: using '+' to provide set union with Indexes is deprecated, use '|' or .union()
+    Out[1]: Index(['a', 'b', 'c'], dtype='object')
+
+The same operation will now perform element-wise addition:
+
+.. ipython:: python
+
+    pd.Index(['a', 'b']) + pd.Index(['a', 'c'])
+
+Note that numeric Index objects already performed element-wise operations.
+For example, the behaviour of adding two integer Indexes:
+
+.. ipython:: python
+
+    pd.Index([1, 2, 3]) + pd.Index([2, 3, 4])
+
+is unchanged. The base ``Index`` is now made consistent with this behaviour.
+
+
 .. _whatsnew_0190.api.difference:
 
 ``Index.difference`` and ``.symmetric_difference`` changes
