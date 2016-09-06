@@ -83,6 +83,8 @@ a,b,c
         # length conflict, passed names and usecols disagree
         self.assertRaises(ValueError, self.read_csv, StringIO(data),
                           names=['a', 'b'], usecols=[1], header=None)
+        self.assertRaises(ValueError, self.read_csv, StringIO(data),
+                          names=['a', 'b'], usecols=['A'], header=None)
 
     def test_usecols_index_col_False(self):
         # see gh-9082
