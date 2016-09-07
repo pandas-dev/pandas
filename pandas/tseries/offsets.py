@@ -814,7 +814,7 @@ class BusinessHourMixin(BusinessMixin):
 
             if bd != 0:
                 skip_bd = BusinessDay(n=bd)
-                # midnight busienss hour may not on BusinessDay
+                # midnight business hour may not on BusinessDay
                 if not self.next_bday.onOffset(other):
                     remain = other - self._prev_opening_time(other)
                     other = self._next_opening_time(other + skip_bd) + remain
