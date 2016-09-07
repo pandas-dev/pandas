@@ -626,6 +626,44 @@ This will display stderr from the benchmarks, and use your local
 Information on how to write a benchmark and how to use asv can be found in the
 `asv documentation <http://asv.readthedocs.org/en/latest/writing_benchmarks.html>`_.
 
+.. _contributing.gbq_integration_tests:
+
+Running Google BigQuery Integration Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You will need to create a Google BigQuery private key in JSON format in
+order to run Google BigQuery integration tests on your local machine and
+on Travis-CI. The first step is to create a `service account
+<https://console.developers.google.com/iam-admin/serviceaccounts/>`__.
+
+Integration tests for ``pandas.io.gbq`` are skipped in pull requests because
+the credentials that are required for running Google BigQuery integration
+tests are `encrypted <https://docs.travis-ci.com/user/encrypting-files/>`__
+on Travis-CI and are only accessible from the pydata/pandas repository. The
+credentials won't be available on forks of pandas. Here are the steps to run
+gbq integration tests on a forked repository:
+
+#. First, complete all the steps in the `Encrypting Files Prerequisites
+   <https://docs.travis-ci.com/user/encrypting-files/>`__ section.
+#. Sign into `Travis <https://travis-ci.org/>`__ using your GitHub account.
+#. Enable your forked repository of pandas for testing in `Travis
+   <https://travis-ci.org/profile/>`__.
+#. Run the following command from terminal where the current working directory
+   is the ``ci`` folder::
+
+    ./travis_encrypt_gbq.sh <gbq-json-credentials-file> <gbq-project-id>
+
+#. Create a new branch from the branch used in your pull request. Commit the
+   encrypted file called ``travis_gbq.json.enc`` as well as the file
+   ``travis_gbq_config.txt``, in an otherwise empty commit. DO NOT commit the
+   ``*.json`` file which contains your unencrypted private key.
+#. Your branch should be tested automatically once it is pushed. You can check
+   the status by visiting your Travis branches page which exists at the
+   following location: https://travis-ci.org/your-user-name/pandas/branches .
+   Click on a build job for your branch. Expand the following line in the
+   build log: ``ci/print_skipped.py /tmp/nosetests.xml`` . Search for the
+   term ``test_gbq`` and confirm that gbq integration tests are not skipped.
+
 Running the vbench performance test suite (phasing out)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -813,6 +851,11 @@ updated.  Pushing them to GitHub again is done by::
 
 This will automatically update your pull request with the latest code and restart the
 Travis-CI tests.
+
+If your pull request is related to the ``pandas.io.gbq`` module, please see
+the section on :ref:`Running Google BigQuery Integration Tests
+<contributing.gbq_integration_tests>` to configure a Google BigQuery service
+account for your pull request on Travis-CI.
 
 Delete your merged branch (optional)
 ------------------------------------
