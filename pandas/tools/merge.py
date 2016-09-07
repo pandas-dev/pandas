@@ -1290,9 +1290,12 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     join_axes : list of Index objects
         Specific indexes to use for the other n - 1 axes instead of performing
         inner/outer set logic
-    verify_integrity : boolean, default False
-        Check whether the new concatenated axis contains duplicates. This can
-        be very expensive relative to the actual data concatenation
+    ignore_index : boolean, default False
+        If True, do not use the index values along the concatenation axis. The
+        resulting axis will be labeled 0, ..., n - 1. This is useful if you are
+        concatenating objects where the concatenation axis does not have
+        meaningful indexing information. Note the index values on the other
+        axes are still respected in the join.
     keys : sequence, default None
         If multiple levels passed, should contain tuples. Construct
         hierarchical index using the passed keys as the outermost level
@@ -1301,12 +1304,9 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         MultiIndex. Otherwise they will be inferred from the keys
     names : list, default None
         Names for the levels in the resulting hierarchical index
-    ignore_index : boolean, default False
-        If True, do not use the index values along the concatenation axis. The
-        resulting axis will be labeled 0, ..., n - 1. This is useful if you are
-        concatenating objects where the concatenation axis does not have
-        meaningful indexing information. Note the index values on the other
-        axes are still respected in the join.
+    verify_integrity : boolean, default False
+        Check whether the new concatenated axis contains duplicates. This can
+        be very expensive relative to the actual data concatenation
     copy : boolean, default True
         If False, do not copy data unnecessarily
 
@@ -1512,10 +1512,9 @@ class _Concatenator(object):
 
                 mgrs_indexers.append((obj._data, indexers))
 
-            new_data = concatenate_block_managers(mgrs_indexers,
-                                                  self.new_axes,
-                                                  concat_axis=self.axis,
-                                                  copy=self.copy)
+            new_data = concatenate_block_managers(
+                mgrs_indexers, self.new_axes, concat_axis=self.axis,
+                copy=self.copy)
             if not self.copy:
                 new_data._consolidate_inplace()
 

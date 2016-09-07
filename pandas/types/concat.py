@@ -5,7 +5,6 @@ Utility functions related to concat
 import numpy as np
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import map
 from pandas.core.algorithms import take_1d
 from .common import (is_categorical_dtype,
                      is_sparse,
@@ -133,18 +132,20 @@ def _concat_compat(to_concat, axis=0):
 
     typs = get_dtype_kinds(to_concat)
 
-    # these are mandated to handle empties as well
     _contains_datetime = any(typ.startswith('datetime') for typ in typs)
     _contains_period = any(typ.startswith('period') for typ in typs)
 
-    if _contains_datetime or 'timedelta' in typs or _contains_period:
+    if 'category' in typs:
+        # this must be priort to _concat_datetime,
+        # to support Categorical + datetime-like
+        return _concat_categorical(to_concat, axis=axis)
+
+    elif _contains_datetime or 'timedelta' in typs or _contains_period:
         return _concat_datetime(to_concat, axis=axis, typs=typs)
 
+    # these are mandated to handle empties as well
     elif 'sparse' in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
-
-    elif 'category' in typs:
-        return _concat_categorical(to_concat, axis=axis)
 
     if not nonempty:
         # we have all empties, but may need to coerce the result dtype to
@@ -181,18 +182,14 @@ def _concat_categorical(to_concat, axis=0):
         A single array, preserving the combined dtypes
     """
 
-    from pandas.core.categorical import Categorical
-
-    def convert_categorical(x):
-        # coerce to object dtype
-        if is_categorical_dtype(x.dtype):
-            return x.get_values()
-        return x.ravel()
-
-    if get_dtype_kinds(to_concat) - set(['object', 'category']):
-        # convert to object type and perform a regular concat
-        return _concat_compat([np.array(x, copy=False, dtype=object)
-                               for x in to_concat], axis=0)
+    def _concat_asobject(to_concat):
+        to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
+                     else x.ravel() for x in to_concat]
+        res = _concat_compat(to_concat)
+        if axis == 1:
+            return res.reshape(1, len(res))
+        else:
+            return res
 
     # we could have object blocks and categoricals here
     # if we only have a single categoricals then combine everything
@@ -200,25 +197,15 @@ def _concat_categorical(to_concat, axis=0):
     categoricals = [x for x in to_concat if is_categorical_dtype(x.dtype)]
 
     # validate the categories
-    categories = categoricals[0]
-    rawcats = categories.categories
-    for x in categoricals[1:]:
-        if not categories.is_dtype_equal(x):
-            raise ValueError("incompatible categories in categorical concat")
-
-    # we've already checked that all categoricals are the same, so if their
-    # length is equal to the input then we have all the same categories
-    if len(categoricals) == len(to_concat):
-        # concating numeric types is much faster than concating object types
-        # and fastpath takes a shorter path through the constructor
-        return Categorical(np.concatenate([x.codes for x in to_concat],
-                                          axis=0),
-                           rawcats, ordered=categoricals[0].ordered,
-                           fastpath=True)
+    if len(categoricals) != len(to_concat):
+        pass
     else:
-        concatted = np.concatenate(list(map(convert_categorical, to_concat)),
-                                   axis=0)
-        return Categorical(concatted, rawcats)
+        # when all categories are identical
+        first = to_concat[0]
+        if all(first.is_dtype_equal(other) for other in to_concat[1:]):
+            return union_categoricals(categoricals)
+
+    return _concat_asobject(to_concat)
 
 
 def union_categoricals(to_union, sort_categories=False):
