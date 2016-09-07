@@ -12,9 +12,9 @@ from distutils.version import LooseVersion
 import pandas as pd
 from pandas import (Series, DataFrame, Panel, bdate_range, isnull,
                     notnull, concat, Timestamp)
-import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow
+import pandas.tseries.offsets as offsets
 from pandas.core.base import SpecificationError
 from pandas.core.common import UnsupportedFunctionCall
 import pandas.util.testing as tm
@@ -1321,7 +1321,7 @@ class TestMoments(Base):
                                           freq='B')
 
             last_date = series_result.index[-1]
-            prev_date = last_date - 24 * datetools.bday
+            prev_date = last_date - 24 * offsets.BDay()
 
             trunc_series = self.series[::2].truncate(prev_date, last_date)
             trunc_frame = self.frame[::2].truncate(prev_date, last_date)

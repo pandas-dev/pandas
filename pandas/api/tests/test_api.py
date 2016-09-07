@@ -42,7 +42,7 @@ class TestPDApi(Base, tm.TestCase):
                      'json', 'lib', 'index', 'parser']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['ols', 'stats']
+    deprecated_modules = ['ols', 'stats', 'datetools']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -61,14 +61,14 @@ class TestPDApi(Base, tm.TestCase):
                           'SparseTimeSeries', 'Panel4D',
                           'SparseList']
 
-    # these should be deperecated in the future
+    # these should be deprecated in the future
     deprecated_classes_in_future = ['Term', 'Panel']
 
     # these should be removed from top-level namespace
     remove_classes_from_top_level_namespace = ['Expr']
 
     # external modules exposed in pandas namespace
-    modules = ['np', 'datetime', 'datetools']
+    modules = ['np', 'datetime']
 
     # top-level functions
     funcs = ['bdate_range', 'concat', 'crosstab', 'cut',
@@ -99,7 +99,7 @@ class TestPDApi(Base, tm.TestCase):
     funcs_to = ['to_datetime', 'to_msgpack',
                 'to_numeric', 'to_pickle', 'to_timedelta']
 
-    # these should be deperecated in the future
+    # these should be deprecated in the future
     deprecated_funcs_in_future = ['pnow', 'groupby', 'info']
 
     # these are already deprecated; awaiting removal
@@ -207,6 +207,19 @@ class TestTypes(Base, tm.TestCase):
         for t in ['is_null_datelike_scalar',
                   'ensure_float']:
             self.assertRaises(AttributeError, lambda: getattr(com, t))
+
+
+class TestDatetools(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.datetools.to_datetime('2016-01-01')
+
+    def test_deprecation_access_obj(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.datetools.monthEnd
 
 if __name__ == '__main__':
     import nose
