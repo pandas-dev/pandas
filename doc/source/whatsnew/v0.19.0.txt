@@ -13,9 +13,12 @@ Highlights include:
 - ``.rolling()`` are now time-series aware, see :ref:`here <whatsnew_0190.enhancements.rolling_ts>`
 - :func:`read_csv` now supports parsing ``Categorical`` data, see :ref:`here <whatsnew_0190.enhancements.read_csv_categorical>`
 - A function :func:`union_categorical` has been added for combining categoricals, see :ref:`here <whatsnew_0190.enhancements.union_categoricals>`
-- pandas development api, see :ref:`here <whatsnew_0190.dev_api>`
 - ``PeriodIndex`` now has its own ``period`` dtype, and changed to be more consistent with other ``Index`` classes. See :ref:`here <whatsnew_0190.api.period>`
-- Sparse data structures now gained enhanced support of ``int`` and ``bool`` dtypes, see :ref:`here <whatsnew_0190.sparse>`
+- Sparse data structures gained enhanced support of ``int`` and ``bool`` dtypes, see :ref:`here <whatsnew_0190.sparse>`
+- Comparison operations with ``Series`` no longer ignores the index, see :ref:`here <whatsnew_0190.api.series_ops>` for an overview of the API changes.
+- Introduction of a pandas development API for utility functions, see :ref:`here <whatsnew_0190.dev_api>`.
+- Deprecation of ``Panel4D`` and ``PanelND``. We recommend to represent these types of n-dimensional data with the `xarray package <http://xarray.pydata.org/en/stable/>`__.
+- Removal of the previously deprecated modules ``pandas.io.data``, ``pandas.io.wb``, ``pandas.tools.rplot``.
 
 .. warning::
 
