@@ -8,10 +8,10 @@ import numpy as np
 
 from pandas.types.common import is_float_dtype
 from pandas import Series, Index, isnull, notnull
-from pandas.core.datetools import bday
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.core.series import remove_na
+from pandas.tseries.offsets import BDay
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_panel4d_equal,
@@ -479,7 +479,7 @@ class CheckIndexing(object):
                             ref.xs(idx), check_names=False)
 
         # not contained
-        idx = self.panel4d.major_axis[0] - bday
+        idx = self.panel4d.major_axis[0] - BDay()
         self.assertRaises(Exception, self.panel4d.major_xs, idx)
 
     def test_major_xs_mixed(self):

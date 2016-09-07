@@ -17,6 +17,7 @@ from pandas import (DataFrame, Index, Series, notnull, isnull,
                     date_range)
 import pandas as pd
 
+from pandas.tseries.offsets import BDay
 from pandas.types.common import (is_float_dtype,
                                  is_integer,
                                  is_scalar)
@@ -2068,8 +2069,6 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_frame_equal(result, df)
 
     def test_xs(self):
-        from pandas.core.datetools import bday
-
         idx = self.frame.index[5]
         xs = self.frame.xs(idx)
         for item, value in compat.iteritems(xs):
@@ -2090,7 +2089,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         self.assertEqual(xs['B'], '1')
 
         with tm.assertRaises(KeyError):
-            self.tsframe.xs(self.tsframe.index[0] - bday)
+            self.tsframe.xs(self.tsframe.index[0] - BDay())
 
         # xs get column
         series = self.frame.xs('A', axis=1)
@@ -2772,3 +2771,9 @@ class TestDataFrameIndexingDatetimeWithTZ(tm.TestCase, TestData):
         expected = DataFrame(self.df.values.T)
         expected.index = ['A', 'B']
         assert_frame_equal(result, expected)
+
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

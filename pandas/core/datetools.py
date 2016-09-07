@@ -2,9 +2,15 @@
 
 # flake8: noqa
 
+import warnings
+
 from pandas.tseries.tools import *
 from pandas.tseries.offsets import *
 from pandas.tseries.frequencies import *
+
+warnings.warn("The pandas.core.datetools module is deprecated and will be "
+              "removed in a future version. Please use the pandas.tseries "
+              "module instead.", FutureWarning, stacklevel=2)
 
 day = DateOffset()
 bday = BDay()

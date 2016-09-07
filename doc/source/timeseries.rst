@@ -7,7 +7,7 @@
    from datetime import datetime, timedelta, time
    import numpy as np
    import pandas as pd
-   from pandas import datetools
+   from pandas import offsets
    np.random.seed(123456)
    randn = np.random.randn
    randint = np.random.randint
@@ -1223,7 +1223,7 @@ The shift method accepts an ``freq`` argument which can accept a
 
 .. ipython:: python
 
-   ts.shift(5, freq=datetools.bday)
+   ts.shift(5, freq=offsets.BDay())
    ts.shift(5, freq='BM')
 
 Rather than changing the alignment of the data and the index, ``DataFrame`` and
@@ -1246,7 +1246,7 @@ around ``reindex`` which generates a ``date_range`` and calls ``reindex``.
 
 .. ipython:: python
 
-   dr = pd.date_range('1/1/2010', periods=3, freq=3 * datetools.bday)
+   dr = pd.date_range('1/1/2010', periods=3, freq=3 * offsets.BDay())
    ts = pd.Series(randn(3), index=dr)
    ts
    ts.asfreq(BDay())

@@ -7,14 +7,13 @@ import numpy as np
 
 from pandas import Index, Series, date_range, NaT
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.offsets import BDay, BMonthEnd
 from pandas.tseries.tdi import TimedeltaIndex
-
-import pandas.core.datetools as datetools
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
-from .common import TestData
+from pandas.tests.series.common import TestData
 
 
 class TestSeriesTimeSeries(TestData, tm.TestCase):
@@ -29,7 +28,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         tm.assert_numpy_array_equal(unshifted.valid().values,
                                     self.ts.values[:-1])
 
-        offset = datetools.bday
+        offset = BDay()
         shifted = self.ts.shift(1, freq=offset)
         unshifted = shifted.shift(-1, freq=offset)
 
@@ -56,7 +55,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         tm.assert_numpy_array_equal(unshifted.valid().values, ps.values[:-1])
 
         shifted2 = ps.shift(1, 'B')
-        shifted3 = ps.shift(1, datetools.bday)
+        shifted3 = ps.shift(1, BDay())
         assert_series_equal(shifted2, shifted3)
         assert_series_equal(ps, shifted2.shift(-1, 'B'))
 
@@ -66,7 +65,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         shifted4 = ps.shift(1, freq='B')
         assert_series_equal(shifted2, shifted4)
 
-        shifted5 = ps.shift(1, freq=datetools.bday)
+        shifted5 = ps.shift(1, freq=BDay())
         assert_series_equal(shifted5, shifted4)
 
         # 32-bit taking
@@ -131,7 +130,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         shifted2 = ps.tshift(freq='B')
         assert_series_equal(shifted, shifted2)
 
-        shifted3 = ps.tshift(freq=datetools.bday)
+        shifted3 = ps.tshift(freq=BDay())
         assert_series_equal(shifted, shifted3)
 
         self.assertRaises(ValueError, ps.tshift, freq='M')
@@ -156,7 +155,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         self.assertRaises(ValueError, no_freq.tshift)
 
     def test_truncate(self):
-        offset = datetools.bday
+        offset = BDay()
 
         ts = self.ts[::3]
 
@@ -417,8 +416,8 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         monthly_ts = daily_ts.asfreq('BM')
         self.assert_series_equal(monthly_ts, ts)
 
-        daily_ts = ts.asfreq(datetools.bday)
-        monthly_ts = daily_ts.asfreq(datetools.bmonthEnd)
+        daily_ts = ts.asfreq(BDay())
+        monthly_ts = daily_ts.asfreq(BMonthEnd())
         self.assert_series_equal(monthly_ts, ts)
 
         result = ts[:0].asfreq('M')
@@ -561,3 +560,9 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         assert_series_equal(a, a - b)
         assert_series_equal(a, b + a)
         self.assertRaises(TypeError, lambda x, y: x - y, b, a)
+
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

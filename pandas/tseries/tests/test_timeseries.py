@@ -16,7 +16,6 @@ from pandas.types.common import is_datetime64_ns_dtype
 import pandas as pd
 import pandas.compat as compat
 import pandas.core.common as com
-import pandas.core.datetools as datetools
 import pandas.tseries.frequencies as frequencies
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
@@ -566,7 +565,7 @@ class TestTimeSeries(tm.TestCase):
     def test_frame_setitem_timestamp(self):
         # 2155
         columns = DatetimeIndex(start='1/1/2012', end='2/1/2012',
-                                freq=datetools.bday)
+                                freq=offsets.BDay())
         index = lrange(10)
         data = DataFrame(columns=columns, index=index)
         t = datetime(2012, 11, 1)
@@ -1918,7 +1917,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(casted.tolist(), exp_values)
 
     def test_catch_infinite_loop(self):
-        offset = datetools.DateOffset(minute=5)
+        offset = offsets.DateOffset(minute=5)
         # blow up, don't loop forever
         self.assertRaises(Exception, date_range, datetime(2011, 11, 11),
                           datetime(2011, 11, 12), freq=offset)
@@ -2544,7 +2543,7 @@ class TestToDatetime(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             result = idx.to_datetime()
-            expected = DatetimeIndex(datetools.to_datetime(idx.values))
+            expected = DatetimeIndex(pd.to_datetime(idx.values))
             tm.assert_index_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning,
@@ -3779,7 +3778,7 @@ class TestDatetimeIndex(tm.TestCase):
         dtstart = np.datetime64('2012-09-20T00:00:00')
 
         dt = dtstart + np.arange(nsamples) * np.timedelta64(ns, 'ns')
-        freq = ns * pd.datetools.Nano()
+        freq = ns * offsets.Nano()
         index = pd.DatetimeIndex(dt, freq=freq, name='time')
         self.assert_index_parameters(index)
 
@@ -4134,7 +4133,7 @@ class TestDatetime64(tm.TestCase):
         edate = datetime(2000, 1, 1)
         idx = DatetimeIndex(start=sdate, freq='1B', periods=20)
         self.assertEqual(len(idx), 20)
-        self.assertEqual(idx[0], sdate + 0 * datetools.bday)
+        self.assertEqual(idx[0], sdate + 0 * offsets.BDay())
         self.assertEqual(idx.freq, 'B')
 
         idx = DatetimeIndex(end=edate, freq=('D', 5), periods=20)
@@ -4144,19 +4143,19 @@ class TestDatetime64(tm.TestCase):
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='W-SUN')
         idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=datetools.Week(weekday=6))
+                             freq=offsets.Week(weekday=6))
         self.assertEqual(len(idx1), len(idx2))
         self.assertEqual(idx1.offset, idx2.offset)
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='QS')
         idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=datetools.QuarterBegin(startingMonth=1))
+                             freq=offsets.QuarterBegin(startingMonth=1))
         self.assertEqual(len(idx1), len(idx2))
         self.assertEqual(idx1.offset, idx2.offset)
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='BQ')
         idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=datetools.BQuarterEnd(startingMonth=12))
+                             freq=offsets.BQuarterEnd(startingMonth=12))
         self.assertEqual(len(idx1), len(idx2))
         self.assertEqual(idx1.offset, idx2.offset)
 
@@ -5019,7 +5018,7 @@ class TestSlicing(tm.TestCase):
 
         # GH #1063, multiple of same base
         result = ts.shift(1, freq='4H')
-        exp_index = ts.index + datetools.Hour(4)
+        exp_index = ts.index + offsets.Hour(4)
         tm.assert_index_equal(result.index, exp_index)
 
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])

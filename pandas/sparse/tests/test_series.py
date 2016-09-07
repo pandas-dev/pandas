@@ -7,9 +7,8 @@ import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range
-from pandas.core.datetools import BDay
-import pandas.core.datetools as datetools
 from pandas.core.common import isnull
+from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 from pandas.compat import range
 from pandas import compat
@@ -843,7 +842,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         f = lambda s: s.shift(2, freq='B')
         _dense_series_compare(series, f)
 
-        f = lambda s: s.shift(2, freq=datetools.bday)
+        f = lambda s: s.shift(2, freq=BDay())
         _dense_series_compare(series, f)
 
     def test_shift_nan(self):

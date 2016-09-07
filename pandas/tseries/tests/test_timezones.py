@@ -11,7 +11,6 @@ from pandas import (Index, Series, DataFrame, isnull, Timestamp)
 from pandas import DatetimeIndex, to_datetime, NaT
 from pandas import tslib
 
-import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 from pandas.tseries.index import bdate_range, date_range
 import pandas.tseries.tools as tools
@@ -371,7 +370,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         # just want it to work
         start = datetime(2011, 3, 12, tzinfo=pytz.utc)
-        dr = bdate_range(start, periods=50, freq=datetools.Hour())
+        dr = bdate_range(start, periods=50, freq=offsets.Hour())
         self.assertIs(dr.tz, pytz.utc)
 
         # DateRange with naive datetimes
@@ -409,33 +408,33 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         # March 13, 2011, spring forward, skip from 2 AM to 3 AM
         dr = date_range(datetime(2011, 3, 13, 1, 30), periods=3,
-                        freq=datetools.Hour())
+                        freq=offsets.Hour())
         self.assertRaises(pytz.NonExistentTimeError, dr.tz_localize, tz)
 
         # after dst transition, it works
         dr = date_range(datetime(2011, 3, 13, 3, 30), periods=3,
-                        freq=datetools.Hour(), tz=tz)
+                        freq=offsets.Hour(), tz=tz)
 
         # November 6, 2011, fall back, repeat 2 AM hour
         dr = date_range(datetime(2011, 11, 6, 1, 30), periods=3,
-                        freq=datetools.Hour())
+                        freq=offsets.Hour())
         self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize, tz)
 
         # UTC is OK
         dr = date_range(datetime(2011, 3, 13), periods=48,
-                        freq=datetools.Minute(30), tz=pytz.utc)
+                        freq=offsets.Minute(30), tz=pytz.utc)
 
     def test_ambiguous_infer(self):
         # November 6, 2011, fall back, repeat 2 AM hour
         # With no repeated hours, we cannot infer the transition
         tz = self.tz('US/Eastern')
         dr = date_range(datetime(2011, 11, 6, 0), periods=5,
-                        freq=datetools.Hour())
+                        freq=offsets.Hour())
         self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize, tz)
 
         # With repeated hours, we can infer the transition
         dr = date_range(datetime(2011, 11, 6, 0), periods=5,
-                        freq=datetools.Hour(), tz=tz)
+                        freq=offsets.Hour(), tz=tz)
         times = ['11/06/2011 00:00', '11/06/2011 01:00', '11/06/2011 01:00',
                  '11/06/2011 02:00', '11/06/2011 03:00']
         di = DatetimeIndex(times)
@@ -449,7 +448,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         # When there is no dst transition, nothing special happens
         dr = date_range(datetime(2011, 6, 1, 0), periods=10,
-                        freq=datetools.Hour())
+                        freq=offsets.Hour())
         localized = dr.tz_localize(tz)
         localized_infer = dr.tz_localize(tz, ambiguous='infer')
         self.assert_index_equal(localized, localized_infer)
@@ -463,7 +462,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         # Pass in flags to determine right dst transition
         dr = date_range(datetime(2011, 11, 6, 0), periods=5,
-                        freq=datetools.Hour(), tz=tz)
+                        freq=offsets.Hour(), tz=tz)
         times = ['11/06/2011 00:00', '11/06/2011 01:00', '11/06/2011 01:00',
                  '11/06/2011 02:00', '11/06/2011 03:00']
 
@@ -501,7 +500,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         # When there is no dst transition, nothing special happens
         dr = date_range(datetime(2011, 6, 1, 0), periods=10,
-                        freq=datetools.Hour())
+                        freq=offsets.Hour())
         is_dst = np.array([1] * 10)
         localized = dr.tz_localize(tz)
         localized_is_dst = dr.tz_localize(tz, ambiguous=is_dst)

@@ -28,8 +28,18 @@ from pandas.tseries.index import (DatetimeIndex, Timestamp,
 from pandas.tseries.tdi import TimedeltaIndex, Timedelta
 from pandas.tseries.period import Period, PeriodIndex
 
-# legacy
-import pandas.core.datetools as datetools
+# see gh-14094.
+from pandas.util.depr_module import _DeprecatedModule
+
+_alts = ['pandas.tseries.tools', 'pandas.tseries.offsets',
+         'pandas.tseries.frequencies']
+_removals = ['day', 'bday', 'businessDay', 'cday', 'customBusinessDay',
+             'customBusinessMonthEnd', 'customBusinessMonthBegin',
+             'monthEnd', 'yearEnd', 'yearBegin', 'bmonthEnd', 'bmonthBegin',
+             'cbmonthEnd', 'cbmonthBegin', 'bquarterEnd', 'quarterEnd',
+             'byearEnd', 'week']
+datetools = _DeprecatedModule(deprmod='pandas.core.datetools', alts=_alts,
+                              removals=_removals)
 
 from pandas.core.config import (get_option, set_option, reset_option,
                                 describe_option, option_context, options)
