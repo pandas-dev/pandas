@@ -981,8 +981,7 @@ def _validate_usecols_arg(usecols):
 
     if usecols is not None:
         usecols_dtype = lib.infer_dtype(usecols)
-        if usecols_dtype not in ('empty', 'integer',
-                                 'string', 'unicode'):
+        if usecols_dtype not in ('empty', 'integer', 'string', 'unicode'):
             raise ValueError(msg)
 
         return set(usecols)
@@ -1424,7 +1423,13 @@ class CParserWrapper(ParserBase):
                               if (i in self.usecols or n in self.usecols)]
 
             if len(self.names) < len(self.usecols):
-                raise ValueError("Usecols do not match names.")
+                bad_cols = [n for n in self.usecols if n not in self.names]
+                if len(bad_cols) > 0:
+                    raise ValueError(("%s specified in usecols but not found "
+                                     "in names.") % bad_cols)
+                else:
+                    raise ValueError(("Number of usecols is greater than "
+                                      "number of names."))
 
         self._set_noconvert_columns()
 
@@ -2185,16 +2190,21 @@ class PythonParser(ParserBase):
         usecols_key is used if there are string usecols.
         """
         if self.usecols is not None:
-            if any([isinstance(u, string_types) for u in self.usecols]):
+            if any([isinstance(c, string_types) for c in self.usecols]):
                 if len(columns) > 1:
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
+                bad_cols = [n for n in self.usecols if n not in usecols_key]
+                if len(bad_cols) > 0:
+                    raise ValueError(("%s specified in usecols but not found "
+                                     "in names.") % bad_cols)
+
                 col_indices = []
-                for u in self.usecols:
-                    if isinstance(u, string_types):
-                        col_indices.append(usecols_key.index(u))
+                for c in self.usecols:
+                    if isinstance(c, string_types):
+                        col_indices.append(usecols_key.index(c))
                     else:
-                        col_indices.append(u)
+                        col_indices.append(c)
             else:
                 col_indices = self.usecols
 
