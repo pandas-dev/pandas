@@ -223,7 +223,7 @@ they are in the file or passed in as the ``names`` parameter (:issue:`7160`, :is
    data = '0,1,2\n3,4,5'
    names = ['a', 'b', 'a']
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -236,7 +236,7 @@ Previous Behavior:
 The first ``a`` column contained the same data as the second ``a`` column, when it should have
 contained the values ``[0, 3]``.
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -299,7 +299,7 @@ Categorical Concatenation
 - ``concat`` and ``append`` now can concat ``category`` dtypes wifht different
 ``categories`` as ``object`` dtype (:issue:`13524`)
 
-Previous Behavior:
+**Previous behavior**:
 
   .. code-block:: ipython
 
@@ -308,7 +308,7 @@ Previous Behavior:
     In [3]: pd.concat([s1, s2])
     ValueError: incompatible categories in categorical concat
 
-New Behavior:
+**New behavior**:
 
   .. ipython:: python
 
@@ -415,7 +415,7 @@ After upgrading pandas, you may see *new* ``RuntimeWarnings`` being issued from 
 
 The ``pd.get_dummies`` function now returns dummy-encoded columns as small integers, rather than floats (:issue:`8725`). This should provide an improved memory footprint.
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -427,7 +427,7 @@ Previous Behavior:
    c    float64
    dtype: object
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -455,7 +455,7 @@ Other enhancements
 
 - The ``.get_credentials()`` method of ``GbqConnector`` can now first try to fetch `the application default credentials <https://developers.google.com/identity/protocols/application-default-credentials>`__. See the :ref:`docs <io.bigquery_authentication>` for more details (:issue:`13577`).
 
-- The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behaviour remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
+- The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behavior remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
 
 - ``.to_hdf/read_hdf()`` now accept path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path (:issue:`11773`)
 
@@ -530,7 +530,7 @@ API changes
 
    s = pd.Series([1,2,3])
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -538,7 +538,7 @@ Previous Behavior:
    Out[7]:
     <class 'numpy.int64'>
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -595,7 +595,7 @@ Previous Behavior (``Series``):
    C    False
    dtype: bool
 
-New Behavior (``Series``):
+**New behavior** (``Series``):
 
 .. code-block:: ipython
 
@@ -643,7 +643,7 @@ Previous behavior (``Series``), only left hand side ``index`` was kept:
    C    False
    dtype: bool
 
-New Behavior (``Series``):
+**New behavior** (``Series``):
 
 .. ipython:: python
 
@@ -696,7 +696,7 @@ A ``Series`` will now correctly promote its dtype for assignment with incompat v
 
    s = pd.Series()
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -705,7 +705,7 @@ Previous Behavior:
    In [3]: s["b"] = 3.0
    TypeError: invalid type promotion
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -721,7 +721,7 @@ New Behavior:
 
 Previously if ``.to_datetime()`` encountered mixed integers/floats and strings, but no datetimes with ``errors='coerce'`` it would convert all to ``NaT``.
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -756,7 +756,7 @@ Merging will now preserve the dtype of the join keys (:issue:`8596`)
    df2 = pd.DataFrame({'key': [1, 2], 'v1': [20, 30]})
    df2
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -773,7 +773,7 @@ Previous Behavior:
    v1     float64
    dtype: object
 
-New Behavior:
+**New behavior**:
 
 We are able to preserve the join keys
 
@@ -802,7 +802,7 @@ Percentile identifiers in the index of a ``.describe()`` output will now be roun
    s = pd.Series([0, 1, 2, 3, 4])
    df = pd.DataFrame([0, 1, 2, 3, 4])
 
-Previous Behavior:
+**Previous behavior**:
 
 The percentiles were rounded to at most one decimal place, which could raise ``ValueError`` for a data frame if the percentiles were duplicated.
 
@@ -829,7 +829,7 @@ The percentiles were rounded to at most one decimal place, which could raise ``V
    ...
    ValueError: cannot reindex from a duplicate axis
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -853,7 +853,7 @@ Furthermore:
 pandas extension dtype like ``category`` or the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``). (:issue:`13941`).
 As a consequence of this change, ``PeriodIndex`` no longer has an integer dtype:
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -868,7 +868,7 @@ Previous Behavior:
    In [4]: pi.dtype
    Out[4]: dtype('int64')
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -886,14 +886,14 @@ New Behavior:
 
 Previously, ``Period`` has its own ``Period('NaT')`` representation different from ``pd.NaT``. Now ``Period('NaT')`` has been changed to return ``pd.NaT``. (:issue:`12759`, :issue:`13582`)
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
    In [5]: pd.Period('NaT', freq='D')
    Out[5]: Period('NaT', 'D')
 
-New Behavior:
+**New behavior**:
 
 These result in ``pd.NaT`` without providing ``freq`` option.
 
@@ -905,7 +905,7 @@ These result in ``pd.NaT`` without providing ``freq`` option.
 
 To be compatible with ``Period`` addition and subtraction, ``pd.NaT`` now supports addition and subtraction with ``int``. Previously it raised ``ValueError``.
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -913,7 +913,7 @@ Previous Behavior:
    ...
    ValueError: Cannot add integral value to Timestamp without freq.
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -926,7 +926,7 @@ New Behavior:
 ``.values`` is changed to return an array of ``Period`` objects, rather than an array
 of integers (:issue:`13988`).
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -934,7 +934,7 @@ Previous Behavior:
    In [7]: pi.values
    array([492, 493])
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -964,7 +964,7 @@ Previous behavior:
     FutureWarning: using '+' to provide set union with Indexes is deprecated, use '|' or .union()
     Out[1]: Index(['a', 'b', 'c'], dtype='object')
 
-New Behavior: the same operation will now perform element-wise addition:
+**New behavior**: the same operation will now perform element-wise addition:
 
 .. ipython:: python
 
@@ -990,7 +990,7 @@ Previous behavior:
     FutureWarning: using '-' to provide set differences with datetimelike Indexes is deprecated, use .difference()
     Out[1]: DatetimeIndex(['2016-01-01'], dtype='datetime64[ns]', freq=None)
 
-New behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -1009,7 +1009,7 @@ New behavior:
    idx1 = pd.Index([1, 2, 3, np.nan])
    idx2 = pd.Index([0, 1, np.nan])
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -1019,7 +1019,7 @@ Previous Behavior:
    In [4]: idx1.symmetric_difference(idx2)
    Out[4]: Float64Index([0.0, nan, 2.0, 3.0], dtype='float64')
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -1036,7 +1036,7 @@ New Behavior:
 Previously, most ``Index`` classes returned ``np.ndarray``, and ``DatetimeIndex``,
 ``TimedeltaIndex`` and ``PeriodIndex`` returned ``Index`` to keep metadata like timezone.
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -1049,7 +1049,7 @@ Previous Behavior:
                   '2011-01-03 00:00:00+09:00'],
                  dtype='datetime64[ns, Asia/Tokyo]', freq=None)
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -1071,7 +1071,7 @@ in ``MultiIndex`` levels. (:issue:`13743`, :issue:`13854`)
    midx = pd.MultiIndex.from_arrays([cat, lvl1])
    midx
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -1081,7 +1081,7 @@ Previous Behavior:
    In [5]: midx.get_level_values[0]
    Out[5]: Index(['a', 'b'], dtype='object')
 
-New Behavior: the single level is now a ``CategoricalIndex``:
+**New behavior**: the single level is now a ``CategoricalIndex``:
 
 .. ipython:: python
 
@@ -1097,7 +1097,7 @@ As a consequence, ``groupby`` and ``set_index`` also preserve categorical dtypes
    df_grouped = df.groupby(by=['A', 'C']).first()
    df_set_idx = df.set_index(['A', 'C'])
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -1119,7 +1119,7 @@ Previous Behavior:
    B      int64
    dtype: object
 
-New Behavior:
+**New behavior**:
 
 .. ipython:: python
 
@@ -1145,7 +1145,7 @@ the result of calling :func:`read_csv` without the ``chunksize=`` argument.
 
    data = 'A,B\n0,1\n2,3\n4,5\n6,7'
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -1157,7 +1157,7 @@ Previous Behavior:
    0  4  5
    1  6  7
 
-New Behavior:
+**New behavior**:
 
 .. ipython :: python
 
@@ -1282,7 +1282,7 @@ These types are the same on many platform, but for 64 bit python on Windows,
 ``np.int_`` is 32 bits, and ``np.intp`` is 64 bits.  Changing this behavior improves performance for many
 operations on that platform.
 
-Previous Behavior:
+**Previous behavior**:
 
 .. code-block:: ipython
 
@@ -1291,7 +1291,7 @@ Previous Behavior:
    In [2]: i.get_indexer(['b', 'b', 'c']).dtype
    Out[2]: dtype('int32')
 
-New Behavior:
+**New behavior**:
 
 .. code-block:: ipython
 
