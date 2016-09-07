@@ -9,7 +9,7 @@
    import pandas as pd
    import pandas.util.testing as tm
    np.set_printoptions(precision=4, suppress=True)
-   options.display.max_rows = 15
+   pd.options.display.max_rows = 15
 
 **********************
 Sparse data structures
@@ -97,6 +97,7 @@ of SparseArrays. To create one, simply call the ``SparseList`` constructor with
 a ``fill_value`` (defaulting to ``NaN``):
 
 .. ipython:: python
+   :okwarning:
 
    spl = pd.SparseList()
    spl
