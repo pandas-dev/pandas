@@ -657,7 +657,7 @@ class DatetimeIndexOpsMixin(object):
             elif isinstance(other, DatetimeIndex):
                 return self._sub_datelike(other)
             elif isinstance(other, Index):
-                raise TypeError("cannot add {typ1} and {typ2}"
+                raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
                                         typ2=type(other).__name__))
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64,

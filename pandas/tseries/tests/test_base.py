@@ -384,28 +384,6 @@ Freq: D"""
 
     def test_add_iadd(self):
         for tz in self.tz:
-            rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other1 = pd.date_range('1/6/2000', freq='D', periods=5, tz=tz)
-            expected1 = pd.date_range('1/1/2000', freq='D', periods=10, tz=tz)
-
-            rng2 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other2 = pd.date_range('1/4/2000', freq='D', periods=5, tz=tz)
-            expected2 = pd.date_range('1/1/2000', freq='D', periods=8, tz=tz)
-
-            rng3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other3 = pd.DatetimeIndex([], tz=tz)
-            expected3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-
-            for rng, other, expected in [(rng1, other1, expected1),
-                                         (rng2, other2, expected2),
-                                         (rng3, other3, expected3)]:
-                # previously performed setop (deprecated in 0.16.0), now
-                # raises TypeError (GH14164)
-                with tm.assertRaises(TypeError):
-                    rng + other
-
-                with tm.assertRaises(TypeError):
-                    rng += other
 
             # offset
             offsets = [pd.offsets.Hour(2), timedelta(hours=2),
@@ -457,7 +435,7 @@ Freq: D"""
         with tm.assertRaises(TypeError):
             dti + dti_tz
 
-    def test_diff(self):
+    def test_difference(self):
         for tz in self.tz:
             # diff
             rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
@@ -529,10 +507,15 @@ Freq: D"""
         with tm.assertRaises(TypeError):
             dti_tz - dti_tz2
 
+        # isub
+        dti -= dti
+        tm.assert_index_equal(dti, expected)
+
         # different length raises ValueError
+        dti1 = date_range('20130101', periods=3)
         dti2 = date_range('20130101', periods=4)
         with tm.assertRaises(ValueError):
-            dti - dti2
+            dti1 - dti2
 
         # NaN propagation
         dti1 = DatetimeIndex(['2012-01-01', np.nan, '2012-01-03'])
@@ -2036,7 +2019,7 @@ Freq: Q-DEC"""
             idx = pd.period_range(start='2013-04-01', periods=30, freq=freq)
             self.assertEqual(idx.resolution, expected)
 
-    def test_add_iadd(self):
+    def test_union(self):
         # union
         rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
         other1 = pd.period_range('1/6/2000', freq='D', periods=5)
@@ -2062,7 +2045,8 @@ Freq: Q-DEC"""
         rng5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
                                '2000-01-01 09:05'], freq='T')
         other5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:05'
-                                 '2000-01-01 09:08'], freq='T')
+                                                     '2000-01-01 09:08'],
+                                freq='T')
         expected5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
                                     '2000-01-01 09:05', '2000-01-01 09:08'],
                                    freq='T')
@@ -2083,18 +2067,19 @@ Freq: Q-DEC"""
                                                                  expected6),
                                      (rng7, other7, expected7)]:
 
-            # GH9094
-            with tm.assertRaises(TypeError):
-                rng + other
-
             result_union = rng.union(other)
-
             tm.assert_index_equal(result_union, expected)
 
-            # GH 6527
-            # GH9094
-            with tm.assertRaises(TypeError):
-                rng += other
+    def test_add_iadd(self):
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='D', periods=5)
+
+        # previously performed setop union, now raises TypeError (GH14164)
+        with tm.assertRaises(TypeError):
+            rng + other
+
+        with tm.assertRaises(TypeError):
+            rng += other
 
         # offset
         # DateOffset
@@ -2181,7 +2166,7 @@ Freq: Q-DEC"""
         rng += 1
         tm.assert_index_equal(rng, expected)
 
-    def test_sub_isub(self):
+    def test_difference(self):
         # diff
         rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
         other1 = pd.period_range('1/6/2000', freq='D', periods=5)
@@ -2222,6 +2207,19 @@ Freq: Q-DEC"""
                                      (rng7, other7, expected7), ]:
             result_union = rng.difference(other)
             tm.assert_index_equal(result_union, expected)
+
+    def test_sub_isub(self):
+
+        # previously performed setop, now raises TypeError (GH14164)
+        # TODO needs to wait on #13077 for decision on result type
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='D', periods=5)
+
+        with tm.assertRaises(TypeError):
+            rng - other
+
+        with tm.assertRaises(TypeError):
+            rng -= other
 
         # offset
         # DateOffset
