@@ -630,16 +630,20 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     https://developers.google.com/api-client-library/python/apis/bigquery/v2
 
     Authentication to the Google BigQuery service is via OAuth 2.0.
+
     - If "private_key" is not provided:
-        By default "application default credentials" are used.
 
-        .. versionadded:: 0.19.0
+      By default "application default credentials" are used.
 
-        If default application credentials are not found or are restrictive,
-        user account credentials are used. In this case, you will be asked to
-        grant permissions for product name 'pandas GBQ'.
+      .. versionadded:: 0.19.0
+
+      If default application credentials are not found or are restrictive,
+      user account credentials are used. In this case, you will be asked to
+      grant permissions for product name 'pandas GBQ'.
+
     - If "private_key" is provided:
-        Service account credentials will be used to authenticate.
+
+      Service account credentials will be used to authenticate.
 
     Parameters
     ----------
@@ -747,16 +751,20 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     https://developers.google.com/api-client-library/python/apis/bigquery/v2
 
     Authentication to the Google BigQuery service is via OAuth 2.0.
+
     - If "private_key" is not provided:
-        By default "application default credentials" are used.
 
-        .. versionadded:: 0.19.0
+      By default "application default credentials" are used.
 
-        If default application credentials are not found or are restrictive,
-        user account credentials are used. In this case, you will be asked to
-        grant permissions for product name 'pandas GBQ'.
+      .. versionadded:: 0.19.0
+
+      If default application credentials are not found or are restrictive,
+      user account credentials are used. In this case, you will be asked to
+      grant permissions for product name 'pandas GBQ'.
+
     - If "private_key" is provided:
-        Service account credentials will be used to authenticate.
+
+      Service account credentials will be used to authenticate.
 
     Parameters
     ----------

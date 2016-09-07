@@ -59,7 +59,7 @@ Time series changes and improvements
   aggregation functions, and control over how the intervals and result labeling
   are defined. A suite of high performance Cython/C-based resampling functions
   (including Open-High-Low-Close) have also been implemented.
-- Revamp of :ref:`frequency aliases <timeseries.alias>` and support for
+- Revamp of :ref:`frequency aliases <timeseries.offset_aliases>` and support for
   **frequency shortcuts** like '15min', or '1h30min'
 - New :ref:`DatetimeIndex class <timeseries.datetimeindex>` supports both fixed
   frequency and irregular time

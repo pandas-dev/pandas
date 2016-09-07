@@ -255,6 +255,7 @@ Optional Dependencies
 
 * `matplotlib <http://matplotlib.org/>`__: for plotting
 * For Excel I/O:
+
   * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
   * `openpyxl <http://packages.python.org/openpyxl/>`__: openpyxl version 1.6.1
     or higher (but lower than 2.0.0), or version 2.2 or higher, for writing .xlsx files (xlrd >= 0.9.0)
@@ -296,8 +297,8 @@ Optional Dependencies
        <html-gotchas>`. It explains issues surrounding the installation and
        usage of the above three libraries
      * You may need to install an older version of `BeautifulSoup4`_:
-       - Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and
-         32-bit Ubuntu/Debian
+       Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and 32-bit
+       Ubuntu/Debian
      * Additionally, if you're using `Anaconda`_ you should definitely
        read :ref:`the gotchas about HTML parsing libraries <html-gotchas>`
 
