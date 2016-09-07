@@ -3998,7 +3998,7 @@ class NDFrame(PandasObject):
         converted : type of caller
 
         To learn more about the frequency strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+<http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
         """
         from pandas.tseries.resample import asfreq
         return asfreq(self, freq, method=method, how=how, normalize=normalize)

@@ -156,7 +156,7 @@ Experimental
 ~~~~~~~~~~~~
 
 - ``pandas.io.data.Options`` has a new method, ``get_all_data`` method, and now consistently returns a
-  multi-indexed ``DataFrame``, see :ref:`the docs <remote_data.yahoo_options>`. (:issue:`5602`)
+  multi-indexed ``DataFrame`` (:issue:`5602`)
 - ``io.gbq.read_gbq`` and ``io.gbq.to_gbq`` were refactored to remove the
   dependency on the Google ``bq.py`` command line client. This submodule
   now uses ``httplib2`` and the Google ``apiclient`` and ``oauth2client`` API client

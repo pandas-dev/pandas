@@ -9,7 +9,7 @@
    import pandas as pd
    import pandas.util.testing as tm
    np.set_printoptions(precision=4, suppress=True)
-   options.display.max_rows = 15
+   pd.options.display.max_rows = 15
 
 **********************
 Sparse data structures
@@ -90,38 +90,10 @@ can be converted back to a regular ndarray by calling ``to_dense``:
 SparseList
 ----------
 
-.. note:: The ``SparseList`` class has been deprecated and will be removed in a future version.
+The ``SparseList`` class has been deprecated and will be removed in a future version.
+See the `docs of a previous version <http://pandas.pydata.org/pandas-docs/version/0.18.1/sparse.html#sparselist>`__
+for documentation on ``SparseList``.
 
-``SparseList`` is a list-like data structure for managing a dynamic collection
-of SparseArrays. To create one, simply call the ``SparseList`` constructor with
-a ``fill_value`` (defaulting to ``NaN``):
-
-.. ipython:: python
-
-   spl = pd.SparseList()
-   spl
-
-The two important methods are ``append`` and ``to_array``. ``append`` can
-accept scalar values or any 1-dimensional sequence:
-
-.. ipython:: python
-   :suppress:
-
-.. ipython:: python
-
-   spl.append(np.array([1., np.nan, np.nan, 2., 3.]))
-   spl.append(5)
-   spl.append(sparr)
-   spl
-
-As you can see, all of the contents are stored internally as a list of
-memory-efficient ``SparseArray`` objects. Once you've accumulated all of the
-data, you can call ``to_array`` to get a single ``SparseArray`` with all the
-data:
-
-.. ipython:: python
-
-   spl.to_array()
 
 SparseIndex objects
 -------------------

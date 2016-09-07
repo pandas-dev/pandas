@@ -185,8 +185,6 @@ API changes
              2014-11-22 call AAPL141122C00110000  1.02
              2014-11-28 call AAPL141128C00110000  1.32
 
-  See the Options documentation in :ref:`Remote Data  <remote_data.yahoo_options>`
-
 .. _whatsnew_0151.datetime64_plotting:
 
 - pandas now also registers the ``datetime64`` dtype in matplotlib's units registry
@@ -257,7 +255,7 @@ Enhancements
 
 - Added support for 3-character ISO and non-standard country codes in :func:`io.wb.download()` (:issue:`8482`)
 
-- :ref:`World Bank data requests <remote_data.wb>` now will warn/raise based
+- World Bank data requests now will warn/raise based
   on an ``errors`` argument, as well as a list of hard-coded country codes and
   the World Bank's JSON response.  In prior versions, the error messages
   didn't look at the World Bank's JSON response.  Problem-inducing input were

@@ -1219,7 +1219,7 @@ objects.
    ts.shift(1)
 
 The shift method accepts an ``freq`` argument which can accept a
-``DateOffset`` class or other ``timedelta``-like object or also a :ref:`offset alias <timeseries.alias>`:
+``DateOffset`` class or other ``timedelta``-like object or also a :ref:`offset alias <timeseries.offset_aliases>`:
 
 .. ipython:: python
 
@@ -1494,7 +1494,7 @@ level of ``MultiIndex``, its name or location can be passed to the
 
 .. ipython:: python
 
-   df.resample(level='d').sum()
+   df.resample('M', level='d').sum()
 
 
 .. _timeseries.periods:
@@ -1629,8 +1629,6 @@ Period Dtypes
 
 ``PeriodIndex`` has a custom ``period`` dtype. This is a pandas extension
 dtype similar to the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``).
-
-.. _timeseries.timezone_series:
 
 The ``period`` dtype holds the ``freq`` attribute and is represented with
 ``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
