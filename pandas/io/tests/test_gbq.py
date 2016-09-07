@@ -60,12 +60,12 @@ def _skip_if_no_private_key_contents():
 
 def _in_travis_environment():
     return 'TRAVIS_BUILD_DIR' in os.environ and \
-           'VALID_GBQ_CREDENTIALS' in os.environ
+           'GBQ_PROJECT_ID' in os.environ
 
 
 def _get_project_id():
     if _in_travis_environment():
-        return 'pandas-travis'
+        return os.environ.get('GBQ_PROJECT_ID')
     else:
         return PROJECT_ID
 
