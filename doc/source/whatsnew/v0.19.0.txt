@@ -847,7 +847,7 @@ Furthermore:
 """"""""""""""""""""""""""""""""""""""""
 
 ``PeriodIndex`` now has its own ``period`` dtype. The ``period`` dtype is a
-pandas extension dtype like ``category`` or :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``). (:issue:`13941`).
+pandas extension dtype like ``category`` or the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``). (:issue:`13941`).
 As a consequence of this change, ``PeriodIndex`` no longer has an integer dtype:
 
 Previous Behavior:
@@ -900,7 +900,7 @@ These result in ``pd.NaT`` without providing ``freq`` option.
    pd.Period(None)
 
 
-To be compat with ``Period`` addition and subtraction, ``pd.NaT`` now supports addition and subtraction with ``int``. Previously it raises ``ValueError``.
+To be compatible with ``Period`` addition and subtraction, ``pd.NaT`` now supports addition and subtraction with ``int``. Previously it raised ``ValueError``.
 
 Previous Behavior:
 
@@ -920,8 +920,8 @@ New Behavior:
 ``PeriodIndex.values`` now returns array of ``Period`` object
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-``.values`` is changed to return array of ``Period`` object, rather than array
-of ``int64`` (:issue:`13988`)
+``.values`` is changed to return an array of ``Period`` objects, rather than an array
+of integers (:issue:`13988`).
 
 Previous Behavior:
 
@@ -961,7 +961,7 @@ Previous behavior:
     FutureWarning: using '+' to provide set union with Indexes is deprecated, use '|' or .union()
     Out[1]: Index(['a', 'b', 'c'], dtype='object')
 
-The same operation will now perform element-wise addition:
+New Behavior: the same operation will now perform element-wise addition:
 
 .. ipython:: python
 
@@ -1029,8 +1029,7 @@ New Behavior:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``Index.unique()`` now returns unique values as an
-``Index`` of the appropriate ``dtype``. (:issue:`13395`)
-
+``Index`` of the appropriate ``dtype``. (:issue:`13395`).
 Previously, most ``Index`` classes returned ``np.ndarray``, and ``DatetimeIndex``,
 ``TimedeltaIndex`` and ``PeriodIndex`` returned ``Index`` to keep metadata like timezone.
 
@@ -1042,9 +1041,10 @@ Previous Behavior:
    Out[1]: array([1, 2, 3])
 
    In [2]: pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'], tz='Asia/Tokyo').unique()
-   Out[2]: DatetimeIndex(['2011-01-01 00:00:00+09:00', '2011-01-02 00:00:00+09:00',
-                          '2011-01-03 00:00:00+09:00'],
-                         dtype='datetime64[ns, Asia/Tokyo]', freq=None)
+   Out[2]:
+   DatetimeIndex(['2011-01-01 00:00:00+09:00', '2011-01-02 00:00:00+09:00',
+                  '2011-01-03 00:00:00+09:00'],
+                 dtype='datetime64[ns, Asia/Tokyo]', freq=None)
 
 New Behavior:
 
@@ -1055,8 +1055,8 @@ New Behavior:
 
 .. _whatsnew_0190.api.multiindex:
 
-``MultiIndex`` constructors preserve categorical dtypes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``MultiIndex`` constructors, ``groupby`` and ``set_index`` preserve categorical dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``MultiIndex.from_arrays`` and ``MultiIndex.from_product`` will now preserve categorical dtype
 in ``MultiIndex`` levels. (:issue:`13743`, :issue:`13854`)
@@ -1078,7 +1078,7 @@ Previous Behavior:
    In [5]: midx.get_level_values[0]
    Out[5]: Index(['a', 'b'], dtype='object')
 
-New Behavior:
+New Behavior: the single level is now a ``CategoricalIndex``:
 
 .. ipython:: python
 
@@ -1131,8 +1131,8 @@ New Behavior:
 ``read_csv`` will progressively enumerate chunks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When :func:`read_csv` is called with ``chunksize='n'`` and without specifying an index,
-each chunk used to have an independently generated index from `0`` to ``n-1``.
+When :func:`read_csv` is called with ``chunksize=n`` and without specifying an index,
+each chunk used to have an independently generated index from ``0`` to ``n-1``.
 They are now given instead a progressive index, starting from ``0`` for the first chunk,
 from ``n`` for the second, and so on, so that, when concatenated, they are identical to
 the result of calling :func:`read_csv` without the ``chunksize=`` argument.
@@ -1167,13 +1167,12 @@ Sparse Changes
 
 These changes allow pandas to handle sparse data with more dtypes, and for work to make a smoother experience with data handling.
 
-
 ``int64`` and ``bool`` support enhancements
 """""""""""""""""""""""""""""""""""""""""""
 
-Sparse data structures now gained enhanced support of ``int64`` and ``bool`` ``dtype`` (:issue:`667`, :issue:`13849`)
+Sparse data structures now gained enhanced support of ``int64`` and ``bool`` ``dtype`` (:issue:`667`, :issue:`13849`).
 
-Previously, sparse data were ``float64`` dtype by default, even if all inputs were ``int`` or ``bool`` dtype. You had to specify ``dtype`` explicitly to create sparse data with ``int64`` dtype. Also, ``fill_value`` had to be specified explicitly becuase it's default was ``np.nan`` which doesn't appear in ``int64`` or ``bool`` data.
+Previously, sparse data were ``float64`` dtype by default, even if all inputs were of ``int`` or ``bool`` dtype. You had to specify ``dtype`` explicitly to create sparse data with ``int64`` dtype. Also, ``fill_value`` had to be specified explicitly because the default was ``np.nan`` which doesn't appear in ``int64`` or ``bool`` data.
 
 .. code-block:: ipython
 
@@ -1200,9 +1199,9 @@ Previously, sparse data were ``float64`` dtype by default, even if all inputs we
    IntIndex
    Indices: array([0, 1], dtype=int32)
 
-As of v0.19.0, sparse data keeps the input dtype, and assign more appropriate ``fill_value`` default (``0`` for ``int64`` dtype, ``False`` for ``bool`` dtype).
+As of v0.19.0, sparse data keeps the input dtype, and uses more appropriate ``fill_value`` defaults (``0`` for ``int64`` dtype, ``False`` for ``bool`` dtype).
 
-.. ipython :: python
+.. ipython:: python
 
    pd.SparseArray([1, 2, 0, 0], dtype=np.int64)
    pd.SparseArray([True, False, False, False])
@@ -1214,29 +1213,29 @@ Operators now preserve dtypes
 
 - Sparse data structure now can preserve ``dtype`` after arithmetic ops (:issue:`13848`)
 
-.. ipython:: python
+  .. ipython:: python
 
-   s = pd.SparseSeries([0, 2, 0, 1], fill_value=0, dtype=np.int64)
-   s.dtype
+      s = pd.SparseSeries([0, 2, 0, 1], fill_value=0, dtype=np.int64)
+      s.dtype
 
-   s + 1
+      s + 1
 
 - Sparse data structure now support ``astype`` to convert internal ``dtype`` (:issue:`13900`)
 
-.. ipython:: python
+  .. ipython:: python
 
-   s = pd.SparseSeries([1., 0., 2., 0.], fill_value=0)
-   s
-   s.astype(np.int64)
+      s = pd.SparseSeries([1., 0., 2., 0.], fill_value=0)
+      s
+      s.astype(np.int64)
 
-``astype`` fails if data contains values which cannot be converted to specified ``dtype``.
-Note that the limitation is applied to ``fill_value`` which default is ``np.nan``.
+  ``astype`` fails if data contains values which cannot be converted to specified ``dtype``.
+  Note that the limitation is applied to ``fill_value`` which default is ``np.nan``.
 
-.. code-block:: ipython
+  .. code-block:: ipython
 
-   In [7]: pd.SparseSeries([1., np.nan, 2., np.nan], fill_value=np.nan).astype(np.int64)
-   Out[7]:
-   ValueError: unable to coerce current fill_value nan to int64 dtype
+     In [7]: pd.SparseSeries([1., np.nan, 2., np.nan], fill_value=np.nan).astype(np.int64)
+     Out[7]:
+     ValueError: unable to coerce current fill_value nan to int64 dtype
 
 Other sparse fixes
 """"""""""""""""""
@@ -1358,6 +1357,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 - The ``SparsePanel`` class has been removed (:issue:`13778`)
 - The ``pd.sandbox`` module has been removed in favor of the external library ``pandas-qt`` (:issue:`13670`)
 - The ``pandas.io.data`` and ``pandas.io.wb`` modules are removed in favor of
@@ -1371,25 +1371,14 @@ Removal of prior version deprecations/changes
 - ``DataFrame.to_sql()`` has dropped the ``mysql`` option for the ``flavor`` parameter (:issue:`13611`)
 - ``Panel.shift()`` has dropped the ``lags`` parameter in favour of ``periods`` (:issue:`14041`)
 - ``pd.Index`` has dropped the ``diff`` method in favour of ``difference`` (:issue:`13669`)
-
 - ``pd.DataFrame`` has dropped the ``to_wide`` method in favour of ``to_panel`` (:issue:`14039`)
 - ``Series.to_csv`` has dropped the ``nanRep`` parameter in favor of ``na_rep`` (:issue:`13804`)
 - ``Series.xs``, ``DataFrame.xs``, ``Panel.xs``, ``Panel.major_xs``, and ``Panel.minor_xs`` have dropped the ``copy`` parameter (:issue:`13781`)
 - ``str.split`` has dropped the ``return_type`` parameter in favor of ``expand`` (:issue:`13701`)
-- Removal of the legacy time rules (offset aliases), deprecated since 0.17.0 (this has been alias since 0.8.0) (:issue:`13590`, :issue:`13868`)
-
-  Previous Behavior:
-
-  .. code-block:: ipython
-
-     In [2]: pd.date_range('2016-07-01', freq='W@MON', periods=3)
-     pandas/tseries/frequencies.py:465: FutureWarning: Freq "W@MON" is deprecated, use "W-MON" as alternative.
-     Out[2]: DatetimeIndex(['2016-07-04', '2016-07-11', '2016-07-18'], dtype='datetime64[ns]', freq='W-MON')
-
-  Now legacy time rules raises ``ValueError``. For the list of currently supported offsets, see :ref:`here <timeseries.offset_aliases>`
-
+- Removal of the legacy time rules (offset aliases), deprecated since 0.17.0 (this has been alias since 0.8.0) (:issue:`13590`, :issue:`13868`). Now legacy time rules raises ``ValueError``. For the list of currently supported offsets, see :ref:`here <timeseries.offset_aliases>`.
 - The default value for the ``return_type`` parameter for ``DataFrame.plot.box`` and ``DataFrame.boxplot`` changed from ``None`` to ``"axes"``. These methods will now return a matplotlib axes by default instead of a dictionary of artists. See :ref:`here <visualization.box.return>` (:issue:`6581`).
 - The ``tquery`` and ``uquery`` functions in the ``pandas.io.sql`` module are removed (:issue:`5950`).
+
 
 .. _whatsnew_0190.performance:
 
@@ -1398,8 +1387,7 @@ Performance Improvements
 
 - Improved performance of sparse ``IntIndex.intersect`` (:issue:`13082`)
 - Improved performance of sparse arithmetic with ``BlockIndex`` when the number of blocks are large, though recommended to use ``IntIndex`` in such cases (:issue:`13082`)
-- increased performance of ``DataFrame.quantile()`` as it now operates per-block (:issue:`11623`)
-
+- Improved performance of ``DataFrame.quantile()`` as it now operates per-block (:issue:`11623`)
 - Improved performance of float64 hash table operations, fixing some very slow indexing and groupby operations in python 3 (:issue:`13166`, :issue:`13334`)
 - Improved performance of ``DataFrameGroupBy.transform`` (:issue:`12737`)
 - Improved performance of ``Index`` and ``Series`` ``.duplicated`` (:issue:`10235`)
@@ -1408,7 +1396,6 @@ Performance Improvements
 - Improved performance of datetime string parsing in ``DatetimeIndex`` (:issue:`13692`)
 - Improved performance of hashing ``Period`` (:issue:`12817`)
 - Improved performance of ``factorize`` of datetime with timezone (:issue:`13750`)
-
 
 
 .. _whatsnew_0190.bug_fixes:
