@@ -748,7 +748,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             else:
                 i8 = self.asi8
                 result = i8 - other.value
-                result = self._maybe_mask_results(result, fill_value=tslib.iNaT)
+                result = self._maybe_mask_results(result,
+                                                  fill_value=tslib.iNaT)
         else:
             raise TypeError("cannot subtract DatetimeIndex and {typ}"
                             .format(typ=type(other).__name__))
@@ -756,6 +757,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def _sub_datelike_dti(self, other):
         """subtraction of two DatetimeIndexes"""
+        if not len(self) == len(other):
+            raise ValueError("cannot add indices of unequal length")
+
         self_i8 = self.asi8
         other_i8 = other.asi8
         new_values = self_i8 - other_i8

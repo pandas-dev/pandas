@@ -400,7 +400,7 @@ Freq: D"""
                                          (rng2, other2, expected2),
                                          (rng3, other3, expected3)]:
                 # previously performed setop (deprecated in 0.16.0), now
-                # raises TypeError (GH..)
+                # raises TypeError (GH14164)
                 with tm.assertRaises(TypeError):
                     rng + other
 
@@ -440,7 +440,7 @@ Freq: D"""
 
     def test_add_dti_dti(self):
         # previously performed setop (deprecated in 0.16.0), now raises
-        # TypeError (GH..)
+        # TypeError (GH14164)
 
         dti = date_range('20130101', periods=3)
         dti_tz = date_range('20130101', periods=3).tz_localize('US/Eastern')
@@ -480,17 +480,6 @@ Freq: D"""
 
     def test_sub_isub(self):
         for tz in self.tz:
-            rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other1 = pd.date_range('1/6/2000', freq='D', periods=5, tz=tz)
-            expected1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-
-            rng2 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other2 = pd.date_range('1/4/2000', freq='D', periods=5, tz=tz)
-            expected2 = pd.date_range('1/1/2000', freq='D', periods=3, tz=tz)
-
-            rng3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other3 = pd.DatetimeIndex([], tz=tz)
-            expected3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
 
             # offset
             offsets = [pd.offsets.Hour(2), timedelta(hours=2),
@@ -498,9 +487,10 @@ Freq: D"""
 
             for delta in offsets:
                 rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
-                result = rng - delta
                 expected = pd.date_range('1999-12-31 22:00',
                                          '2000-01-31 22:00', tz=tz)
+
+                result = rng - delta
                 tm.assert_index_equal(result, expected)
                 rng -= delta
                 tm.assert_index_equal(rng, expected)
@@ -538,6 +528,18 @@ Freq: D"""
 
         with tm.assertRaises(TypeError):
             dti_tz - dti_tz2
+
+        # different length raises ValueError
+        dti2 = date_range('20130101', periods=4)
+        with tm.assertRaises(ValueError):
+            dti - dti2
+
+        # NaN propagation
+        dti1 = DatetimeIndex(['2012-01-01', np.nan, '2012-01-03'])
+        dti2 = DatetimeIndex(['2012-01-02', '2012-01-03', np.nan])
+        expected = TimedeltaIndex(['1 days', np.nan, np.nan])
+        result = dti2 - dti1
+        tm.assert_index_equal(result, expected)
 
     def test_sub_period(self):
         # GH 13078
