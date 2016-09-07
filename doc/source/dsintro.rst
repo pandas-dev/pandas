@@ -938,8 +938,8 @@ method:
 .. _dsintro.panelnd:
 .. _dsintro.panel4d:
 
-Panel4D and PanelND (Experimental)
-----------------------------------
+Panel4D and PanelND (Deprecated)
+--------------------------------
 
 .. warning::
 
