@@ -15,6 +15,8 @@ Highlights include:
 
 - :func:`merge_asof` for asof-style time-series joining, see :ref:`here <whatsnew_0190.enhancements.asof_merge>`
 - ``.rolling()`` are now time-series aware, see :ref:`here <whatsnew_0190.enhancements.rolling_ts>`
+- :func:`read_csv` now supports parsing ``Categorical`` data, see :ref:`here <whatsnew_0190.enhancements.read_csv_categorical>`
+- A function :func:`union_categorical` has been added for combining categoricals, see :ref:`here <whatsnew_0190.enhancements.union_categoricals>`
 - pandas development api, see :ref:`here <whatsnew_0190.dev_api>`
 - ``PeriodIndex`` now has its own ``period`` dtype, and changed to be more consistent with other ``Index`` classes. See :ref:`here <whatsnew_0190.api.period>`
 - Sparse data structures now gained enhanced support of ``int`` and ``bool`` dtypes, see :ref:`here <whatsnew_0190.sparse>`
@@ -218,7 +220,7 @@ they are in the file or passed in as the ``names`` parameter (:issue:`7160`, :is
    data = '0,1,2\n3,4,5'
    names = ['a', 'b', 'a']
 
-Previous behaviour:
+Previous Behavior:
 
 .. code-block:: ipython
 
@@ -231,7 +233,7 @@ Previous behaviour:
 The first ``a`` column contains the same data as the second ``a`` column, when it should have
 contained the values ``[0, 3]``.
 
-New behaviour:
+New Behavior:
 
 .. ipython :: python
 
@@ -276,6 +278,38 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
       df['col3']
       df['col3'].cat.categories = pd.to_numeric(df['col3'].cat.categories)
       df['col3']
+
+.. _whatsnew_0190.enhancements.union_categoricals:
+
+Categorical Concatenation
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- A function :func:`union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`:13763`, issue:`13846`)
+
+.. ipython:: python
+
+    from pandas.types.concat import union_categoricals
+    a = pd.Categorical(["b", "c"])
+    b = pd.Categorical(["a", "b"])
+    union_categoricals([a, b])
+
+- ``concat`` and ``append`` now can concat ``category`` dtypes wifht different
+``categories`` as ``object`` dtype (:issue:`13524`)
+
+Previous Behavior:
+
+  .. code-block:: ipython
+
+    In [1]: s1 = pd.Series(['a', 'b'], dtype='category')
+    In [2]: s2 = pd.Series(['b', 'c'], dtype='category')
+    In [3]: pd.concat([s1, s2])
+    ValueError: incompatible categories in categorical concat
+
+New Behavior:
+
+  .. ipython:: python
+
+    pd.concat([s1, s2])
 
 .. _whatsnew_0190.enhancements.semi_month_offsets:
 
@@ -378,11 +412,11 @@ get_dummies dtypes
 
 The ``pd.get_dummies`` function now returns dummy-encoded columns as small integers, rather than floats (:issue:`8725`). This should provide an improved memory footprint.
 
-Previous behaviour:
+Previous Behavior:
 
 .. code-block:: ipython
 
-   In [1]:    pd.get_dummies(['a', 'b', 'a', 'c']).dtypes
+   In [1]: pd.get_dummies(['a', 'b', 'a', 'c']).dtypes
 
    Out[1]:
    a    float64
@@ -404,7 +438,7 @@ Other enhancements
 
 - The ``.get_credentials()`` method of ``GbqConnector`` can now first try to fetch `the application default credentials <https://developers.google.com/identity/protocols/application-default-credentials>`__. See the :ref:`docs <io.bigquery_authentication>` for more details (:issue:`13577`).
 
-- The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behaviour remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
+- The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behavior remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
 - ``pd.to_numeric()`` now accepts a ``downcast`` parameter, which will downcast the data if possible to smallest specified numerical dtype (:issue:`13352`)
 
   .. ipython:: python
@@ -448,7 +482,6 @@ Other enhancements
 - ``DataFrame`` has gained the ``.asof()`` method to return the last non-NaN values according to the selected subset (:issue:`13358`)
 - The ``DataFrame`` constructor will now respect key ordering if a list of ``OrderedDict`` objects are passed in (:issue:`13304`)
 - ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
-- A function :func:`union_categorical` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`:13763`, :issue:`13846`)
 - ``Series`` has gained the properties ``.is_monotonic``, ``.is_monotonic_increasing``, ``.is_monotonic_decreasing``, similar to ``Index`` (:issue:`13336`)
 - ``DataFrame.to_sql()`` now allows a single value as the SQL type for all columns (:issue:`11886`).
 - ``Series.append`` now supports the ``ignore_index`` option (:issue:`13677`)
@@ -512,7 +545,7 @@ API changes
 ``Series.tolist()`` will now return Python types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``Series.tolist()`` will now return Python types in the output, mimicking NumPy ``.tolist()`` behaviour (:issue:`10904`)
+``Series.tolist()`` will now return Python types in the output, mimicking NumPy ``.tolist()`` behavior (:issue:`10904`)
 
 
 .. ipython:: python
@@ -547,7 +580,7 @@ including ``DataFrame`` (:issue:`1134`, :issue:`4581`, :issue:`13538`)
 
 .. warning::
    Until 0.18.1, comparing ``Series`` with the same length, would succeed even if
-   the ``.index`` are different (the result ignores ``.index``). As of 0.19.0, this will raises ``ValueError`` to be more strict. This section also describes how to keep previous behaviour or align different indexes, using the flexible comparison methods like ``.eq``.
+   the ``.index`` are different (the result ignores ``.index``). As of 0.19.0, this will raises ``ValueError`` to be more strict. This section also describes how to keep previous behavior or align different indexes, using the flexible comparison methods like ``.eq``.
 
 
 As a result, ``Series`` and ``DataFrame`` operators behave as below:
@@ -615,7 +648,7 @@ Logical operators
 
 Logical operators align both ``.index``.
 
-Previous Behavior (``Series``), only left hand side ``index`` is kept:
+Previous behavior (``Series``), only left hand side ``index`` is kept:
 
 .. code-block:: ipython
 
@@ -935,7 +968,7 @@ Index ``+`` / ``-`` no longer used for set operations
 Addition and subtraction of the base Index type and of DatetimeIndex
 (not the numeric index types)
 previously performed set operations (set union and difference). This
-behaviour was already deprecated since 0.15.0 (in favor using the specific
+behavior was already deprecated since 0.15.0 (in favor using the specific
 ``.union()`` and ``.difference()`` methods), and is now disabled. When
 possible, ``+`` and ``-`` are now used for element-wise operations, for
 example for concatenating strings or subtracting datetimes
@@ -956,13 +989,13 @@ The same operation will now perform element-wise addition:
     pd.Index(['a', 'b']) + pd.Index(['a', 'c'])
 
 Note that numeric Index objects already performed element-wise operations.
-For example, the behaviour of adding two integer Indexes:
+For example, the behavior of adding two integer Indexes:
 
 .. ipython:: python
 
     pd.Index([1, 2, 3]) + pd.Index([2, 3, 4])
 
-is unchanged. The base ``Index`` is now made consistent with this behaviour.
+is unchanged. The base ``Index`` is now made consistent with this behavior.
 
 Further, because of this change, it is now possible to subtract two
 DatetimeIndex objects resulting in a TimedeltaIndex:
@@ -1130,7 +1163,7 @@ the result of calling :func:`read_csv` without the ``chunksize=`` argument.
 
    data = 'A,B\n0,1\n2,3\n4,5\n6,7'
 
-Previous behaviour:
+Previous Behavior:
 
 .. code-block:: ipython
 
@@ -1142,7 +1175,7 @@ Previous behaviour:
    0  4  5
    1  6  7
 
-New behaviour:
+New Behavior:
 
 .. ipython :: python
 
@@ -1268,7 +1301,7 @@ These types are the same on many platform, but for 64 bit python on Windows,
 ``np.int_`` is 32 bits, and ``np.intp`` is 64 bits.  Changing this behavior improves performance for many
 operations on that platform.
 
-Previous behaviour:
+Previous Behavior:
 
 .. code-block:: ipython
 
@@ -1277,7 +1310,7 @@ Previous behaviour:
    In [2]: i.get_indexer(['b', 'b', 'c']).dtype
    Out[2]: dtype('int32')
 
-New behaviour:
+New Behavior:
 
 .. code-block:: ipython
 

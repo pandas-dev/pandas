@@ -185,9 +185,9 @@ class TestSeriesCombine(TestData, tm.TestCase):
                          'category')
         self.assertEqual(pd.concat([Series(dtype='category'),
                                     Series(dtype='float64')]).dtype,
-                         np.object_)
+                         'float64')
         self.assertEqual(pd.concat([Series(dtype='category'),
-                                    Series(dtype='object')]).dtype, 'category')
+                                    Series(dtype='object')]).dtype, 'object')
 
         # sparse
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(

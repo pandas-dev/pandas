@@ -2088,8 +2088,8 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_assignment_to_dataframe(self):
         # assignment
-        df = DataFrame({'value': np.array(
-            np.random.randint(0, 10000, 100), dtype='int32')})
+        df = DataFrame({'value': np.array(np.random.randint(0, 10000, 100),
+                                          dtype='int32')})
         labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
 
         df = df.sort_values(by=['value'], ascending=True)
@@ -3355,16 +3355,15 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
     def test_slicing_doc_examples(self):
 
         # GH 7918
-        cats = Categorical(
-            ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c"])
+        cats = Categorical(["a", "b", "b", "b", "c", "c", "c"],
+                           categories=["a", "b", "c"])
         idx = Index(["h", "i", "j", "k", "l", "m", "n", ])
         values = [1, 2, 2, 2, 3, 4, 5]
         df = DataFrame({"cats": cats, "values": values}, index=idx)
 
         result = df.iloc[2:4, :]
         expected = DataFrame(
-            {"cats": Categorical(
-                ['b', 'b'], categories=['a', 'b', 'c']),
+            {"cats": Categorical(['b', 'b'], categories=['a', 'b', 'c']),
              "values": [2, 2]}, index=['j', 'k'])
         tm.assert_frame_equal(result, expected)
 
@@ -3379,10 +3378,9 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_series_equal(result, expected)
 
         result = df.ix["h":"j", 0:1]
-        expected = DataFrame({'cats': Series(
-            Categorical(
-                ['a', 'b', 'b'], categories=['a', 'b', 'c']), index=['h', 'i',
-                                                                     'j'])})
+        expected = DataFrame({'cats': Categorical(['a', 'b', 'b'],
+                                                  categories=['a', 'b', 'c'])},
+                             index=['h', 'i', 'j'])
         tm.assert_frame_equal(result, expected)
 
     def test_assigning_ops(self):
@@ -3636,8 +3634,8 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         with tm.assertRaises(ValueError):
             # different values
             df = orig.copy()
-            df.ix["j":"k", 0] = pd.Categorical(
-                ["c", "c"], categories=["a", "b", "c"])
+            df.ix["j":"k", 0] = pd.Categorical(["c", "c"],
+                                               categories=["a", "b", "c"])
 
         # assign a part of a column with dtype != categorical ->
         # exp_parts_cats_col
@@ -3674,8 +3672,8 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         self.assertRaises(ValueError, f)
 
         # fancy indexing
-        catsf = pd.Categorical(
-            ["a", "a", "c", "c", "a", "a", "a"], categories=["a", "b", "c"])
+        catsf = pd.Categorical(["a", "a", "c", "c", "a", "a", "a"],
+                               categories=["a", "b", "c"])
         idxf = pd.Index(["h", "i", "j", "k", "l", "m", "n"])
         valuesf = [1, 1, 3, 3, 1, 1, 1]
         df = pd.DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
@@ -3733,9 +3731,8 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         s = orig.copy()
         s.index = ["x", "y"]
         s["y"] = "a"
-        exp = Series(
-            pd.Categorical(["b", "a"],
-                           categories=["a", "b"]), index=["x", "y"])
+        exp = Series(pd.Categorical(["b", "a"], categories=["a", "b"]),
+                     index=["x", "y"])
         tm.assert_series_equal(s, exp)
 
         # ensure that one can set something to np.nan
@@ -3887,7 +3884,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         self.assertRaises(TypeError, lambda: a > b)
         self.assertRaises(TypeError, lambda: b > a)
 
-    def test_concat(self):
+    def test_concat_append(self):
         cat = pd.Categorical(["a", "b"], categories=["a", "b"])
         vals = [1, 2]
         df = pd.DataFrame({"cats": cat, "vals": vals})
@@ -3896,20 +3893,22 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         exp = pd.DataFrame({"cats": cat2,
                             "vals": vals2}, index=pd.Index([0, 1, 0, 1]))
 
-        res = pd.concat([df, df])
-        tm.assert_frame_equal(exp, res)
+        tm.assert_frame_equal(pd.concat([df, df]), exp)
+        tm.assert_frame_equal(df.append(df), exp)
 
-        # Concat should raise if the two categoricals do not have the same
-        # categories
+        # GH 13524 can concat different categories
         cat3 = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
         vals3 = [1, 2]
-        df_wrong_categories = pd.DataFrame({"cats": cat3, "vals": vals3})
+        df_different_categories = pd.DataFrame({"cats": cat3, "vals": vals3})
 
-        def f():
-            pd.concat([df, df_wrong_categories])
+        res = pd.concat([df, df_different_categories], ignore_index=True)
+        exp = pd.DataFrame({"cats": list('abab'), "vals": [1, 2, 1, 2]})
+        tm.assert_frame_equal(res, exp)
 
-        self.assertRaises(ValueError, f)
+        res = df.append(df_different_categories, ignore_index=True)
+        tm.assert_frame_equal(res, exp)
 
+    def test_concat_append_gh7864(self):
         # GH 7864
         # make sure ordering is preserverd
         df = pd.DataFrame({"id": [1, 2, 3, 4, 5, 6],
@@ -3926,41 +3925,44 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                                 df2['grade'].cat.categories)
 
         dfx = pd.concat([df1, df2])
-        dfx['grade'].cat.categories
         self.assert_index_equal(df['grade'].cat.categories,
                                 dfx['grade'].cat.categories)
 
+        dfa = df1.append(df2)
+        self.assert_index_equal(df['grade'].cat.categories,
+                                dfa['grade'].cat.categories)
+
+
     def test_concat_preserve(self):
 
-        # GH 8641
-        # series concat not preserving category dtype
+        # GH 8641  series concat not preserving category dtype
+        # GH 13524 can concat different categories
         s = Series(list('abc'), dtype='category')
         s2 = Series(list('abd'), dtype='category')
 
-        def f():
-            pd.concat([s, s2])
+        exp = Series(list('abcabd'))
+        res = pd.concat([s, s2], ignore_index=True)
+        tm.assert_series_equal(res, exp)
 
-        self.assertRaises(ValueError, f)
+        exp = Series(list('abcabc'), dtype='category')
+        res = pd.concat([s, s], ignore_index=True)
+        tm.assert_series_equal(res, exp)
 
-        result = pd.concat([s, s], ignore_index=True)
-        expected = Series(list('abcabc')).astype('category')
-        tm.assert_series_equal(result, expected)
-
-        result = pd.concat([s, s])
-        expected = Series(
-            list('abcabc'), index=[0, 1, 2, 0, 1, 2]).astype('category')
-        tm.assert_series_equal(result, expected)
+        exp = Series(list('abcabc'), index=[0, 1, 2, 0, 1, 2],
+                     dtype='category')
+        res = pd.concat([s, s])
+        tm.assert_series_equal(res, exp)
 
         a = Series(np.arange(6, dtype='int64'))
         b = Series(list('aabbca'))
 
         df2 = DataFrame({'A': a,
                          'B': b.astype('category', categories=list('cab'))})
-        result = pd.concat([df2, df2])
-        expected = DataFrame({'A': pd.concat([a, a]),
-                              'B': pd.concat([b, b]).astype(
-                                  'category', categories=list('cab'))})
-        tm.assert_frame_equal(result, expected)
+        res = pd.concat([df2, df2])
+        exp = DataFrame({'A': pd.concat([a, a]),
+                         'B': pd.concat([b, b]).astype(
+                                'category', categories=list('cab'))})
+        tm.assert_frame_equal(res, exp)
 
     def test_categorical_index_preserver(self):
 
@@ -3968,43 +3970,20 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         b = Series(list('aabbca'))
 
         df2 = DataFrame({'A': a,
-                         'B': b.astype('category', categories=list(
-                             'cab'))}).set_index('B')
+                         'B': b.astype('category', categories=list('cab'))
+                        }).set_index('B')
         result = pd.concat([df2, df2])
         expected = DataFrame({'A': pd.concat([a, a]),
                               'B': pd.concat([b, b]).astype(
-                                  'category', categories=list(
-                                      'cab'))}).set_index('B')
+                                  'category', categories=list('cab'))
+                             }).set_index('B')
         tm.assert_frame_equal(result, expected)
 
         # wrong catgories
         df3 = DataFrame({'A': a,
-                         'B': b.astype('category', categories=list(
-                             'abc'))}).set_index('B')
+                         'B': pd.Categorical(b, categories=list('abc'))
+                        }).set_index('B')
         self.assertRaises(TypeError, lambda: pd.concat([df2, df3]))
-
-    def test_append(self):
-        cat = pd.Categorical(["a", "b"], categories=["a", "b"])
-        vals = [1, 2]
-        df = pd.DataFrame({"cats": cat, "vals": vals})
-        cat2 = pd.Categorical(["a", "b", "a", "b"], categories=["a", "b"])
-        vals2 = [1, 2, 1, 2]
-        exp = pd.DataFrame({"cats": cat2,
-                            "vals": vals2}, index=pd.Index([0, 1, 0, 1]))
-
-        res = df.append(df)
-        tm.assert_frame_equal(exp, res)
-
-        # Concat should raise if the two categoricals do not have the same
-        # categories
-        cat3 = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
-        vals3 = [1, 2]
-        df_wrong_categories = pd.DataFrame({"cats": cat3, "vals": vals3})
-
-        def f():
-            df.append(df_wrong_categories)
-
-        self.assertRaises(ValueError, f)
 
     def test_merge(self):
         # GH 9426
@@ -4470,27 +4449,22 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
     def test_concat_categorical(self):
         # See GH 10177
-        df1 = pd.DataFrame(
-            np.arange(18, dtype='int64').reshape(6,
-                                                 3), columns=["a", "b", "c"])
+        df1 = pd.DataFrame(np.arange(18, dtype='int64').reshape(6, 3),
+                           columns=["a", "b", "c"])
 
-        df2 = pd.DataFrame(
-            np.arange(14, dtype='int64').reshape(7, 2), columns=["a", "c"])
-        df2['h'] = pd.Series(pd.Categorical(["one", "one", "two", "one", "two",
-                                             "two", "one"]))
+        df2 = pd.DataFrame(np.arange(14, dtype='int64').reshape(7, 2),
+                           columns=["a", "c"])
 
-        df_concat = pd.concat((df1, df2), axis=0).reset_index(drop=True)
+        cat_values = ["one", "one", "two", "one", "two", "two", "one"]
+        df2['h'] = pd.Series(pd.Categorical(cat_values))
 
-        df_expected = pd.DataFrame(
-            {'a': [0, 3, 6, 9, 12, 15, 0, 2, 4, 6, 8, 10, 12],
-             'b': [1, 4, 7, 10, 13, 16, np.nan, np.nan, np.nan, np.nan, np.nan,
-                   np.nan, np.nan],
-             'c': [2, 5, 8, 11, 14, 17, 1, 3, 5, 7, 9, 11, 13]})
-        df_expected['h'] = pd.Series(pd.Categorical(
-            [None, None, None, None, None, None, "one", "one", "two", "one",
-             "two", "two", "one"]))
-
-        tm.assert_frame_equal(df_expected, df_concat)
+        res = pd.concat((df1, df2), axis=0, ignore_index=True)
+        exp = pd.DataFrame({'a': [0, 3, 6, 9, 12, 15, 0, 2, 4, 6, 8, 10, 12],
+                            'b': [1, 4, 7, 10, 13, 16, np.nan, np.nan,
+                                  np.nan, np.nan, np.nan, np.nan, np.nan],
+                            'c': [2, 5, 8, 11, 14, 17, 1, 3, 5, 7, 9, 11, 13],
+                            'h': [None] * 6 + cat_values})
+        tm.assert_frame_equal(res, exp)
 
 
 class TestCategoricalSubclassing(tm.TestCase):
