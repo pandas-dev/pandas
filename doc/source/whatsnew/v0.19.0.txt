@@ -1568,3 +1568,4 @@ Bug Fixes
 
 - Bug in ``eval()`` where the ``resolvers`` argument would not accept a list (:issue:`14095`)
 - Bugs in ``stack``, ``get_dummies``, ``make_axis_dummies`` which don't preserve categorical dtypes in (multi)indexes (:issue:`13854`)
+- Bug in ```Series``` of ```np.timedelta64``` when setting a slice using an indexer   (:issue:`14155`)
