@@ -731,18 +731,42 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _sub_datelike(self, other):
         # subtract a datetime from myself, yielding a TimedeltaIndex
         from pandas import TimedeltaIndex
-        other = Timestamp(other)
-        if other is tslib.NaT:
-            result = self._nat_new(box=False)
-        # require tz compat
-        elif not self._has_same_tz(other):
-            raise TypeError("Timestamp subtraction must have the same "
-                            "timezones or no timezones")
+        if isinstance(other, DatetimeIndex):
+            # require tz compat
+            if not self._has_same_tz(other):
+                raise TypeError("DatetimeIndex subtraction must have the same "
+                                "timezones or no timezones")
+            result = self._sub_datelike_dti(other)
+        elif isinstance(other, (tslib.Timestamp, datetime)):
+            other = Timestamp(other)
+            if other is tslib.NaT:
+                result = self._nat_new(box=False)
+            # require tz compat
+            elif not self._has_same_tz(other):
+                raise TypeError("Timestamp subtraction must have the same "
+                                "timezones or no timezones")
+            else:
+                i8 = self.asi8
+                result = i8 - other.value
+                result = self._maybe_mask_results(result,
+                                                  fill_value=tslib.iNaT)
         else:
-            i8 = self.asi8
-            result = i8 - other.value
-            result = self._maybe_mask_results(result, fill_value=tslib.iNaT)
+            raise TypeError("cannot subtract DatetimeIndex and {typ}"
+                            .format(typ=type(other).__name__))
         return TimedeltaIndex(result, name=self.name, copy=False)
+
+    def _sub_datelike_dti(self, other):
+        """subtraction of two DatetimeIndexes"""
+        if not len(self) == len(other):
+            raise ValueError("cannot add indices of unequal length")
+
+        self_i8 = self.asi8
+        other_i8 = other.asi8
+        new_values = self_i8 - other_i8
+        if self.hasnans or other.hasnans:
+            mask = (self._isnan) | (other._isnan)
+            new_values[mask] = tslib.iNaT
+        return new_values.view('i8')
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """

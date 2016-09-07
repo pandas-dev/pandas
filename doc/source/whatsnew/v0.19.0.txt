@@ -932,14 +932,16 @@ New Behavior:
 Index ``+`` / ``-`` no longer used for set operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Addition and subtraction of the base Index type (not the numeric subclasses)
+Addition and subtraction of the base Index type and of DatetimeIndex
+(not the numeric index types)
 previously performed set operations (set union and difference). This
 behaviour was already deprecated since 0.15.0 (in favor using the specific
 ``.union()`` and ``.difference()`` methods), and is now disabled. When
 possible, ``+`` and ``-`` are now used for element-wise operations, for
-example for concatenating strings  (:issue:`8227`, :issue:`14127`).
+example for concatenating strings or subtracting datetimes
+(:issue:`8227`, :issue:`14127`).
 
-Previous Behavior:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -961,6 +963,23 @@ For example, the behaviour of adding two integer Indexes:
     pd.Index([1, 2, 3]) + pd.Index([2, 3, 4])
 
 is unchanged. The base ``Index`` is now made consistent with this behaviour.
+
+Further, because of this change, it is now possible to subtract two
+DatetimeIndex objects resulting in a TimedeltaIndex:
+
+Previous behavior:
+
+.. code-block:: ipython
+
+    In [1]: pd.DatetimeIndex(['2016-01-01', '2016-01-02']) - pd.DatetimeIndex(['2016-01-02', '2016-01-03'])
+    FutureWarning: using '-' to provide set differences with datetimelike Indexes is deprecated, use .difference()
+    Out[1]: DatetimeIndex(['2016-01-01'], dtype='datetime64[ns]', freq=None)
+
+New behavior:
+
+.. ipython:: python
+
+    pd.DatetimeIndex(['2016-01-01', '2016-01-02']) - pd.DatetimeIndex(['2016-01-02', '2016-01-03'])
 
 
 .. _whatsnew_0190.api.difference:
