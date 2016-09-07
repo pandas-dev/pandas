@@ -229,14 +229,8 @@ matrix:
         - USE_CACHE=true
 
 before_install:
-  # gbq secure key
-  - if [ -n "$encrypted_1d9d7b1f171b_iv" ]; then
-        openssl aes-256-cbc -K $encrypted_1d9d7b1f171b_key
-        -iv $encrypted_1d9d7b1f171b_iv -in ci/travis_gbq.json.enc
-        -out ci/travis_gbq.json -d;
-        export VALID_GBQ_CREDENTIALS=True;
-    fi
   - echo "before_install"
+  - source ci/travis_process_gbq_encryption.sh
   - echo $VIRTUAL_ENV
   - export PATH="$HOME/miniconda/bin:$PATH"
   - df -h
