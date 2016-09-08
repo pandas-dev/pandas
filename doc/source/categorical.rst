@@ -695,6 +695,40 @@ The below raises ``TypeError`` because the categories are ordered and not identi
    Out[3]:
    TypeError: to union ordered Categoricals, all categories must be the same
 
+``union_categoricals`` also works with a ``CategoricalIndex``, or ``Series`` containing
+categorical data, but note that the resulting array will always be a plain ``Categorical``
+
+.. ipython:: python
+
+    a = pd.Series(["b", "c"], dtype='category')
+    b = pd.Series(["a", "b"], dtype='category')
+    union_categoricals([a, b])
+
+.. note::
+
+   ``union_categoricals`` may recode the integer codes for categories
+   when combining categoricals.  This is likely what you want,
+   but if you are relying on the exact numbering of the categories, be
+   aware.
+
+   .. ipython:: python
+
+      c1 = pd.Categorical(["b", "c"])
+      c2 = pd.Categorical(["a", "b"])
+
+      c1
+      # "b" is coded to 0
+      c1.codes
+
+      c2
+      # "b" is coded to 1
+      c2.codes
+
+      c = union_categoricals([c1, c2])
+      c
+      # "b" is coded to 0 throughout, same as c1, different from c2
+      c.codes
+
 .. _categorical.concat:
 
 Concatenation

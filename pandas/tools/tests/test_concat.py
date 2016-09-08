@@ -9,7 +9,7 @@ import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isnull, Series, date_range,
                     Index, Panel, MultiIndex, Timestamp,
-                    DatetimeIndex, Categorical)
+                    DatetimeIndex, Categorical, CategoricalIndex)
 from pandas.types.concat import union_categoricals
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
@@ -1539,10 +1539,12 @@ class TestConcatenate(ConcatenateBase):
         ]
 
         for a, b, combined in data:
-            result = union_categoricals([Categorical(a), Categorical(b)])
-            expected = Categorical(combined)
-            tm.assert_categorical_equal(result, expected,
-                                        check_category_order=True)
+            for box in [Categorical, CategoricalIndex, Series]:
+                result = union_categoricals([box(Categorical(a)),
+                                             box(Categorical(b))])
+                expected = Categorical(combined)
+                tm.assert_categorical_equal(result, expected,
+                                            check_category_order=True)
 
         # new categories ordered by appearance
         s = Categorical(['x', 'y', 'z'])
@@ -1770,6 +1772,25 @@ class TestConcatenate(ConcatenateBase):
         expected = Categorical(['b', 'a', 'a', 'c'],
                                categories=['b', 'a', 'c'], ordered=True)
         tm.assert_categorical_equal(result, expected)
+
+    def test_union_categorical_unwrap(self):
+        # GH 14173
+        c1 = Categorical(['a', 'b'])
+        c2 = pd.Series(['b', 'c'], dtype='category')
+        result = union_categoricals([c1, c2])
+        expected = Categorical(['a', 'b', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
+        c2 = CategoricalIndex(c2)
+        result = union_categoricals([c1, c2])
+        tm.assert_categorical_equal(result, expected)
+
+        c1 = Series(c1)
+        result = union_categoricals([c1, c2])
+        tm.assert_categorical_equal(result, expected)
+
+        with tm.assertRaises(TypeError):
+            union_categoricals([c1, ['a', 'b', 'c']])
 
     def test_concat_bug_1719(self):
         ts1 = tm.makeTimeSeries()
