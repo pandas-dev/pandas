@@ -60,10 +60,6 @@ class TestUnsupportedFeatures(tm.TestCase):
                        sep=None, delim_whitespace=False)
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), engine='c', sep='\s')
-
-        # GH 14120, skipping as failing when locale is set
-        # with tm.assertRaisesRegexp(ValueError, msg):
-        #     read_table(StringIO(data), engine='c', sep='§')
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), engine='c', skipfooter=1)
 
