@@ -453,7 +453,7 @@ class _TimeOp(_Op):
                 values = values.to_series()
             # datetime with tz
             elif (isinstance(ovalues, datetime.datetime) and
-                  hasattr(ovalues, 'tz')):
+                  hasattr(ovalues, 'tzinfo')):
                 values = pd.DatetimeIndex(values)
             # datetime array with tz
             elif is_datetimetz(values):
