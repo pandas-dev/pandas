@@ -296,8 +296,7 @@ Categorical Concatenation
     b = pd.Categorical(["a", "b"])
     union_categoricals([a, b])
 
-- ``concat`` and ``append`` now can concat ``category`` dtypes wifht different
-``categories`` as ``object`` dtype (:issue:`13524`)
+- ``concat`` and ``append`` now can concat ``category`` dtypes with different ``categories`` as ``object`` dtype (:issue:`13524`)
 
 **Previous behavior**:
 
