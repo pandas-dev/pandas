@@ -5947,6 +5947,18 @@ class TestGroupBy(tm.TestCase):
                 with tm.assertRaisesRegexp(AttributeError, msg):
                     getattr(gb, bl)
 
+    def test_groupby_varargs(self):
+        # GH 14107
+        # we want to make sure **kwargs arguments are passed on correctly
+        # in this example, `take` uses **kwargs to pass on the 'mode' argument
+        # it should fail both when used directly and when via grouped object
+        s = Series([1,2,3])
+        g = s.groupby(int)
+        with tm.assertRaises(ValueError):
+            s.take([0], mode='INVALID_MODE_SHOULD_RAISE')
+        with tm.assertRaises(ValueError):
+            g.take([0], mode='INVALID_MODE_SHOULD_RAISE')
+
     def test_tab_completion(self):
         grp = self.mframe.groupby(level='second')
         results = set([v for v in dir(grp) if not v.startswith('_')])
