@@ -5952,7 +5952,7 @@ class TestGroupBy(tm.TestCase):
         # we want to make sure **kwargs arguments are passed on correctly
         # in this example, `take` uses **kwargs to pass on the 'mode' argument
         # it should fail both when used directly and when via grouped object
-        s = Series([1,2,3])
+        s = Series([1, 2, 3])
         g = s.groupby(int)
         with tm.assertRaises(ValueError):
             s.take([0], mode='INVALID_MODE_SHOULD_RAISE')
