@@ -259,7 +259,7 @@ class Categorical(PandasObject):
                 ordered = values.ordered
             if categories is None:
                 categories = values.categories
-            values = values.__array__()
+            values = values.get_values()
 
         elif isinstance(values, (ABCIndexClass, ABCSeries)):
             pass
