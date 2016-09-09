@@ -365,12 +365,13 @@ class TestCategorical(tm.TestCase):
     def test_constructor_invariant(self):
         # GH 14190
         vals = [
-            np.array([1., 1.2, 1.8]),
+            np.array([1., 1.2, 1.8, np.nan]),
             np.array([1, 2, 3], dtype='int64'),
-            ['a', 'b', 'c'],
-            pd.period_range('2014-01-01', '2014-01-05'),
-            pd.date_range('2014-01-01', '2014-01-05'),
-            pd.date_range('2014-01-01', '2014-01-05', tz='US/Eastern')
+            ['a', 'b', 'c', np.nan],
+            [pd.Period('2014-01'), pd.Period('2014-02'), pd.NaT],
+            [pd.Timestamp('2014-01-01'), pd.Timestamp('2014-01-02'), pd.NaT],
+            [pd.Timestamp('2014-01-01', tz='US/Eastern'),
+             pd.Timestamp('2014-01-02', tz='US/Eastern'), pd.NaT],
         ]
         for val in vals:
             c = Categorical(val)
