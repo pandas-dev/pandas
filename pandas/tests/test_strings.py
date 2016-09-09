@@ -2439,6 +2439,26 @@ class TestStringMethods(tm.TestCase):
                            True, False, False])
         assert_series_equal(result, expected)
 
+    def test_contains_nan(self):
+        # PR #14171
+        s = Series([np.nan, np.nan, np.nan], dtype=np.object_)
+
+        result = s.str.contains('foo', na=False)
+        expected = Series([False, False, False], dtype=np.bool_)
+        assert_series_equal(result, expected)
+
+        result = s.str.contains('foo', na=True)
+        expected = Series([True, True, True], dtype=np.bool_)
+        assert_series_equal(result, expected)
+
+        result = s.str.contains('foo', na="foo")
+        expected = Series(["foo", "foo", "foo"], dtype=np.object_)
+        assert_series_equal(result, expected)
+
+        result = s.str.contains('foo')
+        expected = Series([np.nan, np.nan, np.nan], dtype=np.object_)
+        assert_series_equal(result, expected)
+
     def test_more_replace(self):
         # PR #1179
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA, 'CABA',
