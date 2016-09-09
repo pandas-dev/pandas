@@ -362,6 +362,21 @@ class TestCategorical(tm.TestCase):
         result = pd.Categorical(pd.Series(idx))
         tm.assert_index_equal(result.categories, idx)
 
+    def test_constructor_invariant(self):
+        # GH 14190
+        vals = [
+            np.array([1., 1.2, 1.8]),
+            np.array([1, 2, 3], dtype='int64'),
+            ['a', 'b', 'c'],
+            pd.period_range('2014-01-01', '2014-01-05'),
+            pd.date_range('2014-01-01', '2014-01-05'),
+            pd.date_range('2014-01-01', '2014-01-05', tz='US/Eastern')
+        ]
+        for val in vals:
+            c = Categorical(val)
+            c2 = Categorical(c)
+            tm.assert_categorical_equal(c, c2)
+
     def test_from_codes(self):
 
         # too few categories

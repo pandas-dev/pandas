@@ -1427,7 +1427,7 @@ Bug Fixes
 
 - Bug in ``SeriesGroupBy.transform`` with datetime values and missing groups (:issue:`13191`)
 - Bug where empty ``Series`` were incorrectly coerced in datetime-like numeric operations (:issue:`13844`)
-
+- Bug in ``Categorical`` constructor when passed a ``Categorical`` containing datetimes with timezones (:issue:`14190`)
 - Bug in ``Series.str.extractall()`` with ``str`` index raises ``ValueError``  (:issue:`13156`)
 - Bug in ``Series.str.extractall()`` with single group and quantifier  (:issue:`13382`)
 - Bug in ``DatetimeIndex`` and ``Period`` subtraction raises ``ValueError`` or ``AttributeError`` rather than ``TypeError`` (:issue:`13078`)
