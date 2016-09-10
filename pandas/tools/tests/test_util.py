@@ -68,10 +68,12 @@ class TestLocaleUtils(tm.TestCase):
             raise nose.SkipTest("Only a single locale found, no point in "
                                 "trying to test setting another locale")
 
-        if LOCALE_OVERRIDE is not None:
-            lang, enc = LOCALE_OVERRIDE.split('.')
-        else:
+        if LOCALE_OVERRIDE is None:
             lang, enc = 'it_CH', 'UTF-8'
+        elif LOCALE_OVERRIDE == 'C':
+            lang, enc = 'en_US', 'ascii'
+        else:
+            lang, enc = LOCALE_OVERRIDE.split('.')
 
         enc = codecs.lookup(enc).name
         new_locale = lang, enc

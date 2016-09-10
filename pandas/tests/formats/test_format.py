@@ -2820,7 +2820,7 @@ c  10  11  12  13  14\
                 self.assertEqual(df.to_latex(), f.read())
 
         # test with utf-8 without encoding option
-        if compat.PY3:  # python3 default encoding is utf-8
+        if compat.PY3:  # python3: pandas default encoding is utf-8
             with tm.ensure_clean('test.tex') as path:
                 df.to_latex(path)
                 with codecs.open(path, 'r') as f:
@@ -4295,7 +4295,7 @@ class TestDatetime64Formatter(tm.TestCase):
         formatter = fmt.Datetime64Formatter(x, formatter=format_func)
         result = formatter.get_result()
         self.assertEqual(result, ['2016-01', '2016-02'])
-                       
+
     def test_datetime64formatter_hoursecond(self):
 
         x = Series(pd.to_datetime(['10:10:10.100', '12:12:12.120'],
