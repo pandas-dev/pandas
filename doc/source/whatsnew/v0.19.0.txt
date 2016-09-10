@@ -1559,7 +1559,7 @@ Bug Fixes
 - Bug in ``Series`` flexible arithmetic methods (like ``.add()``) raises ``ValueError`` when ``axis=None`` (:issue:`13894`)
 - Bug in ``DataFrame.to_csv()`` with ``MultiIndex`` columns in which a stray empty line was added (:issue:`6618`)
 - Bug in ``DatetimeIndex``, ``TimedeltaIndex`` and ``PeriodIndex.equals()`` may return ``True`` when input isn't ``Index`` but contains the same values (:issue:`13107`)
-
+- Bug in assignment against datetime with timezone may not work if it contains datetime near DST boundary (:issue:`14146`)
 
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
 - Bug in ``Period`` and ``PeriodIndex`` creating wrong dates when frequency has combined offset aliases (:issue:`13874`)
