@@ -687,7 +687,6 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                  '00-Q4': datetime.datetime(2000, 10, 1),
                  '4Q-2000': datetime.datetime(2000, 10, 1),
                  '4Q-00': datetime.datetime(2000, 10, 1),
-                 '2000q4': datetime.datetime(2000, 10, 1),
                  '00q4': datetime.datetime(2000, 10, 1),
                  '2005': datetime.datetime(2005, 1, 1),
                  '2005-11': datetime.datetime(2005, 11, 1),
