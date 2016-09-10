@@ -210,14 +210,15 @@ def _concat_categorical(to_concat, axis=0):
 
 def union_categoricals(to_union, sort_categories=False):
     """
-    Combine list-like of Categoricals, unioning categories. All
+    Combine list-like of Categorical-like, unioning categories. All
     categories must have the same dtype.
 
     .. versionadded:: 0.19.0
 
     Parameters
     ----------
-    to_union : list-like of Categoricals
+    to_union : list-like of Categorical, CategoricalIndex,
+               or Series with dtype='category'
     sort_categories : boolean, default False
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
@@ -236,11 +237,20 @@ def union_categoricals(to_union, sort_categories=False):
     ValueError
         Emmpty list of categoricals passed
     """
-    from pandas import Index, Categorical
+    from pandas import Index, Categorical, CategoricalIndex, Series
 
     if len(to_union) == 0:
         raise ValueError('No Categoricals to union')
 
+    def _maybe_unwrap(x):
+        if isinstance(x, (CategoricalIndex, Series)):
+            return x.values
+        elif isinstance(x, Categorical):
+            return x
+        else:
+            raise TypeError("all components to combine must be Categorical")
+
+    to_union = [_maybe_unwrap(x) for x in to_union]
     first = to_union[0]
 
     if not all(is_dtype_equal(other.categories.dtype, first.categories.dtype)
