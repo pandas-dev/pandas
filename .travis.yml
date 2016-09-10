@@ -154,6 +154,15 @@ matrix:
           packages:
           - language-pack-it
 #    In allow_failures
+    - python: 3.5
+      env:
+        - JOB_NAME: "35_ascii"
+        - JOB_TAG=_ASCII
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - LOCALE_OVERRIDE="C"
+        - CACHE_NAME="35_ascii"
+        - USE_CACHE=true
+#    In allow_failures
     - python: 2.7
       env:
         - JOB_NAME: "doc_build"
@@ -219,6 +228,14 @@ matrix:
           apt:
             packages:
             - language-pack-it
+      - python: 3.5
+        env:
+        - JOB_NAME: "35_ascii"
+        - JOB_TAG=_ASCII
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - LOCALE_OVERRIDE="C"
+        - CACHE_NAME="35_ascii"
+        - USE_CACHE=true
       - python: 2.7
         env:
         - JOB_NAME: "doc_build"
