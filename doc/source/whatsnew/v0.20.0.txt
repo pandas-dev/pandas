@@ -30,7 +30,8 @@ New features
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-
+`read_stata` can handle some format 111 files, which are produced by
+SAS when generating Stata dta files (:issue:11526, :issue:14159)
 
 
 
