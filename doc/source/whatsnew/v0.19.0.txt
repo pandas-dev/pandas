@@ -287,7 +287,7 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 Categorical Concatenation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- A function :func:`union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`:13763`, issue:`13846`)
+- A function :func:`union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`:13763`, issue:`13846`, :issue:`14173`)
 
 .. ipython:: python
 
