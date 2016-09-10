@@ -776,6 +776,89 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         result = self.series.ix[idx]
         assert_series_equal(result, self.series[:10])
 
+    def test_setitem_with_tz(self):
+        for tz in ['US/Eastern', 'UTC', 'Asia/Tokyo']:
+            orig = pd.Series(pd.date_range('2016-01-01', freq='H', periods=3,
+                                           tz=tz))
+            self.assertEqual(orig.dtype, 'datetime64[ns, {0}]'.format(tz))
+
+            # scalar
+            s = orig.copy()
+            s[1] = pd.Timestamp('2011-01-01', tz=tz)
+            exp = pd.Series([pd.Timestamp('2016-01-01 00:00', tz=tz),
+                             pd.Timestamp('2011-01-01 00:00', tz=tz),
+                             pd.Timestamp('2016-01-01 02:00', tz=tz)])
+            tm.assert_series_equal(s, exp)
+
+            s = orig.copy()
+            s.loc[1] = pd.Timestamp('2011-01-01', tz=tz)
+            tm.assert_series_equal(s, exp)
+
+            s = orig.copy()
+            s.iloc[1] = pd.Timestamp('2011-01-01', tz=tz)
+            tm.assert_series_equal(s, exp)
+
+            # vector
+            vals = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
+                              pd.Timestamp('2012-01-01', tz=tz)], index=[1, 2])
+            self.assertEqual(vals.dtype, 'datetime64[ns, {0}]'.format(tz))
+
+            s[[1, 2]] = vals
+            exp = pd.Series([pd.Timestamp('2016-01-01 00:00', tz=tz),
+                             pd.Timestamp('2011-01-01 00:00', tz=tz),
+                             pd.Timestamp('2012-01-01 00:00', tz=tz)])
+            tm.assert_series_equal(s, exp)
+
+            s = orig.copy()
+            s.loc[[1, 2]] = vals
+            tm.assert_series_equal(s, exp)
+
+            s = orig.copy()
+            s.iloc[[1, 2]] = vals
+            tm.assert_series_equal(s, exp)
+
+    def test_setitem_with_tz_dst(self):
+        # GH XXX
+        tz = 'US/Eastern'
+        orig = pd.Series(pd.date_range('2016-11-06', freq='H', periods=3,
+                                       tz=tz))
+        self.assertEqual(orig.dtype, 'datetime64[ns, {0}]'.format(tz))
+
+        # scalar
+        s = orig.copy()
+        s[1] = pd.Timestamp('2011-01-01', tz=tz)
+        exp = pd.Series([pd.Timestamp('2016-11-06 00:00', tz=tz),
+                         pd.Timestamp('2011-01-01 00:00', tz=tz),
+                         pd.Timestamp('2016-11-06 02:00', tz=tz)])
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.loc[1] = pd.Timestamp('2011-01-01', tz=tz)
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.iloc[1] = pd.Timestamp('2011-01-01', tz=tz)
+        tm.assert_series_equal(s, exp)
+
+        # vector
+        vals = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
+                          pd.Timestamp('2012-01-01', tz=tz)], index=[1, 2])
+        self.assertEqual(vals.dtype, 'datetime64[ns, {0}]'.format(tz))
+
+        s[[1, 2]] = vals
+        exp = pd.Series([pd.Timestamp('2016-11-06 00:00', tz=tz),
+                         pd.Timestamp('2011-01-01 00:00', tz=tz),
+                         pd.Timestamp('2012-01-01 00:00', tz=tz)])
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.loc[[1, 2]] = vals
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.iloc[[1, 2]] = vals
+        tm.assert_series_equal(s, exp)
+
     def test_where(self):
         s = Series(np.random.randn(5))
         cond = s > 0
