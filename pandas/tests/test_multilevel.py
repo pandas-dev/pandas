@@ -2422,22 +2422,30 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_iloc_mi(self):
         # GH 13797
+        # Test if iloc can handle integer locations in MultiIndexed DataFrame
 
-        ind_nonLex = [
-            ['CC', 'CC', 'CC', 'BB', 'BB'],
-            ['A', 'B', 'B', 'a', 'b']
-        ]
+        data =[
+                ['str00', 'str01'],
+                ['str10', 'str11'],
+                ['str20', 'srt21'],
+                ['str30', 'str31'],
+                ['str40', 'str41']
+            ]
 
-        strCol = pd.DataFrame(
-            ['fooA', 'fooB', 'fooC', 'fooD', 'fooE'])
+        mi= pd.MultiIndex.from_tuples(
+            [('CC','A'),
+             ('CC','B'),
+             ('CC','B'),
+             ('BB','a'),
+             ('BB','b')
+            ])
 
-        dat = np.arange(1, 26).reshape(5, 5)
-        df = pd.concat([strCol, pd.DataFrame(dat)], axis=1)
-        df1 = pd.DataFrame(df.values, index=ind_nonLex)
+        ans = pd.DataFrame(data)
+        df_mi = pd.DataFrame(data, index = mi)
 
-        assert df1.iloc[0, 0] == 'fooA'
-        assert df1.iloc[4, 0] == 'fooE'
-        assert df1.iloc[4, 5] == 25
+        res = pd.DataFrame([[df_mi.iloc[r,c] for c in range(2)] for r in range(5)])
+
+        assert_frame_equal(res, ans)
 
 
 if __name__ == '__main__':
