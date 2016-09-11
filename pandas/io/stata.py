@@ -34,8 +34,8 @@ from pandas.lib import max_len_string_array, infer_dtype
 from pandas.tslib import NaT, Timestamp
 
 _version_error = ("Version of given Stata file is not 104, 105, 108, "
-                  "113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12), "
-                  "117 (Stata 13), or 118 (Stata 14)")
+                  "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "
+                  "115 (Stata 12), 117 (Stata 13), or 118 (Stata 14)")
 
 _statafile_processing_params1 = """\
 convert_dates : boolean, defaults to True
@@ -1183,7 +1183,7 @@ class StataReader(StataParser, BaseIterator):
 
     def _read_old_header(self, first_char):
         self.format_version = struct.unpack('b', first_char)[0]
-        if self.format_version not in [104, 105, 108, 113, 114, 115]:
+        if self.format_version not in [104, 105, 108, 111, 113, 114, 115]:
             raise ValueError(_version_error)
         self.byteorder = struct.unpack('b', self.path_or_buf.read(1))[
             0] == 0x1 and '>' or '<'

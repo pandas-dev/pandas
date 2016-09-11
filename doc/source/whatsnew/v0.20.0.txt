@@ -33,8 +33,6 @@ Other enhancements
 
 
 
-
-
 .. _whatsnew_0200.api_breaking:
 
 Backwards incompatible API changes
@@ -82,3 +80,5 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+`read_stata` can now handle some format 111 files, which are produced
+by SAS when generating Stata dta files (:issue:11526, :issue:14159)

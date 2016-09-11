@@ -82,6 +82,8 @@ class TestStata(tm.TestCase):
         self.dta22_118 = os.path.join(self.dirpath, 'stata14_118.dta')
         self.dta23 = os.path.join(self.dirpath, 'stata15.dta')
 
+        self.dta24_111 = os.path.join(self.dirpath, 'stata7_111.dta')
+
     def read_dta(self, file):
         # Legacy default reader configuration
         return read_stata(file, convert_dates=True)
@@ -1218,6 +1220,20 @@ class TestStata(tm.TestCase):
         with tm.assertRaises(ValueError) as cm:
             read_stata(self.dta23, convert_categoricals=True)
             tm.assertTrue('wolof' in cm.exception)
+
+    def test_stata_111(self):
+        # 111 is an old version but still used by current versions of
+        # SAS when exporting to Stata format. We do not know of any
+        # on-line documentation for this version.
+        df = read_stata(self.dta24_111)
+        original = pd.DataFrame({'y': [1, 1, 1, 1, 1, 0, 0, np.NaN, 0, 0],
+                                 'x': [1, 2, 1, 3, np.NaN, 4, 3, 5, 1, 6],
+                                 'w': [2, np.NaN, 5, 2, 4, 4, 3, 1, 2, 3],
+                                 'z': ['a', 'b', 'c', 'd', 'e', '', 'g', 'h',
+                                       'i', 'j']})
+        original = original[['y', 'x', 'w', 'z']]
+        tm.assert_frame_equal(original, df)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
