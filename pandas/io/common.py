@@ -287,53 +287,84 @@ else:
     ZipFile = zipfile.ZipFile
 
 
-def _get_handle(path, mode, encoding=None, compression=None, memory_map=False):
+def _get_handle(source, mode, encoding=None, compression=None, memory_map=False):
     """Gets file handle for given path and mode.
     """
-    if compression is not None:
-        if encoding is not None and not compat.PY3:
+
+    f = source
+    is_path = isinstance(source, compat.string_types)
+
+    # in Python 3, convert BytesIO or fileobjects passed with an encoding
+    if compat.PY3 and isinstance(source, compat.BytesIO):
+        from io import TextIOWrapper
+
+        return TextIOWrapper(source, encoding=encoding)
+
+    elif compression is not None:
+        compression = compression.lower()
+        if encoding is not None and not compat.PY3 and not is_path:
             msg = 'encoding + compression not yet supported in Python 2'
             raise ValueError(msg)
 
+        # GZ Compression
         if compression == 'gzip':
             import gzip
-            f = gzip.GzipFile(path, mode)
+
+            f = gzip.GzipFile(source, mode) \
+                if is_path else gzip.GzipFile(fileobj=source)
+
+        # BZ Compression
         elif compression == 'bz2':
             import bz2
-            f = bz2.BZ2File(path, mode)
+
+            if is_path:
+                f = bz2.BZ2File(source, mode)
+
+            else:
+                f = bz2.BZ2File(source) if compat.PY3 else StringIO(
+                    bz2.decompress(source.read()))
+                # Python 2's bz2 module can't take file objects, so have to
+                # run through decompress manually
+
+        # ZIP Compression
         elif compression == 'zip':
             import zipfile
-            zip_file = zipfile.ZipFile(path)
+            zip_file = zipfile.ZipFile(source)
             zip_names = zip_file.namelist()
 
             if len(zip_names) == 1:
-                file_name = zip_names.pop()
-                f = zip_file.open(file_name)
+                f = zip_file.open(zip_names.pop())
             elif len(zip_names) == 0:
                 raise ValueError('Zero files found in ZIP file {}'
-                                 .format(path))
+                                 .format(source))
             else:
                 raise ValueError('Multiple files found in ZIP file.'
                                  ' Only one file per ZIP :{}'
                                  .format(zip_names))
+
+        # XZ Compression
         elif compression == 'xz':
             lzma = compat.import_lzma()
-            f = lzma.LZMAFile(path, mode)
+            f = lzma.LZMAFile(source, mode)
+
         else:
-            raise ValueError('Unrecognized compression type: %s' %
-                             compression)
+            raise ValueError('Unrecognized compression: %s' % compression)
+
         if compat.PY3:
             from io import TextIOWrapper
+
             f = TextIOWrapper(f, encoding=encoding)
+
         return f
-    else:
+
+    elif is_path:
         if compat.PY3:
             if encoding:
-                f = open(path, mode, encoding=encoding)
+                f = open(source, mode, encoding=encoding)
             else:
-                f = open(path, mode, errors='replace')
+                f = open(source, mode, errors='replace')
         else:
-            f = open(path, mode)
+            f = open(source, mode)
 
     if memory_map and hasattr(f, 'fileno'):
         try:
