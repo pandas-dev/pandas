@@ -307,6 +307,10 @@ def _coerce_to_dtype(dtype):
     return dtype
 
 
+def is_arraylike(arg):
+    return isinstance(arg, np.ndarray)
+
+
 def _get_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype
