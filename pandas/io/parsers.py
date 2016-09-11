@@ -1890,20 +1890,10 @@ class PythonParser(ParserBase):
         self.comment = kwds['comment']
         self._comment_lines = []
 
-        if isinstance(f, compat.string_types):
-            f = _get_handle(f, 'r', encoding=self.encoding,
-                            compression=self.compression,
-                            memory_map=self.memory_map)
-            self.handles.append(f)
-        elif self.compression:
-            f = _wrap_compressed(f, self.compression, self.encoding)
-            self.handles.append(f)
-        # in Python 3, convert BytesIO or fileobjects passed with an encoding
-        elif compat.PY3 and isinstance(f, compat.BytesIO):
-            from io import TextIOWrapper
-
-            f = TextIOWrapper(f, encoding=self.encoding)
-            self.handles.append(f)
+        f = _get_handle(f, 'r', encoding=self.encoding,
+                        compression=self.compression,
+                        memory_map=self.memory_map)
+        self.handles.append(f)
 
         # Set self.data to something that can read lines.
         if hasattr(f, 'readline'):
