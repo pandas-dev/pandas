@@ -640,7 +640,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 return other.n
             msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        elif isinstance(other, np.ndarray):
+        elif is_arraylike(other):
             if is_integer_dtype(other):
                 return other
             elif is_timedelta64_dtype(other):

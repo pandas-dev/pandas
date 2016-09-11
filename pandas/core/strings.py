@@ -160,7 +160,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
 
     if isinstance(arr, ABCSeries):
         arr = arr.values
-    if not isinstance(arr, np.ndarray):
+    if not is_arraylike(arr):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
         mask = isnull(arr)

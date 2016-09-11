@@ -2272,7 +2272,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                 if is_scalar(other):
                     o = other
                 else:
-                    if isinstance(other, np.ndarray):
+                    if is_arraylike(other):
                         o = Series(other[:, i], index=result.index).values
                     else:
                         o = other[k].values
@@ -2287,7 +2287,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
             # dtypes
             # can't check dtype when other is an ndarray
 
-            if check_dtypes and not isinstance(other, np.ndarray):
+            if check_dtypes and not is_arraylike(other):
                 self.assertTrue((rs.dtypes == df.dtypes).all())
 
         for df in [self.mixed_frame, self.mixed_float, self.mixed_int]:

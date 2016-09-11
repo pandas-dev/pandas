@@ -563,7 +563,7 @@ class Panel(NDFrame):
             value = value.reindex(
                 **self._construct_axes_dict_for_slice(self._AXIS_ORDERS[1:]))
             mat = value.values
-        elif isinstance(value, np.ndarray):
+        elif is_arraylike(value):
             if value.shape != shape[1:]:
                 raise ValueError('shape of value must be {0}, shape of given '
                                  'object was {1}'.format(
@@ -1369,7 +1369,7 @@ class Panel(NDFrame):
 
     @staticmethod
     def _prep_ndarray(self, values, copy=True):
-        if not isinstance(values, np.ndarray):
+        if not is_arraylike(values):
             values = np.asarray(values)
             # NumPy strings are a pain, convert to object
             if issubclass(values.dtype.type, compat.string_types):

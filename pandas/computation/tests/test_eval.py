@@ -58,9 +58,9 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
 
 def _series_and_2d_ndarray(lhs, rhs):
     return ((isinstance(lhs, Series) and
-             isinstance(rhs, np.ndarray) and rhs.ndim > 1)
+             is_arraylike(rhs) and rhs.ndim > 1)
             or (isinstance(rhs, Series) and
-                isinstance(lhs, np.ndarray) and lhs.ndim > 1))
+                is_arraylike(lhs) and lhs.ndim > 1))
 
 
 def _series_and_frame(lhs, rhs):
@@ -191,7 +191,7 @@ class TestEvalNumexprPandas(tm.TestCase):
             tm.assert_frame_equal(result, expected)
         elif isinstance(result, Series):
             tm.assert_series_equal(result, expected)
-        elif isinstance(result, np.ndarray):
+        elif is_arraylike(result):
             tm.assert_numpy_array_equal(result, expected)
         else:
             self.assertEqual(result, expected)

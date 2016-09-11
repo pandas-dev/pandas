@@ -831,7 +831,7 @@ def _group_agg(values, bounds, f):
         result = np.empty((len(bounds), K), dtype=float)
 
     testagg = f(values[:min(1, len(values))])
-    if isinstance(testagg, np.ndarray) and testagg.ndim == 2:
+    if is_arraylike(testagg) and testagg.ndim == 2:
         raise AssertionError('Function must reduce')
 
     for i, left_bound in enumerate(bounds):

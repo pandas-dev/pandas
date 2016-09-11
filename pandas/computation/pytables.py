@@ -131,7 +131,7 @@ class BinOp(ops.BinOp):
         """ inplace conform rhs """
         if not is_list_like(rhs):
             rhs = [rhs]
-        if isinstance(rhs, np.ndarray):
+        if is_arraylike(rhs):
             rhs = rhs.ravel()
         return rhs
 

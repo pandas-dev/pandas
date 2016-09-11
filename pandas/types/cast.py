@@ -206,7 +206,7 @@ def _maybe_upcast_putmask(result, mask, other):
             # we have a scalar or len 0 ndarray
             # and its nan and we are changing some values
             if (is_scalar(other) or
-                    (isinstance(other, np.ndarray) and other.ndim < 1)):
+                    (is_arraylike(other) and other.ndim < 1)):
                 if isnull(other):
                     return changeit()
 
@@ -227,7 +227,7 @@ def _maybe_upcast_putmask(result, mask, other):
 def _maybe_promote(dtype, fill_value=np.nan):
 
     # if we passed an array here, determine the fill value by dtype
-    if isinstance(fill_value, np.ndarray):
+    if is_arraylike(fill_value):
         if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):
             fill_value = iNaT
         else:
@@ -315,7 +315,7 @@ def _infer_dtype_from_scalar(val):
     dtype = np.object_
 
     # a 1-element ndarray
-    if isinstance(val, np.ndarray):
+    if is_arraylike(val):
         if val.ndim != 0:
             raise ValueError(
                 "invalid ndarray passed to _infer_dtype_from_scalar")
@@ -416,7 +416,7 @@ def _maybe_convert_string_to_object(values):
     """
     if isinstance(values, string_types):
         values = np.array([values], dtype=object)
-    elif (isinstance(values, np.ndarray) and
+    elif (is_arraylike(values) and
           issubclass(values.dtype.type, (np.string_, np.unicode_))):
         values = values.astype(object)
     return values
@@ -841,7 +841,7 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
 
     else:
 
-        is_array = isinstance(value, np.ndarray)
+        is_array = is_arraylike(value)
 
         # catch a datetime/timedelta that is not of ns variety
         # and no coercion specified

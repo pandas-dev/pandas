@@ -237,7 +237,7 @@ class _Window(PandasObject, SelectionMixin):
             obj = self._selected_obj
         index = obj.index
 
-        if isinstance(result, np.ndarray):
+        if is_arraylike(result):
 
             # coerce if necessary
             if block is not None:

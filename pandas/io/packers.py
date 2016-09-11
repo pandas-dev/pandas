@@ -511,7 +511,7 @@ def encode(obj):
                 u'klass': u(obj.__class__.__name__),
                 u'indices': obj.indices,
                 u'length': obj.length}
-    elif isinstance(obj, np.ndarray):
+    elif is_arraylike(obj):
         return {u'typ': u'ndarray',
                 u'shape': obj.shape,
                 u'ndim': obj.ndim,

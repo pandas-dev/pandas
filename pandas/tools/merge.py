@@ -596,7 +596,7 @@ class _MergeOperation(object):
                                 take_right = self.right[name]._values
 
             elif left_indexer is not None \
-                    and isinstance(self.left_join_keys[i], np.ndarray):
+                    and is_arraylike(self.left_join_keys[i]):
 
                 take_left = self.left_join_keys[i]
                 take_right = self.right_join_keys[i]
@@ -1220,7 +1220,7 @@ def _factorize_keys(lk, rk, sort=True):
 
 
 def _sort_labels(uniques, left, right):
-    if not isinstance(uniques, np.ndarray):
+    if not is_arraylike(uniques):
         # tuplesafe
         uniques = Index(uniques).values
 

@@ -78,7 +78,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
                     if len(s) > 1:
                         return False
                     dtypes |= set(s.index)
-                elif isinstance(o, np.ndarray):
+                elif is_arraylike(o):
                     dtypes |= set([o.dtype.name])
 
             # allowed are a superset

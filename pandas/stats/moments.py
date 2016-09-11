@@ -184,7 +184,7 @@ def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
 
     can be removed when ndarray support is removed
     """
-    is_ndarray = isinstance(arg, np.ndarray)
+    is_ndarray = is_arraylike(arg)
     if is_ndarray:
         if arg.ndim == 1:
             arg = Series(arg)

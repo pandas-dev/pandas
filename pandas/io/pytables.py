@@ -3898,7 +3898,7 @@ class AppendableTable(LegacyTable):
                 # figure the mask: only do if we can successfully process this
                 # column, otherwise ignore the mask
                 mask = isnull(a.data).all(axis=0)
-                if isinstance(mask, np.ndarray):
+                if is_arraylike(mask):
                     masks.append(mask.astype('u1', copy=False))
 
         # consolidate masks
@@ -4113,7 +4113,7 @@ class AppendableFrameTable(AppendableTable):
                 cols_ = cols
 
             # if we have a DataIndexableCol, its shape will only be 1 dim
-            if values.ndim == 1 and isinstance(values, np.ndarray):
+            if values.ndim == 1 and is_arraylike(values):
                 values = values.reshape((1, values.shape[0]))
 
             block = make_block(values, placement=np.arange(len(cols_)))

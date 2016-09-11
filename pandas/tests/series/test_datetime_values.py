@@ -49,7 +49,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         def get_expected(s, name):
             result = getattr(Index(s._values), prop)
-            if isinstance(result, np.ndarray):
+            if is_arraylike(result):
                 if is_integer_dtype(result):
                     result = result.astype('int64')
             elif not is_list_like(result):

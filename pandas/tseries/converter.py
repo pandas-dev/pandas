@@ -203,7 +203,7 @@ class DatetimeConverter(dates.DateConverter):
         elif isinstance(values, (list, tuple, np.ndarray, Index)):
             if isinstance(values, Index):
                 values = values.values
-            if not isinstance(values, np.ndarray):
+            if not is_arraylike(values):
                 values = com._asarray_tuplesafe(values)
 
             if is_integer_dtype(values) or is_float_dtype(values):

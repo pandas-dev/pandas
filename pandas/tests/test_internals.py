@@ -900,7 +900,7 @@ class TestIndexing(object):
 
             # we maybe using an ndarray to test slicing and
             # might not be the full length of the axis
-            if isinstance(slobj, np.ndarray):
+            if is_arraylike(slobj):
                 ax = mgr.axes[axis]
                 if len(ax) and len(slobj) and len(slobj) != len(ax):
                     slobj = np.concatenate([slobj, np.zeros(

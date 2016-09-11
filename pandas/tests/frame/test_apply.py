@@ -172,7 +172,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
         def _check(df, f):
             with warnings.catch_warnings(record=True):
                 test_res = f(np.array([], dtype='f8'))
-            is_reduction = not isinstance(test_res, np.ndarray)
+            is_reduction = not is_arraylike(test_res)
 
             def _checkit(axis=0, raw=False):
                 res = df.apply(f, axis=axis, raw=raw)

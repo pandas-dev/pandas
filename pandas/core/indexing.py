@@ -606,7 +606,7 @@ class _NDFrameIndexer(object):
         if isinstance(indexer, tuple):
 
             # flatten np.ndarray indexers
-            ravel = lambda i: i.ravel() if isinstance(i, np.ndarray) else i
+            ravel = lambda i: i.ravel() if is_arraylike(i) else i
             indexer = tuple(map(ravel, indexer))
 
             aligners = [not is_null_slice(idx) for idx in indexer]

@@ -1777,7 +1777,7 @@ class NDFrame(PandasObject):
         else:
             loc = self.index.get_loc(key)
 
-            if isinstance(loc, np.ndarray):
+            if is_arraylike(loc):
                 if loc.dtype == np.bool_:
                     inds, = loc.nonzero()
                     return self.take(inds, axis=axis, convert=False)
@@ -4593,7 +4593,7 @@ class NDFrame(PandasObject):
 
                 other = np.array(other)
 
-        if isinstance(other, np.ndarray):
+        if is_arraylike(other):
 
             if other.shape != self.shape:
 

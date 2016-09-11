@@ -275,7 +275,7 @@ class Ops(tm.TestCase):
                     tm.assert_series_equal(result, expected)
                 elif isinstance(result, Index) and isinstance(expected, Index):
                     tm.assert_index_equal(result, expected)
-                elif isinstance(result, np.ndarray) and isinstance(expected,
+                elif is_arraylike(result) and isinstance(expected,
                                                                    np.ndarray):
                     self.assert_numpy_array_equal(result, expected)
                 else:

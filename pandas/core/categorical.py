@@ -273,7 +273,7 @@ class Categorical(PandasObject):
             # as well
             values = _possibly_infer_to_datetimelike(values,
                                                      convert_dates=True)
-            if not isinstance(values, np.ndarray):
+            if not is_arraylike(values):
                 values = _convert_to_list_like(values)
                 from pandas.core.series import _sanitize_array
                 # On list with NaNs, int values will be converted to float. Use
@@ -1608,7 +1608,7 @@ class Categorical(PandasObject):
 
     def _maybe_coerce_indexer(self, indexer):
         """ return an indexer coerced to the codes dtype """
-        if isinstance(indexer, np.ndarray) and indexer.dtype.kind == 'i':
+        if is_arraylike(indexer) and indexer.dtype.kind == 'i':
             indexer = indexer.astype(self._codes.dtype)
         return indexer
 

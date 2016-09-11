@@ -164,8 +164,8 @@ def assert_almost_equal(left, right, check_exact=False,
                 # do not compare bool classes, like np.bool_ and bool
                 pass
             else:
-                if (isinstance(left, np.ndarray) or
-                   isinstance(right, np.ndarray)):
+                if (is_arraylike(left) or
+                   is_arraylike(right)):
                     obj = 'numpy array'
                 else:
                     obj = 'Input'
@@ -1001,9 +1001,9 @@ def assert_categorical_equal(left, right, check_dtype=True,
 
 
 def raise_assert_detail(obj, message, left, right, diff=None):
-    if isinstance(left, np.ndarray):
+    if is_arraylike(left):
         left = pprint_thing(left)
-    if isinstance(right, np.ndarray):
+    if is_arraylike(right):
         right = pprint_thing(right)
 
     msg = """{0} are different
@@ -1079,7 +1079,7 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         _raise(left, right, err_msg)
 
     if check_dtype:
-        if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
+        if is_arraylike(left) and isinstance(right, np.ndarray):
             assert_attr_equal('dtype', left, right, obj=obj)
 
     return True

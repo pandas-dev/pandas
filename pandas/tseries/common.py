@@ -100,7 +100,7 @@ class Properties(PandasDelegate, NoNewAttributesMixin):
         result = getattr(self.values, name)
 
         # maybe need to upcast (ints)
-        if isinstance(result, np.ndarray):
+        if is_arraylike(result):
             if is_integer_dtype(result):
                 result = result.astype('int64')
         elif not is_list_like(result):

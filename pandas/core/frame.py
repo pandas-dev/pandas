@@ -1975,7 +1975,7 @@ class DataFrame(NDFrame):
                         return new_values
 
                     # if we are a copy, mark as such
-                    copy = (isinstance(new_values, np.ndarray) and
+                    copy = (is_arraylike(new_values) and
                             new_values.base is None)
                     result = self._constructor_sliced(new_values,
                                                       index=self.columns,
@@ -5488,7 +5488,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         return arrays, columns
 
     if not len(data):
-        if isinstance(data, np.ndarray):
+        if is_arraylike(data):
             columns = data.dtype.names
             if columns is not None:
                 return [[]] * len(columns), columns

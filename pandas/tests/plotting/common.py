@@ -233,7 +233,7 @@ class TestPlotBase(tm.TestCase):
                 else:
                     result = patch.get_facecolor()
 
-                if isinstance(result, np.ndarray):
+                if is_arraylike(result):
                     result = tuple(result)
 
                 expected = conv.to_rgba(color)

@@ -1559,7 +1559,7 @@ class MultiIndex(Index):
 
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
-            if not isinstance(loc, np.ndarray) or loc.dtype != 'int64':
+            if not is_arraylike(loc) or loc.dtype != 'int64':
                 return loc
 
             loc = lib.maybe_indices_to_slice(loc, len(self))

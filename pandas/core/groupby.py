@@ -1029,7 +1029,7 @@ class GroupBy(_GroupBy):
             self._set_group_selection()
 
             def f(x):
-                if isinstance(x, np.ndarray):
+                if is_arraylike(x):
                     x = Series(x)
                 return x.median(axis=self.axis)
             return self._python_agg_general(f)
