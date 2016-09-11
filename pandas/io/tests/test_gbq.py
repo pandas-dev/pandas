@@ -743,6 +743,8 @@ class TestToGBQIntegration(tm.TestCase):
                                     private_key=_get_private_key_path())
         self.table = gbq._Table(_get_project_id(), DATASET_ID + "1",
                                 private_key=_get_private_key_path())
+        self.sut = gbq.GbqConnector(_get_project_id(),
+                                    private_key=_get_private_key_path())
 
     @classmethod
     def tearDownClass(cls):
@@ -905,6 +907,69 @@ class TestToGBQIntegration(tm.TestCase):
             destination_table in self.dataset.tables(DATASET_ID + "1"),
             'Expected table list to contain table {0}'
             .format(destination_table))
+
+    def test_verify_schema_allows_flexible_column_order(self):
+        destination_table = TABLE_ID + "10"
+        test_schema_1 = {'fields': [{'name': 'A', 'type': 'FLOAT'},
+                                    {'name': 'B', 'type': 'FLOAT'},
+                                    {'name': 'C', 'type': 'STRING'},
+                                    {'name': 'D', 'type': 'TIMESTAMP'}]}
+        test_schema_2 = {'fields': [{'name': 'A', 'type': 'FLOAT'},
+                                    {'name': 'C', 'type': 'STRING'},
+                                    {'name': 'B', 'type': 'FLOAT'},
+                                    {'name': 'D', 'type': 'TIMESTAMP'}]}
+
+        self.table.create(destination_table, test_schema_1)
+        self.assertTrue(self.sut.verify_schema(
+            DATASET_ID + "1", destination_table, test_schema_2),
+            'Expected schema to match')
+
+    def test_verify_schema_fails_different_data_type(self):
+        destination_table = TABLE_ID + "11"
+        test_schema_1 = {'fields': [{'name': 'A', 'type': 'FLOAT'},
+                                    {'name': 'B', 'type': 'FLOAT'},
+                                    {'name': 'C', 'type': 'STRING'},
+                                    {'name': 'D', 'type': 'TIMESTAMP'}]}
+        test_schema_2 = {'fields': [{'name': 'A', 'type': 'FLOAT'},
+                                    {'name': 'B', 'type': 'STRING'},
+                                    {'name': 'C', 'type': 'STRING'},
+                                    {'name': 'D', 'type': 'TIMESTAMP'}]}
+
+        self.table.create(destination_table, test_schema_1)
+        self.assertFalse(self.sut.verify_schema(
+            DATASET_ID + "1", destination_table, test_schema_2),
+            'Expected different schema')
+
+    def test_verify_schema_fails_different_structure(self):
+        destination_table = TABLE_ID + "12"
+        test_schema_1 = {'fields': [{'name': 'A', 'type': 'FLOAT'},
+                                    {'name': 'B', 'type': 'FLOAT'},
+                                    {'name': 'C', 'type': 'STRING'},
+                                    {'name': 'D', 'type': 'TIMESTAMP'}]}
+        test_schema_2 = {'fields': [{'name': 'A', 'type': 'FLOAT'},
+                                    {'name': 'B2', 'type': 'FLOAT'},
+                                    {'name': 'C', 'type': 'STRING'},
+                                    {'name': 'D', 'type': 'TIMESTAMP'}]}
+
+        self.table.create(destination_table, test_schema_1)
+        self.assertFalse(self.sut.verify_schema(
+            DATASET_ID + "1", destination_table, test_schema_2),
+            'Expected different schema')
+
+    def test_upload_data_flexible_column_order(self):
+        destination_table = DESTINATION_TABLE + "13"
+
+        test_size = 10
+        df = make_mixed_dataframe_v2(test_size)
+
+        # Initialize table with sample data
+        gbq.to_gbq(df, destination_table, _get_project_id(), chunksize=10000,
+                   private_key=_get_private_key_path())
+
+        df_columns_reversed = df[df.columns[::-1]]
+
+        gbq.to_gbq(df_columns_reversed, destination_table, _get_project_id(),
+                   if_exists='append', private_key=_get_private_key_path())
 
     def test_list_dataset(self):
         dataset_id = DATASET_ID + "1"
