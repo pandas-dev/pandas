@@ -2424,26 +2424,27 @@ Thur,Lunch,Yes,51.51,17"""
         # GH 13797
         # Test if iloc can handle integer locations in MultiIndexed DataFrame
 
-        data =[
-                ['str00', 'str01'],
-                ['str10', 'str11'],
-                ['str20', 'srt21'],
-                ['str30', 'str31'],
-                ['str40', 'str41']
-            ]
+        data = [
+            ['str00', 'str01'],
+            ['str10', 'str11'],
+            ['str20', 'srt21'],
+            ['str30', 'str31'],
+            ['str40', 'str41']
+        ]
 
-        mi= pd.MultiIndex.from_tuples(
-            [('CC','A'),
-             ('CC','B'),
-             ('CC','B'),
-             ('BB','a'),
-             ('BB','b')
-            ])
+        mi = pd.MultiIndex.from_tuples(
+            [('CC', 'A'),
+             ('CC', 'B'),
+             ('CC', 'B'),
+             ('BB', 'a'),
+             ('BB', 'b')
+             ])
 
         ans = pd.DataFrame(data)
-        df_mi = pd.DataFrame(data, index = mi)
+        df_mi = pd.DataFrame(data, index=mi)
 
-        res = pd.DataFrame([[df_mi.iloc[r,c] for c in range(2)] for r in range(5)])
+        res = pd.DataFrame([[df_mi.iloc[r, c] for c in range(2)]
+                            for r in range(5)])
 
         assert_frame_equal(res, ans)
 
