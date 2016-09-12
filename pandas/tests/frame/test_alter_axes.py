@@ -268,6 +268,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                 lambda d: pd.Timestamp(d, tz=tz))
             assert_frame_equal(df.reset_index(), expected)
 
+    def test_set_index_timezone(self):
         # GH 12358
         # tz-aware Series should retain the tz
         i = pd.to_datetime(["2014-01-01 10:10:10"],
@@ -276,6 +277,25 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         self.assertEqual(df.set_index(i).index[0].hour, 11)
         self.assertEqual(pd.DatetimeIndex(pd.Series(df.i))[0].hour, 11)
         self.assertEqual(df.set_index(df.i).index[0].hour, 11)
+
+    def test_set_index_dst(self):
+        di = pd.date_range('2006-10-29 00:00:00', periods=3,
+                           req='H', tz='US/Pacific')
+
+        df = pd.DataFrame(data={'a': [0, 1, 2], 'b': [3, 4, 5]},
+                          index=di).reset_index()
+        # single level
+        res = df.set_index('index')
+        exp = pd.DataFrame(data={'a': [0, 1, 2], 'b': [3, 4, 5]},
+                           index=pd.Index(di, name='index'))
+        tm.assert_frame_equal(res, exp)
+
+        # GH 12920
+        res = df.set_index(['index', 'a'])
+        exp_index = pd.MultiIndex.from_arrays([di, [0, 1, 2]],
+                                              names=['index', 'a'])
+        exp = pd.DataFrame({'b': [3, 4, 5]}, index=exp_index)
+        tm.assert_frame_equal(res, exp)
 
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
@@ -330,28 +350,30 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         # gets sorted alphabetical
         df = DataFrame(data)
         renamed = df.rename(index={'foo': 'bar', 'bar': 'foo'})
-        self.assert_numpy_array_equal(renamed.index, ['foo', 'bar'])
+        tm.assert_index_equal(renamed.index, pd.Index(['foo', 'bar']))
 
         renamed = df.rename(index=str.upper)
-        self.assert_numpy_array_equal(renamed.index, ['BAR', 'FOO'])
+        tm.assert_index_equal(renamed.index, pd.Index(['BAR', 'FOO']))
 
         # have to pass something
         self.assertRaises(TypeError, self.frame.rename)
 
         # partial columns
         renamed = self.frame.rename(columns={'C': 'foo', 'D': 'bar'})
-        self.assert_numpy_array_equal(
-            renamed.columns, ['A', 'B', 'foo', 'bar'])
+        tm.assert_index_equal(renamed.columns,
+                              pd.Index(['A', 'B', 'foo', 'bar']))
 
         # other axis
         renamed = self.frame.T.rename(index={'C': 'foo', 'D': 'bar'})
-        self.assert_numpy_array_equal(renamed.index, ['A', 'B', 'foo', 'bar'])
+        tm.assert_index_equal(renamed.index,
+                              pd.Index(['A', 'B', 'foo', 'bar']))
 
         # index with name
         index = Index(['foo', 'bar'], name='name')
         renamer = DataFrame(data, index=index)
         renamed = renamer.rename(index={'foo': 'bar', 'bar': 'foo'})
-        self.assert_numpy_array_equal(renamed.index, ['bar', 'foo'])
+        tm.assert_index_equal(renamed.index,
+                              pd.Index(['bar', 'foo'], name='name'))
         self.assertEqual(renamed.index.name, renamer.index.name)
 
         # MultiIndex
@@ -363,12 +385,14 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         renamer = DataFrame([(0, 0), (1, 1)], index=index, columns=columns)
         renamed = renamer.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
                                  columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'})
-        new_index = MultiIndex.from_tuples(
-            [('foo3', 'bar1'), ('foo2', 'bar3')])
-        new_columns = MultiIndex.from_tuples(
-            [('fizz3', 'buzz1'), ('fizz2', 'buzz3')])
-        self.assert_numpy_array_equal(renamed.index, new_index)
-        self.assert_numpy_array_equal(renamed.columns, new_columns)
+        new_index = MultiIndex.from_tuples([('foo3', 'bar1'),
+                                            ('foo2', 'bar3')],
+                                           names=['foo', 'bar'])
+        new_columns = MultiIndex.from_tuples([('fizz3', 'buzz1'),
+                                              ('fizz2', 'buzz3')],
+                                             names=['fizz', 'buzz'])
+        self.assert_index_equal(renamed.index, new_index)
+        self.assert_index_equal(renamed.columns, new_columns)
         self.assertEqual(renamed.index.names, renamer.index.names)
         self.assertEqual(renamed.columns.names, renamer.columns.names)
 
@@ -460,28 +484,30 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
         stacked.index.names = [None, None]
         deleveled2 = stacked.reset_index()
-        self.assert_numpy_array_equal(deleveled['first'],
-                                      deleveled2['level_0'])
-        self.assert_numpy_array_equal(deleveled['second'],
-                                      deleveled2['level_1'])
+        tm.assert_series_equal(deleveled['first'], deleveled2['level_0'],
+                               check_names=False)
+        tm.assert_series_equal(deleveled['second'], deleveled2['level_1'],
+                               check_names=False)
 
         # default name assigned
         rdf = self.frame.reset_index()
-        self.assert_numpy_array_equal(rdf['index'], self.frame.index.values)
+        exp = pd.Series(self.frame.index.values, name='index')
+        self.assert_series_equal(rdf['index'], exp)
 
         # default name assigned, corner case
         df = self.frame.copy()
         df['index'] = 'foo'
         rdf = df.reset_index()
-        self.assert_numpy_array_equal(rdf['level_0'], self.frame.index.values)
+        exp = pd.Series(self.frame.index.values, name='level_0')
+        self.assert_series_equal(rdf['level_0'], exp)
 
         # but this is ok
         self.frame.index.name = 'index'
         deleveled = self.frame.reset_index()
-        self.assert_numpy_array_equal(deleveled['index'],
-                                      self.frame.index.values)
-        self.assert_numpy_array_equal(deleveled.index,
-                                      np.arange(len(deleveled)))
+        self.assert_series_equal(deleveled['index'],
+                                 pd.Series(self.frame.index))
+        self.assert_index_equal(deleveled.index,
+                                pd.Index(np.arange(len(deleveled))))
 
         # preserve column names
         self.frame.columns.name = 'columns'
@@ -638,3 +664,18 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         frame.columns = ['foo', 'bar', 'baz', 'quux', 'foo2']
         assert_series_equal(self.frame['C'], frame['baz'], check_names=False)
         assert_series_equal(self.frame['hi'], frame['foo2'], check_names=False)
+
+    def test_set_index_preserve_categorical_dtype(self):
+        # GH13743, GH13854
+        df = DataFrame({'A': [1, 2, 1, 1, 2],
+                        'B': [10, 16, 22, 28, 34],
+                        'C1': pd.Categorical(list("abaab"),
+                                             categories=list("bac"),
+                                             ordered=False),
+                        'C2': pd.Categorical(list("abaab"),
+                                             categories=list("bac"),
+                                             ordered=True)})
+        for cols in ['C1', 'C2', ['A', 'C1'], ['A', 'C2'], ['C1', 'C2']]:
+            result = df.set_index(cols).reset_index()
+            result = result.reindex(columns=df.columns)
+            tm.assert_frame_equal(result, df)

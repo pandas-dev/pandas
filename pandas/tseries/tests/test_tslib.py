@@ -2,24 +2,62 @@ import nose
 from distutils.version import LooseVersion
 import numpy as np
 
-from pandas import tslib
+from pandas import tslib, lib
 import pandas._period as period
 import datetime
 
 import pandas as pd
-from pandas.core.api import Timestamp, Series, Timedelta, Period, to_datetime
+from pandas.core.api import (Timestamp, Index, Series, Timedelta, Period,
+                             to_datetime)
 from pandas.tslib import get_timezone
 from pandas._period import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range, DatetimeIndex
-from pandas.tseries.frequencies import get_freq
+from pandas.tseries.frequencies import (
+    get_freq,
+    US_RESO, MS_RESO, S_RESO, H_RESO, D_RESO, T_RESO
+)
 import pandas.tseries.tools as tools
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
 import pandas.compat as compat
-from pandas.compat.numpy_compat import (np_datetime64_compat,
-                                        np_array_datetime64_compat)
+from pandas.compat.numpy import (np_datetime64_compat,
+                                 np_array_datetime64_compat)
 
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
+
+
+class TestTsUtil(tm.TestCase):
+
+    def test_try_parse_dates(self):
+        from dateutil.parser import parse
+        arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
+
+        result = lib.try_parse_dates(arr, dayfirst=True)
+        expected = [parse(d, dayfirst=True) for d in arr]
+        self.assertTrue(np.array_equal(result, expected))
+
+    def test_min_valid(self):
+        # Ensure that Timestamp.min is a valid Timestamp
+        Timestamp(Timestamp.min)
+
+    def test_max_valid(self):
+        # Ensure that Timestamp.max is a valid Timestamp
+        Timestamp(Timestamp.max)
+
+    def test_to_datetime_bijective(self):
+        # Ensure that converting to datetime and back only loses precision
+        # by going from nanoseconds to microseconds.
+        exp_warning = None if Timestamp.max.nanosecond == 0 else UserWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            self.assertEqual(
+                Timestamp(Timestamp.max.to_pydatetime()).value / 1000,
+                Timestamp.max.value / 1000)
+
+        exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            self.assertEqual(
+                Timestamp(Timestamp.min.to_pydatetime()).value / 1000,
+                Timestamp.min.value / 1000)
 
 
 class TestTimestamp(tm.TestCase):
@@ -177,6 +215,94 @@ class TestTimestamp(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, 'Cannot convert Period'):
             Timestamp(Period('1000-01-01'))
 
+    def test_constructor_positional(self):
+        # GH 10758
+        with tm.assertRaises(TypeError):
+            Timestamp(2000, 1)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 0, 1)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 13, 1)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 1, 0)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 1, 32)
+
+        # GH 11630
+        self.assertEqual(
+            repr(Timestamp(2015, 11, 12)),
+            repr(Timestamp('20151112')))
+
+        self.assertEqual(
+            repr(Timestamp(2015, 11, 12, 1, 2, 3, 999999)),
+            repr(Timestamp('2015-11-12 01:02:03.999999')))
+
+        self.assertIs(Timestamp(None), pd.NaT)
+
+    def test_constructor_keyword(self):
+        # GH 10758
+        with tm.assertRaises(TypeError):
+            Timestamp(year=2000, month=1)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=0, day=1)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=13, day=1)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=1, day=0)
+        with tm.assertRaises(ValueError):
+            Timestamp(year=2000, month=1, day=32)
+
+        self.assertEqual(
+            repr(Timestamp(year=2015, month=11, day=12)),
+            repr(Timestamp('20151112')))
+
+        self.assertEqual(
+            repr(Timestamp(year=2015, month=11, day=12,
+                           hour=1, minute=2, second=3, microsecond=999999)),
+            repr(Timestamp('2015-11-12 01:02:03.999999')))
+
+    def test_constructor_fromordinal(self):
+        base = datetime.datetime(2000, 1, 1)
+
+        ts = Timestamp.fromordinal(base.toordinal(), freq='D')
+        self.assertEqual(base, ts)
+        self.assertEqual(ts.freq, 'D')
+        self.assertEqual(base.toordinal(), ts.toordinal())
+
+        ts = Timestamp.fromordinal(base.toordinal(), tz='US/Eastern')
+        self.assertEqual(pd.Timestamp('2000-01-01', tz='US/Eastern'), ts)
+        self.assertEqual(base.toordinal(), ts.toordinal())
+
+    def test_constructor_offset_depr(self):
+        # GH 12160
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ts = Timestamp('2011-01-01', offset='D')
+        self.assertEqual(ts.freq, 'D')
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            self.assertEqual(ts.offset, 'D')
+
+        msg = "Can only specify freq or offset, not both"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Timestamp('2011-01-01', offset='D', freq='D')
+
+    def test_constructor_offset_depr_fromordinal(self):
+        # GH 12160
+        base = datetime.datetime(2000, 1, 1)
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ts = Timestamp.fromordinal(base.toordinal(), offset='D')
+        self.assertEqual(pd.Timestamp('2000-01-01'), ts)
+        self.assertEqual(ts.freq, 'D')
+        self.assertEqual(base.toordinal(), ts.toordinal())
+
+        msg = "Can only specify freq or offset, not both"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Timestamp.fromordinal(base.toordinal(), offset='D', freq='D')
+
     def test_conversion(self):
         # GH 9255
         ts = Timestamp('2000-01-01')
@@ -234,13 +360,13 @@ class TestTimestamp(tm.TestCase):
                     self.assertNotIn(freq_repr, repr(date_tz))
                     self.assertEqual(date_tz, eval(repr(date_tz)))
 
-                    date_freq = Timestamp(date, offset=freq)
+                    date_freq = Timestamp(date, freq=freq)
                     self.assertIn(date, repr(date_freq))
                     self.assertNotIn(tz_repr, repr(date_freq))
                     self.assertIn(freq_repr, repr(date_freq))
                     self.assertEqual(date_freq, eval(repr(date_freq)))
 
-                    date_tz_freq = Timestamp(date, tz=tz, offset=freq)
+                    date_tz_freq = Timestamp(date, tz=tz, freq=freq)
                     self.assertIn(date, repr(date_tz_freq))
                     self.assertIn(tz_repr, repr(date_tz_freq))
                     self.assertIn(freq_repr, repr(date_tz_freq))
@@ -315,6 +441,29 @@ class TestTimestamp(tm.TestCase):
                                    'Cannot convert tz-naive Timestamp, use '
                                    'tz_localize to localize'):
             Timestamp('2011-01-01').tz_convert('Asia/Tokyo')
+
+    def test_tz_localize_nonexistent(self):
+        # See issue 13057
+        from pytz.exceptions import NonExistentTimeError
+        times = ['2015-03-08 02:00', '2015-03-08 02:30',
+                 '2015-03-29 02:00', '2015-03-29 02:30']
+        timezones = ['US/Eastern', 'US/Pacific',
+                     'Europe/Paris', 'Europe/Belgrade']
+        for t, tz in zip(times, timezones):
+            ts = Timestamp(t)
+            self.assertRaises(NonExistentTimeError, ts.tz_localize,
+                              tz)
+            self.assertRaises(NonExistentTimeError, ts.tz_localize,
+                              tz, errors='raise')
+            self.assertIs(ts.tz_localize(tz, errors='coerce'),
+                          pd.NaT)
+
+    def test_tz_localize_errors_ambiguous(self):
+        # See issue 13057
+        from pytz.exceptions import AmbiguousTimeError
+        ts = pd.Timestamp('2015-11-1 01:00')
+        self.assertRaises(AmbiguousTimeError,
+                          ts.tz_localize, 'US/Pacific', errors='coerce')
 
     def test_tz_localize_roundtrip(self):
         for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
@@ -459,7 +608,7 @@ class TestTimestamp(tm.TestCase):
         nested_obj = {'foo': 1,
                       'bar': [{'w': {'a': Timestamp('2011-01-01')}}] * 10}
         result = pprint.pformat(nested_obj, width=50)
-        expected = r'''{'bar': [{'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+        expected = r"""{'bar': [{'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
@@ -469,8 +618,28 @@ class TestTimestamp(tm.TestCase):
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}}],
- 'foo': 1}'''
+ 'foo': 1}"""
         self.assertEqual(result, expected)
+
+    def to_datetime_depr(self):
+        # see gh-8254
+        ts = Timestamp('2011-01-01')
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = datetime.datetime(2011, 1, 1)
+            result = ts.to_datetime()
+            self.assertEqual(result, expected)
+
+    def to_pydatetime_nonzero_nano(self):
+        ts = Timestamp('2011-01-01 9:00:00.123456789')
+
+        # Warn the user of data loss (nanoseconds).
+        with tm.assert_produces_warning(UserWarning,
+                                        check_stacklevel=False):
+            expected = datetime.datetime(2011, 1, 1, 9, 0, 0, 123456)
+            result = ts.to_pydatetime()
+            self.assertEqual(result, expected)
 
 
 class TestDatetimeParsingWrappers(tm.TestCase):
@@ -518,7 +687,6 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                  '00-Q4': datetime.datetime(2000, 10, 1),
                  '4Q-2000': datetime.datetime(2000, 10, 1),
                  '4Q-00': datetime.datetime(2000, 10, 1),
-                 '2000q4': datetime.datetime(2000, 10, 1),
                  '00q4': datetime.datetime(2000, 10, 1),
                  '2005': datetime.datetime(2005, 1, 1),
                  '2005-11': datetime.datetime(2005, 11, 1),
@@ -555,14 +723,19 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                                                     yearfirst=yearfirst)
             result2 = to_datetime(date_str, yearfirst=yearfirst)
             result3 = to_datetime([date_str], yearfirst=yearfirst)
+            # result5 is used below
             result4 = to_datetime(np.array([date_str], dtype=object),
                                   yearfirst=yearfirst)
-            result6 = DatetimeIndex([date_str], yearfirst=yearfirst)[0]
-            self.assertEqual(result1, expected)
-            self.assertEqual(result2, expected)
-            self.assertEqual(result3, expected)
-            self.assertEqual(result4, expected)
-            self.assertEqual(result6, expected)
+            result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
+            # result7 is used below
+            result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
+            result9 = DatetimeIndex(Series([date_str]), yearfirst=yearfirst)
+
+            for res in [result1, result2]:
+                self.assertEqual(res, expected)
+            for res in [result3, result4, result6, result8, result9]:
+                exp = DatetimeIndex([pd.Timestamp(expected)])
+                tm.assert_index_equal(res, exp)
 
             # these really need to have yearfist, but we don't support
             if not yearfirst:
@@ -589,78 +762,101 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             self.assertRaises(ValueError, tools.parse_time_string, case)
 
     def test_parsers_dayfirst_yearfirst(self):
+        tm._skip_if_no_dateutil()
 
-        # https://github.com/dateutil/dateutil/issues/217
-        # this issue was closed
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2012-10-11 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
+
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+
+        # bug fix in 2.5.2
+        # 2.5.1 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-12-11 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-12-11 00:00:00
+
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+
+        # revert of bug in 2.5.2
+        # 2.5.1 20/12/21   [dayfirst=1, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=1, yearfirst=1] -> month must be in 1..12
+        # 2.5.3 20/12/21   [dayfirst=1, yearfirst=1] -> 2020-12-21 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+
         import dateutil
-        is_compat_version = dateutil.__version__ >= LooseVersion('2.5.2')
-        if is_compat_version:
-            dayfirst_yearfirst1 = datetime.datetime(2010, 12, 11)
-            dayfirst_yearfirst2 = datetime.datetime(2020, 12, 21)
-        else:
-            dayfirst_yearfirst1 = datetime.datetime(2010, 11, 12)
-            dayfirst_yearfirst2 = datetime.datetime(2020, 12, 21)
+        is_lt_253 = dateutil.__version__ < LooseVersion('2.5.3')
 
         # str : dayfirst, yearfirst, expected
-        cases = {'10-11-12': [(False, False, False,
+        cases = {'10-11-12': [(False, False,
                                datetime.datetime(2012, 10, 11)),
-                              (True, False, False,
+                              (True, False,
                                datetime.datetime(2012, 11, 10)),
-                              (False, True, False,
+                              (False, True,
                                datetime.datetime(2010, 11, 12)),
-                              (True, True, False, dayfirst_yearfirst1)],
-                 '20/12/21': [(False, False, False,
+                              (True, True,
+                               datetime.datetime(2010, 12, 11))],
+                 '20/12/21': [(False, False,
                                datetime.datetime(2021, 12, 20)),
-                              (True, False, False,
+                              (True, False,
                                datetime.datetime(2021, 12, 20)),
-                              (False, True, False,
+                              (False, True,
                                datetime.datetime(2020, 12, 21)),
-                              (True, True, True, dayfirst_yearfirst2)]}
+                              (True, True,
+                               datetime.datetime(2020, 12, 21))]}
 
-        tm._skip_if_no_dateutil()
         from dateutil.parser import parse
         for date_str, values in compat.iteritems(cases):
-            for dayfirst, yearfirst, is_compat, expected in values:
+            for dayfirst, yearfirst, expected in values:
 
-                f = lambda x: tools.parse_time_string(x,
-                                                      dayfirst=dayfirst,
-                                                      yearfirst=yearfirst)
-
-                # we now have an invalid parse
-                if is_compat and is_compat_version:
-                    self.assertRaises(tslib.DateParseError, f, date_str)
-
-                    def f(date_str):
-                        return to_datetime(date_str, dayfirst=dayfirst,
-                                           yearfirst=yearfirst)
-
-                    self.assertRaises(ValueError, f, date_str)
-
-                    def f(date_str):
-                        return DatetimeIndex([date_str], dayfirst=dayfirst,
-                                             yearfirst=yearfirst)[0]
-
-                    self.assertRaises(ValueError, f, date_str)
-
+                # odd comparisons across version
+                # let's just skip
+                if dayfirst and yearfirst and is_lt_253:
                     continue
-
-                result1, _, _ = f(date_str)
-
-                result2 = to_datetime(date_str, dayfirst=dayfirst,
-                                      yearfirst=yearfirst)
-
-                result3 = DatetimeIndex([date_str], dayfirst=dayfirst,
-                                        yearfirst=yearfirst)[0]
-
-                # Timestamp doesn't support dayfirst and yearfirst
-                self.assertEqual(result1, expected)
-                self.assertEqual(result2, expected)
-                self.assertEqual(result3, expected)
 
                 # compare with dateutil result
                 dateutil_result = parse(date_str, dayfirst=dayfirst,
                                         yearfirst=yearfirst)
                 self.assertEqual(dateutil_result, expected)
+
+                result1, _, _ = tools.parse_time_string(date_str,
+                                                        dayfirst=dayfirst,
+                                                        yearfirst=yearfirst)
+
+                # we don't support dayfirst/yearfirst here:
+                if not dayfirst and not yearfirst:
+                    result2 = Timestamp(date_str)
+                    self.assertEqual(result2, expected)
+
+                result3 = to_datetime(date_str, dayfirst=dayfirst,
+                                      yearfirst=yearfirst)
+
+                result4 = DatetimeIndex([date_str], dayfirst=dayfirst,
+                                        yearfirst=yearfirst)[0]
+
+                self.assertEqual(result1, expected)
+                self.assertEqual(result3, expected)
+                self.assertEqual(result4, expected)
 
     def test_parsers_timestring(self):
         tm._skip_if_no_dateutil()
@@ -707,16 +903,19 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                          expected_arr)
         self.assertEqual(tools.to_time(arg, format="%I:%M%p", errors="coerce"),
                          [None, None])
-        self.assert_numpy_array_equal(tools.to_time(arg, format="%I:%M%p",
-                                                    errors="ignore"),
-                                      np.array(arg))
-        self.assertRaises(ValueError,
-                          lambda: tools.to_time(arg, format="%I:%M%p",
-                                                errors="raise"))
+
+        res = tools.to_time(arg, format="%I:%M%p", errors="ignore")
+        self.assert_numpy_array_equal(res, np.array(arg, dtype=np.object_))
+
+        with tm.assertRaises(ValueError):
+            tools.to_time(arg, format="%I:%M%p", errors="raise")
+
         self.assert_series_equal(tools.to_time(Series(arg, name="test")),
                                  Series(expected_arr, name="test"))
-        self.assert_numpy_array_equal(tools.to_time(np.array(arg)),
-                                      np.array(expected_arr))
+
+        res = tools.to_time(np.array(arg))
+        self.assertIsInstance(res, list)
+        self.assert_equal(res, expected_arr)
 
     def test_parsers_monthfreq(self):
         cases = {'201101': datetime.datetime(2011, 1, 1, 0, 0),
@@ -724,9 +923,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 
         for date_str, expected in compat.iteritems(cases):
             result1, _, _ = tools.parse_time_string(date_str, freq='M')
-            result2 = tools._to_datetime(date_str, freq='M')
             self.assertEqual(result1, expected)
-            self.assertEqual(result2, expected)
 
     def test_parsers_quarterly_with_freq(self):
         msg = ('Incorrect quarterly string is given, quarter '
@@ -1055,6 +1252,13 @@ class TestTimestampNsOperations(tm.TestCase):
             self.assertIs(left - right, pd.NaT)
             self.assertIs(right - left, pd.NaT)
 
+        # int addition / subtraction
+        for (left, right) in [(pd.NaT, 2), (pd.NaT, 0), (pd.NaT, -3)]:
+            self.assertIs(right + left, pd.NaT)
+            self.assertIs(left + right, pd.NaT)
+            self.assertIs(left - right, pd.NaT)
+            self.assertIs(right - left, pd.NaT)
+
     def test_nat_arithmetic_index(self):
         # GH 11718
 
@@ -1239,6 +1443,22 @@ class TestTslib(tm.TestCase):
                     years=years, months=months) for x in s])
                 tm.assert_index_equal(actual, expected)
 
+    def test_round(self):
+        stamp = Timestamp('2000-01-05 05:09:15.13')
+
+        def _check_round(freq, expected):
+            result = stamp.round(freq=freq)
+            self.assertEqual(result, expected)
+
+        for freq, expected in [('D', Timestamp('2000-01-05 00:00:00')),
+                               ('H', Timestamp('2000-01-05 05:00:00')),
+                               ('S', Timestamp('2000-01-05 05:09:15'))]:
+            _check_round(freq, expected)
+
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
+            stamp.round('foo')
+
 
 class TestTimestampOps(tm.TestCase):
     def test_timestamp_and_datetime(self):
@@ -1307,11 +1527,11 @@ class TestTimestampOps(tm.TestCase):
 
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
                                    'S', 'L', 'U'],
-                                  [period.D_RESO, period.D_RESO,
-                                   period.D_RESO, period.D_RESO,
-                                   period.H_RESO, period.T_RESO,
-                                   period.S_RESO, period.MS_RESO,
-                                   period.US_RESO]):
+                                  [D_RESO, D_RESO,
+                                   D_RESO, D_RESO,
+                                   H_RESO, T_RESO,
+                                   S_RESO, MS_RESO,
+                                   US_RESO]):
             for tz in [None, 'Asia/Tokyo', 'US/Eastern',
                        'dateutil/US/Eastern']:
                 idx = date_range(start='2013-04-01', periods=30, freq=freq,

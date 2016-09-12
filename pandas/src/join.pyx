@@ -1,3 +1,43 @@
+# cython: profile=False
+
+from numpy cimport *
+cimport numpy as np
+import numpy as np
+
+cimport cython
+
+import_array()
+
+cimport util
+
+from numpy cimport NPY_INT8 as NPY_int8
+from numpy cimport NPY_INT16 as NPY_int16
+from numpy cimport NPY_INT32 as NPY_int32
+from numpy cimport NPY_INT64 as NPY_int64
+from numpy cimport NPY_FLOAT16 as NPY_float16
+from numpy cimport NPY_FLOAT32 as NPY_float32
+from numpy cimport NPY_FLOAT64 as NPY_float64
+
+from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
+                    uint32_t, uint64_t, float16_t, float32_t, float64_t)
+
+int8 = np.dtype(np.int8)
+int16 = np.dtype(np.int16)
+int32 = np.dtype(np.int32)
+int64 = np.dtype(np.int64)
+float16 = np.dtype(np.float16)
+float32 = np.dtype(np.float32)
+float64 = np.dtype(np.float64)
+
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+from pandas.algos import groupsort_indexer, ensure_platform_int
+from pandas.core.algorithms import take_nd
+
+include "joins_func_helper.pxi"
+
+
 def inner_join(ndarray[int64_t] left, ndarray[int64_t] right,
                Py_ssize_t max_groups):
     cdef:
@@ -47,6 +87,7 @@ def inner_join(ndarray[int64_t] left, ndarray[int64_t] right,
 
     return (_get_result_indexer(left_sorter, left_indexer),
             _get_result_indexer(right_sorter, right_indexer))
+
 
 def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
                     Py_ssize_t max_groups, sort=True):
@@ -108,21 +149,18 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
             # no multiple matches for any row on the left
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case
-            if left_sorter.dtype != np.int_:
-                left_sorter = left_sorter.astype(np.int_)
+            left_sorter = ensure_platform_int(left_sorter)
 
-            rev = np.empty(len(left), dtype=np.int_)
+            rev = np.empty(len(left), dtype=np.intp)
             rev.put(left_sorter, np.arange(len(left)))
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
-        if rev.dtype != np.int_:
-              rev = rev.astype(np.int_)
+        rev = ensure_platform_int(rev)
         right_indexer = right_indexer.take(rev)
         left_indexer = left_indexer.take(rev)
 
     return left_indexer, right_indexer
-
 
 
 def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
@@ -188,20 +226,15 @@ def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 
-
 def _get_result_indexer(sorter, indexer):
-    if indexer.dtype != np.int_:
-        indexer = indexer.astype(np.int_)
     if len(sorter) > 0:
-        res = sorter.take(indexer)
-        np.putmask(res, indexer == -1, -1)
+        res = take_nd(sorter, indexer, fill_value=-1)
     else:
         # length-0 case
         res = np.empty(len(indexer), dtype=np.int64)
         res.fill(-1)
 
     return res
-
 
 
 def ffill_indexer(ndarray[int64_t] indexer):
@@ -247,3 +280,5 @@ def ffill_by_group(ndarray[int64_t] indexer, ndarray[int64_t] group_ids,
 
     return result
 
+
+include "join_helper.pxi"

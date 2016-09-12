@@ -8,31 +8,32 @@ from nose.tools import assert_raises
 
 import numpy as np
 
-from pandas.compat.numpy_compat import np_datetime64_compat
-from pandas.core.datetools import (bday, BDay, CDay, BQuarterEnd, BMonthEnd,
-                                   BusinessHour, CustomBusinessHour,
-                                   CBMonthEnd, CBMonthBegin,
-                                   BYearEnd, MonthEnd, MonthBegin, BYearBegin,
-                                   QuarterBegin,
-                                   BQuarterBegin, BMonthBegin, DateOffset,
-                                   Week, YearBegin, YearEnd, Hour, Minute,
-                                   Second, Day, Micro, Milli, Nano, Easter,
-                                   WeekOfMonth, format, ole2datetime,
-                                   QuarterEnd, to_datetime, normalize_date,
-                                   get_offset, get_standard_freq)
+from pandas.compat.numpy import np_datetime64_compat
 
+from pandas.core.series import Series
 from pandas.tseries.frequencies import (_offset_map, get_freq_code,
-                                        _get_freq_str)
+                                        _get_freq_str, _INVALID_FREQ_ERROR,
+                                        get_offset, get_standard_freq)
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache
-from pandas.tseries.tools import parse_time_string, DateParseError
+from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
+                                    BusinessHour, WeekOfMonth, CBMonthEnd,
+                                    CustomBusinessHour, WeekDay,
+                                    CBMonthBegin, BYearEnd, MonthEnd,
+                                    MonthBegin, SemiMonthBegin, SemiMonthEnd,
+                                    BYearBegin, QuarterBegin, BQuarterBegin,
+                                    BMonthBegin, DateOffset, Week, YearBegin,
+                                    YearEnd, Hour, Minute, Second, Day, Micro,
+                                    QuarterEnd, BusinessMonthEnd, FY5253,
+                                    Milli, Nano, Easter, FY5253Quarter,
+                                    LastWeekOfMonth, CacheableOffset)
+from pandas.tseries.tools import (format, ole2datetime, parse_time_string,
+                                  to_datetime, DateParseError)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
-from pandas.tslib import NaT, Timestamp, Timedelta
+from pandas.tslib import normalize_date, NaT, Timestamp, Timedelta
 import pandas.tslib as tslib
 from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
-from pandas.tseries.offsets import BusinessMonthEnd, CacheableOffset, \
-    LastWeekOfMonth, FY5253, FY5253Quarter, WeekDay
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 _multiprocess_can_split_ = True
@@ -182,6 +183,8 @@ class TestCommon(Base):
                           'BusinessMonthBegin':
                           Timestamp('2011-01-03 09:00:00'),
                           'MonthEnd': Timestamp('2011-01-31 09:00:00'),
+                          'SemiMonthEnd': Timestamp('2011-01-15 09:00:00'),
+                          'SemiMonthBegin': Timestamp('2011-01-15 09:00:00'),
                           'BusinessMonthEnd': Timestamp('2011-01-31 09:00:00'),
                           'YearBegin': Timestamp('2012-01-01 09:00:00'),
                           'BYearBegin': Timestamp('2011-01-03 09:00:00'),
@@ -258,8 +261,19 @@ class TestCommon(Base):
         self.assertTrue(isinstance(result, Timestamp))
         self.assertEqual(result, expected)
 
-        # test nano second is preserved
-        result = func(Timestamp(dt) + Nano(5))
+        # see gh-14101
+        exp_warning = None
+        ts = Timestamp(dt) + Nano(5)
+
+        if (offset_s.__class__.__name__ == 'DateOffset' and
+                (funcname == 'apply' or normalize) and
+                ts.nanosecond > 0):
+            exp_warning = UserWarning
+
+        # test nanosecond is preserved
+        with tm.assert_produces_warning(exp_warning,
+                                        check_stacklevel=False):
+            result = func(ts)
         self.assertTrue(isinstance(result, Timestamp))
         if normalize is False:
             self.assertEqual(result, expected + Nano(5))
@@ -286,8 +300,19 @@ class TestCommon(Base):
             self.assertTrue(isinstance(result, Timestamp))
             self.assertEqual(result, expected_localize)
 
-            # test nano second is preserved
-            result = func(Timestamp(dt, tz=tz) + Nano(5))
+            # see gh-14101
+            exp_warning = None
+            ts = Timestamp(dt, tz=tz) + Nano(5)
+
+            if (offset_s.__class__.__name__ == 'DateOffset' and
+                    (funcname == 'apply' or normalize) and
+                    ts.nanosecond > 0):
+                exp_warning = UserWarning
+
+            # test nanosecond is preserved
+            with tm.assert_produces_warning(exp_warning,
+                                            check_stacklevel=False):
+                result = func(ts)
             self.assertTrue(isinstance(result, Timestamp))
             if normalize is False:
                 self.assertEqual(result, expected_localize + Nano(5))
@@ -311,9 +336,9 @@ class TestCommon(Base):
         expecteds = self.expecteds.copy()
 
         # result will not be changed if the target is on the offset
-        no_changes = ['Day', 'MonthBegin', 'YearBegin', 'Week', 'Hour',
-                      'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-                      'DateOffset']
+        no_changes = ['Day', 'MonthBegin', 'SemiMonthBegin', 'YearBegin',
+                      'Week', 'Hour', 'Minute', 'Second', 'Milli', 'Micro',
+                      'Nano', 'DateOffset']
         for n in no_changes:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
@@ -328,6 +353,7 @@ class TestCommon(Base):
         normalized = {'Day': Timestamp('2011-01-02 00:00:00'),
                       'DateOffset': Timestamp('2011-01-02 00:00:00'),
                       'MonthBegin': Timestamp('2011-02-01 00:00:00'),
+                      'SemiMonthBegin': Timestamp('2011-01-15 00:00:00'),
                       'YearBegin': Timestamp('2012-01-01 00:00:00'),
                       'Week': Timestamp('2011-01-08 00:00:00'),
                       'Hour': Timestamp('2011-01-01 00:00:00'),
@@ -358,6 +384,7 @@ class TestCommon(Base):
                      Timestamp('2010-12-01 09:00:00'),
                      'BusinessMonthBegin': Timestamp('2010-12-01 09:00:00'),
                      'MonthEnd': Timestamp('2010-12-31 09:00:00'),
+                     'SemiMonthEnd': Timestamp('2010-12-31 09:00:00'),
                      'BusinessMonthEnd': Timestamp('2010-12-31 09:00:00'),
                      'BYearBegin': Timestamp('2010-01-01 09:00:00'),
                      'YearEnd': Timestamp('2010-12-31 09:00:00'),
@@ -375,8 +402,9 @@ class TestCommon(Base):
                      'Easter': Timestamp('2010-04-04 09:00:00')}
 
         # result will not be changed if the target is on the offset
-        for n in ['Day', 'MonthBegin', 'YearBegin', 'Week', 'Hour', 'Minute',
-                  'Second', 'Milli', 'Micro', 'Nano', 'DateOffset']:
+        for n in ['Day', 'MonthBegin', 'SemiMonthBegin', 'YearBegin', 'Week',
+                  'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
+                  'DateOffset']:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
         # but be changed when normalize=True
@@ -387,6 +415,7 @@ class TestCommon(Base):
         normalized = {'Day': Timestamp('2010-12-31 00:00:00'),
                       'DateOffset': Timestamp('2010-12-31 00:00:00'),
                       'MonthBegin': Timestamp('2010-12-01 00:00:00'),
+                      'SemiMonthBegin': Timestamp('2010-12-15 00:00:00'),
                       'YearBegin': Timestamp('2010-01-01 00:00:00'),
                       'Week': Timestamp('2010-12-25 00:00:00'),
                       'Hour': Timestamp('2011-01-01 00:00:00'),
@@ -617,38 +646,43 @@ class TestBusinessDay(Base):
     def test_apply(self):
         tests = []
 
-        tests.append((bday, {datetime(2008, 1, 1): datetime(2008, 1, 2),
-                             datetime(2008, 1, 4): datetime(2008, 1, 7),
-                             datetime(2008, 1, 5): datetime(2008, 1, 7),
-                             datetime(2008, 1, 6): datetime(2008, 1, 7),
-                             datetime(2008, 1, 7): datetime(2008, 1, 8)}))
+        tests.append((BDay(), {datetime(2008, 1, 1): datetime(2008, 1, 2),
+                               datetime(2008, 1, 4): datetime(2008, 1, 7),
+                               datetime(2008, 1, 5): datetime(2008, 1, 7),
+                               datetime(2008, 1, 6): datetime(2008, 1, 7),
+                               datetime(2008, 1, 7): datetime(2008, 1, 8)}))
 
-        tests.append((2 * bday, {datetime(2008, 1, 1): datetime(2008, 1, 3),
-                                 datetime(2008, 1, 4): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 5): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 6): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 7): datetime(2008, 1, 9)}))
+        tests.append((2 * BDay(), {datetime(2008, 1, 1): datetime(2008, 1, 3),
+                                   datetime(2008, 1, 4): datetime(2008, 1, 8),
+                                   datetime(2008, 1, 5): datetime(2008, 1, 8),
+                                   datetime(2008, 1, 6): datetime(2008, 1, 8),
+                                   datetime(2008, 1, 7): datetime(2008, 1, 9)}
+                      ))
 
-        tests.append((-bday, {datetime(2008, 1, 1): datetime(2007, 12, 31),
-                              datetime(2008, 1, 4): datetime(2008, 1, 3),
-                              datetime(2008, 1, 5): datetime(2008, 1, 4),
-                              datetime(2008, 1, 6): datetime(2008, 1, 4),
-                              datetime(2008, 1, 7): datetime(2008, 1, 4),
-                              datetime(2008, 1, 8): datetime(2008, 1, 7)}))
+        tests.append((-BDay(), {datetime(2008, 1, 1): datetime(2007, 12, 31),
+                                datetime(2008, 1, 4): datetime(2008, 1, 3),
+                                datetime(2008, 1, 5): datetime(2008, 1, 4),
+                                datetime(2008, 1, 6): datetime(2008, 1, 4),
+                                datetime(2008, 1, 7): datetime(2008, 1, 4),
+                                datetime(2008, 1, 8): datetime(2008, 1, 7)}
+                      ))
 
-        tests.append((-2 * bday, {datetime(2008, 1, 1): datetime(2007, 12, 28),
-                                  datetime(2008, 1, 4): datetime(2008, 1, 2),
-                                  datetime(2008, 1, 5): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 6): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 7): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 8): datetime(2008, 1, 4),
-                                  datetime(2008, 1, 9): datetime(2008, 1, 7)}))
+        tests.append((-2 * BDay(), {
+            datetime(2008, 1, 1): datetime(2007, 12, 28),
+            datetime(2008, 1, 4): datetime(2008, 1, 2),
+            datetime(2008, 1, 5): datetime(2008, 1, 3),
+            datetime(2008, 1, 6): datetime(2008, 1, 3),
+            datetime(2008, 1, 7): datetime(2008, 1, 3),
+            datetime(2008, 1, 8): datetime(2008, 1, 4),
+            datetime(2008, 1, 9): datetime(2008, 1, 7)}
+        ))
 
         tests.append((BDay(0), {datetime(2008, 1, 1): datetime(2008, 1, 1),
                                 datetime(2008, 1, 4): datetime(2008, 1, 4),
                                 datetime(2008, 1, 5): datetime(2008, 1, 7),
                                 datetime(2008, 1, 6): datetime(2008, 1, 7),
-                                datetime(2008, 1, 7): datetime(2008, 1, 7)}))
+                                datetime(2008, 1, 7): datetime(2008, 1, 7)}
+                      ))
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
@@ -1758,35 +1792,40 @@ class TestCustomBusinessDay(Base):
             assertOnOffset(offset, d, expected)
 
     def test_apply(self):
-        from pandas.core.datetools import cday
         tests = []
 
-        tests.append((cday, {datetime(2008, 1, 1): datetime(2008, 1, 2),
-                             datetime(2008, 1, 4): datetime(2008, 1, 7),
-                             datetime(2008, 1, 5): datetime(2008, 1, 7),
-                             datetime(2008, 1, 6): datetime(2008, 1, 7),
-                             datetime(2008, 1, 7): datetime(2008, 1, 8)}))
+        tests.append((CDay(), {datetime(2008, 1, 1): datetime(2008, 1, 2),
+                               datetime(2008, 1, 4): datetime(2008, 1, 7),
+                               datetime(2008, 1, 5): datetime(2008, 1, 7),
+                               datetime(2008, 1, 6): datetime(2008, 1, 7),
+                               datetime(2008, 1, 7): datetime(2008, 1, 8)}))
 
-        tests.append((2 * cday, {datetime(2008, 1, 1): datetime(2008, 1, 3),
-                                 datetime(2008, 1, 4): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 5): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 6): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 7): datetime(2008, 1, 9)}))
+        tests.append((2 * CDay(), {
+            datetime(2008, 1, 1): datetime(2008, 1, 3),
+            datetime(2008, 1, 4): datetime(2008, 1, 8),
+            datetime(2008, 1, 5): datetime(2008, 1, 8),
+            datetime(2008, 1, 6): datetime(2008, 1, 8),
+            datetime(2008, 1, 7): datetime(2008, 1, 9)}
+        ))
 
-        tests.append((-cday, {datetime(2008, 1, 1): datetime(2007, 12, 31),
-                              datetime(2008, 1, 4): datetime(2008, 1, 3),
-                              datetime(2008, 1, 5): datetime(2008, 1, 4),
-                              datetime(2008, 1, 6): datetime(2008, 1, 4),
-                              datetime(2008, 1, 7): datetime(2008, 1, 4),
-                              datetime(2008, 1, 8): datetime(2008, 1, 7)}))
+        tests.append((-CDay(), {
+            datetime(2008, 1, 1): datetime(2007, 12, 31),
+            datetime(2008, 1, 4): datetime(2008, 1, 3),
+            datetime(2008, 1, 5): datetime(2008, 1, 4),
+            datetime(2008, 1, 6): datetime(2008, 1, 4),
+            datetime(2008, 1, 7): datetime(2008, 1, 4),
+            datetime(2008, 1, 8): datetime(2008, 1, 7)}
+        ))
 
-        tests.append((-2 * cday, {datetime(2008, 1, 1): datetime(2007, 12, 28),
-                                  datetime(2008, 1, 4): datetime(2008, 1, 2),
-                                  datetime(2008, 1, 5): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 6): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 7): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 8): datetime(2008, 1, 4),
-                                  datetime(2008, 1, 9): datetime(2008, 1, 7)}))
+        tests.append((-2 * CDay(), {
+            datetime(2008, 1, 1): datetime(2007, 12, 28),
+            datetime(2008, 1, 4): datetime(2008, 1, 2),
+            datetime(2008, 1, 5): datetime(2008, 1, 3),
+            datetime(2008, 1, 6): datetime(2008, 1, 3),
+            datetime(2008, 1, 7): datetime(2008, 1, 3),
+            datetime(2008, 1, 8): datetime(2008, 1, 4),
+            datetime(2008, 1, 9): datetime(2008, 1, 7)}
+        ))
 
         tests.append((CDay(0), {datetime(2008, 1, 1): datetime(2008, 1, 1),
                                 datetime(2008, 1, 4): datetime(2008, 1, 4),
@@ -2644,6 +2683,353 @@ class TestMonthEnd(Base):
 
         for offset, dt, expected in tests:
             assertOnOffset(offset, dt, expected)
+
+
+class TestSemiMonthEnd(Base):
+    _offset = SemiMonthEnd
+
+    def _get_tests(self):
+        tests = []
+
+        tests.append((SemiMonthEnd(),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 15),
+                       datetime(2008, 1, 15): datetime(2008, 1, 31),
+                       datetime(2008, 1, 31): datetime(2008, 2, 15),
+                       datetime(2006, 12, 14): datetime(2006, 12, 15),
+                       datetime(2006, 12, 29): datetime(2006, 12, 31),
+                       datetime(2006, 12, 31): datetime(2007, 1, 15),
+                       datetime(2007, 1, 1): datetime(2007, 1, 15),
+                       datetime(2006, 12, 1): datetime(2006, 12, 15),
+                       datetime(2006, 12, 15): datetime(2006, 12, 31)}))
+
+        tests.append((SemiMonthEnd(day_of_month=20),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 20),
+                       datetime(2008, 1, 15): datetime(2008, 1, 20),
+                       datetime(2008, 1, 21): datetime(2008, 1, 31),
+                       datetime(2008, 1, 31): datetime(2008, 2, 20),
+                       datetime(2006, 12, 14): datetime(2006, 12, 20),
+                       datetime(2006, 12, 29): datetime(2006, 12, 31),
+                       datetime(2006, 12, 31): datetime(2007, 1, 20),
+                       datetime(2007, 1, 1): datetime(2007, 1, 20),
+                       datetime(2006, 12, 1): datetime(2006, 12, 20),
+                       datetime(2006, 12, 15): datetime(2006, 12, 20)}))
+
+        tests.append((SemiMonthEnd(0),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 15),
+                       datetime(2008, 1, 16): datetime(2008, 1, 31),
+                       datetime(2008, 1, 15): datetime(2008, 1, 15),
+                       datetime(2008, 1, 31): datetime(2008, 1, 31),
+                       datetime(2006, 12, 29): datetime(2006, 12, 31),
+                       datetime(2006, 12, 31): datetime(2006, 12, 31),
+                       datetime(2007, 1, 1): datetime(2007, 1, 15)}))
+
+        tests.append((SemiMonthEnd(0, day_of_month=16),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 16),
+                       datetime(2008, 1, 16): datetime(2008, 1, 16),
+                       datetime(2008, 1, 15): datetime(2008, 1, 16),
+                       datetime(2008, 1, 31): datetime(2008, 1, 31),
+                       datetime(2006, 12, 29): datetime(2006, 12, 31),
+                       datetime(2006, 12, 31): datetime(2006, 12, 31),
+                       datetime(2007, 1, 1): datetime(2007, 1, 16)}))
+
+        tests.append((SemiMonthEnd(2),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 31),
+                       datetime(2008, 1, 31): datetime(2008, 2, 29),
+                       datetime(2006, 12, 29): datetime(2007, 1, 15),
+                       datetime(2006, 12, 31): datetime(2007, 1, 31),
+                       datetime(2007, 1, 1): datetime(2007, 1, 31),
+                       datetime(2007, 1, 16): datetime(2007, 2, 15),
+                       datetime(2006, 11, 1): datetime(2006, 11, 30)}))
+
+        tests.append((SemiMonthEnd(-1),
+                      {datetime(2007, 1, 1): datetime(2006, 12, 31),
+                       datetime(2008, 6, 30): datetime(2008, 6, 15),
+                       datetime(2008, 12, 31): datetime(2008, 12, 15),
+                       datetime(2006, 12, 29): datetime(2006, 12, 15),
+                       datetime(2006, 12, 30): datetime(2006, 12, 15),
+                       datetime(2007, 1, 1): datetime(2006, 12, 31)}))
+
+        tests.append((SemiMonthEnd(-1, day_of_month=4),
+                      {datetime(2007, 1, 1): datetime(2006, 12, 31),
+                       datetime(2007, 1, 4): datetime(2006, 12, 31),
+                       datetime(2008, 6, 30): datetime(2008, 6, 4),
+                       datetime(2008, 12, 31): datetime(2008, 12, 4),
+                       datetime(2006, 12, 5): datetime(2006, 12, 4),
+                       datetime(2006, 12, 30): datetime(2006, 12, 4),
+                       datetime(2007, 1, 1): datetime(2006, 12, 31)}))
+
+        tests.append((SemiMonthEnd(-2),
+                      {datetime(2007, 1, 1): datetime(2006, 12, 15),
+                       datetime(2008, 6, 30): datetime(2008, 5, 31),
+                       datetime(2008, 3, 15): datetime(2008, 2, 15),
+                       datetime(2008, 12, 31): datetime(2008, 11, 30),
+                       datetime(2006, 12, 29): datetime(2006, 11, 30),
+                       datetime(2006, 12, 14): datetime(2006, 11, 15),
+                       datetime(2007, 1, 1): datetime(2006, 12, 15)}))
+
+        return tests
+
+    def test_offset_whole_year(self):
+        dates = (datetime(2007, 12, 31),
+                 datetime(2008, 1, 15),
+                 datetime(2008, 1, 31),
+                 datetime(2008, 2, 15),
+                 datetime(2008, 2, 29),
+                 datetime(2008, 3, 15),
+                 datetime(2008, 3, 31),
+                 datetime(2008, 4, 15),
+                 datetime(2008, 4, 30),
+                 datetime(2008, 5, 15),
+                 datetime(2008, 5, 31),
+                 datetime(2008, 6, 15),
+                 datetime(2008, 6, 30),
+                 datetime(2008, 7, 15),
+                 datetime(2008, 7, 31),
+                 datetime(2008, 8, 15),
+                 datetime(2008, 8, 31),
+                 datetime(2008, 9, 15),
+                 datetime(2008, 9, 30),
+                 datetime(2008, 10, 15),
+                 datetime(2008, 10, 31),
+                 datetime(2008, 11, 15),
+                 datetime(2008, 11, 30),
+                 datetime(2008, 12, 15),
+                 datetime(2008, 12, 31))
+
+        for base, exp_date in zip(dates[:-1], dates[1:]):
+            assertEq(SemiMonthEnd(), base, exp_date)
+
+        # ensure .apply_index works as expected
+        s = DatetimeIndex(dates[:-1])
+        result = SemiMonthEnd().apply_index(s)
+        exp = DatetimeIndex(dates[1:])
+        tm.assert_index_equal(result, exp)
+
+        # ensure generating a range with DatetimeIndex gives same result
+        result = DatetimeIndex(start=dates[0], end=dates[-1], freq='SM')
+        exp = DatetimeIndex(dates)
+        tm.assert_index_equal(result, exp)
+
+    def test_offset(self):
+        for offset, cases in self._get_tests():
+            for base, expected in compat.iteritems(cases):
+                assertEq(offset, base, expected)
+
+    def test_apply_index(self):
+        for offset, cases in self._get_tests():
+            s = DatetimeIndex(cases.keys())
+            result = offset.apply_index(s)
+            exp = DatetimeIndex(cases.values())
+            tm.assert_index_equal(result, exp)
+
+    def test_onOffset(self):
+
+        tests = [(datetime(2007, 12, 31), True),
+                 (datetime(2007, 12, 15), True),
+                 (datetime(2007, 12, 14), False),
+                 (datetime(2007, 12, 1), False),
+                 (datetime(2008, 2, 29), True)]
+
+        for dt, expected in tests:
+            assertOnOffset(SemiMonthEnd(), dt, expected)
+
+    def test_vectorized_offset_addition(self):
+        for klass, assert_func in zip([Series, DatetimeIndex],
+                                      [self.assert_series_equal,
+                                       tm.assert_index_equal]):
+            s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
+                       Timestamp('2000-02-15', tz='US/Central')], name='a')
+
+            result = s + SemiMonthEnd()
+            result2 = SemiMonthEnd() + s
+            exp = klass([Timestamp('2000-01-31 00:15:00', tz='US/Central'),
+                         Timestamp('2000-02-29', tz='US/Central')], name='a')
+            assert_func(result, exp)
+            assert_func(result2, exp)
+
+            s = klass([Timestamp('2000-01-01 00:15:00', tz='US/Central'),
+                       Timestamp('2000-02-01', tz='US/Central')], name='a')
+            result = s + SemiMonthEnd()
+            result2 = SemiMonthEnd() + s
+            exp = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
+                         Timestamp('2000-02-15', tz='US/Central')], name='a')
+            assert_func(result, exp)
+            assert_func(result2, exp)
+
+
+class TestSemiMonthBegin(Base):
+    _offset = SemiMonthBegin
+
+    def _get_tests(self):
+        tests = []
+
+        tests.append((SemiMonthBegin(),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 15),
+                       datetime(2008, 1, 15): datetime(2008, 2, 1),
+                       datetime(2008, 1, 31): datetime(2008, 2, 1),
+                       datetime(2006, 12, 14): datetime(2006, 12, 15),
+                       datetime(2006, 12, 29): datetime(2007, 1, 1),
+                       datetime(2006, 12, 31): datetime(2007, 1, 1),
+                       datetime(2007, 1, 1): datetime(2007, 1, 15),
+                       datetime(2006, 12, 1): datetime(2006, 12, 15),
+                       datetime(2006, 12, 15): datetime(2007, 1, 1)}))
+
+        tests.append((SemiMonthBegin(day_of_month=20),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 20),
+                       datetime(2008, 1, 15): datetime(2008, 1, 20),
+                       datetime(2008, 1, 21): datetime(2008, 2, 1),
+                       datetime(2008, 1, 31): datetime(2008, 2, 1),
+                       datetime(2006, 12, 14): datetime(2006, 12, 20),
+                       datetime(2006, 12, 29): datetime(2007, 1, 1),
+                       datetime(2006, 12, 31): datetime(2007, 1, 1),
+                       datetime(2007, 1, 1): datetime(2007, 1, 20),
+                       datetime(2006, 12, 1): datetime(2006, 12, 20),
+                       datetime(2006, 12, 15): datetime(2006, 12, 20)}))
+
+        tests.append((SemiMonthBegin(0),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
+                       datetime(2008, 1, 16): datetime(2008, 2, 1),
+                       datetime(2008, 1, 15): datetime(2008, 1, 15),
+                       datetime(2008, 1, 31): datetime(2008, 2, 1),
+                       datetime(2006, 12, 29): datetime(2007, 1, 1),
+                       datetime(2006, 12, 2): datetime(2006, 12, 15),
+                       datetime(2007, 1, 1): datetime(2007, 1, 1)}))
+
+        tests.append((SemiMonthBegin(0, day_of_month=16),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
+                       datetime(2008, 1, 16): datetime(2008, 1, 16),
+                       datetime(2008, 1, 15): datetime(2008, 1, 16),
+                       datetime(2008, 1, 31): datetime(2008, 2, 1),
+                       datetime(2006, 12, 29): datetime(2007, 1, 1),
+                       datetime(2006, 12, 31): datetime(2007, 1, 1),
+                       datetime(2007, 1, 5): datetime(2007, 1, 16),
+                       datetime(2007, 1, 1): datetime(2007, 1, 1)}))
+
+        tests.append((SemiMonthBegin(2),
+                      {datetime(2008, 1, 1): datetime(2008, 2, 1),
+                       datetime(2008, 1, 31): datetime(2008, 2, 15),
+                       datetime(2006, 12, 1): datetime(2007, 1, 1),
+                       datetime(2006, 12, 29): datetime(2007, 1, 15),
+                       datetime(2006, 12, 15): datetime(2007, 1, 15),
+                       datetime(2007, 1, 1): datetime(2007, 2, 1),
+                       datetime(2007, 1, 16): datetime(2007, 2, 15),
+                       datetime(2006, 11, 1): datetime(2006, 12, 1)}))
+
+        tests.append((SemiMonthBegin(-1),
+                      {datetime(2007, 1, 1): datetime(2006, 12, 15),
+                       datetime(2008, 6, 30): datetime(2008, 6, 15),
+                       datetime(2008, 6, 14): datetime(2008, 6, 1),
+                       datetime(2008, 12, 31): datetime(2008, 12, 15),
+                       datetime(2006, 12, 29): datetime(2006, 12, 15),
+                       datetime(2006, 12, 15): datetime(2006, 12, 1),
+                       datetime(2007, 1, 1): datetime(2006, 12, 15)}))
+
+        tests.append((SemiMonthBegin(-1, day_of_month=4),
+                      {datetime(2007, 1, 1): datetime(2006, 12, 4),
+                       datetime(2007, 1, 4): datetime(2007, 1, 1),
+                       datetime(2008, 6, 30): datetime(2008, 6, 4),
+                       datetime(2008, 12, 31): datetime(2008, 12, 4),
+                       datetime(2006, 12, 5): datetime(2006, 12, 4),
+                       datetime(2006, 12, 30): datetime(2006, 12, 4),
+                       datetime(2006, 12, 2): datetime(2006, 12, 1),
+                       datetime(2007, 1, 1): datetime(2006, 12, 4)}))
+
+        tests.append((SemiMonthBegin(-2),
+                      {datetime(2007, 1, 1): datetime(2006, 12, 1),
+                       datetime(2008, 6, 30): datetime(2008, 6, 1),
+                       datetime(2008, 6, 14): datetime(2008, 5, 15),
+                       datetime(2008, 12, 31): datetime(2008, 12, 1),
+                       datetime(2006, 12, 29): datetime(2006, 12, 1),
+                       datetime(2006, 12, 15): datetime(2006, 11, 15),
+                       datetime(2007, 1, 1): datetime(2006, 12, 1)}))
+
+        return tests
+
+    def test_offset_whole_year(self):
+        dates = (datetime(2007, 12, 15),
+                 datetime(2008, 1, 1),
+                 datetime(2008, 1, 15),
+                 datetime(2008, 2, 1),
+                 datetime(2008, 2, 15),
+                 datetime(2008, 3, 1),
+                 datetime(2008, 3, 15),
+                 datetime(2008, 4, 1),
+                 datetime(2008, 4, 15),
+                 datetime(2008, 5, 1),
+                 datetime(2008, 5, 15),
+                 datetime(2008, 6, 1),
+                 datetime(2008, 6, 15),
+                 datetime(2008, 7, 1),
+                 datetime(2008, 7, 15),
+                 datetime(2008, 8, 1),
+                 datetime(2008, 8, 15),
+                 datetime(2008, 9, 1),
+                 datetime(2008, 9, 15),
+                 datetime(2008, 10, 1),
+                 datetime(2008, 10, 15),
+                 datetime(2008, 11, 1),
+                 datetime(2008, 11, 15),
+                 datetime(2008, 12, 1),
+                 datetime(2008, 12, 15))
+
+        for base, exp_date in zip(dates[:-1], dates[1:]):
+            assertEq(SemiMonthBegin(), base, exp_date)
+
+        # ensure .apply_index works as expected
+        s = DatetimeIndex(dates[:-1])
+        result = SemiMonthBegin().apply_index(s)
+        exp = DatetimeIndex(dates[1:])
+        tm.assert_index_equal(result, exp)
+
+        # ensure generating a range with DatetimeIndex gives same result
+        result = DatetimeIndex(start=dates[0], end=dates[-1], freq='SMS')
+        exp = DatetimeIndex(dates)
+        tm.assert_index_equal(result, exp)
+
+    def test_offset(self):
+        for offset, cases in self._get_tests():
+            for base, expected in compat.iteritems(cases):
+                assertEq(offset, base, expected)
+
+    def test_apply_index(self):
+        for offset, cases in self._get_tests():
+            s = DatetimeIndex(cases.keys())
+            result = offset.apply_index(s)
+            exp = DatetimeIndex(cases.values())
+            tm.assert_index_equal(result, exp)
+
+    def test_onOffset(self):
+        tests = [(datetime(2007, 12, 1), True),
+                 (datetime(2007, 12, 15), True),
+                 (datetime(2007, 12, 14), False),
+                 (datetime(2007, 12, 31), False),
+                 (datetime(2008, 2, 15), True)]
+
+        for dt, expected in tests:
+            assertOnOffset(SemiMonthBegin(), dt, expected)
+
+    def test_vectorized_offset_addition(self):
+        for klass, assert_func in zip([Series, DatetimeIndex],
+                                      [self.assert_series_equal,
+                                       tm.assert_index_equal]):
+
+            s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
+                       Timestamp('2000-02-15', tz='US/Central')], name='a')
+            result = s + SemiMonthBegin()
+            result2 = SemiMonthBegin() + s
+            exp = klass([Timestamp('2000-02-01 00:15:00', tz='US/Central'),
+                         Timestamp('2000-03-01', tz='US/Central')], name='a')
+            assert_func(result, exp)
+            assert_func(result2, exp)
+
+            s = klass([Timestamp('2000-01-01 00:15:00', tz='US/Central'),
+                       Timestamp('2000-02-01', tz='US/Central')], name='a')
+            result = s + SemiMonthBegin()
+            result2 = SemiMonthBegin() + s
+            exp = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
+                         Timestamp('2000-02-15', tz='US/Central')], name='a')
+            assert_func(result, exp)
+            assert_func(result2, exp)
 
 
 class TestBQuarterBegin(Base):
@@ -4177,8 +4563,11 @@ class TestOffsetNames(tm.TestCase):
 
 
 def test_get_offset():
-    assertRaisesRegexp(ValueError, "rule.*GIBBERISH", get_offset, 'gibberish')
-    assertRaisesRegexp(ValueError, "rule.*QS-JAN-B", get_offset, 'QS-JAN-B')
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        get_offset('gibberish')
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        get_offset('QS-JAN-B')
+
     pairs = [
         ('B', BDay()), ('b', BDay()), ('bm', BMonthEnd()),
         ('Bm', BMonthEnd()), ('W-MON', Week(weekday=0)),
@@ -4204,10 +4593,8 @@ def test_get_offset():
 def test_get_offset_legacy():
     pairs = [('w@Sat', Week(weekday=5))]
     for name, expected in pairs:
-        with tm.assert_produces_warning(FutureWarning):
-            offset = get_offset(name)
-        assert offset == expected, ("Expected %r to yield %r (actual: %r)" %
-                                    (name, expected, offset))
+        with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+            get_offset(name)
 
 
 class TestParseTimeString(tm.TestCase):
@@ -4236,23 +4623,30 @@ class TestParseTimeString(tm.TestCase):
 
 
 def test_get_standard_freq():
-    fstr = get_standard_freq('W')
-    assert fstr == get_standard_freq('w')
-    assert fstr == get_standard_freq('1w')
-    assert fstr == get_standard_freq(('W', 1))
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        fstr = get_standard_freq('W')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq('w')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq('1w')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq(('W', 1))
+
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            get_standard_freq('WeEk')
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = get_standard_freq('WeEk')
-    assert fstr == result
+        fstr = get_standard_freq('5Q')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq('5q')
 
-    fstr = get_standard_freq('5Q')
-    assert fstr == get_standard_freq('5q')
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            get_standard_freq('5QuarTer')
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = get_standard_freq('5QuarTer')
-    assert fstr == result
-
-    assert fstr == get_standard_freq(('q', 5))
+        assert fstr == get_standard_freq(('q', 5))
 
 
 def test_quarterly_dont_normalize():
@@ -4537,6 +4931,8 @@ class TestDST(tm.TestCase):
                  BMonthEnd: ['11/2/2012', '11/30/2012'],
                  CBMonthBegin: ['11/2/2012', '12/3/2012'],
                  CBMonthEnd: ['11/2/2012', '11/30/2012'],
+                 SemiMonthBegin: ['11/2/2012', '11/15/2012'],
+                 SemiMonthEnd: ['11/2/2012', '11/15/2012'],
                  Week: ['11/2/2012', '11/9/2012'],
                  YearBegin: ['11/2/2012', '1/1/2013'],
                  YearEnd: ['11/2/2012', '12/31/2012'],
@@ -4551,7 +4947,7 @@ class TestDST(tm.TestCase):
         for offset, test_values in iteritems(tests):
             first = Timestamp(test_values[0], tz='US/Eastern') + offset()
             second = Timestamp(test_values[1], tz='US/Eastern')
-            self.assertEqual(first, second, str(offset))
+            self.assertEqual(first, second, msg=str(offset))
 
 
 if __name__ == '__main__':

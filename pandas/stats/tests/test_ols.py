@@ -13,19 +13,18 @@ from pandas import compat
 from distutils.version import LooseVersion
 import nose
 import numpy as np
-from numpy.testing.decorators import slow
 
 from pandas import date_range, bdate_range
 from pandas.core.panel import Panel
-from pandas import DataFrame, Index, Series, notnull, datetools
+from pandas import DataFrame, Index, Series, notnull, offsets
 from pandas.stats.api import ols
 from pandas.stats.ols import _filter_data
 from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assertRaisesRegexp)
+                                 assert_frame_equal, assertRaisesRegexp, slow)
 import pandas.util.testing as tm
 import pandas.compat as compat
-from .common import BaseTest
+from pandas.stats.tests.common import BaseTest
 
 _have_statsmodels = True
 try:
@@ -265,9 +264,9 @@ class TestOLSMisc(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
-    '''
+    """
     For test coverage with faux data
-    '''
+    """
     @classmethod
     def setUpClass(cls):
         super(TestOLSMisc, cls).setUpClass()
@@ -379,7 +378,7 @@ class TestOLSMisc(tm.TestCase):
             model = ols(y=endog, x=exog)
 
         pred = model.y_predict
-        self.assertTrue(pred.index.equals(exog.index))
+        self.assert_index_equal(pred.index, exog.index)
 
     def test_longpanel_series_combo(self):
         wp = tm.makePanel()
@@ -528,13 +527,12 @@ class TestPanelOLS(BaseTest):
         index = x.index.get_level_values(0)
         index = Index(sorted(set(index)))
         exp_index = Index([datetime(2000, 1, 1), datetime(2000, 1, 3)])
-        self.assertTrue
-        (exp_index.equals(index))
+        self.assert_index_equal(exp_index, index)
 
         index = x.index.get_level_values(1)
         index = Index(sorted(set(index)))
         exp_index = Index(['A', 'B'])
-        self.assertTrue(exp_index.equals(index))
+        self.assert_index_equal(exp_index, index)
 
         x = result._x_filtered
         index = x.index.get_level_values(0)
@@ -542,24 +540,22 @@ class TestPanelOLS(BaseTest):
         exp_index = Index([datetime(2000, 1, 1),
                            datetime(2000, 1, 3),
                            datetime(2000, 1, 4)])
-        self.assertTrue(exp_index.equals(index))
+        self.assert_index_equal(exp_index, index)
 
-        assert_almost_equal(result._y.values.flat, [1, 4, 5])
+        # .flat is flatiter instance
+        assert_almost_equal(result._y.values.flat, [1, 4, 5],
+                            check_dtype=False)
 
-        exp_x = [[6, 14, 1],
-                 [9, 17, 1],
-                 [30, 48, 1]]
+        exp_x = np.array([[6, 14, 1], [9, 17, 1],
+                          [30, 48, 1]], dtype=np.float64)
         assert_almost_equal(exp_x, result._x.values)
 
-        exp_x_filtered = [[6, 14, 1],
-                          [9, 17, 1],
-                          [30, 48, 1],
-                          [11, 20, 1],
-                          [12, 21, 1]]
+        exp_x_filtered = np.array([[6, 14, 1], [9, 17, 1], [30, 48, 1],
+                                   [11, 20, 1], [12, 21, 1]], dtype=np.float64)
         assert_almost_equal(exp_x_filtered, result._x_filtered.values)
 
-        self.assertTrue(result._x_filtered.index.levels[0].equals(
-            result.y_fitted.index))
+        self.assert_index_equal(result._x_filtered.index.levels[0],
+                                result.y_fitted.index)
 
     def test_wls_panel(self):
         y = tm.makeTimeDataFrame()
@@ -598,9 +594,11 @@ class TestPanelOLS(BaseTest):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = ols(y=self.panel_y2, x=self.panel_x2, time_effects=True)
 
-        assert_almost_equal(result._y_trans.values.flat, [0, -0.5, 0.5])
+        # .flat is flatiter instance
+        assert_almost_equal(result._y_trans.values.flat, [0, -0.5, 0.5],
+                            check_dtype=False)
 
-        exp_x = [[0, 0], [-10.5, -15.5], [10.5, 15.5]]
+        exp_x = np.array([[0, 0], [-10.5, -15.5], [10.5, 15.5]])
         assert_almost_equal(result._x_trans.values, exp_x)
 
         # _check_non_raw_results(result)
@@ -609,7 +607,9 @@ class TestPanelOLS(BaseTest):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = ols(y=self.panel_y2, x=self.panel_x2, entity_effects=True)
 
-        assert_almost_equal(result._y.values.flat, [1, 4, 5])
+        # .flat is flatiter instance
+        assert_almost_equal(result._y.values.flat, [1, 4, 5],
+                            check_dtype=False)
 
         exp_x = DataFrame([[0., 6., 14., 1.], [0, 9, 17, 1], [1, 30, 48, 1]],
                           index=result._x.index, columns=['FE_B', 'x1', 'x2',
@@ -623,7 +623,9 @@ class TestPanelOLS(BaseTest):
             result = ols(y=self.panel_y2, x=self.panel_x2, entity_effects=True,
                          dropped_dummies={'entity': 'B'})
 
-        assert_almost_equal(result._y.values.flat, [1, 4, 5])
+        # .flat is flatiter instance
+        assert_almost_equal(result._y.values.flat, [1, 4, 5],
+                            check_dtype=False)
         exp_x = DataFrame([[1., 6., 14., 1.], [1, 9, 17, 1], [0, 30, 48, 1]],
                           index=result._x.index, columns=['FE_A', 'x1', 'x2',
                                                           'intercept'],
@@ -635,12 +637,15 @@ class TestPanelOLS(BaseTest):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = ols(y=self.panel_y2, x=self.panel_x2, x_effects=['x1'])
 
-        assert_almost_equal(result._y.values.flat, [1, 4, 5])
+        # .flat is flatiter instance
+        assert_almost_equal(result._y.values.flat, [1, 4, 5],
+                            check_dtype=False)
 
         res = result._x
         exp_x = DataFrame([[0., 0., 14., 1.], [0, 1, 17, 1], [1, 0, 48, 1]],
                           columns=['x1_30', 'x1_9', 'x2', 'intercept'],
                           index=res.index, dtype=float)
+        exp_x[['x1_30', 'x1_9']] = exp_x[['x1_30', 'x1_9']].astype(np.uint8)
         assert_frame_equal(res, exp_x.reindex(columns=res.columns))
 
     def testWithXEffectsAndDroppedDummies(self):
@@ -649,10 +654,13 @@ class TestPanelOLS(BaseTest):
                          dropped_dummies={'x1': 30})
 
         res = result._x
-        assert_almost_equal(result._y.values.flat, [1, 4, 5])
+        # .flat is flatiter instance
+        assert_almost_equal(result._y.values.flat, [1, 4, 5],
+                            check_dtype=False)
         exp_x = DataFrame([[1., 0., 14., 1.], [0, 1, 17, 1], [0, 0, 48, 1]],
                           columns=['x1_6', 'x1_9', 'x2', 'intercept'],
                           index=res.index, dtype=float)
+        exp_x[['x1_6', 'x1_9']] = exp_x[['x1_6', 'x1_9']].astype(np.uint8)
 
         assert_frame_equal(res, exp_x.reindex(columns=res.columns))
 
@@ -661,13 +669,15 @@ class TestPanelOLS(BaseTest):
             result = ols(y=self.panel_y3, x=self.panel_x3,
                          x_effects=['x1', 'x2'])
 
-        assert_almost_equal(result._y.values.flat, [1, 2, 3, 4])
-        exp_x = [[0, 0, 0, 1, 1], [1, 0, 0, 0, 1], [0, 1, 1, 0, 1],
-                 [0, 0, 0, 1, 1]]
+        # .flat is flatiter instance
+        assert_almost_equal(result._y.values.flat, [1, 2, 3, 4],
+                            check_dtype=False)
+        exp_x = np.array([[0, 0, 0, 1, 1], [1, 0, 0, 0, 1], [0, 1, 1, 0, 1],
+                          [0, 0, 0, 1, 1]], dtype=np.float64)
         assert_almost_equal(result._x.values, exp_x)
 
         exp_index = Index(['x1_B', 'x1_C', 'x2_baz', 'x2_foo', 'intercept'])
-        self.assertTrue(exp_index.equals(result._x.columns))
+        self.assert_index_equal(exp_index, result._x.columns)
 
         # _check_non_raw_results(result)
 
@@ -675,14 +685,15 @@ class TestPanelOLS(BaseTest):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = ols(y=self.panel_y3, x=self.panel_x3, x_effects=['x1', 'x2'],
                          dropped_dummies={'x2': 'foo'})
-
-        assert_almost_equal(result._y.values.flat, [1, 2, 3, 4])
-        exp_x = [[0, 0, 0, 0, 1], [1, 0, 1, 0, 1], [0, 1, 0, 1, 1],
-                 [0, 0, 0, 0, 1]]
+        # .flat is flatiter instance
+        assert_almost_equal(result._y.values.flat, [1, 2, 3, 4],
+                            check_dtype=False)
+        exp_x = np.array([[0, 0, 0, 0, 1], [1, 0, 1, 0, 1], [0, 1, 0, 1, 1],
+                          [0, 0, 0, 0, 1]], dtype=np.float64)
         assert_almost_equal(result._x.values, exp_x)
 
         exp_index = Index(['x1_B', 'x1_C', 'x2_bar', 'x2_baz', 'intercept'])
-        self.assertTrue(exp_index.equals(result._x.columns))
+        self.assert_index_equal(exp_index, result._x.columns)
 
         # _check_non_raw_results(result)
 
@@ -887,22 +898,22 @@ class TestOLSFilter(tm.TestCase):
 
     def setUp(self):
         date_index = date_range(datetime(2009, 12, 11), periods=3,
-                                freq=datetools.bday)
+                                freq=offsets.BDay())
         ts = Series([3, 1, 4], index=date_index)
         self.TS1 = ts
 
         date_index = date_range(datetime(2009, 12, 11), periods=5,
-                                freq=datetools.bday)
+                                freq=offsets.BDay())
         ts = Series([1, 5, 9, 2, 6], index=date_index)
         self.TS2 = ts
 
         date_index = date_range(datetime(2009, 12, 11), periods=3,
-                                freq=datetools.bday)
+                                freq=offsets.BDay())
         ts = Series([5, np.nan, 3], index=date_index)
         self.TS3 = ts
 
         date_index = date_range(datetime(2009, 12, 11), periods=5,
-                                freq=datetools.bday)
+                                freq=offsets.BDay())
         ts = Series([np.nan, 5, 8, 9, 7], index=date_index)
         self.TS4 = ts
 
@@ -915,16 +926,21 @@ class TestOLSFilter(tm.TestCase):
     def testFilterWithSeriesRHS(self):
         (lhs, rhs, weights, rhs_pre,
          index, valid) = _filter_data(self.TS1, {'x1': self.TS2}, None)
-        self.tsAssertEqual(self.TS1, lhs)
-        self.tsAssertEqual(self.TS2[:3], rhs['x1'])
-        self.tsAssertEqual(self.TS2, rhs_pre['x1'])
+        self.tsAssertEqual(self.TS1.astype(np.float64), lhs, check_names=False)
+        self.tsAssertEqual(self.TS2[:3].astype(np.float64), rhs['x1'],
+                           check_names=False)
+        self.tsAssertEqual(self.TS2.astype(np.float64), rhs_pre['x1'],
+                           check_names=False)
 
     def testFilterWithSeriesRHS2(self):
         (lhs, rhs, weights, rhs_pre,
          index, valid) = _filter_data(self.TS2, {'x1': self.TS1}, None)
-        self.tsAssertEqual(self.TS2[:3], lhs)
-        self.tsAssertEqual(self.TS1, rhs['x1'])
-        self.tsAssertEqual(self.TS1, rhs_pre['x1'])
+        self.tsAssertEqual(self.TS2[:3].astype(np.float64), lhs,
+                           check_names=False)
+        self.tsAssertEqual(self.TS1.astype(np.float64), rhs['x1'],
+                           check_names=False)
+        self.tsAssertEqual(self.TS1.astype(np.float64), rhs_pre['x1'],
+                           check_names=False)
 
     def testFilterWithSeriesRHS3(self):
         (lhs, rhs, weights, rhs_pre,
@@ -932,32 +948,32 @@ class TestOLSFilter(tm.TestCase):
         exp_lhs = self.TS3[2:3]
         exp_rhs = self.TS4[2:3]
         exp_rhs_pre = self.TS4[1:]
-        self.tsAssertEqual(exp_lhs, lhs)
-        self.tsAssertEqual(exp_rhs, rhs['x1'])
-        self.tsAssertEqual(exp_rhs_pre, rhs_pre['x1'])
+        self.tsAssertEqual(exp_lhs, lhs, check_names=False)
+        self.tsAssertEqual(exp_rhs, rhs['x1'], check_names=False)
+        self.tsAssertEqual(exp_rhs_pre, rhs_pre['x1'], check_names=False)
 
     def testFilterWithDataFrameRHS(self):
         (lhs, rhs, weights, rhs_pre,
          index, valid) = _filter_data(self.TS1, self.DF1, None)
-        exp_lhs = self.TS1[1:]
+        exp_lhs = self.TS1[1:].astype(np.float64)
         exp_rhs1 = self.TS2[1:3]
-        exp_rhs2 = self.TS4[1:3]
-        self.tsAssertEqual(exp_lhs, lhs)
-        self.tsAssertEqual(exp_rhs1, rhs['x1'])
-        self.tsAssertEqual(exp_rhs2, rhs['x2'])
+        exp_rhs2 = self.TS4[1:3].astype(np.float64)
+        self.tsAssertEqual(exp_lhs, lhs, check_names=False)
+        self.tsAssertEqual(exp_rhs1, rhs['x1'], check_names=False)
+        self.tsAssertEqual(exp_rhs2, rhs['x2'], check_names=False)
 
     def testFilterWithDictRHS(self):
         (lhs, rhs, weights, rhs_pre,
          index, valid) = _filter_data(self.TS1, self.DICT1, None)
-        exp_lhs = self.TS1[1:]
-        exp_rhs1 = self.TS2[1:3]
-        exp_rhs2 = self.TS4[1:3]
-        self.tsAssertEqual(exp_lhs, lhs)
-        self.tsAssertEqual(exp_rhs1, rhs['x1'])
-        self.tsAssertEqual(exp_rhs2, rhs['x2'])
+        exp_lhs = self.TS1[1:].astype(np.float64)
+        exp_rhs1 = self.TS2[1:3].astype(np.float64)
+        exp_rhs2 = self.TS4[1:3].astype(np.float64)
+        self.tsAssertEqual(exp_lhs, lhs, check_names=False)
+        self.tsAssertEqual(exp_rhs1, rhs['x1'], check_names=False)
+        self.tsAssertEqual(exp_rhs2, rhs['x2'], check_names=False)
 
-    def tsAssertEqual(self, ts1, ts2):
-        self.assert_numpy_array_equal(ts1, ts2)
+    def tsAssertEqual(self, ts1, ts2, **kwargs):
+        self.assert_series_equal(ts1, ts2, **kwargs)
 
 
 if __name__ == '__main__':

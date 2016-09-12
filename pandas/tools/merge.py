@@ -2,25 +2,48 @@
 SQL-style merge routines
 """
 
+import copy
+import warnings
+
 import numpy as np
 from pandas.compat import range, lrange, lzip, zip, map, filter
 import pandas.compat as compat
-from pandas.core.categorical import Categorical
-from pandas.core.frame import DataFrame, _merge_doc
+
+from pandas import (Categorical, DataFrame, Series,
+                    Index, MultiIndex, Timedelta)
+from pandas.core.categorical import (_factorize_from_iterable,
+                                     _factorize_from_iterables)
+from pandas.core.frame import _merge_doc
+from pandas.types.generic import ABCSeries
+from pandas.types.common import (is_datetime64tz_dtype,
+                                 is_datetime64_dtype,
+                                 needs_i8_conversion,
+                                 is_int64_dtype,
+                                 is_integer_dtype,
+                                 is_float_dtype,
+                                 is_integer,
+                                 is_int_or_datetime_dtype,
+                                 is_dtype_equal,
+                                 is_bool,
+                                 is_list_like,
+                                 _ensure_int64,
+                                 _ensure_float64,
+                                 _ensure_object)
+from pandas.types.missing import na_value_for_dtype
+
 from pandas.core.generic import NDFrame
-from pandas.core.series import Series
-from pandas.core.index import (Index, MultiIndex, _get_combined_index,
+from pandas.core.index import (_get_combined_index,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
-from pandas.core.common import ABCSeries
 
 import pandas.core.algorithms as algos
 import pandas.core.common as com
+import pandas.types.concat as _concat
 
-import pandas.algos as _algos
+import pandas._join as _join
 import pandas.hashtable as _hash
 
 
@@ -42,9 +65,100 @@ class MergeError(ValueError):
     pass
 
 
-def ordered_merge(left, right, on=None, left_by=None, right_by=None,
+def _groupby_and_merge(by, on, left, right, _merge_pieces,
+                       check_duplicates=True):
+    """
+    groupby & merge; we are always performing a left-by type operation
+
+    Parameters
+    ----------
+    by: field to group
+    on: duplicates field
+    left: left frame
+    right: right frame
+    _merge_pieces: function for merging
+    check_duplicates: boolean, default True
+        should we check & clean duplicates
+    """
+
+    pieces = []
+    if not isinstance(by, (list, tuple)):
+        by = [by]
+
+    lby = left.groupby(by, sort=False)
+
+    # if we can groupby the rhs
+    # then we can get vastly better perf
+    try:
+
+        # we will check & remove duplicates if indicated
+        if check_duplicates:
+            if on is None:
+                on = []
+            elif not isinstance(on, (list, tuple)):
+                on = [on]
+
+            if right.duplicated(by + on).any():
+                right = right.drop_duplicates(by + on, keep='last')
+        rby = right.groupby(by, sort=False)
+    except KeyError:
+        rby = None
+
+    for key, lhs in lby:
+
+        if rby is None:
+            rhs = right
+        else:
+            try:
+                rhs = right.take(rby.indices[key])
+            except KeyError:
+                # key doesn't exist in left
+                lcols = lhs.columns.tolist()
+                cols = lcols + [r for r in right.columns
+                                if r not in set(lcols)]
+                merged = lhs.reindex(columns=cols)
+                merged.index = range(len(merged))
+                pieces.append(merged)
+                continue
+
+        merged = _merge_pieces(lhs, rhs)
+
+        # make sure join keys are in the merged
+        # TODO, should _merge_pieces do this?
+        for k in by:
+            try:
+                if k in merged:
+                    merged[k] = key
+            except:
+                pass
+
+        pieces.append(merged)
+
+    # preserve the original order
+    # if we have a missing piece this can be reset
+    result = concat(pieces, ignore_index=True)
+    result = result.reindex(columns=pieces[0].columns, copy=False)
+    return result, lby
+
+
+def ordered_merge(left, right, on=None,
                   left_on=None, right_on=None,
+                  left_by=None, right_by=None,
                   fill_method=None, suffixes=('_x', '_y')):
+
+    warnings.warn("ordered_merge is deprecated and replace by merged_ordered",
+                  FutureWarning, stacklevel=2)
+    return merge_ordered(left, right, on=on,
+                         left_on=left_on, right_on=right_on,
+                         left_by=left_by, right_by=right_by,
+                         fill_method=fill_method, suffixes=suffixes)
+
+
+def merge_ordered(left, right, on=None,
+                  left_on=None, right_on=None,
+                  left_by=None, right_by=None,
+                  fill_method=None, suffixes=('_x', '_y'),
+                  how='outer'):
     """Perform merge with optional filling/interpolation designed for ordered
     data like time series data. Optionally perform group-wise merge (see
     examples)
@@ -53,8 +167,6 @@ def ordered_merge(left, right, on=None, left_by=None, right_by=None,
     ----------
     left : DataFrame
     right : DataFrame
-    fill_method : {'ffill', None}, default None
-        Interpolation method for data
     on : label or list
         Field names to join on. Must be found in both DataFrames.
     left_on : label or list, or array-like
@@ -70,9 +182,18 @@ def ordered_merge(left, right, on=None, left_by=None, right_by=None,
     right_by : column name or list of column names
         Group right DataFrame by group columns and merge piece by piece with
         left DataFrame
+    fill_method : {'ffill', None}, default None
+        Interpolation method for data
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
         side, respectively
+    how : {'left', 'right', 'outer', 'inner'}, default 'outer'
+        * left: use only keys from left frame (SQL: left outer join)
+        * right: use only keys from right frame (SQL: right outer join)
+        * outer: use union of keys from both frames (SQL: full outer join)
+        * inner: use intersection of keys from both frames (SQL: inner join)
+
+        .. versionadded:: 0.19.0
 
     Examples
     --------
@@ -105,46 +226,202 @@ def ordered_merge(left, right, on=None, left_by=None, right_by=None,
     merged : DataFrame
         The output type will the be same as 'left', if it is a subclass
         of DataFrame.
+
+    See also
+    --------
+    merge
+    merge_asof
+
     """
     def _merger(x, y):
+        # perform the ordered merge operation
         op = _OrderedMerge(x, y, on=on, left_on=left_on, right_on=right_on,
-                           # left_index=left_index, right_index=right_index,
-                           suffixes=suffixes, fill_method=fill_method)
+                           suffixes=suffixes, fill_method=fill_method,
+                           how=how)
         return op.get_result()
 
     if left_by is not None and right_by is not None:
         raise ValueError('Can only group either left or right frames')
     elif left_by is not None:
-        if not isinstance(left_by, (list, tuple)):
-            left_by = [left_by]
-        pieces = []
-        for key, xpiece in left.groupby(left_by):
-            merged = _merger(xpiece, right)
-            for k in left_by:
-                # May have passed ndarray
-                try:
-                    if k in merged:
-                        merged[k] = key
-                except:
-                    pass
-            pieces.append(merged)
-        return concat(pieces, ignore_index=True)
+        result, _ = _groupby_and_merge(left_by, on, left, right,
+                                       lambda x, y: _merger(x, y),
+                                       check_duplicates=False)
     elif right_by is not None:
-        if not isinstance(right_by, (list, tuple)):
-            right_by = [right_by]
-        pieces = []
-        for key, ypiece in right.groupby(right_by):
-            merged = _merger(left, ypiece)
-            for k in right_by:
-                try:
-                    if k in merged:
-                        merged[k] = key
-                except:
-                    pass
-            pieces.append(merged)
-        return concat(pieces, ignore_index=True)
+        result, _ = _groupby_and_merge(right_by, on, right, left,
+                                       lambda x, y: _merger(y, x),
+                                       check_duplicates=False)
     else:
-        return _merger(left, right)
+        result = _merger(left, right)
+    return result
+
+ordered_merge.__doc__ = merge_ordered.__doc__
+
+
+def merge_asof(left, right, on=None,
+               left_on=None, right_on=None,
+               by=None,
+               suffixes=('_x', '_y'),
+               tolerance=None,
+               allow_exact_matches=True):
+    """Perform an asof merge. This is similar to a left-join except that we
+    match on nearest key rather than equal keys.
+
+    For each row in the left DataFrame, we select the last row in the right
+    DataFrame whose 'on' key is less than or equal to the left's key. Both
+    DataFrames must be sorted by the key.
+
+    Optionally perform group-wise merge. This searches for the nearest match
+    on the 'on' key within the same group according to 'by'.
+
+    .. versionadded:: 0.19.0
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : DataFrame
+    on : label
+        Field name to join on. Must be found in both DataFrames.
+        The data MUST be ordered. Furthermore this must be a numeric column,
+        such as datetimelike, integer, or float. On or left_on/right_on
+        must be given.
+    left_on : label
+        Field name to join on in left DataFrame.
+    right_on : label
+        Field name to join on in right DataFrame.
+    by : column name
+        Group both the left and right DataFrames by the group column; perform
+        the merge operation on these pieces and recombine.
+    suffixes : 2-length sequence (tuple, list, ...)
+        Suffix to apply to overlapping column names in the left and right
+        side, respectively
+    tolerance : integer or Timedelta, optional, default None
+        select asof tolerance within this range; must be compatible
+        to the merge index.
+    allow_exact_matches : boolean, default True
+
+        - If True, allow matching the same 'on' value
+          (i.e. less-than-or-equal-to)
+        - If False, don't match the same 'on' value
+          (i.e., stricly less-than)
+
+    Returns
+    -------
+    merged : DataFrame
+
+    Examples
+    --------
+    >>> left
+        a left_val
+    0   1        a
+    1   5        b
+    2  10        c
+
+    >>> right
+       a  right_val
+    0  1          1
+    1  2          2
+    2  3          3
+    3  6          6
+    4  7          7
+
+    >>> pd.merge_asof(left, right, on='a')
+        a left_val  right_val
+    0   1        a          1
+    1   5        b          3
+    2  10        c          7
+
+    >>> pd.merge_asof(left, right, on='a', allow_exact_matches=False)
+        a left_val  right_val
+    0   1        a        NaN
+    1   5        b        3.0
+    2  10        c        7.0
+
+    For this example, we can achieve a similar result thru
+    ``pd.merge_ordered()``, though its not nearly as performant.
+
+    >>> (pd.merge_ordered(left, right, on='a')
+    ...    .ffill()
+    ...    .drop_duplicates(['left_val'])
+    ... )
+        a left_val  right_val
+    0   1        a        1.0
+    3   5        b        3.0
+    6  10        c        7.0
+
+    Here is a real-world times-series example
+
+    >>> quotes
+                         time ticker     bid     ask
+    0 2016-05-25 13:30:00.023   GOOG  720.50  720.93
+    1 2016-05-25 13:30:00.023   MSFT   51.95   51.96
+    2 2016-05-25 13:30:00.030   MSFT   51.97   51.98
+    3 2016-05-25 13:30:00.041   MSFT   51.99   52.00
+    4 2016-05-25 13:30:00.048   GOOG  720.50  720.93
+    5 2016-05-25 13:30:00.049   AAPL   97.99   98.01
+    6 2016-05-25 13:30:00.072   GOOG  720.50  720.88
+    7 2016-05-25 13:30:00.075   MSFT   52.01   52.03
+
+    >>> trades
+                         time ticker   price  quantity
+    0 2016-05-25 13:30:00.023   MSFT   51.95        75
+    1 2016-05-25 13:30:00.038   MSFT   51.95       155
+    2 2016-05-25 13:30:00.048   GOOG  720.77       100
+    3 2016-05-25 13:30:00.048   GOOG  720.92       100
+    4 2016-05-25 13:30:00.048   AAPL   98.00       100
+
+    By default we are taking the asof of the quotes
+
+    >>> pd.asof_merge(trades, quotes,
+    ...                       on='time',
+    ...                       by='ticker')
+                         time ticker   price  quantity     bid     ask
+    0 2016-05-25 13:30:00.023   MSFT   51.95        75   51.95   51.96
+    1 2016-05-25 13:30:00.038   MSFT   51.95       155   51.97   51.98
+    2 2016-05-25 13:30:00.048   GOOG  720.77       100  720.50  720.93
+    3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
+    4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
+
+    We only asof within 2ms betwen the quote time and the trade time
+
+    >>> pd.asof_merge(trades, quotes,
+    ...                       on='time',
+    ...                       by='ticker',
+    ...                       tolerance=pd.Timedelta('2ms'))
+                         time ticker   price  quantity     bid     ask
+    0 2016-05-25 13:30:00.023   MSFT   51.95        75   51.95   51.96
+    1 2016-05-25 13:30:00.038   MSFT   51.95       155     NaN     NaN
+    2 2016-05-25 13:30:00.048   GOOG  720.77       100  720.50  720.93
+    3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
+    4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
+
+    We only asof within 10ms betwen the quote time and the trade time
+    and we exclude exact matches on time. However *prior* data will
+    propogate forward
+
+    >>> pd.asof_merge(trades, quotes,
+    ...                       on='time',
+    ...                       by='ticker',
+    ...                       tolerance=pd.Timedelta('10ms'),
+    ...                       allow_exact_matches=False)
+                         time ticker   price  quantity     bid     ask
+    0 2016-05-25 13:30:00.023   MSFT   51.95        75     NaN     NaN
+    1 2016-05-25 13:30:00.038   MSFT   51.95       155   51.97   51.98
+    2 2016-05-25 13:30:00.048   GOOG  720.77       100  720.50  720.93
+    3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
+    4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
+
+    See also
+    --------
+    merge
+    merge_ordered
+
+    """
+    op = _AsOfMerge(left, right,
+                    on=on, left_on=left_on, right_on=right_on,
+                    by=by, suffixes=suffixes,
+                    how='asof', tolerance=tolerance,
+                    allow_exact_matches=allow_exact_matches)
+    return op.get_result()
 
 
 # TODO: transformations??
@@ -154,6 +431,7 @@ class _MergeOperation(object):
     Perform a database (SQL) merge operation between two DataFrame objects
     using either columns as keys or their row indexes
     """
+    _merge_type = 'merge'
 
     def __init__(self, left, right, how='inner', on=None,
                  left_on=None, right_on=None, axis=1,
@@ -194,6 +472,15 @@ class _MergeOperation(object):
                 'can not merge DataFrame with instance of '
                 'type {0}'.format(type(right)))
 
+        # warn user when merging between different levels
+        if left.columns.nlevels != right.columns.nlevels:
+            msg = ('merging between different levels can give an unintended '
+                   'result ({0} levels on the left, {1} on the right)')
+            msg = msg.format(left.columns.nlevels, right.columns.nlevels)
+            warnings.warn(msg, UserWarning)
+
+        self._validate_specification()
+
         # note this function has side effects
         (self.left_join_keys,
          self.right_join_keys,
@@ -221,7 +508,7 @@ class _MergeOperation(object):
             concat_axis=0, copy=self.copy)
 
         typ = self.left._constructor
-        result = typ(result_data).__finalize__(self, method='merge')
+        result = typ(result_data).__finalize__(self, method=self._merge_type)
 
         if self.indicator:
             result = self._indicator_post_merge(result)
@@ -270,55 +557,85 @@ class _MergeOperation(object):
         return result
 
     def _maybe_add_join_keys(self, result, left_indexer, right_indexer):
-        # insert group keys
+
+        left_has_missing = None
+        right_has_missing = None
 
         keys = zip(self.join_names, self.left_on, self.right_on)
         for i, (name, lname, rname) in enumerate(keys):
             if not _should_fill(lname, rname):
                 continue
 
+            take_left, take_right = None, None
+
             if name in result:
-                key_indexer = result.columns.get_loc(name)
 
                 if left_indexer is not None and right_indexer is not None:
-
                     if name in self.left:
-                        if len(self.left) == 0:
-                            continue
 
-                        na_indexer = (left_indexer == -1).nonzero()[0]
-                        if len(na_indexer) == 0:
-                            continue
+                        if left_has_missing is None:
+                            left_has_missing = (left_indexer == -1).any()
 
-                        right_na_indexer = right_indexer.take(na_indexer)
-                        result.iloc[na_indexer, key_indexer] = (
-                            algos.take_1d(self.right_join_keys[i],
-                                          right_na_indexer))
+                        if left_has_missing:
+                            take_right = self.right_join_keys[i]
+
+                            if not is_dtype_equal(result[name].dtype,
+                                                  self.left[name].dtype):
+                                take_left = self.left[name]._values
+
                     elif name in self.right:
-                        if len(self.right) == 0:
-                            continue
 
-                        na_indexer = (right_indexer == -1).nonzero()[0]
-                        if len(na_indexer) == 0:
-                            continue
+                        if right_has_missing is None:
+                            right_has_missing = (right_indexer == -1).any()
 
-                        left_na_indexer = left_indexer.take(na_indexer)
-                        result.iloc[na_indexer, key_indexer] = (
-                            algos.take_1d(self.left_join_keys[i],
-                                          left_na_indexer))
+                        if right_has_missing:
+                            take_left = self.left_join_keys[i]
+
+                            if not is_dtype_equal(result[name].dtype,
+                                                  self.right[name].dtype):
+                                take_right = self.right[name]._values
+
             elif left_indexer is not None \
                     and isinstance(self.left_join_keys[i], np.ndarray):
 
-                if name is None:
-                    name = 'key_%d' % i
+                take_left = self.left_join_keys[i]
+                take_right = self.right_join_keys[i]
 
-                # a faster way?
-                key_col = algos.take_1d(self.left_join_keys[i], left_indexer)
-                na_indexer = (left_indexer == -1).nonzero()[0]
-                right_na_indexer = right_indexer.take(na_indexer)
-                key_col.put(na_indexer, algos.take_1d(self.right_join_keys[i],
-                                                      right_na_indexer))
-                result.insert(i, name, key_col)
+            if take_left is not None or take_right is not None:
+
+                if take_left is None:
+                    lvals = result[name]._values
+                else:
+                    lfill = na_value_for_dtype(take_left.dtype)
+                    lvals = algos.take_1d(take_left, left_indexer,
+                                          fill_value=lfill)
+
+                if take_right is None:
+                    rvals = result[name]._values
+                else:
+                    rfill = na_value_for_dtype(take_right.dtype)
+                    rvals = algos.take_1d(take_right, right_indexer,
+                                          fill_value=rfill)
+
+                # if we have an all missing left_indexer
+                # make sure to just use the right values
+                mask = left_indexer == -1
+                if mask.all():
+                    key_col = rvals
+                else:
+                    key_col = Index(lvals).where(~mask, rvals)
+
+                if name in result:
+                    result[name] = key_col
+                else:
+                    result.insert(i, name or 'key_%d' % i, key_col)
+
+    def _get_join_indexers(self):
+        """ return the join indexers """
+        return _get_join_indexers(self.left_join_keys,
+                                  self.right_join_keys,
+                                  sort=self.sort,
+                                  how=self.how)
 
     def _get_join_info(self):
         left_ax = self.left._data.axes[self.axis]
@@ -338,9 +655,8 @@ class _MergeOperation(object):
                                     sort=self.sort)
         else:
             (left_indexer,
-             right_indexer) = _get_join_indexers(self.left_join_keys,
-                                                 self.right_join_keys,
-                                                 sort=self.sort, how=self.how)
+             right_indexer) = self._get_join_indexers()
+
             if self.right_index:
                 if len(self.left) > 0:
                     join_index = self.left.index.take(left_indexer)
@@ -394,8 +710,6 @@ class _MergeOperation(object):
         -------
         left_keys, right_keys
         """
-        self._validate_specification()
-
         left_keys = []
         right_keys = []
         join_names = []
@@ -514,7 +828,8 @@ class _MergeOperation(object):
             raise ValueError("len(right_on) must equal len(left_on)")
 
 
-def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
+def _get_join_indexers(left_keys, right_keys, sort=False, how='inner',
+                       **kwargs):
     """
 
     Parameters
@@ -544,26 +859,27 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
     lkey, rkey, count = fkeys(lkey, rkey)
 
     # preserve left frame order if how == 'left' and sort == False
-    kwargs = {'sort': sort} if how == 'left' else {}
+    kwargs = copy.copy(kwargs)
+    if how == 'left':
+        kwargs['sort'] = sort
     join_func = _join_functions[how]
+
     return join_func(lkey, rkey, count, **kwargs)
 
 
 class _OrderedMerge(_MergeOperation):
+    _merge_type = 'ordered_merge'
 
-    def __init__(self, left, right, on=None, by=None, left_on=None,
-                 right_on=None, axis=1, left_index=False, right_index=False,
+    def __init__(self, left, right, on=None, left_on=None,
+                 right_on=None, axis=1,
                  suffixes=('_x', '_y'), copy=True,
-                 fill_method=None):
+                 fill_method=None, how='outer'):
 
         self.fill_method = fill_method
-
         _MergeOperation.__init__(self, left, right, on=on, left_on=left_on,
                                  right_on=right_on, axis=axis,
-                                 left_index=left_index,
-                                 right_index=right_index,
-                                 how='outer', suffixes=suffixes,
-                                 sort=True  # sorts when factorizing
+                                 how=how, suffixes=suffixes,
+                                 sort=True  # factorize sorts
                                  )
 
     def get_result(self):
@@ -577,8 +893,8 @@ class _OrderedMerge(_MergeOperation):
                                                      rdata.items, rsuf)
 
         if self.fill_method == 'ffill':
-            left_join_indexer = _algos.ffill_indexer(left_indexer)
-            right_join_indexer = _algos.ffill_indexer(right_indexer)
+            left_join_indexer = _join.ffill_indexer(left_indexer)
+            right_join_indexer = _join.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -594,11 +910,189 @@ class _OrderedMerge(_MergeOperation):
             concat_axis=0, copy=self.copy)
 
         typ = self.left._constructor
-        result = typ(result_data).__finalize__(self, method='ordered_merge')
+        result = typ(result_data).__finalize__(self, method=self._merge_type)
 
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
         return result
+
+
+_asof_functions = {
+    'int64_t': _join.asof_join_int64_t,
+    'double': _join.asof_join_double,
+}
+
+_asof_by_functions = {
+    ('int64_t', 'int64_t'): _join.asof_join_int64_t_by_int64_t,
+    ('double', 'int64_t'): _join.asof_join_double_by_int64_t,
+    ('int64_t', 'object'): _join.asof_join_int64_t_by_object,
+    ('double', 'object'): _join.asof_join_double_by_object,
+}
+
+_type_casters = {
+    'int64_t': _ensure_int64,
+    'double': _ensure_float64,
+    'object': _ensure_object,
+}
+
+
+def _get_cython_type(dtype):
+    """ Given a dtype, return 'int64_t', 'double', or 'object' """
+    if is_integer_dtype(dtype):
+        return 'int64_t'
+    elif is_float_dtype(dtype):
+        return 'double'
+    else:
+        return 'object'
+
+
+class _AsOfMerge(_OrderedMerge):
+    _merge_type = 'asof_merge'
+
+    def __init__(self, left, right, on=None, by=None, left_on=None,
+                 right_on=None, axis=1,
+                 suffixes=('_x', '_y'), copy=True,
+                 fill_method=None,
+                 how='asof', tolerance=None,
+                 allow_exact_matches=True):
+
+        self.by = by
+        self.tolerance = tolerance
+        self.allow_exact_matches = allow_exact_matches
+
+        _OrderedMerge.__init__(self, left, right, on=on, left_on=left_on,
+                               right_on=right_on, axis=axis,
+                               how=how, suffixes=suffixes,
+                               fill_method=fill_method)
+
+    def _validate_specification(self):
+        super(_AsOfMerge, self)._validate_specification()
+
+        # we only allow on to be a single item for on
+        if len(self.left_on) != 1:
+            raise MergeError("can only asof on a key for left")
+
+        if len(self.right_on) != 1:
+            raise MergeError("can only asof on a key for right")
+
+        # add by to our key-list so we can have it in the
+        # output as a key
+        if self.by is not None:
+            if not is_list_like(self.by):
+                self.by = [self.by]
+
+            if len(self.by) != 1:
+                raise MergeError("can only asof by a single key")
+
+            self.left_on = self.by + list(self.left_on)
+            self.right_on = self.by + list(self.right_on)
+
+    @property
+    def _asof_key(self):
+        """ This is our asof key, the 'on' """
+        return self.left_on[-1]
+
+    def _get_merge_keys(self):
+
+        # note this function has side effects
+        (left_join_keys,
+         right_join_keys,
+         join_names) = super(_AsOfMerge, self)._get_merge_keys()
+
+        # validate index types are the same
+        for lk, rk in zip(left_join_keys, right_join_keys):
+            if not is_dtype_equal(lk.dtype, rk.dtype):
+                raise MergeError("incompatible merge keys, "
+                                 "must be the same type")
+
+        # validate tolerance; must be a Timedelta if we have a DTI
+        if self.tolerance is not None:
+
+            lt = left_join_keys[self.left_on.index(self._asof_key)]
+            msg = "incompatible tolerance, must be compat " \
+                  "with type {0}".format(type(lt))
+
+            if is_datetime64_dtype(lt):
+                if not isinstance(self.tolerance, Timedelta):
+                    raise MergeError(msg)
+                if self.tolerance < Timedelta(0):
+                    raise MergeError("tolerance must be positive")
+
+            elif is_int64_dtype(lt):
+                if not is_integer(self.tolerance):
+                    raise MergeError(msg)
+                if self.tolerance < 0:
+                    raise MergeError("tolerance must be positive")
+
+            else:
+                raise MergeError(msg)
+
+        # validate allow_exact_matches
+        if not is_bool(self.allow_exact_matches):
+            raise MergeError("allow_exact_matches must be boolean, "
+                             "passed {0}".format(self.allow_exact_matches))
+
+        return left_join_keys, right_join_keys, join_names
+
+    def _get_join_indexers(self):
+        """ return the join indexers """
+
+        # values to compare
+        left_values = self.left_join_keys[-1]
+        right_values = self.right_join_keys[-1]
+        tolerance = self.tolerance
+
+        # we required sortedness in the join keys
+        msg = " keys must be sorted"
+        if not Index(left_values).is_monotonic:
+            raise ValueError('left' + msg)
+        if not Index(right_values).is_monotonic:
+            raise ValueError('right' + msg)
+
+        # initial type conversion as needed
+        if needs_i8_conversion(left_values):
+            left_values = left_values.view('i8')
+            right_values = right_values.view('i8')
+            if tolerance is not None:
+                tolerance = tolerance.value
+
+        # a "by" parameter requires special handling
+        if self.by is not None:
+            left_by_values = self.left_join_keys[0]
+            right_by_values = self.right_join_keys[0]
+
+            # choose appropriate function by type
+            on_type = _get_cython_type(left_values.dtype)
+            by_type = _get_cython_type(left_by_values.dtype)
+
+            on_type_caster = _type_casters[on_type]
+            by_type_caster = _type_casters[by_type]
+            func = _asof_by_functions[(on_type, by_type)]
+
+            left_values = on_type_caster(left_values)
+            right_values = on_type_caster(right_values)
+            left_by_values = by_type_caster(left_by_values)
+            right_by_values = by_type_caster(right_by_values)
+
+            return func(left_values,
+                        right_values,
+                        left_by_values,
+                        right_by_values,
+                        self.allow_exact_matches,
+                        tolerance)
+        else:
+            # choose appropriate function by type
+            on_type = _get_cython_type(left_values.dtype)
+            type_caster = _type_casters[on_type]
+            func = _asof_functions[on_type]
+
+            left_values = type_caster(left_values)
+            right_values = type_caster(right_values)
+
+            return func(left_values,
+                        right_values,
+                        self.allow_exact_matches,
+                        tolerance)
 
 
 def _get_multiindex_indexer(join_keys, index, sort):
@@ -633,15 +1127,15 @@ def _get_multiindex_indexer(join_keys, index, sort):
     # factorize keys to a dense i8 space
     lkey, rkey, count = fkeys(lkey, rkey)
 
-    return _algos.left_outer_join(lkey, rkey, count, sort=sort)
+    return _join.left_outer_join(lkey, rkey, count, sort=sort)
 
 
 def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
-    left_indexer, right_indexer = _algos.left_outer_join(
-        com._ensure_int64(left_key),
-        com._ensure_int64(right_key),
+    left_indexer, right_indexer = _join.left_outer_join(
+        _ensure_int64(left_key),
+        _ensure_int64(right_key),
         count, sort=sort)
 
     return left_indexer, right_indexer
@@ -674,29 +1168,29 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 
 
 def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = _algos.left_outer_join(y, x, max_groups)
+    right_indexer, left_indexer = _join.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 _join_functions = {
-    'inner': _algos.inner_join,
-    'left': _algos.left_outer_join,
+    'inner': _join.inner_join,
+    'left': _join.left_outer_join,
     'right': _right_outer_join,
-    'outer': _algos.full_outer_join,
+    'outer': _join.full_outer_join,
 }
 
 
 def _factorize_keys(lk, rk, sort=True):
-    if com.is_datetime64tz_dtype(lk) and com.is_datetime64tz_dtype(rk):
+    if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
         lk = lk.values
         rk = rk.values
-    if com.is_int_or_datetime_dtype(lk) and com.is_int_or_datetime_dtype(rk):
+    if is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = _hash.Int64Factorizer
-        lk = com._ensure_int64(com._values_from_object(lk))
-        rk = com._ensure_int64(com._values_from_object(rk))
+        lk = _ensure_int64(com._values_from_object(lk))
+        rk = _ensure_int64(com._values_from_object(rk))
     else:
         klass = _hash.Factorizer
-        lk = com._ensure_object(lk)
-        rk = com._ensure_object(rk)
+        lk = _ensure_object(lk)
+        rk = _ensure_object(rk)
 
     rizer = klass(max(len(lk), len(rk)))
 
@@ -730,16 +1224,12 @@ def _sort_labels(uniques, left, right):
         # tuplesafe
         uniques = Index(uniques).values
 
-    sorter = uniques.argsort()
+    l = len(left)
+    labels = np.concatenate([left, right])
 
-    reverse_indexer = np.empty(len(sorter), dtype=np.int64)
-    reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-    new_left = reverse_indexer.take(com._ensure_platform_int(left))
-    np.putmask(new_left, left == -1, -1)
-
-    new_right = reverse_indexer.take(com._ensure_platform_int(right))
-    np.putmask(new_right, right == -1, -1)
+    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
+    new_labels = _ensure_int64(new_labels)
+    new_left, new_right = new_labels[:l], new_labels[l:]
 
     return new_left, new_right
 
@@ -800,9 +1290,12 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     join_axes : list of Index objects
         Specific indexes to use for the other n - 1 axes instead of performing
         inner/outer set logic
-    verify_integrity : boolean, default False
-        Check whether the new concatenated axis contains duplicates. This can
-        be very expensive relative to the actual data concatenation
+    ignore_index : boolean, default False
+        If True, do not use the index values along the concatenation axis. The
+        resulting axis will be labeled 0, ..., n - 1. This is useful if you are
+        concatenating objects where the concatenation axis does not have
+        meaningful indexing information. Note the index values on the other
+        axes are still respected in the join.
     keys : sequence, default None
         If multiple levels passed, should contain tuples. Construct
         hierarchical index using the passed keys as the outermost level
@@ -811,12 +1304,9 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         MultiIndex. Otherwise they will be inferred from the keys
     names : list, default None
         Names for the levels in the resulting hierarchical index
-    ignore_index : boolean, default False
-        If True, do not use the index values along the concatenation axis. The
-        resulting axis will be labeled 0, ..., n - 1. This is useful if you are
-        concatenating objects where the concatenation axis does not have
-        meaningful indexing information. Note the index values on the other
-        axes are still respected in the join.
+    verify_integrity : boolean, default False
+        Check whether the new concatenated axis contains duplicates. This can
+        be very expensive relative to the actual data concatenation
     copy : boolean, default True
         If False, do not copy data unnecessarily
 
@@ -986,21 +1476,24 @@ class _Concatenator(object):
                     values = [x._values for x in non_empties]
                 else:
                     values = [x._values for x in self.objs]
-                new_data = com._concat_compat(values)
+                new_data = _concat._concat_compat(values)
 
                 name = com._consensus_name_attr(self.objs)
-                return (Series(new_data, index=self.new_axes[0],
-                               name=name,
-                               dtype=new_data.dtype)
+                cons = _concat._get_series_result_type(new_data)
+
+                return (cons(new_data, index=self.new_axes[0],
+                             name=name, dtype=new_data.dtype)
                         .__finalize__(self, method='concat'))
 
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
+                cons = _concat._get_series_result_type(data)
+
                 index, columns = self.new_axes
-                tmpdf = DataFrame(data, index=index)
-                tmpdf.columns = columns
-                return tmpdf.__finalize__(self, method='concat')
+                df = cons(data, index=index)
+                df.columns = columns
+                return df.__finalize__(self, method='concat')
 
         # combine block managers
         else:
@@ -1020,12 +1513,13 @@ class _Concatenator(object):
                 mgrs_indexers.append((obj._data, indexers))
 
             new_data = concatenate_block_managers(
-                mgrs_indexers, self.new_axes,
-                concat_axis=self.axis, copy=self.copy)
+                mgrs_indexers, self.new_axes, concat_axis=self.axis,
+                copy=self.copy)
             if not self.copy:
                 new_data._consolidate_inplace()
 
-            return (self.objs[0]._from_axes(new_data, self.new_axes)
+            cons = _concat._get_frame_result_type(new_data, self.objs)
+            return (cons._from_axes(new_data, self.new_axes)
                     .__finalize__(self, method='concat'))
 
     def _get_result_dim(self):
@@ -1131,6 +1625,7 @@ def _concat_indexes(indexes):
 
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None):
+
     if ((levels is None and isinstance(keys[0], tuple)) or
             (levels is not None and len(levels) > 1)):
         zipped = lzip(*keys)
@@ -1138,8 +1633,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = [None] * len(zipped)
 
         if levels is None:
-            levels = [Categorical.from_array(
-                zp, ordered=True).categories for zp in zipped]
+            _, levels = _factorize_from_iterables(zipped)
         else:
             levels = [_ensure_index(x) for x in levels]
     else:
@@ -1177,9 +1671,9 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.extend(concat_index.levels)
             label_list.extend(concat_index.labels)
         else:
-            factor = Categorical.from_array(concat_index, ordered=True)
-            levels.append(factor.categories)
-            label_list.append(factor.codes)
+            codes, categories = _factorize_from_iterable(concat_index)
+            levels.append(categories)
+            label_list.append(codes)
 
         if len(names) == len(levels):
             names = list(names)

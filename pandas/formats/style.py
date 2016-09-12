@@ -17,9 +17,12 @@ except ImportError:
           "or `pip install Jinja2`"
     raise ImportError(msg)
 
+from pandas.types.common import is_float, is_string_like
+
 import numpy as np
 import pandas as pd
-from pandas.compat import lzip, range
+from pandas.compat import range
+from pandas.core.config import get_option
 import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 try:
@@ -78,6 +81,24 @@ class Styler(object):
     to automatically render itself. Otherwise call Styler.render to get
     the genterated HTML.
 
+    CSS classes are attached to the generated HTML
+
+    * Index and Column names include ``index_name`` and ``level<k>``
+      where `k` is its level in a MultiIndex
+    * Index label cells include
+
+      * ``row_heading``
+      * ``row<n>`` where `n` is the numeric position of the row
+      * ``level<k>`` where `k` is the level in a MultiIndex
+
+    * Column label cells include
+      * ``col_heading``
+      * ``col<n>`` where `n` is the numeric position of the column
+      * ``evel<k>`` where `k` is the level in a MultiIndex
+
+    * Blank cells include ``blank``
+    * Data cells include ``data``
+
     See Also
     --------
     pandas.DataFrame.style
@@ -109,7 +130,10 @@ class Styler(object):
             {% for r in head %}
             <tr>
                 {% for c in r %}
-                <{{c.type}} class="{{c.class}}">{{c.value}}
+                {% if c.is_visible != False %}
+                <{{c.type}} class="{{c.class}}" {{ c.attributes|join(" ") }}>
+                  {{c.value}}
+                {% endif %}
                 {% endfor %}
             </tr>
             {% endfor %}
@@ -118,8 +142,11 @@ class Styler(object):
             {% for r in body %}
             <tr>
                 {% for c in r %}
-                <{{c.type}} id="T_{{uuid}}{{c.id}}" class="{{c.class}}">
+                {% if c.is_visible != False %}
+                <{{c.type}} id="T_{{uuid}}{{c.id}}"
+                 class="{{c.class}}" {{ c.attributes|join(" ") }}>
                     {{ c.display_value }}
+                {% endif %}
                 {% endfor %}
             </tr>
             {% endfor %}
@@ -133,7 +160,7 @@ class Styler(object):
         self._todo = []
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError
+            raise TypeError("``data`` must be a Series or DataFrame")
         if data.ndim == 1:
             data = data.to_frame()
         if not data.index.is_unique or not data.columns.is_unique:
@@ -147,13 +174,13 @@ class Styler(object):
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
-            precision = pd.options.display.precision
+            precision = get_option('display.precision')
         self.precision = precision
         self.table_attributes = table_attributes
         # display_funcs maps (row, col) -> formatting function
 
         def default_display_func(x):
-            if com.is_float(x):
+            if is_float(x):
                 return '{:>.{precision}g}'.format(x, precision=self.precision)
             else:
                 return x
@@ -176,9 +203,18 @@ class Styler(object):
         uuid = self.uuid or str(uuid1()).replace("-", "_")
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
+        INDEX_NAME_CLASS = "index_name"
+
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
         BLANK_VALUE = ""
+
+        def format_attr(pair):
+            return "{key}={value}".format(**pair)
+
+        # for sparsifying a MultiIndex
+        idx_lengths = _get_level_lengths(self.index)
+        col_lengths = _get_level_lengths(self.columns)
 
         cell_context = dict()
 
@@ -186,10 +222,6 @@ class Styler(object):
         n_clvls = self.data.columns.nlevels
         rlabels = self.data.index.tolist()
         clabels = self.data.columns.tolist()
-
-        idx_values = self.data.index.format(sparsify=False, adjoin=False,
-                                            names=False)
-        idx_values = lzip(*idx_values)
 
         if n_rlvls == 1:
             rlabels = [[x] for x in rlabels]
@@ -201,9 +233,24 @@ class Styler(object):
         head = []
 
         for r in range(n_clvls):
+            # Blank for Index columns...
             row_es = [{"type": "th",
                        "value": BLANK_VALUE,
-                       "class": " ".join([BLANK_CLASS])}] * n_rlvls
+                       "display_value": BLANK_VALUE,
+                       "is_visible": True,
+                       "class": " ".join([BLANK_CLASS])}] * (n_rlvls - 1)
+
+            # ... except maybe the last for columns.names
+            name = self.data.columns.names[r]
+            cs = [BLANK_CLASS if name is None else INDEX_NAME_CLASS,
+                  "level%s" % r]
+            name = BLANK_VALUE if name is None else name
+            row_es.append({"type": "th",
+                           "value": name,
+                           "display_value": name,
+                           "class": " ".join(cs),
+                           "is_visible": True})
+
             for c in range(len(clabels[0])):
                 cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
                 cs.extend(cell_context.get(
@@ -212,16 +259,23 @@ class Styler(object):
                 row_es.append({"type": "th",
                                "value": value,
                                "display_value": value,
-                               "class": " ".join(cs)})
+                               "class": " ".join(cs),
+                               "is_visible": _is_visible(c, r, col_lengths),
+                               "attributes": [
+                                   format_attr({"key": "colspan",
+                                                "value": col_lengths.get(
+                                                    (r, c), 1)})
+                               ]})
             head.append(row_es)
 
-        if self.data.index.names and self.data.index.names != [None]:
+        if self.data.index.names and not all(x is None
+                                             for x in self.data.index.names):
             index_header_row = []
 
             for c, name in enumerate(self.data.index.names):
-                cs = [COL_HEADING_CLASS,
-                      "level%s" % (n_clvls + 1),
-                      "col%s" % c]
+                cs = [INDEX_NAME_CLASS,
+                      "level%s" % c]
+                name = '' if name is None else name
                 index_header_row.append({"type": "th", "value": name,
                                          "class": " ".join(cs)})
 
@@ -235,12 +289,17 @@ class Styler(object):
 
         body = []
         for r, idx in enumerate(self.data.index):
-            cs = [ROW_HEADING_CLASS, "level%s" % c, "row%s" % r]
-            cs.extend(
-                cell_context.get("row_headings", {}).get(r, {}).get(c, []))
+            #  cs.extend(
+            #    cell_context.get("row_headings", {}).get(r, {}).get(c, []))
             row_es = [{"type": "th",
+                       "is_visible": _is_visible(r, c, idx_lengths),
+                       "attributes": [
+                           format_attr({"key": "rowspan",
+                                        "value": idx_lengths.get((c, r), 1)})
+                       ],
                        "value": rlabels[r][c],
-                       "class": " ".join(cs),
+                       "class": " ".join([ROW_HEADING_CLASS, "level%s" % c,
+                                          "row%s" % r]),
                        "display_value": rlabels[r][c]}
                       for c in range(len(rlabels[r]))]
 
@@ -427,11 +486,30 @@ class Styler(object):
     def _apply(self, func, axis=0, subset=None, **kwargs):
         subset = slice(None) if subset is None else subset
         subset = _non_reducing_slice(subset)
+        data = self.data.loc[subset]
         if axis is not None:
-            result = self.data.loc[subset].apply(func, axis=axis, **kwargs)
+            result = data.apply(func, axis=axis, **kwargs)
         else:
-            # like tee
-            result = func(self.data.loc[subset], **kwargs)
+            result = func(data, **kwargs)
+            if not isinstance(result, pd.DataFrame):
+                raise TypeError(
+                    "Function {!r} must return a DataFrame when "
+                    "passed to `Styler.apply` with axis=None".format(func))
+            if not (result.index.equals(data.index) and
+                    result.columns.equals(data.columns)):
+                msg = ('Result of {!r} must have identical index and columns '
+                       'as the input'.format(func))
+                raise ValueError(msg)
+
+        result_shape = result.shape
+        expected_shape = self.data.loc[subset].shape
+        if result_shape != expected_shape:
+            msg = ("Function {!r} returned the wrong shape.\n"
+                   "Result has shape: {}\n"
+                   "Expected shape:   {}".format(func,
+                                                 result.shape,
+                                                 expected_shape))
+            raise ValueError(msg)
         self._update_ctx(result)
         return self
 
@@ -444,15 +522,19 @@ class Styler(object):
 
         Parameters
         ----------
-        func: function
-        axis: int, str or None
+        func : function
+            ``func`` should take a Series or DataFrame (depending
+            on ``axis``), and return an object with the same shape.
+            Must return a DataFrame with identical index and
+            column labels when ``axis=None``
+        axis : int, str or None
             apply to each column (``axis=0`` or ``'index'``)
             or to each row (``axis=1`` or ``'columns'``) or
-            to the entire DataFrame at once with ``axis=None``.
-        subset: IndexSlice
+            to the entire DataFrame at once with ``axis=None``
+        subset : IndexSlice
             a valid indexer to limit ``data`` to *before* applying the
             function. Consider using a pandas.IndexSlice
-        kwargs: dict
+        kwargs : dict
             pass along to ``func``
 
         Returns
@@ -461,9 +543,22 @@ class Styler(object):
 
         Notes
         -----
+        The output shape of ``func`` should match the input, i.e. if
+        ``x`` is the input row, column, or table (depending on ``axis``),
+        then ``func(x.shape) == x.shape`` should be true.
+
         This is similar to ``DataFrame.apply``, except that ``axis=None``
         applies the function to the entire DataFrame at once,
         rather than column-wise or row-wise.
+
+        Examples
+        --------
+        >>> def highlight_max(x):
+        ...     return ['background-color: yellow' if v == x.max() else ''
+                        for v in x]
+        ...
+        >>> df = pd.DataFrame(np.random.randn(5, 2))
+        >>> df.style.apply(highlight_max)
         """
         self._todo.append((lambda instance: getattr(instance, '_apply'),
                            (func, axis, subset), kwargs))
@@ -488,6 +583,7 @@ class Styler(object):
         Parameters
         ----------
         func : function
+            ``func`` should take a scalar and return a scalar
         subset : IndexSlice
             a valid indexer to limit ``data`` to *before* applying the
             function. Consider using a pandas.IndexSlice
@@ -742,6 +838,7 @@ class Styler(object):
         --------
         >>> df = pd.DataFrame(np.random.randn(10, 4))
         >>> df.style.set_properties(color="white", align="right")
+        >>> df.style.set_properties(**{'background-color': 'yellow'})
         """
         values = ';'.join('{p}: {v}'.format(p=p, v=v)
                           for p, v in kwargs.items())
@@ -854,8 +951,42 @@ class Styler(object):
                                 index=data.index, columns=data.columns)
 
 
+def _is_visible(idx_row, idx_col, lengths):
+    """
+    Index -> {(idx_row, idx_col): bool})
+    """
+    return (idx_col, idx_row) in lengths
+
+
+def _get_level_lengths(index):
+    """
+    Given an index, find the level lenght for each element.
+
+    Result is a dictionary of (level, inital_position): span
+    """
+    sentinel = com.sentinel_factory()
+    levels = index.format(sparsify=sentinel, adjoin=False, names=False)
+
+    if index.nlevels == 1:
+        return {(0, i): 1 for i, value in enumerate(levels)}
+
+    lengths = {}
+
+    for i, lvl in enumerate(levels):
+        for j, row in enumerate(lvl):
+            if not get_option('display.multi_sparse'):
+                lengths[(i, j)] = 1
+            elif row != sentinel:
+                last_label = j
+                lengths[(i, last_label)] = 1
+            else:
+                lengths[(i, last_label)] += 1
+
+    return lengths
+
+
 def _maybe_wrap_formatter(formatter):
-    if com.is_string_like(formatter):
+    if is_string_like(formatter):
         return lambda x: formatter.format(x)
     elif callable(formatter):
         return formatter

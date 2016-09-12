@@ -8,8 +8,8 @@ import numpy as np
 from pandas import (Index, Series, date_range, Timestamp,
                     DatetimeIndex, Int64Index, to_datetime)
 
-import pandas.core.datetools as datetools
-import pandas.tseries.offsets as offsets
+from pandas.tseries.frequencies import get_offset, to_offset
+from pandas.tseries.offsets import BDay, Micro, Milli, MonthBegin
 import pandas as pd
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
@@ -19,12 +19,11 @@ from pandas.compat import StringIO, cPickle as pickle
 from pandas import read_pickle
 from numpy.random import rand
 import pandas.compat as compat
-from pandas.core.datetools import BDay
 
 randn = np.random.randn
 
 
-# infortunately, too much has changed to handle these legacy pickles
+# Unfortunately, too much has changed to handle these legacy pickles
 # class TestLegacySupport(unittest.TestCase):
 class LegacySupport(object):
 
@@ -65,8 +64,6 @@ class LegacySupport(object):
         self.assertEqual(unpickled.index.offset, BDay(1, normalize=True))
 
     def test_unpickle_legacy_series(self):
-        from pandas.core.datetools import BDay
-
         unpickled = self.series
 
         dtindex = DatetimeIndex(start='1/3/2005', end='1/14/2005',
@@ -85,8 +82,8 @@ class LegacySupport(object):
 
         ex_index = DatetimeIndex([], freq='B')
 
-        self.assertTrue(result.index.equals(ex_index))
-        tm.assertIsInstance(result.index.freq, offsets.BDay)
+        self.assert_index_equal(result.index, ex_index)
+        tm.assertIsInstance(result.index.freq, BDay)
         self.assertEqual(len(result), 0)
 
     def test_arithmetic_interaction(self):
@@ -116,7 +113,7 @@ class LegacySupport(object):
                                    return_indexers=True)
 
             tm.assertIsInstance(ra, DatetimeIndex)
-            self.assertTrue(ra.equals(ea))
+            self.assert_index_equal(ra, ea)
 
             assert_almost_equal(rb, eb)
             assert_almost_equal(rc, ec)
@@ -140,7 +137,7 @@ class LegacySupport(object):
 
         rng = read_pickle(filepath)
         tm.assertIsInstance(rng[0], datetime)
-        tm.assertIsInstance(rng.offset, offsets.BDay)
+        tm.assertIsInstance(rng.offset, BDay)
         self.assertEqual(rng.values.dtype, object)
 
     def test_setops(self):
@@ -150,24 +147,24 @@ class LegacySupport(object):
         result = index[:5].union(obj_index[5:])
         expected = index
         tm.assertIsInstance(result, DatetimeIndex)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         result = index[:10].intersection(obj_index[5:])
         expected = index[5:10]
         tm.assertIsInstance(result, DatetimeIndex)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         result = index[:10] - obj_index[5:]
         expected = index[:5]
         tm.assertIsInstance(result, DatetimeIndex)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
     def test_index_conversion(self):
         index = self.frame.index
         obj_index = index.asobject
 
         conv = DatetimeIndex(obj_index)
-        self.assertTrue(conv.equals(index))
+        self.assert_index_equal(conv, index)
 
         self.assertRaises(ValueError, DatetimeIndex, ['a', 'b', 'c', 'd'])
 
@@ -188,11 +185,11 @@ class LegacySupport(object):
 
         result = index.union(right)
         expected = Index(np.concatenate([index.asobject, right]))
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         result = index.intersection(right)
         expected = Index([])
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
     def test_legacy_time_rules(self):
         rules = [('WEEKDAY', 'B'), ('EOM', 'BM'), ('W@MON', 'W-MON'),
@@ -211,22 +208,17 @@ class LegacySupport(object):
         for old_freq, new_freq in rules:
             old_rng = date_range(start, end, freq=old_freq)
             new_rng = date_range(start, end, freq=new_freq)
-            self.assertTrue(old_rng.equals(new_rng))
-
-            # test get_legacy_offset_name
-            offset = datetools.get_offset(new_freq)
-            old_name = datetools.get_legacy_offset_name(offset)
-            self.assertEqual(old_name, old_freq)
+            self.assert_index_equal(old_rng, new_rng)
 
     def test_ms_vs_MS(self):
-        left = datetools.get_offset('ms')
-        right = datetools.get_offset('MS')
-        self.assertEqual(left, datetools.Milli())
-        self.assertEqual(right, datetools.MonthBegin())
+        left = get_offset('ms')
+        right = get_offset('MS')
+        self.assertEqual(left, Milli())
+        self.assertEqual(right, MonthBegin())
 
     def test_rule_aliases(self):
-        rule = datetools.to_offset('10us')
-        self.assertEqual(rule, datetools.Micro(10))
+        rule = to_offset('10us')
+        self.assertEqual(rule, Micro(10))
 
 
 if __name__ == '__main__':

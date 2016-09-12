@@ -391,6 +391,89 @@ For some windowing functions, additional parameters must be specified:
     such that the weights are normalized with respect to each other. Weights
     of ``[1, 1, 1]`` and ``[2, 2, 2]`` yield the same result.
 
+.. _stats.moments.ts:
+
+Time-aware Rolling
+~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.19.0
+
+New in version 0.19.0 are the ability to pass an offset (or convertible) to a ``.rolling()`` method and have it produce
+variable sized windows based on the passed time window. For each time point, this includes all preceding values occurring
+within the indicated time delta.
+
+This can be particularly useful for a non-regular time frequency index.
+
+.. ipython:: python
+
+   dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+                      index=pd.date_range('20130101 09:00:00', periods=5, freq='s'))
+   dft
+
+This is a regular frequency index. Using an integer window parameter works to roll along the window frequency.
+
+.. ipython:: python
+
+   dft.rolling(2).sum()
+   dft.rolling(2, min_periods=1).sum()
+
+Specifying an offset allows a more intuitive specification of the rolling frequency.
+
+.. ipython:: python
+
+   dft.rolling('2s').sum()
+
+Using a non-regular, but still monotonic index, rolling with an integer window does not impart any special calculation.
+
+
+.. ipython:: python
+
+   dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+                      index = pd.Index([pd.Timestamp('20130101 09:00:00'),
+                                        pd.Timestamp('20130101 09:00:02'),
+                                        pd.Timestamp('20130101 09:00:03'),
+                                        pd.Timestamp('20130101 09:00:05'),
+                                        pd.Timestamp('20130101 09:00:06')],
+                                       name='foo'))
+   dft
+   dft.rolling(2).sum()
+
+
+Using the time-specification generates variable windows for this sparse data.
+
+.. ipython:: python
+
+   dft.rolling('2s').sum()
+
+Furthermore, we now allow an optional ``on`` parameter to specify a column (rather than the
+default of the index) in a DataFrame.
+
+.. ipython:: python
+
+   dft = dft.reset_index()
+   dft
+   dft.rolling('2s', on='foo').sum()
+
+.. _stats.moments.ts-versus-resampling:
+
+Time-aware Rolling vs. Resampling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using ``.rolling()`` with a time-based index is quite similar to :ref:`resampling <timeseries.resampling>`. They
+both operate and perform reductive operations on time-indexed pandas objects.
+
+When using ``.rolling()`` with an offset. The offset is a time-delta. Take a backwards-in-time looking window, and
+aggregate all of the values in that window (including the end-point, but not the start-point). This is the new value
+at that point in the result. These are variable sized windows in time-space for each point of the input. You will get
+a same sized result as the input.
+
+When using ``.resample()`` with an offset. Construct a new index that is the frequency of the offset. For each frequency
+bin, aggregate points from the input within a backwards-in-time looking window that fall in that bin. The result of this
+aggregation is the output for that frequency point. The windows are fixed size size in the frequency space. Your result
+will have the shape of a regular frequency between the min and the max of the original input object.
+
+To summarize, ``.rolling()`` is a time-based window operation, while ``.resample()`` is a frequency-based window operation.
+
 Centering Windows
 ~~~~~~~~~~~~~~~~~
 

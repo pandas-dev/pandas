@@ -44,10 +44,10 @@ cdef class Node:
 NIL = Node(np.inf, [], [])
 
 cdef class IndexableSkiplist:
-    '''
+    """
     Sorted collection supporting O(lg n) insertion, removal, and
     lookup by rank.
-    '''
+    """
     cdef:
         Py_ssize_t size, maxlevels
         Node head
@@ -74,7 +74,6 @@ cdef class IndexableSkiplist:
             while node.width[level] <= i:
                 i -= node.width[level]
                 node = node.next[level]
-
 
         return node.value
 

@@ -965,7 +965,7 @@ Deprecations
 - ``TimeSeries`` deprecated in favor of ``Series`` (note that this has been an alias since 0.13.0), (:issue:`10890`)
 - ``SparsePanel`` deprecated and will be removed in a future version (:issue:`11157`).
 - ``Series.is_time_series`` deprecated in favor of ``Series.index.is_all_dates`` (:issue:`11135`)
-- Legacy offsets (like ``'A@JAN'``) listed in :ref:`here <timeseries.legacyaliases>` are deprecated (note that this has been alias since 0.8.0), (:issue:`10878`)
+- Legacy offsets (like ``'A@JAN'``) are deprecated (note that this has been alias since 0.8.0) (:issue:`10878`)
 - ``WidePanel`` deprecated in favor of ``Panel``, ``LongPanel`` in favor of ``DataFrame`` (note these have been aliases since < 0.11.0), (:issue:`10892`)
 - ``DataFrame.convert_objects`` has been deprecated in favor of type-specific functions ``pd.to_datetime``, ``pd.to_timestamp`` and ``pd.to_numeric`` (new in 0.17.0) (:issue:`11133`).
 

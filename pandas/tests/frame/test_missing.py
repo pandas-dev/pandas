@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from distutils.version import LooseVersion
 from numpy import nan, random
 import numpy as np
 
@@ -16,6 +17,14 @@ from pandas.util.testing import (assert_series_equal,
 
 import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData, _check_mixed_float
+
+
+def _skip_if_no_pchip():
+    try:
+        from scipy.interpolate import pchip_interpolate  # noqa
+    except ImportError:
+        import nose
+        raise nose.SkipTest('scipy.interpolate.pchip missing')
 
 
 class TestDataFrameMissingData(tm.TestCase, TestData):
@@ -57,15 +66,17 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         smaller_frame = frame.dropna()
         assert_series_equal(frame['foo'], original)
         inp_frame1.dropna(inplace=True)
-        self.assert_numpy_array_equal(smaller_frame['foo'], mat[5:])
-        self.assert_numpy_array_equal(inp_frame1['foo'], mat[5:])
+
+        exp = Series(mat[5:], index=self.frame.index[5:], name='foo')
+        tm.assert_series_equal(smaller_frame['foo'], exp)
+        tm.assert_series_equal(inp_frame1['foo'], exp)
 
         samesize_frame = frame.dropna(subset=['bar'])
         assert_series_equal(frame['foo'], original)
         self.assertTrue((frame['bar'] == 5).all())
         inp_frame2.dropna(subset=['bar'], inplace=True)
-        self.assertTrue(samesize_frame.index.equals(self.frame.index))
-        self.assertTrue(inp_frame2.index.equals(self.frame.index))
+        self.assert_index_equal(samesize_frame.index, self.frame.index)
+        self.assert_index_equal(inp_frame2.index, self.frame.index)
 
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))
@@ -425,3 +436,231 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
 
         # TODO(wesm): unused?
         result = empty_float.fillna(value=0)  # noqa
+
+    def test_fill_value_when_combine_const(self):
+        # GH12723
+        dat = np.array([0, 1, np.nan, 3, 4, 5], dtype='float')
+        df = DataFrame({'foo': dat}, index=range(6))
+
+        exp = df.fillna(0).add(2)
+        res = df.add(2, fill_value=0)
+        assert_frame_equal(res, exp)
+
+
+class TestDataFrameInterpolate(tm.TestCase, TestData):
+
+    def test_interp_basic(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4],
+                        'B': [1, 4, 9, np.nan],
+                        'C': [1, 2, 3, 5],
+                        'D': list('abcd')})
+        expected = DataFrame({'A': [1., 2., 3., 4.],
+                              'B': [1., 4., 9., 9.],
+                              'C': [1, 2, 3, 5],
+                              'D': list('abcd')})
+        result = df.interpolate()
+        assert_frame_equal(result, expected)
+
+        result = df.set_index('C').interpolate()
+        expected = df.set_index('C')
+        expected.loc[3, 'A'] = 3
+        expected.loc[5, 'B'] = 9
+        assert_frame_equal(result, expected)
+
+    def test_interp_bad_method(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4],
+                        'B': [1, 4, 9, np.nan],
+                        'C': [1, 2, 3, 5],
+                        'D': list('abcd')})
+        with tm.assertRaises(ValueError):
+            df.interpolate(method='not_a_method')
+
+    def test_interp_combo(self):
+        df = DataFrame({'A': [1., 2., np.nan, 4.],
+                        'B': [1, 4, 9, np.nan],
+                        'C': [1, 2, 3, 5],
+                        'D': list('abcd')})
+
+        result = df['A'].interpolate()
+        expected = Series([1., 2., 3., 4.], name='A')
+        assert_series_equal(result, expected)
+
+        result = df['A'].interpolate(downcast='infer')
+        expected = Series([1, 2, 3, 4], name='A')
+        assert_series_equal(result, expected)
+
+    def test_interp_nan_idx(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [np.nan, 2, 3, 4]})
+        df = df.set_index('A')
+        with tm.assertRaises(NotImplementedError):
+            df.interpolate(method='values')
+
+    def test_interp_various(self):
+        tm._skip_if_no_scipy()
+        df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
+                        'C': [1, 2, 3, 5, 8, 13, 21]})
+        df = df.set_index('C')
+        expected = df.copy()
+        result = df.interpolate(method='polynomial', order=1)
+
+        expected.A.loc[3] = 2.66666667
+        expected.A.loc[13] = 5.76923076
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='cubic')
+        expected.A.loc[3] = 2.81621174
+        expected.A.loc[13] = 5.64146581
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='nearest')
+        expected.A.loc[3] = 2
+        expected.A.loc[13] = 5
+        assert_frame_equal(result, expected, check_dtype=False)
+
+        result = df.interpolate(method='quadratic')
+        expected.A.loc[3] = 2.82533638
+        expected.A.loc[13] = 6.02817974
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='slinear')
+        expected.A.loc[3] = 2.66666667
+        expected.A.loc[13] = 5.76923077
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='zero')
+        expected.A.loc[3] = 2.
+        expected.A.loc[13] = 5
+        assert_frame_equal(result, expected, check_dtype=False)
+
+        result = df.interpolate(method='quadratic')
+        expected.A.loc[3] = 2.82533638
+        expected.A.loc[13] = 6.02817974
+        assert_frame_equal(result, expected)
+
+    def test_interp_alt_scipy(self):
+        tm._skip_if_no_scipy()
+        df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
+                        'C': [1, 2, 3, 5, 8, 13, 21]})
+        result = df.interpolate(method='barycentric')
+        expected = df.copy()
+        expected.ix[2, 'A'] = 3
+        expected.ix[5, 'A'] = 6
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(method='barycentric', downcast='infer')
+        assert_frame_equal(result, expected.astype(np.int64))
+
+        result = df.interpolate(method='krogh')
+        expectedk = df.copy()
+        expectedk['A'] = expected['A']
+        assert_frame_equal(result, expectedk)
+
+        _skip_if_no_pchip()
+        import scipy
+        result = df.interpolate(method='pchip')
+        expected.ix[2, 'A'] = 3
+
+        if LooseVersion(scipy.__version__) >= '0.17.0':
+            expected.ix[5, 'A'] = 6.0
+        else:
+            expected.ix[5, 'A'] = 6.125
+
+        assert_frame_equal(result, expected)
+
+    def test_interp_rowwise(self):
+        df = DataFrame({0: [1, 2, np.nan, 4],
+                        1: [2, 3, 4, np.nan],
+                        2: [np.nan, 4, 5, 6],
+                        3: [4, np.nan, 6, 7],
+                        4: [1, 2, 3, 4]})
+        result = df.interpolate(axis=1)
+        expected = df.copy()
+        expected.loc[3, 1] = 5
+        expected.loc[0, 2] = 3
+        expected.loc[1, 3] = 3
+        expected[4] = expected[4].astype(np.float64)
+        assert_frame_equal(result, expected)
+
+        # scipy route
+        tm._skip_if_no_scipy()
+        result = df.interpolate(axis=1, method='values')
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(axis=0)
+        expected = df.interpolate()
+        assert_frame_equal(result, expected)
+
+    def test_rowwise_alt(self):
+        df = DataFrame({0: [0, .5, 1., np.nan, 4, 8, np.nan, np.nan, 64],
+                        1: [1, 2, 3, 4, 3, 2, 1, 0, -1]})
+        df.interpolate(axis=0)
+
+    def test_interp_leading_nans(self):
+        df = DataFrame({"A": [np.nan, np.nan, .5, .25, 0],
+                        "B": [np.nan, -3, -3.5, np.nan, -4]})
+        result = df.interpolate()
+        expected = df.copy()
+        expected['B'].loc[3] = -3.75
+        assert_frame_equal(result, expected)
+
+        tm._skip_if_no_scipy()
+        result = df.interpolate(method='polynomial', order=1)
+        assert_frame_equal(result, expected)
+
+    def test_interp_raise_on_only_mixed(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4],
+                        'B': ['a', 'b', 'c', 'd'],
+                        'C': [np.nan, 2, 5, 7],
+                        'D': [np.nan, np.nan, 9, 9],
+                        'E': [1, 2, 3, 4]})
+        with tm.assertRaises(TypeError):
+            df.interpolate(axis=1)
+
+    def test_interp_inplace(self):
+        df = DataFrame({'a': [1., 2., np.nan, 4.]})
+        expected = DataFrame({'a': [1., 2., 3., 4.]})
+        result = df.copy()
+        result['a'].interpolate(inplace=True)
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result['a'].interpolate(inplace=True, downcast='infer')
+        assert_frame_equal(result, expected.astype('int64'))
+
+    def test_interp_inplace_row(self):
+        # GH 10395
+        result = DataFrame({'a': [1., 2., 3., 4.],
+                            'b': [np.nan, 2., 3., 4.],
+                            'c': [3, 2, 2, 2]})
+        expected = result.interpolate(method='linear', axis=1, inplace=False)
+        result.interpolate(method='linear', axis=1, inplace=True)
+        assert_frame_equal(result, expected)
+
+    def test_interp_ignore_all_good(self):
+        # GH
+        df = DataFrame({'A': [1, 2, np.nan, 4],
+                        'B': [1, 2, 3, 4],
+                        'C': [1., 2., np.nan, 4.],
+                        'D': [1., 2., 3., 4.]})
+        expected = DataFrame({'A': np.array(
+            [1, 2, 3, 4], dtype='float64'),
+            'B': np.array(
+            [1, 2, 3, 4], dtype='int64'),
+            'C': np.array(
+            [1., 2., 3, 4.], dtype='float64'),
+            'D': np.array(
+            [1., 2., 3., 4.], dtype='float64')})
+
+        result = df.interpolate(downcast=None)
+        assert_frame_equal(result, expected)
+
+        # all good
+        result = df[['B', 'D']].interpolate(downcast=None)
+        assert_frame_equal(result, df[['B', 'D']])
+
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   # '--with-coverage', '--cover-package=pandas.core']
+                   exit=False)

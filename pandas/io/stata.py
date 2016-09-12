@@ -7,13 +7,17 @@ project who also developed the StataWriter and was finally added to pandas in
 a once again improved version.
 
 You can find more information on http://presbrey.mit.edu/PyDTA and
-http://statsmodels.sourceforge.net/devel/
+http://www.statsmodels.org/devel/
 """
 import numpy as np
 
 import sys
 import struct
 from dateutil.relativedelta import relativedelta
+
+from pandas.types.common import (is_categorical_dtype, is_datetime64_dtype,
+                                 _ensure_object)
+
 from pandas.core.base import StringMixin
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
@@ -24,14 +28,14 @@ from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
     zip, BytesIO
 from pandas.util.decorators import Appender
 import pandas as pd
-import pandas.core.common as com
+
 from pandas.io.common import get_filepath_or_buffer, BaseIterator
 from pandas.lib import max_len_string_array, infer_dtype
 from pandas.tslib import NaT, Timestamp
 
 _version_error = ("Version of given Stata file is not 104, 105, 108, "
-                  "113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12), "
-                  "117 (Stata 13), or 118 (Stata 14)")
+                  "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "
+                  "115 (Stata 12), 117 (Stata 13), or 118 (Stata 14)")
 
 _statafile_processing_params1 = """\
 convert_dates : boolean, defaults to True
@@ -89,12 +93,14 @@ DataFrame or StataReader
 Examples
 --------
 Read a Stata dta file:
->> df = pandas.read_stata('filename.dta')
+
+>>> df = pandas.read_stata('filename.dta')
 
 Read a Stata dta file in 10,000 line chunks:
->> itr = pandas.read_stata('filename.dta', chunksize=10000)
->> for chunk in itr:
->>     do_something(chunk)
+
+>>> itr = pandas.read_stata('filename.dta', chunksize=10000)
+>>> for chunk in itr:
+>>>     do_something(chunk)
 """ % (_statafile_processing_params1, _encoding_params,
        _statafile_processing_params2, _chunksize_params,
        _iterator_params)
@@ -161,15 +167,11 @@ def read_stata(filepath_or_buffer, convert_dates=True,
                          chunksize=chunksize, encoding=encoding)
 
     if iterator or chunksize:
-        try:
-            return reader
-        except StopIteration:
-            reader.close()
-
-    try:
-        return reader.read()
-    finally:
+        data = reader
+    else:
+        data = reader.read()
         reader.close()
+    return data
 
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
@@ -356,7 +358,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
 
     def parse_dates_safe(dates, delta=False, year=False, days=False):
         d = {}
-        if com.is_datetime64_dtype(dates.values):
+        if is_datetime64_dtype(dates.values):
             if delta:
                 delta = dates - stata_epoch
                 d['delta'] = delta.values.astype(
@@ -394,7 +396,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
     index = dates.index
     if bad_loc.any():
         dates = Series(dates)
-        if com.is_datetime64_dtype(dates):
+        if is_datetime64_dtype(dates):
             dates[bad_loc] = to_datetime(stata_epoch)
         else:
             dates[bad_loc] = stata_epoch
@@ -426,7 +428,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
         d = parse_dates_safe(dates, year=True)
         conv_dates = d.year
     else:
-        raise ValueError("fmt %s not understood" % fmt)
+        raise ValueError("Format %s is not a known Stata date format" % fmt)
 
     conv_dates = Series(conv_dates, dtype=np.float64)
     missing_value = struct.unpack('<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0]
@@ -1053,7 +1055,7 @@ class StataReader(StataParser, BaseIterator):
         self.lbllist = self._get_lbllist()
 
         self.path_or_buf.seek(self._seek_variable_labels)
-        self.vlblist = self._get_vlblist()
+        self._variable_labels = self._get_variable_labels()
 
     # Get data type information, works for versions 117-118.
     def _get_dtypes(self, seek_vartypes):
@@ -1121,7 +1123,7 @@ class StataReader(StataParser, BaseIterator):
         return [self._null_terminate(self.path_or_buf.read(b))
                 for i in range(self.nvar)]
 
-    def _get_vlblist(self):
+    def _get_variable_labels(self):
         if self.format_version == 118:
             vlblist = [self._decode(self.path_or_buf.read(321))
                        for i in range(self.nvar)]
@@ -1181,7 +1183,7 @@ class StataReader(StataParser, BaseIterator):
 
     def _read_old_header(self, first_char):
         self.format_version = struct.unpack('b', first_char)[0]
-        if self.format_version not in [104, 105, 108, 113, 114, 115]:
+        if self.format_version not in [104, 105, 108, 111, 113, 114, 115]:
             raise ValueError(_version_error)
         self.byteorder = struct.unpack('b', self.path_or_buf.read(1))[
             0] == 0x1 and '>' or '<'
@@ -1236,7 +1238,7 @@ class StataReader(StataParser, BaseIterator):
 
         self.lbllist = self._get_lbllist()
 
-        self.vlblist = self._get_vlblist()
+        self._variable_labels = self._get_variable_labels()
 
         # ignore expansion fields (Format 105 and later)
         # When reading, read five bytes; the last four bytes now tell you
@@ -1300,11 +1302,11 @@ class StataReader(StataParser, BaseIterator):
         while True:
             if self.format_version >= 117:
                 if self.path_or_buf.read(5) == b'</val':  # <lbl>
-                    break  # end of variable label table
+                    break  # end of value label table
 
             slength = self.path_or_buf.read(4)
             if not slength:
-                break  # end of variable label table (format < 117)
+                break  # end of value label table (format < 117)
             if self.format_version <= 117:
                 labname = self._null_terminate(self.path_or_buf.read(33))
             else:
@@ -1405,13 +1407,13 @@ class StataReader(StataParser, BaseIterator):
              convert_categoricals=None, index=None,
              convert_missing=None, preserve_dtypes=None,
              columns=None, order_categoricals=None):
-
         # Handle empty file or chunk.  If reading incrementally raise
         # StopIteration.  If reading the whole thing return an empty
         # data frame.
         if (self.nobs == 0) and (nrows is None):
             self._can_read_value_labels = True
             self._data_read = True
+            self.close()
             return DataFrame(columns=self.varlist)
 
         # Handle options
@@ -1457,6 +1459,7 @@ class StataReader(StataParser, BaseIterator):
             # we are reading the file incrementally
             if convert_categoricals:
                 self._read_value_labels()
+            self.close()
             raise StopIteration
         offset = self._lines_read * dtype.itemsize
         self.path_or_buf.seek(self.data_location + offset)
@@ -1488,7 +1491,11 @@ class StataReader(StataParser, BaseIterator):
             data = data.set_index(ix)
 
         if columns is not None:
-            data = self._do_select_columns(data, columns)
+            try:
+                data = self._do_select_columns(data, columns)
+            except ValueError:
+                self.close()
+                raise
 
         # Decode strings
         for col, typ in zip(data, self.typlist):
@@ -1508,7 +1515,7 @@ class StataReader(StataParser, BaseIterator):
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                if (dtype != np.dtype(object)) and (dtype != self.dtyplist[i]):
+                if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
                     requires_type_conversion = True
                     data_formatted.append(
                         (col, Series(data[col], index, self.dtyplist[i])))
@@ -1525,9 +1532,13 @@ class StataReader(StataParser, BaseIterator):
                                  self.fmtlist))[0]
             for i in cols:
                 col = data.columns[i]
-                data[col] = _stata_elapsed_date_to_datetime_vec(
-                    data[col],
-                    self.fmtlist[i])
+                try:
+                    data[col] = _stata_elapsed_date_to_datetime_vec(
+                        data[col],
+                        self.fmtlist[i])
+                except ValueError:
+                    self.close()
+                    raise
 
         if convert_categoricals and self.format_version > 108:
             data = self._do_convert_categoricals(data,
@@ -1643,7 +1654,15 @@ class StataReader(StataParser, BaseIterator):
                         categories.append(value_label_dict[label][category])
                     else:
                         categories.append(category)  # Partially labeled
-                cat_data.categories = categories
+                try:
+                    cat_data.categories = categories
+                except ValueError:
+                    vc = Series(categories).value_counts()
+                    repeats = list(vc.index[vc > 1])
+                    repeats = '\n' + '-' * 80 + '\n'.join(repeats)
+                    msg = 'Value labels for column {0} are not unique. The ' \
+                          'repeated labels are:\n{1}'.format(col, repeats)
+                    raise ValueError(msg)
                 # TODO: is the next line needed above in the data(...) method?
                 cat_data = Series(cat_data, index=data.index)
                 cat_converted_data.append((col, cat_data))
@@ -1660,7 +1679,7 @@ class StataReader(StataParser, BaseIterator):
         """Returns variable labels as a dict, associating each variable name
         with corresponding label
         """
-        return dict(zip(self.varlist, self.vlblist))
+        return dict(zip(self.varlist, self._variable_labels))
 
     def value_labels(self):
         """Returns a dict, associating each variable name a dict, associating
@@ -1690,7 +1709,7 @@ def _set_endianness(endianness):
 
 def _pad_bytes(name, length):
     """
-    Takes a char string and pads it wih null bytes until it's length chars
+    Takes a char string and pads it with null bytes until it's length chars
     """
     return name + "\x00" * (length - len(name))
 
@@ -1703,7 +1722,7 @@ def _convert_datetime_to_stata_type(fmt):
                "%tq", "th", "%th", "ty", "%ty"]:
         return np.float64  # Stata expects doubles for SIFs
     else:
-        raise ValueError("fmt %s not understood" % fmt)
+        raise NotImplementedError("Format %s not implemented" % fmt)
 
 
 def _maybe_convert_to_int_keys(convert_dates, varlist):
@@ -1715,9 +1734,8 @@ def _maybe_convert_to_int_keys(convert_dates, varlist):
             new_dict.update({varlist.index(key): convert_dates[key]})
         else:
             if not isinstance(key, int):
-                raise ValueError(
-                    "convert_dates key is not in varlist and is not an int"
-                )
+                raise ValueError("convert_dates key must be a "
+                                 "column or an integer")
             new_dict.update({key: convert_dates[key]})
     return new_dict
 
@@ -1744,7 +1762,7 @@ def _dtype_to_stata_type(dtype, column):
     elif dtype.type == np.object_:  # try to coerce it to the biggest string
                                     # not memory efficient, what else could we
                                     # do?
-        itemsize = max_len_string_array(com._ensure_object(column.values))
+        itemsize = max_len_string_array(_ensure_object(column.values))
         return chr(max(itemsize, 1))
     elif dtype == np.float64:
         return chr(255)
@@ -1757,8 +1775,7 @@ def _dtype_to_stata_type(dtype, column):
     elif dtype == np.int8:
         return chr(251)
     else:  # pragma : no cover
-        raise ValueError("Data type %s not currently understood. "
-                         "Please report an error to the developers." % dtype)
+        raise NotImplementedError("Data type %s not supported." % dtype)
 
 
 def _dtype_to_default_stata_fmt(dtype, column):
@@ -1782,7 +1799,7 @@ def _dtype_to_default_stata_fmt(dtype, column):
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
             raise ValueError('Writing general object arrays is not supported')
-        itemsize = max_len_string_array(com._ensure_object(column.values))
+        itemsize = max_len_string_array(_ensure_object(column.values))
         if itemsize > 244:
             raise ValueError(excessive_string_length_error % column.name)
         return "%" + str(max(itemsize, 1)) + "s"
@@ -1795,41 +1812,58 @@ def _dtype_to_default_stata_fmt(dtype, column):
     elif dtype == np.int8 or dtype == np.int16:
         return "%8.0g"
     else:  # pragma : no cover
-        raise ValueError("Data type %s not currently understood. "
-                         "Please report an error to the developers." % dtype)
+        raise NotImplementedError("Data type %s not supported." % dtype)
 
 
 class StataWriter(StataParser):
     """
-    A class for writing Stata binary dta files from array-like objects
+    A class for writing Stata binary dta files
 
     Parameters
     ----------
-    fname : file path or buffer
-        Where to save the dta file.
-    data : array-like
-        Array-like input to save. Pandas objects are also accepted.
+    fname : str or buffer
+        String path of file-like object
+    data : DataFrame
+        Input to save
     convert_dates : dict
-        Dictionary mapping column of datetime types to the stata internal
-        format that you want to use for the dates. Options are
-        'tc', 'td', 'tm', 'tw', 'th', 'tq', 'ty'. Column can be either a
-        number or a name.
+        Dictionary mapping columns containing datetime types to stata internal
+        format to use when wirting the dates. Options are 'tc', 'td', 'tm',
+        'tw', 'th', 'tq', 'ty'. Column can be either an integer or a name.
+        Datetime columns that do not have a conversion type specified will be
+        converted to 'tc'. Raises NotImplementedError if a datetime column has
+        timezone information
+    write_index : bool
+        Write the index to Stata dataset.
     encoding : str
-        Default is latin-1. Note that Stata does not support unicode.
+        Default is latin-1. Unicode is not supported
     byteorder : str
-        Can be ">", "<", "little", or "big". The default is None which uses
-        `sys.byteorder`
+        Can be ">", "<", "little", or "big". default is `sys.byteorder`
     time_stamp : datetime
-        A date time to use when writing the file.  Can be None, in which
-        case the current time is used.
+        A datetime to use as file creation date.  Default is the current time
     dataset_label : str
-        A label for the data set.  Should be 80 characters or smaller.
+        A label for the data set.  Must be 80 characters or smaller.
+    variable_labels : dict
+        Dictionary containing columns as keys and variable labels as values.
+        Each label must be 80 characters or smaller.
+
+        .. versionadded:: 0.19.0
 
     Returns
     -------
     writer : StataWriter instance
         The StataWriter instance has a write_file method, which will
         write the file to the given `fname`.
+
+    Raises
+    ------
+    NotImplementedError
+        * If datetimes contain timezone information
+    ValueError
+        * Columns listed in convert_dates are noth either datetime64[ns]
+          or datetime.datetime
+        * Column dtype is not representable in Stata
+        * Column listed in convert_dates is not in DataFrame
+        * Categorical label contains more than 32,000 characters
 
     Examples
     --------
@@ -1847,21 +1881,20 @@ class StataWriter(StataParser):
 
     def __init__(self, fname, data, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
-                 data_label=None):
+                 data_label=None, variable_labels=None):
         super(StataWriter, self).__init__(encoding)
-        self._convert_dates = convert_dates
+        self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
         self._time_stamp = time_stamp
         self._data_label = data_label
+        self._variable_labels = variable_labels
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
 
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._file = _open_file_binary_write(
-            fname, self._encoding or self._default_encoding
-        )
+        self._fname = fname
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
 
     def _write(self, to_write):
@@ -1878,7 +1911,7 @@ class StataWriter(StataParser):
         """Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int"""
 
-        is_cat = [com.is_categorical_dtype(data[col]) for col in data]
+        is_cat = [is_categorical_dtype(data[col]) for col in data]
         self._is_col_cat = is_cat
         self._value_labels = []
         if not any(is_cat):
@@ -2028,15 +2061,22 @@ class StataWriter(StataParser):
         self.varlist = data.columns.tolist()
 
         dtypes = data.dtypes
-        if self._convert_dates is not None:
-            self._convert_dates = _maybe_convert_to_int_keys(
-                self._convert_dates, self.varlist
+
+        # Ensure all date columns are converted
+        for col in data:
+            if col in self._convert_dates:
+                continue
+            if is_datetime64_dtype(data[col]):
+                self._convert_dates[col] = 'tc'
+
+        self._convert_dates = _maybe_convert_to_int_keys(self._convert_dates,
+                                                         self.varlist)
+        for key in self._convert_dates:
+            new_type = _convert_datetime_to_stata_type(
+                self._convert_dates[key]
             )
-            for key in self._convert_dates:
-                new_type = _convert_datetime_to_stata_type(
-                    self._convert_dates[key]
-                )
-                dtypes[key] = np.dtype(new_type)
+            dtypes[key] = np.dtype(new_type)
+
         self.typlist = []
         self.fmtlist = []
         for col, dtype in dtypes.iteritems():
@@ -2049,16 +2089,21 @@ class StataWriter(StataParser):
                 self.fmtlist[key] = self._convert_dates[key]
 
     def write_file(self):
-        self._write_header(time_stamp=self._time_stamp,
-                           data_label=self._data_label)
-        self._write_descriptors()
-        self._write_variable_labels()
-        # write 5 zeros for expansion fields
-        self._write(_pad_bytes("", 5))
-        self._prepare_data()
-        self._write_data()
-        self._write_value_labels()
-        self._file.close()
+        self._file = _open_file_binary_write(
+            self._fname, self._encoding or self._default_encoding
+        )
+        try:
+            self._write_header(time_stamp=self._time_stamp,
+                               data_label=self._data_label)
+            self._write_descriptors()
+            self._write_variable_labels()
+            # write 5 zeros for expansion fields
+            self._write(_pad_bytes("", 5))
+            self._prepare_data()
+            self._write_data()
+            self._write_value_labels()
+        finally:
+            self._file.close()
 
     def _write_value_labels(self):
         for vl in self._value_labels:
@@ -2129,11 +2174,29 @@ class StataWriter(StataParser):
             else:  # Default is empty label
                 self._write(_pad_bytes("", 33))
 
-    def _write_variable_labels(self, labels=None):
-        nvar = self.nvar
-        if labels is None:
-            for i in range(nvar):
-                self._write(_pad_bytes("", 81))
+    def _write_variable_labels(self):
+        # Missing labels are 80 blank characters plus null termination
+        blank = _pad_bytes('', 81)
+
+        if self._variable_labels is None:
+            for i in range(self.nvar):
+                self._write(blank)
+            return
+
+        for col in self.data:
+            if col in self._variable_labels:
+                label = self._variable_labels[col]
+                if len(label) > 80:
+                    raise ValueError('Variable labels must be 80 characters '
+                                     'or fewer')
+                is_latin1 = all(ord(c) < 256 for c in label)
+                if not is_latin1:
+                    raise ValueError('Variable labels must contain only '
+                                     'characters that can be encoded in '
+                                     'Latin-1')
+                self._write(_pad_bytes(label, 81))
+            else:
+                self._write(blank)
 
     def _prepare_data(self):
         data = self.data

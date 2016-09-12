@@ -15,10 +15,10 @@ from pandas.computation import expressions as expr
 from pandas import compat
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
-                                 assert_panel4d_equal)
+                                 assert_panel4d_equal, slow)
 from pandas.formats.printing import pprint_thing
 import pandas.util.testing as tm
-from numpy.testing.decorators import slow
+
 
 if not expr._USE_NUMEXPR:
     try:
@@ -208,8 +208,9 @@ class TestExpressions(tm.TestCase):
 
     @slow
     def test_panel4d(self):
-        self.run_panel(tm.makePanel4D(), np.random.randn() + 0.5,
-                       assert_func=assert_panel4d_equal, binary_comp=3)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.run_panel(tm.makePanel4D(), np.random.randn() + 0.5,
+                           assert_func=assert_panel4d_equal, binary_comp=3)
 
     def test_mixed_arithmetic_frame(self):
         # TODO: FIGURE OUT HOW TO GET IT TO WORK...
@@ -287,7 +288,12 @@ class TestExpressions(tm.TestCase):
                                                use_numexpr=True)
                         expected = expr.evaluate(op, op_str, f, f,
                                                  use_numexpr=False)
-                        tm.assert_numpy_array_equal(result, expected.values)
+
+                        if isinstance(result, DataFrame):
+                            tm.assert_frame_equal(result, expected)
+                        else:
+                            tm.assert_numpy_array_equal(result,
+                                                        expected.values)
 
                         result = expr._can_use_numexpr(op, op_str, f2, f2,
                                                        'evaluate')
@@ -325,7 +331,10 @@ class TestExpressions(tm.TestCase):
                                            use_numexpr=True)
                     expected = expr.evaluate(op, op_str, f11, f12,
                                              use_numexpr=False)
-                    tm.assert_numpy_array_equal(result, expected.values)
+                    if isinstance(result, DataFrame):
+                        tm.assert_frame_equal(result, expected)
+                    else:
+                        tm.assert_numpy_array_equal(result, expected.values)
 
                     result = expr._can_use_numexpr(op, op_str, f21, f22,
                                                    'evaluate')

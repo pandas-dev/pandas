@@ -55,7 +55,7 @@ class TestSeriesDtypes(TestData, tm.TestCase):
 
         arr = Series(['1', '2', '3', '4'], dtype=object)
         result = arr.astype(int)
-        self.assert_numpy_array_equal(result, np.arange(1, 5))
+        self.assert_series_equal(result, Series(np.arange(1, 5)))
 
     def test_astype_datetimes(self):
         import pandas.tslib as tslib
@@ -133,15 +133,30 @@ class TestSeriesDtypes(TestData, tm.TestCase):
             reload(sys)  # noqa
             sys.setdefaultencoding(former_encoding)
 
-    def test_complexx(self):
+    def test_astype_dict(self):
+        # GH7271
+        s = Series(range(0, 10, 2), name='abc')
 
+        result = s.astype({'abc': str})
+        expected = Series(['0', '2', '4', '6', '8'], name='abc')
+        assert_series_equal(result, expected)
+
+        result = s.astype({'abc': 'float64'})
+        expected = Series([0.0, 2.0, 4.0, 6.0, 8.0], dtype='float64',
+                          name='abc')
+        assert_series_equal(result, expected)
+
+        self.assertRaises(KeyError, s.astype, {'abc': str, 'def': str})
+        self.assertRaises(KeyError, s.astype, {0: str})
+
+    def test_complexx(self):
         # GH4819
         # complex access for ndarray compat
-        a = np.arange(5)
+        a = np.arange(5, dtype=np.float64)
         b = Series(a + 4j * a)
-        tm.assert_almost_equal(a, b.real)
-        tm.assert_almost_equal(4 * a, b.imag)
+        tm.assert_numpy_array_equal(a, b.real)
+        tm.assert_numpy_array_equal(4 * a, b.imag)
 
         b.real = np.arange(5) + 5
-        tm.assert_almost_equal(a + 5, b.real)
-        tm.assert_almost_equal(4 * a, b.imag)
+        tm.assert_numpy_array_equal(a + 5, b.real)
+        tm.assert_numpy_array_equal(4 * a, b.imag)

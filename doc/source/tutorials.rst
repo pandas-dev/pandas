@@ -123,6 +123,17 @@ There are four sections covering selected topics as follows:
 
 -  `Time Series <http://wavedatalab.github.io/datawithpython/timeseries.html>`_
 
+.. _tutorial-modern:
+
+Modern Pandas
+-------------
+
+- `Modern Pandas <http://tomaugspurger.github.io/modern-1.html>`_
+- `Method Chaining <http://tomaugspurger.github.io/method-chaining.html>`_
+- `Indexes <http://tomaugspurger.github.io/modern-3-indexes.html>`_
+- `Performance <http://tomaugspurger.github.io/modern-4-performance.html>`_
+- `Tidy Data <http://tomaugspurger.github.io/modern-5-tidy.html>`_
+- `Visualization <http://tomaugspurger.github.io/modern-6-visualization.html>`_
 
 Excel charts with pandas, vincent and xlsxwriter
 ------------------------------------------------

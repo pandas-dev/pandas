@@ -158,6 +158,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
 
     def check_coerce(self, a, b, is_float_index=True):
         self.assertTrue(a.equals(b))
+        self.assert_index_equal(a, b, exact=False)
         if is_float_index:
             self.assertIsInstance(b, Float64Index)
         else:
@@ -168,8 +169,8 @@ class TestFloat64Index(Numeric, tm.TestCase):
         # explicit construction
         index = Float64Index([1, 2, 3, 4, 5])
         self.assertIsInstance(index, Float64Index)
-        self.assertTrue((index.values == np.array(
-            [1, 2, 3, 4, 5], dtype='float64')).all())
+        expected = np.array([1, 2, 3, 4, 5], dtype='float64')
+        self.assert_numpy_array_equal(index.values, expected)
         index = Float64Index(np.array([1, 2, 3, 4, 5]))
         self.assertIsInstance(index, Float64Index)
         index = Float64Index([1., 2, 3, 4, 5])
@@ -231,7 +232,40 @@ class TestFloat64Index(Numeric, tm.TestCase):
         self.assertTrue(i.equals(result))
         self.check_is_index(result)
 
-    def test_equals(self):
+        # GH 12881
+        # a float astype int
+        for dtype in ['int16', 'int32', 'int64']:
+            i = Float64Index([0, 1, 2])
+            result = i.astype(dtype)
+            expected = Int64Index([0, 1, 2])
+            tm.assert_index_equal(result, expected)
+
+            i = Float64Index([0, 1.1, 2])
+            result = i.astype(dtype)
+            expected = Int64Index([0, 1, 2])
+            tm.assert_index_equal(result, expected)
+
+        for dtype in ['float32', 'float64']:
+            i = Float64Index([0, 1, 2])
+            result = i.astype(dtype)
+            expected = i
+            tm.assert_index_equal(result, expected)
+
+            i = Float64Index([0, 1.1, 2])
+            result = i.astype(dtype)
+            expected = Index(i.values.astype(dtype))
+            tm.assert_index_equal(result, expected)
+
+        # invalid
+        for dtype in ['M8[ns]', 'm8[ns]']:
+            self.assertRaises(TypeError, lambda: i.astype(dtype))
+
+        # GH 13149
+        for dtype in ['int16', 'int32', 'int64']:
+            i = Float64Index([0, 1.1, np.NAN])
+            self.assertRaises(ValueError, lambda: i.astype(dtype))
+
+    def test_equals_numeric(self):
 
         i = Float64Index([1.0, 2.0])
         self.assertTrue(i.equals(i))
@@ -249,14 +283,16 @@ class TestFloat64Index(Numeric, tm.TestCase):
 
     def test_get_indexer(self):
         idx = Float64Index([0.0, 1.0, 2.0])
-        tm.assert_numpy_array_equal(idx.get_indexer(idx), [0, 1, 2])
+        tm.assert_numpy_array_equal(idx.get_indexer(idx),
+                                    np.array([0, 1, 2], dtype=np.intp))
 
         target = [-0.1, 0.5, 1.1]
-        tm.assert_numpy_array_equal(idx.get_indexer(target, 'pad'), [-1, 0, 1])
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, 'backfill'), [0, 1, 2])
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, 'nearest'), [0, 1, 1])
+        tm.assert_numpy_array_equal(idx.get_indexer(target, 'pad'),
+                                    np.array([-1, 0, 1], dtype=np.intp))
+        tm.assert_numpy_array_equal(idx.get_indexer(target, 'backfill'),
+                                    np.array([0, 1, 2], dtype=np.intp))
+        tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest'),
+                                    np.array([0, 1, 1], dtype=np.intp))
 
     def test_get_loc(self):
         idx = Float64Index([0.0, 1.0, 2.0])
@@ -325,7 +361,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
         index = Index([1.0, np.nan, 0.2], dtype='object')
         result = index.astype(float)
         expected = Float64Index([1.0, np.nan, 0.2])
-        tm.assert_equal(result.dtype, expected.dtype)
+        self.assertEqual(result.dtype, expected.dtype)
         tm.assert_index_equal(result, expected)
 
     def test_fillna_float64(self):
@@ -392,12 +428,12 @@ class TestInt64Index(Numeric, tm.TestCase):
     def test_constructor(self):
         # pass list, coerce fine
         index = Int64Index([-5, 0, 1, 2])
-        expected = np.array([-5, 0, 1, 2], dtype=np.int64)
-        tm.assert_numpy_array_equal(index, expected)
+        expected = Index([-5, 0, 1, 2], dtype=np.int64)
+        tm.assert_index_equal(index, expected)
 
         # from iterable
         index = Int64Index(iter([-5, 0, 1, 2]))
-        tm.assert_numpy_array_equal(index, expected)
+        tm.assert_index_equal(index, expected)
 
         # scalar raise Exception
         self.assertRaises(TypeError, Int64Index, 5)
@@ -405,7 +441,7 @@ class TestInt64Index(Numeric, tm.TestCase):
         # copy
         arr = self.index.values
         new_index = Int64Index(arr, copy=True)
-        tm.assert_numpy_array_equal(new_index, self.index)
+        tm.assert_index_equal(new_index, self.index)
         val = arr[0] + 3000
 
         # this should not change index
@@ -424,7 +460,7 @@ class TestInt64Index(Numeric, tm.TestCase):
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = Int64Index(arr)
         self.assertEqual(index.values.dtype, np.int64)
-        self.assertTrue(index.equals(arr))
+        self.assert_index_equal(index, Index(arr))
 
         # preventing casting
         arr = np.array([1, '2', 3, '4'], dtype=object)
@@ -524,19 +560,19 @@ class TestInt64Index(Numeric, tm.TestCase):
     def test_get_indexer(self):
         target = Int64Index(np.arange(10))
         indexer = self.index.get_indexer(target)
-        expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1])
+        expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_pad(self):
         target = Int64Index(np.arange(10))
         indexer = self.index.get_indexer(target, method='pad')
-        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
+        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_backfill(self):
         target = Int64Index(np.arange(10))
         indexer = self.index.get_indexer(target, method='backfill')
-        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5])
+        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
     def test_join_outer(self):
@@ -548,16 +584,16 @@ class TestInt64Index(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, how='outer',
                                           return_indexers=True)
         noidx_res = self.index.join(other, how='outer')
-        self.assertTrue(res.equals(noidx_res))
+        self.assert_index_equal(res, noidx_res)
 
         eres = Int64Index([0, 1, 2, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 25])
         elidx = np.array([0, -1, 1, 2, -1, 3, -1, 4, 5, 6, 7, 8, 9, -1],
-                         dtype=np.int64)
+                         dtype=np.intp)
         eridx = np.array([-1, 3, 4, -1, 5, -1, 0, -1, -1, 1, -1, -1, -1, 2],
-                         dtype=np.int64)
+                         dtype=np.intp)
 
         tm.assertIsInstance(res, Int64Index)
-        self.assertTrue(res.equals(eres))
+        self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -565,12 +601,14 @@ class TestInt64Index(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other_mono, how='outer',
                                           return_indexers=True)
         noidx_res = self.index.join(other_mono, how='outer')
-        self.assertTrue(res.equals(noidx_res))
+        self.assert_index_equal(res, noidx_res)
 
+        elidx = np.array([0, -1, 1, 2, -1, 3, -1, 4, 5, 6, 7, 8, 9, -1],
+                         dtype=np.intp)
         eridx = np.array([-1, 0, 1, -1, 2, -1, 3, -1, -1, 4, -1, -1, -1, 5],
-                         dtype=np.int64)
+                         dtype=np.intp)
         tm.assertIsInstance(res, Int64Index)
-        self.assertTrue(res.equals(eres))
+        self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -589,11 +627,11 @@ class TestInt64Index(Numeric, tm.TestCase):
         ridx = ridx.take(ind)
 
         eres = Int64Index([2, 12])
-        elidx = np.array([1, 6])
-        eridx = np.array([4, 1])
+        elidx = np.array([1, 6], dtype=np.intp)
+        eridx = np.array([4, 1], dtype=np.intp)
 
         tm.assertIsInstance(res, Int64Index)
-        self.assertTrue(res.equals(eres))
+        self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -602,11 +640,12 @@ class TestInt64Index(Numeric, tm.TestCase):
                                           return_indexers=True)
 
         res2 = self.index.intersection(other_mono)
-        self.assertTrue(res.equals(res2))
+        self.assert_index_equal(res, res2)
 
-        eridx = np.array([1, 4])
+        elidx = np.array([1, 6], dtype=np.intp)
+        eridx = np.array([1, 4], dtype=np.intp)
         tm.assertIsInstance(res, Int64Index)
-        self.assertTrue(res.equals(eres))
+        self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -619,10 +658,10 @@ class TestInt64Index(Numeric, tm.TestCase):
                                           return_indexers=True)
         eres = self.index
         eridx = np.array([-1, 4, -1, -1, -1, -1, 1, -1, -1, -1],
-                         dtype=np.int64)
+                         dtype=np.intp)
 
         tm.assertIsInstance(res, Int64Index)
-        self.assertTrue(res.equals(eres))
+        self.assert_index_equal(res, eres)
         self.assertIsNone(lidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -630,9 +669,9 @@ class TestInt64Index(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other_mono, how='left',
                                           return_indexers=True)
         eridx = np.array([-1, 1, -1, -1, -1, -1, 4, -1, -1, -1],
-                         dtype=np.int64)
+                         dtype=np.intp)
         tm.assertIsInstance(res, Int64Index)
-        self.assertTrue(res.equals(eres))
+        self.assert_index_equal(res, eres)
         self.assertIsNone(lidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -641,9 +680,9 @@ class TestInt64Index(Numeric, tm.TestCase):
         idx2 = Index([1, 2, 5, 7, 9])
         res, lidx, ridx = idx2.join(idx, how='left', return_indexers=True)
         eres = Index([1, 1, 2, 5, 7, 9])  # 1 is in idx2, so it should be x2
-        eridx = np.array([0, 1, 2, 3, -1, -1])
-        elidx = np.array([0, 0, 1, 2, 3, 4])
-        self.assertTrue(res.equals(eres))
+        eridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
+        elidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
+        self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -655,10 +694,10 @@ class TestInt64Index(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, how='right',
                                           return_indexers=True)
         eres = other
-        elidx = np.array([-1, 6, -1, -1, 1, -1], dtype=np.int64)
+        elidx = np.array([-1, 6, -1, -1, 1, -1], dtype=np.intp)
 
         tm.assertIsInstance(other, Int64Index)
-        self.assertTrue(res.equals(eres))
+        self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         self.assertIsNone(ridx)
 
@@ -666,9 +705,9 @@ class TestInt64Index(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other_mono, how='right',
                                           return_indexers=True)
         eres = other_mono
-        elidx = np.array([-1, 1, -1, -1, 6, -1], dtype=np.int64)
+        elidx = np.array([-1, 1, -1, -1, 6, -1], dtype=np.intp)
         tm.assertIsInstance(other, Int64Index)
-        self.assertTrue(res.equals(eres))
+        self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         self.assertIsNone(ridx)
 
@@ -677,9 +716,9 @@ class TestInt64Index(Numeric, tm.TestCase):
         idx2 = Index([1, 2, 5, 7, 9])
         res, lidx, ridx = idx.join(idx2, how='right', return_indexers=True)
         eres = Index([1, 1, 2, 5, 7, 9])  # 1 is in idx2, so it should be x2
-        elidx = np.array([0, 1, 2, 3, -1, -1])
-        eridx = np.array([0, 0, 1, 2, 3, 4])
-        self.assertTrue(res.equals(eres))
+        elidx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
+        eridx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
+        self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -688,28 +727,27 @@ class TestInt64Index(Numeric, tm.TestCase):
 
         outer = self.index.join(other, how='outer')
         outer2 = other.join(self.index, how='outer')
-        expected = Index([0, 2, 3, 4, 6, 7, 8, 10, 12, 14,
-                          16, 18], dtype=object)
-        self.assertTrue(outer.equals(outer2))
-        self.assertTrue(outer.equals(expected))
+        expected = Index([0, 2, 3, 4, 6, 7, 8, 10, 12, 14, 16, 18])
+        self.assert_index_equal(outer, outer2)
+        self.assert_index_equal(outer, expected)
 
         inner = self.index.join(other, how='inner')
         inner2 = other.join(self.index, how='inner')
-        expected = Index([6, 8, 10], dtype=object)
-        self.assertTrue(inner.equals(inner2))
-        self.assertTrue(inner.equals(expected))
+        expected = Index([6, 8, 10])
+        self.assert_index_equal(inner, inner2)
+        self.assert_index_equal(inner, expected)
 
         left = self.index.join(other, how='left')
-        self.assertTrue(left.equals(self.index))
+        self.assert_index_equal(left, self.index.astype(object))
 
         left2 = other.join(self.index, how='left')
-        self.assertTrue(left2.equals(other))
+        self.assert_index_equal(left2, other)
 
         right = self.index.join(other, how='right')
-        self.assertTrue(right.equals(other))
+        self.assert_index_equal(right, other)
 
         right2 = other.join(self.index, how='right')
-        self.assertTrue(right2.equals(self.index))
+        self.assert_index_equal(right2, self.index.astype(object))
 
     def test_join_non_unique(self):
         left = Index([4, 4, 3, 3])
@@ -717,12 +755,12 @@ class TestInt64Index(Numeric, tm.TestCase):
         joined, lidx, ridx = left.join(left, return_indexers=True)
 
         exp_joined = Index([3, 3, 3, 3, 4, 4, 4, 4])
-        self.assertTrue(joined.equals(exp_joined))
+        self.assert_index_equal(joined, exp_joined)
 
-        exp_lidx = np.array([2, 2, 3, 3, 0, 0, 1, 1], dtype=np.int64)
+        exp_lidx = np.array([2, 2, 3, 3, 0, 0, 1, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(lidx, exp_lidx)
 
-        exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.int64)
+        exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(ridx, exp_ridx)
 
     def test_join_self(self):
@@ -734,13 +772,14 @@ class TestInt64Index(Numeric, tm.TestCase):
     def test_intersection(self):
         other = Index([1, 2, 3, 4, 5])
         result = self.index.intersection(other)
-        expected = np.sort(np.intersect1d(self.index.values, other.values))
-        tm.assert_numpy_array_equal(result, expected)
+        expected = Index(np.sort(np.intersect1d(self.index.values,
+                                                other.values)))
+        tm.assert_index_equal(result, expected)
 
         result = other.intersection(self.index)
-        expected = np.sort(np.asarray(np.intersect1d(self.index.values,
-                                                     other.values)))
-        tm.assert_numpy_array_equal(result, expected)
+        expected = Index(np.sort(np.asarray(np.intersect1d(self.index.values,
+                                                           other.values))))
+        tm.assert_index_equal(result, expected)
 
     def test_intersect_str_dates(self):
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
@@ -757,12 +796,12 @@ class TestInt64Index(Numeric, tm.TestCase):
         now = datetime.now()
         other = Index([now + timedelta(i) for i in range(4)], dtype=object)
         result = self.index.union(other)
-        expected = np.concatenate((self.index, other))
-        tm.assert_numpy_array_equal(result, expected)
+        expected = Index(np.concatenate((self.index, other)))
+        tm.assert_index_equal(result, expected)
 
         result = other.union(self.index)
-        expected = np.concatenate((other, self.index))
-        tm.assert_numpy_array_equal(result, expected)
+        expected = Index(np.concatenate((other, self.index)))
+        tm.assert_index_equal(result, expected)
 
     def test_cant_or_shouldnt_cast(self):
         # can't

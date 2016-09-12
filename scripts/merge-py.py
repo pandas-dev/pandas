@@ -34,6 +34,8 @@ import subprocess
 import sys
 import textwrap
 
+from six.moves import input
+
 PANDAS_HOME = '.'
 PROJECT_NAME = 'pandas'
 print("PANDAS_HOME = " + PANDAS_HOME)
@@ -96,11 +98,14 @@ def run_cmd(cmd):
         if cmd is None:
             cmd = popenargs[0]
         raise subprocess.CalledProcessError(retcode, cmd, output=output)
+
+    if isinstance(output, six.binary_type):
+        output = output.decode('utf-8')
     return output
 
 
 def continue_maybe(prompt):
-    result = raw_input("\n%s (y/n): " % prompt)
+    result = input("\n%s (y/n): " % prompt)
     if result.lower() != "y":
         fail("Okay, exiting")
 
@@ -114,13 +119,14 @@ def clean_up():
 
     branches = run_cmd("git branch").replace(" ", "").split("\n")
 
-    for branch in filter(lambda x: x.startswith(BRANCH_PREFIX), branches):
+    for branch in [b for b in branches if b.startswith(BRANCH_PREFIX)]:
         print("Deleting local branch %s" % branch)
         run_cmd("git branch -D %s" % branch)
 
 
 # merge the requested PR and return the merge hash
 def merge_pr(pr_num, target_ref):
+
     pr_branch_name = "%s_MERGE_PR_%s" % (BRANCH_PREFIX, pr_num)
     target_branch_name = "%s_MERGE_PR_%s_%s" % (BRANCH_PREFIX, pr_num,
                                                 target_ref.upper())
@@ -199,7 +205,7 @@ def merge_pr(pr_num, target_ref):
 
 
 def cherry_pick(pr_num, merge_hash, default_branch):
-    pick_ref = raw_input("Enter a branch name [%s]: " % default_branch)
+    pick_ref = input("Enter a branch name [%s]: " % default_branch)
     if pick_ref == "":
         pick_ref = default_branch
 
@@ -245,7 +251,7 @@ def fix_version_from_branch(branch, versions):
 # Assumes branch names can be sorted lexicographically
 # latest_branch = sorted(branch_names, reverse=True)[0]
 
-pr_num = raw_input("Which pull request would you like to merge? (e.g. 34): ")
+pr_num = input("Which pull request would you like to merge? (e.g. 34): ")
 pr = get_json("%s/pulls/%s" % (GITHUB_API_BASE, pr_num))
 
 url = pr["url"]

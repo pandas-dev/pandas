@@ -281,7 +281,7 @@ Unlike ``extract`` (which returns only the first match),
 
 .. ipython:: python
 
-   s = pd.Series(["a1a2", "b1", "c1"], ["A", "B", "C"])
+   s = pd.Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
    s
    two_groups = '(?P<letter>[a-z])(?P<digit>[0-9])'
    s.str.extract(two_groups, expand=True)
@@ -312,6 +312,17 @@ then ``extractall(pat).xs(0, level='match')`` gives the same result as
    extractall_result = s.str.extractall(two_groups)
    extractall_result
    extractall_result.xs(0, level="match")
+
+``Index`` also supports ``.str.extractall``. It returns a ``DataFrame`` which has the
+same result as a ``Series.str.extractall`` with a default index (starts from 0).
+
+.. versionadded:: 0.19.0
+
+.. ipython:: python
+
+   pd.Index(["a1a2", "b1", "c1"]).str.extractall(two_groups)
+
+   pd.Series(["a1a2", "b1", "c1"]).str.extractall(two_groups)
 
 
 Testing for Strings that Match or Contain a Pattern

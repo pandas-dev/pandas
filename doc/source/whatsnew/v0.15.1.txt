@@ -144,16 +144,46 @@ API changes
 
   Current behavior:
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: ipython
 
-     from pandas.io.data import Options
-     aapl = Options('aapl','yahoo')
-     aapl.get_call_data().iloc[0:5,0:1]
-     aapl.expiry_dates
-     aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3]).iloc[0:5,0:1]
+      In [17]: from pandas.io.data import Options
 
-  See the Options documentation in :ref:`Remote Data  <remote_data.yahoo_options>`
+      In [18]: aapl = Options('aapl','yahoo')
+
+      In [19]: aapl.get_call_data().iloc[0:5,0:1]
+      Out[19]:
+                                                   Last
+      Strike Expiry     Type Symbol
+      80     2014-11-14 call AAPL141114C00080000  29.05
+      84     2014-11-14 call AAPL141114C00084000  24.80
+      85     2014-11-14 call AAPL141114C00085000  24.05
+      86     2014-11-14 call AAPL141114C00086000  22.76
+      87     2014-11-14 call AAPL141114C00087000  21.74
+
+      In [20]: aapl.expiry_dates
+      Out[20]:
+      [datetime.date(2014, 11, 14),
+       datetime.date(2014, 11, 22),
+       datetime.date(2014, 11, 28),
+       datetime.date(2014, 12, 5),
+       datetime.date(2014, 12, 12),
+       datetime.date(2014, 12, 20),
+       datetime.date(2015, 1, 17),
+       datetime.date(2015, 2, 20),
+       datetime.date(2015, 4, 17),
+       datetime.date(2015, 7, 17),
+       datetime.date(2016, 1, 15),
+       datetime.date(2017, 1, 20)]
+
+      In [21]: aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3]).iloc[0:5,0:1]
+      Out[21]:
+                                                  Last
+      Strike Expiry     Type Symbol
+      109    2014-11-22 call AAPL141122C00109000  1.48
+             2014-11-28 call AAPL141128C00109000  1.79
+      110    2014-11-14 call AAPL141114C00110000  0.55
+             2014-11-22 call AAPL141122C00110000  1.02
+             2014-11-28 call AAPL141128C00110000  1.32
 
 .. _whatsnew_0151.datetime64_plotting:
 
@@ -225,7 +255,7 @@ Enhancements
 
 - Added support for 3-character ISO and non-standard country codes in :func:`io.wb.download()` (:issue:`8482`)
 
-- :ref:`World Bank data requests <remote_data.wb>` now will warn/raise based
+- World Bank data requests now will warn/raise based
   on an ``errors`` argument, as well as a list of hard-coded country codes and
   the World Bank's JSON response.  In prior versions, the error messages
   didn't look at the World Bank's JSON response.  Problem-inducing input were

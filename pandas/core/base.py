@@ -4,9 +4,15 @@ Base and utility classes for pandas objects.
 from pandas import compat
 from pandas.compat import builtins
 import numpy as np
+
+from pandas.types.missing import isnull
+from pandas.types.generic import ABCDataFrame, ABCSeries, ABCIndexClass
+from pandas.types.common import is_object_dtype, is_list_like, is_scalar
+
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
+from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
@@ -14,7 +20,7 @@ from pandas.formats.printing import pprint_thing
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
-                            duplicated='IndexOpsMixin')
+                            unique='IndexOpsMixin', duplicated='IndexOpsMixin')
 
 
 class StringMixin(object):
@@ -119,13 +125,13 @@ class PandasObject(StringMixin):
         """
         if hasattr(self, 'memory_usage'):
             mem = self.memory_usage(deep=True)
-            if not lib.isscalar(mem):
+            if not is_scalar(mem):
                 mem = mem.sum()
             return int(mem)
 
         # no memory_usage attribute, so fall back to
         # object's 'sizeof'
-        return super(self, PandasObject).__sizeof__()
+        return super(PandasObject, self).__sizeof__()
 
 
 class NoNewAttributesMixin(object):
@@ -291,15 +297,15 @@ class SelectionMixin(object):
 
     @property
     def _selection_list(self):
-        if not isinstance(self._selection, (list, tuple, com.ABCSeries,
-                                            com.ABCIndex, np.ndarray)):
+        if not isinstance(self._selection, (list, tuple, ABCSeries,
+                                            ABCIndexClass, np.ndarray)):
             return [self._selection]
         return self._selection
 
     @cache_readonly
     def _selected_obj(self):
 
-        if self._selection is None or isinstance(self.obj, com.ABCSeries):
+        if self._selection is None or isinstance(self.obj, ABCSeries):
             return self.obj
         else:
             return self.obj[self._selection]
@@ -311,7 +317,7 @@ class SelectionMixin(object):
     @cache_readonly
     def _obj_with_exclusions(self):
         if self._selection is not None and isinstance(self.obj,
-                                                      com.ABCDataFrame):
+                                                      ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
 
         if len(self.exclusions) > 0:
@@ -323,7 +329,7 @@ class SelectionMixin(object):
         if self._selection is not None:
             raise Exception('Column(s) %s already selected' % self._selection)
 
-        if isinstance(key, (list, tuple, com.ABCSeries, com.ABCIndex,
+        if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
@@ -551,7 +557,7 @@ pandas.DataFrame.%(name)s
             if isinstance(result, list):
                 result = concat(result, keys=keys, axis=1)
             elif isinstance(list(compat.itervalues(result))[0],
-                            com.ABCDataFrame):
+                            ABCDataFrame):
                 result = concat([result[k] for k in keys], keys=keys, axis=1)
             else:
                 from pandas import DataFrame
@@ -613,6 +619,19 @@ pandas.DataFrame.%(name)s
 
         return concat(results, keys=keys, axis=1)
 
+    def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
+        """ return a new object with the replacement attributes """
+        if obj is None:
+            obj = self._selected_obj.copy()
+        if obj_type is None:
+            obj_type = self._constructor
+        if isinstance(obj, obj_type):
+            obj = obj.obj
+        for attr in self._attributes:
+            if attr not in kwargs:
+                kwargs[attr] = getattr(self, attr)
+        return obj_type(obj, **kwargs)
+
     def _is_cython_func(self, arg):
         """ if we define an internal function for this argument, return it """
         return self._cython_table.get(arg)
@@ -623,6 +642,53 @@ pandas.DataFrame.%(name)s
         otherwise return the arg
         """
         return self._builtin_table.get(arg, arg)
+
+
+class GroupByMixin(object):
+    """ provide the groupby facilities to the mixed object """
+
+    @staticmethod
+    def _dispatch(name, *args, **kwargs):
+        """ dispatch to apply """
+        def outer(self, *args, **kwargs):
+            def f(x):
+                x = self._shallow_copy(x, groupby=self._groupby)
+                return getattr(x, name)(*args, **kwargs)
+            return self._groupby.apply(f)
+        outer.__name__ = name
+        return outer
+
+    def _gotitem(self, key, ndim, subset=None):
+        """
+        sub-classes to define
+        return a sliced object
+
+        Parameters
+        ----------
+        key : string / list of selections
+        ndim : 1,2
+            requested ndim of result
+        subset : object, default None
+            subset to act on
+        """
+
+        # create a new object to prevent aliasing
+        if subset is None:
+            subset = self.obj
+
+        # we need to make a shallow copy of ourselves
+        # with the same groupby
+        kwargs = dict([(attr, getattr(self, attr))
+                       for attr in self._attributes])
+        self = self.__class__(subset,
+                              groupby=self._groupby[key],
+                              parent=self,
+                              **kwargs)
+        self._reset_cache()
+        if subset.ndim == 2:
+            if is_scalar(key) and key in subset or is_list_like(key):
+                self._selection = key
+        return self
 
 
 class FrozenList(PandasObject, list):
@@ -737,8 +803,9 @@ class IndexOpsMixin(object):
     # ndarray compatibility
     __array_priority__ = 1000
 
-    def transpose(self):
+    def transpose(self, *args, **kwargs):
         """ return the transpose, which is by definition self """
+        nv.validate_transpose(args, kwargs)
         return self
 
     T = property(transpose, doc="return the transpose, which is by "
@@ -840,7 +907,7 @@ class IndexOpsMixin(object):
     @cache_readonly
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
-        return com.isnull(self).any()
+        return isnull(self).any()
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -880,34 +947,31 @@ class IndexOpsMixin(object):
         counts : Series
         """
         from pandas.core.algorithms import value_counts
-        from pandas.tseries.api import DatetimeIndex, PeriodIndex
         result = value_counts(self, sort=sort, ascending=ascending,
                               normalize=normalize, bins=bins, dropna=dropna)
-
-        if isinstance(self, PeriodIndex):
-            # preserve freq
-            result.index = self._simple_new(result.index.values,
-                                            freq=self.freq)
-        elif isinstance(self, DatetimeIndex):
-            result.index = self._simple_new(result.index.values,
-                                            tz=getattr(self, 'tz', None))
         return result
 
-    def unique(self):
+    _shared_docs['unique'] = (
         """
-        Return array of unique values in the object. Significantly faster than
-        numpy.unique. Includes NA values.
+        Return %(unique)s of unique values in the object.
+        Significantly faster than numpy.unique. Includes NA values.
+        The order of the original is preserved.
 
         Returns
         -------
-        uniques : ndarray
-        """
-        from pandas.core.nanops import unique1d
-        values = self.values
-        if hasattr(values, 'unique'):
-            return values.unique()
+        uniques : %(unique)s
+        """)
 
-        return unique1d(values)
+    @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)
+    def unique(self):
+        values = self._values
+
+        if hasattr(values, 'unique'):
+            result = values.unique()
+        else:
+            from pandas.core.nanops import unique1d
+            result = unique1d(values)
+        return result
 
     def nunique(self, dropna=True):
         """
@@ -926,7 +990,7 @@ class IndexOpsMixin(object):
         """
         uniqs = self.unique()
         n = len(uniqs)
-        if dropna and com.isnull(uniqs).any():
+        if dropna and isnull(uniqs).any():
             n -= 1
         return n
 
@@ -940,6 +1004,38 @@ class IndexOpsMixin(object):
         is_unique : boolean
         """
         return self.nunique() == len(self)
+
+    @property
+    def is_monotonic(self):
+        """
+        Return boolean if values in the object are
+        monotonic_increasing
+
+        .. versionadded:: 0.19.0
+
+        Returns
+        -------
+        is_monotonic : boolean
+        """
+        from pandas import Index
+        return Index(self).is_monotonic
+
+    is_monotonic_increasing = is_monotonic
+
+    @property
+    def is_monotonic_decreasing(self):
+        """
+        Return boolean if values in the object are
+        monotonic_decreasing
+
+        .. versionadded:: 0.19.0
+
+        Returns
+        -------
+        is_monotonic_decreasing : boolean
+        """
+        from pandas import Index
+        return Index(self).is_monotonic_decreasing
 
     def memory_usage(self, deep=False):
         """
@@ -968,7 +1064,7 @@ class IndexOpsMixin(object):
             return self.values.memory_usage(deep=deep)
 
         v = self.values.nbytes
-        if deep and com.is_object_dtype(self):
+        if deep and is_object_dtype(self):
             v += lib.memory_usage_of_objects(self.values)
         return v
 
@@ -1081,6 +1177,10 @@ class IndexOpsMixin(object):
                                                    False: 'first'})
     @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
+        if isinstance(self, ABCIndexClass):
+            if self.is_unique:
+                return self._shallow_copy()
+
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
         if inplace:
@@ -1110,13 +1210,14 @@ class IndexOpsMixin(object):
                                                    False: 'first'})
     @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
-        keys = com._values_from_object(com._ensure_object(self.values))
-        duplicated = lib.duplicated(keys, keep=keep)
-        try:
-            return self._constructor(duplicated,
+        from pandas.core.algorithms import duplicated
+        if isinstance(self, ABCIndexClass):
+            if self.is_unique:
+                return np.zeros(len(self), dtype=np.bool)
+            return duplicated(self, keep=keep)
+        else:
+            return self._constructor(duplicated(self, keep=keep),
                                      index=self.index).__finalize__(self)
-        except AttributeError:
-            return np.array(duplicated, dtype=bool)
 
     # ----------------------------------------------------------------------
     # abstracts

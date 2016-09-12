@@ -179,6 +179,13 @@ class TestRank(tm.TestCase):
             expected.index = result.index
             assert_series_equal(result, expected)
 
+    def test_rank_object_bug(self):
+        # GH 13445
+
+        # smoke tests
+        Series([np.nan] * 32).astype(object).rank(ascending=True)
+        Series([np.nan] * 32).astype(object).rank(ascending=False)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

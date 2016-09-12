@@ -2,10 +2,8 @@ import os
 import locale
 import codecs
 import nose
-from nose.tools import assert_raises
 
 import numpy as np
-from numpy.testing import assert_equal
 
 import pandas as pd
 from pandas import date_range, Index
@@ -20,18 +18,21 @@ class TestCartesianProduct(tm.TestCase):
 
     def test_simple(self):
         x, y = list('ABC'), [1, 22]
-        result = cartesian_product([x, y])
-        expected = [np.array(['A', 'A', 'B', 'B', 'C', 'C']),
-                    np.array([1, 22, 1, 22, 1, 22])]
-        assert_equal(result, expected)
+        result1, result2 = cartesian_product([x, y])
+        expected1 = np.array(['A', 'A', 'B', 'B', 'C', 'C'])
+        expected2 = np.array([1, 22, 1, 22, 1, 22])
+        tm.assert_numpy_array_equal(result1, expected1)
+        tm.assert_numpy_array_equal(result2, expected2)
 
     def test_datetimeindex(self):
         # regression test for GitHub issue #6439
         # make sure that the ordering on datetimeindex is consistent
         x = date_range('2000-01-01', periods=2)
-        result = [Index(y).day for y in cartesian_product([x, x])]
-        expected = [np.array([1, 1, 2, 2]), np.array([1, 2, 1, 2])]
-        assert_equal(result, expected)
+        result1, result2 = [Index(y).day for y in cartesian_product([x, x])]
+        expected1 = np.array([1, 1, 2, 2], dtype=np.int32)
+        expected2 = np.array([1, 2, 1, 2], dtype=np.int32)
+        tm.assert_numpy_array_equal(result1, expected1)
+        tm.assert_numpy_array_equal(result2, expected2)
 
 
 class TestLocaleUtils(tm.TestCase):
@@ -67,10 +68,12 @@ class TestLocaleUtils(tm.TestCase):
             raise nose.SkipTest("Only a single locale found, no point in "
                                 "trying to test setting another locale")
 
-        if LOCALE_OVERRIDE is not None:
-            lang, enc = LOCALE_OVERRIDE.split('.')
-        else:
+        if LOCALE_OVERRIDE is None:
             lang, enc = 'it_CH', 'UTF-8'
+        elif LOCALE_OVERRIDE == 'C':
+            lang, enc = 'en_US', 'ascii'
+        else:
+            lang, enc = LOCALE_OVERRIDE.split('.')
 
         enc = codecs.lookup(enc).name
         new_locale = lang, enc
@@ -102,9 +105,26 @@ class TestToNumeric(tm.TestCase):
         res = to_numeric(s)
         tm.assert_series_equal(res, expected)
 
+    def test_series_numeric(self):
+        s = pd.Series([1, 3, 4, 5], index=list('ABCD'), name='XXX')
+        res = to_numeric(s)
+        tm.assert_series_equal(res, s)
+
+        s = pd.Series([1., 3., 4., 5.], index=list('ABCD'), name='XXX')
+        res = to_numeric(s)
+        tm.assert_series_equal(res, s)
+
+        # bool is regarded as numeric
+        s = pd.Series([True, False, True, True],
+                      index=list('ABCD'), name='XXX')
+        res = to_numeric(s)
+        tm.assert_series_equal(res, s)
+
     def test_error(self):
         s = pd.Series([1, -3.14, 'apple'])
-        assert_raises(ValueError, to_numeric, s, errors='raise')
+        msg = 'Unable to parse string "apple" at position 2'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            to_numeric(s, errors='raise')
 
         res = to_numeric(s, errors='ignore')
         expected = pd.Series([1, -3.14, 'apple'])
@@ -114,11 +134,45 @@ class TestToNumeric(tm.TestCase):
         expected = pd.Series([1, -3.14, np.nan])
         tm.assert_series_equal(res, expected)
 
+        s = pd.Series(['orange', 1, -3.14, 'apple'])
+        msg = 'Unable to parse string "orange" at position 0'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            to_numeric(s, errors='raise')
+
+    def test_error_seen_bool(self):
+        s = pd.Series([True, False, 'apple'])
+        msg = 'Unable to parse string "apple" at position 2'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            to_numeric(s, errors='raise')
+
+        res = to_numeric(s, errors='ignore')
+        expected = pd.Series([True, False, 'apple'])
+        tm.assert_series_equal(res, expected)
+
+        # coerces to float
+        res = to_numeric(s, errors='coerce')
+        expected = pd.Series([1., 0., np.nan])
+        tm.assert_series_equal(res, expected)
+
     def test_list(self):
         s = ['1', '-3.14', '7']
         res = to_numeric(s)
         expected = np.array([1, -3.14, 7])
         tm.assert_numpy_array_equal(res, expected)
+
+    def test_list_numeric(self):
+        s = [1, 3, 4, 5]
+        res = to_numeric(s)
+        tm.assert_numpy_array_equal(res, np.array(s, dtype=np.int64))
+
+        s = [1., 3., 4., 5.]
+        res = to_numeric(s)
+        tm.assert_numpy_array_equal(res, np.array(s))
+
+        # bool is regarded as numeric
+        s = [True, False, True, True]
+        res = to_numeric(s)
+        tm.assert_numpy_array_equal(res, np.array(s))
 
     def test_numeric(self):
         s = pd.Series([1, -3.14, 7], dtype='O')
@@ -144,6 +198,185 @@ class TestToNumeric(tm.TestCase):
         for errors in ['ignore', 'raise', 'coerce']:
             with tm.assertRaisesRegexp(TypeError, "1-d array"):
                 to_numeric(df, errors=errors)
+
+    def test_scalar(self):
+        self.assertEqual(pd.to_numeric(1), 1)
+        self.assertEqual(pd.to_numeric(1.1), 1.1)
+
+        self.assertEqual(pd.to_numeric('1'), 1)
+        self.assertEqual(pd.to_numeric('1.1'), 1.1)
+
+        with tm.assertRaises(ValueError):
+            to_numeric('XX', errors='raise')
+
+        self.assertEqual(to_numeric('XX', errors='ignore'), 'XX')
+        self.assertTrue(np.isnan(to_numeric('XX', errors='coerce')))
+
+    def test_numeric_dtypes(self):
+        idx = pd.Index([1, 2, 3], name='xxx')
+        res = pd.to_numeric(idx)
+        tm.assert_index_equal(res, idx)
+
+        res = pd.to_numeric(pd.Series(idx, name='xxx'))
+        tm.assert_series_equal(res, pd.Series(idx, name='xxx'))
+
+        res = pd.to_numeric(idx.values)
+        tm.assert_numpy_array_equal(res, idx.values)
+
+        idx = pd.Index([1., np.nan, 3., np.nan], name='xxx')
+        res = pd.to_numeric(idx)
+        tm.assert_index_equal(res, idx)
+
+        res = pd.to_numeric(pd.Series(idx, name='xxx'))
+        tm.assert_series_equal(res, pd.Series(idx, name='xxx'))
+
+        res = pd.to_numeric(idx.values)
+        tm.assert_numpy_array_equal(res, idx.values)
+
+    def test_str(self):
+        idx = pd.Index(['1', '2', '3'], name='xxx')
+        exp = np.array([1, 2, 3], dtype='int64')
+        res = pd.to_numeric(idx)
+        tm.assert_index_equal(res, pd.Index(exp, name='xxx'))
+
+        res = pd.to_numeric(pd.Series(idx, name='xxx'))
+        tm.assert_series_equal(res, pd.Series(exp, name='xxx'))
+
+        res = pd.to_numeric(idx.values)
+        tm.assert_numpy_array_equal(res, exp)
+
+        idx = pd.Index(['1.5', '2.7', '3.4'], name='xxx')
+        exp = np.array([1.5, 2.7, 3.4])
+        res = pd.to_numeric(idx)
+        tm.assert_index_equal(res, pd.Index(exp, name='xxx'))
+
+        res = pd.to_numeric(pd.Series(idx, name='xxx'))
+        tm.assert_series_equal(res, pd.Series(exp, name='xxx'))
+
+        res = pd.to_numeric(idx.values)
+        tm.assert_numpy_array_equal(res, exp)
+
+    def test_datetimelike(self):
+        for tz in [None, 'US/Eastern', 'Asia/Tokyo']:
+            idx = pd.date_range('20130101', periods=3, tz=tz, name='xxx')
+            res = pd.to_numeric(idx)
+            tm.assert_index_equal(res, pd.Index(idx.asi8, name='xxx'))
+
+            res = pd.to_numeric(pd.Series(idx, name='xxx'))
+            tm.assert_series_equal(res, pd.Series(idx.asi8, name='xxx'))
+
+            res = pd.to_numeric(idx.values)
+            tm.assert_numpy_array_equal(res, idx.asi8)
+
+    def test_timedelta(self):
+        idx = pd.timedelta_range('1 days', periods=3, freq='D', name='xxx')
+        res = pd.to_numeric(idx)
+        tm.assert_index_equal(res, pd.Index(idx.asi8, name='xxx'))
+
+        res = pd.to_numeric(pd.Series(idx, name='xxx'))
+        tm.assert_series_equal(res, pd.Series(idx.asi8, name='xxx'))
+
+        res = pd.to_numeric(idx.values)
+        tm.assert_numpy_array_equal(res, idx.asi8)
+
+    def test_period(self):
+        idx = pd.period_range('2011-01', periods=3, freq='M', name='xxx')
+        res = pd.to_numeric(idx)
+        tm.assert_index_equal(res, pd.Index(idx.asi8, name='xxx'))
+
+        # ToDo: enable when we can support native PeriodDtype
+        # res = pd.to_numeric(pd.Series(idx, name='xxx'))
+        # tm.assert_series_equal(res, pd.Series(idx.asi8, name='xxx'))
+
+    def test_non_hashable(self):
+        # Test for Bug #13324
+        s = pd.Series([[10.0, 2], 1.0, 'apple'])
+        res = pd.to_numeric(s, errors='coerce')
+        tm.assert_series_equal(res, pd.Series([np.nan, 1.0, np.nan]))
+
+        res = pd.to_numeric(s, errors='ignore')
+        tm.assert_series_equal(res, pd.Series([[10.0, 2], 1.0, 'apple']))
+
+        with self.assertRaisesRegexp(TypeError, "Invalid object type"):
+            pd.to_numeric(s)
+
+    def test_downcast(self):
+        # see gh-13352
+        mixed_data = ['1', 2, 3]
+        int_data = [1, 2, 3]
+        date_data = np.array(['1970-01-02', '1970-01-03',
+                              '1970-01-04'], dtype='datetime64[D]')
+
+        invalid_downcast = 'unsigned-integer'
+        msg = 'invalid downcasting method provided'
+
+        smallest_int_dtype = np.dtype(np.typecodes['Integer'][0])
+        smallest_uint_dtype = np.dtype(np.typecodes['UnsignedInteger'][0])
+
+        # support below np.float32 is rare and far between
+        float_32_char = np.dtype(np.float32).char
+        smallest_float_dtype = float_32_char
+
+        for data in (mixed_data, int_data, date_data):
+            with self.assertRaisesRegexp(ValueError, msg):
+                pd.to_numeric(data, downcast=invalid_downcast)
+
+            expected = np.array([1, 2, 3], dtype=np.int64)
+
+            res = pd.to_numeric(data)
+            tm.assert_numpy_array_equal(res, expected)
+
+            res = pd.to_numeric(data, downcast=None)
+            tm.assert_numpy_array_equal(res, expected)
+
+            expected = np.array([1, 2, 3], dtype=smallest_int_dtype)
+
+            for signed_downcast in ('integer', 'signed'):
+                res = pd.to_numeric(data, downcast=signed_downcast)
+                tm.assert_numpy_array_equal(res, expected)
+
+            expected = np.array([1, 2, 3], dtype=smallest_uint_dtype)
+            res = pd.to_numeric(data, downcast='unsigned')
+            tm.assert_numpy_array_equal(res, expected)
+
+            expected = np.array([1, 2, 3], dtype=smallest_float_dtype)
+            res = pd.to_numeric(data, downcast='float')
+            tm.assert_numpy_array_equal(res, expected)
+
+        # if we can't successfully cast the given
+        # data to a numeric dtype, do not bother
+        # with the downcast parameter
+        data = ['foo', 2, 3]
+        expected = np.array(data, dtype=object)
+        res = pd.to_numeric(data, errors='ignore',
+                            downcast='unsigned')
+        tm.assert_numpy_array_equal(res, expected)
+
+        # cannot cast to an unsigned integer because
+        # we have a negative number
+        data = ['-1', 2, 3]
+        expected = np.array([-1, 2, 3], dtype=np.int64)
+        res = pd.to_numeric(data, downcast='unsigned')
+        tm.assert_numpy_array_equal(res, expected)
+
+        # cannot cast to an integer (signed or unsigned)
+        # because we have a float number
+        data = ['1.1', 2, 3]
+        expected = np.array([1.1, 2, 3], dtype=np.float64)
+
+        for downcast in ('integer', 'signed', 'unsigned'):
+            res = pd.to_numeric(data, downcast=downcast)
+            tm.assert_numpy_array_equal(res, expected)
+
+        # the smallest integer dtype need not be np.(u)int8
+        data = ['256', 257, 258]
+
+        for downcast, expected_dtype in zip(
+                ['integer', 'signed', 'unsigned'],
+                [np.int16, np.int16, np.uint16]):
+            expected = np.array([256, 257, 258], dtype=expected_dtype)
+            res = pd.to_numeric(data, downcast=downcast)
+            tm.assert_numpy_array_equal(res, expected)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

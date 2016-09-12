@@ -1,4 +1,5 @@
 from .pandas_vb_common import *
+import string
 
 
 class frame_apply_axis_1(object):
@@ -423,7 +424,7 @@ class frame_get_dtype_counts(object):
     goal_time = 0.2
 
     def setup(self):
-        self.df = pandas.DataFrame(np.random.randn(10, 10000))
+        self.df = DataFrame(np.random.randn(10, 10000))
 
     def time_frame_get_dtype_counts(self):
         self.df.get_dtype_counts()
@@ -599,6 +600,21 @@ class frame_isnull_floats(object):
     def setup(self):
         np.random.seed(1234)
         self.sample = np.array([np.nan, 1.0])
+        self.data = np.random.choice(self.sample, (1000, 1000))
+        self.df = DataFrame(self.data)
+
+    def time_frame_isnull(self):
+        isnull(self.df)
+
+
+class frame_isnull_strings(object):
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(1234)
+        self.sample = np.array(list(string.ascii_lowercase) +
+                               list(string.ascii_uppercase) +
+                               list(string.whitespace))
         self.data = np.random.choice(self.sample, (1000, 1000))
         self.df = DataFrame(self.data)
 
@@ -985,3 +1001,14 @@ class series_string_vector_slice(object):
 
     def time_series_string_vector_slice(self):
         self.s.str[:5]
+
+
+class frame_quantile_axis1(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(1000, 3),
+                            columns=list('ABC'))
+
+    def time_frame_quantile_axis1(self):
+        self.df.quantile([0.1, 0.5], axis=1)

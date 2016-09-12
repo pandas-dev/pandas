@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas import DataFrame, Series, Index, Timestamp, DatetimeIndex
 import pandas as pd
-import pandas.core.datetools as datetools
+import pandas.tseries.offsets as offsets
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -120,13 +120,13 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
     def test_shift(self):
         # naive shift
         shiftedFrame = self.tsframe.shift(5)
-        self.assertTrue(shiftedFrame.index.equals(self.tsframe.index))
+        self.assert_index_equal(shiftedFrame.index, self.tsframe.index)
 
         shiftedSeries = self.tsframe['A'].shift(5)
         assert_series_equal(shiftedFrame['A'], shiftedSeries)
 
         shiftedFrame = self.tsframe.shift(-5)
-        self.assertTrue(shiftedFrame.index.equals(self.tsframe.index))
+        self.assert_index_equal(shiftedFrame.index, self.tsframe.index)
 
         shiftedSeries = self.tsframe['A'].shift(-5)
         assert_series_equal(shiftedFrame['A'], shiftedSeries)
@@ -136,14 +136,14 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         assert_frame_equal(unshifted, self.tsframe)
 
         # shift by DateOffset
-        shiftedFrame = self.tsframe.shift(5, freq=datetools.BDay())
+        shiftedFrame = self.tsframe.shift(5, freq=offsets.BDay())
         self.assertEqual(len(shiftedFrame), len(self.tsframe))
 
         shiftedFrame2 = self.tsframe.shift(5, freq='B')
         assert_frame_equal(shiftedFrame, shiftedFrame2)
 
         d = self.tsframe.index[0]
-        shifted_d = d + datetools.BDay(5)
+        shifted_d = d + offsets.BDay(5)
         assert_series_equal(self.tsframe.xs(d),
                             shiftedFrame.xs(shifted_d), check_names=False)
 
@@ -154,13 +154,13 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         ps = tm.makePeriodFrame()
         shifted = ps.shift(1)
         unshifted = shifted.shift(-1)
-        self.assertTrue(shifted.index.equals(ps.index))
-
-        tm.assert_dict_equal(unshifted.ix[:, 0].valid(), ps.ix[:, 0],
-                             compare_keys=False)
+        self.assert_index_equal(shifted.index, ps.index)
+        self.assert_index_equal(unshifted.index, ps.index)
+        tm.assert_numpy_array_equal(unshifted.ix[:, 0].valid().values,
+                                    ps.ix[:-1, 0].values)
 
         shifted2 = ps.shift(1, 'B')
-        shifted3 = ps.shift(1, datetools.bday)
+        shifted3 = ps.shift(1, offsets.BDay())
         assert_frame_equal(shifted2, shifted3)
         assert_frame_equal(ps, shifted2.shift(-1, 'B'))
 
@@ -222,7 +222,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         shifted2 = ps.tshift(freq='B')
         assert_frame_equal(shifted, shifted2)
 
-        shifted3 = ps.tshift(freq=datetools.bday)
+        shifted3 = ps.tshift(freq=offsets.BDay())
         assert_frame_equal(shifted, shifted3)
 
         assertRaisesRegexp(ValueError, 'does not match', ps.tshift, freq='M')
@@ -297,7 +297,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         self.assertFalse((self.tsframe.values[5:11] == 5).any())
 
     def test_asfreq(self):
-        offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
+        offset_monthly = self.tsframe.asfreq(offsets.BMonthEnd())
         rule_monthly = self.tsframe.asfreq('BM')
 
         assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
@@ -341,3 +341,33 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         empty = DataFrame()
         self.assertIsNone(empty.last_valid_index())
         self.assertIsNone(empty.first_valid_index())
+
+    def test_operation_on_NaT(self):
+        # Both NaT and Timestamp are in DataFrame.
+        df = pd.DataFrame({'foo': [pd.NaT, pd.NaT,
+                                   pd.Timestamp('2012-05-01')]})
+
+        res = df.min()
+        exp = pd.Series([pd.Timestamp('2012-05-01')], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+        res = df.max()
+        exp = pd.Series([pd.Timestamp('2012-05-01')], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+        # GH12941, only NaTs are in DataFrame.
+        df = pd.DataFrame({'foo': [pd.NaT, pd.NaT]})
+
+        res = df.min()
+        exp = pd.Series([pd.NaT], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+        res = df.max()
+        exp = pd.Series([pd.NaT], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

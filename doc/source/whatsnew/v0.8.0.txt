@@ -59,7 +59,7 @@ Time series changes and improvements
   aggregation functions, and control over how the intervals and result labeling
   are defined. A suite of high performance Cython/C-based resampling functions
   (including Open-High-Low-Close) have also been implemented.
-- Revamp of :ref:`frequency aliases <timeseries.alias>` and support for
+- Revamp of :ref:`frequency aliases <timeseries.offset_aliases>` and support for
   **frequency shortcuts** like '15min', or '1h30min'
 - New :ref:`DatetimeIndex class <timeseries.datetimeindex>` supports both fixed
   frequency and irregular time
@@ -134,7 +134,7 @@ Other new features
 - Move to klib-based hash tables for indexing; better performance and less
   memory usage than Python's dict
 - Add first, last, min, max, and prod optimized GroupBy functions
-- New :ref:`ordered_merge <merging.ordered_merge>` function
+- New :ref:`ordered_merge <merging.merge_ordered>` function
 - Add flexible :ref:`comparison <basics.binop>` instance methods eq, ne, lt,
   gt, etc. to DataFrame, Series
 - Improve :ref:`scatter_matrix <visualization.scatter_matrix>` plotting
@@ -241,7 +241,7 @@ matplotlib knows how to handle ``datetime.datetime`` but not Timestamp
 objects. While I recommend that you plot time series using ``TimeSeries.plot``,
 you can either use ``to_pydatetime`` or register a converter for the Timestamp
 type. See `matplotlib documentation
-<http://matplotlib.sourceforge.net/api/units_api.html>`__ for more on this.
+<http://matplotlib.org/api/units_api.html>`__ for more on this.
 
 .. warning::
 
@@ -271,4 +271,3 @@ unique. In many cases it will no longer fail (some method like ``append`` still
 check for uniqueness unless disabled). However, all is not lost: you can
 inspect ``index.is_unique`` and raise an exception explicitly if it is
 ``False`` or go to a different code branch.
-

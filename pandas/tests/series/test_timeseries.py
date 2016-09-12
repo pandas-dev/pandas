@@ -3,19 +3,17 @@
 
 from datetime import datetime
 
-from numpy import nan
 import numpy as np
 
-from pandas import Index, Series, notnull, date_range
+from pandas import Index, Series, date_range, NaT
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.offsets import BDay, BMonthEnd
 from pandas.tseries.tdi import TimedeltaIndex
-
-import pandas.core.datetools as datetools
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
-from .common import TestData
+from pandas.tests.series.common import TestData
 
 
 class TestSeriesTimeSeries(TestData, tm.TestCase):
@@ -25,9 +23,12 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         shifted = self.ts.shift(1)
         unshifted = shifted.shift(-1)
 
-        tm.assert_dict_equal(unshifted.valid(), self.ts, compare_keys=False)
+        tm.assert_index_equal(shifted.index, self.ts.index)
+        tm.assert_index_equal(unshifted.index, self.ts.index)
+        tm.assert_numpy_array_equal(unshifted.valid().values,
+                                    self.ts.values[:-1])
 
-        offset = datetools.bday
+        offset = BDay()
         shifted = self.ts.shift(1, freq=offset)
         unshifted = shifted.shift(-1, freq=offset)
 
@@ -49,10 +50,12 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         ps = tm.makePeriodSeries()
         shifted = ps.shift(1)
         unshifted = shifted.shift(-1)
-        tm.assert_dict_equal(unshifted.valid(), ps, compare_keys=False)
+        tm.assert_index_equal(shifted.index, ps.index)
+        tm.assert_index_equal(unshifted.index, ps.index)
+        tm.assert_numpy_array_equal(unshifted.valid().values, ps.values[:-1])
 
         shifted2 = ps.shift(1, 'B')
-        shifted3 = ps.shift(1, datetools.bday)
+        shifted3 = ps.shift(1, BDay())
         assert_series_equal(shifted2, shifted3)
         assert_series_equal(ps, shifted2.shift(-1, 'B'))
 
@@ -62,7 +65,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         shifted4 = ps.shift(1, freq='B')
         assert_series_equal(shifted2, shifted4)
 
-        shifted5 = ps.shift(1, freq=datetools.bday)
+        shifted5 = ps.shift(1, freq=BDay())
         assert_series_equal(shifted5, shifted4)
 
         # 32-bit taking
@@ -77,17 +80,44 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
 
         # xref 8260
         # with tz
-        s = Series(
-            date_range('2000-01-01 09:00:00', periods=5,
-                       tz='US/Eastern'), name='foo')
+        s = Series(date_range('2000-01-01 09:00:00', periods=5,
+                              tz='US/Eastern'), name='foo')
         result = s - s.shift()
-        assert_series_equal(result, Series(
-            TimedeltaIndex(['NaT'] + ['1 days'] * 4), name='foo'))
+
+        exp = Series(TimedeltaIndex(['NaT'] + ['1 days'] * 4), name='foo')
+        assert_series_equal(result, exp)
 
         # incompat tz
-        s2 = Series(
-            date_range('2000-01-01 09:00:00', periods=5, tz='CET'), name='foo')
+        s2 = Series(date_range('2000-01-01 09:00:00', periods=5,
+                               tz='CET'), name='foo')
         self.assertRaises(ValueError, lambda: s - s2)
+
+    def test_shift_dst(self):
+        # GH 13926
+        dates = date_range('2016-11-06', freq='H', periods=10, tz='US/Eastern')
+        s = Series(dates)
+
+        res = s.shift(0)
+        tm.assert_series_equal(res, s)
+        self.assertEqual(res.dtype, 'datetime64[ns, US/Eastern]')
+
+        res = s.shift(1)
+        exp_vals = [NaT] + dates.asobject.values.tolist()[:9]
+        exp = Series(exp_vals)
+        tm.assert_series_equal(res, exp)
+        self.assertEqual(res.dtype, 'datetime64[ns, US/Eastern]')
+
+        res = s.shift(-2)
+        exp_vals = dates.asobject.values.tolist()[2:] + [NaT, NaT]
+        exp = Series(exp_vals)
+        tm.assert_series_equal(res, exp)
+        self.assertEqual(res.dtype, 'datetime64[ns, US/Eastern]')
+
+        for ex in [10, -10, 20, -20]:
+            res = s.shift(ex)
+            exp = Series([NaT] * 10, dtype='datetime64[ns, US/Eastern]')
+            tm.assert_series_equal(res, exp)
+            self.assertEqual(res.dtype, 'datetime64[ns, US/Eastern]')
 
     def test_tshift(self):
         # PeriodIndex
@@ -100,7 +130,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         shifted2 = ps.tshift(freq='B')
         assert_series_equal(shifted, shifted2)
 
-        shifted3 = ps.tshift(freq=datetools.bday)
+        shifted3 = ps.tshift(freq=BDay())
         assert_series_equal(shifted, shifted3)
 
         self.assertRaises(ValueError, ps.tshift, freq='M')
@@ -125,7 +155,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         self.assertRaises(ValueError, no_freq.tshift)
 
     def test_truncate(self):
-        offset = datetools.bday
+        offset = BDay()
 
         ts = self.ts[::3]
 
@@ -173,51 +203,6 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         self.assertRaises(ValueError, ts.truncate,
                           before=self.ts.index[-1] + offset,
                           after=self.ts.index[0] - offset)
-
-    def test_asof(self):
-        # array or list or dates
-        N = 50
-        rng = date_range('1/1/1990', periods=N, freq='53s')
-        ts = Series(np.random.randn(N), index=rng)
-        ts[15:30] = np.nan
-        dates = date_range('1/1/1990', periods=N * 3, freq='25s')
-
-        result = ts.asof(dates)
-        self.assertTrue(notnull(result).all())
-        lb = ts.index[14]
-        ub = ts.index[30]
-
-        result = ts.asof(list(dates))
-        self.assertTrue(notnull(result).all())
-        lb = ts.index[14]
-        ub = ts.index[30]
-
-        mask = (result.index >= lb) & (result.index < ub)
-        rs = result[mask]
-        self.assertTrue((rs == ts[lb]).all())
-
-        val = result[result.index[result.index >= ub][0]]
-        self.assertEqual(ts[ub], val)
-
-        self.ts[5:10] = np.NaN
-        self.ts[15:20] = np.NaN
-
-        val1 = self.ts.asof(self.ts.index[7])
-        val2 = self.ts.asof(self.ts.index[19])
-
-        self.assertEqual(val1, self.ts[4])
-        self.assertEqual(val2, self.ts[14])
-
-        # accepts strings
-        val1 = self.ts.asof(str(self.ts.index[7]))
-        self.assertEqual(val1, self.ts[4])
-
-        # in there
-        self.assertEqual(self.ts.asof(self.ts.index[3]), self.ts[3])
-
-        # no as of value
-        d = self.ts.index[0] - datetools.bday
-        self.assertTrue(np.isnan(self.ts.asof(d)))
 
     def test_getitem_setitem_datetimeindex(self):
         from pandas import date_range
@@ -346,8 +331,10 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         from pandas import date_range
 
         N = 50
+
         # testing with timezone, GH #2785
-        rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
+        rng = date_range('1/1/1990', periods=N, freq='H',
+                         tz='America/New_York')
         ts = Series(np.random.randn(N), index=rng)
 
         # also test Timestamp tz handling, GH #2789
@@ -368,8 +355,8 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         assert_series_equal(result, ts)
 
         result = ts.copy()
-        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = 0
-        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = ts[4]
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('America/Chicago'))] = 0
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('America/Chicago'))] = ts[4]
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_periodindex(self):
@@ -417,83 +404,21 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         result[4:8] = ts[4:8]
         assert_series_equal(result, ts)
 
-    def test_asof_periodindex(self):
-        from pandas import period_range, PeriodIndex
-        # array or list or dates
-        N = 50
-        rng = period_range('1/1/1990', periods=N, freq='H')
-        ts = Series(np.random.randn(N), index=rng)
-        ts[15:30] = np.nan
-        dates = date_range('1/1/1990', periods=N * 3, freq='37min')
-
-        result = ts.asof(dates)
-        self.assertTrue(notnull(result).all())
-        lb = ts.index[14]
-        ub = ts.index[30]
-
-        result = ts.asof(list(dates))
-        self.assertTrue(notnull(result).all())
-        lb = ts.index[14]
-        ub = ts.index[30]
-
-        pix = PeriodIndex(result.index.values, freq='H')
-        mask = (pix >= lb) & (pix < ub)
-        rs = result[mask]
-        self.assertTrue((rs == ts[lb]).all())
-
-        ts[5:10] = np.NaN
-        ts[15:20] = np.NaN
-
-        val1 = ts.asof(ts.index[7])
-        val2 = ts.asof(ts.index[19])
-
-        self.assertEqual(val1, ts[4])
-        self.assertEqual(val2, ts[14])
-
-        # accepts strings
-        val1 = ts.asof(str(ts.index[7]))
-        self.assertEqual(val1, ts[4])
-
-        # in there
-        self.assertEqual(ts.asof(ts.index[3]), ts[3])
-
-        # no as of value
-        d = ts.index[0].to_timestamp() - datetools.bday
-        self.assertTrue(np.isnan(ts.asof(d)))
-
-    def test_asof_more(self):
-        from pandas import date_range
-
-        s = Series([nan, nan, 1, 2, nan, nan, 3, 4, 5],
-                   index=date_range('1/1/2000', periods=9))
-
-        dates = s.index[[4, 5, 6, 2, 1]]
-
-        result = s.asof(dates)
-        expected = Series([2, 2, 3, 1, np.nan], index=dates)
-
-        assert_series_equal(result, expected)
-
-        s = Series([1.5, 2.5, 1, 2, nan, nan, 3, 4, 5],
-                   index=date_range('1/1/2000', periods=9))
-        result = s.asof(s.index[0])
-        self.assertEqual(result, s[0])
-
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30), datetime(
             2009, 11, 30), datetime(2009, 12, 31)])
 
         daily_ts = ts.asfreq('B')
         monthly_ts = daily_ts.asfreq('BM')
-        self.assert_numpy_array_equal(monthly_ts, ts)
+        self.assert_series_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq('B', method='pad')
         monthly_ts = daily_ts.asfreq('BM')
-        self.assert_numpy_array_equal(monthly_ts, ts)
+        self.assert_series_equal(monthly_ts, ts)
 
-        daily_ts = ts.asfreq(datetools.bday)
-        monthly_ts = daily_ts.asfreq(datetools.bmonthEnd)
-        self.assert_numpy_array_equal(monthly_ts, ts)
+        daily_ts = ts.asfreq(BDay())
+        monthly_ts = daily_ts.asfreq(BMonthEnd())
+        self.assert_series_equal(monthly_ts, ts)
 
         result = ts[:0].asfreq('M')
         self.assertEqual(len(result), 0)
@@ -626,3 +551,18 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
             self.assertTrue(ser.is_time_series)
         self.assertTrue(ser.index.is_all_dates)
         self.assertIsInstance(ser.index, DatetimeIndex)
+
+    def test_empty_series_ops(self):
+        # see issue #13844
+        a = Series(dtype='M8[ns]')
+        b = Series(dtype='m8[ns]')
+        assert_series_equal(a, a + b)
+        assert_series_equal(a, a - b)
+        assert_series_equal(a, b + a)
+        self.assertRaises(TypeError, lambda x, y: x - y, b, a)
+
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

@@ -7,13 +7,12 @@ import numpy as np
 from numpy import nan
 import pandas as pd
 
-from distutils.version import LooseVersion
+from pandas.types.common import is_scalar
 from pandas import (Index, Series, DataFrame, Panel, isnull,
                     date_range, period_range, Panel4D)
 from pandas.core.index import MultiIndex
 
 import pandas.formats.printing as printing
-import pandas.lib as lib
 
 from pandas.compat import range, zip, PY3
 from pandas import compat
@@ -22,24 +21,10 @@ from pandas.util.testing import (assertRaisesRegexp,
                                  assert_frame_equal,
                                  assert_panel_equal,
                                  assert_panel4d_equal,
-                                 assert_almost_equal,
-                                 assert_equal)
+                                 assert_almost_equal)
 
 import pandas.util.testing as tm
 
-
-def _skip_if_no_pchip():
-    try:
-        from scipy.interpolate import pchip_interpolate  # noqa
-    except ImportError:
-        raise nose.SkipTest('scipy.interpolate.pchip missing')
-
-
-def _skip_if_no_akima():
-    try:
-        from scipy.interpolate import Akima1DInterpolator  # noqa
-    except ImportError:
-        raise nose.SkipTest('scipy.interpolate.Akima1DInterpolator missing')
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -68,7 +53,7 @@ class Generic(object):
         if isinstance(shape, int):
             shape = tuple([shape] * self._ndim)
         if value is not None:
-            if lib.isscalar(value):
+            if is_scalar(value):
                 if value == 'empty':
                     arr = None
 
@@ -429,6 +414,14 @@ class Generic(object):
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)),
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)))
 
+            os1, os2 = [], []
+            for _ in range(2):
+                np.random.seed(test)
+                os1.append(o.sample(n=4))
+                os2.append(o.sample(frac=0.7))
+            self._compare(*os1)
+            self._compare(*os2)
+
         # Check for error when random_state argument invalid.
         with tm.assertRaises(ValueError):
             o.sample(random_state='astring!')
@@ -546,14 +539,15 @@ class Generic(object):
     def test_stat_unexpected_keyword(self):
         obj = self._construct(5)
         starwars = 'Star Wars'
+        errmsg = 'unexpected keyword'
 
-        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+        with assertRaisesRegexp(TypeError, errmsg):
             obj.max(epic=starwars)  # stat_function
-        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+        with assertRaisesRegexp(TypeError, errmsg):
             obj.var(epic=starwars)  # stat_function_ddof
-        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+        with assertRaisesRegexp(TypeError, errmsg):
             obj.sum(epic=starwars)  # cum_function
-        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+        with assertRaisesRegexp(TypeError, errmsg):
             obj.any(epic=starwars)  # logical_function
 
     def test_api_compat(self):
@@ -567,6 +561,86 @@ class Generic(object):
             self.assertEqual(f.__name__, func)
             if PY3:
                 self.assertTrue(f.__qualname__.endswith(func))
+
+    def test_stat_non_defaults_args(self):
+        obj = self._construct(5)
+        out = np.array([0])
+        errmsg = "the 'out' parameter is not supported"
+
+        with assertRaisesRegexp(ValueError, errmsg):
+            obj.max(out=out)  # stat_function
+        with assertRaisesRegexp(ValueError, errmsg):
+            obj.var(out=out)  # stat_function_ddof
+        with assertRaisesRegexp(ValueError, errmsg):
+            obj.sum(out=out)  # cum_function
+        with assertRaisesRegexp(ValueError, errmsg):
+            obj.any(out=out)  # logical_function
+
+    def test_clip(self):
+        lower = 1
+        upper = 3
+        col = np.arange(5)
+
+        obj = self._construct(len(col), value=col)
+
+        if isinstance(obj, Panel):
+            msg = "clip is not supported yet for panels"
+            tm.assertRaisesRegexp(NotImplementedError, msg,
+                                  obj.clip, lower=lower,
+                                  upper=upper)
+
+        else:
+            out = obj.clip(lower=lower, upper=upper)
+            expected = self._construct(len(col), value=col
+                                       .clip(lower, upper))
+            self._compare(out, expected)
+
+            bad_axis = 'foo'
+            msg = ('No axis named {axis} '
+                   'for object').format(axis=bad_axis)
+            assertRaisesRegexp(ValueError, msg, obj.clip,
+                               lower=lower, upper=upper,
+                               axis=bad_axis)
+
+    def test_truncate_out_of_bounds(self):
+        # GH11382
+
+        # small
+        shape = [int(2e3)] + ([1] * (self._ndim - 1))
+        small = self._construct(shape, dtype='int8')
+        self._compare(small.truncate(), small)
+        self._compare(small.truncate(before=0, after=3e3), small)
+        self._compare(small.truncate(before=-1, after=2e3), small)
+
+        # big
+        shape = [int(2e6)] + ([1] * (self._ndim - 1))
+        big = self._construct(shape, dtype='int8')
+        self._compare(big.truncate(), big)
+        self._compare(big.truncate(before=0, after=3e6), big)
+        self._compare(big.truncate(before=-1, after=2e6), big)
+
+    def test_numpy_clip(self):
+        lower = 1
+        upper = 3
+        col = np.arange(5)
+
+        obj = self._construct(len(col), value=col)
+
+        if isinstance(obj, Panel):
+            msg = "clip is not supported yet for panels"
+            tm.assertRaisesRegexp(NotImplementedError, msg,
+                                  np.clip, obj,
+                                  lower, upper)
+        else:
+            out = np.clip(obj, lower, upper)
+            expected = self._construct(len(col), value=col
+                                       .clip(lower, upper))
+            self._compare(out, expected)
+
+            msg = "the 'out' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg,
+                                  np.clip, obj,
+                                  lower, upper, out=col)
 
 
 class TestSeries(tm.TestCase, Generic):
@@ -717,303 +791,6 @@ class TestSeries(tm.TestCase, Generic):
         Series._metadata = _metadata
         Series.__finalize__ = _finalize
 
-    def test_interpolate(self):
-        ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
-
-        ts_copy = ts.copy()
-        ts_copy[5:10] = np.NaN
-
-        linear_interp = ts_copy.interpolate(method='linear')
-        self.assert_numpy_array_equal(linear_interp, ts)
-
-        ord_ts = Series([d.toordinal() for d in self.ts.index],
-                        index=self.ts.index).astype(float)
-
-        ord_ts_copy = ord_ts.copy()
-        ord_ts_copy[5:10] = np.NaN
-
-        time_interp = ord_ts_copy.interpolate(method='time')
-        self.assert_numpy_array_equal(time_interp, ord_ts)
-
-        # try time interpolation on a non-TimeSeries
-        # Only raises ValueError if there are NaNs.
-        non_ts = self.series.copy()
-        non_ts[0] = np.NaN
-        self.assertRaises(ValueError, non_ts.interpolate, method='time')
-
-    def test_interpolate_pchip(self):
-        tm._skip_if_no_scipy()
-        _skip_if_no_pchip()
-
-        ser = Series(np.sort(np.random.uniform(size=100)))
-
-        # interpolate at new_index
-        new_index = ser.index.union(Index([49.25, 49.5, 49.75, 50.25, 50.5,
-                                           50.75]))
-        interp_s = ser.reindex(new_index).interpolate(method='pchip')
-        # does not blow up, GH5977
-        interp_s[49:51]
-
-    def test_interpolate_akima(self):
-        tm._skip_if_no_scipy()
-        _skip_if_no_akima()
-
-        ser = Series([10, 11, 12, 13])
-
-        expected = Series([11.00, 11.25, 11.50, 11.75,
-                           12.00, 12.25, 12.50, 12.75, 13.00],
-                          index=Index([1.0, 1.25, 1.5, 1.75,
-                                       2.0, 2.25, 2.5, 2.75, 3.0]))
-        # interpolate at new_index
-        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75]))
-        interp_s = ser.reindex(new_index).interpolate(method='akima')
-        assert_series_equal(interp_s[1:3], expected)
-
-    def test_interpolate_corners(self):
-        s = Series([np.nan, np.nan])
-        assert_series_equal(s.interpolate(), s)
-
-        s = Series([]).interpolate()
-        assert_series_equal(s.interpolate(), s)
-
-        tm._skip_if_no_scipy()
-        s = Series([np.nan, np.nan])
-        assert_series_equal(s.interpolate(method='polynomial', order=1), s)
-
-        s = Series([]).interpolate()
-        assert_series_equal(s.interpolate(method='polynomial', order=1), s)
-
-    def test_interpolate_index_values(self):
-        s = Series(np.nan, index=np.sort(np.random.rand(30)))
-        s[::3] = np.random.randn(10)
-
-        vals = s.index.values.astype(float)
-
-        result = s.interpolate(method='index')
-
-        expected = s.copy()
-        bad = isnull(expected.values)
-        good = ~bad
-        expected = Series(np.interp(vals[bad], vals[good],
-                                    s.values[good]),
-                          index=s.index[bad])
-
-        assert_series_equal(result[bad], expected)
-
-        # 'values' is synonymous with 'index' for the method kwarg
-        other_result = s.interpolate(method='values')
-
-        assert_series_equal(other_result, result)
-        assert_series_equal(other_result[bad], expected)
-
-    def test_interpolate_non_ts(self):
-        s = Series([1, 3, np.nan, np.nan, np.nan, 11])
-        with tm.assertRaises(ValueError):
-            s.interpolate(method='time')
-
-    # New interpolation tests
-    def test_nan_interpolate(self):
-        s = Series([0, 1, np.nan, 3])
-        result = s.interpolate()
-        expected = Series([0., 1., 2., 3.])
-        assert_series_equal(result, expected)
-
-        tm._skip_if_no_scipy()
-        result = s.interpolate(method='polynomial', order=1)
-        assert_series_equal(result, expected)
-
-    def test_nan_irregular_index(self):
-        s = Series([1, 2, np.nan, 4], index=[1, 3, 5, 9])
-        result = s.interpolate()
-        expected = Series([1., 2., 3., 4.], index=[1, 3, 5, 9])
-        assert_series_equal(result, expected)
-
-    def test_nan_str_index(self):
-        s = Series([0, 1, 2, np.nan], index=list('abcd'))
-        result = s.interpolate()
-        expected = Series([0., 1., 2., 2.], index=list('abcd'))
-        assert_series_equal(result, expected)
-
-    def test_interp_quad(self):
-        tm._skip_if_no_scipy()
-        sq = Series([1, 4, np.nan, 16], index=[1, 2, 3, 4])
-        result = sq.interpolate(method='quadratic')
-        expected = Series([1., 4., 9., 16.], index=[1, 2, 3, 4])
-        assert_series_equal(result, expected)
-
-    def test_interp_scipy_basic(self):
-        tm._skip_if_no_scipy()
-        s = Series([1, 3, np.nan, 12, np.nan, 25])
-        # slinear
-        expected = Series([1., 3., 7.5, 12., 18.5, 25.])
-        result = s.interpolate(method='slinear')
-        assert_series_equal(result, expected)
-
-        result = s.interpolate(method='slinear', downcast='infer')
-        assert_series_equal(result, expected)
-        # nearest
-        expected = Series([1, 3, 3, 12, 12, 25])
-        result = s.interpolate(method='nearest')
-        assert_series_equal(result, expected.astype('float'))
-
-        result = s.interpolate(method='nearest', downcast='infer')
-        assert_series_equal(result, expected)
-        # zero
-        expected = Series([1, 3, 3, 12, 12, 25])
-        result = s.interpolate(method='zero')
-        assert_series_equal(result, expected.astype('float'))
-
-        result = s.interpolate(method='zero', downcast='infer')
-        assert_series_equal(result, expected)
-        # quadratic
-        expected = Series([1, 3., 6.769231, 12., 18.230769, 25.])
-        result = s.interpolate(method='quadratic')
-        assert_series_equal(result, expected)
-
-        result = s.interpolate(method='quadratic', downcast='infer')
-        assert_series_equal(result, expected)
-        # cubic
-        expected = Series([1., 3., 6.8, 12., 18.2, 25.])
-        result = s.interpolate(method='cubic')
-        assert_series_equal(result, expected)
-
-    def test_interp_limit(self):
-        s = Series([1, 3, np.nan, np.nan, np.nan, 11])
-
-        expected = Series([1., 3., 5., 7., np.nan, 11.])
-        result = s.interpolate(method='linear', limit=2)
-        assert_series_equal(result, expected)
-
-    def test_interp_limit_forward(self):
-        s = Series([1, 3, np.nan, np.nan, np.nan, 11])
-
-        # Provide 'forward' (the default) explicitly here.
-        expected = Series([1., 3., 5., 7., np.nan, 11.])
-
-        result = s.interpolate(method='linear', limit=2,
-                               limit_direction='forward')
-        assert_series_equal(result, expected)
-
-        result = s.interpolate(method='linear', limit=2,
-                               limit_direction='FORWARD')
-        assert_series_equal(result, expected)
-
-    def test_interp_limit_bad_direction(self):
-        s = Series([1, 3, np.nan, np.nan, np.nan, 11])
-
-        self.assertRaises(ValueError, s.interpolate, method='linear', limit=2,
-                          limit_direction='abc')
-
-        # raises an error even if no limit is specified.
-        self.assertRaises(ValueError, s.interpolate, method='linear',
-                          limit_direction='abc')
-
-    def test_interp_limit_direction(self):
-        # These tests are for issue #9218 -- fill NaNs in both directions.
-        s = Series([1, 3, np.nan, np.nan, np.nan, 11])
-
-        expected = Series([1., 3., np.nan, 7., 9., 11.])
-        result = s.interpolate(method='linear', limit=2,
-                               limit_direction='backward')
-        assert_series_equal(result, expected)
-
-        expected = Series([1., 3., 5., np.nan, 9., 11.])
-        result = s.interpolate(method='linear', limit=1,
-                               limit_direction='both')
-        assert_series_equal(result, expected)
-
-        # Check that this works on a longer series of nans.
-        s = Series([1, 3, np.nan, np.nan, np.nan, 7, 9, np.nan, np.nan, 12,
-                    np.nan])
-
-        expected = Series([1., 3., 4., 5., 6., 7., 9., 10., 11., 12., 12.])
-        result = s.interpolate(method='linear', limit=2,
-                               limit_direction='both')
-        assert_series_equal(result, expected)
-
-        expected = Series([1., 3., 4., np.nan, 6., 7., 9., 10., 11., 12., 12.])
-        result = s.interpolate(method='linear', limit=1,
-                               limit_direction='both')
-        assert_series_equal(result, expected)
-
-    def test_interp_limit_to_ends(self):
-        # These test are for issue #10420 -- flow back to beginning.
-        s = Series([np.nan, np.nan, 5, 7, 9, np.nan])
-
-        expected = Series([5., 5., 5., 7., 9., np.nan])
-        result = s.interpolate(method='linear', limit=2,
-                               limit_direction='backward')
-        assert_series_equal(result, expected)
-
-        expected = Series([5., 5., 5., 7., 9., 9.])
-        result = s.interpolate(method='linear', limit=2,
-                               limit_direction='both')
-        assert_series_equal(result, expected)
-
-    def test_interp_limit_before_ends(self):
-        # These test are for issue #11115 -- limit ends properly.
-        s = Series([np.nan, np.nan, 5, 7, np.nan, np.nan])
-
-        expected = Series([np.nan, np.nan, 5., 7., 7., np.nan])
-        result = s.interpolate(method='linear', limit=1,
-                               limit_direction='forward')
-        assert_series_equal(result, expected)
-
-        expected = Series([np.nan, 5., 5., 7., np.nan, np.nan])
-        result = s.interpolate(method='linear', limit=1,
-                               limit_direction='backward')
-        assert_series_equal(result, expected)
-
-        expected = Series([np.nan, 5., 5., 7., 7., np.nan])
-        result = s.interpolate(method='linear', limit=1,
-                               limit_direction='both')
-        assert_series_equal(result, expected)
-
-    def test_interp_all_good(self):
-        # scipy
-        tm._skip_if_no_scipy()
-        s = Series([1, 2, 3])
-        result = s.interpolate(method='polynomial', order=1)
-        assert_series_equal(result, s)
-
-        # non-scipy
-        result = s.interpolate()
-        assert_series_equal(result, s)
-
-    def test_interp_multiIndex(self):
-        idx = MultiIndex.from_tuples([(0, 'a'), (1, 'b'), (2, 'c')])
-        s = Series([1, 2, np.nan], index=idx)
-
-        expected = s.copy()
-        expected.loc[2] = 2
-        result = s.interpolate()
-        assert_series_equal(result, expected)
-
-        tm._skip_if_no_scipy()
-        with tm.assertRaises(ValueError):
-            s.interpolate(method='polynomial', order=1)
-
-    def test_interp_nonmono_raise(self):
-        tm._skip_if_no_scipy()
-        s = Series([1, np.nan, 3], index=[0, 2, 1])
-        with tm.assertRaises(ValueError):
-            s.interpolate(method='krogh')
-
-    def test_interp_datetime64(self):
-        tm._skip_if_no_scipy()
-        df = Series([1, np.nan, 3], index=date_range('1/1/2000', periods=3))
-        result = df.interpolate(method='nearest')
-        expected = Series([1., 1., 3.],
-                          index=date_range('1/1/2000', periods=3))
-        assert_series_equal(result, expected)
-
-    def test_interp_limit_no_nans(self):
-        # GH 7173
-        s = pd.Series([1., 2., 3.])
-        result = s.interpolate(limit=1)
-        expected = s
-        assert_series_equal(result, expected)
-
     def test_describe(self):
         self.series.describe()
         self.ts.describe()
@@ -1069,7 +846,7 @@ class TestSeries(tm.TestCase, Generic):
         assert_almost_equal(list(result.coords.keys()), ['foo'])
         self.assertIsInstance(result, DataArray)
 
-        def testit(index, check_index_type=True):
+        def testit(index, check_index_type=True, check_categorical=True):
             s = Series(range(6), index=index(6))
             s.index.name = 'foo'
             result = s.to_xarray()
@@ -1081,7 +858,8 @@ class TestSeries(tm.TestCase, Generic):
 
             # idempotency
             assert_series_equal(result.to_series(), s,
-                                check_index_type=check_index_type)
+                                check_index_type=check_index_type,
+                                check_categorical=check_categorical)
 
         for index in [tm.makeFloatIndex, tm.makeIntIndex,
                       tm.makeStringIndex, tm.makeUnicodeIndex,
@@ -1090,7 +868,8 @@ class TestSeries(tm.TestCase, Generic):
             testit(index)
 
         # not idempotent
-        testit(tm.makeCategoricalIndex, check_index_type=False)
+        testit(tm.makeCategoricalIndex, check_index_type=False,
+               check_categorical=False)
 
         s = Series(range(6))
         s.index.name = 'foo'
@@ -1164,215 +943,6 @@ class TestDataFrame(tm.TestCase, Generic):
         expected = DataFrame(index=[0, 1, 2], dtype=object)
         self._compare(result, expected)
 
-    def test_interp_basic(self):
-        df = DataFrame({'A': [1, 2, np.nan, 4],
-                        'B': [1, 4, 9, np.nan],
-                        'C': [1, 2, 3, 5],
-                        'D': list('abcd')})
-        expected = DataFrame({'A': [1., 2., 3., 4.],
-                              'B': [1., 4., 9., 9.],
-                              'C': [1, 2, 3, 5],
-                              'D': list('abcd')})
-        result = df.interpolate()
-        assert_frame_equal(result, expected)
-
-        result = df.set_index('C').interpolate()
-        expected = df.set_index('C')
-        expected.loc[3, 'A'] = 3
-        expected.loc[5, 'B'] = 9
-        assert_frame_equal(result, expected)
-
-    def test_interp_bad_method(self):
-        df = DataFrame({'A': [1, 2, np.nan, 4],
-                        'B': [1, 4, 9, np.nan],
-                        'C': [1, 2, 3, 5],
-                        'D': list('abcd')})
-        with tm.assertRaises(ValueError):
-            df.interpolate(method='not_a_method')
-
-    def test_interp_combo(self):
-        df = DataFrame({'A': [1., 2., np.nan, 4.],
-                        'B': [1, 4, 9, np.nan],
-                        'C': [1, 2, 3, 5],
-                        'D': list('abcd')})
-
-        result = df['A'].interpolate()
-        expected = Series([1., 2., 3., 4.], name='A')
-        assert_series_equal(result, expected)
-
-        result = df['A'].interpolate(downcast='infer')
-        expected = Series([1, 2, 3, 4], name='A')
-        assert_series_equal(result, expected)
-
-    def test_interp_nan_idx(self):
-        df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [np.nan, 2, 3, 4]})
-        df = df.set_index('A')
-        with tm.assertRaises(NotImplementedError):
-            df.interpolate(method='values')
-
-    def test_interp_various(self):
-        tm._skip_if_no_scipy()
-        df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
-                        'C': [1, 2, 3, 5, 8, 13, 21]})
-        df = df.set_index('C')
-        expected = df.copy()
-        result = df.interpolate(method='polynomial', order=1)
-
-        expected.A.loc[3] = 2.66666667
-        expected.A.loc[13] = 5.76923076
-        assert_frame_equal(result, expected)
-
-        result = df.interpolate(method='cubic')
-        expected.A.loc[3] = 2.81621174
-        expected.A.loc[13] = 5.64146581
-        assert_frame_equal(result, expected)
-
-        result = df.interpolate(method='nearest')
-        expected.A.loc[3] = 2
-        expected.A.loc[13] = 5
-        assert_frame_equal(result, expected, check_dtype=False)
-
-        result = df.interpolate(method='quadratic')
-        expected.A.loc[3] = 2.82533638
-        expected.A.loc[13] = 6.02817974
-        assert_frame_equal(result, expected)
-
-        result = df.interpolate(method='slinear')
-        expected.A.loc[3] = 2.66666667
-        expected.A.loc[13] = 5.76923077
-        assert_frame_equal(result, expected)
-
-        result = df.interpolate(method='zero')
-        expected.A.loc[3] = 2.
-        expected.A.loc[13] = 5
-        assert_frame_equal(result, expected, check_dtype=False)
-
-        result = df.interpolate(method='quadratic')
-        expected.A.loc[3] = 2.82533638
-        expected.A.loc[13] = 6.02817974
-        assert_frame_equal(result, expected)
-
-    def test_interp_alt_scipy(self):
-        tm._skip_if_no_scipy()
-        df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
-                        'C': [1, 2, 3, 5, 8, 13, 21]})
-        result = df.interpolate(method='barycentric')
-        expected = df.copy()
-        expected.ix[2, 'A'] = 3
-        expected.ix[5, 'A'] = 6
-        assert_frame_equal(result, expected)
-
-        result = df.interpolate(method='barycentric', downcast='infer')
-        assert_frame_equal(result, expected.astype(np.int64))
-
-        result = df.interpolate(method='krogh')
-        expectedk = df.copy()
-        expectedk['A'] = expected['A']
-        assert_frame_equal(result, expectedk)
-
-        _skip_if_no_pchip()
-        import scipy
-        result = df.interpolate(method='pchip')
-        expected.ix[2, 'A'] = 3
-
-        if LooseVersion(scipy.__version__) >= '0.17.0':
-            expected.ix[5, 'A'] = 6.0
-        else:
-            expected.ix[5, 'A'] = 6.125
-
-        assert_frame_equal(result, expected)
-
-    def test_interp_rowwise(self):
-        df = DataFrame({0: [1, 2, np.nan, 4],
-                        1: [2, 3, 4, np.nan],
-                        2: [np.nan, 4, 5, 6],
-                        3: [4, np.nan, 6, 7],
-                        4: [1, 2, 3, 4]})
-        result = df.interpolate(axis=1)
-        expected = df.copy()
-        expected.loc[3, 1] = 5
-        expected.loc[0, 2] = 3
-        expected.loc[1, 3] = 3
-        expected[4] = expected[4].astype(np.float64)
-        assert_frame_equal(result, expected)
-
-        # scipy route
-        tm._skip_if_no_scipy()
-        result = df.interpolate(axis=1, method='values')
-        assert_frame_equal(result, expected)
-
-        result = df.interpolate(axis=0)
-        expected = df.interpolate()
-        assert_frame_equal(result, expected)
-
-    def test_rowwise_alt(self):
-        df = DataFrame({0: [0, .5, 1., np.nan, 4, 8, np.nan, np.nan, 64],
-                        1: [1, 2, 3, 4, 3, 2, 1, 0, -1]})
-        df.interpolate(axis=0)
-
-    def test_interp_leading_nans(self):
-        df = DataFrame({"A": [np.nan, np.nan, .5, .25, 0],
-                        "B": [np.nan, -3, -3.5, np.nan, -4]})
-        result = df.interpolate()
-        expected = df.copy()
-        expected['B'].loc[3] = -3.75
-        assert_frame_equal(result, expected)
-
-        tm._skip_if_no_scipy()
-        result = df.interpolate(method='polynomial', order=1)
-        assert_frame_equal(result, expected)
-
-    def test_interp_raise_on_only_mixed(self):
-        df = DataFrame({'A': [1, 2, np.nan, 4],
-                        'B': ['a', 'b', 'c', 'd'],
-                        'C': [np.nan, 2, 5, 7],
-                        'D': [np.nan, np.nan, 9, 9],
-                        'E': [1, 2, 3, 4]})
-        with tm.assertRaises(TypeError):
-            df.interpolate(axis=1)
-
-    def test_interp_inplace(self):
-        df = DataFrame({'a': [1., 2., np.nan, 4.]})
-        expected = DataFrame({'a': [1., 2., 3., 4.]})
-        result = df.copy()
-        result['a'].interpolate(inplace=True)
-        assert_frame_equal(result, expected)
-
-        result = df.copy()
-        result['a'].interpolate(inplace=True, downcast='infer')
-        assert_frame_equal(result, expected.astype('int64'))
-
-    def test_interp_inplace_row(self):
-        # GH 10395
-        result = DataFrame({'a': [1., 2., 3., 4.],
-                            'b': [np.nan, 2., 3., 4.],
-                            'c': [3, 2, 2, 2]})
-        expected = result.interpolate(method='linear', axis=1, inplace=False)
-        result.interpolate(method='linear', axis=1, inplace=True)
-        assert_frame_equal(result, expected)
-
-    def test_interp_ignore_all_good(self):
-        # GH
-        df = DataFrame({'A': [1, 2, np.nan, 4],
-                        'B': [1, 2, 3, 4],
-                        'C': [1., 2., np.nan, 4.],
-                        'D': [1., 2., 3., 4.]})
-        expected = DataFrame({'A': np.array(
-            [1, 2, 3, 4], dtype='float64'),
-            'B': np.array(
-            [1, 2, 3, 4], dtype='int64'),
-            'C': np.array(
-            [1., 2., 3, 4.], dtype='float64'),
-            'D': np.array(
-            [1., 2., 3., 4.], dtype='float64')})
-
-        result = df.interpolate(downcast=None)
-        assert_frame_equal(result, expected)
-
-        # all good
-        result = df[['B', 'D']].interpolate(downcast=None)
-        assert_frame_equal(result, df[['B', 'D']])
-
     def test_describe(self):
         tm.makeDataFrame().describe()
         tm.makeMixedDataFrame().describe()
@@ -1426,6 +996,59 @@ class TestDataFrame(tm.TestCase, Generic):
         self.assertTrue('0%' in d1.index)
         self.assertTrue('100%' in d2.index)
 
+    def test_describe_percentiles_unique(self):
+        # GH13104
+        df = tm.makeDataFrame()
+        with self.assertRaises(ValueError):
+            df.describe(percentiles=[0.1, 0.2, 0.4, 0.5, 0.2, 0.6])
+        with self.assertRaises(ValueError):
+            df.describe(percentiles=[0.1, 0.2, 0.4, 0.2, 0.6])
+
+    def test_describe_percentiles_formatting(self):
+        # GH13104
+        df = tm.makeDataFrame()
+
+        # default
+        result = df.describe().index
+        expected = Index(['count', 'mean', 'std', 'min', '25%', '50%', '75%',
+                          'max'],
+                         dtype='object')
+        tm.assert_index_equal(result, expected)
+
+        result = df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999,
+                                          0.9995, 0.9999]).index
+        expected = Index(['count', 'mean', 'std', 'min', '0.01%', '0.05%',
+                          '0.1%', '50%', '99.9%', '99.95%', '99.99%', 'max'],
+                         dtype='object')
+        tm.assert_index_equal(result, expected)
+
+        result = df.describe(percentiles=[0.00499, 0.005, 0.25, 0.50,
+                                          0.75]).index
+        expected = Index(['count', 'mean', 'std', 'min', '0.499%', '0.5%',
+                          '25%', '50%', '75%', 'max'],
+                         dtype='object')
+        tm.assert_index_equal(result, expected)
+
+        result = df.describe(percentiles=[0.00499, 0.01001, 0.25, 0.50,
+                                          0.75]).index
+        expected = Index(['count', 'mean', 'std', 'min', '0.5%', '1.0%',
+                          '25%', '50%', '75%', 'max'],
+                         dtype='object')
+        tm.assert_index_equal(result, expected)
+
+    def test_describe_column_index_type(self):
+        # GH13288
+        df = pd.DataFrame([1, 2, 3, 4])
+        df.columns = pd.Index([0], dtype=object)
+        result = df.describe().columns
+        expected = Index([0], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+        df = pd.DataFrame({'A': list("BCDE"), 0: [1, 2, 3, 4]})
+        result = df.describe().columns
+        expected = Index([0], dtype=object)
+        tm.assert_index_equal(result, expected)
+
     def test_describe_no_numeric(self):
         df = DataFrame({'A': ['foo', 'foo', 'bar'] * 8,
                         'B': ['a', 'b', 'c', 'd'] * 6})
@@ -1439,6 +1062,16 @@ class TestDataFrame(tm.TestCase, Generic):
         df = DataFrame({'time': ts.index})
         desc = df.describe()
         self.assertEqual(desc.time['first'], min(ts.index))
+
+    def test_describe_empty(self):
+        df = DataFrame()
+        tm.assertRaisesRegexp(ValueError, 'DataFrame without columns',
+                              df.describe)
+
+        df = DataFrame(columns=['A', 'B'])
+        result = df.describe()
+        expected = DataFrame(0, columns=['A', 'B'], index=['count', 'unique'])
+        tm.assert_frame_equal(result, expected)
 
     def test_describe_empty_int_columns(self):
         df = DataFrame([[0, 1], [1, 2]])
@@ -1619,61 +1252,6 @@ class TestDataFrame(tm.TestCase, Generic):
         self.assertTrue(non_hierarchical_index_df.describe().columns.names ==
                         ['A'])
 
-    def test_no_order(self):
-        tm._skip_if_no_scipy()
-        s = Series([0, 1, np.nan, 3])
-        with tm.assertRaises(ValueError):
-            s.interpolate(method='polynomial')
-        with tm.assertRaises(ValueError):
-            s.interpolate(method='spline')
-
-    def test_spline(self):
-        tm._skip_if_no_scipy()
-        s = Series([1, 2, np.nan, 4, 5, np.nan, 7])
-        result = s.interpolate(method='spline', order=1)
-        expected = Series([1., 2., 3., 4., 5., 6., 7.])
-        assert_series_equal(result, expected)
-
-    def test_spline_extrapolate(self):
-        tm.skip_if_no_package(
-            'scipy', '0.15',
-            'setting ext on scipy.interpolate.UnivariateSpline')
-        s = Series([1, 2, 3, 4, np.nan, 6, np.nan])
-        result3 = s.interpolate(method='spline', order=1, ext=3)
-        expected3 = Series([1., 2., 3., 4., 5., 6., 6.])
-        assert_series_equal(result3, expected3)
-
-        result1 = s.interpolate(method='spline', order=1, ext=0)
-        expected1 = Series([1., 2., 3., 4., 5., 6., 7.])
-        assert_series_equal(result1, expected1)
-
-    def test_spline_smooth(self):
-        tm._skip_if_no_scipy()
-        s = Series([1, 2, np.nan, 4, 5.1, np.nan, 7])
-        self.assertNotEqual(s.interpolate(method='spline', order=3, s=0)[5],
-                            s.interpolate(method='spline', order=3)[5])
-
-    def test_spline_interpolation(self):
-        tm._skip_if_no_scipy()
-
-        s = Series(np.arange(10) ** 2)
-        s[np.random.randint(0, 9, 3)] = np.nan
-        result1 = s.interpolate(method='spline', order=1)
-        expected1 = s.interpolate(method='spline', order=1)
-        assert_series_equal(result1, expected1)
-
-    # GH #10633
-    def test_spline_error(self):
-        tm._skip_if_no_scipy()
-
-        s = pd.Series(np.arange(10) ** 2)
-        s[np.random.randint(0, 9, 3)] = np.nan
-        with tm.assertRaises(ValueError):
-            s.interpolate(method='spline')
-
-        with tm.assertRaises(ValueError):
-            s.interpolate(method='spline', order=0)
-
     def test_metadata_propagation_indiv(self):
 
         # groupby
@@ -1774,7 +1352,7 @@ class TestDataFrame(tm.TestCase, Generic):
 
                 df1 = DataFrame(np.ones(5), index=l0)
                 df1 = getattr(df1, fn)('US/Pacific')
-                self.assertTrue(df1.index.equals(l0_expected))
+                self.assert_index_equal(df1.index, l0_expected)
 
                 # MultiIndex
                 # GH7846
@@ -1782,14 +1360,14 @@ class TestDataFrame(tm.TestCase, Generic):
 
                 df3 = getattr(df2, fn)('US/Pacific', level=0)
                 self.assertFalse(df3.index.levels[0].equals(l0))
-                self.assertTrue(df3.index.levels[0].equals(l0_expected))
-                self.assertTrue(df3.index.levels[1].equals(l1))
+                self.assert_index_equal(df3.index.levels[0], l0_expected)
+                self.assert_index_equal(df3.index.levels[1], l1)
                 self.assertFalse(df3.index.levels[1].equals(l1_expected))
 
                 df3 = getattr(df2, fn)('US/Pacific', level=1)
-                self.assertTrue(df3.index.levels[0].equals(l0))
+                self.assert_index_equal(df3.index.levels[0], l0)
                 self.assertFalse(df3.index.levels[0].equals(l0_expected))
-                self.assertTrue(df3.index.levels[1].equals(l1_expected))
+                self.assert_index_equal(df3.index.levels[1], l1_expected)
                 self.assertFalse(df3.index.levels[1].equals(l1))
 
                 df4 = DataFrame(np.ones(5),
@@ -1798,9 +1376,9 @@ class TestDataFrame(tm.TestCase, Generic):
                 # TODO: untested
                 df5 = getattr(df4, fn)('US/Pacific', level=1)  # noqa
 
-                self.assertTrue(df3.index.levels[0].equals(l0))
+                self.assert_index_equal(df3.index.levels[0], l0)
                 self.assertFalse(df3.index.levels[0].equals(l0_expected))
-                self.assertTrue(df3.index.levels[1].equals(l1_expected))
+                self.assert_index_equal(df3.index.levels[1], l1_expected)
                 self.assertFalse(df3.index.levels[1].equals(l1))
 
         # Bad Inputs
@@ -1830,7 +1408,7 @@ class TestDataFrame(tm.TestCase, Generic):
         df['y'] = [2, 4, 6]
         df.y = 5
 
-        assert_equal(df.y, 5)
+        self.assertEqual(df.y, 5)
         assert_series_equal(df['y'], Series([2, 4, 6], name='y'))
 
     def test_pct_change(self):
@@ -1895,9 +1473,8 @@ class TestDataFrame(tm.TestCase, Generic):
             expected['f'] = expected['f'].astype(object)
             expected['h'] = expected['h'].astype('datetime64[ns]')
             expected.columns.name = None
-            assert_frame_equal(result.to_dataframe(),
-                               expected,
-                               check_index_type=False)
+            assert_frame_equal(result.to_dataframe(), expected,
+                               check_index_type=False, check_categorical=False)
 
         # available in 0.7.1
         # MultiIndex
@@ -1923,7 +1500,7 @@ class TestDataFrame(tm.TestCase, Generic):
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
-    _comparator = lambda self, x, y: assert_panel_equal(x, y)
+    _comparator = lambda self, x, y: assert_panel_equal(x, y, by_blocks=True)
 
     def test_to_xarray(self):
 
@@ -1945,7 +1522,7 @@ class TestPanel(tm.TestCase, Generic):
 
 class TestPanel4D(tm.TestCase, Generic):
     _typ = Panel4D
-    _comparator = lambda self, x, y: assert_panel4d_equal(x, y)
+    _comparator = lambda self, x, y: assert_panel4d_equal(x, y, by_blocks=True)
 
     def test_sample(self):
         raise nose.SkipTest("sample on Panel4D")
@@ -1955,17 +1532,41 @@ class TestPanel4D(tm.TestCase, Generic):
         tm._skip_if_no_xarray()
         from xarray import DataArray
 
-        p = tm.makePanel4D()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p = tm.makePanel4D()
 
-        result = p.to_xarray()
-        self.assertIsInstance(result, DataArray)
-        self.assertEqual(len(result.coords), 4)
-        assert_almost_equal(list(result.coords.keys()),
-                            ['labels', 'items', 'major_axis', 'minor_axis'])
-        self.assertEqual(len(result.dims), 4)
+            result = p.to_xarray()
+            self.assertIsInstance(result, DataArray)
+            self.assertEqual(len(result.coords), 4)
+            assert_almost_equal(list(result.coords.keys()),
+                                ['labels', 'items', 'major_axis',
+                                 'minor_axis'])
+            self.assertEqual(len(result.dims), 4)
 
-        # non-convertible
-        self.assertRaises(ValueError, lambda: result.to_pandas())
+            # non-convertible
+            self.assertRaises(ValueError, lambda: result.to_pandas())
+
+# run all the tests, but wrap each in a warning catcher
+for t in ['test_rename', 'test_rename_axis', 'test_get_numeric_data',
+          'test_get_default', 'test_nonzero',
+          'test_numpy_1_7_compat_numeric_methods',
+          'test_downcast', 'test_constructor_compound_dtypes',
+          'test_head_tail',
+          'test_size_compat', 'test_split_compat',
+          'test_unexpected_keyword',
+          'test_stat_unexpected_keyword', 'test_api_compat',
+          'test_stat_non_defaults_args',
+          'test_clip', 'test_truncate_out_of_bounds', 'test_numpy_clip',
+          'test_metadata_propagation']:
+
+    def f():
+        def tester(self):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                return getattr(super(TestPanel4D, self), t)()
+        return tester
+
+    setattr(TestPanel4D, t, f())
 
 
 class TestNDFrame(tm.TestCase):
@@ -2097,8 +1698,9 @@ class TestNDFrame(tm.TestCase):
             tm.assert_frame_equal(df.squeeze(), df)
         for p in [tm.makePanel()]:
             tm.assert_panel_equal(p.squeeze(), p)
-        for p4d in [tm.makePanel4D()]:
-            tm.assert_panel4d_equal(p4d.squeeze(), p4d)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            for p4d in [tm.makePanel4D()]:
+                tm.assert_panel4d_equal(p4d.squeeze(), p4d)
 
         # squeezing
         df = tm.makeTimeDataFrame().reindex(columns=['A'])
@@ -2110,11 +1712,13 @@ class TestNDFrame(tm.TestCase):
         p = tm.makePanel().reindex(items=['ItemA'], minor_axis=['A'])
         tm.assert_series_equal(p.squeeze(), p.ix['ItemA', :, 'A'])
 
-        p4d = tm.makePanel4D().reindex(labels=['label1'])
-        tm.assert_panel_equal(p4d.squeeze(), p4d['label1'])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D().reindex(labels=['label1'])
+            tm.assert_panel_equal(p4d.squeeze(), p4d['label1'])
 
-        p4d = tm.makePanel4D().reindex(labels=['label1'], items=['ItemA'])
-        tm.assert_frame_equal(p4d.squeeze(), p4d.ix['label1', 'ItemA'])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D().reindex(labels=['label1'], items=['ItemA'])
+            tm.assert_frame_equal(p4d.squeeze(), p4d.ix['label1', 'ItemA'])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = pd.Series([], name='five')
@@ -2123,6 +1727,121 @@ class TestNDFrame(tm.TestCase):
 
         [tm.assert_series_equal(empty_series, higher_dim.squeeze())
          for higher_dim in [empty_series, empty_frame, empty_panel]]
+
+    def test_numpy_squeeze(self):
+        s = tm.makeFloatSeries()
+        tm.assert_series_equal(np.squeeze(s), s)
+
+        df = tm.makeTimeDataFrame().reindex(columns=['A'])
+        tm.assert_series_equal(np.squeeze(df), df['A'])
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg,
+                              np.squeeze, s, axis=0)
+
+    def test_transpose(self):
+        msg = ("transpose\(\) got multiple values for "
+               "keyword argument 'axes'")
+        for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
+                  tm.makeObjectSeries()]:
+            # calls implementation in pandas/core/base.py
+            tm.assert_series_equal(s.transpose(), s)
+        for df in [tm.makeTimeDataFrame()]:
+            tm.assert_frame_equal(df.transpose().transpose(), df)
+        for p in [tm.makePanel()]:
+            tm.assert_panel_equal(p.transpose(2, 0, 1)
+                                  .transpose(1, 2, 0), p)
+            tm.assertRaisesRegexp(TypeError, msg, p.transpose,
+                                  2, 0, 1, axes=(2, 0, 1))
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            for p4d in [tm.makePanel4D()]:
+                tm.assert_panel4d_equal(p4d.transpose(2, 0, 3, 1)
+                                        .transpose(1, 3, 0, 2), p4d)
+                tm.assertRaisesRegexp(TypeError, msg, p4d.transpose,
+                                      2, 0, 3, 1, axes=(2, 0, 3, 1))
+
+    def test_numpy_transpose(self):
+        msg = "the 'axes' parameter is not supported"
+
+        s = tm.makeFloatSeries()
+        tm.assert_series_equal(
+            np.transpose(s), s)
+        tm.assertRaisesRegexp(ValueError, msg,
+                              np.transpose, s, axes=1)
+
+        df = tm.makeTimeDataFrame()
+        tm.assert_frame_equal(np.transpose(
+            np.transpose(df)), df)
+        tm.assertRaisesRegexp(ValueError, msg,
+                              np.transpose, df, axes=1)
+
+        p = tm.makePanel()
+        tm.assert_panel_equal(np.transpose(
+            np.transpose(p, axes=(2, 0, 1)),
+            axes=(1, 2, 0)), p)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D()
+            tm.assert_panel4d_equal(np.transpose(
+                np.transpose(p4d, axes=(2, 0, 3, 1)),
+                axes=(1, 3, 0, 2)), p4d)
+
+    def test_take(self):
+        indices = [1, 5, -2, 6, 3, -1]
+        for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
+                  tm.makeObjectSeries()]:
+            out = s.take(indices)
+            expected = Series(data=s.values.take(indices),
+                              index=s.index.take(indices))
+            tm.assert_series_equal(out, expected)
+        for df in [tm.makeTimeDataFrame()]:
+            out = df.take(indices)
+            expected = DataFrame(data=df.values.take(indices, axis=0),
+                                 index=df.index.take(indices),
+                                 columns=df.columns)
+            tm.assert_frame_equal(out, expected)
+
+        indices = [-3, 2, 0, 1]
+        for p in [tm.makePanel()]:
+            out = p.take(indices)
+            expected = Panel(data=p.values.take(indices, axis=0),
+                             items=p.items.take(indices),
+                             major_axis=p.major_axis,
+                             minor_axis=p.minor_axis)
+            tm.assert_panel_equal(out, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            for p4d in [tm.makePanel4D()]:
+                out = p4d.take(indices)
+                expected = Panel4D(data=p4d.values.take(indices, axis=0),
+                                   labels=p4d.labels.take(indices),
+                                   major_axis=p4d.major_axis,
+                                   minor_axis=p4d.minor_axis,
+                                   items=p4d.items)
+                tm.assert_panel4d_equal(out, expected)
+
+    def test_take_invalid_kwargs(self):
+        indices = [-3, 2, 0, 1]
+        s = tm.makeFloatSeries()
+        df = tm.makeTimeDataFrame()
+        p = tm.makePanel()
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            p4d = tm.makePanel4D()
+
+        for obj in (s, df, p, p4d):
+            msg = "take\(\) got an unexpected keyword argument 'foo'"
+            tm.assertRaisesRegexp(TypeError, msg, obj.take,
+                                  indices, foo=2)
+
+            msg = "the 'out' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, obj.take,
+                                  indices, out=indices)
+
+            msg = "the 'mode' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, obj.take,
+                                  indices, mode='clip')
 
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])

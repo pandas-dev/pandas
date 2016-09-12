@@ -12,9 +12,8 @@ from nose.tools import assert_raises
 
 from numpy.random import randn, rand, randint
 import numpy as np
-from numpy.testing import assert_allclose
-from numpy.testing.decorators import slow
 
+from pandas.types.common import is_list_like, is_scalar
 import pandas as pd
 from pandas.core import common as com
 from pandas import DataFrame, Series, Panel, date_range
@@ -33,7 +32,8 @@ import pandas.util.testing as tm
 import pandas.lib as lib
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assertRaisesRegexp, assert_numpy_array_equal,
-                                 assert_produces_warning, assert_series_equal)
+                                 assert_produces_warning, assert_series_equal,
+                                 slow)
 from pandas.compat import PY3, u, reduce
 
 _series_frame_incompatible = _bool_ops_syms
@@ -50,13 +50,7 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
         try:
             return c(lhs, rhs)
         except ValueError as e:
-            try:
-                msg = e.message
-            except AttributeError:
-                msg = e
-            msg = u(msg)
-            if msg == u('negative number cannot be raised to a fractional'
-                        ' power'):
+            if str(e).startswith('negative number cannot be raised to a fractional power'):
                 return np.nan
             raise
     return c(lhs, rhs)
@@ -192,12 +186,22 @@ class TestEvalNumexprPandas(tm.TestCase):
                                                  mids, cmp_ops, self.rhses):
             self.check_chained_cmp_op(lhs, cmp1, mid, cmp2, rhs)
 
+    def check_equal(self, result, expected):
+        if isinstance(result, DataFrame):
+            tm.assert_frame_equal(result, expected)
+        elif isinstance(result, Series):
+            tm.assert_series_equal(result, expected)
+        elif isinstance(result, np.ndarray):
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            self.assertEqual(result, expected)
+
     def check_complex_cmp_op(self, lhs, cmp1, rhs, binop, cmp2):
         skip_these = _scalar_skip
         ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
                                                                 binop=binop,
                                                                 cmp2=cmp2)
-        scalar_with_in_notin = (lib.isscalar(rhs) and (cmp1 in skip_these or
+        scalar_with_in_notin = (is_scalar(rhs) and (cmp1 in skip_these or
                                                       cmp2 in skip_these))
         if scalar_with_in_notin:
             with tm.assertRaises(TypeError):
@@ -225,7 +229,7 @@ class TestEvalNumexprPandas(tm.TestCase):
                 expected = _eval_single_bin(
                     lhs_new, binop, rhs_new, self.engine)
                 result = pd.eval(ex, engine=self.engine, parser=self.parser)
-                tm.assert_numpy_array_equal(result, expected)
+                self.check_equal(result, expected)
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
         skip_these = _scalar_skip
@@ -245,24 +249,26 @@ class TestEvalNumexprPandas(tm.TestCase):
             for ex in (ex1, ex2, ex3):
                 result = pd.eval(ex, engine=self.engine,
                                  parser=self.parser)
-                tm.assert_numpy_array_equal(result, expected)
+
+                tm.assert_almost_equal(result, expected)
 
     def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = 'lhs {0} rhs'.format(cmp1)
-        if cmp1 in ('in', 'not in') and not com.is_list_like(rhs):
+        if cmp1 in ('in', 'not in') and not is_list_like(rhs):
             self.assertRaises(TypeError, pd.eval, ex, engine=self.engine,
                               parser=self.parser, local_dict={'lhs': lhs,
                                                               'rhs': rhs})
         else:
             expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
-            tm.assert_numpy_array_equal(result, expected)
+            self.check_equal(result, expected)
 
     def check_binary_arith_op(self, lhs, arith1, rhs):
         ex = 'lhs {0} rhs'.format(arith1)
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
         expected = _eval_single_bin(lhs, arith1, rhs, self.engine)
-        tm.assert_numpy_array_equal(result, expected)
+
+        tm.assert_almost_equal(result, expected)
         ex = 'lhs {0} rhs {0} rhs'.format(arith1)
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
         nlhs = _eval_single_bin(lhs, arith1, rhs,
@@ -277,8 +283,10 @@ class TestEvalNumexprPandas(tm.TestCase):
             # TypeError, AttributeError: series or frame with scalar align
             pass
         else:
+
+            # direct numpy comparison
             expected = self.ne.evaluate('nlhs {0} ghs'.format(op))
-            tm.assert_numpy_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result.values, expected)
 
     # modulus, pow, and floor division require special casing
 
@@ -286,9 +294,13 @@ class TestEvalNumexprPandas(tm.TestCase):
         ex = 'lhs {0} rhs'.format(arith1)
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
         expected = lhs % rhs
-        assert_allclose(result, expected)
+
+        tm.assert_almost_equal(result, expected)
         expected = self.ne.evaluate('expected {0} rhs'.format(arith1))
-        assert_allclose(result, expected)
+        if isinstance(result, (DataFrame, Series)):
+            tm.assert_almost_equal(result.values, expected)
+        else:
+            tm.assert_almost_equal(result, expected.item())
 
     def check_floor_division(self, lhs, arith1, rhs):
         ex = 'lhs {0} rhs'.format(arith1)
@@ -296,7 +308,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         if self.engine == 'python':
             res = pd.eval(ex, engine=self.engine, parser=self.parser)
             expected = lhs // rhs
-            tm.assert_numpy_array_equal(res, expected)
+            self.check_equal(res, expected)
         else:
             self.assertRaises(TypeError, pd.eval, ex, local_dict={'lhs': lhs,
                                                                   'rhs': rhs},
@@ -306,17 +318,9 @@ class TestEvalNumexprPandas(tm.TestCase):
         try:
             expected = _eval_single_bin(lhs, '**', rhs, self.engine)
         except ValueError as e:
-            msg = 'negative number cannot be raised to a fractional power'
-            try:
-                emsg = e.message
-            except AttributeError:
-                emsg = e
-
-            emsg = u(emsg)
-
-            if emsg == msg:
+            if str(e).startswith('negative number cannot be raised to a fractional power'):
                 if self.engine == 'python':
-                    raise nose.SkipTest(emsg)
+                    raise nose.SkipTest(str(e))
                 else:
                     expected = np.nan
             else:
@@ -328,18 +332,18 @@ class TestEvalNumexprPandas(tm.TestCase):
         expected = self.get_expected_pow_result(lhs, rhs)
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
 
-        if (lib.isscalar(lhs) and lib.isscalar(rhs) and
+        if (is_scalar(lhs) and is_scalar(rhs) and
                 _is_py3_complex_incompat(result, expected)):
             self.assertRaises(AssertionError, tm.assert_numpy_array_equal,
                               result, expected)
         else:
-            assert_allclose(result, expected)
+            tm.assert_almost_equal(result, expected)
 
             ex = '(lhs {0} rhs) {0} rhs'.format(arith1)
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
             expected = self.get_expected_pow_result(
                 self.get_expected_pow_result(lhs, rhs), rhs)
-            assert_allclose(result, expected)
+            tm.assert_almost_equal(result, expected)
 
     def check_single_invert_op(self, lhs, cmp1, rhs):
         # simple
@@ -350,38 +354,38 @@ class TestEvalNumexprPandas(tm.TestCase):
                 elb = np.array([bool(el)])
             expected = ~elb
             result = pd.eval('~elb', engine=self.engine, parser=self.parser)
-            tm.assert_numpy_array_equal(expected, result)
+            tm.assert_almost_equal(expected, result)
 
             for engine in self.current_engines:
                 tm.skip_if_no_ne(engine)
-                tm.assert_numpy_array_equal(result, pd.eval('~elb', engine=engine,
-                                                            parser=self.parser))
+                tm.assert_almost_equal(result, pd.eval('~elb', engine=engine,
+                                                       parser=self.parser))
 
     def check_compound_invert_op(self, lhs, cmp1, rhs):
         skip_these = 'in', 'not in'
         ex = '~(lhs {0} rhs)'.format(cmp1)
 
-        if lib.isscalar(rhs) and cmp1 in skip_these:
+        if is_scalar(rhs) and cmp1 in skip_these:
             self.assertRaises(TypeError, pd.eval, ex, engine=self.engine,
                               parser=self.parser, local_dict={'lhs': lhs,
                                                               'rhs': rhs})
         else:
             # compound
-            if lib.isscalar(lhs) and lib.isscalar(rhs):
+            if is_scalar(lhs) and is_scalar(rhs):
                 lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
             expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
-            if lib.isscalar(expected):
+            if is_scalar(expected):
                 expected = not expected
             else:
                 expected = ~expected
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
-            tm.assert_numpy_array_equal(expected, result)
+            tm.assert_almost_equal(expected, result)
 
             # make sure the other engines work the same as this one
             for engine in self.current_engines:
                 tm.skip_if_no_ne(engine)
                 ev = pd.eval(ex, engine=self.engine, parser=self.parser)
-                tm.assert_numpy_array_equal(ev, result)
+                tm.assert_almost_equal(ev, result)
 
     def ex(self, op, var_name='lhs'):
         return '{0}{1}'.format(op, var_name)
@@ -621,7 +625,7 @@ class TestEvalNumexprPandas(tm.TestCase):
                     '-37, 37, ~37, +37]'),
             np.array([-True, True, ~True, +True,
                       -False, False, ~False, +False,
-                      -37, 37, ~37, +37]))
+                      -37, 37, ~37, +37], dtype=np.object_))
 
     def test_disallow_scalar_bool_ops(self):
         exprs = '1 or 2', '1 and 2'
@@ -640,17 +644,17 @@ class TestEvalNumexprPandas(tm.TestCase):
         x = 1
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, 1)
-        self.assertTrue(lib.isscalar(result))
+        self.assertTrue(is_scalar(result))
 
         x = 1.5
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, 1.5)
-        self.assertTrue(lib.isscalar(result))
+        self.assertTrue(is_scalar(result))
 
         x = False
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, False)
-        self.assertTrue(lib.isscalar(result))
+        self.assertTrue(is_scalar(result))
 
         x = np.array([1])
         result = pd.eval('x', engine=self.engine, parser=self.parser)
@@ -715,10 +719,10 @@ class TestEvalPythonPython(TestEvalNumexprPython):
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
 
         expected = lhs % rhs
-        assert_allclose(result, expected)
+        tm.assert_almost_equal(result, expected)
 
         expected = _eval_single_bin(expected, arith1, rhs, self.engine)
-        assert_allclose(result, expected)
+        tm.assert_almost_equal(result, expected)
 
     def check_alignment(self, result, nlhs, ghs, op):
         try:
@@ -729,7 +733,7 @@ class TestEvalPythonPython(TestEvalNumexprPython):
             pass
         else:
             expected = eval('nlhs {0} ghs'.format(op))
-            tm.assert_numpy_array_equal(result, expected)
+            tm.assert_almost_equal(result, expected)
 
 
 class TestEvalPythonPandas(TestEvalPythonPython):
@@ -749,6 +753,35 @@ f = lambda *args, **kwargs: np.random.randn()
 
 
 ENGINES_PARSERS = list(product(_engines, expr._parsers))
+
+#-------------------------------------
+# typecasting rules consistency with python
+# issue #12388
+
+class TestTypeCasting(tm.TestCase):
+
+    def check_binop_typecasting(self, engine, parser, op, dt):
+        tm.skip_if_no_ne(engine)
+        df = mkdf(5, 3, data_gen_f=f, dtype=dt)
+        s = 'df {} 3'.format(op)
+        res = pd.eval(s, engine=engine, parser=parser)
+        self.assertTrue(df.values.dtype == dt)
+        self.assertTrue(res.values.dtype == dt)
+        assert_frame_equal(res, eval(s))
+
+        s = '3 {} df'.format(op)
+        res = pd.eval(s, engine=engine, parser=parser)
+        self.assertTrue(df.values.dtype == dt)
+        self.assertTrue(res.values.dtype == dt)
+        assert_frame_equal(res, eval(s))
+
+    def test_binop_typecasting(self):
+        for engine, parser in ENGINES_PARSERS:
+            for op in ['+', '-', '*', '**', '/']:
+                # maybe someday... numexpr has too many upcasting rules now
+                #for dt in chain(*(np.sctypes[x] for x in ['uint', 'int', 'float'])):
+                for dt in [np.float32, np.float64]:
+                    yield self.check_binop_typecasting, engine, parser, op, dt
 
 
 #-------------------------------------
@@ -1580,7 +1613,8 @@ class TestMathPythonPython(tm.TestCase):
         for fn in self.unary_fns:
             expr = "{0}(a)".format(fn)
             got = self.eval(expr)
-            expect = getattr(np, fn)(a)
+            with np.errstate(all='ignore'):
+                expect = getattr(np, fn)(a)
             tm.assert_series_equal(got, expect, check_names=False)
 
     def test_binary_functions(self):
@@ -1591,8 +1625,9 @@ class TestMathPythonPython(tm.TestCase):
         for fn in self.binary_fns:
             expr = "{0}(a, b)".format(fn)
             got = self.eval(expr)
-            expect = getattr(np, fn)(a, b)
-            np.testing.assert_allclose(got, expect)
+            with np.errstate(all='ignore'):
+                expect = getattr(np, fn)(a, b)
+            tm.assert_almost_equal(got, expect, check_names=False)
 
     def test_df_use_case(self):
         df = DataFrame({'a': np.random.randn(10),

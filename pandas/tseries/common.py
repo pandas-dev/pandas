@@ -3,20 +3,21 @@ datetimelike delegation
 """
 
 import numpy as np
+
+from pandas.types.common import (_NS_DTYPE, _TD_DTYPE,
+                                 is_period_arraylike,
+                                 is_datetime_arraylike, is_integer_dtype,
+                                 is_datetime64_dtype, is_datetime64tz_dtype,
+                                 is_timedelta64_dtype, is_categorical_dtype,
+                                 is_list_like)
+
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
-from pandas.core import common as com
 from pandas.tseries.index import DatetimeIndex
 from pandas._period import IncompatibleFrequency    # flake8: noqa
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas import tslib
 from pandas.core.algorithms import take_1d
-from pandas.core.common import (_NS_DTYPE, _TD_DTYPE, is_period_arraylike,
-                                is_datetime_arraylike, is_integer_dtype,
-                                is_list_like,
-                                is_datetime64_dtype, is_datetime64tz_dtype,
-                                is_timedelta64_dtype, is_categorical_dtype,
-                                get_dtype_kinds)
 
 
 def is_datetimelike(data):
@@ -130,7 +131,7 @@ class Properties(PandasDelegate, NoNewAttributesMixin):
         method = getattr(self.values, name)
         result = method(*args, **kwargs)
 
-        if not com.is_list_like(result):
+        if not is_list_like(result):
             return result
 
         result = Series(result, index=self.index, name=self.name)
@@ -238,71 +239,3 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
     # the Series.dt class property. For Series objects, .dt will always be one
     # of the more specific classes above.
     __doc__ = DatetimeProperties.__doc__
-
-
-def _concat_compat(to_concat, axis=0, typs=None):
-    """
-    provide concatenation of an datetimelike array of arrays each of which is a
-    single M8[ns], datetimet64[ns, tz] or m8[ns] dtype
-
-    Parameters
-    ----------
-    to_concat : array of arrays
-    axis : axis to provide concatenation
-
-    Returns
-    -------
-    a single array, preserving the combined dtypes
-    """
-
-    def convert_to_pydatetime(x, axis):
-        # coerce to an object dtype
-
-        # if dtype is of datetimetz or timezone
-        if x.dtype.kind == _NS_DTYPE.kind:
-            if getattr(x, 'tz', None) is not None:
-                x = x.asobject.values
-            else:
-                shape = x.shape
-                x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
-                x = x.reshape(shape)
-
-        elif x.dtype == _TD_DTYPE:
-            shape = x.shape
-            x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel())
-            x = x.reshape(shape)
-
-        if axis == 1:
-            x = np.atleast_2d(x)
-        return x
-
-    if typs is None:
-        typs = get_dtype_kinds(to_concat)
-
-    # must be single dtype
-    if len(typs) == 1:
-
-        if 'datetimetz' in typs:
-            # datetime with no tz should be stored as "datetime" in typs,
-            # thus no need to care
-
-            # we require ALL of the same tz for datetimetz
-            tzs = set([x.tz for x in to_concat])
-            if len(tzs) == 1:
-                return DatetimeIndex(np.concatenate([x.tz_localize(None).asi8
-                                                     for x in to_concat]),
-                                     tz=list(tzs)[0])
-
-        elif 'datetime' in typs:
-            new_values = np.concatenate([x.view(np.int64) for x in to_concat],
-                                        axis=axis)
-            return new_values.view(_NS_DTYPE)
-
-        elif 'timedelta' in typs:
-            new_values = np.concatenate([x.view(np.int64) for x in to_concat],
-                                        axis=axis)
-            return new_values.view(_TD_DTYPE)
-
-    # need to coerce to object
-    to_concat = [convert_to_pydatetime(x, axis) for x in to_concat]
-    return np.concatenate(to_concat, axis=axis)

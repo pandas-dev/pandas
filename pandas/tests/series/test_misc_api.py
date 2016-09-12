@@ -206,7 +206,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         self.assertIs(getkeys(), self.ts.index)
 
     def test_values(self):
-        self.assert_numpy_array_equal(self.ts, self.ts.values)
+        self.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)
 
     def test_iteritems(self):
         for idx, val in compat.iteritems(self.series):
@@ -241,7 +241,6 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
                 self.assertTrue(np.isnan(s2[0]))
                 self.assertFalse(np.isnan(s[0]))
             else:
-
                 # we DID modify the original Series
                 self.assertTrue(np.isnan(s2[0]))
                 self.assertTrue(np.isnan(s[0]))
@@ -252,6 +251,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         expected2 = Series([Timestamp('1999/01/01', tz='UTC')])
 
         for deep in [None, False, True]:
+
             s = Series([Timestamp('2012/01/01', tz='UTC')])
 
             if deep is None:
@@ -263,11 +263,13 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
 
             # default deep is True
             if deep is None or deep is True:
+                # Did not modify original Series
+                assert_series_equal(s2, expected2)
                 assert_series_equal(s, expected)
-                assert_series_equal(s2, expected2)
             else:
-                assert_series_equal(s, expected2)
+                # we DID modify the original Series
                 assert_series_equal(s2, expected2)
+                assert_series_equal(s, expected2)
 
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])

@@ -1,42 +1,56 @@
 # flake8: noqa
 
 import numpy as np
-from pandas.compat import string_types
 
-from .dtypes import (CategoricalDtype, CategoricalDtypeType,
-                     DatetimeTZDtype, DatetimeTZDtypeType)
-from .generic import (ABCIndex, ABCInt64Index, ABCRangeIndex,
-                      ABCFloat64Index, ABCMultiIndex,
-                      ABCDatetimeIndex,
-                      ABCTimedeltaIndex, ABCPeriodIndex,
-                      ABCCategoricalIndex,
-                      ABCIndexClass,
-                      ABCSeries, ABCDataFrame, ABCPanel,
-                      ABCSparseSeries, ABCSparseArray,
-                      ABCCategorical, ABCPeriod,
-                      ABCGeneric)
+from .common import (pandas_dtype,
+                     is_dtype_equal,
+                     is_extension_type,
 
-def pandas_dtype(dtype):
-    """
-    Converts input into a pandas only dtype object or a numpy dtype object.
+                     # categorical
+                     is_categorical,
+                     is_categorical_dtype,
 
-    Parameters
-    ----------
-    dtype : object to be converted
+                     # datetimelike
+                     is_datetimetz,
+                     is_datetime64_dtype,
+                     is_datetime64tz_dtype,
+                     is_datetime64_any_dtype,
+                     is_datetime64_ns_dtype,
+                     is_timedelta64_dtype,
+                     is_timedelta64_ns_dtype,
+                     is_period,
+                     is_period_dtype,
 
-    Returns
-    -------
-    np.dtype or a pandas dtype
-    """
-    if isinstance(dtype, string_types):
-        try:
-            return DatetimeTZDtype.construct_from_string(dtype)
-        except TypeError:
-            pass
+                     # string-like
+                     is_string_dtype,
+                     is_object_dtype,
 
-        try:
-            return CategoricalDtype.construct_from_string(dtype)
-        except TypeError:
-            pass
+                     # sparse
+                     is_sparse,
 
-    return np.dtype(dtype)
+                     # numeric types
+                     is_scalar,
+                     is_sparse,
+                     is_bool,
+                     is_integer,
+                     is_float,
+                     is_complex,
+                     is_number,
+                     is_any_int_dtype,
+                     is_integer_dtype,
+                     is_int64_dtype,
+                     is_numeric_dtype,
+                     is_float_dtype,
+                     is_floating_dtype,
+                     is_bool_dtype,
+                     is_complex_dtype,
+
+                     # like
+                     is_re,
+                     is_re_compilable,
+                     is_dict_like,
+                     is_iterator,
+                     is_list_like,
+                     is_hashable,
+                     is_named_tuple,
+                     is_sequence)

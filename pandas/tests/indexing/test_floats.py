@@ -538,8 +538,10 @@ class TestFloatIndexers(tm.TestCase):
 
                     # getitem
                     result = idxr(s)[l]
-                    self.assertTrue(result.equals(expected))
-
+                    if isinstance(s, Series):
+                        self.assert_series_equal(result, expected)
+                    else:
+                        self.assert_frame_equal(result, expected)
                     # setitem
                     s2 = s.copy()
                     idxr(s2)[l] = 0
@@ -674,3 +676,14 @@ class TestFloatIndexers(tm.TestCase):
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, Series([1], index=[2.5]))
+
+    def test_floating_tuples(self):
+        # GH13509
+        s = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.1, 0.2], name='foo')
+        result = s[0.0]
+        self.assertEqual(result, (1, 1))
+
+        s = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.0, 0.2], name='foo')
+        result = s[0.0]
+        expected = Series([(1, 1), (2, 2)], index=[0.0, 0.0], name='foo')
+        assert_series_equal(result, expected)

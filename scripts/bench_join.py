@@ -12,9 +12,9 @@ pct_overlap = 0.2
 a = np.arange(n, dtype=np.int64)
 b = np.arange(n * pct_overlap, n * (1 + pct_overlap), dtype=np.int64)
 
-dr1 = DatetimeIndex('1/1/2000', periods=n, offset=datetools.Minute())
+dr1 = DatetimeIndex('1/1/2000', periods=n, offset=offsets.Minute())
 dr2 = DatetimeIndex(
-    dr1[int(pct_overlap * n)], periods=n, offset=datetools.Minute(2))
+    dr1[int(pct_overlap * n)], periods=n, offset=offsets.Minute(2))
 
 aobj = a.astype(object)
 bobj = b.astype(object)

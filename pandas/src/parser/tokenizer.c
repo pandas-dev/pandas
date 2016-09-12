@@ -478,7 +478,10 @@ static int end_line(parser_t *self) {
         }
     }
 
-    if (self->state == SKIP_LINE) {
+    if (self->state == SKIP_LINE || \
+        self->state == QUOTE_IN_SKIP_LINE || \
+        self->state == QUOTE_IN_QUOTE_IN_SKIP_LINE
+    ) {
         TRACE(("end_line: Skipping row %d\n", self->file_lines));
         // increment file line count
         self->file_lines++;
@@ -490,8 +493,6 @@ static int end_line(parser_t *self) {
         self->line_fields[self->lines] = 0;
         return 0;
     }
-
-    /* printf("Line: %d, Fields: %d, Ex-fields: %d\n", self->lines, fields, ex_fields); */
 
     if (!(self->lines <= self->header_end + 1)
         && (self->expected_fields < 0 && fields > ex_fields)
@@ -505,8 +506,7 @@ static int end_line(parser_t *self) {
         // reset field count
         self->line_fields[self->lines] = 0;
 
-        // file_lines is now the _actual_ file line number (starting at 1)
-
+        // file_lines is now the actual file line number (starting at 1)
         if (self->error_bad_lines) {
             self->error_msg = (char*) malloc(100);
             sprintf(self->error_msg, "Expected %d fields in line %d, saw %d\n",
@@ -526,12 +526,11 @@ static int end_line(parser_t *self) {
                 free(msg);
             }
         }
-    }
-    else {
-        /* missing trailing delimiters */
+    } else {
+        // missing trailing delimiters
         if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
 
-            /* Might overrun the buffer when closing fields */
+            // might overrun the buffer when closing fields
             if (make_stream_space(self, ex_fields - fields) < 0) {
                 self->error_msg = "out of memory";
                 return -1;
@@ -539,19 +538,13 @@ static int end_line(parser_t *self) {
 
             while (fields < ex_fields){
                 end_field(self);
-                /* printf("Prior word: %s\n", self->words[self->words_len - 2]); */
                 fields++;
             }
         }
 
         // increment both line counts
         self->file_lines++;
-
         self->lines++;
-
-        /* coliter_t it; */
-        /* coliter_setup(&it, self, 5, self->lines - 1); */
-        /* printf("word at column 5: %s\n", COLITER_NEXT(it)); */
 
         // good line, set new start point
         if (self->lines >= self->lines_cap) {
@@ -573,8 +566,6 @@ static int end_line(parser_t *self) {
 
     return 0;
 }
-
-
 
 int parser_add_skiprow(parser_t *self, int64_t row) {
     khiter_t k;
@@ -693,13 +684,36 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 
 #define IS_WHITESPACE(c) ((c == ' ' || c == '\t'))
 
-typedef int (*parser_op)(parser_t *self, size_t line_limit);
+#define IS_TERMINATOR(c) ((self->lineterminator == '\0' && c == '\n') || \
+                          (self->lineterminator != '\0' &&               \
+                           c == self->lineterminator))
+
+#define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
+
+// don't parse '\r' with a custom line terminator
+#define IS_CARRIAGE(c) ((self->lineterminator == '\0' && c == '\r'))
+
+#define IS_COMMENT_CHAR(c) ((self->commentchar != '\0' && c == self->commentchar))
+
+#define IS_ESCAPE_CHAR(c) ((self->escapechar != '\0' && c == self->escapechar))
+
+#define IS_SKIPPABLE_SPACE(c) ((!self->delim_whitespace && c == ' ' && \
+                                self->skipinitialspace))
+
+// applied when in a field
+#define IS_DELIMITER(c) ((!self->delim_whitespace && c == self->delimiter) || \
+                         (self->delim_whitespace && IS_WHITESPACE(c)))
 
 #define _TOKEN_CLEANUP()                                                \
     self->stream_len = slen;                                            \
     self->datapos = i;                                                  \
     TRACE(("_TOKEN_CLEANUP: datapos: %d, datalen: %d\n", self->datapos, self->datalen));
 
+#define CHECK_FOR_BOM()                                                   \
+    if (*buf == '\xef' && *(buf + 1) == '\xbb' && *(buf + 2) == '\xbf') { \
+        buf += 3;                                                         \
+        self->datapos += 3;                                               \
+    }
 
 int skip_this_line(parser_t *self, int64_t rownum) {
     if (self->skipset != NULL) {
@@ -711,14 +725,13 @@ int skip_this_line(parser_t *self, int64_t rownum) {
     }
 }
 
-int tokenize_delimited(parser_t *self, size_t line_limit)
+int tokenize_bytes(parser_t *self, size_t line_limit)
 {
     int i, slen, start_lines;
     long maxstreamsize;
     char c;
     char *stream;
     char *buf = self->data + self->datapos;
-
 
     start_lines = self->lines;
 
@@ -730,656 +743,100 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
     stream = self->stream + self->stream_len;
     slen = self->stream_len;
     maxstreamsize = self->stream_cap;
+
     TRACE(("%s\n", buf));
+
+    if (self->file_lines == 0) {
+        CHECK_FOR_BOM();
+    }
 
     for (i = self->datapos; i < self->datalen; ++i)
     {
-        // Next character in file
+        // next character in file
         c = *buf++;
 
-        TRACE(("tokenize_delimited - Iter: %d Char: 0x%x Line %d field_count %d, state %d\n",
+        TRACE(("tokenize_bytes - Iter: %d Char: 0x%x Line %d field_count %d, state %d\n",
                i, c, self->file_lines + 1, self->line_fields[self->lines],
                self->state));
 
         switch(self->state) {
 
         case SKIP_LINE:
-            TRACE(("tokenize_delimited SKIP_LINE 0x%x, state %d\n", c, self->state));
-            if (c == '\n') {
+            TRACE(("tokenize_bytes SKIP_LINE 0x%x, state %d\n", c, self->state));
+            if (IS_TERMINATOR(c)) {
                 END_LINE();
-            } else if (c == '\r') {
+            } else if (IS_CARRIAGE(c)) {
                 self->file_lines++;
                 self->state = EAT_CRNL_NOP;
+            } else if (IS_QUOTE(c)) {
+                self->state = QUOTE_IN_SKIP_LINE;
             }
             break;
 
-        case START_RECORD:
-            // start of record
-            if (skip_this_line(self, self->file_lines)) {
-                self->state = SKIP_LINE;
-                if (c == '\n') {
-                    END_LINE();
-                }
-                break;
-            }
-            else if (c == '\n') {
-                // \n\r possible?
-                if (self->skip_empty_lines)
-                {
-                    self->file_lines++;
-                }
-                else
-                {
-                    END_LINE();
-                }
-                break;
-            }
-            else if (c == '\r') {
-                if (self->skip_empty_lines)
-                {
-                    self->file_lines++;
-                    self->state = EAT_CRNL_NOP;
-                }
-                else
-                    self->state = EAT_CRNL;
-                break;
-            }
-            else if (c == self->commentchar) {
-                self->state = EAT_LINE_COMMENT;
-                break;
-            }
-            else if (IS_WHITESPACE(c) && c != self->delimiter && self->skip_empty_lines) {
-                self->state = WHITESPACE_LINE;
-                break;
-            }
-
-            /* normal character - handle as START_FIELD */
-            self->state = START_FIELD;
-            /* fallthru */
-
-        case START_FIELD:
-            /* expecting field */
-            if (c == '\n') {
-                END_FIELD();
-                END_LINE();
-            } else if (c == '\r') {
-                END_FIELD();
-                self->state = EAT_CRNL;
-            }
-            else if (c == self->quotechar &&
-                     self->quoting != QUOTE_NONE) {
-                /* start quoted field */
-                self->state = IN_QUOTED_FIELD;
-            }
-            else if (c == self->escapechar) {
-                /* possible escaped character */
-                self->state = ESCAPED_CHAR;
-            }
-            else if (c == ' ' && self->skipinitialspace)
-                /* ignore space at start of field */
-                ;
-            else if (c == self->delimiter) {
-                /* save empty field */
-                END_FIELD();
-            }
-            else if (c == self->commentchar) {
-                END_FIELD();
-                self->state = EAT_COMMENT;
-            }
-            else {
-                /* begin new unquoted field */
-//                if (self->quoting == QUOTE_NONNUMERIC)
-//                    self->numeric_field = 1;
-
-                // TRACE(("pushing %c", c));
-                PUSH_CHAR(c);
-                self->state = IN_FIELD;
-            }
-            break;
-
-        case WHITESPACE_LINE: // check if line is whitespace-only
-            if (c == '\n') {
-                self->file_lines++;
-                self->state = START_RECORD; // ignore empty line
-            }
-            else if (c == '\r') {
-                self->file_lines++;
-                self->state = EAT_CRNL_NOP;
-            }
-            else if (IS_WHITESPACE(c) && c != self->delimiter)
-                ;
-            else { // backtrack
-                /* We have to use i + 1 because buf has been incremented but not i */
-                do {
-                    --buf;
-                    --i;
-                } while (i + 1 > self->datapos && *buf != '\n');
-
-                if (*buf == '\n') // reached a newline rather than the beginning
-                {
-                    ++buf; // move pointer to first char after newline
-                    ++i;
-                }
-                self->state = START_FIELD;
-            }
-            break;
-
-        case ESCAPED_CHAR:
-            /* if (c == '\0') */
-            /*  c = '\n'; */
-
-            PUSH_CHAR(c);
-            self->state = IN_FIELD;
-            break;
-
-        case EAT_LINE_COMMENT:
-            if (c == '\n') {
-                self->file_lines++;
-                self->state = START_RECORD;
-            } else if (c == '\r') {
-                self->file_lines++;
-                self->state = EAT_CRNL_NOP;
-            }
-            break;
-
-        case IN_FIELD:
-            /* in unquoted field */
-            if (c == '\n') {
-                END_FIELD();
-                END_LINE();
-                /* self->state = START_RECORD; */
-            } else if (c == '\r') {
-                END_FIELD();
-                self->state = EAT_CRNL;
-            }
-            else if (c == self->escapechar) {
-                /* possible escaped character */
-                self->state = ESCAPED_CHAR;
-            }
-            else if (c == self->delimiter) {
-                // End of field. End of line not reached yet
-                END_FIELD();
-                self->state = START_FIELD;
-            }
-            else if (c == self->commentchar) {
-                END_FIELD();
-                self->state = EAT_COMMENT;
-            }
-            else {
-                /* normal character - save in field */
-                PUSH_CHAR(c);
-            }
-            break;
-
-        case IN_QUOTED_FIELD:
-            /* in quoted field */
-            if (c == self->escapechar) {
-                /* Possible escape character */
-                self->state = ESCAPE_IN_QUOTED_FIELD;
-            }
-            else if (c == self->quotechar &&
-                     self->quoting != QUOTE_NONE) {
+        case QUOTE_IN_SKIP_LINE:
+            if (IS_QUOTE(c)) {
                 if (self->doublequote) {
-                    /* doublequote; " represented by "" */
-                    self->state = QUOTE_IN_QUOTED_FIELD;
-                }
-                else {
-                    /* end of quote part of field */
-                    self->state = IN_FIELD;
+                    self->state = QUOTE_IN_QUOTE_IN_SKIP_LINE;
+                } else {
+                    self->state = SKIP_LINE;
                 }
             }
-            else {
-                /* normal character - save in field */
-                PUSH_CHAR(c);
-            }
             break;
 
-        case ESCAPE_IN_QUOTED_FIELD:
-            /* if (c == '\0') */
-            /*  c = '\n'; */
-
-            PUSH_CHAR(c);
-            self->state = IN_QUOTED_FIELD;
-            break;
-
-        case QUOTE_IN_QUOTED_FIELD:
-            /* doublequote - seen a quote in an quoted field */
-            if (self->quoting != QUOTE_NONE && c == self->quotechar) {
-                /* save "" as " */
-
-                PUSH_CHAR(c);
-                self->state = IN_QUOTED_FIELD;
-            }
-            else if (c == self->delimiter) {
-                // End of field. End of line not reached yet
-
-                END_FIELD();
-                self->state = START_FIELD;
-            }
-            else if (c == '\n') {
-                END_FIELD();
+        case QUOTE_IN_QUOTE_IN_SKIP_LINE:
+            if (IS_QUOTE(c)) {
+                self->state = QUOTE_IN_SKIP_LINE;
+            } else if (IS_TERMINATOR(c)) {
                 END_LINE();
-                /* self->state = START_RECORD; */
-            }
-            else if (c == '\r') {
-                END_FIELD();
-                self->state = EAT_CRNL;
-            }
-            else if (!self->strict) {
-                PUSH_CHAR(c);
-                self->state = IN_FIELD;
-            }
-            else {
-                self->error_msg = (char*) malloc(50);
-                sprintf(self->error_msg, "'%c' expected after '%c'",
-                        self->delimiter, self->quotechar);
-                goto parsingerror;
-            }
-            break;
-
-        case EAT_COMMENT:
-            if (c == '\n') {
-                END_LINE();
-            } else if (c == '\r') {
-                self->state = EAT_CRNL;
-            }
-            break;
-
-        case EAT_CRNL:
-            if (c == '\n') {
-                END_LINE();
-                /* self->state = START_RECORD; */
-            } else if (c == self->delimiter){
-                // Handle \r-delimited files
-                END_LINE_AND_FIELD_STATE(START_FIELD);
+            } else if (IS_CARRIAGE(c)) {
+                self->file_lines++;
+                self->state = EAT_CRNL_NOP;
             } else {
-                /* \r line terminator */
-
-                /* UGH. we don't actually want to consume the token. fix this later */
-                self->stream_len = slen;
-                if (end_line(self) < 0) {
-                    goto parsingerror;
-                }
-                stream = self->stream + self->stream_len;
-                slen = self->stream_len;
-                self->state = START_RECORD;
-
-                /* HACK, let's try this one again */
-                --i; buf--;
-                if (line_limit > 0 && self->lines == start_lines + line_limit) {
-                    goto linelimit;
-                }
-
-            }
-            break;
-
-        case EAT_CRNL_NOP: /* inside an ignored comment line */
-            self->state = START_RECORD;
-            /* \r line terminator -- parse this character again */
-            if (c != '\n' && c != self->delimiter) {
-                --i;
-                --buf;
-            }
-            break;
-        default:
-            break;
-
-        }
-    }
-
-    _TOKEN_CLEANUP();
-
-    TRACE(("Finished tokenizing input\n"))
-
-    return 0;
-
-parsingerror:
-    i++;
-    _TOKEN_CLEANUP();
-
-    return -1;
-
-linelimit:
-    i++;
-    _TOKEN_CLEANUP();
-
-    return 0;
-}
-
-/* custom line terminator */
-int tokenize_delim_customterm(parser_t *self, size_t line_limit)
-{
-
-    int i, slen, start_lines;
-    long maxstreamsize;
-    char c;
-    char *stream;
-    char *buf = self->data + self->datapos;
-
-
-    start_lines = self->lines;
-
-    if (make_stream_space(self, self->datalen - self->datapos) < 0) {
-        self->error_msg = "out of memory";
-        return -1;
-    }
-
-    stream = self->stream + self->stream_len;
-    slen = self->stream_len;
-    maxstreamsize = self->stream_cap;
-
-    TRACE(("%s\n", buf));
-
-    for (i = self->datapos; i < self->datalen; ++i)
-    {
-        // Next character in file
-        c = *buf++;
-
-        TRACE(("tokenize_delim_customterm - Iter: %d Char: %c Line %d field_count %d, state %d\n",
-               i, c, self->file_lines + 1, self->line_fields[self->lines],
-               self->state));
-
-        switch(self->state) {
-
-        case SKIP_LINE:
-//            TRACE(("tokenize_delim_customterm SKIP_LINE %c, state %d\n", c, self->state));
-            if (c == self->lineterminator) {
-                END_LINE();
-            }
-            break;
-
-        case START_RECORD:
-            // start of record
-            if (skip_this_line(self, self->file_lines)) {
                 self->state = SKIP_LINE;
-                if (c == self->lineterminator) {
-                    END_LINE();
-                }
-                break;
-            }
-            else if (c == self->lineterminator) {
-                // \n\r possible?
-                if (self->skip_empty_lines)
-                {
-                    self->file_lines++;
-                }
-                else
-                {
-                    END_LINE();
-                }
-                break;
-            }
-            else if (c == self->commentchar) {
-                self->state = EAT_LINE_COMMENT;
-                break;
-            }
-            else if (IS_WHITESPACE(c) && c != self->delimiter && self->skip_empty_lines)
-            {
-                self->state = WHITESPACE_LINE;
-                break;
-            }
-            /* normal character - handle as START_FIELD */
-            self->state = START_FIELD;
-            /* fallthru */
-        case START_FIELD:
-            /* expecting field */
-            if (c == self->lineterminator) {
-                END_FIELD();
-                END_LINE();
-                /* self->state = START_RECORD; */
-            }
-            else if (c == self->quotechar &&
-                     self->quoting != QUOTE_NONE) {
-                /* start quoted field */
-                self->state = IN_QUOTED_FIELD;
-            }
-            else if (c == self->escapechar) {
-                /* possible escaped character */
-                self->state = ESCAPED_CHAR;
-            }
-            else if (c == ' ' && self->skipinitialspace)
-                /* ignore space at start of field */
-                ;
-            else if (c == self->delimiter) {
-                /* save empty field */
-                END_FIELD();
-            }
-            else if (c == self->commentchar) {
-                END_FIELD();
-                self->state = EAT_COMMENT;
-            }
-            else {
-                /* begin new unquoted field */
-                if (self->quoting == QUOTE_NONNUMERIC)
-                    self->numeric_field = 1;
-
-                // TRACE(("pushing %c", c));
-                PUSH_CHAR(c);
-                self->state = IN_FIELD;
-            }
-            break;
-
-        case WHITESPACE_LINE: // check if line is whitespace-only
-            if (c == self->lineterminator) {
-                self->file_lines++;
-                self->state = START_RECORD; // ignore empty line
-            }
-            else if (IS_WHITESPACE(c) && c != self->delimiter)
-                ;
-            else { // backtrack
-                /* We have to use i + 1 because buf has been incremented but not i */
-                do {
-                    --buf;
-                    --i;
-                } while (i + 1 > self->datapos && *buf != self->lineterminator);
-
-                if (*buf == self->lineterminator) // reached a newline rather than the beginning
-                {
-                    ++buf; // move pointer to first char after newline
-                    ++i;
-                }
-                self->state = START_FIELD;
-            }
-            break;
-
-        case ESCAPED_CHAR:
-            /* if (c == '\0') */
-            /*  c = '\n'; */
-
-            PUSH_CHAR(c);
-            self->state = IN_FIELD;
-            break;
-
-        case IN_FIELD:
-            /* in unquoted field */
-            if (c == self->lineterminator) {
-                END_FIELD();
-                END_LINE();
-                /* self->state = START_RECORD; */
-            }
-            else if (c == self->escapechar) {
-                /* possible escaped character */
-                self->state = ESCAPED_CHAR;
-            }
-            else if (c == self->delimiter) {
-                // End of field. End of line not reached yet
-                END_FIELD();
-                self->state = START_FIELD;
-            }
-            else if (c == self->commentchar) {
-                END_FIELD();
-                self->state = EAT_COMMENT;
-            }
-            else {
-                /* normal character - save in field */
-                PUSH_CHAR(c);
-            }
-            break;
-
-        case IN_QUOTED_FIELD:
-            /* in quoted field */
-            if (c == self->escapechar) {
-                /* Possible escape character */
-                self->state = ESCAPE_IN_QUOTED_FIELD;
-            }
-            else if (c == self->quotechar &&
-                     self->quoting != QUOTE_NONE) {
-                if (self->doublequote) {
-                    /* doublequote; " represented by "" */
-                    self->state = QUOTE_IN_QUOTED_FIELD;
-                }
-                else {
-                    /* end of quote part of field */
-                    self->state = IN_FIELD;
-                }
-            }
-            else {
-                /* normal character - save in field */
-                PUSH_CHAR(c);
-            }
-            break;
-
-        case ESCAPE_IN_QUOTED_FIELD:
-            PUSH_CHAR(c);
-            self->state = IN_QUOTED_FIELD;
-            break;
-
-        case QUOTE_IN_QUOTED_FIELD:
-            /* doublequote - seen a quote in an quoted field */
-            if (self->quoting != QUOTE_NONE && c == self->quotechar) {
-                /* save "" as " */
-
-                PUSH_CHAR(c);
-                self->state = IN_QUOTED_FIELD;
-            }
-            else if (c == self->delimiter) {
-                // End of field. End of line not reached yet
-
-                END_FIELD();
-                self->state = START_FIELD;
-            }
-            else if (c == self->lineterminator) {
-                END_FIELD();
-                END_LINE();
-                /* self->state = START_RECORD; */
-            }
-            else if (!self->strict) {
-                PUSH_CHAR(c);
-                self->state = IN_FIELD;
-            }
-            else {
-                self->error_msg = (char*) malloc(50);
-                sprintf(self->error_msg, "'%c' expected after '%c'",
-                        self->delimiter, self->quotechar);
-                goto parsingerror;
-            }
-            break;
-
-        case EAT_LINE_COMMENT:
-            if (c == self->lineterminator) {
-                self->file_lines++;
-                self->state = START_RECORD;
-            }
-            break;
-
-        case EAT_COMMENT:
-            if (c == self->lineterminator) {
-                END_LINE();
-            }
-            break;
-
-        default:
-            break;
-
-        }
-    }
-
-    _TOKEN_CLEANUP();
-
-    TRACE(("Finished tokenizing input\n"))
-
-    return 0;
-
-parsingerror:
-    i++;
-    _TOKEN_CLEANUP();
-
-    return -1;
-
-linelimit:
-    i++;
-    _TOKEN_CLEANUP();
-
-    return 0;
-}
-
-int tokenize_whitespace(parser_t *self, size_t line_limit)
-{
-    int i, slen, start_lines;
-    long maxstreamsize;
-    char c;
-    char *stream;
-    char *buf = self->data + self->datapos;
-
-    start_lines = self->lines;
-
-    if (make_stream_space(self, self->datalen - self->datapos) < 0) {
-        self->error_msg = "out of memory";
-        return -1;
-    }
-
-    stream = self->stream + self->stream_len;
-    slen = self->stream_len;
-    maxstreamsize = self->stream_cap;
-
-    TRACE(("%s\n", buf));
-
-    for (i = self->datapos; i < self->datalen; ++i)
-    {
-        // Next character in file
-        c = *buf++;
-
-        TRACE(("tokenize_whitespace - Iter: %d Char: %c Line %d field_count %d, state %d\n",
-               i, c, self->file_lines + 1, self->line_fields[self->lines],
-               self->state));
-
-        switch(self->state) {
-
-        case SKIP_LINE:
-//            TRACE(("tokenize_whitespace SKIP_LINE %c, state %d\n", c, self->state));
-            if (c == '\n') {
-                END_LINE();
-            } else if (c == '\r') {
-                self->file_lines++;
-                self->state = EAT_CRNL_NOP;
             }
             break;
 
         case WHITESPACE_LINE:
-            if (c == '\n') {
+            if (IS_TERMINATOR(c)) {
                 self->file_lines++;
                 self->state = START_RECORD;
                 break;
-            }
-            else if (c == '\r') {
+            } else if (IS_CARRIAGE(c)) {
                 self->file_lines++;
                 self->state = EAT_CRNL_NOP;
+                break;
+            } else if (!self->delim_whitespace) {
+                if (IS_WHITESPACE(c) && c != self->delimiter) {
+                    ;
+                } else { // backtrack
+                    // use i + 1 because buf has been incremented but not i
+                    do {
+                        --buf;
+                        --i;
+                    } while (i + 1 > self->datapos && !IS_TERMINATOR(*buf));
+
+                    // reached a newline rather than the beginning
+                    if (IS_TERMINATOR(*buf)) {
+                        ++buf; // move pointer to first char after newline
+                        ++i;
+                    }
+                    self->state = START_FIELD;
+                }
                 break;
             }
             // fall through
 
         case EAT_WHITESPACE:
-            if (c == '\n') {
+            if (IS_TERMINATOR(c)) {
                 END_LINE();
                 self->state = START_RECORD;
                 break;
-            } else if (c == '\r') {
+            } else if (IS_CARRIAGE(c)) {
                 self->state = EAT_CRNL;
                 break;
             } else if (!IS_WHITESPACE(c)) {
-                // END_FIELD();
                 self->state = START_FIELD;
-                // Fall through to subsequent state
+                // fall through to subsequent state
             } else {
                 // if whitespace char, keep slurping
                 break;
@@ -1388,238 +845,258 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
         case START_RECORD:
             // start of record
             if (skip_this_line(self, self->file_lines)) {
-                self->state = SKIP_LINE;
-                if (c == '\n') {
-                    END_LINE();
+                if (IS_QUOTE(c)) {
+                    self->state = QUOTE_IN_SKIP_LINE;
+                } else {
+                    self->state = SKIP_LINE;
+
+                    if (IS_TERMINATOR(c)) {
+                        END_LINE();
+                    }
                 }
                 break;
-            } else  if (c == '\n') {
-                if (self->skip_empty_lines)
+            } else if (IS_TERMINATOR(c)) {
                 // \n\r possible?
-                {
+                if (self->skip_empty_lines) {
                     self->file_lines++;
-                }
-                else
-                {
+                } else {
                     END_LINE();
                 }
                 break;
-            } else if (c == '\r') {
-                if (self->skip_empty_lines)
-                {
+            } else if (IS_CARRIAGE(c)) {
+                if (self->skip_empty_lines) {
                     self->file_lines++;
                     self->state = EAT_CRNL_NOP;
-                }
-                else
+                } else {
                     self->state = EAT_CRNL;
+                }
                 break;
-            } else if (IS_WHITESPACE(c)) {
-                if (self->skip_empty_lines)
-                    self->state = WHITESPACE_LINE;
-                else
-                    self->state = EAT_WHITESPACE;
-                break;
-            } else if (c == self->commentchar) {
+            } else if (IS_COMMENT_CHAR(c)) {
                 self->state = EAT_LINE_COMMENT;
                 break;
-            } else {
-                /* normal character - handle as START_FIELD */
-                self->state = START_FIELD;
+            } else if (IS_WHITESPACE(c)) {
+                if (self->delim_whitespace) {
+                    if (self->skip_empty_lines) {
+                        self->state = WHITESPACE_LINE;
+                    } else {
+                        self->state = EAT_WHITESPACE;
+                    }
+                    break;
+                } else if (c != self->delimiter && self->skip_empty_lines) {
+                    self->state = WHITESPACE_LINE;
+                    break;
+                }
+                // fall through
             }
-            /* fallthru */
+
+            // normal character - fall through
+            // to handle as START_FIELD
+            self->state = START_FIELD;
+
         case START_FIELD:
-            /* expecting field */
-            if (c == '\n') {
+            // expecting field
+            if (IS_TERMINATOR(c)) {
                 END_FIELD();
                 END_LINE();
-                /* self->state = START_RECORD; */
-            } else if (c == '\r') {
+            } else if (IS_CARRIAGE(c)) {
                 END_FIELD();
                 self->state = EAT_CRNL;
-            }
-            else if (c == self->quotechar &&
-                     self->quoting != QUOTE_NONE) {
-                /* start quoted field */
+            } else if (IS_QUOTE(c)) {
+                // start quoted field
                 self->state = IN_QUOTED_FIELD;
-            }
-            else if (c == self->escapechar) {
-                /* possible escaped character */
+            } else if (IS_ESCAPE_CHAR(c)) {
+                // possible escaped character
                 self->state = ESCAPED_CHAR;
-            }
-            /* else if (c == ' ' && self->skipinitialspace) */
-            /*     /\* ignore space at start of field *\/ */
-            /*     ; */
-            else if (IS_WHITESPACE(c)) {
-                self->state = EAT_WHITESPACE;
-            }
-            else if (c == self->commentchar) {
+            } else if (IS_SKIPPABLE_SPACE(c)) {
+                // ignore space at start of field
+                ;
+            } else if (IS_DELIMITER(c)) {
+                if (self->delim_whitespace) {
+                    self->state = EAT_WHITESPACE;
+                } else {
+                    // save empty field
+                    END_FIELD();
+                }
+            } else if (IS_COMMENT_CHAR(c)) {
                 END_FIELD();
                 self->state = EAT_COMMENT;
-            }
-            else {
-                /* begin new unquoted field */
-                if (self->quoting == QUOTE_NONNUMERIC)
-                    self->numeric_field = 1;
+            } else {
+                // begin new unquoted field
+                // if (self->delim_whitespace && \
+                //    self->quoting == QUOTE_NONNUMERIC) {
+                //    self->numeric_field = 1;
+                // }
 
-                // TRACE(("pushing %c", c));
                 PUSH_CHAR(c);
                 self->state = IN_FIELD;
             }
             break;
 
+        case ESCAPED_CHAR:
+            PUSH_CHAR(c);
+            self->state = IN_FIELD;
+            break;
+
         case EAT_LINE_COMMENT:
-            if (c == '\n') {
+            if (IS_TERMINATOR(c)) {
                 self->file_lines++;
                 self->state = START_RECORD;
-            } else if (c == '\r') {
+            } else if (IS_CARRIAGE(c)) {
                 self->file_lines++;
                 self->state = EAT_CRNL_NOP;
             }
             break;
 
-        case ESCAPED_CHAR:
-            /* if (c == '\0') */
-            /*  c = '\n'; */
-
-            PUSH_CHAR(c);
-            self->state = IN_FIELD;
-            break;
-
         case IN_FIELD:
-            /* in unquoted field */
-            if (c == '\n') {
+            // in unquoted field
+            if (IS_TERMINATOR(c)) {
                 END_FIELD();
                 END_LINE();
-                /* self->state = START_RECORD; */
-            } else if (c == '\r') {
+            } else if (IS_CARRIAGE(c)) {
                 END_FIELD();
                 self->state = EAT_CRNL;
-            }
-            else if (c == self->escapechar) {
-                /* possible escaped character */
+            } else if (IS_ESCAPE_CHAR(c)) {
+                // possible escaped character
                 self->state = ESCAPED_CHAR;
-            }
-            else if (IS_WHITESPACE(c)) {
-                // End of field. End of line not reached yet
+            } else if (IS_DELIMITER(c)) {
+                // end of field - end of line not reached yet
                 END_FIELD();
-                self->state = EAT_WHITESPACE;
-            }
-            else if (c == self->commentchar) {
+
+                if (self->delim_whitespace) {
+                    self->state = EAT_WHITESPACE;
+                } else {
+                    self->state = START_FIELD;
+                }
+            } else if (IS_COMMENT_CHAR(c)) {
                 END_FIELD();
                 self->state = EAT_COMMENT;
-            }
-            else {
-                /* normal character - save in field */
+            } else {
+                // normal character - save in field
                 PUSH_CHAR(c);
             }
             break;
 
         case IN_QUOTED_FIELD:
-            /* in quoted field */
-            if (c == self->escapechar) {
-                /* Possible escape character */
+            // in quoted field
+            if (IS_ESCAPE_CHAR(c)) {
+                // possible escape character
                 self->state = ESCAPE_IN_QUOTED_FIELD;
-            }
-            else if (c == self->quotechar &&
-                     self->quoting != QUOTE_NONE) {
+            } else if (IS_QUOTE(c)) {
                 if (self->doublequote) {
-                    /* doublequote; " represented by "" */
+                    // double quote - " represented by ""
                     self->state = QUOTE_IN_QUOTED_FIELD;
-                }
-                else {
-                    /* end of quote part of field */
+                } else {
+                    // end of quote part of field
                     self->state = IN_FIELD;
                 }
-            }
-            else {
-                /* normal character - save in field */
+            } else {
+                // normal character - save in field
                 PUSH_CHAR(c);
             }
             break;
 
         case ESCAPE_IN_QUOTED_FIELD:
-            /* if (c == '\0') */
-            /*  c = '\n'; */
-
             PUSH_CHAR(c);
             self->state = IN_QUOTED_FIELD;
             break;
 
         case QUOTE_IN_QUOTED_FIELD:
-            /* doublequote - seen a quote in an quoted field */
-            if (self->quoting != QUOTE_NONE && c == self->quotechar) {
-                /* save "" as " */
+            // double quote - seen a quote in an quoted field
+            if (IS_QUOTE(c)) {
+                // save "" as "
 
                 PUSH_CHAR(c);
                 self->state = IN_QUOTED_FIELD;
-            }
-            else if (IS_WHITESPACE(c)) {
-                // End of field. End of line not reached yet
-
+            } else if (IS_DELIMITER(c)) {
+                // end of field - end of line not reached yet
                 END_FIELD();
-                self->state = EAT_WHITESPACE;
-            }
-            else if (c == '\n') {
+
+                if (self->delim_whitespace) {
+                    self->state = EAT_WHITESPACE;
+                } else {
+                    self->state = START_FIELD;
+                }
+            } else if (IS_TERMINATOR(c)) {
                 END_FIELD();
                 END_LINE();
-                /* self->state = START_RECORD; */
-            }
-            else if (c == '\r') {
+            } else if (IS_CARRIAGE(c)) {
                 END_FIELD();
                 self->state = EAT_CRNL;
-            }
-            else if (!self->strict) {
+            } else if (!self->strict) {
                 PUSH_CHAR(c);
                 self->state = IN_FIELD;
-            }
-            else {
+            } else {
                 self->error_msg = (char*) malloc(50);
-                sprintf(self->error_msg, "'%c' expected after '%c'",
-                        self->delimiter, self->quotechar);
+                sprintf(self->error_msg,
+                        "delimiter expected after "
+                        "quote in quote");
                 goto parsingerror;
             }
             break;
 
-        case EAT_CRNL:
-            if (c == '\n') {
-                END_LINE();
-                /* self->state = START_RECORD; */
-            } else if (IS_WHITESPACE(c)){
-                // Handle \r-delimited files
-                END_LINE_STATE(EAT_WHITESPACE);
-            } else {
-                /* XXX
-                 * first character of a new record--need to back up and reread
-                 * to handle properly...
-                 */
-                i--; buf--; /* back up one character (HACK!) */
-                END_LINE_STATE(START_RECORD);
-            }
-            break;
-
-        case EAT_CRNL_NOP: // inside an ignored comment line
-            self->state = START_RECORD;
-            /* \r line terminator -- parse this character again */
-            if (c != '\n' && c != self->delimiter) {
-                --i;
-                --buf;
-            }
-            break;
-
         case EAT_COMMENT:
-            if (c == '\n') {
+            if (IS_TERMINATOR(c)) {
                 END_LINE();
-            } else if (c == '\r') {
+            } else if (IS_CARRIAGE(c)) {
                 self->state = EAT_CRNL;
             }
             break;
 
-        default:
+        // only occurs with non-custom line terminator,
+        // which is why we directly check for '\n'
+        case EAT_CRNL:
+            if (c == '\n') {
+                END_LINE();
+            } else if (IS_DELIMITER(c)){
+
+                if (self->delim_whitespace) {
+                    END_LINE_STATE(EAT_WHITESPACE);
+                } else {
+                    // Handle \r-delimited files
+                    END_LINE_AND_FIELD_STATE(START_FIELD);
+                }
+            } else {
+                if (self->delim_whitespace) {
+                    /* XXX
+                    * first character of a new record--need to back up and reread
+                    * to handle properly...
+                    */
+                    i--; buf--; // back up one character (HACK!)
+                    END_LINE_STATE(START_RECORD);
+                } else {
+                    // \r line terminator
+                    // UGH. we don't actually want
+                    // to consume the token. fix this later
+                    self->stream_len = slen;
+                    if (end_line(self) < 0) {
+                        goto parsingerror;
+                    }
+
+                    stream = self->stream + self->stream_len;
+                    slen = self->stream_len;
+                    self->state = START_RECORD;
+
+                    --i; buf--; // let's try this character again (HACK!)
+                    if (line_limit > 0 && self->lines == start_lines + line_limit) {
+                        goto linelimit;
+                    }
+                }
+            }
             break;
 
-
+        // only occurs with non-custom line terminator,
+        // which is why we directly check for '\n'
+        case EAT_CRNL_NOP: // inside an ignored comment line
+            self->state = START_RECORD;
+            // \r line terminator -- parse this character again
+            if (c != '\n' && !IS_DELIMITER(c)) {
+                --i;
+                --buf;
+            }
+            break;
+        default:
+            break;
         }
-
     }
 
     _TOKEN_CLEANUP();
@@ -1640,7 +1117,6 @@ linelimit:
 
     return 0;
 }
-
 
 static int parser_handle_eof(parser_t *self) {
     TRACE(("handling eof, datalen: %d, pstate: %d\n", self->datalen, self->state))
@@ -1759,20 +1235,7 @@ int parser_trim_buffers(parser_t *self) {
     size_t new_cap;
     void *newptr;
 
-    /* trim stream */
-    new_cap = _next_pow2(self->stream_len) + 1;
-    TRACE(("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = %zu\n",
-           new_cap, self->stream_cap, self->lines_cap));
-    if (new_cap < self->stream_cap) {
-        TRACE(("parser_trim_buffers: new_cap < self->stream_cap, calling safe_realloc\n"));
-        newptr = safe_realloc((void*) self->stream, new_cap);
-        if (newptr == NULL) {
-            return PARSER_OUT_OF_MEMORY;
-        } else {
-            self->stream = newptr;
-            self->stream_cap = new_cap;
-        }
-    }
+    int i;
 
     /* trim words, word_starts */
     new_cap = _next_pow2(self->words_len) + 1;
@@ -1790,6 +1253,35 @@ int parser_trim_buffers(parser_t *self) {
         } else {
             self->word_starts = (int*) newptr;
             self->words_cap = new_cap;
+        }
+    }
+
+    /* trim stream */
+    new_cap = _next_pow2(self->stream_len) + 1;
+    TRACE(("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = %zu\n",
+           new_cap, self->stream_cap, self->lines_cap));
+    if (new_cap < self->stream_cap) {
+        TRACE(("parser_trim_buffers: new_cap < self->stream_cap, calling safe_realloc\n"));
+        newptr = safe_realloc((void*) self->stream, new_cap);
+        if (newptr == NULL) {
+            return PARSER_OUT_OF_MEMORY;
+        } else {
+            // Update the pointers in the self->words array (char **) if `safe_realloc`
+            //  moved the `self->stream` buffer. This block mirrors a similar block in
+            //  `make_stream_space`.
+            if (self->stream != newptr) {
+                /* TRACE(("Moving word pointers\n")) */
+                self->pword_start = (char*) newptr + self->word_start;
+
+                for (i = 0; i < self->words_len; ++i)
+                {
+                    self->words[i] = (char*) newptr + self->word_starts[i];
+                }
+            }
+
+            self->stream = newptr;
+            self->stream_cap = new_cap;
+
         }
     }
 
@@ -1845,18 +1337,8 @@ void debug_print_parser(parser_t *self) {
  */
 
 int _tokenize_helper(parser_t *self, size_t nrows, int all) {
-    parser_op tokenize_bytes;
-
     int status = 0;
     int start_lines = self->lines;
-
-    if (self->delim_whitespace) {
-        tokenize_bytes = tokenize_whitespace;
-    } else if (self->lineterminator == '\0') {
-        tokenize_bytes = tokenize_delimited;
-    } else {
-        tokenize_bytes = tokenize_delim_customterm;
-    }
 
     if (self->state == FINISHED) {
         return 0;
@@ -1884,11 +1366,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
 
         TRACE(("_tokenize_helper: Trying to process %d bytes, datalen=%d, datapos= %d\n",
                self->datalen - self->datapos, self->datalen, self->datapos));
-        /* TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status)); */
 
         status = tokenize_bytes(self, nrows);
-
-        /* debug_print_parser(self); */
 
         if (status < 0) {
             // XXX
