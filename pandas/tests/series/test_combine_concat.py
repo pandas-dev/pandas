@@ -39,6 +39,27 @@ class TestSeriesCombine(TestData, tm.TestCase):
         result = pieces[0].append(pieces[1:])
         assert_series_equal(result, self.ts)
 
+    def test_append_duplicates(self):
+        # GH 13677
+        s1 = pd.Series([1, 2, 3])
+        s2 = pd.Series([4, 5, 6])
+        exp = pd.Series([1, 2, 3, 4, 5, 6], index=[0, 1, 2, 0, 1, 2])
+        tm.assert_series_equal(s1.append(s2), exp)
+        tm.assert_series_equal(pd.concat([s1, s2]), exp)
+
+        # the result must have RangeIndex
+        exp = pd.Series([1, 2, 3, 4, 5, 6])
+        tm.assert_series_equal(s1.append(s2, ignore_index=True),
+                               exp, check_index_type=True)
+        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True),
+                               exp, check_index_type=True)
+
+        msg = 'Indexes have overlapping values:'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s1.append(s2, verify_integrity=True)
+        with tm.assertRaisesRegexp(ValueError, msg):
+            pd.concat([s1, s2], verify_integrity=True)
+
     def test_combine_first(self):
         values = tm.makeIntIndex(20).values.astype(float)
         series = Series(values, index=tm.makeIntIndex(20))
@@ -49,14 +70,14 @@ class TestSeriesCombine(TestData, tm.TestCase):
         # nothing used from the input
         combined = series.combine_first(series_copy)
 
-        self.assert_numpy_array_equal(combined, series)
+        self.assert_series_equal(combined, series)
 
         # Holes filled from input
         combined = series_copy.combine_first(series)
         self.assertTrue(np.isfinite(combined).all())
 
-        self.assert_numpy_array_equal(combined[::2], series[::2])
-        self.assert_numpy_array_equal(combined[1::2], series_copy[1::2])
+        self.assert_series_equal(combined[::2], series[::2])
+        self.assert_series_equal(combined[1::2], series_copy[1::2])
 
         # mixed types
         index = tm.makeStringIndex(20)
@@ -65,8 +86,9 @@ class TestSeriesCombine(TestData, tm.TestCase):
 
         combined = strings.combine_first(floats)
 
-        tm.assert_dict_equal(strings, combined, compare_keys=False)
-        tm.assert_dict_equal(floats[1::2], combined, compare_keys=False)
+        tm.assert_series_equal(strings, combined.loc[index[::2]])
+        tm.assert_series_equal(floats[1::2].astype(object),
+                               combined.loc[index[1::2]])
 
         # corner case
         s = Series([1., 2, 3], index=[0, 1, 2])
@@ -163,9 +185,9 @@ class TestSeriesCombine(TestData, tm.TestCase):
                          'category')
         self.assertEqual(pd.concat([Series(dtype='category'),
                                     Series(dtype='float64')]).dtype,
-                         np.object_)
+                         'float64')
         self.assertEqual(pd.concat([Series(dtype='category'),
-                                    Series(dtype='object')]).dtype, 'category')
+                                    Series(dtype='object')]).dtype, 'object')
 
         # sparse
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(

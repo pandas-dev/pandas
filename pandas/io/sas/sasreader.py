@@ -58,4 +58,6 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
     if iterator or chunksize:
         return reader
 
-    return reader.read()
+    data = reader.read()
+    reader.close()
+    return data

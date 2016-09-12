@@ -6,51 +6,70 @@ iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
 
+cdef extern from "headers/stdint.h":
+    enum: UINT8_MAX
+    enum: UINT16_MAX
+    enum: UINT32_MAX
+    enum: UINT64_MAX
+    enum: INT8_MIN
+    enum: INT8_MAX
+    enum: INT16_MIN
+    enum: INT16_MAX
+    enum: INT32_MAX
+    enum: INT32_MIN
+    enum: INT64_MAX
+    enum: INT64_MIN
+
 # core.common import for fast inference checks
+
+
 def is_float(object obj):
     return util.is_float_object(obj)
+
 
 def is_integer(object obj):
     return util.is_integer_object(obj)
 
+
 def is_bool(object obj):
     return util.is_bool_object(obj)
+
 
 def is_complex(object obj):
     return util.is_complex_object(obj)
 
-def is_period(object val):
+cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
 
 _TYPE_MAP = {
-    'categorical' : 'categorical',
-    'category' : 'categorical',
+    'categorical': 'categorical',
+    'category': 'categorical',
     'int8': 'integer',
     'int16': 'integer',
     'int32': 'integer',
     'int64': 'integer',
-    'i' : 'integer',
+    'i': 'integer',
     'uint8': 'integer',
     'uint16': 'integer',
     'uint32': 'integer',
     'uint64': 'integer',
-    'u' : 'integer',
+    'u': 'integer',
     'float32': 'floating',
     'float64': 'floating',
-    'f' : 'floating',
+    'f': 'floating',
     'complex128': 'complex',
-    'c' : 'complex',
+    'c': 'complex',
     'string': 'string' if PY2 else 'bytes',
-    'S' : 'string' if PY2 else 'bytes',
+    'S': 'string' if PY2 else 'bytes',
     'unicode': 'unicode' if PY2 else 'string',
-    'U' : 'unicode' if PY2 else 'string',
+    'U': 'unicode' if PY2 else 'string',
     'bool': 'boolean',
-    'b' : 'boolean',
-    'datetime64[ns]' : 'datetime64',
-    'M' : 'datetime64',
-    'timedelta64[ns]' : 'timedelta64',
-    'm' : 'timedelta64',
+    'b': 'boolean',
+    'datetime64[ns]': 'datetime64',
+    'M': 'datetime64',
+    'timedelta64[ns]': 'timedelta64',
+    'm': 'timedelta64',
 }
 
 # types only exist on certain platform
@@ -74,11 +93,12 @@ cdef _try_infer_map(v):
     """ if its in our map, just return the dtype """
     cdef:
         object attr, val
-    for attr in ['name','kind','base']:
-        val = getattr(v.dtype,attr)
+    for attr in ['name', 'kind', 'base']:
+        val = getattr(v.dtype, attr)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
     return None
+
 
 def infer_dtype(object _values):
     """
@@ -89,15 +109,17 @@ def infer_dtype(object _values):
         Py_ssize_t i, n
         object val
         ndarray values
+        bint seen_pdnat = False, seen_val = False
 
     if isinstance(_values, np.ndarray):
         values = _values
-    elif hasattr(_values,'dtype'):
+    elif hasattr(_values, 'dtype'):
 
         # this will handle ndarray-like
         # e.g. categoricals
         try:
-            values = getattr(_values, '_values', getattr(_values, 'values', _values))
+            values = getattr(_values, '_values', getattr(
+                _values, 'values', _values))
         except:
             val = _try_infer_map(_values)
             if val is not None:
@@ -127,15 +149,32 @@ def infer_dtype(object _values):
     values = values.ravel()
 
     # try to use a valid value
-    for i in range(n):
-       val = util.get_value_1d(values, i)
-       if not is_null_datetimelike(val):
-           break
+    for i from 0 <= i < n:
+        val = util.get_value_1d(values, i)
 
-    if util.is_datetime64_object(val) or val is NaT:
+        # do not use is_nul_datetimelike to keep
+        # np.datetime64('nat') and np.timedelta64('nat')
+        if util._checknull(val):
+            pass
+        elif val is NaT:
+            seen_pdnat = True
+        else:
+            seen_val = True
+            break
+
+    # if all values are nan/NaT
+    if seen_val is False and seen_pdnat is True:
+        return 'datetime'
+        # float/object nan is handled in latter logic
+
+    if util.is_datetime64_object(val):
         if is_datetime64_array(values):
             return 'datetime64'
         elif is_timedelta_or_timedelta64_array(values):
+            return 'timedelta'
+
+    elif is_timedelta(val):
+        if is_timedelta_or_timedelta64_array(values):
             return 'timedelta'
 
     elif util.is_integer_object(val):
@@ -186,17 +225,15 @@ def infer_dtype(object _values):
         if is_bytes_array(values):
             return 'bytes'
 
-    elif is_timedelta(val):
-        if is_timedelta_or_timedelta64_array(values):
-            return 'timedelta'
-
     elif is_period(val):
         if is_period_array(values):
             return 'period'
 
     for i in range(n):
         val = util.get_value_1d(values, i)
-        if util.is_integer_object(val):
+        if (util.is_integer_object(val) and
+            not util.is_timedelta64_object(val) and
+            not util.is_datetime64_object(val)):
             return 'mixed-integer'
 
     return 'mixed'
@@ -212,20 +249,24 @@ def is_possible_datetimelike_array(object arr):
     for i in range(n):
         v = arr[i]
         if util.is_string_object(v):
-           continue
+            continue
         elif util._checknull(v):
-           continue
+            continue
         elif is_datetime(v):
-           seen_datetime=1
+            seen_datetime=1
         elif is_timedelta(v):
-           seen_timedelta=1
+            seen_timedelta=1
         else:
-           return False
+            return False
     return seen_datetime or seen_timedelta
 
+
 cdef inline bint is_null_datetimelike(v):
-    # determine if we have a null for a timedelta/datetime (or integer versions)x
+    # determine if we have a null for a timedelta/datetime (or integer
+    # versions)x
     if util._checknull(v):
+        return True
+    elif v is NaT:
         return True
     elif util.is_timedelta64_object(v):
         return v.view('int64') == iNaT
@@ -233,9 +274,42 @@ cdef inline bint is_null_datetimelike(v):
         return v.view('int64') == iNaT
     elif util.is_integer_object(v):
         return v == iNaT
+    return False
+
+
+cdef inline bint is_null_datetime64(v):
+    # determine if we have a null for a datetime (or integer versions),
+    # excluding np.timedelta64('nat')
+    if util._checknull(v):
+        return True
+    elif v is NaT:
+        return True
+    elif util.is_datetime64_object(v):
+        return v.view('int64') == iNaT
+    return False
+
+
+cdef inline bint is_null_timedelta64(v):
+    # determine if we have a null for a timedelta (or integer versions),
+    # excluding np.datetime64('nat')
+    if util._checknull(v):
+        return True
+    elif v is NaT:
+        return True
+    elif util.is_timedelta64_object(v):
+        return v.view('int64') == iNaT
+    return False
+
+
+cdef inline bint is_null_period(v):
+    # determine if we have a null for a Period (or integer versions),
+    # excluding np.datetime64('nat') and np.timedelta64('nat')
+    if util._checknull(v):
+        return True
     elif v is NaT:
         return True
     return False
+
 
 cdef inline bint is_datetime(object o):
     return PyDateTime_Check(o)
@@ -248,6 +322,7 @@ cdef inline bint is_time(object o):
 
 cdef inline bint is_timedelta(object o):
     return PyDelta_Check(o) or util.is_timedelta64_object(o)
+
 
 def is_bool_array(ndarray values):
     cdef:
@@ -269,8 +344,10 @@ def is_bool_array(ndarray values):
     else:
         return False
 
+
 def is_integer(object o):
     return util.is_integer_object(o)
+
 
 def is_integer_array(ndarray values):
     cdef:
@@ -291,6 +368,7 @@ def is_integer_array(ndarray values):
         return True
     else:
         return False
+
 
 def is_integer_float_array(ndarray values):
     cdef:
@@ -314,6 +392,7 @@ def is_integer_float_array(ndarray values):
     else:
         return False
 
+
 def is_float_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -333,6 +412,7 @@ def is_float_array(ndarray values):
         return True
     else:
         return False
+
 
 def is_string_array(ndarray values):
     cdef:
@@ -354,6 +434,7 @@ def is_string_array(ndarray values):
         return True
     else:
         return False
+
 
 def is_unicode_array(ndarray values):
     cdef:
@@ -406,13 +487,14 @@ def is_datetime_array(ndarray[object] values):
     # return False for all nulls
     for i in range(n):
         v = values[i]
-        if is_null_datetimelike(v):
+        if is_null_datetime64(v):
             # we are a regular null
             if util._checknull(v):
-               null_count += 1
+                null_count += 1
         elif not is_datetime(v):
             return False
     return null_count != n
+
 
 def is_datetime64_array(ndarray values):
     cdef Py_ssize_t i, null_count = 0, n = len(values)
@@ -423,7 +505,7 @@ def is_datetime64_array(ndarray values):
     # return False for all nulls
     for i in range(n):
         v = values[i]
-        if is_null_datetimelike(v):
+        if is_null_datetime64(v):
             # we are a regular null
             if util._checknull(v):
                 null_count += 1
@@ -467,13 +549,14 @@ def is_timedelta_array(ndarray values):
         return False
     for i in range(n):
         v = values[i]
-        if is_null_datetimelike(v):
+        if is_null_timedelta64(v):
             # we are a regular null
             if util._checknull(v):
                 null_count += 1
         elif not PyDelta_Check(v):
             return False
     return null_count != n
+
 
 def is_timedelta64_array(ndarray values):
     cdef Py_ssize_t i, null_count = 0, n = len(values)
@@ -482,13 +565,14 @@ def is_timedelta64_array(ndarray values):
         return False
     for i in range(n):
         v = values[i]
-        if is_null_datetimelike(v):
+        if is_null_timedelta64(v):
             # we are a regular null
             if util._checknull(v):
                 null_count += 1
         elif not util.is_timedelta64_object(v):
             return False
     return null_count != n
+
 
 def is_timedelta_or_timedelta64_array(ndarray values):
     """ infer with timedeltas and/or nat/none """
@@ -498,13 +582,14 @@ def is_timedelta_or_timedelta64_array(ndarray values):
         return False
     for i in range(n):
         v = values[i]
-        if is_null_datetimelike(v):
+        if is_null_timedelta64(v):
             # we are a regular null
             if util._checknull(v):
                 null_count += 1
         elif not is_timedelta(v):
             return False
     return null_count != n
+
 
 def is_date_array(ndarray[object] values):
     cdef Py_ssize_t i, n = len(values)
@@ -515,6 +600,7 @@ def is_date_array(ndarray[object] values):
             return False
     return True
 
+
 def is_time_array(ndarray[object] values):
     cdef Py_ssize_t i, n = len(values)
     if n == 0:
@@ -524,20 +610,23 @@ def is_time_array(ndarray[object] values):
             return False
     return True
 
-def is_period(object o):
-    from pandas import Period
-    return isinstance(o,Period)
 
 def is_period_array(ndarray[object] values):
-    cdef Py_ssize_t i, n = len(values)
-    from pandas.tseries.period import Period
-
+    cdef Py_ssize_t i, null_count = 0, n = len(values)
+    cdef object v
     if n == 0:
         return False
+
+    # return False for all nulls
     for i in range(n):
-        if not isinstance(values[i], Period):
+        v = values[i]
+        if is_null_period(v):
+            # we are a regular null
+            if util._checknull(v):
+                null_count += 1
+        elif not is_period(v):
             return False
-    return True
+    return null_count != n
 
 
 cdef extern from "parse_helper.h":
@@ -546,12 +635,13 @@ cdef extern from "parse_helper.h":
 cdef int64_t iINT64_MAX = <int64_t> INT64_MAX
 cdef int64_t iINT64_MIN = <int64_t> INT64_MIN
 
+
 def maybe_convert_numeric(object[:] values, set na_values,
                           bint convert_empty=True, bint coerce_numeric=False):
-    '''
+    """
     Type inference function-- convert strings to numeric (potentially) and
     convert to proper dtype array
-    '''
+    """
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
@@ -569,7 +659,7 @@ def maybe_convert_numeric(object[:] values, set na_values,
     for i in range(n):
         val = values[i]
 
-        if val in na_values:
+        if val.__hash__ is not None and val in na_values:
             floats[i] = complexes[i] = nan
             seen_float = True
         elif util.is_float_object(val):
@@ -596,7 +686,13 @@ def maybe_convert_numeric(object[:] values, set na_values,
         else:
             try:
                 status = floatify(val, &fval, &maybe_int)
-                floats[i] = fval
+
+                if fval in na_values:
+                    floats[i] = complexes[i] = nan
+                    seen_float = True
+                else:
+                    floats[i] = fval
+
                 if not seen_float:
                     if maybe_int:
                         as_int = int(val)
@@ -607,9 +703,9 @@ def maybe_convert_numeric(object[:] values, set na_values,
                             raise ValueError('integer out of range')
                     else:
                         seen_float = True
-            except:
+            except (TypeError, ValueError) as e:
                 if not coerce_numeric:
-                    raise
+                    raise type(e)(str(e) + ' at position {}'.format(i))
 
                 floats[i] = nan
                 seen_float = True
@@ -628,9 +724,9 @@ def maybe_convert_numeric(object[:] values, set na_values,
 def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                           bint safe=0, bint convert_datetime=0,
                           bint convert_timedelta=0):
-    '''
+    """
     Type inference function-- convert object array to proper dtype
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
@@ -642,6 +738,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         bint seen_float = 0
         bint seen_complex = 0
         bint seen_datetime = 0
+        bint seen_datetimetz = 0
         bint seen_timedelta = 0
         bint seen_int = 0
         bint seen_bool = 0
@@ -675,6 +772,15 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         if val is None:
             seen_null = 1
             floats[i] = complexes[i] = fnan
+        elif val is NaT:
+            if convert_datetime:
+                idatetimes[i] = iNaT
+                seen_datetime = 1
+            if convert_timedelta:
+                itimedeltas[i] = iNaT
+                seen_timedelta = 1
+            if not (convert_datetime or convert_timedelta):
+                seen_object = 1
         elif util.is_bool_object(val):
             seen_bool = 1
             bools[i] = val
@@ -683,7 +789,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             seen_float = 1
         elif util.is_datetime64_object(val):
             if convert_datetime:
-                idatetimes[i] = convert_to_tsobject(val, None, None).value
+                idatetimes[i] = convert_to_tsobject(
+                    val, None, None, 0, 0).value
                 seen_datetime = 1
             else:
                 seen_object = 1
@@ -691,7 +798,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 break
         elif is_timedelta(val):
             if convert_timedelta:
-                itimedeltas[i] = convert_to_timedelta64(val, 'ns', False)
+                itimedeltas[i] = convert_to_timedelta64(val, 'ns')
                 seen_timedelta = 1
             else:
                 seen_object = 1
@@ -710,9 +817,16 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             complexes[i] = val
             seen_complex = 1
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
+
+            # if we have an tz's attached then return the objects
             if convert_datetime:
-                seen_datetime = 1
-                idatetimes[i] = convert_to_tsobject(val, None, None).value
+                if getattr(val, 'tzinfo', None) is not None:
+                    seen_datetimetz = 1
+                    break
+                else:
+                    seen_datetime = 1
+                    idatetimes[i] = convert_to_tsobject(
+                        val, None, None, 0, 0).value
             else:
                 seen_object = 1
                 break
@@ -730,6 +844,13 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             break
 
     seen_numeric = seen_complex or seen_float or seen_int
+
+    # we try to coerce datetime w/tz but must all have the same tz
+    if seen_datetimetz:
+        if len(set([ getattr(val, 'tz', None) for val in objects ])) == 1:
+            from pandas import DatetimeIndex
+            return DatetimeIndex(objects)
+        seen_object = 1
 
     if not seen_object:
 
@@ -755,7 +876,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                             return floats
                         elif seen_int:
                             return ints
-                elif not seen_datetime and not seen_numeric and not seen_timedelta:
+                elif (not seen_datetime and not seen_numeric
+                      and not seen_timedelta):
                     return bools.view(np.bool_)
 
         else:
@@ -785,7 +907,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                                 return floats
                         elif seen_int:
                             return ints
-                elif not seen_datetime and not seen_numeric and not seen_timedelta:
+                elif (not seen_datetime and not seen_numeric
+                      and not seen_timedelta):
                     return bools.view(np.bool_)
 
     return objects
@@ -794,8 +917,9 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 def convert_sql_column(x):
     return maybe_convert_objects(x, try_float=1)
 
+
 def try_parse_dates(ndarray[object] values, parser=None,
-                    dayfirst=False,default=None):
+                    dayfirst=False, default=None):
     cdef:
         Py_ssize_t i, n
         ndarray[object] result
@@ -805,12 +929,12 @@ def try_parse_dates(ndarray[object] values, parser=None,
 
     if parser is None:
         if default is None: # GH2618
-           date=datetime.now()
-           default=datetime(date.year,date.month,1)
+            date=datetime.now()
+            default=datetime(date.year, date.month, 1)
 
         try:
             from dateutil.parser import parse
-            parse_date = lambda x: parse(x, dayfirst=dayfirst,default=default)
+            parse_date = lambda x: parse(x, dayfirst=dayfirst, default=default)
         except ImportError: # pragma: no cover
             def parse_date(s):
                 try:
@@ -842,9 +966,10 @@ def try_parse_dates(ndarray[object] values, parser=None,
 
     return result
 
+
 def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
                             date_parser=None, time_parser=None,
-                            dayfirst=False,default=None):
+                            dayfirst=False, default=None):
     cdef:
         Py_ssize_t i, n
         ndarray[object] result
@@ -858,8 +983,8 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
 
     if date_parser is None:
         if default is None: # GH2618
-           date=datetime.now()
-           default=datetime(date.year,date.month,1)
+            date=datetime.now()
+            default=datetime(date.year, date.month, 1)
 
         try:
             from dateutil.parser import parse
@@ -914,6 +1039,7 @@ def try_parse_year_month_day(ndarray[object] years, ndarray[object] months,
 
     return result
 
+
 def try_parse_datetime_components(ndarray[object] years,
                                   ndarray[object] months,
                                   ndarray[object] days,
@@ -950,6 +1076,7 @@ def try_parse_datetime_components(ndarray[object] years,
 
     return result
 
+
 def sanitize_objects(ndarray[object] values, set na_values,
                      convert_empty=True):
     cdef:
@@ -972,6 +1099,7 @@ def sanitize_objects(ndarray[object] values, set na_values,
             memo[val] = val
 
     return na_count
+
 
 def maybe_convert_bool(ndarray[object] arr,
                        true_values=None, false_values=None):
@@ -1024,7 +1152,7 @@ def maybe_convert_bool(ndarray[object] arr,
 
 def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
                    bint convert=1):
-    '''
+    """
     Substitute for np.vectorize with pandas-friendly dtype inference
 
     Parameters
@@ -1035,7 +1163,7 @@ def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
     Returns
     -------
     mapped : ndarray
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         ndarray[object] result
@@ -1064,8 +1192,9 @@ def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
 
     return result
 
+
 def map_infer(ndarray arr, object f, bint convert=1):
-    '''
+    """
     Substitute for np.vectorize with pandas-friendly dtype inference
 
     Parameters
@@ -1076,7 +1205,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
     Returns
     -------
     mapped : ndarray
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         ndarray[object] result
@@ -1103,7 +1232,24 @@ def map_infer(ndarray arr, object f, bint convert=1):
     return result
 
 
-def to_object_array(list rows):
+def to_object_array(list rows, int min_width=0):
+    """
+    Convert a list of lists into an object array.
+
+    Parameters
+    ----------
+    rows : 2-d array (N, K)
+        A list of lists to be converted into an array
+    min_width : int
+        The minimum width of the object array. If a list
+        in `rows` contains fewer than `width` elements,
+        the remaining elements in the corresponding row
+        will all be `NaN`.
+
+    Returns
+    -------
+    obj_array : numpy array of the object dtype
+    """
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
@@ -1111,7 +1257,7 @@ def to_object_array(list rows):
 
     n = len(rows)
 
-    k = 0
+    k = min_width
     for i from 0 <= i < n:
         tmp = len(rows[i])
         if tmp > k:
@@ -1126,6 +1272,7 @@ def to_object_array(list rows):
             result[i, j] = row[j]
 
     return result
+
 
 def tuples_to_object_array(ndarray[object] tuples):
     cdef:
@@ -1142,6 +1289,7 @@ def tuples_to_object_array(ndarray[object] tuples):
             result[i, j] = tup[j]
 
     return result
+
 
 def to_object_array_tuples(list rows):
     cdef:
@@ -1194,3 +1342,74 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
             output[i] = default
 
     return maybe_convert_objects(output)
+
+
+def downcast_int64(ndarray[int64_t] arr, object na_values,
+                   bint use_unsigned=0):
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        int64_t mx = INT64_MIN + 1, mn = INT64_MAX
+        int64_t NA = na_values[np.int64]
+        int64_t val
+        ndarray[uint8_t] mask
+        int na_count = 0
+
+    _mask = np.empty(n, dtype=bool)
+    mask = _mask.view(np.uint8)
+
+    for i in range(n):
+        val = arr[i]
+
+        if val == NA:
+            mask[i] = 1
+            na_count += 1
+            continue
+
+        # not NA
+        mask[i] = 0
+
+        if val > mx:
+            mx = val
+
+        if val < mn:
+            mn = val
+
+    if mn >= 0 and use_unsigned:
+        if mx <= UINT8_MAX - 1:
+            result = arr.astype(np.uint8)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.uint8])
+            return result
+
+        if mx <= UINT16_MAX - 1:
+            result = arr.astype(np.uint16)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.uint16])
+            return result
+
+        if mx <= UINT32_MAX - 1:
+            result = arr.astype(np.uint32)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.uint32])
+            return result
+
+    else:
+        if mn >= INT8_MIN + 1 and mx <= INT8_MAX:
+            result = arr.astype(np.int8)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.int8])
+            return result
+
+        if mn >= INT16_MIN + 1 and mx <= INT16_MAX:
+            result = arr.astype(np.int16)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.int16])
+            return result
+
+        if mn >= INT32_MIN + 1 and mx <= INT32_MAX:
+            result = arr.astype(np.int32)
+            if na_count:
+                np.putmask(result, _mask, na_values[np.int32])
+            return result
+
+    return arr

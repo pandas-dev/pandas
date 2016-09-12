@@ -58,7 +58,7 @@ class SharedWithSparse(object):
             for col in self.frame.columns:
                 result = self.frame.get_value(idx, col)
                 expected = self.frame[col][idx]
-                assert_almost_equal(result, expected)
+                tm.assert_almost_equal(result, expected)
 
     def test_join_index(self):
         # left / right
@@ -67,15 +67,15 @@ class SharedWithSparse(object):
         f2 = self.frame.reindex(columns=['C', 'D'])
 
         joined = f.join(f2)
-        self.assertTrue(f.index.equals(joined.index))
+        self.assert_index_equal(f.index, joined.index)
         self.assertEqual(len(joined.columns), 4)
 
         joined = f.join(f2, how='left')
-        self.assertTrue(joined.index.equals(f.index))
+        self.assert_index_equal(joined.index, f.index)
         self.assertEqual(len(joined.columns), 4)
 
         joined = f.join(f2, how='right')
-        self.assertTrue(joined.index.equals(f2.index))
+        self.assert_index_equal(joined.index, f2.index)
         self.assertEqual(len(joined.columns), 4)
 
         # inner
@@ -84,7 +84,7 @@ class SharedWithSparse(object):
         f2 = self.frame.reindex(columns=['C', 'D'])
 
         joined = f.join(f2, how='inner')
-        self.assertTrue(joined.index.equals(f.index.intersection(f2.index)))
+        self.assert_index_equal(joined.index, f.index.intersection(f2.index))
         self.assertEqual(len(joined.columns), 4)
 
         # outer
@@ -148,12 +148,12 @@ class SharedWithSparse(object):
 
     def test_add_prefix_suffix(self):
         with_prefix = self.frame.add_prefix('foo#')
-        expected = ['foo#%s' % c for c in self.frame.columns]
-        self.assert_numpy_array_equal(with_prefix.columns, expected)
+        expected = pd.Index(['foo#%s' % c for c in self.frame.columns])
+        self.assert_index_equal(with_prefix.columns, expected)
 
         with_suffix = self.frame.add_suffix('#foo')
-        expected = ['%s#foo' % c for c in self.frame.columns]
-        self.assert_numpy_array_equal(with_suffix.columns, expected)
+        expected = pd.Index(['%s#foo' % c for c in self.frame.columns])
+        self.assert_index_equal(with_suffix.columns, expected)
 
 
 class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
@@ -207,7 +207,8 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         self.assertIsNone(df2.index.name)
 
     def test_array_interface(self):
-        result = np.sqrt(self.frame)
+        with np.errstate(all='ignore'):
+            result = np.sqrt(self.frame)
         tm.assertIsInstance(result, type(self.frame))
         self.assertIs(result.index, self.frame.index)
         self.assertIs(result.columns, self.frame.columns)
@@ -391,7 +392,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
                        index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])
         res = repr(df)
         exp = '              X\nNaT        a  1\n2013-01-01 b  2'
-        nose.tools.assert_equal(res, exp)
+        self.assertEqual(res, exp)
 
     def test_iterkv_deprecation(self):
         with tm.assert_produces_warning(FutureWarning):

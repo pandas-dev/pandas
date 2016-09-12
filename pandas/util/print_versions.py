@@ -4,6 +4,8 @@ import sys
 import struct
 import subprocess
 import codecs
+import locale
+import importlib
 
 
 def get_sys_info():
@@ -46,6 +48,7 @@ def get_sys_info():
             ("byteorder", "%s" % sys.byteorder),
             ("LC_ALL", "%s" % os.environ.get('LC_ALL', "None")),
             ("LANG", "%s" % os.environ.get('LANG', "None")),
+            ("LOCALE", "%s.%s" % locale.getlocale()),
 
         ])
     except:
@@ -55,7 +58,6 @@ def get_sys_info():
 
 
 def show_versions(as_json=False):
-    import imp
     sys_info = get_sys_info()
 
     deps = [
@@ -99,10 +101,9 @@ def show_versions(as_json=False):
     deps_blob = list()
     for (modname, ver_f) in deps:
         try:
-            try:
-                mod = imp.load_module(modname, *imp.find_module(modname))
-            except (ImportError):
-                import importlib
+            if modname in sys.modules:
+                mod = sys.modules[modname]
+            else:
                 mod = importlib.import_module(modname)
             ver = ver_f(mod)
             deps_blob.append((modname, ver))

@@ -1,5 +1,5 @@
 """
-1. Goto https://code.google.com/apis/console
+1. Goto https://console.developers.google.com/iam-admin/projects
 2. Create new project
 3. Goto APIs and register for OAuth2.0 for installed applications
 4. Download JSON secret file and move into same directory as this file

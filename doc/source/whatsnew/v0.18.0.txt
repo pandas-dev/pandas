@@ -764,7 +764,7 @@ yields a ``Resampler``.
    r
 
 Downsampling
-''''''''''''
+""""""""""""
 
 You can then use this object to perform operations.
 These are downsampling operations (going from a higher frequency to a lower one).
@@ -796,7 +796,7 @@ These accessors can of course, be combined
    r[['A','B']].agg(['mean','sum'])
 
 Upsampling
-''''''''''
+""""""""""
 
 .. currentmodule:: pandas.tseries.resample
 
@@ -842,7 +842,7 @@ New API
    In the new API, you can either downsample OR upsample. The prior implementation would allow you to pass an aggregator function (like ``mean``) even though you were upsampling, providing a bit of confusion.
 
 Previous API will work but with deprecations
-''''''''''''''''''''''''''''''''''''''''''''
+""""""""""""""""""""""""""""""""""""""""""""
 
 .. warning::
 
@@ -904,7 +904,7 @@ Changes to eval
 ^^^^^^^^^^^^^^^
 
 In prior versions, new columns assignments in an ``eval`` expression resulted
-in an inplace change to the ``DataFrame``. (:issue:`9297`)
+in an inplace change to the ``DataFrame``. (:issue:`9297`, :issue:`8664`, :issue:`10486`)
 
 .. ipython:: python
 

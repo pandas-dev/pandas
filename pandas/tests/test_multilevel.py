@@ -10,6 +10,7 @@ import numpy as np
 from pandas.core.index import Index, MultiIndex
 from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
 
+from pandas.types.common import is_float_dtype, is_integer_dtype
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assertRaisesRegexp)
 import pandas.core.common as com
@@ -87,19 +88,19 @@ class TestMultiLevel(tm.TestCase):
                            (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz)),
                            (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz))]
         expected = Index([1.1, 1.2, 1.3] + expected_tuples)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         result = midx_lv2.append(idx1)
         expected = Index(expected_tuples + [1.1, 1.2, 1.3])
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         result = midx_lv2.append(midx_lv2)
-        expected = MultiIndex.from_arrays([idx1.append(idx1), idx2.append(idx2)
-                                           ])
-        self.assertTrue(result.equals(expected))
+        expected = MultiIndex.from_arrays([idx1.append(idx1),
+                                           idx2.append(idx2)])
+        self.assert_index_equal(result, expected)
 
         result = midx_lv2.append(midx_lv3)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
         result = midx_lv3.append(midx_lv2)
         expected = Index._simple_new(
@@ -107,7 +108,7 @@ class TestMultiLevel(tm.TestCase):
                       (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz), 'B'),
                       (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz), 'C')] +
                      expected_tuples), None)
-        self.assertTrue(result.equals(expected))
+        self.assert_index_equal(result, expected)
 
     def test_dataframe_constructor(self):
         multi = DataFrame(np.random.randn(4, 4),
@@ -787,8 +788,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = DataFrame(np.random.randn(8, 3), columns=['A', 'B', 'C'],
                        index=index)
         deleveled = df.reset_index()
-        self.assertTrue(com.is_integer_dtype(deleveled['prm1']))
-        self.assertTrue(com.is_float_dtype(deleveled['prm2']))
+        self.assertTrue(is_integer_dtype(deleveled['prm1']))
+        self.assertTrue(is_float_dtype(deleveled['prm2']))
 
     def test_reset_index_with_drop(self):
         deleveled = self.ymd.reset_index(drop=True)
@@ -966,9 +967,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             assert_series_equal(left, right)
             self.assertFalse(left.index.is_unique)
             li, ri = left.index, right.index
-            for i in range(ri.nlevels):
-                tm.assert_numpy_array_equal(li.levels[i], ri.levels[i])
-                tm.assert_numpy_array_equal(li.labels[i], ri.labels[i])
+            tm.assert_index_equal(li, ri)
 
         df = DataFrame(np.arange(12).reshape(4, 3),
                        index=list('abab'),
@@ -1320,15 +1319,23 @@ Thur,Lunch,Yes,51.51,17"""
                            )  # TODO what should join do with names ?
 
     def test_swaplevel(self):
-        swapped = self.frame['A'].swaplevel(0, 1)
-        swapped2 = self.frame['A'].swaplevel('first', 'second')
+        swapped = self.frame['A'].swaplevel()
+        swapped2 = self.frame['A'].swaplevel(0)
+        swapped3 = self.frame['A'].swaplevel(0, 1)
+        swapped4 = self.frame['A'].swaplevel('first', 'second')
         self.assertFalse(swapped.index.equals(self.frame.index))
         assert_series_equal(swapped, swapped2)
+        assert_series_equal(swapped, swapped3)
+        assert_series_equal(swapped, swapped4)
 
-        back = swapped.swaplevel(0, 1)
-        back2 = swapped.swaplevel('second', 'first')
+        back = swapped.swaplevel()
+        back2 = swapped.swaplevel(0)
+        back3 = swapped.swaplevel(0, 1)
+        back4 = swapped.swaplevel('second', 'first')
         self.assertTrue(back.index.equals(self.frame.index))
         assert_series_equal(back, back2)
+        assert_series_equal(back, back3)
+        assert_series_equal(back, back4)
 
         ft = self.frame.T
         swapped = ft.swaplevel('first', 'second', axis=1)
@@ -1337,11 +1344,13 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_swaplevel_panel(self):
         panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
-
-        result = panel.swaplevel(0, 1, axis='major')
         expected = panel.copy()
         expected.major_axis = expected.major_axis.swaplevel(0, 1)
-        tm.assert_panel_equal(result, expected)
+
+        for result in (panel.swaplevel(axis='major'),
+                       panel.swaplevel(0, axis='major'),
+                       panel.swaplevel(0, 1, axis='major')):
+            tm.assert_panel_equal(result, expected)
 
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(['month', 'day', 'year'])
@@ -1532,8 +1541,8 @@ Thur,Lunch,Yes,51.51,17"""
             # for good measure, groupby detail
             level_index = frame._get_axis(axis).levels[level]
 
-            self.assertTrue(leftside._get_axis(axis).equals(level_index))
-            self.assertTrue(rightside._get_axis(axis).equals(level_index))
+            self.assert_index_equal(leftside._get_axis(axis), level_index)
+            self.assert_index_equal(rightside._get_axis(axis), level_index)
 
             assert_frame_equal(leftside, rightside)
 
@@ -2201,12 +2210,11 @@ Thur,Lunch,Yes,51.51,17"""
                              tz='US/Eastern')
         idx = MultiIndex.from_arrays([idx1, idx2])
 
-        expected1 = pd.DatetimeIndex(
-            ['2013-04-01 9:00', '2013-04-02 9:00', '2013-04-03 9:00'
-             ], tz='Asia/Tokyo')
+        expected1 = pd.DatetimeIndex(['2013-04-01 9:00', '2013-04-02 9:00',
+                                      '2013-04-03 9:00'], tz='Asia/Tokyo')
 
-        self.assertTrue(idx.levels[0].equals(expected1))
-        self.assertTrue(idx.levels[1].equals(idx2))
+        self.assert_index_equal(idx.levels[0], expected1)
+        self.assert_index_equal(idx.levels[1], idx2)
 
         # from datetime combos
         # GH 7888
@@ -2246,18 +2254,20 @@ Thur,Lunch,Yes,51.51,17"""
         df.index = pd.to_datetime(df.pop('datetime'), utc=True)
         df.index = df.index.tz_localize('UTC').tz_convert('US/Pacific')
 
-        expected = pd.DatetimeIndex(
-            ['2011-07-19 07:00:00', '2011-07-19 08:00:00',
-             '2011-07-19 09:00:00'])
+        expected = pd.DatetimeIndex(['2011-07-19 07:00:00',
+                                     '2011-07-19 08:00:00',
+                                     '2011-07-19 09:00:00'], name='datetime')
         expected = expected.tz_localize('UTC').tz_convert('US/Pacific')
 
         df = df.set_index('label', append=True)
-        self.assertTrue(df.index.levels[0].equals(expected))
-        self.assertTrue(df.index.levels[1].equals(pd.Index(['a', 'b'])))
+        self.assert_index_equal(df.index.levels[0], expected)
+        self.assert_index_equal(df.index.levels[1],
+                                pd.Index(['a', 'b'], name='label'))
 
         df = df.swaplevel(0, 1)
-        self.assertTrue(df.index.levels[0].equals(pd.Index(['a', 'b'])))
-        self.assertTrue(df.index.levels[1].equals(expected))
+        self.assert_index_equal(df.index.levels[0],
+                                pd.Index(['a', 'b'], name='label'))
+        self.assert_index_equal(df.index.levels[1], expected)
 
         df = DataFrame(np.random.random(6))
         idx1 = pd.DatetimeIndex(['2011-07-19 07:00:00', '2011-07-19 08:00:00',
@@ -2277,17 +2287,17 @@ Thur,Lunch,Yes,51.51,17"""
         expected1 = pd.DatetimeIndex(['2011-07-19 07:00:00',
                                       '2011-07-19 08:00:00',
                                       '2011-07-19 09:00:00'], tz='US/Eastern')
-        expected2 = pd.DatetimeIndex(
-            ['2012-04-01 09:00', '2012-04-02 09:00'], tz='US/Eastern')
+        expected2 = pd.DatetimeIndex(['2012-04-01 09:00', '2012-04-02 09:00'],
+                                     tz='US/Eastern')
 
-        self.assertTrue(df.index.levels[0].equals(expected1))
-        self.assertTrue(df.index.levels[1].equals(expected2))
-        self.assertTrue(df.index.levels[2].equals(idx3))
+        self.assert_index_equal(df.index.levels[0], expected1)
+        self.assert_index_equal(df.index.levels[1], expected2)
+        self.assert_index_equal(df.index.levels[2], idx3)
 
         # GH 7092
-        self.assertTrue(df.index.get_level_values(0).equals(idx1))
-        self.assertTrue(df.index.get_level_values(1).equals(idx2))
-        self.assertTrue(df.index.get_level_values(2).equals(idx3))
+        self.assert_index_equal(df.index.get_level_values(0), idx1)
+        self.assert_index_equal(df.index.get_level_values(1), idx2)
+        self.assert_index_equal(df.index.get_level_values(2), idx3)
 
     def test_reset_index_datetime(self):
         # GH 3950
@@ -2356,7 +2366,7 @@ Thur,Lunch,Yes,51.51,17"""
                                      'a': np.arange(6, dtype='int64')},
                                     columns=['level_0', 'level_1', 'a'])
             expected['level_1'] = expected['level_1'].apply(
-                lambda d: pd.Timestamp(d, offset='D', tz=tz))
+                lambda d: pd.Timestamp(d, freq='D', tz=tz))
             assert_frame_equal(df.reset_index(), expected)
 
     def test_reset_index_period(self):
@@ -2394,13 +2404,13 @@ Thur,Lunch,Yes,51.51,17"""
         expected1 = pd.period_range('2011-01-01', periods=3, freq='M')
         expected2 = pd.period_range('2013-01-01 09:00', periods=2, freq='H')
 
-        self.assertTrue(df.index.levels[0].equals(expected1))
-        self.assertTrue(df.index.levels[1].equals(expected2))
-        self.assertTrue(df.index.levels[2].equals(idx3))
+        self.assert_index_equal(df.index.levels[0], expected1)
+        self.assert_index_equal(df.index.levels[1], expected2)
+        self.assert_index_equal(df.index.levels[2], idx3)
 
-        self.assertTrue(df.index.get_level_values(0).equals(idx1))
-        self.assertTrue(df.index.get_level_values(1).equals(idx2))
-        self.assertTrue(df.index.get_level_values(2).equals(idx3))
+        self.assert_index_equal(df.index.get_level_values(0), idx1)
+        self.assert_index_equal(df.index.get_level_values(1), idx2)
+        self.assert_index_equal(df.index.get_level_values(2), idx3)
 
     def test_repeat(self):
         # GH 9361

@@ -21,7 +21,7 @@ and `Difficulty Novice
 <https://github.com/pydata/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
 where you could start out.
 
-Or maybe through using *pandas* you have an idea of you own or are looking for something
+Or maybe through using *pandas* you have an idea of your own or are looking for something
 in the documentation and thinking 'this can be improved'...you can do something
 about it!
 
@@ -188,7 +188,7 @@ To work in this environment, Windows users should ``activate`` it as follows::
 
       activate pandas_dev
 
-Mac OSX and Linux users should use::
+Mac OSX / Linux users should use::
 
       source activate pandas_dev
 
@@ -198,9 +198,13 @@ To view your environments::
 
       conda info -e
 
-To return to you home root environment::
+To return to your home root environment in Windows::
 
       deactivate
+
+To return to your home root environment in OSX / Linux::
+
+      source deactivate
 
 See the full conda docs `here <http://conda.pydata.org/docs>`__.
 
@@ -347,19 +351,24 @@ How to build the *pandas* documentation
 Requirements
 ~~~~~~~~~~~~
 
-To build the *pandas* docs there are some extra requirements: you will need to
+First, you need to have a development environment to be able to build pandas
+(see the docs on :ref:`creating a development environment above <contributing.dev_env>`).
+Further, to build the docs, there are some extra requirements: you will need to
 have ``sphinx`` and ``ipython`` installed. `numpydoc
 <https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
 follow the Numpy Docstring Standard (see above), but you don't need to install
 this because a local copy of numpydoc is included in the *pandas* source
 code.
+`nbconvert <https://nbconvert.readthedocs.io/en/latest/>`_ and
+`nbformat <http://nbformat.readthedocs.io/en/latest/>`_ are required to build
+the Jupyter notebooks included in the documentation.
 
-It is easiest to :ref:`create a development environment <contributing.dev_env>`, then install::
+If you have a conda environment named ``pandas_dev``, you can install the extra
+requirements with::
 
-      conda install -n pandas_dev sphinx ipython
+      conda install -n pandas_dev sphinx ipython nbconvert nbformat
 
-Furthermore, it is recommended to have all `optional dependencies
-<http://pandas.pydata.org/pandas-docs/dev/install.html#optional-dependencies>`_
+Furthermore, it is recommended to have all :ref:`optional dependencies <install.optional_dependencies>`.
 installed. This is not strictly necessary, but be aware that you will see some error
 messages when building the docs. This happens because all the code in the documentation
 is executed during the doc build, and so code examples using optional dependencies
@@ -368,8 +377,7 @@ version of all dependencies.
 
 .. warning::
 
-   You need to have ``sphinx`` version 1.2.2 or newer, but older than version 1.3.
-   Versions before 1.1.3 should also work.
+   You need to have ``sphinx`` version >= 1.3.2.
 
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -547,8 +555,8 @@ with an imported pandas to run tests similarly.
 Running the performance test suite
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Performance matters and it is worth considering whether your code has introduced
-performance regressions.  *pandas* is in the process of migrating to the
-`asv library <https://github.com/spacetelescope/asv>`__
+performance regressions.  *pandas* is in the process of migrating to
+`asv benchmarks <https://github.com/spacetelescope/asv>`__
 to enable easy monitoring of the performance of critical *pandas* operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory.  asv
 supports both python2 and python3.
@@ -559,53 +567,102 @@ supports both python2 and python3.
     so many stylistic issues are likely a result of automated transformation of the
     code.
 
-To use asv you will need either ``conda`` or ``virtualenv``. For more details
-please check the `asv installation webpage <http://asv.readthedocs.org/en/latest/installing.html>`_.
+To use all features of asv, you will need either ``conda`` or
+``virtualenv``. For more details please check the `asv installation
+webpage <http://asv.readthedocs.org/en/latest/installing.html>`_.
 
 To install asv::
 
     pip install git+https://github.com/spacetelescope/asv
 
-If you need to run a benchmark, change your directory to ``/asv_bench/`` and run
-the following if you have been developing on ``master``::
+If you need to run a benchmark, change your directory to ``asv_bench/`` and run::
 
-    asv continuous master
+    asv continuous -f 1.1 upstream/master HEAD
 
-If you are working on another branch, either of the following can be used::
+You can replace ``HEAD`` with the name of the branch you are working on,
+and report benchmarks that changed by more than 10%.
+The command uses ``conda`` by default for creating the benchmark
+environments. If you want to use virtualenv instead, write::
 
-    asv continuous master HEAD
-    asv continuous master your_branch
+    asv continuous -f 1.1 -E virtualenv upstream/master HEAD
 
-This will check out the master revision and run the suite on both master and
-your commit.  Running the full test suite can take up to one hour and use up
-to 3GB of RAM.  Usually it is sufficient to paste only a subset of the results into
-the pull request to show that the committed changes do not cause unexpected
-performance regressions.
+The ``-E virtualenv`` option should be added to all ``asv`` commands
+that run benchmarks. The default value is defined in ``asv.conf.json``.
 
-You can run specific benchmarks using the ``-b`` flag, which takes a regular expression.
-For example, this will only run tests from a ``pandas/asv_bench/benchmarks/groupby.py``
-file::
+Running the full test suite can take up to one hour and use up to 3GB of RAM.
+Usually it is sufficient to paste only a subset of the results into the pull
+request to show that the committed changes do not cause unexpected performance
+regressions.  You can run specific benchmarks using the ``-b`` flag, which
+takes a regular expression.  For example, this will only run tests from a
+``pandas/asv_bench/benchmarks/groupby.py`` file::
 
-    asv continuous master -b groupby
+    asv continuous -f 1.1 upstream/master HEAD -b ^groupby
 
 If you want to only run a specific group of tests from a file, you can do it
 using ``.`` as a separator. For example::
 
-    asv continuous master -b groupby.groupby_agg_builtins1
+    asv continuous -f 1.1 upstream/master HEAD -b groupby.groupby_agg_builtins
 
-will only run a ``groupby_agg_builtins1`` test defined in a ``groupby`` file.
+will only run the ``groupby_agg_builtins`` benchmark defined in ``groupby.py``.
 
-It can also be useful to run tests in your current environment. You can simply do it by::
+You can also run the benchmark suite using the version of ``pandas``
+already installed in your current Python environment. This can be
+useful if you do not have virtualenv or conda, or are using the
+``setup.py develop`` approach discussed above; for the in-place build
+you need to set ``PYTHONPATH``, e.g.
+``PYTHONPATH="$PWD/.." asv [remaining arguments]``.
+You can run benchmarks using an existing Python
+environment by::
 
-    asv dev
+    asv run -e -E existing
 
-This command is equivalent to::
+or, to use a specific Python interpreter,::
 
-    asv run --quick --show-stderr --python=same
+    asv run -e -E existing:python3.5
 
-This will launch every test only once, display stderr from the benchmarks, and use your local ``python`` that comes from your ``$PATH``.
+This will display stderr from the benchmarks, and use your local
+``python`` that comes from your ``$PATH``.
 
-Information on how to write a benchmark can be found in the `asv documentation <http://asv.readthedocs.org/en/latest/writing_benchmarks.html>`_.
+Information on how to write a benchmark and how to use asv can be found in the
+`asv documentation <http://asv.readthedocs.org/en/latest/writing_benchmarks.html>`_.
+
+.. _contributing.gbq_integration_tests:
+
+Running Google BigQuery Integration Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You will need to create a Google BigQuery private key in JSON format in
+order to run Google BigQuery integration tests on your local machine and
+on Travis-CI. The first step is to create a `service account
+<https://console.developers.google.com/iam-admin/serviceaccounts/>`__.
+
+Integration tests for ``pandas.io.gbq`` are skipped in pull requests because
+the credentials that are required for running Google BigQuery integration
+tests are `encrypted <https://docs.travis-ci.com/user/encrypting-files/>`__
+on Travis-CI and are only accessible from the pydata/pandas repository. The
+credentials won't be available on forks of pandas. Here are the steps to run
+gbq integration tests on a forked repository:
+
+#. First, complete all the steps in the `Encrypting Files Prerequisites
+   <https://docs.travis-ci.com/user/encrypting-files/>`__ section.
+#. Sign into `Travis <https://travis-ci.org/>`__ using your GitHub account.
+#. Enable your forked repository of pandas for testing in `Travis
+   <https://travis-ci.org/profile/>`__.
+#. Run the following command from terminal where the current working directory
+   is the ``ci`` folder::
+
+    ./travis_encrypt_gbq.sh <gbq-json-credentials-file> <gbq-project-id>
+
+#. Create a new branch from the branch used in your pull request. Commit the
+   encrypted file called ``travis_gbq.json.enc`` as well as the file
+   ``travis_gbq_config.txt``, in an otherwise empty commit. DO NOT commit the
+   ``*.json`` file which contains your unencrypted private key.
+#. Your branch should be tested automatically once it is pushed. You can check
+   the status by visiting your Travis branches page which exists at the
+   following location: https://travis-ci.org/your-user-name/pandas/branches .
+   Click on a build job for your branch. Expand the following line in the
+   build log: ``ci/print_skipped.py /tmp/nosetests.xml`` . Search for the
+   term ``test_gbq`` and confirm that gbq integration tests are not skipped.
 
 Running the vbench performance test suite (phasing out)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -794,6 +851,11 @@ updated.  Pushing them to GitHub again is done by::
 
 This will automatically update your pull request with the latest code and restart the
 Travis-CI tests.
+
+If your pull request is related to the ``pandas.io.gbq`` module, please see
+the section on :ref:`Running Google BigQuery Integration Tests
+<contributing.gbq_integration_tests>` to configure a Google BigQuery service
+account for your pull request on Travis-CI.
 
 Delete your merged branch (optional)
 ------------------------------------

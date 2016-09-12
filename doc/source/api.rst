@@ -151,6 +151,8 @@ Data manipulations
    cut
    qcut
    merge
+   merge_ordered
+   merge_asof
    concat
    get_dummies
    factorize
@@ -354,6 +356,9 @@ Computations / Descriptive Stats
    Series.unique
    Series.nunique
    Series.is_unique
+   Series.is_monotonic
+   Series.is_monotonic_increasing
+   Series.is_monotonic_decreasing
    Series.value_counts
 
 Reindexing / Selection / Label manipulation
@@ -375,6 +380,7 @@ Reindexing / Selection / Label manipulation
    Series.reindex
    Series.reindex_like
    Series.rename
+   Series.rename_axis
    Series.reset_index
    Series.sample
    Series.select
@@ -457,6 +463,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.weekofyear
    Series.dt.dayofweek
    Series.dt.weekday
+   Series.dt.weekday_name
    Series.dt.dayofyear
    Series.dt.quarter
    Series.dt.is_month_start
@@ -465,6 +472,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.is_quarter_end
    Series.dt.is_year_start
    Series.dt.is_year_end
+   Series.dt.is_leap_year
    Series.dt.daysinmonth
    Series.dt.days_in_month
    Series.dt.tz
@@ -883,6 +891,7 @@ Reindexing / Selection / Label manipulation
    DataFrame.reindex_axis
    DataFrame.reindex_like
    DataFrame.rename
+   DataFrame.rename_axis
    DataFrame.reset_index
    DataFrame.sample
    DataFrame.select
@@ -939,6 +948,7 @@ Time series-related
    :toctree: generated/
 
    DataFrame.asfreq
+   DataFrame.asof
    DataFrame.shift
    DataFrame.first_valid_index
    DataFrame.last_valid_index
@@ -1332,12 +1342,15 @@ Modifying and Computations
    Index.max
    Index.reindex
    Index.repeat
+   Index.where
    Index.take
    Index.putmask
    Index.set_names
    Index.unique
    Index.nunique
    Index.value_counts
+   Index.fillna
+   Index.dropna
 
 Conversion
 ~~~~~~~~~~
@@ -1476,6 +1489,7 @@ Time/Date Components
    DatetimeIndex.week
    DatetimeIndex.dayofweek
    DatetimeIndex.weekday
+   DatetimeIndex.weekday_name
    DatetimeIndex.quarter
    DatetimeIndex.tz
    DatetimeIndex.freq
@@ -1486,6 +1500,7 @@ Time/Date Components
    DatetimeIndex.is_quarter_end
    DatetimeIndex.is_year_start
    DatetimeIndex.is_year_end
+   DatetimeIndex.is_leap_year
    DatetimeIndex.inferred_freq
 
 Selecting
@@ -1779,6 +1794,7 @@ Upsampling
    Resampler.pad
    Resampler.fillna
    Resampler.asfreq
+   Resampler.interpolate
 
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -16,10 +16,10 @@ for dependency in hard_dependencies:
 
 if missing_dependencies:
     raise ImportError("Missing required dependencies {0}".format(missing_dependencies))
-
+del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
-from pandas.compat.numpy_compat import *
+from pandas.compat.numpy import *
 
 try:
     from pandas import hashtable, tslib, lib
@@ -27,8 +27,8 @@ except ImportError as e:  # pragma: no cover
     module = str(e).lstrip('cannot import name ')  # hack but overkill to use re
     raise ImportError("C extension: {0} not built. If you want to import "
                       "pandas from the source directory, you may need to run "
-                      "'python setup.py build_ext --inplace' to build the C "
-                      "extensions first.".format(module))
+                      "'python setup.py build_ext --inplace --force' to build "
+                      "the C extensions first.".format(module))
 
 from datetime import datetime
 from pandas.info import __doc__
@@ -43,7 +43,8 @@ from pandas.tseries.api import *
 from pandas.io.api import *
 from pandas.computation.api import *
 
-from pandas.tools.merge import merge, concat, ordered_merge
+from pandas.tools.merge import (merge, concat, ordered_merge,
+                                merge_ordered, merge_asof)
 from pandas.tools.pivot import pivot_table, crosstab
 from pandas.tools.plotting import scatter_matrix, plot_params
 from pandas.tools.tile import cut, qcut

@@ -1,10 +1,11 @@
+import warnings
 import numpy as np
 from pandas.core.base import PandasObject
 from pandas.formats.printing import pprint_thing
 
+from pandas.types.common import is_scalar
 from pandas.sparse.array import SparseArray
 import pandas._sparse as splib
-import pandas.lib as lib
 
 
 class SparseList(PandasObject):
@@ -20,6 +21,11 @@ class SparseList(PandasObject):
     """
 
     def __init__(self, data=None, fill_value=np.nan):
+
+        # see gh-13784
+        warnings.warn("SparseList is deprecated and will be removed "
+                      "in a future version", FutureWarning, stacklevel=2)
+
         self.fill_value = fill_value
         self._chunks = []
 
@@ -121,7 +127,7 @@ class SparseList(PandasObject):
         ----------
         value: scalar or array-like
         """
-        if lib.isscalar(value):
+        if is_scalar(value):
             value = [value]
 
         sparr = SparseArray(value, fill_value=self.fill_value)

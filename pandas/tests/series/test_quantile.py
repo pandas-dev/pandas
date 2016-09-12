@@ -7,7 +7,7 @@ import pandas as pd
 
 from pandas import (Index, Series, _np_version_under1p9)
 from pandas.tseries.index import Timestamp
-import pandas.core.common as com
+from pandas.types.common import is_integer
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -96,11 +96,11 @@ class TestSeriesQuantile(TestData, tm.TestCase):
         # interpolation = linear (default case)
         q = pd.Series([1, 3, 4]).quantile(0.5, interpolation='lower')
         self.assertEqual(q, percentile(np.array([1, 3, 4]), 50))
-        self.assertTrue(com.is_integer(q))
+        self.assertTrue(is_integer(q))
 
         q = pd.Series([1, 3, 4]).quantile(0.5, interpolation='higher')
         self.assertEqual(q, percentile(np.array([1, 3, 4]), 50))
-        self.assertTrue(com.is_integer(q))
+        self.assertTrue(is_integer(q))
 
     def test_quantile_interpolation_np_lt_1p9(self):
         # GH #10174
@@ -126,6 +126,14 @@ class TestSeriesQuantile(TestData, tm.TestCase):
                                                        interpolation='higher')
 
     def test_quantile_nan(self):
+
+        # GH 13098
+        s = pd.Series([1, 2, 3, 4, np.nan])
+        result = s.quantile(0.5)
+        expected = 2.5
+        self.assertEqual(result, expected)
+
+        # all nan/empty
         cases = [Series([]), Series([np.nan, np.nan])]
 
         for s in cases:

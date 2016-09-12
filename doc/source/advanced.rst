@@ -296,10 +296,6 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
       df.loc[(slice('A1','A3'),.....)]
 
-.. warning::
-
-   You will need to make sure that the selection axes are fully lexsorted!
-
 .. ipython:: python
 
    def mklbl(prefix,n):
@@ -477,31 +473,24 @@ allowing you to permute the hierarchical index levels in one step:
 
    df[:5].reorder_levels([1,0], axis=0)
 
-The need for sortedness with :class:`~pandas.MultiIndex`
---------------------------------------------------------
+Sorting a :class:`~pandas.MultiIndex`
+-------------------------------------
 
-**Caveat emptor**: the present implementation of ``MultiIndex`` requires that
-the labels be sorted for some of the slicing / indexing routines to work
-correctly. You can think about breaking the axis into unique groups, where at
-the hierarchical level of interest, each distinct group shares a label, but no
-two have the same label. However, the ``MultiIndex`` does not enforce this:
-**you are responsible for ensuring that things are properly sorted**. There is
-an important new method ``sort_index`` to sort an axis within a ``MultiIndex``
-so that its labels are grouped and sorted by the original ordering of the
-associated factor at that level. Note that this does not necessarily mean the
-labels will be sorted lexicographically!
+For MultiIndex-ed objects to be indexed & sliced effectively, they need
+to be sorted. As with any index, you can use ``sort_index``.
 
 .. ipython:: python
 
    import random; random.shuffle(tuples)
    s = pd.Series(np.random.randn(8), index=pd.MultiIndex.from_tuples(tuples))
    s
+   s.sort_index()
    s.sort_index(level=0)
    s.sort_index(level=1)
 
 .. _advanced.sortlevel_byname:
 
-Note, you may also pass a level name to ``sort_index`` if the MultiIndex levels
+You may also pass a level name to ``sort_index`` if the MultiIndex levels
 are named.
 
 .. ipython:: python
@@ -510,14 +499,6 @@ are named.
    s.sort_index(level='L1')
    s.sort_index(level='L2')
 
-Some indexing will work even if the data are not sorted, but will be rather
-inefficient and will also return a copy of the data rather than a view:
-
-.. ipython:: python
-
-   s['qux']
-   s.sort_index(level=1)['qux']
-
 On higher dimensional objects, you can sort any of the other axes by level if
 they have a MultiIndex:
 
@@ -525,31 +506,54 @@ they have a MultiIndex:
 
    df.T.sort_index(level=1, axis=1)
 
-The ``MultiIndex`` object has code to **explicitly check the sort depth**. Thus,
-if you try to index at a depth at which the index is not sorted, it will raise
-an exception. Here is a concrete example to illustrate this:
+Indexing will work even if the data are not sorted, but will be rather
+inefficient (and show a ``PerformanceWarning``). It will also
+return a copy of the data rather than a view:
 
 .. ipython:: python
 
-   tuples = [('a', 'a'), ('a', 'b'), ('b', 'a'), ('b', 'b')]
-   idx = pd.MultiIndex.from_tuples(tuples)
-   idx.lexsort_depth
+   dfm = pd.DataFrame({'jim': [0, 0, 1, 1],
+                       'joe': ['x', 'x', 'z', 'y'],
+                       'jolie': np.random.rand(4)})
+   dfm = dfm.set_index(['jim', 'joe'])
+   dfm
 
-   reordered = idx[[1, 0, 3, 2]]
-   reordered.lexsort_depth
+.. code-block:: ipython
 
-   s = pd.Series(np.random.randn(4), index=reordered)
-   s.ix['a':'a']
+   In [4]: dfm.loc[(1, 'z')]
+   PerformanceWarning: indexing past lexsort depth may impact performance.
 
-However:
+   Out[4]:
+              jolie
+   jim joe
+   1   z    0.64094
 
-::
+Furthermore if you try to index something that is not fully lexsorted, this can raise:
 
-   >>> s.ix[('a', 'b'):('b', 'a')]
-   Traceback (most recent call last)
-        ...
-   KeyError: Key length (3) was greater than MultiIndex lexsort depth (2)
+.. code-block:: ipython
 
+    In [5]: dfm.loc[(0,'y'):(1, 'z')]
+    KeyError: 'Key length (2) was greater than MultiIndex lexsort depth (1)'
+
+The ``is_lexsorted()`` method on an ``Index`` show if the index is sorted, and the ``lexsort_depth`` property returns the sort depth:
+
+.. ipython:: python
+
+   dfm.index.is_lexsorted()
+   dfm.index.lexsort_depth
+
+.. ipython:: python
+
+   dfm = dfm.sort_index()
+   dfm
+   dfm.index.is_lexsorted()
+   dfm.index.lexsort_depth
+
+And now selection works as expected.
+
+.. ipython:: python
+
+   dfm.loc[(0,'y'):(1, 'z')]
 
 Take Methods
 ------------
@@ -725,7 +729,7 @@ Int64Index and RangeIndex
 Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
 
 ``RangeIndex`` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
-``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analagous to python :ref:`range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`.
+``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analagous to python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
 .. _indexing.float64index:
 

@@ -483,6 +483,17 @@ SQL style merges. See the :ref:`Database style joining <merging.join>`
    right
    pd.merge(left, right, on='key')
 
+Another example that can be given is:
+
+.. ipython:: python
+
+   left = pd.DataFrame({'key': ['foo', 'bar'], 'lval': [1, 2]})
+   right = pd.DataFrame({'key': ['foo', 'bar'], 'rval': [4, 5]})
+   left
+   right
+   pd.merge(left, right, on='key')
+
+
 Append
 ~~~~~~
 

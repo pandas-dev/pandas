@@ -1,0 +1,81 @@
+.. _whatsnew_0200:
+
+v0.20.0 (????, 2016)
+--------------------
+
+This is a major release from 0.19 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+
+Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
+
+.. contents:: What's new in v0.19.0
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0200.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+
+
+
+
+.. _whatsnew_0200.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+
+
+
+.. _whatsnew_0200.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0200.api:
+
+
+
+
+
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0200.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+
+
+
+
+.. _whatsnew_0200.prior_deprecations:
+
+Removal of prior version deprecations/changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+
+
+.. _whatsnew_0200.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
+.. _whatsnew_0200.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~

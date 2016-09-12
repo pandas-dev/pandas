@@ -31,7 +31,8 @@ class VAR(StringMixin):
         import warnings
         warnings.warn("The pandas.stats.var module is deprecated and will be "
                       "removed in a future version. We refer to external packages "
-                      "like statsmodels, see some examples here: http://statsmodels.sourceforge.net/stable/vector_ar.html#var",
+                      "like statsmodels, see some examples here: "
+                      "http://www.statsmodels.org/stable/vector_ar.html#var",
                       FutureWarning, stacklevel=4)
 
         try:

@@ -50,7 +50,9 @@ class TestFamaMacBeth(BaseTest):
 
             with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
                 reference = fama_macbeth(y=y2, x=x2, **kwds)
-            assert_almost_equal(reference._stats, result._stats[:, i])
+            # reference._stats is tuple
+            assert_almost_equal(reference._stats, result._stats[:, i],
+                                check_dtype=False)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             static = fama_macbeth(y=y2, x=x2, **kwds)

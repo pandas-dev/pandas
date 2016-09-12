@@ -43,6 +43,8 @@ class TestAssertAlmostEqual(tm.TestCase):
 
     def test_assert_almost_equal_numbers_with_zeros(self):
         self._assert_almost_equal_both(0, 0)
+        self._assert_almost_equal_both(0, 0.0)
+        self._assert_almost_equal_both(0, np.float64(0))
         self._assert_almost_equal_both(0.000001, 0)
 
         self._assert_not_almost_equal_both(0.001, 0)
@@ -55,17 +57,18 @@ class TestAssertAlmostEqual(tm.TestCase):
 
     def test_assert_almost_equal_edge_case_ndarrays(self):
         self._assert_almost_equal_both(np.array([], dtype='M8[ns]'),
-                                       np.array([], dtype='float64'))
+                                       np.array([], dtype='float64'),
+                                       check_dtype=False)
         self._assert_almost_equal_both(np.array([], dtype=str),
-                                       np.array([], dtype='int64'))
+                                       np.array([], dtype='int64'),
+                                       check_dtype=False)
 
     def test_assert_almost_equal_dicts(self):
         self._assert_almost_equal_both({'a': 1, 'b': 2}, {'a': 1, 'b': 2})
 
         self._assert_not_almost_equal_both({'a': 1, 'b': 2}, {'a': 1, 'b': 3})
-        self._assert_not_almost_equal_both(
-            {'a': 1, 'b': 2}, {'a': 1, 'b': 2, 'c': 3}
-        )
+        self._assert_not_almost_equal_both({'a': 1, 'b': 2},
+                                           {'a': 1, 'b': 2, 'c': 3})
         self._assert_not_almost_equal_both({'a': 1}, 1)
         self._assert_not_almost_equal_both({'a': 1}, 'abc')
         self._assert_not_almost_equal_both({'a': 1}, [1, ])
@@ -80,9 +83,11 @@ class TestAssertAlmostEqual(tm.TestCase):
                 if item == 'a':
                     return 1
 
-        self._assert_almost_equal_both({'a': 1}, DictLikeObj())
+        self._assert_almost_equal_both({'a': 1}, DictLikeObj(),
+                                       check_dtype=False)
 
-        self._assert_not_almost_equal_both({'a': 2}, DictLikeObj())
+        self._assert_not_almost_equal_both({'a': 2}, DictLikeObj(),
+                                           check_dtype=False)
 
     def test_assert_almost_equal_strings(self):
         self._assert_almost_equal_both('abc', 'abc')
@@ -94,7 +99,13 @@ class TestAssertAlmostEqual(tm.TestCase):
 
     def test_assert_almost_equal_iterables(self):
         self._assert_almost_equal_both([1, 2, 3], [1, 2, 3])
-        self._assert_almost_equal_both(np.array([1, 2, 3]), [1, 2, 3])
+        self._assert_almost_equal_both(np.array([1, 2, 3]),
+                                       np.array([1, 2, 3]))
+
+        # class / dtype are different
+        self._assert_not_almost_equal_both(np.array([1, 2, 3]), [1, 2, 3])
+        self._assert_not_almost_equal_both(np.array([1, 2, 3]),
+                                           np.array([1., 2., 3.]))
 
         # Can't compare generators
         self._assert_not_almost_equal_both(iter([1, 2, 3]), [1, 2, 3])
@@ -105,16 +116,21 @@ class TestAssertAlmostEqual(tm.TestCase):
 
     def test_assert_almost_equal_null(self):
         self._assert_almost_equal_both(None, None)
-        self._assert_almost_equal_both(None, np.NaN)
 
+        self._assert_not_almost_equal_both(None, np.NaN)
         self._assert_not_almost_equal_both(None, 0)
         self._assert_not_almost_equal_both(np.NaN, 0)
 
     def test_assert_almost_equal_inf(self):
         self._assert_almost_equal_both(np.inf, np.inf)
         self._assert_almost_equal_both(np.inf, float("inf"))
-
         self._assert_not_almost_equal_both(np.inf, 0)
+        self._assert_almost_equal_both(np.array([np.inf, np.nan, -np.inf]),
+                                       np.array([np.inf, np.nan, -np.inf]))
+        self._assert_almost_equal_both(np.array([np.inf, None, -np.inf],
+                                                dtype=np.object_),
+                                       np.array([np.inf, np.nan, -np.inf],
+                                                dtype=np.object_))
 
     def test_assert_almost_equal_pandas(self):
         self.assert_almost_equal(pd.Index([1., 1.1]),
@@ -123,6 +139,11 @@ class TestAssertAlmostEqual(tm.TestCase):
                                  pd.Series([1., 1.100001]))
         self.assert_almost_equal(pd.DataFrame({'a': [1., 1.1]}),
                                  pd.DataFrame({'a': [1., 1.100001]}))
+
+    def test_assert_almost_equal_object(self):
+        a = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-01')]
+        b = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-01')]
+        self._assert_almost_equal_both(a, b)
 
 
 class TestUtilTesting(tm.TestCase):
@@ -165,7 +186,7 @@ numpy array shapes are different
             assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]))
 
         # scalar comparison
-        expected = """: 1 != 2"""
+        expected = """Expected type """
         with assertRaisesRegexp(AssertionError, expected):
             assert_numpy_array_equal(1, 2)
         expected = """expected 2\\.00000 but got 1\\.00000, with decimal 5"""
@@ -173,23 +194,24 @@ numpy array shapes are different
             assert_almost_equal(1, 2)
 
         # array / scalar array comparison
-        expected = """(numpy array|Iterable) are different
+        expected = """numpy array are different
 
-First object is iterable, second isn't
-\\[left\\]:  \\[1\\]
-\\[right\\]: 1"""
+numpy array classes are different
+\\[left\\]:  ndarray
+\\[right\\]: int"""
 
         with assertRaisesRegexp(AssertionError, expected):
+            # numpy_array_equal only accepts np.ndarray
             assert_numpy_array_equal(np.array([1]), 1)
         with assertRaisesRegexp(AssertionError, expected):
             assert_almost_equal(np.array([1]), 1)
 
         # scalar / array comparison
-        expected = """(numpy array|Iterable) are different
+        expected = """numpy array are different
 
-Second object is iterable, first isn't
-\\[left\\]:  1
-\\[right\\]: \\[1\\]"""
+numpy array classes are different
+\\[left\\]:  int
+\\[right\\]: ndarray"""
 
         with assertRaisesRegexp(AssertionError, expected):
             assert_numpy_array_equal(1, np.array([1]))
@@ -203,11 +225,11 @@ numpy array values are different \\(66\\.66667 %\\)
 \\[right\\]: \\[1\\.0, nan, 3\\.0\\]"""
 
         with assertRaisesRegexp(AssertionError, expected):
-            assert_numpy_array_equal(
-                np.array([np.nan, 2, 3]), np.array([1, np.nan, 3]))
+            assert_numpy_array_equal(np.array([np.nan, 2, 3]),
+                                     np.array([1, np.nan, 3]))
         with assertRaisesRegexp(AssertionError, expected):
-            assert_almost_equal(
-                np.array([np.nan, 2, 3]), np.array([1, np.nan, 3]))
+            assert_almost_equal(np.array([np.nan, 2, 3]),
+                                np.array([1, np.nan, 3]))
 
         expected = """numpy array are different
 
@@ -273,6 +295,37 @@ Index shapes are different
             assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]),
                                 obj='Index')
 
+    def test_numpy_array_equal_object_message(self):
+
+        if is_platform_windows():
+            raise nose.SkipTest("windows has incomparable line-endings "
+                                "and uses L on the shape")
+
+        a = np.array([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-01')])
+        b = np.array([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')])
+
+        expected = """numpy array are different
+
+numpy array values are different \\(50\\.0 %\\)
+\\[left\\]:  \\[2011-01-01 00:00:00, 2011-01-01 00:00:00\\]
+\\[right\\]: \\[2011-01-01 00:00:00, 2011-01-02 00:00:00\\]"""
+
+        with assertRaisesRegexp(AssertionError, expected):
+            assert_numpy_array_equal(a, b)
+        with assertRaisesRegexp(AssertionError, expected):
+            assert_almost_equal(a, b)
+
+    def test_numpy_array_equal_copy_flag(self):
+        a = np.array([1, 2, 3])
+        b = a.copy()
+        c = a.view()
+        expected = 'array\(\[1, 2, 3\]\) is not array\(\[1, 2, 3\]\)'
+        with assertRaisesRegexp(AssertionError, expected):
+            assert_numpy_array_equal(a, b, check_same='same')
+        expected = 'array\(\[1, 2, 3\]\) is array\(\[1, 2, 3\]\)'
+        with assertRaisesRegexp(AssertionError, expected):
+            assert_numpy_array_equal(a, c, check_same='copy')
+
     def test_assert_almost_equal_iterable_message(self):
 
         expected = """Iterable are different
@@ -307,8 +360,8 @@ Index levels are different
            labels=\\[\\[0, 0, 1, 1\\], \\[0, 1, 2, 3\\]\\]\\)"""
 
         idx1 = pd.Index([1, 2, 3])
-        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2), ('B', 3), ('B', 4
-                                                                         )])
+        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
+                                          ('B', 3), ('B', 4)])
         with assertRaisesRegexp(AssertionError, expected):
             assert_index_equal(idx1, idx2, exact=False)
 
@@ -318,10 +371,10 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Int64Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
-        idx1 = pd.MultiIndex.from_tuples([('A', 2), ('A', 2), ('B', 3), ('B', 4
-                                                                         )])
-        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2), ('B', 3), ('B', 4
-                                                                         )])
+        idx1 = pd.MultiIndex.from_tuples([('A', 2), ('A', 2),
+                                          ('B', 3), ('B', 4)])
+        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
+                                          ('B', 3), ('B', 4)])
         with assertRaisesRegexp(AssertionError, expected):
             assert_index_equal(idx1, idx2)
         with assertRaisesRegexp(AssertionError, expected):
@@ -402,10 +455,10 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Int64Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
-        idx1 = pd.MultiIndex.from_tuples([('A', 2), ('A', 2), ('B', 3), ('B', 4
-                                                                         )])
-        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2), ('B', 3), ('B', 4
-                                                                         )])
+        idx1 = pd.MultiIndex.from_tuples([('A', 2), ('A', 2),
+                                          ('B', 3), ('B', 4)])
+        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
+                                          ('B', 3), ('B', 4)])
         with assertRaisesRegexp(AssertionError, expected):
             assert_index_equal(idx1, idx2)
         with assertRaisesRegexp(AssertionError, expected):
@@ -477,12 +530,18 @@ class TestAssertSeriesEqual(tm.TestCase):
 
         self.assertRaises(AssertionError, assert_series_equal, s1, s2)
         self._assert_equal(s1, s2, check_less_precise=True)
+        for i in range(4):
+            self._assert_equal(s1, s2, check_less_precise=i)
+        self.assertRaises(AssertionError, assert_series_equal, s1, s2, 10)
 
         s1 = Series([0.12345], dtype='float32')
         s2 = Series([0.12346], dtype='float32')
 
         self.assertRaises(AssertionError, assert_series_equal, s1, s2)
         self._assert_equal(s1, s2, check_less_precise=True)
+        for i in range(4):
+            self._assert_equal(s1, s2, check_less_precise=i)
+        self.assertRaises(AssertionError, assert_series_equal, s1, s2, 10)
 
         # even less than less precise
         s1 = Series([0.1235], dtype='float32')
@@ -625,6 +684,60 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 7]}),
                                by_blocks=True)
+
+
+class TestIsInstance(tm.TestCase):
+
+    def test_isinstance(self):
+
+        expected = "Expected type "
+        with assertRaisesRegexp(AssertionError, expected):
+            tm.assertIsInstance(1, pd.Series)
+
+    def test_notisinstance(self):
+
+        expected = "Input must not be type "
+        with assertRaisesRegexp(AssertionError, expected):
+            tm.assertNotIsInstance(pd.Series([1]), pd.Series)
+
+
+class TestAssertCategoricalEqual(unittest.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_categorical_equal_message(self):
+
+        expected = """Categorical\\.categories are different
+
+Categorical\\.categories values are different \\(25\\.0 %\\)
+\\[left\\]:  Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)
+\\[right\\]: Int64Index\\(\\[1, 2, 3, 5\\], dtype='int64'\\)"""
+
+        a = pd.Categorical([1, 2, 3, 4])
+        b = pd.Categorical([1, 2, 3, 5])
+        with assertRaisesRegexp(AssertionError, expected):
+            tm.assert_categorical_equal(a, b)
+
+        expected = """Categorical\\.codes are different
+
+Categorical\\.codes values are different \\(50\\.0 %\\)
+\\[left\\]:  \\[0, 1, 3, 2\\]
+\\[right\\]: \\[0, 1, 2, 3\\]"""
+
+        a = pd.Categorical([1, 2, 4, 3], categories=[1, 2, 3, 4])
+        b = pd.Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4])
+        with assertRaisesRegexp(AssertionError, expected):
+            tm.assert_categorical_equal(a, b)
+
+        expected = """Categorical are different
+
+Attribute "ordered" are different
+\\[left\\]:  False
+\\[right\\]: True"""
+
+        a = pd.Categorical([1, 2, 3, 4], ordered=False)
+        b = pd.Categorical([1, 2, 3, 4], ordered=True)
+        with assertRaisesRegexp(AssertionError, expected):
+            tm.assert_categorical_equal(a, b)
 
 
 class TestRNGContext(unittest.TestCase):

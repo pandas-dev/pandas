@@ -165,8 +165,9 @@ To install pandas for Python 3 you may need to use the package ``python3-pandas`
     Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python-pandas``
     Ubuntu, stable, `official Ubuntu repository <http://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python-pandas``
     Ubuntu, unstable (daily builds), `PythonXY PPA  <https://code.launchpad.net/~pythonxy/+archive/pythonxy-devel>`__; activate by: ``sudo add-apt-repository ppa:pythonxy/pythonxy-devel && sudo apt-get update``, ``sudo apt-get install python-pandas``
-	OpenSuse & Fedora, stable, `OpenSuse Repository  <http://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in  python-pandas``
-
+    OpenSuse, stable, `OpenSuse Repository  <http://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in  python-pandas``
+    Fedora, stable, `official Fedora repository  <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``dnf install python-pandas``
+    Centos/RHEL, stable, `EPEL repository <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``yum install python-pandas``
 
 
 
@@ -252,28 +253,32 @@ Optional Dependencies
     - `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
     - `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
-* `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
-* `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__: Needed for Excel I/O
-* `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
+* `matplotlib <http://matplotlib.org/>`__: for plotting
+* For Excel I/O:
+
+  * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
+  * `openpyxl <http://packages.python.org/openpyxl/>`__: openpyxl version 1.6.1
+    or higher (but lower than 2.0.0), or version 2.2 or higher, for writing .xlsx files (xlrd >= 0.9.0)
+  * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
+
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
-* `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
-  access.
+* `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3 access.
 * `blosc <https://pypi.python.org/pypi/blosc>`__: for msgpack compression using ``blosc``
 * One of `PyQt4
   <http://www.riverbankcomputing.com/software/pyqt/download>`__, `PySide
   <http://qt-project.org/wiki/Category:LanguageBindings::PySide>`__, `pygtk
   <http://www.pygtk.org/>`__, `xsel
   <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
-  <http://sourceforge.net/projects/xclip/>`__: necessary to use
-  :func:`~pandas.io.clipboard.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* Google's `python-gflags <http://code.google.com/p/python-gflags/>`__ ,
+  <https://github.com/astrand/xclip/>`__: necessary to use
+  :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
+* Google's `python-gflags <<https://github.com/google/python-gflags/>`__ ,
   `oauth2client <https://github.com/google/oauth2client>`__ ,
   `httplib2 <http://pypi.python.org/pypi/httplib2>`__
   and `google-api-python-client <http://github.com/google/google-api-python-client>`__
   : Needed for :mod:`~pandas.io.gbq`
 * `Backports.lzma <https://pypi.python.org/pypi/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
 * One of the following combinations of libraries is needed to use the
-  top-level :func:`~pandas.io.html.read_html` function:
+  top-level :func:`~pandas.read_html` function:
 
   * `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
     okay.)
@@ -286,14 +291,14 @@ Optional Dependencies
 
      * if you install `BeautifulSoup4`_ you must install either
        `lxml`_ or `html5lib`_ or both.
-       :func:`~pandas.io.html.read_html` will **not** work with *only*
+       :func:`~pandas.read_html` will **not** work with *only*
        `BeautifulSoup4`_ installed.
      * You are highly encouraged to read :ref:`HTML reading gotchas
        <html-gotchas>`. It explains issues surrounding the installation and
        usage of the above three libraries
      * You may need to install an older version of `BeautifulSoup4`_:
-        - Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and
-          32-bit Ubuntu/Debian
+       Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and 32-bit
+       Ubuntu/Debian
      * Additionally, if you're using `Anaconda`_ you should definitely
        read :ref:`the gotchas about HTML parsing libraries <html-gotchas>`
 

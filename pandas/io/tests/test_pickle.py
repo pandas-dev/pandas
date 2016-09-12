@@ -46,6 +46,12 @@ class TestPickle():
         if typ.startswith('sp_'):
             comparator = getattr(tm, "assert_%s_equal" % typ)
             comparator(result, expected, exact_indices=False)
+        elif typ == 'timestamp':
+            if expected is pd.NaT:
+                assert result is pd.NaT
+            else:
+                tm.assert_equal(result, expected)
+                tm.assert_equal(result.freq, expected.freq)
         else:
             comparator = getattr(tm, "assert_%s_equal" %
                                  typ, tm.assert_almost_equal)
@@ -68,14 +74,44 @@ class TestPickle():
                 try:
                     expected = self.data[typ][dt]
                 except (KeyError):
-                    continue
+                    if version in ('0.10.1', '0.11.0') and dt == 'reg':
+                        break
+                    else:
+                        raise
 
                 # use a specific comparator
                 # if available
-                comparator = getattr(self, "compare_{typ}_{dt}".format(
-                    typ=typ, dt=dt), self.compare_element)
+                comparator = "compare_{typ}_{dt}".format(typ=typ, dt=dt)
+                comparator = getattr(self, comparator, self.compare_element)
                 comparator(result, expected, typ, version)
         return data
+
+    def compare_sp_series_ts(self, res, exp, typ, version):
+        # SparseTimeSeries integrated into SparseSeries in 0.12.0
+        # and deprecated in 0.17.0
+        if version and LooseVersion(version) <= "0.12.0":
+            tm.assert_sp_series_equal(res, exp, check_series_type=False)
+        else:
+            tm.assert_sp_series_equal(res, exp)
+
+    def compare_series_ts(self, result, expected, typ, version):
+        # GH 7748
+        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result.index.freq, expected.index.freq)
+        tm.assert_equal(result.index.freq.normalize, False)
+        tm.assert_series_equal(result > 0, expected > 0)
+
+        # GH 9291
+        freq = result.index.freq
+        tm.assert_equal(freq + Day(1), Day(2))
+
+        res = freq + pandas.Timedelta(hours=1)
+        tm.assert_equal(isinstance(res, pandas.Timedelta), True)
+        tm.assert_equal(res, pandas.Timedelta(days=1, hours=1))
+
+        res = freq + pandas.Timedelta(nanoseconds=1)
+        tm.assert_equal(isinstance(res, pandas.Timedelta), True)
+        tm.assert_equal(res, pandas.Timedelta(days=1, nanoseconds=1))
 
     def compare_series_dt_tz(self, result, expected, typ, version):
         # 8260
@@ -83,6 +119,17 @@ class TestPickle():
         if LooseVersion(version) < '0.17.0':
             expected = expected.astype(object)
             tm.assert_series_equal(result, expected)
+        else:
+            tm.assert_series_equal(result, expected)
+
+    def compare_series_cat(self, result, expected, typ, version):
+        # Categorical dtype is added in 0.15.0
+        # ordered is changed in 0.16.0
+        if LooseVersion(version) < '0.15.0':
+            tm.assert_series_equal(result, expected, check_dtype=False,
+                                   check_categorical=False)
+        elif LooseVersion(version) < '0.16.0':
+            tm.assert_series_equal(result, expected, check_categorical=False)
         else:
             tm.assert_series_equal(result, expected)
 
@@ -94,6 +141,34 @@ class TestPickle():
             tm.assert_frame_equal(result, expected)
         else:
             tm.assert_frame_equal(result, expected)
+
+    def compare_frame_cat_onecol(self, result, expected, typ, version):
+        # Categorical dtype is added in 0.15.0
+        # ordered is changed in 0.16.0
+        if LooseVersion(version) < '0.15.0':
+            tm.assert_frame_equal(result, expected, check_dtype=False,
+                                  check_categorical=False)
+        elif LooseVersion(version) < '0.16.0':
+            tm.assert_frame_equal(result, expected, check_categorical=False)
+        else:
+            tm.assert_frame_equal(result, expected)
+
+    def compare_frame_cat_and_float(self, result, expected, typ, version):
+        self.compare_frame_cat_onecol(result, expected, typ, version)
+
+    def compare_index_period(self, result, expected, typ, version):
+        tm.assert_index_equal(result, expected)
+        tm.assertIsInstance(result.freq, MonthEnd)
+        tm.assert_equal(result.freq, MonthEnd())
+        tm.assert_equal(result.freqstr, 'M')
+        tm.assert_index_equal(result.shift(2), expected.shift(2))
+
+    def compare_sp_frame_float(self, result, expected, typ, version):
+        if LooseVersion(version) <= '0.18.1':
+            tm.assert_sp_frame_equal(result, expected, exact_indices=False,
+                                     check_dtype=False)
+        else:
+            tm.assert_sp_frame_equal(result, expected)
 
     def read_pickles(self, version):
         if not is_platform_little_endian():
@@ -107,16 +182,6 @@ class TestPickle():
 
             if data is None:
                 continue
-
-            if 'series' in data:
-                if 'ts' in data['series']:
-                    self._validate_timeseries(
-                        data['series']['ts'], self.data['series']['ts'])
-                    self._validate_frequency(data['series']['ts'])
-            if 'index' in data:
-                if 'period' in data['index']:
-                    self._validate_periodindex(data['index']['period'],
-                                               self.data['index']['period'])
             n += 1
         assert n > 0, 'Pickle files are not tested'
 
@@ -181,33 +246,43 @@ class TestPickle():
                         result = python_unpickler(path)
                         self.compare_element(result, expected, typ)
 
-    def _validate_timeseries(self, pickled, current):
-        # GH 7748
-        tm.assert_series_equal(pickled, current)
-        tm.assert_equal(pickled.index.freq, current.index.freq)
-        tm.assert_equal(pickled.index.freq.normalize, False)
-        tm.assert_numpy_array_equal(pickled > 0, current > 0)
+    def test_pickle_v0_14_1(self):
 
-    def _validate_frequency(self, pickled):
-        # GH 9291
-        freq = pickled.index.freq
-        result = freq + Day(1)
-        tm.assert_equal(result, Day(2))
+        # we have the name warning
+        # 10482
+        with tm.assert_produces_warning(UserWarning):
+            cat = pd.Categorical(values=['a', 'b', 'c'],
+                                 categories=['a', 'b', 'c', 'd'],
+                                 name='foobar', ordered=False)
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'categorical_0_14_1.pickle')
+        # This code was executed once on v0.14.1 to generate the pickle:
+        #
+        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
+        #                   name='foobar')
+        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
+        #
+        tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
-        result = freq + pandas.Timedelta(hours=1)
-        tm.assert_equal(isinstance(result, pandas.Timedelta), True)
-        tm.assert_equal(result, pandas.Timedelta(days=1, hours=1))
+    def test_pickle_v0_15_2(self):
+        # ordered -> _ordered
+        # GH 9347
 
-        result = freq + pandas.Timedelta(nanoseconds=1)
-        tm.assert_equal(isinstance(result, pandas.Timedelta), True)
-        tm.assert_equal(result, pandas.Timedelta(days=1, nanoseconds=1))
-
-    def _validate_periodindex(self, pickled, current):
-        tm.assert_index_equal(pickled, current)
-        tm.assertIsInstance(pickled.freq, MonthEnd)
-        tm.assert_equal(pickled.freq, MonthEnd())
-        tm.assert_equal(pickled.freqstr, 'M')
-        tm.assert_index_equal(pickled.shift(2), current.shift(2))
+        # we have the name warning
+        # 10482
+        with tm.assert_produces_warning(UserWarning):
+            cat = pd.Categorical(values=['a', 'b', 'c'],
+                                 categories=['a', 'b', 'c', 'd'],
+                                 name='foobar', ordered=False)
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'categorical_0_15_2.pickle')
+        # This code was executed once on v0.15.2 to generate the pickle:
+        #
+        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
+        #                   name='foobar')
+        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
+        #
+        tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
 
 if __name__ == '__main__':

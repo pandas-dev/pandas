@@ -13,7 +13,6 @@ import nose
 
 from numpy import nan
 import numpy as np
-from numpy.testing.decorators import slow
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex
@@ -245,6 +244,21 @@ class ReadingTestsBase(SharedItems):
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
+        # 13967
+        excel = self.get_excelfile('test5')
+
+        parsed = read_excel(excel, 'Sheet1', keep_default_na=False,
+                            na_values=['apple'])
+        expected = DataFrame([['1.#QNAN'], [1], ['nan'], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
+        parsed = read_excel(excel, 'Sheet1', keep_default_na=True,
+                            na_values=['apple'])
+        expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
     def test_excel_table_sheet_by_index(self):
 
         excel = self.get_excelfile('test1')
@@ -458,6 +472,39 @@ class ReadingTestsBase(SharedItems):
         expected_header_zero = DataFrame(columns=[0], dtype='int64')
         tm.assert_frame_equal(actual_header_zero, expected_header_zero)
 
+    def test_set_column_names_in_parameter(self):
+        # GH 12870 : pass down column names associated with
+        # keyword argument names
+        refdf = pd.DataFrame([[1, 'foo'], [2, 'bar'],
+                              [3, 'baz']], columns=['a', 'b'])
+
+        with ensure_clean(self.ext) as pth:
+            with ExcelWriter(pth) as writer:
+                refdf.to_excel(writer, 'Data_no_head',
+                               header=False, index=False)
+                refdf.to_excel(writer, 'Data_with_head', index=False)
+
+            refdf.columns = ['A', 'B']
+
+            with ExcelFile(pth) as reader:
+                xlsdf_no_head = read_excel(reader, 'Data_no_head',
+                                           header=None, names=['A', 'B'])
+                xlsdf_with_head = read_excel(reader, 'Data_with_head',
+                                             index_col=None, names=['A', 'B'])
+
+            tm.assert_frame_equal(xlsdf_no_head, refdf)
+            tm.assert_frame_equal(xlsdf_with_head, refdf)
+
+    def test_date_conversion_overflow(self):
+        # GH 10001 : pandas.ExcelFile ignore parse_dates=False
+        expected = pd.DataFrame([[pd.Timestamp('2016-03-12'), 'Marc Johnson'],
+                                 [pd.Timestamp('2016-03-16'), 'Jack Black'],
+                                 [1e+20, 'Timothy Brown']],
+                                columns=['DateColWithBigInt', 'StringCol'])
+
+        result = self.get_exceldf('testdateoverflow')
+        tm.assert_frame_equal(result, expected)
+
 
 class XlrdTests(ReadingTestsBase):
     """
@@ -511,7 +558,7 @@ class XlrdTests(ReadingTestsBase):
         local_table = self.get_exceldf('test1')
         tm.assert_frame_equal(url_table, local_table)
 
-    @slow
+    @tm.slow
     def test_read_from_file_url(self):
 
         # FILE
@@ -692,6 +739,46 @@ class XlrdTests(ReadingTestsBase):
         actual = read_excel(mi_file, 'both_name_skiprows', index_col=[0, 1],
                             header=[0, 1], skiprows=2)
         tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_multiindex_empty_level(self):
+        # GH 12453
+        _skip_if_no_xlsxwriter()
+        with ensure_clean('.xlsx') as path:
+            df = DataFrame({
+                ('Zero', ''): {0: 0},
+                ('One', 'x'): {0: 1},
+                ('Two', 'X'): {0: 3},
+                ('Two', 'Y'): {0: 7}
+            })
+
+            expected = DataFrame({
+                ('Zero', 'Unnamed: 3_level_1'): {0: 0},
+                ('One', u'x'): {0: 1},
+                ('Two', u'X'): {0: 3},
+                ('Two', u'Y'): {0: 7}
+            })
+
+            df.to_excel(path)
+            actual = pd.read_excel(path, header=[0, 1])
+            tm.assert_frame_equal(actual, expected)
+
+            df = pd.DataFrame({
+                ('Beg', ''): {0: 0},
+                ('Middle', 'x'): {0: 1},
+                ('Tail', 'X'): {0: 3},
+                ('Tail', 'Y'): {0: 7}
+            })
+
+            expected = pd.DataFrame({
+                ('Beg', 'Unnamed: 0_level_1'): {0: 0},
+                ('Middle', u'x'): {0: 1},
+                ('Tail', u'X'): {0: 3},
+                ('Tail', u'Y'): {0: 7}
+            })
+
+            df.to_excel(path)
+            actual = pd.read_excel(path, header=[0, 1])
+            tm.assert_frame_equal(actual, expected)
 
     def test_excel_multindex_roundtrip(self):
         # GH 4679
@@ -1069,9 +1156,9 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(self.frame, recons)
             recons = read_excel(reader, 'test2', index_col=0)
             tm.assert_frame_equal(self.tsframe, recons)
-            np.testing.assert_equal(2, len(reader.sheet_names))
-            np.testing.assert_equal('test1', reader.sheet_names[0])
-            np.testing.assert_equal('test2', reader.sheet_names[1])
+            self.assertEqual(2, len(reader.sheet_names))
+            self.assertEqual('test1', reader.sheet_names[0])
+            self.assertEqual('test2', reader.sheet_names[1])
 
     def test_colaliases(self):
         _skip_if_no_xlrd()
@@ -1254,6 +1341,20 @@ class ExcelWriterBase(SharedItems):
             reader = ExcelFile(path)
             df = read_excel(reader, 'test1', index_col=[0, 1],
                             parse_dates=False)
+            tm.assert_frame_equal(frame, df)
+
+    # GH13511
+    def test_to_excel_multiindex_nan_label(self):
+        _skip_if_no_xlrd()
+
+        frame = pd.DataFrame({'A': [None, 2, 3],
+                              'B': [10, 20, 30],
+                              'C': np.random.sample(3)})
+        frame = frame.set_index(['A', 'B'])
+
+        with ensure_clean(self.ext) as path:
+            frame.to_excel(path, merge_cells=self.merge_cells)
+            df = read_excel(path, index_col=[0, 1])
             tm.assert_frame_equal(frame, df)
 
     # Test for Issue 11328. If column indices are integers, make
@@ -2151,19 +2252,17 @@ class ExcelWriterEngineTests(tm.TestCase):
             del called_save[:]
             del called_write_cells[:]
 
-        register_writer(DummyClass)
-        writer = ExcelWriter('something.test')
-        tm.assertIsInstance(writer, DummyClass)
-        df = tm.makeCustomDataframe(1, 1)
-        panel = tm.makePanel()
-        func = lambda: df.to_excel('something.test')
-        check_called(func)
-        check_called(lambda: panel.to_excel('something.test'))
-        val = get_option('io.excel.xlsx.writer')
-        set_option('io.excel.xlsx.writer', 'dummy')
-        check_called(lambda: df.to_excel('something.xlsx'))
-        check_called(lambda: df.to_excel('something.xls', engine='dummy'))
-        set_option('io.excel.xlsx.writer', val)
+        with pd.option_context('io.excel.xlsx.writer', 'dummy'):
+            register_writer(DummyClass)
+            writer = ExcelWriter('something.test')
+            tm.assertIsInstance(writer, DummyClass)
+            df = tm.makeCustomDataframe(1, 1)
+            panel = tm.makePanel()
+            func = lambda: df.to_excel('something.test')
+            check_called(func)
+            check_called(lambda: panel.to_excel('something.test'))
+            check_called(lambda: df.to_excel('something.xlsx'))
+            check_called(lambda: df.to_excel('something.xls', engine='dummy'))
 
 
 if __name__ == '__main__':

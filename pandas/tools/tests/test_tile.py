@@ -4,7 +4,7 @@ import nose
 import numpy as np
 from pandas.compat import zip
 
-from pandas import Series
+from pandas import Series, Index
 import pandas.util.testing as tm
 from pandas.util.testing import assertRaisesRegexp
 import pandas.core.common as com
@@ -19,32 +19,42 @@ class TestCut(tm.TestCase):
     def test_simple(self):
         data = np.ones(5)
         result = cut(data, 4, labels=False)
-        desired = [1, 1, 1, 1, 1]
-        tm.assert_numpy_array_equal(result, desired)
+        desired = np.array([1, 1, 1, 1, 1])
+        tm.assert_numpy_array_equal(result, desired,
+                                    check_dtype=False)
 
     def test_bins(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1])
         result, bins = cut(data, 3, retbins=True)
-        tm.assert_numpy_array_equal(result.codes, [0, 0, 0, 1, 2, 0])
-        tm.assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
+
+        exp_codes = np.array([0, 0, 0, 1, 2, 0], dtype=np.int8)
+        tm.assert_numpy_array_equal(result.codes, exp_codes)
+        exp = np.array([0.1905, 3.36666667, 6.53333333, 9.7])
+        tm.assert_almost_equal(bins, exp)
 
     def test_right(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=True, retbins=True)
-        tm.assert_numpy_array_equal(result.codes, [0, 0, 0, 2, 3, 0, 0])
-        tm.assert_almost_equal(bins, [0.1905, 2.575, 4.95, 7.325, 9.7])
+        exp_codes = np.array([0, 0, 0, 2, 3, 0, 0], dtype=np.int8)
+        tm.assert_numpy_array_equal(result.codes, exp_codes)
+        exp = np.array([0.1905, 2.575, 4.95, 7.325, 9.7])
+        tm.assert_numpy_array_equal(bins, exp)
 
     def test_noright(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=False, retbins=True)
-        tm.assert_numpy_array_equal(result.codes, [0, 0, 0, 2, 3, 0, 1])
-        tm.assert_almost_equal(bins, [0.2, 2.575, 4.95, 7.325, 9.7095])
+        exp_codes = np.array([0, 0, 0, 2, 3, 0, 1], dtype=np.int8)
+        tm.assert_numpy_array_equal(result.codes, exp_codes)
+        exp = np.array([0.2, 2.575, 4.95, 7.325, 9.7095])
+        tm.assert_almost_equal(bins, exp)
 
     def test_arraylike(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         result, bins = cut(data, 3, retbins=True)
-        tm.assert_numpy_array_equal(result.codes, [0, 0, 0, 1, 2, 0])
-        tm.assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
+        exp_codes = np.array([0, 0, 0, 1, 2, 0], dtype=np.int8)
+        tm.assert_numpy_array_equal(result.codes, exp_codes)
+        exp = np.array([0.1905, 3.36666667, 6.53333333, 9.7])
+        tm.assert_almost_equal(bins, exp)
 
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
@@ -72,14 +82,14 @@ class TestCut(tm.TestCase):
         arr = np.tile(np.arange(0, 1.01, 0.1), 4)
 
         result, bins = cut(arr, 4, retbins=True)
-        ex_levels = ['(-0.001, 0.25]', '(0.25, 0.5]', '(0.5, 0.75]',
-                     '(0.75, 1]']
-        self.assert_numpy_array_equal(result.categories, ex_levels)
+        ex_levels = Index(['(-0.001, 0.25]', '(0.25, 0.5]', '(0.5, 0.75]',
+                           '(0.75, 1]'])
+        self.assert_index_equal(result.categories, ex_levels)
 
         result, bins = cut(arr, 4, retbins=True, right=False)
-        ex_levels = ['[0, 0.25)', '[0.25, 0.5)', '[0.5, 0.75)',
-                     '[0.75, 1.001)']
-        self.assert_numpy_array_equal(result.categories, ex_levels)
+        ex_levels = Index(['[0, 0.25)', '[0.25, 0.5)', '[0.5, 0.75)',
+                           '[0.75, 1.001)'])
+        self.assert_index_equal(result.categories, ex_levels)
 
     def test_cut_pass_series_name_to_factor(self):
         s = Series(np.random.randn(100), name='foo')
@@ -91,9 +101,9 @@ class TestCut(tm.TestCase):
         arr = np.arange(0, 0.73, 0.01)
 
         result = cut(arr, 4, precision=2)
-        ex_levels = ['(-0.00072, 0.18]', '(0.18, 0.36]', '(0.36, 0.54]',
-                     '(0.54, 0.72]']
-        self.assert_numpy_array_equal(result.categories, ex_levels)
+        ex_levels = Index(['(-0.00072, 0.18]', '(0.18, 0.36]',
+                           '(0.36, 0.54]', '(0.54, 0.72]'])
+        self.assert_index_equal(result.categories, ex_levels)
 
     def test_na_handling(self):
         arr = np.arange(0, 0.75, 0.01)
@@ -118,10 +128,10 @@ class TestCut(tm.TestCase):
         result = cut(data, [-np.inf, 2, 4, np.inf])
         result_ser = cut(data_ser, [-np.inf, 2, 4, np.inf])
 
-        ex_categories = ['(-inf, 2]', '(2, 4]', '(4, inf]']
+        ex_categories = Index(['(-inf, 2]', '(2, 4]', '(4, inf]'])
 
-        tm.assert_numpy_array_equal(result.categories, ex_categories)
-        tm.assert_numpy_array_equal(result_ser.cat.categories, ex_categories)
+        tm.assert_index_equal(result.categories, ex_categories)
+        tm.assert_index_equal(result_ser.cat.categories, ex_categories)
         self.assertEqual(result[5], '(4, inf]')
         self.assertEqual(result[0], '(-inf, 2]')
         self.assertEqual(result_ser[5], '(4, inf]')
@@ -135,7 +145,7 @@ class TestCut(tm.TestCase):
         tm.assert_almost_equal(bins, ex_bins)
 
         ex_levels = cut(arr, ex_bins, include_lowest=True)
-        self.assert_numpy_array_equal(labels, ex_levels)
+        self.assert_categorical_equal(labels, ex_levels)
 
     def test_qcut_bounds(self):
         arr = np.random.randn(1000)
@@ -148,7 +158,7 @@ class TestCut(tm.TestCase):
 
         factor = qcut(arr, [0, .25, .5, .75, 1.])
         expected = qcut(arr, 4)
-        self.assertTrue(factor.equals(expected))
+        tm.assert_categorical_equal(factor, expected)
 
     def test_qcut_all_bins_same(self):
         assertRaisesRegexp(ValueError, "edges.*unique", qcut,
@@ -173,7 +183,7 @@ class TestCut(tm.TestCase):
         exp = cut(arr, bins)
         exp.categories = labels
 
-        self.assertTrue(result.equals(exp))
+        tm.assert_categorical_equal(result, exp)
 
     def test_qcut_include_lowest(self):
         values = np.arange(10)
@@ -207,8 +217,7 @@ class TestCut(tm.TestCase):
 
     def test_qcut_binning_issues(self):
         # #1978, 1979
-        path = os.path.join(curpath(), 'cut_data.csv')
-
+        path = os.path.join(tm.get_data_path(), 'cut_data.csv')
         arr = np.loadtxt(path)
 
         result = qcut(arr, 20)
@@ -253,12 +262,14 @@ class TestCut(tm.TestCase):
         # GH 8589
         s = Series(np.arange(4))
         result, bins = cut(s, 2, retbins=True)
-        tm.assert_numpy_array_equal(result.cat.codes.values, [0, 0, 1, 1])
-        tm.assert_almost_equal(bins, [-0.003, 1.5, 3])
+        tm.assert_numpy_array_equal(result.cat.codes.values,
+                                    np.array([0, 0, 1, 1], dtype=np.int8))
+        tm.assert_numpy_array_equal(bins, np.array([-0.003, 1.5, 3]))
 
         result, bins = qcut(s, 2, retbins=True)
-        tm.assert_numpy_array_equal(result.cat.codes.values, [0, 0, 1, 1])
-        tm.assert_almost_equal(bins, [0, 1.5, 3])
+        tm.assert_numpy_array_equal(result.cat.codes.values,
+                                    np.array([0, 0, 1, 1], dtype=np.int8))
+        tm.assert_numpy_array_equal(bins, np.array([0, 1.5, 3]))
 
 
 def curpath():

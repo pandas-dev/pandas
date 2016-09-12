@@ -42,19 +42,18 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
                 self.assertEqual(v2, recons_data[k][k2])
 
         recons_data = DataFrame(test_data).to_dict("sp")
-
         expected_split = {'columns': ['A', 'B'], 'index': ['1', '2', '3'],
                           'data': [[1.0, '1'], [2.0, '2'], [nan, '3']]}
-
-        tm.assert_almost_equal(recons_data, expected_split)
+        tm.assert_dict_equal(recons_data, expected_split)
 
         recons_data = DataFrame(test_data).to_dict("r")
-
         expected_records = [{'A': 1.0, 'B': '1'},
                             {'A': 2.0, 'B': '2'},
                             {'A': nan, 'B': '3'}]
-
-        tm.assert_almost_equal(recons_data, expected_records)
+        tm.assertIsInstance(recons_data, list)
+        self.assertEqual(len(recons_data), 3)
+        for l, r in zip(recons_data, expected_records):
+            tm.assert_dict_equal(l, r)
 
         # GH10844
         recons_data = DataFrame(test_data).to_dict("i")
@@ -78,24 +77,24 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         expected_records_mixed = [{'A': tsmp, 'B': 1},
                                   {'A': tsmp, 'B': 2}]
 
-        tm.assert_almost_equal(test_data.to_dict(
-            orient='records'), expected_records)
-        tm.assert_almost_equal(test_data_mixed.to_dict(
-            orient='records'), expected_records_mixed)
+        self.assertEqual(test_data.to_dict(orient='records'),
+                         expected_records)
+        self.assertEqual(test_data_mixed.to_dict(orient='records'),
+                         expected_records_mixed)
 
         expected_series = {
-            'A': Series([tsmp, tsmp]),
-            'B': Series([tsmp, tsmp]),
+            'A': Series([tsmp, tsmp], name='A'),
+            'B': Series([tsmp, tsmp], name='B'),
         }
         expected_series_mixed = {
-            'A': Series([tsmp, tsmp]),
-            'B': Series([1, 2]),
+            'A': Series([tsmp, tsmp], name='A'),
+            'B': Series([1, 2], name='B'),
         }
 
-        tm.assert_almost_equal(test_data.to_dict(
-            orient='series'), expected_series)
-        tm.assert_almost_equal(test_data_mixed.to_dict(
-            orient='series'), expected_series_mixed)
+        tm.assert_dict_equal(test_data.to_dict(orient='series'),
+                             expected_series)
+        tm.assert_dict_equal(test_data_mixed.to_dict(orient='series'),
+                             expected_series_mixed)
 
         expected_split = {
             'index': [0, 1],
@@ -110,10 +109,10 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
             'columns': ['A', 'B']
         }
 
-        tm.assert_almost_equal(test_data.to_dict(
-            orient='split'), expected_split)
-        tm.assert_almost_equal(test_data_mixed.to_dict(
-            orient='split'), expected_split_mixed)
+        tm.assert_dict_equal(test_data.to_dict(orient='split'),
+                             expected_split)
+        tm.assert_dict_equal(test_data_mixed.to_dict(orient='split'),
+                             expected_split_mixed)
 
     def test_to_dict_invalid_orient(self):
         df = DataFrame({'A': [0, 1]})
@@ -172,3 +171,11 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         df.index.names = ['A', None]
         rs = df.to_records()
         self.assertIn('level_0', rs.dtype.fields)
+
+    def test_to_records_with_unicode_index(self):
+        # GH13172
+        # unicode_literals conflict with to_records
+        result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a')\
+            .to_records()
+        expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
+        tm.assert_almost_equal(result, expected)

@@ -18,6 +18,7 @@
 .vagrant
 .noseids
 .ipynb_checkpoints
+.tags
 
 # Compiled source #
 ###################
@@ -83,7 +84,10 @@ scikits
 
 # Performance Testing #
 #######################
-asv_bench/
+asv_bench/env/
+asv_bench/html/
+asv_bench/results/
+asv_bench/pandas/
 
 # Documentation generated files #
 #################################

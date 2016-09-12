@@ -104,15 +104,21 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         values = self.mixed_float.as_matrix(['C'])
         self.assertEqual(values.dtype, np.float16)
 
+        # GH 10364
+        # B uint64 forces float because there are other signed int types
         values = self.mixed_int.as_matrix(['A', 'B', 'C', 'D'])
-        self.assertEqual(values.dtype, np.int64)
+        self.assertEqual(values.dtype, np.float64)
 
         values = self.mixed_int.as_matrix(['A', 'D'])
         self.assertEqual(values.dtype, np.int64)
 
-        # guess all ints are cast to uints....
+        # B uint64 forces float because there are other signed int types
         values = self.mixed_int.as_matrix(['A', 'B', 'C'])
-        self.assertEqual(values.dtype, np.int64)
+        self.assertEqual(values.dtype, np.float64)
+
+        # as B and C are both unsigned, no forcing to float is needed
+        values = self.mixed_int.as_matrix(['B', 'C'])
+        self.assertEqual(values.dtype, np.uint64)
 
         values = self.mixed_int.as_matrix(['A', 'C'])
         self.assertEqual(values.dtype, np.int32)
@@ -372,11 +378,13 @@ starting,ending,measure
         ser_starting.index = ser_starting.values
         ser_starting = ser_starting.tz_localize('US/Eastern')
         ser_starting = ser_starting.tz_convert('UTC')
+        ser_starting.index.name = 'starting'
 
         ser_ending = df.ending
         ser_ending.index = ser_ending.values
         ser_ending = ser_ending.tz_localize('US/Eastern')
         ser_ending = ser_ending.tz_convert('UTC')
+        ser_ending.index.name = 'ending'
 
         df.starting = ser_starting.index
         df.ending = ser_ending.index
@@ -505,8 +513,8 @@ starting,ending,measure
                         'd': [None, None, None],
                         'e': [3.14, 0.577, 2.773]})
 
-        self.assert_numpy_array_equal(df._get_numeric_data().columns,
-                                      ['a', 'b', 'e'])
+        self.assert_index_equal(df._get_numeric_data().columns,
+                                pd.Index(['a', 'b', 'e']))
 
     def test_strange_column_corruption_issue(self):
         # (wesm) Unclear how exactly this is related to internal matters

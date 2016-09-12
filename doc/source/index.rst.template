@@ -92,7 +92,7 @@ Some other notes
    specialized tool.
 
  - pandas is a dependency of `statsmodels
-   <http://statsmodels.sourceforge.net>`__, making it an important part of the
+   <http://www.statsmodels.org/stable/index.html>`__, making it an important part of the
    statistical computing ecosystem in Python.
 
  - pandas has been used extensively in production in financial applications.

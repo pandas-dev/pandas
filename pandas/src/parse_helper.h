@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <float.h>
+#include "headers/portable.h"
 
 static double xstrtod(const char *p, char **q, char decimal, char sci,
                       int skip_trailing, int *maybe_int);
@@ -39,21 +40,35 @@ int floatify(PyObject* str, double *result, int *maybe_int) {
 
     if (!status) {
         /* handle inf/-inf */
-        if (0 == strcmp(data, "-inf")) {
-            *result = -HUGE_VAL;
-            *maybe_int = 0;
-        } else if (0 == strcmp(data, "inf")) {
-            *result = HUGE_VAL;
-            *maybe_int = 0;
+        if (strlen(data) == 3) {
+            if (0 == strcasecmp(data, "inf")) {
+                *result = HUGE_VAL;
+                *maybe_int = 0;
+            } else {
+                goto parsingerror;
+            }
+        } else if (strlen(data) == 4) {
+            if (0 == strcasecmp(data, "-inf")) {
+                *result = -HUGE_VAL;
+                *maybe_int = 0;
+            } else if (0 == strcasecmp(data, "+inf")) {
+                *result = HUGE_VAL;
+                *maybe_int = 0;
+            } else {
+                goto parsingerror;
+            }
         } else {
-            PyErr_SetString(PyExc_ValueError, "Unable to parse string");
-            Py_XDECREF(tmp);
-            return -1;
+            goto parsingerror;
         }
     }
 
     Py_XDECREF(tmp);
     return 0;
+
+parsingerror:
+    PyErr_Format(PyExc_ValueError, "Unable to parse string \"%s\"", data);
+    Py_XDECREF(tmp);
+    return -1;
 
 /*
 #if PY_VERSION_HEX >= 0x03000000

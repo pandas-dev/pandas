@@ -217,7 +217,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         # numpy has a slightly different (wrong) treatement
-        result2 = DataFrame(p.values % p.values, index=p.index,
+        with np.errstate(all='ignore'):
+            arr = p.values % p.values
+        result2 = DataFrame(arr, index=p.index,
                             columns=p.columns, dtype='float64')
         result2.iloc[0:3, 1] = np.nan
         assert_frame_equal(result2, expected)
@@ -227,8 +229,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         # numpy has a slightly different (wrong) treatement
-        result2 = DataFrame(p.values.astype('float64') %
-                            0, index=p.index, columns=p.columns)
+        with np.errstate(all='ignore'):
+            arr = p.values.astype('float64') % 0
+        result2 = DataFrame(arr, index=p.index, columns=p.columns)
         assert_frame_equal(result2, expected)
 
         # not commutative with series
@@ -248,7 +251,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
                               'second': Series([nan, nan, nan, 1])})
         assert_frame_equal(result, expected)
 
-        result2 = DataFrame(p.values.astype('float') / p.values, index=p.index,
+        with np.errstate(all='ignore'):
+            arr = p.values.astype('float') / p.values
+        result2 = DataFrame(arr, index=p.index,
                             columns=p.columns)
         assert_frame_equal(result2, expected)
 
@@ -258,7 +263,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         # numpy has a slightly different (wrong) treatement
-        result2 = DataFrame(p.values.astype('float64') / 0, index=p.index,
+        with np.errstate(all='ignore'):
+            arr = p.values.astype('float64') / 0
+        result2 = DataFrame(arr, index=p.index,
                             columns=p.columns)
         assert_frame_equal(result2, expected)
 
@@ -417,10 +424,11 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
             # ndim >= 3
             ndim_5 = np.ones(self.frame.shape + (3, 4, 5))
-            with assertRaisesRegexp(ValueError, 'shape'):
+            msg = "Unable to coerce to Series/DataFrame"
+            with assertRaisesRegexp(ValueError, msg):
                 f(self.frame, ndim_5)
 
-            with assertRaisesRegexp(ValueError, 'shape'):
+            with assertRaisesRegexp(ValueError, msg):
                 getattr(self.frame, op)(ndim_5)
 
         # res_add = self.frame.add(self.frame)
@@ -581,8 +589,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             # scalar
             assert_frame_equal(f(0), o(df, 0))
             # NAs
+            msg = "Unable to coerce to Series/DataFrame"
             assert_frame_equal(f(np.nan), o(df, np.nan))
-            with assertRaisesRegexp(ValueError, 'shape'):
+            with assertRaisesRegexp(ValueError, msg):
                 f(ndim_5)
 
         # Series
@@ -662,6 +671,17 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         exp = DataFrame({'col': [False, True, False]})
         assert_frame_equal(result, exp)
 
+    def test_dti_tz_convert_to_utc(self):
+        base = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
+                                 '2011-01-03'], tz='UTC')
+        idx1 = base.tz_convert('Asia/Tokyo')[:2]
+        idx2 = base.tz_convert('US/Eastern')[1:]
+
+        df1 = DataFrame({'A': [1, 2]}, index=idx1)
+        df2 = DataFrame({'A': [1, 1]}, index=idx2)
+        exp = DataFrame({'A': [np.nan, 3, np.nan]}, index=base)
+        assert_frame_equal(df1 + df2, exp)
+
     def test_arith_flex_series(self):
         df = self.simple
 
@@ -724,9 +744,14 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         frame_copy['C'][:5] = nan
 
         added = self.frame + frame_copy
-        tm.assert_dict_equal(added['A'].valid(),
-                             self.frame['A'] * 2,
-                             compare_keys=False)
+
+        indexer = added['A'].valid().index
+        exp = (self.frame['A'] * 2).copy()
+
+        tm.assert_series_equal(added['A'].valid(), exp.loc[indexer])
+
+        exp.loc[~exp.index.isin(indexer)] = np.nan
+        tm.assert_series_equal(added['A'], exp.loc[added['A'].index])
 
         self.assertTrue(
             np.isnan(added['C'].reindex(frame_copy.index)[:5]).all())
@@ -736,7 +761,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         self.assertTrue(np.isnan(added['D']).all())
 
         self_added = self.frame + self.frame
-        self.assertTrue(self_added.index.equals(self.frame.index))
+        self.assert_index_equal(self_added.index, self.frame.index)
 
         added_rev = frame_copy + self.frame
         self.assertTrue(np.isnan(added['D']).all())
@@ -833,7 +858,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         smaller_frame = self.tsframe[:-5]
         smaller_added = smaller_frame.add(ts, axis='index')
 
-        self.assertTrue(smaller_added.index.equals(self.tsframe.index))
+        self.assert_index_equal(smaller_added.index, self.tsframe.index)
 
         smaller_ts = ts[:-5]
         smaller_added2 = self.tsframe.add(smaller_ts, axis='index')
@@ -904,6 +929,15 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         test_comp(operator.ge)
         test_comp(operator.le)
 
+    def test_comparison_protected_from_errstate(self):
+        missing_df = tm.makeDataFrame()
+        missing_df.iloc[0]['A'] = np.nan
+        with np.errstate(invalid='ignore'):
+            expected = missing_df.values < 0
+        with np.errstate(invalid='raise'):
+            result = (missing_df < 0).values
+        self.assert_numpy_array_equal(result, expected)
+
     def test_string_comparison(self):
         df = DataFrame([{"a": 1, "b": "foo"}, {"a": 2, "b": "bar"}])
         mask_a = df.a > 1
@@ -972,7 +1006,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_numpy_array_equal(result, expected.values)
 
         self.assertRaises(ValueError, lambda: df == b_c)
-        self.assertFalse((df.values == b_c))
+        self.assertFalse(np.array_equal(df.values, b_c))
 
         # with alignment
         df = DataFrame(np.arange(6).reshape((3, 2)),
@@ -995,44 +1029,52 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         with tm.assert_produces_warning(FutureWarning):
             # trivial
             comb = self.frame.combineAdd(self.frame)
-            assert_frame_equal(comb, self.frame * 2)
+        assert_frame_equal(comb, self.frame * 2)
 
-            # more rigorous
-            a = DataFrame([[1., nan, nan, 2., nan]],
-                          columns=np.arange(5))
-            b = DataFrame([[2., 3., nan, 2., 6., nan]],
-                          columns=np.arange(6))
-            expected = DataFrame([[3., 3., nan, 4., 6., nan]],
-                                 columns=np.arange(6))
+        # more rigorous
+        a = DataFrame([[1., nan, nan, 2., nan]],
+                      columns=np.arange(5))
+        b = DataFrame([[2., 3., nan, 2., 6., nan]],
+                      columns=np.arange(6))
+        expected = DataFrame([[3., 3., nan, 4., 6., nan]],
+                             columns=np.arange(6))
 
+        with tm.assert_produces_warning(FutureWarning):
             result = a.combineAdd(b)
-            assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
             result2 = a.T.combineAdd(b.T)
-            assert_frame_equal(result2, expected.T)
+        assert_frame_equal(result2, expected.T)
 
-            expected2 = a.combine(b, operator.add, fill_value=0.)
-            assert_frame_equal(expected, expected2)
+        expected2 = a.combine(b, operator.add, fill_value=0.)
+        assert_frame_equal(expected, expected2)
 
-            # corner cases
+        # corner cases
+        with tm.assert_produces_warning(FutureWarning):
             comb = self.frame.combineAdd(self.empty)
-            assert_frame_equal(comb, self.frame)
+        assert_frame_equal(comb, self.frame)
 
+        with tm.assert_produces_warning(FutureWarning):
             comb = self.empty.combineAdd(self.frame)
-            assert_frame_equal(comb, self.frame)
+        assert_frame_equal(comb, self.frame)
 
-            # integer corner case
-            df1 = DataFrame({'x': [5]})
-            df2 = DataFrame({'x': [1]})
-            df3 = DataFrame({'x': [6]})
+        # integer corner case
+        df1 = DataFrame({'x': [5]})
+        df2 = DataFrame({'x': [1]})
+        df3 = DataFrame({'x': [6]})
+
+        with tm.assert_produces_warning(FutureWarning):
             comb = df1.combineAdd(df2)
-            assert_frame_equal(comb, df3)
+        assert_frame_equal(comb, df3)
 
-            # mixed type GH2191
-            df1 = DataFrame({'A': [1, 2], 'B': [3, 4]})
-            df2 = DataFrame({'A': [1, 2], 'C': [5, 6]})
+        # mixed type GH2191
+        df1 = DataFrame({'A': [1, 2], 'B': [3, 4]})
+        df2 = DataFrame({'A': [1, 2], 'C': [5, 6]})
+        with tm.assert_produces_warning(FutureWarning):
             rs = df1.combineAdd(df2)
-            xp = DataFrame({'A': [2, 4], 'B': [3, 4.], 'C': [5, 6.]})
-            assert_frame_equal(xp, rs)
+        xp = DataFrame({'A': [2, 4], 'B': [3, 4.], 'C': [5, 6.]})
+        assert_frame_equal(xp, rs)
 
         # TODO: test integer fill corner?
 
@@ -1170,3 +1212,54 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_frame_equal(df, expected)
         assert_frame_equal(df2, expected)
         self.assertIs(df._data, df2._data)
+
+    def test_alignment_non_pandas(self):
+        index = ['A', 'B', 'C']
+        columns = ['X', 'Y', 'Z']
+        df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
+
+        align = pd.core.ops._align_method_FRAME
+
+        for val in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3], dtype=np.int64)]:
+
+            tm.assert_series_equal(align(df, val, 'index'),
+                                   Series([1, 2, 3], index=df.index))
+            tm.assert_series_equal(align(df, val, 'columns'),
+                                   Series([1, 2, 3], index=df.columns))
+
+        # length mismatch
+        msg = 'Unable to coerce to Series, length must be 3: given 2'
+        for val in [[1, 2], (1, 2), np.array([1, 2])]:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                align(df, val, 'index')
+
+            with tm.assertRaisesRegexp(ValueError, msg):
+                align(df, val, 'columns')
+
+        val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        tm.assert_frame_equal(align(df, val, 'index'),
+                              DataFrame(val, index=df.index,
+                                        columns=df.columns))
+        tm.assert_frame_equal(align(df, val, 'columns'),
+                              DataFrame(val, index=df.index,
+                                        columns=df.columns))
+
+        # shape mismatch
+        msg = 'Unable to coerce to DataFrame, shape must be'
+        val = np.array([[1, 2, 3], [4, 5, 6]])
+        with tm.assertRaisesRegexp(ValueError, msg):
+            align(df, val, 'index')
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            align(df, val, 'columns')
+
+        val = np.zeros((3, 3, 3))
+        with tm.assertRaises(ValueError):
+            align(df, val, 'index')
+        with tm.assertRaises(ValueError):
+            align(df, val, 'columns')
+
+
+if __name__ == '__main__':
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

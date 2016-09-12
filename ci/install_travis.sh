@@ -28,64 +28,68 @@ function edit_init()
 
 edit_init
 
-python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
-[ "$python_major_version" == "2" ] && python_major_version=""
-
 home_dir=$(pwd)
 echo "home_dir: [$home_dir]"
 
-if [ -n "$LOCALE_OVERRIDE" ]; then
-    # make sure the locale is available
-    # probably useless, since you would need to relogin
-    time sudo locale-gen "$LOCALE_OVERRIDE"
-
-    # Need to enable for locale testing. The location of the locale file(s) is
-    # distro specific. For example, on Arch Linux all of the locales are in a
-    # commented file--/etc/locale.gen--that must be commented in to be used
-    # whereas Ubuntu looks in /var/lib/locales/supported.d/* and generates locales
-    # based on what's in the files in that folder
-    time echo 'it_CH.UTF-8 UTF-8' | sudo tee -a /var/lib/locales/supported.d/it
-    time sudo locale-gen
-
-fi
-
-# install gui for clipboard testing
-if [ -n "$CLIPBOARD_GUI" ]; then
-    echo "Using CLIPBOARD_GUI: $CLIPBOARD_GUI"
-    [ -n "$python_major_version" ] && py="py"
-    python_cb_gui_pkg=python${python_major_version}-${py}${CLIPBOARD_GUI}
-    time sudo apt-get $APT_ARGS install $python_cb_gui_pkg
-fi
-
-
-# install a clipboard if $CLIPBOARD is not empty
-if [ -n "$CLIPBOARD" ]; then
-    echo "Using clipboard: $CLIPBOARD"
-    time sudo apt-get $APT_ARGS install $CLIPBOARD
-fi
-
 python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 [ "$python_major_version" == "2" ] && python_major_version=""
 
-# install miniconda
-if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    wget http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+MINICONDA_DIR="$HOME/miniconda"
+
+if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ] && [ "$USE_CACHE" ]; then
+    echo "Miniconda install already present from cache: $MINICONDA_DIR"
+
+    conda config --set always_yes yes --set changeps1 no || exit 1
+    echo "update conda"
+    conda update -q conda || exit 1
+
+    # Useful for debugging any issues with conda
+    conda info -a || exit 1
+
+    # set the compiler cache to work
+    if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+        echo "Using ccache"
+        export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
+        gcc=$(which gcc)
+        echo "gcc: $gcc"
+        ccache=$(which ccache)
+        echo "ccache: $ccache"
+        export CC='ccache gcc'
+    fi
+
 else
-    wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+    echo "Using clean Miniconda install"
+    echo "Not using ccache"
+    rm -rf "$MINICONDA_DIR"
+    # install miniconda
+    if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+        wget http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+    else
+        wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+    fi
+    bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
+
+    echo "update conda"
+    conda config --set ssl_verify false || exit 1
+    conda config --set always_yes true --set changeps1 false || exit 1
+    conda update -q conda
+
+    # add the pandas channel *before* defaults to have defaults take priority
+    echo "add channels"
+    conda config --add channels pandas || exit 1
+    conda config --remove channels defaults || exit 1
+    conda config --add channels defaults || exit 1
+
+    conda install anaconda-client
+
+    # Useful for debugging any issues with conda
+    conda info -a || exit 1
+
+    time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose coverage flake8 || exit 1
+
 fi
-bash miniconda.sh -b -p $HOME/miniconda || exit 1
-
-conda config --set always_yes yes --set changeps1 no || exit 1
-conda update -q conda || exit 1
-conda config --add channels http://conda.anaconda.org/pandas || exit 1
-conda config --set ssl_verify false || exit 1
-
-# Useful for debugging any issues with conda
-conda info -a || exit 1
-
 # build deps
 REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.build"
-time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose coverage flake8 || exit 1
 
 # may have additional installation instructions for this build
 INSTALL="ci/install-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.sh"
@@ -97,16 +101,6 @@ fi
 time conda install -n pandas --file=${REQ} || exit 1
 
 source activate pandas
-
-# set the compiler cache to work
-if [[ "$IRON_TOKEN" && "${TRAVIS_OS_NAME}" == "linux" ]]; then
-    export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
-    gcc=$(which gcc)
-    echo "gcc: $gcc"
-    ccache=$(which ccache)
-    echo "ccache: $ccache"
-    export CC='ccache gcc'
-fi
 
 if [ "$BUILD_TEST" ]; then
 
@@ -142,6 +136,10 @@ else
     echo "running setup.py develop"
     python setup.py develop  || exit 1
 
+fi
+
+if [ "$JOB_NAME" == "34_slow" ]; then
+    conda install -c conda-forge/label/rc -c conda-forge matplotlib
 fi
 
 echo "done"

@@ -3,8 +3,9 @@ from pandas.compat import range
 from pandas import compat
 import numpy as np
 
+from pandas.types.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
 from pandas.tseries.tools import to_datetime, normalize_date
-from pandas.core.common import ABCSeries, ABCDatetimeIndex
+from pandas.core.common import AbstractMethodError
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
@@ -18,6 +19,7 @@ import operator
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'CBMonthEnd', 'CBMonthBegin',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
+           'SemiMonthEnd', 'SemiMonthBegin',
            'BusinessHour', 'CustomBusinessHour',
            'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
            'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
@@ -380,6 +382,8 @@ class DateOffset(object):
 
     def __add__(self, other):
         if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
+            return other + self
+        elif isinstance(other, ABCPeriod):
             return other + self
         try:
             return self.apply(other)
@@ -810,7 +814,7 @@ class BusinessHourMixin(BusinessMixin):
 
             if bd != 0:
                 skip_bd = BusinessDay(n=bd)
-                # midnight busienss hour may not on BusinessDay
+                # midnight business hour may not on BusinessDay
                 if not self.next_bday.onOffset(other):
                     remain = other - self._prev_opening_time(other)
                     other = self._next_opening_time(other + skip_bd) + remain
@@ -958,7 +962,7 @@ class CustomBusinessDay(BusinessDay):
         self.kwds['calendar'] = self.calendar = calendar
 
     def get_calendar(self, weekmask, holidays, calendar):
-        '''Generate busdaycalendar'''
+        """Generate busdaycalendar"""
         if isinstance(calendar, np.busdaycalendar):
             if not holidays:
                 holidays = tuple(calendar.holidays)
@@ -1156,6 +1160,214 @@ class MonthBegin(MonthOffset):
         return dt.day == 1
 
     _prefix = 'MS'
+
+
+class SemiMonthOffset(DateOffset):
+    _adjust_dst = True
+    _default_day_of_month = 15
+    _min_day_of_month = 2
+
+    def __init__(self, n=1, day_of_month=None, normalize=False, **kwds):
+        if day_of_month is None:
+            self.day_of_month = self._default_day_of_month
+        else:
+            self.day_of_month = int(day_of_month)
+        if not self._min_day_of_month <= self.day_of_month <= 27:
+            raise ValueError('day_of_month must be '
+                             '{}<=day_of_month<=27, got {}'.format(
+                                 self._min_day_of_month, self.day_of_month))
+        self.n = int(n)
+        self.normalize = normalize
+        self.kwds = kwds
+        self.kwds['day_of_month'] = self.day_of_month
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        return cls(day_of_month=suffix)
+
+    @property
+    def rule_code(self):
+        suffix = '-{}'.format(self.day_of_month)
+        return self._prefix + suffix
+
+    @apply_wraps
+    def apply(self, other):
+        n = self.n
+        if not self.onOffset(other):
+            _, days_in_month = tslib.monthrange(other.year, other.month)
+            if 1 < other.day < self.day_of_month:
+                other += relativedelta(day=self.day_of_month)
+                if n > 0:
+                    # rollforward so subtract 1
+                    n -= 1
+            elif self.day_of_month < other.day < days_in_month:
+                other += relativedelta(day=self.day_of_month)
+                if n < 0:
+                    # rollforward in the negative direction so add 1
+                    n += 1
+                elif n == 0:
+                    n = 1
+
+        return self._apply(n, other)
+
+    def _apply(self, n, other):
+        """Handle specific apply logic for child classes"""
+        raise AbstractMethodError(self)
+
+    @apply_index_wraps
+    def apply_index(self, i):
+        # determine how many days away from the 1st of the month we are
+        days_from_start = i.to_perioddelta('M').asi8
+        delta = Timedelta(days=self.day_of_month - 1).value
+
+        # get boolean array for each element before the day_of_month
+        before_day_of_month = days_from_start < delta
+
+        # get boolean array for each element after the day_of_month
+        after_day_of_month = days_from_start > delta
+
+        # determine the correct n for each date in i
+        roll = self._get_roll(i, before_day_of_month, after_day_of_month)
+
+        # isolate the time since it will be striped away one the next line
+        time = i.to_perioddelta('D')
+
+        # apply the correct number of months
+        i = (i.to_period('M') + (roll // 2)).to_timestamp()
+
+        # apply the correct day
+        i = self._apply_index_days(i, roll)
+
+        return i + time
+
+    def _get_roll(self, i, before_day_of_month, after_day_of_month):
+        """Return an array with the correct n for each date in i.
+
+        The roll array is based on the fact that i gets rolled back to
+        the first day of the month.
+        """
+        raise AbstractMethodError(self)
+
+    def _apply_index_days(self, i, roll):
+        """Apply the correct day for each date in i"""
+        raise AbstractMethodError(self)
+
+
+class SemiMonthEnd(SemiMonthOffset):
+    """
+    Two DateOffset's per month repeating on the last
+    day of the month and day_of_month.
+
+    .. versionadded:: 0.19.0
+
+    Parameters
+    ----------
+    n: int
+    normalize : bool, default False
+    day_of_month: int, {1, 3,...,27}, default 15
+    """
+    _prefix = 'SM'
+    _min_day_of_month = 1
+
+    def onOffset(self, dt):
+        if self.normalize and not _is_normalized(dt):
+            return False
+        _, days_in_month = tslib.monthrange(dt.year, dt.month)
+        return dt.day in (self.day_of_month, days_in_month)
+
+    def _apply(self, n, other):
+        # if other.day is not day_of_month move to day_of_month and update n
+        if other.day < self.day_of_month:
+            other += relativedelta(day=self.day_of_month)
+            if n > 0:
+                n -= 1
+        elif other.day > self.day_of_month:
+            other += relativedelta(day=self.day_of_month)
+            if n == 0:
+                n = 1
+            else:
+                n += 1
+
+        months = n // 2
+        day = 31 if n % 2 else self.day_of_month
+        return other + relativedelta(months=months, day=day)
+
+    def _get_roll(self, i, before_day_of_month, after_day_of_month):
+        n = self.n
+        is_month_end = i.is_month_end
+        if n > 0:
+            roll_end = np.where(is_month_end, 1, 0)
+            roll_before = np.where(before_day_of_month, n, n + 1)
+            roll = roll_end + roll_before
+        elif n == 0:
+            roll_after = np.where(after_day_of_month, 2, 0)
+            roll_before = np.where(~after_day_of_month, 1, 0)
+            roll = roll_before + roll_after
+        else:
+            roll = np.where(after_day_of_month, n + 2, n + 1)
+        return roll
+
+    def _apply_index_days(self, i, roll):
+        i += (roll % 2) * Timedelta(days=self.day_of_month).value
+        return i + Timedelta(days=-1)
+
+
+class SemiMonthBegin(SemiMonthOffset):
+    """
+    Two DateOffset's per month repeating on the first
+    day of the month and day_of_month.
+
+    .. versionadded:: 0.19.0
+
+    Parameters
+    ----------
+    n: int
+    normalize : bool, default False
+    day_of_month: int, {2, 3,...,27}, default 15
+    """
+    _prefix = 'SMS'
+
+    def onOffset(self, dt):
+        if self.normalize and not _is_normalized(dt):
+            return False
+        return dt.day in (1, self.day_of_month)
+
+    def _apply(self, n, other):
+        # if other.day is not day_of_month move to day_of_month and update n
+        if other.day < self.day_of_month:
+            other += relativedelta(day=self.day_of_month)
+            if n == 0:
+                n = -1
+            else:
+                n -= 1
+        elif other.day > self.day_of_month:
+            other += relativedelta(day=self.day_of_month)
+            if n == 0:
+                n = 1
+            elif n < 0:
+                n += 1
+
+        months = n // 2 + n % 2
+        day = 1 if n % 2 else self.day_of_month
+        return other + relativedelta(months=months, day=day)
+
+    def _get_roll(self, i, before_day_of_month, after_day_of_month):
+        n = self.n
+        is_month_start = i.is_month_start
+        if n > 0:
+            roll = np.where(before_day_of_month, n, n + 1)
+        elif n == 0:
+            roll_start = np.where(is_month_start, 0, 1)
+            roll_after = np.where(after_day_of_month, 1, 0)
+            roll = roll_start + roll_after
+        else:
+            roll_after = np.where(after_day_of_month, n + 2, n + 1)
+            roll_start = np.where(is_month_start, -1, 0)
+            roll = roll_after + roll_start
+        return roll
+
+    def _apply_index_days(self, i, roll):
+        return i + (roll % 2) * Timedelta(days=self.day_of_month - 1).value
 
 
 class BusinessMonthEnd(MonthOffset):
@@ -2422,12 +2634,12 @@ class FY5253Quarter(DateOffset):
 
 
 class Easter(DateOffset):
-    '''
+    """
     DateOffset for the Easter holiday using
     logic defined in dateutil.  Right now uses
     the revised method which is valid in years
     1583-4099.
-    '''
+    """
     _adjust_dst = True
 
     def __init__(self, n=1, **kwds):
@@ -2489,6 +2701,8 @@ class Tick(SingleConstructorOffset):
                 return type(self)(self.n + other.n)
             else:
                 return _delta_to_tick(self.delta + other.delta)
+        elif isinstance(other, ABCPeriod):
+            return other + self
         try:
             return self.apply(other)
         except ApplyTypeError:
@@ -2716,6 +2930,8 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     CustomBusinessHour,        # 'CBH'
     MonthEnd,                  # 'M'
     MonthBegin,                # 'MS'
+    SemiMonthEnd,              # 'SM'
+    SemiMonthBegin,            # 'SMS'
     Week,                      # 'W'
     Second,                    # 'S'
     Minute,                    # 'T'

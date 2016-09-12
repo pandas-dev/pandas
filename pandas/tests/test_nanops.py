@@ -5,8 +5,8 @@ from functools import partial
 
 import warnings
 import numpy as np
-from pandas import Series
-from pandas.core.common import isnull, is_integer_dtype
+from pandas import Series, isnull
+from pandas.types.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 
@@ -58,12 +58,14 @@ class TestnanopsDataFrame(tm.TestCase):
                     'O'), self.arr_utf.astype('O'), self.arr_date.astype('O'),
             self.arr_tdelta.astype('O')])
 
-        self.arr_nan_nanj = self.arr_nan + self.arr_nan * 1j
-        self.arr_complex_nan = np.vstack([self.arr_complex, self.arr_nan_nanj])
+        with np.errstate(invalid='ignore'):
+            self.arr_nan_nanj = self.arr_nan + self.arr_nan * 1j
+            self.arr_complex_nan = np.vstack([self.arr_complex,
+                                              self.arr_nan_nanj])
 
-        self.arr_nan_infj = self.arr_inf * 1j
-        self.arr_complex_nan_infj = np.vstack([self.arr_complex,
-                                               self.arr_nan_infj])
+            self.arr_nan_infj = self.arr_inf * 1j
+            self.arr_complex_nan_infj = np.vstack([self.arr_complex,
+                                                   self.arr_nan_infj])
 
         self.arr_float_2d = self.arr_float[:, :, 0]
         self.arr_float1_2d = self.arr_float1[:, :, 0]
@@ -116,7 +118,7 @@ class TestnanopsDataFrame(tm.TestCase):
     def tearDown(self):
         nanops._USE_BOTTLENECK = use_bn
 
-    def check_results(self, targ, res, axis):
+    def check_results(self, targ, res, axis, check_dtype=True):
         res = getattr(res, 'asm8', res)
         res = getattr(res, 'values', res)
 
@@ -138,13 +140,13 @@ class TestnanopsDataFrame(tm.TestCase):
             targ, res = _coerce_tds(targ, res)
 
         try:
-            tm.assert_almost_equal(targ, res)
+            tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
         except:
 
             # handle timedelta dtypes
             if hasattr(targ, 'dtype') and targ.dtype == 'm8[ns]':
                 targ, res = _coerce_tds(targ, res)
-                tm.assert_almost_equal(targ, res)
+                tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
                 return
 
             # There are sometimes rounding errors with
@@ -170,11 +172,13 @@ class TestnanopsDataFrame(tm.TestCase):
             # but nanops doesn't, so make that an exception
             elif targ.dtype.kind == 'O':
                 raise
-            tm.assert_almost_equal(targ.real, res.real)
-            tm.assert_almost_equal(targ.imag, res.imag)
+            tm.assert_almost_equal(targ.real, res.real,
+                                   check_dtype=check_dtype)
+            tm.assert_almost_equal(targ.imag, res.imag,
+                                   check_dtype=check_dtype)
 
     def check_fun_data(self, testfunc, targfunc, testarval, targarval,
-                       targarnanval, **kwargs):
+                       targarnanval, check_dtype=True, **kwargs):
         for axis in list(range(targarval.ndim)) + [None]:
             for skipna in [False, True]:
                 targartempval = targarval if skipna else targarnanval
@@ -182,16 +186,20 @@ class TestnanopsDataFrame(tm.TestCase):
                     targ = targfunc(targartempval, axis=axis, **kwargs)
                     res = testfunc(testarval, axis=axis, skipna=skipna,
                                    **kwargs)
-                    self.check_results(targ, res, axis)
+                    self.check_results(targ, res, axis,
+                                       check_dtype=check_dtype)
                     if skipna:
                         res = testfunc(testarval, axis=axis, **kwargs)
-                        self.check_results(targ, res, axis)
+                        self.check_results(targ, res, axis,
+                                           check_dtype=check_dtype)
                     if axis is None:
                         res = testfunc(testarval, skipna=skipna, **kwargs)
-                        self.check_results(targ, res, axis)
+                        self.check_results(targ, res, axis,
+                                           check_dtype=check_dtype)
                     if skipna and axis is None:
                         res = testfunc(testarval, **kwargs)
-                        self.check_results(targ, res, axis)
+                        self.check_results(targ, res, axis,
+                                           check_dtype=check_dtype)
                 except BaseException as exc:
                     exc.args += ('axis: %s of %s' % (axis, testarval.ndim - 1),
                                  'skipna: %s' % skipna, 'kwargs: %s' % kwargs)
@@ -207,7 +215,7 @@ class TestnanopsDataFrame(tm.TestCase):
         except ValueError:
             return
         self.check_fun_data(testfunc, targfunc, testarval2, targarval2,
-                            targarnanval2, **kwargs)
+                            targarnanval2, check_dtype=check_dtype, **kwargs)
 
     def check_fun(self, testfunc, targfunc, testar, targar=None,
                   targarnan=None, **kwargs):
@@ -317,7 +325,7 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def test_nansum(self):
         self.check_funs(nanops.nansum, np.sum, allow_str=False,
-                        allow_date=False, allow_tdelta=True)
+                        allow_date=False, allow_tdelta=True, check_dtype=False)
 
     def test_nanmean(self):
         self.check_funs(nanops.nanmean, np.mean, allow_complex=False,
@@ -596,11 +604,11 @@ class TestnanopsDataFrame(tm.TestCase):
                 else:
                     targ1 = np.hstack([targ0, arr_nan])
                 res1 = checkfun(arr_float_nan, arr_float1_nan)
-                tm.assert_almost_equal(targ1, res1)
+                tm.assert_numpy_array_equal(targ1, res1, check_dtype=False)
 
                 targ2 = arr_nan_nan
                 res2 = checkfun(arr_float_nan, arr_nan_float1)
-                tm.assert_almost_equal(targ2, res2)
+                tm.assert_numpy_array_equal(targ2, res2, check_dtype=False)
             except Exception as exc:
                 exc.args += ('ndim: %s' % arr_float.ndim, )
                 raise
@@ -793,30 +801,31 @@ class TestNanvarFixedValues(tm.TestCase):
     def test_nanvar_all_finite(self):
         samples = self.samples
         actual_variance = nanops.nanvar(samples)
-        np.testing.assert_almost_equal(actual_variance, self.variance,
-                                       decimal=2)
+        tm.assert_almost_equal(actual_variance, self.variance,
+                               check_less_precise=2)
 
     def test_nanvar_nans(self):
         samples = np.nan * np.ones(2 * self.samples.shape[0])
         samples[::2] = self.samples
 
         actual_variance = nanops.nanvar(samples, skipna=True)
-        np.testing.assert_almost_equal(actual_variance, self.variance,
-                                       decimal=2)
+        tm.assert_almost_equal(actual_variance, self.variance,
+                               check_less_precise=2)
 
         actual_variance = nanops.nanvar(samples, skipna=False)
-        np.testing.assert_almost_equal(actual_variance, np.nan, decimal=2)
+        tm.assert_almost_equal(actual_variance, np.nan, check_less_precise=2)
 
     def test_nanstd_nans(self):
         samples = np.nan * np.ones(2 * self.samples.shape[0])
         samples[::2] = self.samples
 
         actual_std = nanops.nanstd(samples, skipna=True)
-        np.testing.assert_almost_equal(actual_std, self.variance ** 0.5,
-                                       decimal=2)
+        tm.assert_almost_equal(actual_std, self.variance ** 0.5,
+                               check_less_precise=2)
 
         actual_std = nanops.nanvar(samples, skipna=False)
-        np.testing.assert_almost_equal(actual_std, np.nan, decimal=2)
+        tm.assert_almost_equal(actual_std, np.nan,
+                               check_less_precise=2)
 
     def test_nanvar_axis(self):
         # Generate some sample data.
@@ -825,8 +834,8 @@ class TestNanvarFixedValues(tm.TestCase):
         samples = np.vstack([samples_norm, samples_unif])
 
         actual_variance = nanops.nanvar(samples, axis=1)
-        np.testing.assert_array_almost_equal(actual_variance, np.array(
-            [self.variance, 1.0 / 12]), decimal=2)
+        tm.assert_almost_equal(actual_variance, np.array(
+            [self.variance, 1.0 / 12]), check_less_precise=2)
 
     def test_nanvar_ddof(self):
         n = 5
@@ -839,13 +848,16 @@ class TestNanvarFixedValues(tm.TestCase):
 
         # The unbiased estimate.
         var = 1.0 / 12
-        np.testing.assert_almost_equal(variance_1, var, decimal=2)
+        tm.assert_almost_equal(variance_1, var,
+                               check_less_precise=2)
+
         # The underestimated variance.
-        np.testing.assert_almost_equal(variance_0, (n - 1.0) / n * var,
-                                       decimal=2)
+        tm.assert_almost_equal(variance_0, (n - 1.0) / n * var,
+                               check_less_precise=2)
+
         # The overestimated variance.
-        np.testing.assert_almost_equal(variance_2, (n - 1.0) / (n - 2.0) * var,
-                                       decimal=2)
+        tm.assert_almost_equal(variance_2, (n - 1.0) / (n - 2.0) * var,
+                               check_less_precise=2)
 
     def test_ground_truth(self):
         # Test against values that were precomputed with Numpy.
@@ -867,17 +879,15 @@ class TestNanvarFixedValues(tm.TestCase):
         for axis in range(2):
             for ddof in range(3):
                 var = nanops.nanvar(samples, skipna=True, axis=axis, ddof=ddof)
-                np.testing.assert_array_almost_equal(var[:3],
-                                                     variance[axis, ddof])
-                np.testing.assert_equal(var[3], np.nan)
+                tm.assert_almost_equal(var[:3], variance[axis, ddof])
+                self.assertTrue(np.isnan(var[3]))
 
         # Test nanstd.
         for axis in range(2):
             for ddof in range(3):
                 std = nanops.nanstd(samples, skipna=True, axis=axis, ddof=ddof)
-                np.testing.assert_array_almost_equal(
-                    std[:3], variance[axis, ddof] ** 0.5)
-                np.testing.assert_equal(std[3], np.nan)
+                tm.assert_almost_equal(std[:3], variance[axis, ddof] ** 0.5)
+                self.assertTrue(np.isnan(std[3]))
 
     def test_nanstd_roundoff(self):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
@@ -925,7 +935,7 @@ class TestNanskewFixedValues(tm.TestCase):
         samples = np.vstack([self.samples,
                              np.nan * np.ones(len(self.samples))])
         skew = nanops.nanskew(samples, axis=1)
-        tm.assert_almost_equal(skew, [self.actual_skew, np.nan])
+        tm.assert_almost_equal(skew, np.array([self.actual_skew, np.nan]))
 
     def test_nans(self):
         samples = np.hstack([self.samples, np.nan])
@@ -975,7 +985,7 @@ class TestNankurtFixedValues(tm.TestCase):
         samples = np.vstack([self.samples,
                              np.nan * np.ones(len(self.samples))])
         kurt = nanops.nankurt(samples, axis=1)
-        tm.assert_almost_equal(kurt, [self.actual_kurt, np.nan])
+        tm.assert_almost_equal(kurt, np.array([self.actual_kurt, np.nan]))
 
     def test_nans(self):
         samples = np.hstack([self.samples, np.nan])

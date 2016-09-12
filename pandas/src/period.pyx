@@ -24,6 +24,7 @@ cimport cython
 from datetime cimport *
 cimport util
 cimport lib
+from lib cimport is_null_datetimelike, is_period
 import lib
 from pandas import tslib
 from tslib import Timedelta, Timestamp, iNaT, NaT
@@ -36,12 +37,20 @@ from tslib cimport (
     _nat_scalar_rules,
 )
 
+from pandas.tseries import frequencies
+
 from sys import version_info
 
 cdef bint PY2 = version_info[0] == 2
 
 cdef int64_t NPY_NAT = util.get_nat()
 
+cdef int US_RESO = frequencies.US_RESO
+cdef int MS_RESO = frequencies.MS_RESO
+cdef int S_RESO = frequencies.S_RESO
+cdef int T_RESO = frequencies.T_RESO
+cdef int H_RESO = frequencies.H_RESO
+cdef int D_RESO = frequencies.D_RESO
 
 cdef extern from "period_helper.h":
     ctypedef struct date_info:
@@ -71,17 +80,21 @@ cdef extern from "period_helper.h":
     ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
 
     void initialize_daytime_conversion_factor_matrix()
-    int64_t asfreq(int64_t dtordinal, int freq1, int freq2, char relation) except INT32_MIN
+    int64_t asfreq(int64_t dtordinal, int freq1, int freq2,
+                   char relation) except INT32_MIN
     freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
     void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
 
     int64_t get_period_ordinal(int year, int month, int day,
-                          int hour, int minute, int second, int microseconds, int picoseconds,
-                          int freq) nogil except INT32_MIN
+                               int hour, int minute, int second,
+                               int microseconds, int picoseconds,
+                               int freq) nogil except INT32_MIN
 
-    int64_t get_python_ordinal(int64_t period_ordinal, int freq) except INT32_MIN
+    int64_t get_python_ordinal(int64_t period_ordinal,
+                               int freq) except INT32_MIN
 
-    int get_date_info(int64_t ordinal, int freq, date_info *dinfo) nogil except INT32_MIN
+    int get_date_info(int64_t ordinal, int freq,
+                      date_info *dinfo) nogil except INT32_MIN
     double getAbsTime(int, int64_t, int64_t)
 
     int pyear(int64_t ordinal, int freq) except INT32_MIN
@@ -125,6 +138,7 @@ cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
 
     return period_ord_w_mult * mult + 1;
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
@@ -149,10 +163,12 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
                     continue
                 pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
                 out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                            dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
+                                            dts.hour, dts.min, dts.sec,
+                                            dts.us, dts.ps, freq)
     else:
         out = localize_dt64arr_to_period(dtarr, freq, tz)
     return out
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -203,6 +219,7 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
 
     return retval
 
+
 def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     """
     Convert int64-array of period ordinals from one frequency to another, and
@@ -245,7 +262,9 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
 
     return result
 
-def period_ordinal(int y, int m, int d, int h, int min, int s, int us, int ps, int freq):
+
+def period_ordinal(int y, int m, int d, int h, int min,
+                   int s, int us, int ps, int freq):
     cdef:
         int64_t ordinal
 
@@ -274,6 +293,7 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) nogil:
     dts.ps = int(((subsecond_fraction) * 1e6 - dts.us) * 1e6)
 
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+
 
 def period_format(int64_t value, int freq, object fmt=None):
     cdef:
@@ -323,7 +343,8 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
                         (b"%u", b"^`IJ`^"),
                         (b"%n", b"^`KL`^")]
 
-cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^", "^`GH`^", "^`IJ`^", "^`KL`^"]
+cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
+                            "^`GH`^", "^`IJ`^", "^`KL`^"]
 
 cdef object _period_strftime(int64_t value, int freq, object fmt):
     import sys
@@ -381,6 +402,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 
 ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
 
+
 def get_period_field(int code, int64_t value, int freq):
     cdef accessor f = _get_accessor_func(code)
     if f is NULL:
@@ -388,6 +410,7 @@ def get_period_field(int code, int64_t value, int freq):
     if value == iNaT:
         return np.nan
     return f(value, freq)
+
 
 def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
     cdef:
@@ -409,7 +432,6 @@ def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
         out[i] = f(arr[i], freq)
 
     return out
-
 
 
 cdef accessor _get_accessor_func(int code):
@@ -450,12 +472,45 @@ def extract_ordinals(ndarray[object] values, freq):
 
     for i in range(n):
         p = values[i]
-        ordinals[i] = p.ordinal
-        if p.freqstr != freqstr:
-            msg = _DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
-            raise IncompatibleFrequency(msg)
+
+        if is_null_datetimelike(p):
+            ordinals[i] = tslib.iNaT
+        else:
+            try:
+                ordinals[i] = p.ordinal
+
+                if p.freqstr != freqstr:
+                    msg = _DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
+                    raise IncompatibleFrequency(msg)
+
+            except AttributeError:
+                p = Period(p, freq=freq)
+                if p is tslib.NaT:
+                    # input may contain NaT-like string
+                    ordinals[i] = tslib.iNaT
+                else:
+                    ordinals[i] = p.ordinal
 
     return ordinals
+
+
+def extract_freq(ndarray[object] values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object p
+
+    for i in range(n):
+        p = values[i]
+
+        try:
+            # now Timestamp / NaT has freq attr
+            if is_period(p):
+                return p.freq
+        except AttributeError:
+            pass
+
+    raise ValueError('freq not specified and cannot be inferred')
+
 
 cpdef resolution(ndarray[int64_t] stamps, tz=None):
     cdef:
@@ -476,12 +531,6 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
                 reso = curr_reso
         return reso
 
-US_RESO = 0
-MS_RESO = 1
-S_RESO = 2
-T_RESO = 3
-H_RESO = 4
-D_RESO = 5
 
 cdef inline int _reso_stamp(pandas_datetimestruct *dts):
     if dts.us != 0:
@@ -535,7 +584,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         pos = _pos
 
         # statictzinfo
-        if typ not in ['pytz','dateutil']:
+        if typ not in ['pytz', 'dateutil']:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
@@ -577,7 +626,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 continue
             pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                           dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
+                                           dts.hour, dts.min, dts.sec,
+                                           dts.us, dts.ps, freq)
 
     elif _is_tzlocal(tz):
         for i in range(n):
@@ -592,7 +642,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
             pandas_datetime_to_datetimestruct(stamps[i] + delta,
                                               PANDAS_FR_ns, &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                           dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
+                                           dts.hour, dts.min, dts.sec,
+                                           dts.us, dts.ps, freq)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = _get_dst_info(tz)
@@ -603,7 +654,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
         pos = _pos
 
         # statictzinfo
-        if typ not in ['pytz','dateutil']:
+        if typ not in ['pytz', 'dateutil']:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
@@ -611,7 +662,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
                                                   PANDAS_FR_ns, &dts)
                 result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                               dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
+                                               dts.hour, dts.min, dts.sec,
+                                               dts.us, dts.ps, freq)
         else:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
@@ -620,59 +672,38 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
                                                   PANDAS_FR_ns, &dts)
                 result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                               dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
+                                               dts.hour, dts.min, dts.sec,
+                                               dts.us, dts.ps, freq)
 
     return result
 
 
 _DIFFERENT_FREQ = "Input has different freq={1} from Period(freq={0})"
-_DIFFERENT_FREQ_INDEX = "Input has different freq={1} from PeriodIndex(freq={0})"
+_DIFFERENT_FREQ_INDEX = ("Input has different freq={1} "
+                         "from PeriodIndex(freq={0})")
 
 
 class IncompatibleFrequency(ValueError):
     pass
 
 
-cdef class Period(object):
-    """
-    Represents an period of time
+cdef class _Period(object):
 
-    Parameters
-    ----------
-    value : Period or compat.string_types, default None
-        The time period represented (e.g., '4Q2005')
-    freq : str, default None
-        One of pandas period strings or corresponding objects
-    year : int, default None
-    month : int, default 1
-    quarter : int, default None
-    day : int, default 1
-    hour : int, default 0
-    minute : int, default 0
-    second : int, default 0
-    """
     cdef public:
         int64_t ordinal
         object freq
 
-    _comparables = ['name','freqstr']
+    _comparables = ['name', 'freqstr']
     _typ = 'period'
 
     @classmethod
     def _maybe_convert_freq(cls, object freq):
 
-        if isinstance(freq, compat.string_types):
-            from pandas.tseries.frequencies import _period_alias_dict
-            freq = freq.upper()
-            freq = _period_alias_dict.get(freq, freq)
-        elif isinstance(freq, (int, tuple)):
-            from pandas.tseries.frequencies import get_freq_code as _gfc
-            from pandas.tseries.frequencies import _get_freq_str
-            code, stride = _gfc(freq)
-            freq = _get_freq_str(code, stride)
+        if isinstance(freq, (int, tuple)):
+            code, stride = frequencies.get_freq_code(freq)
+            freq = frequencies._get_freq_str(code, stride)
 
-        from pandas.tseries.frequencies import to_offset
-        freq = to_offset(freq)
+        freq = frequencies.to_offset(freq)
 
         if freq.n <= 0:
             raise ValueError('Frequency must be positive, because it'
@@ -682,102 +713,28 @@ cdef class Period(object):
 
     @classmethod
     def _from_ordinal(cls, ordinal, freq):
-        """ fast creation from an ordinal and freq that are already validated! """
-        self = Period.__new__(cls)
-        self.ordinal = ordinal
-        self.freq = cls._maybe_convert_freq(freq)
-        return self
-
-    def __init__(self, value=None, freq=None, ordinal=None,
-                 year=None, month=1, quarter=None, day=1,
-                 hour=0, minute=0, second=0):
-        from pandas.tseries import frequencies
-        from pandas.tseries.frequencies import get_freq_code as _gfc
-
-        # freq points to a tuple (base, mult);  base is one of the defined
-        # periods such as A, Q, etc. Every five minutes would be, e.g.,
-        # ('T', 5) but may be passed in as a string like '5T'
-
-        # ordinal is the period offset from the gregorian proleptic epoch
-
-        if ordinal is not None and value is not None:
-            raise ValueError(("Only value or ordinal but not both should be "
-                              "given but not both"))
-        elif ordinal is not None:
-            if not lib.is_integer(ordinal):
-                raise ValueError("Ordinal must be an integer")
-            if freq is None:
-                raise ValueError('Must supply freq for ordinal value')
-
-        elif value is None:
-            if freq is None:
-                raise ValueError("If value is None, freq cannot be None")
-            ordinal = _ordinal_from_fields(year, month, quarter, day,
-                                           hour, minute, second, freq)
-
-        elif isinstance(value, Period):
-            other = value
-            if freq is None or _gfc(freq) == _gfc(other.freq):
-                ordinal = other.ordinal
-                freq = other.freq
-            else:
-                converted = other.asfreq(freq)
-                ordinal = converted.ordinal
-
-        elif lib.is_null_datetimelike(value) or value in tslib._nat_strings:
-            ordinal = tslib.iNaT
-            if freq is None:
-                raise ValueError("If value is NaT, freq cannot be None "
-                                 "because it cannot be inferred")
-
-        elif isinstance(value, compat.string_types) or lib.is_integer(value):
-            if lib.is_integer(value):
-                value = str(value)
-            value = value.upper()
-            dt, _, reso = parse_time_string(value, freq)
-
-            if freq is None:
-                try:
-                    freq = frequencies.Resolution.get_freq(reso)
-                except KeyError:
-                    raise ValueError("Invalid frequency or could not infer: %s" % reso)
-
-        elif isinstance(value, datetime):
-            dt = value
-            if freq is None:
-                raise ValueError('Must supply freq for datetime value')
-        elif isinstance(value, np.datetime64):
-            dt = Timestamp(value)
-            if freq is None:
-                raise ValueError('Must supply freq for datetime value')
-        elif isinstance(value, date):
-            dt = datetime(year=value.year, month=value.month, day=value.day)
-            if freq is None:
-                raise ValueError('Must supply freq for datetime value')
+        """
+        Fast creation from an ordinal and freq that are already validated!
+        """
+        if ordinal == tslib.iNaT:
+            return tslib.NaT
         else:
-            msg = "Value must be Period, string, integer, or datetime"
-            raise ValueError(msg)
-
-        base, mult = _gfc(freq)
-
-        if ordinal is None:
-            self.ordinal = get_period_ordinal(dt.year, dt.month, dt.day,
-                                              dt.hour, dt.minute, dt.second,
-                                              dt.microsecond, 0, base)
-        else:
+            self = _Period.__new__(cls)
             self.ordinal = ordinal
-
-        self.freq = self._maybe_convert_freq(freq)
+            self.freq = cls._maybe_convert_freq(freq)
+            return self
 
     def __richcmp__(self, other, op):
         if isinstance(other, Period):
-            from pandas.tseries.frequencies import get_freq_code as _gfc
             if other.freq != self.freq:
                 msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
-            if self.ordinal == tslib.iNaT or other.ordinal == tslib.iNaT:
-                return _nat_scalar_rules[op]
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
+        elif other is tslib.NaT:
+            return _nat_scalar_rules[op]
+        # index/series like
+        elif hasattr(other, '_typ'):
+            return NotImplemented
         else:
             if op == Py_EQ:
                 return NotImplemented
@@ -787,32 +744,26 @@ cdef class Period(object):
                             (type(self).__name__, type(other).__name__))
 
     def __hash__(self):
-        return hash((self.ordinal, self.freq))
+        return hash((self.ordinal, self.freqstr))
 
     def _add_delta(self, other):
-        from pandas.tseries import frequencies
-        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick, Timedelta)):
+        if isinstance(other, (timedelta, np.timedelta64,
+                              offsets.Tick, Timedelta)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
                 nanos = tslib._delta_to_nanoseconds(other)
                 offset_nanos = tslib._delta_to_nanoseconds(offset)
 
                 if nanos % offset_nanos == 0:
-                    if self.ordinal == tslib.iNaT:
-                        ordinal = self.ordinal
-                    else:
-                        ordinal = self.ordinal + (nanos // offset_nanos)
+                    ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
-            msg = 'Input cannnot be converted to Period(freq={0})'
-            raise ValueError(msg)
+            msg = 'Input cannot be converted to Period(freq={0})'
+            raise IncompatibleFrequency(msg.format(self.freqstr))
         elif isinstance(other, offsets.DateOffset):
-            freqstr = frequencies.get_standard_freq(other)
+            freqstr = other.rule_code
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
-                if self.ordinal == tslib.iNaT:
-                    ordinal = self.ordinal
-                else:
-                    ordinal = self.ordinal + other.n
+                ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
             msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
@@ -820,37 +771,47 @@ cdef class Period(object):
             return NotImplemented
 
     def __add__(self, other):
-        if isinstance(other, (timedelta, np.timedelta64,
-                              offsets.Tick, offsets.DateOffset, Timedelta)):
-            return self._add_delta(other)
-        elif lib.is_integer(other):
-            if self.ordinal == tslib.iNaT:
-                ordinal = self.ordinal
-            else:
+        if isinstance(self, Period):
+            if isinstance(other, (timedelta, np.timedelta64,
+                                  offsets.Tick, offsets.DateOffset,
+                                  Timedelta)):
+                return self._add_delta(other)
+            elif other is tslib.NaT:
+                return tslib.NaT
+            elif lib.is_integer(other):
                 ordinal = self.ordinal + other * self.freq.n
-            return Period(ordinal=ordinal, freq=self.freq)
-        else:  # pragma: no cover
+                return Period(ordinal=ordinal, freq=self.freq)
+            else:  # pragma: no cover
+                return NotImplemented
+        elif isinstance(other, Period):
+            return other + self
+        else:
             return NotImplemented
 
     def __sub__(self, other):
-        if isinstance(other, (timedelta, np.timedelta64,
-                              offsets.Tick, offsets.DateOffset, Timedelta)):
-            neg_other = -other
-            return self + neg_other
-        elif lib.is_integer(other):
-            if self.ordinal == tslib.iNaT:
-                ordinal = self.ordinal
-            else:
+        if isinstance(self, Period):
+            if isinstance(other, (timedelta, np.timedelta64,
+                                  offsets.Tick, offsets.DateOffset,
+                                  Timedelta)):
+                neg_other = -other
+                return self + neg_other
+            elif lib.is_integer(other):
                 ordinal = self.ordinal - other * self.freq.n
-            return Period(ordinal=ordinal, freq=self.freq)
+                return Period(ordinal=ordinal, freq=self.freq)
+            elif isinstance(other, Period):
+                if other.freq != self.freq:
+                    msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
+                    raise IncompatibleFrequency(msg)
+                return self.ordinal - other.ordinal
+            elif getattr(other, '_typ', None) == 'periodindex':
+                return -other.__sub__(self)
+            else:  # pragma: no cover
+                return NotImplemented
         elif isinstance(other, Period):
-            if other.freq != self.freq:
-                raise ValueError("Cannot do arithmetic with "
-                                 "non-conforming periods")
-            if self.ordinal == tslib.iNaT or other.ordinal == tslib.iNaT:
-                return Period(ordinal=tslib.iNaT, freq=self.freq)
-            return self.ordinal - other.ordinal
-        else:  # pragma: no cover
+            if self is tslib.NaT:
+                return tslib.NaT
+            return NotImplemented
+        else:
             return NotImplemented
 
     def asfreq(self, freq, how='E'):
@@ -868,21 +829,18 @@ cdef class Period(object):
         -------
         resampled : Period
         """
-        from pandas.tseries.frequencies import get_freq_code as _gfc
+        freq = self._maybe_convert_freq(freq)
         how = _validate_end_alias(how)
-        base1, mult1 = _gfc(self.freq)
-        base2, mult2 = _gfc(freq)
+        base1, mult1 = frequencies.get_freq_code(self.freq)
+        base2, mult2 = frequencies.get_freq_code(freq)
 
-        if self.ordinal == tslib.iNaT:
-            ordinal = self.ordinal
+        # mult1 can't be negative or 0
+        end = how == 'E'
+        if end:
+            ordinal = self.ordinal + mult1 - 1
         else:
-            # mult1 can't be negative or 0
-            end = how == 'E'
-            if end:
-                ordinal = self.ordinal + mult1 - 1
-            else:
-                ordinal = self.ordinal
-            ordinal = period_asfreq(ordinal, base1, base2, end)
+            ordinal = self.ordinal
+        ordinal = period_asfreq(ordinal, base1, base2, end)
 
         return Period(ordinal=ordinal, freq=freq)
 
@@ -892,12 +850,9 @@ cdef class Period(object):
 
     @property
     def end_time(self):
-        if self.ordinal == tslib.iNaT:
-            ordinal = self.ordinal
-        else:
-            # freq.n can't be negative or 0
-            # ordinal = (self + self.freq.n).start_time.value - 1
-            ordinal = (self + 1).start_time.value - 1
+        # freq.n can't be negative or 0
+        # ordinal = (self + self.freq.n).start_time.value - 1
+        ordinal = (self + 1).start_time.value - 1
         return Timestamp(ordinal)
 
     def to_timestamp(self, freq=None, how='start', tz=None):
@@ -918,23 +873,22 @@ cdef class Period(object):
         -------
         Timestamp
         """
-        from pandas.tseries import frequencies
-        from pandas.tseries.frequencies import get_freq_code as _gfc
+        if freq is not None:
+            freq = self._maybe_convert_freq(freq)
         how = _validate_end_alias(how)
 
         if freq is None:
-            base, mult = _gfc(self.freq)
+            base, mult = frequencies.get_freq_code(self.freq)
             freq = frequencies.get_to_timestamp_base(base)
 
-        base, mult = _gfc(freq)
+        base, mult = frequencies.get_freq_code(freq)
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
         return Timestamp(dt64, tz=tz)
 
     cdef _field(self, alias):
-        from pandas.tseries.frequencies import get_freq_code as _gfc
-        base, mult = _gfc(self.freq)
+        base, mult = frequencies.get_freq_code(self.freq)
         return get_period_field(alias, self.ordinal, base)
 
     property year:
@@ -982,6 +936,9 @@ cdef class Period(object):
     property daysinmonth:
         def __get__(self):
             return self.days_in_month
+    property is_leap_year:
+        def __get__(self):
+            return bool(is_leapyear(self._field(0)))
 
     @classmethod
     def now(cls, freq=None):
@@ -996,8 +953,7 @@ cdef class Period(object):
         return self.freq.freqstr
 
     def __repr__(self):
-        from pandas.tseries.frequencies import get_freq_code as _gfc
-        base, mult = _gfc(self.freq)
+        base, mult = frequencies.get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
         return "Period('%s', '%s')" % (formatted, self.freqstr)
 
@@ -1008,8 +964,7 @@ cdef class Period(object):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        from pandas.tseries.frequencies import get_freq_code as _gfc
-        base, mult = _gfc(self.freq)
+        base, mult = frequencies.get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
         value = ("%s" % formatted)
         return value
@@ -1159,19 +1114,130 @@ cdef class Period(object):
             >>> a.strftime('%b. %d, %Y was a %A')
             'Jan. 01, 2001 was a Monday'
         """
-        from pandas.tseries.frequencies import get_freq_code as _gfc
-        base, mult = _gfc(self.freq)
+        base, mult = frequencies.get_freq_code(self.freq)
         return period_format(self.ordinal, base, fmt)
 
 
-def _ordinal_from_fields(year, month, quarter, day, hour, minute,
-                         second, freq):
-    from pandas.tseries.frequencies import get_freq_code as _gfc
-    base, mult = _gfc(freq)
+class Period(_Period):
+    """
+    Represents an period of time
+
+    Parameters
+    ----------
+    value : Period or compat.string_types, default None
+        The time period represented (e.g., '4Q2005')
+    freq : str, default None
+        One of pandas period strings or corresponding objects
+    year : int, default None
+    month : int, default 1
+    quarter : int, default None
+    day : int, default 1
+    hour : int, default 0
+    minute : int, default 0
+    second : int, default 0
+    """
+
+    def __new__(cls, value=None, freq=None, ordinal=None,
+                year=None, month=None, quarter=None, day=None,
+                hour=None, minute=None, second=None):
+        # freq points to a tuple (base, mult);  base is one of the defined
+        # periods such as A, Q, etc. Every five minutes would be, e.g.,
+        # ('T', 5) but may be passed in as a string like '5T'
+
+        # ordinal is the period offset from the gregorian proleptic epoch
+
+        cdef _Period self
+
+        if freq is not None:
+            freq = cls._maybe_convert_freq(freq)
+
+        if ordinal is not None and value is not None:
+            raise ValueError(("Only value or ordinal but not both should be "
+                              "given but not both"))
+        elif ordinal is not None:
+            if not lib.is_integer(ordinal):
+                raise ValueError("Ordinal must be an integer")
+            if freq is None:
+                raise ValueError('Must supply freq for ordinal value')
+
+        elif value is None:
+            if (year is None and month is None and
+                        quarter is None and day is None and
+                        hour is None and minute is None and second is None):
+                ordinal = tslib.iNaT
+            else:
+                if freq is None:
+                    raise ValueError("If value is None, freq cannot be None")
+
+                # set defaults
+                month = 1 if month is None else month
+                day = 1 if day is None else day
+                hour = 0 if hour is None else hour
+                minute = 0 if minute is None else minute
+                second = 0 if second is None else second
+
+                ordinal = _ordinal_from_fields(year, month, quarter, day,
+                                               hour, minute, second, freq)
+
+        elif isinstance(value, Period):
+            other = value
+            if freq is None or frequencies.get_freq_code(
+                    freq) == frequencies.get_freq_code(other.freq):
+                ordinal = other.ordinal
+                freq = other.freq
+            else:
+                converted = other.asfreq(freq)
+                ordinal = converted.ordinal
+
+        elif is_null_datetimelike(value) or value in tslib._nat_strings:
+            ordinal = tslib.iNaT
+
+        elif isinstance(value, compat.string_types) or lib.is_integer(value):
+            if lib.is_integer(value):
+                value = str(value)
+            value = value.upper()
+            dt, _, reso = parse_time_string(value, freq)
+
+            if freq is None:
+                try:
+                    freq = frequencies.Resolution.get_freq(reso)
+                except KeyError:
+                    raise ValueError(
+                        "Invalid frequency or could not infer: %s" % reso)
+
+        elif isinstance(value, datetime):
+            dt = value
+            if freq is None:
+                raise ValueError('Must supply freq for datetime value')
+        elif isinstance(value, np.datetime64):
+            dt = Timestamp(value)
+            if freq is None:
+                raise ValueError('Must supply freq for datetime value')
+        elif isinstance(value, date):
+            dt = datetime(year=value.year, month=value.month, day=value.day)
+            if freq is None:
+                raise ValueError('Must supply freq for datetime value')
+        else:
+            msg = "Value must be Period, string, integer, or datetime"
+            raise ValueError(msg)
+
+        if ordinal is None:
+            base, mult = frequencies.get_freq_code(freq)
+            ordinal = get_period_ordinal(dt.year, dt.month, dt.day,
+                                         dt.hour, dt.minute, dt.second,
+                                         dt.microsecond, 0, base)
+
+        return cls._from_ordinal(ordinal, freq)
+
+
+def _ordinal_from_fields(year, month, quarter, day,
+                         hour, minute, second, freq):
+    base, mult = frequencies.get_freq_code(freq)
     if quarter is not None:
         year, month = _quarter_to_myear(year, quarter, freq)
 
-    return get_period_ordinal(year, month, day, hour, minute, second, 0, 0, base)
+    return get_period_ordinal(year, month, day, hour,
+                              minute, second, 0, 0, base)
 
 
 def _quarter_to_myear(year, quarter, freq):
@@ -1179,8 +1245,8 @@ def _quarter_to_myear(year, quarter, freq):
         if quarter <= 0 or quarter > 4:
             raise ValueError('Quarter must be 1 <= q <= 4')
 
-        from pandas.tseries import frequencies
-        mnum = frequencies._month_numbers[frequencies._get_rule_month(freq)] + 1
+        mnum = frequencies._month_numbers[
+            frequencies._get_rule_month(freq)] + 1
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
             year -= 1

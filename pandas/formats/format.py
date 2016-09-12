@@ -1,12 +1,29 @@
 # -*- coding: utf-8 -*-
+"""
+Internal module for formatting output data in csv, html,
+and latex files. This module also applies to display formatting.
+"""
+
 from __future__ import print_function
 from distutils.version import LooseVersion
 # pylint: disable=W0141
 
 import sys
 
+from pandas.types.missing import isnull, notnull
+from pandas.types.common import (is_categorical_dtype,
+                                 is_float_dtype,
+                                 is_period_arraylike,
+                                 is_integer_dtype,
+                                 is_datetimetz,
+                                 is_integer,
+                                 is_float,
+                                 is_numeric_dtype,
+                                 is_datetime64_dtype,
+                                 is_timedelta64_dtype)
+from pandas.types.generic import ABCSparseArray
+
 from pandas.core.base import PandasObject
-from pandas.core.common import isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, reduce, u,
@@ -25,7 +42,6 @@ import numpy as np
 
 import itertools
 import csv
-import warnings
 
 common_docstring = """
     Parameters
@@ -53,7 +69,9 @@ common_docstring = """
         Set to False for a DataFrame with a hierarchical index to print every
         multiindex key at each row, default True
     index_names : bool, optional
-        Prints the names of the indexes, default True"""
+        Prints the names of the indexes, default True
+    line_width : int, optional
+        Width to wrap a line in characters, default no wrap"""
 
 justify_docstring = """
     justify : {'left', 'right'}, default None
@@ -190,7 +208,7 @@ class SeriesFormatter(object):
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
-        if com.is_categorical_dtype(self.tr_series.dtype):
+        if is_categorical_dtype(self.tr_series.dtype):
             level_info = self.tr_series._values._repr_categories_info()
             if footer:
                 footer += "\n"
@@ -312,12 +330,12 @@ class TableFormatter(object):
 
     def _get_formatter(self, i):
         if isinstance(self.formatters, (list, tuple)):
-            if com.is_integer(i):
+            if is_integer(i):
                 return self.formatters[i]
             else:
                 return None
         else:
-            if com.is_integer(i) and i not in self.columns:
+            if is_integer(i) and i not in self.columns:
                 i = self.columns[i]
             return self.formatters.get(i, None)
 
@@ -617,7 +635,8 @@ class DataFrameFormatter(TableFormatter):
         st = 0
         for i, ed in enumerate(col_bins):
             row = strcols[st:ed]
-            row.insert(0, idx)
+            if self.index:
+                row.insert(0, idx)
             if nbins > 1:
                 if ed <= len(strcols) and i < nbins - 1:
                     row.append([' \\'] + ['  '] * (nrows - 1))
@@ -652,20 +671,28 @@ class DataFrameFormatter(TableFormatter):
                             float_format=self.float_format, na_rep=self.na_rep,
                             space=self.col_space, decimal=self.decimal)
 
-    def to_html(self, classes=None, notebook=False):
+    def to_html(self, classes=None, notebook=False, border=None):
         """
         Render a DataFrame to a html table.
 
         Parameters
         ----------
+        classes : str or list-like
+            classes to include in the `class` attribute of the opening
+            ``<table>`` tag, in addition to the default "dataframe".
         notebook : {True, False}, optional, default False
             Whether the generated HTML is for IPython Notebook.
+        border : int
+            A ``border=border`` attribute is included in the opening
+            ``<table>`` tag. Default ``pd.options.html.border``.
 
-        """
+            .. versionadded:: 0.19.0
+         """
         html_renderer = HTMLFormatter(self, classes=classes,
                                       max_rows=self.max_rows,
                                       max_cols=self.max_cols,
-                                      notebook=notebook)
+                                      notebook=notebook,
+                                      border=border)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -891,7 +918,7 @@ class HTMLFormatter(TableFormatter):
     indent_delta = 2
 
     def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
-                 notebook=False):
+                 notebook=False, border=None):
         self.fmt = formatter
         self.classes = classes
 
@@ -907,6 +934,9 @@ class HTMLFormatter(TableFormatter):
         self.is_truncated = (self.max_rows < len(self.fmt.frame) or
                              self.max_cols < len(self.fmt.columns))
         self.notebook = notebook
+        if border is None:
+            border = get_option('html.border')
+        self.border = border
 
     def write(self, s, indent=0):
         rs = pprint_thing(s)
@@ -977,12 +1007,13 @@ class HTMLFormatter(TableFormatter):
                 import IPython
                 if IPython.__version__ < LooseVersion('3.0.0'):
                     div_style = ' style="max-width:1500px;overflow:auto;"'
-            except ImportError:
+            except (ImportError, AttributeError):
                 pass
 
             self.write('<div{0}>'.format(div_style))
 
-        self.write('<table border="1" class="%s">' % ' '.join(_classes),
+        self.write('<table border="%s" class="%s">' % (self.border,
+                                                       ' '.join(_classes)),
                    indent)
 
         indent += self.indent_delta
@@ -1277,29 +1308,41 @@ class HTMLFormatter(TableFormatter):
 
 
 def _get_level_lengths(levels, sentinel=''):
-    from itertools import groupby
+    """For each index in each level the function returns lengths of indexes.
 
-    def _make_grouper():
-        record = {'count': 0}
+    Parameters
+    ----------
+    levels : list of lists
+        List of values on for level.
+    sentinel : string, optional
+        Value which states that no new index starts on there.
 
-        def grouper(x):
-            if x != sentinel:
-                record['count'] += 1
-            return record['count']
+    Returns
+    ----------
+    Returns list of maps. For each level returns map of indexes (key is index
+    in row and value is length of index).
+    """
+    if len(levels) == 0:
+        return []
 
-        return grouper
+    control = [True for x in levels[0]]
 
     result = []
-    for lev in levels:
-        i = 0
-        f = _make_grouper()
-        recs = {}
-        for key, gpr in groupby(lev, f):
-            values = list(gpr)
-            recs[i] = len(values)
-            i += len(values)
+    for level in levels:
+        last_index = 0
 
-        result.append(recs)
+        lengths = {}
+        for i, key in enumerate(level):
+            if control[i] and key == sentinel:
+                pass
+            else:
+                control[i] = False
+                lengths[last_index] = i - last_index
+                last_index = i
+
+        lengths[last_index] = len(level) - last_index
+
+        result.append(lengths)
 
     return result
 
@@ -1309,15 +1352,10 @@ class CSVFormatter(object):
                  float_format=None, cols=None, header=True, index=True,
                  index_label=None, mode='w', nanRep=None, encoding=None,
                  compression=None, quoting=None, line_terminator='\n',
-                 chunksize=None, engine=None, tupleize_cols=False,
-                 quotechar='"', date_format=None, doublequote=True,
-                 escapechar=None, decimal='.'):
+                 chunksize=None, tupleize_cols=False, quotechar='"',
+                 date_format=None, doublequote=True, escapechar=None,
+                 decimal='.'):
 
-        if engine is not None:
-            warnings.warn("'engine' keyword is deprecated and will be "
-                          "removed in a future version", FutureWarning,
-                          stacklevel=3)
-        self.engine = engine  # remove for 0.18
         self.obj = obj
 
         if path_or_buf is None:
@@ -1351,11 +1389,6 @@ class CSVFormatter(object):
         self.line_terminator = line_terminator
 
         self.date_format = date_format
-
-        # GH3457
-        if not self.obj.columns.is_unique and engine == 'python':
-            raise NotImplementedError("columns.is_unique == False not "
-                                      "supported with engine='python'")
 
         self.tupleize_cols = tupleize_cols
         self.has_mi_columns = (isinstance(obj.columns, MultiIndex) and
@@ -1413,108 +1446,6 @@ class CSVFormatter(object):
         if not index:
             self.nlevels = 0
 
-    # original python implem. of df.to_csv
-    # invoked by df.to_csv(engine=python)
-    def _helper_csv(self, writer, na_rep=None, cols=None, header=True,
-                    index=True, index_label=None, float_format=None,
-                    date_format=None):
-        if cols is None:
-            cols = self.columns
-
-        has_aliases = isinstance(header, (tuple, list, np.ndarray, Index))
-        if has_aliases or header:
-            if index:
-                # should write something for index label
-                if index_label is not False:
-                    if index_label is None:
-                        if isinstance(self.obj.index, MultiIndex):
-                            index_label = []
-                            for i, name in enumerate(self.obj.index.names):
-                                if name is None:
-                                    name = ''
-                                index_label.append(name)
-                        else:
-                            index_label = self.obj.index.name
-                            if index_label is None:
-                                index_label = ['']
-                            else:
-                                index_label = [index_label]
-                    elif not isinstance(index_label,
-                                        (list, tuple, np.ndarray, Index)):
-                        # given a string for a DF with Index
-                        index_label = [index_label]
-
-                    encoded_labels = list(index_label)
-                else:
-                    encoded_labels = []
-
-                if has_aliases:
-                    if len(header) != len(cols):
-                        raise ValueError(('Writing %d cols but got %d aliases'
-                                          % (len(cols), len(header))))
-                    else:
-                        write_cols = header
-                else:
-                    write_cols = cols
-                encoded_cols = list(write_cols)
-
-                writer.writerow(encoded_labels + encoded_cols)
-            else:
-                encoded_cols = list(cols)
-                writer.writerow(encoded_cols)
-
-        if date_format is None:
-            date_formatter = lambda x: Timestamp(x)._repr_base
-        else:
-
-            def strftime_with_nulls(x):
-                x = Timestamp(x)
-                if notnull(x):
-                    return x.strftime(date_format)
-
-            date_formatter = lambda x: strftime_with_nulls(x)
-
-        data_index = self.obj.index
-
-        if isinstance(self.obj.index, PeriodIndex):
-            data_index = self.obj.index.to_timestamp()
-
-        if isinstance(data_index, DatetimeIndex) and date_format is not None:
-            data_index = Index([date_formatter(x) for x in data_index])
-
-        values = self.obj.copy()
-        values.index = data_index
-        values.columns = values.columns.to_native_types(
-            na_rep=na_rep, float_format=float_format, date_format=date_format,
-            quoting=self.quoting)
-        values = values[cols]
-
-        series = {}
-        for k, v in compat.iteritems(values._series):
-            series[k] = v._values
-
-        nlevels = getattr(data_index, 'nlevels', 1)
-        for j, idx in enumerate(data_index):
-            row_fields = []
-            if index:
-                if nlevels == 1:
-                    row_fields = [idx]
-                else:  # handle MultiIndex
-                    row_fields = list(idx)
-            for i, col in enumerate(cols):
-                val = series[col][j]
-                if lib.checknull(val):
-                    val = na_rep
-
-                if float_format is not None and com.is_float(val):
-                    val = float_format % val
-                elif isinstance(val, (np.datetime64, Timestamp)):
-                    val = date_formatter(val)
-
-                row_fields.append(val)
-
-            writer.writerow(row_fields)
-
     def save(self):
         # create the writer & save
         if hasattr(self.path_or_buf, 'write'):
@@ -1538,17 +1469,7 @@ class CSVFormatter(object):
             else:
                 self.writer = csv.writer(f, **writer_kwargs)
 
-            if self.engine == 'python':
-                # to be removed in 0.13
-                self._helper_csv(self.writer, na_rep=self.na_rep,
-                                 float_format=self.float_format,
-                                 cols=self.cols, header=self.header,
-                                 index=self.index,
-                                 index_label=self.index_label,
-                                 date_format=self.date_format)
-
-            else:
-                self._save()
+            self._save()
 
         finally:
             if close:
@@ -1603,9 +1524,9 @@ class CSVFormatter(object):
 
         if not has_mi_columns:
             encoded_labels += list(write_cols)
-
-        # write out the mi
-        if has_mi_columns:
+            writer.writerow(encoded_labels)
+        else:
+            # write out the mi
             columns = obj.columns
 
             # write out the names for each level, then ALL of the values for
@@ -1626,12 +1547,12 @@ class CSVFormatter(object):
 
                 writer.writerow(col_line)
 
-            # add blanks for the columns, so that we
-            # have consistent seps
-            encoded_labels.extend([''] * len(columns))
-
-        # write out the index label line
-        writer.writerow(encoded_labels)
+            # Write out the index line if it's not empty.
+            # Otherwise, we will print out an extraneous
+            # blank line between the mi and the data rows.
+            if encoded_labels and set(encoded_labels) != set(['']):
+                encoded_labels.extend([''] * len(columns))
+                writer.writerow(encoded_labels)
 
     def _save(self):
 
@@ -1752,7 +1673,7 @@ class ExcelFormatter(object):
     def _format_value(self, val):
         if lib.checknull(val):
             val = self.na_rep
-        elif com.is_float(val):
+        elif is_float(val):
             if lib.isposinf_scalar(val):
                 val = self.inf_rep
             elif lib.isneginf_scalar(val):
@@ -1762,7 +1683,6 @@ class ExcelFormatter(object):
         return val
 
     def _format_header_mi(self):
-
         if self.columns.nlevels > 1:
             if not self.index:
                 raise NotImplementedError("Writing to Excel with MultiIndex"
@@ -1935,7 +1855,11 @@ class ExcelFormatter(object):
                 for spans, levels, labels in zip(level_lengths,
                                                  self.df.index.levels,
                                                  self.df.index.labels):
-                    values = levels.take(labels)
+
+                    values = levels.take(labels,
+                                         allow_fill=levels._can_hold_na,
+                                         fill_value=True)
+
                     for i in spans:
                         if spans[i] > 1:
                             yield ExcelCell(self.rowcounter + i, gcolidx,
@@ -1974,19 +1898,19 @@ class ExcelFormatter(object):
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.'):
 
-    if com.is_categorical_dtype(values):
+    if is_categorical_dtype(values):
         fmt_klass = CategoricalArrayFormatter
-    elif com.is_float_dtype(values.dtype):
+    elif is_float_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
-    elif com.is_period_arraylike(values):
+    elif is_period_arraylike(values):
         fmt_klass = PeriodArrayFormatter
-    elif com.is_integer_dtype(values.dtype):
+    elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
-    elif com.is_datetimetz(values):
+    elif is_datetimetz(values):
         fmt_klass = Datetime64TZFormatter
-    elif com.is_datetime64_dtype(values.dtype):
+    elif is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif com.is_timedelta64_dtype(values.dtype):
+    elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
     else:
         fmt_klass = GenericArrayFormatter
@@ -2055,15 +1979,17 @@ class GenericArrayFormatter(object):
         vals = self.values
         if isinstance(vals, Index):
             vals = vals._values
+        elif isinstance(vals, ABCSparseArray):
+            vals = vals.values
 
-        is_float = lib.map_infer(vals, com.is_float) & notnull(vals)
-        leading_space = is_float.any()
+        is_float_type = lib.map_infer(vals, is_float) & notnull(vals)
+        leading_space = is_float_type.any()
 
         fmt_values = []
         for i, v in enumerate(vals):
-            if not is_float[i] and leading_space:
+            if not is_float_type[i] and leading_space:
                 fmt_values.append(' %s' % _format(v))
-            elif is_float[i]:
+            elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
                 fmt_values.append(' %s' % _format(v))
@@ -2183,14 +2109,14 @@ class FloatArrayFormatter(GenericArrayFormatter):
         else:
             too_long = False
 
-        abs_vals = np.abs(self.values)
-
-        # this is pretty arbitrary for now
-        # large values: more that 8 characters including decimal symbol
-        # and first digit, hence > 1e6
-        has_large_values = (abs_vals > 1e6).any()
-        has_small_values = ((abs_vals < 10**(-self.digits)) &
-                            (abs_vals > 0)).any()
+        with np.errstate(invalid='ignore'):
+            abs_vals = np.abs(self.values)
+            # this is pretty arbitrary for now
+            # large values: more that 8 characters including decimal symbol
+            # and first digit, hence > 1e6
+            has_large_values = (abs_vals > 1e6).any()
+            has_small_values = ((abs_vals < 10**(-self.digits)) &
+                                (abs_vals > 0)).any()
 
         if has_small_values or (too_long and has_large_values):
             float_format = '%% .%de' % self.digits
@@ -2223,8 +2149,12 @@ class Datetime64Formatter(GenericArrayFormatter):
         """ we by definition have DO NOT have a TZ """
 
         values = self.values
+
         if not isinstance(values, DatetimeIndex):
             values = DatetimeIndex(values)
+
+        if self.formatter is not None and callable(self.formatter):
+            return [self.formatter(x) for x in values]
 
         fmt_values = format_array_from_datetime(
             values.asi8.ravel(),
@@ -2258,6 +2188,69 @@ class CategoricalArrayFormatter(GenericArrayFormatter):
                                   na_rep=self.na_rep, digits=self.digits,
                                   space=self.space, justify=self.justify)
         return fmt_values
+
+
+def format_percentiles(percentiles):
+    """
+    Outputs rounded and formatted percentiles.
+
+    Parameters
+    ----------
+    percentiles : list-like, containing floats from interval [0,1]
+
+    Returns
+    -------
+    formatted : list of strings
+
+    Notes
+    -----
+    Rounding precision is chosen so that: (1) if any two elements of
+    ``percentiles`` differ, they remain different after rounding
+    (2) no entry is *rounded* to 0% or 100%.
+    Any non-integer is always rounded to at least 1 decimal place.
+
+    Examples
+    --------
+    Keeps all entries different after rounding:
+
+    >>> format_percentiles([0.01999, 0.02001, 0.5, 0.666666, 0.9999])
+    ['1.999%', '2.001%', '50%', '66.667%', '99.99%']
+
+    No element is rounded to 0% or 100% (unless already equal to it).
+    Duplicates are allowed:
+
+    >>> format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
+    ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
+    """
+
+    percentiles = np.asarray(percentiles)
+
+    # It checks for np.NaN as well
+    with np.errstate(invalid='ignore'):
+        if not is_numeric_dtype(percentiles) or not np.all(percentiles >= 0) \
+                or not np.all(percentiles <= 1):
+            raise ValueError("percentiles should all be in the interval [0,1]")
+
+    percentiles = 100 * percentiles
+    int_idx = (percentiles.astype(int) == percentiles)
+
+    if np.all(int_idx):
+        out = percentiles.astype(int).astype(str)
+        return [i + '%' for i in out]
+
+    unique_pcts = np.unique(percentiles)
+    to_begin = unique_pcts[0] if unique_pcts[0] > 0 else None
+    to_end = 100 - unique_pcts[-1] if unique_pcts[-1] < 100 else None
+
+    # Least precision that keeps percentiles unique after rounding
+    prec = -np.floor(np.log10(np.min(
+        np.ediff1d(unique_pcts, to_begin=to_begin, to_end=to_end)
+    ))).astype(int)
+    prec = max(1, prec)
+    out = np.empty_like(percentiles, dtype=object)
+    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
+    out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
+    return [i + '%' for i in out]
 
 
 def _is_dates_only(values):
@@ -2589,6 +2582,9 @@ class EngFormatter(object):
         import decimal
         import math
         dnum = decimal.Decimal(str(num))
+
+        if decimal.Decimal.is_nan(dnum):
+            return 'NaN'
 
         sign = 1
 

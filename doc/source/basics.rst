@@ -1159,13 +1159,16 @@ mapping (a dict or Series) or an arbitrary function.
    s.rename(str.upper)
 
 If you pass a function, it must return a value when called with any of the
-labels (and must produce a set of unique values). But if you pass a dict or
-Series, it need only contain a subset of the labels as keys:
+labels (and must produce a set of unique values). A dict or
+Series can also be used:
 
 .. ipython:: python
 
    df.rename(columns={'one' : 'foo', 'two' : 'bar'},
              index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
+
+If the mapping doesn't include a column/index label, it isn't renamed. Also
+extra labels in the mapping don't throw an error.
 
 The :meth:`~DataFrame.rename` method also provides an ``inplace`` named
 parameter that is by default ``False`` and copies the underlying data. Pass
@@ -1726,42 +1729,120 @@ then the more *general* one will be used as the result of the operation.
    # conversion of dtypes
    df3.astype('float32').dtypes
 
+Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`
+
+.. ipython:: python
+
+   dft = pd.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7, 8, 9]})
+   dft[['a','b']] = dft[['a','b']].astype(np.uint8)
+   dft
+   dft.dtypes
+
+.. note::
+
+    When trying to convert a subset of columns to a specified type using :meth:`~DataFrame.astype`  and :meth:`~DataFrame.loc`, upcasting occurs.
+
+    :meth:`~DataFrame.loc` tries to fit in what we are assigning to the current dtypes, while ``[]`` will overwrite them taking the dtype from the right hand side. Therefore the following piece of code produces the unintended result.
+
+    .. ipython:: python
+
+       dft = pd.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7, 8, 9]})
+       dft.loc[:, ['a', 'b']].astype(np.uint8).dtypes
+       dft.loc[:, ['a', 'b']] = dft.loc[:, ['a', 'b']].astype(np.uint8)
+       dft.dtypes
+
+.. _basics.object_conversion:
+
 object conversion
 ~~~~~~~~~~~~~~~~~
 
-:meth:`~DataFrame.convert_objects` is a method to try to force conversion of types from the ``object`` dtype to other types.
-To force conversion of specific types that are *number like*, e.g. could be a string that represents a number,
-pass ``convert_numeric=True``. This will force strings and numbers alike to be numbers if possible, otherwise
-they will be set to ``np.nan``.
+pandas offers various functions to try to force conversion of types from the ``object`` dtype to other types.
+The following functions are available for one dimensional object arrays or scalars:
+
+- :meth:`~pandas.to_numeric` (conversion to numeric dtypes)
+
+  .. ipython:: python
+
+     m = ['1.1', 2, 3]
+     pd.to_numeric(m)
+
+- :meth:`~pandas.to_datetime` (conversion to datetime objects)
+
+   .. ipython:: python
+
+      import datetime
+      m = ['2016-07-09', datetime.datetime(2016, 3, 2)]
+      pd.to_datetime(m)
+
+- :meth:`~pandas.to_timedelta` (conversion to timedelta objects)
+
+   .. ipython:: python
+
+      m = ['5us', pd.Timedelta('1day')]
+      pd.to_timedelta(m)
+
+To force a conversion, we can pass in an ``errors`` argument, which specifies how pandas should deal with elements
+that cannot be converted to desired dtype or object. By default, ``errors='raise'``, meaning that any errors encountered
+will be raised during the conversion process. However, if ``errors='coerce'``, these errors will be ignored and pandas
+will convert problematic elements to ``pd.NaT`` (for datetime and timedelta) or ``np.nan`` (for numeric). This might be
+useful if you are reading in data which is mostly of the desired dtype (e.g. numeric, datetime), but occasionally has
+non-conforming elements intermixed that you want to represent as missing:
 
 .. ipython:: python
-   :okwarning:
 
-   df3['D'] = '1.'
-   df3['E'] = '1'
-   df3.convert_objects(convert_numeric=True).dtypes
+    import datetime
+    m = ['apple', datetime.datetime(2016, 3, 2)]
+    pd.to_datetime(m, errors='coerce')
 
-   # same, but specific dtype conversion
-   df3['D'] = df3['D'].astype('float16')
-   df3['E'] = df3['E'].astype('int32')
-   df3.dtypes
+    m = ['apple', 2, 3]
+    pd.to_numeric(m, errors='coerce')
 
-To force conversion to ``datetime64[ns]``, pass ``convert_dates='coerce'``.
-This will convert any datetime-like object to dates, forcing other values to ``NaT``.
-This might be useful if you are reading in data which is mostly dates,
-but occasionally has non-dates intermixed and you want to represent as missing.
+    m = ['apple', pd.Timedelta('1day')]
+    pd.to_timedelta(m, errors='coerce')
+
+The ``errors`` parameter has a third option of ``errors='ignore'``, which will simply return the passed in data if it
+encounters any errors with the conversion to a desired data type:
 
 .. ipython:: python
 
-   import datetime
-   s = pd.Series([datetime.datetime(2001,1,1,0,0),
-                 'foo', 1.0, 1, pd.Timestamp('20010104'),
-                 '20010105'], dtype='O')
-   s
-   pd.to_datetime(s, errors='coerce')
+    import datetime
+    m = ['apple', datetime.datetime(2016, 3, 2)]
+    pd.to_datetime(m, errors='ignore')
 
-In addition, :meth:`~DataFrame.convert_objects` will attempt the *soft* conversion of any *object* dtypes, meaning that if all
-the objects in a Series are of the same type, the Series will have that dtype.
+    m = ['apple', 2, 3]
+    pd.to_numeric(m, errors='ignore')
+
+    m = ['apple', pd.Timedelta('1day')]
+    pd.to_timedelta(m, errors='ignore')
+
+In addition to object conversion, :meth:`~pandas.to_numeric` provides another argument ``downcast``, which gives the
+option of downcasting the newly (or already) numeric data to a smaller dtype, which can conserve memory:
+
+.. ipython:: python
+
+    m = ['1', 2, 3]
+    pd.to_numeric(m, downcast='integer')   # smallest signed int dtype
+    pd.to_numeric(m, downcast='signed')    # same as 'integer'
+    pd.to_numeric(m, downcast='unsigned')  # smallest unsigned int dtype
+    pd.to_numeric(m, downcast='float')     # smallest float dtype
+
+As these methods apply only to one-dimensional arrays, lists or scalars; they cannot be used directly on multi-dimensional objects such
+as DataFrames. However, with :meth:`~pandas.DataFrame.apply`, we can "apply" the function over each column efficiently:
+
+.. ipython:: python
+
+    import datetime
+    df = pd.DataFrame([['2016-07-09', datetime.datetime(2016, 3, 2)]] * 2, dtype='O')
+    df
+    df.apply(pd.to_datetime)
+
+    df = pd.DataFrame([['1.1', 2, 3]] * 2, dtype='O')
+    df
+    df.apply(pd.to_numeric)
+
+    df = pd.DataFrame([['5us', pd.Timedelta('1day')]] * 2, dtype='O')
+    df
+    df.apply(pd.to_timedelta)
 
 gotchas
 ~~~~~~~

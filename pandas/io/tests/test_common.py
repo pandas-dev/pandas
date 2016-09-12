@@ -1,13 +1,14 @@
 """
     Tests for the pandas.io.common functionalities
 """
-from pandas.compat import StringIO
+import mmap
 import os
 from os.path import isabs
 
 import pandas.util.testing as tm
 
 from pandas.io import common
+from pandas.compat import is_platform_windows, StringIO
 
 from pandas import read_csv, concat
 
@@ -85,5 +86,56 @@ bar2,12,13,14,15
         it = read_csv(StringIO(self.data1), chunksize=1)
         first = next(it)
         tm.assert_frame_equal(first, expected.iloc[[0]])
-        expected.index = [0 for i in range(len(expected))]
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
+
+
+class TestMMapWrapper(tm.TestCase):
+
+    def setUp(self):
+        self.mmap_file = os.path.join(tm.get_data_path(),
+                                      'test_mmap.csv')
+
+    def test_constructor_bad_file(self):
+        non_file = StringIO('I am not a file')
+        non_file.fileno = lambda: -1
+
+        # the error raised is different on Windows
+        if is_platform_windows():
+            msg = "The parameter is incorrect"
+            err = OSError
+        else:
+            msg = "[Errno 22]"
+            err = mmap.error
+
+        tm.assertRaisesRegexp(err, msg, common.MMapWrapper, non_file)
+
+        target = open(self.mmap_file, 'r')
+        target.close()
+
+        msg = "I/O operation on closed file"
+        tm.assertRaisesRegexp(ValueError, msg, common.MMapWrapper, target)
+
+    def test_get_attr(self):
+        with open(self.mmap_file, 'r') as target:
+            wrapper = common.MMapWrapper(target)
+
+        attrs = dir(wrapper.mmap)
+        attrs = [attr for attr in attrs
+                 if not attr.startswith('__')]
+        attrs.append('__next__')
+
+        for attr in attrs:
+            self.assertTrue(hasattr(wrapper, attr))
+
+        self.assertFalse(hasattr(wrapper, 'foo'))
+
+    def test_next(self):
+        with open(self.mmap_file, 'r') as target:
+            wrapper = common.MMapWrapper(target)
+            lines = target.readlines()
+
+        for line in lines:
+            next_line = next(wrapper)
+            self.assertEqual(next_line.strip(), line.strip())
+
+        self.assertRaises(StopIteration, next, wrapper)

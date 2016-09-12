@@ -5,7 +5,7 @@ from __future__ import print_function
 from pandas.compat import range, lrange
 import numpy as np
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Index
 
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
@@ -123,12 +123,12 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
                        columns=['c', 'b', 'a'])
 
         df.insert(0, 'foo', df['a'])
-        self.assert_numpy_array_equal(df.columns, ['foo', 'c', 'b', 'a'])
+        self.assert_index_equal(df.columns, Index(['foo', 'c', 'b', 'a']))
         tm.assert_series_equal(df['a'], df['foo'], check_names=False)
 
         df.insert(2, 'bar', df['c'])
-        self.assert_numpy_array_equal(df.columns,
-                                      ['foo', 'c', 'bar', 'b', 'a'])
+        self.assert_index_equal(df.columns,
+                                Index(['foo', 'c', 'bar', 'b', 'a']))
         tm.assert_almost_equal(df['c'], df['bar'], check_names=False)
 
         # diff dtype
@@ -155,6 +155,13 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         # preserve columns name field
         df.insert(0, 'baz', df['c'])
         self.assertEqual(df.columns.name, 'some_name')
+
+        # GH 13522
+        df = DataFrame(index=['A', 'B', 'C'])
+        df['X'] = df.index
+        df['X'] = ['x', 'y', 'z']
+        exp = DataFrame(data={'X': ['x', 'y', 'z']}, index=['A', 'B', 'C'])
+        assert_frame_equal(df, exp)
 
     def test_delitem(self):
         del self.frame['A']

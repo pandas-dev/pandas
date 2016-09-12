@@ -18,124 +18,210 @@ import pandas.util.testing as tm
 from pandas import Timedelta
 
 
-def test_to_offset_multiple():
-    freqstr = '2h30min'
-    freqstr2 = '2h 30min'
+class TestToOffset(tm.TestCase):
 
-    result = frequencies.to_offset(freqstr)
-    assert (result == frequencies.to_offset(freqstr2))
-    expected = offsets.Minute(150)
-    assert (result == expected)
+    def test_to_offset_multiple(self):
+        freqstr = '2h30min'
+        freqstr2 = '2h 30min'
 
-    freqstr = '2h30min15s'
-    result = frequencies.to_offset(freqstr)
-    expected = offsets.Second(150 * 60 + 15)
-    assert (result == expected)
+        result = frequencies.to_offset(freqstr)
+        assert (result == frequencies.to_offset(freqstr2))
+        expected = offsets.Minute(150)
+        assert (result == expected)
 
-    freqstr = '2h 60min'
-    result = frequencies.to_offset(freqstr)
-    expected = offsets.Hour(3)
-    assert (result == expected)
+        freqstr = '2h30min15s'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.Second(150 * 60 + 15)
+        assert (result == expected)
 
-    freqstr = '15l500u'
-    result = frequencies.to_offset(freqstr)
-    expected = offsets.Micro(15500)
-    assert (result == expected)
+        freqstr = '2h 60min'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.Hour(3)
+        assert (result == expected)
 
-    freqstr = '10s75L'
-    result = frequencies.to_offset(freqstr)
-    expected = offsets.Milli(10075)
-    assert (result == expected)
+        freqstr = '15l500u'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.Micro(15500)
+        assert (result == expected)
 
-    freqstr = '2800N'
-    result = frequencies.to_offset(freqstr)
-    expected = offsets.Nano(2800)
-    assert (result == expected)
+        freqstr = '10s75L'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.Milli(10075)
+        assert (result == expected)
 
-    # malformed
-    try:
-        frequencies.to_offset('2h20m')
-    except ValueError:
-        pass
-    else:
-        assert (False)
+        freqstr = '2800N'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.Nano(2800)
+        assert (result == expected)
 
+        freqstr = '2SM'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.SemiMonthEnd(2)
+        assert (result == expected)
 
-def test_to_offset_negative():
-    freqstr = '-1S'
-    result = frequencies.to_offset(freqstr)
-    assert (result.n == -1)
+        freqstr = '2SM-16'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.SemiMonthEnd(2, day_of_month=16)
+        assert (result == expected)
 
-    freqstr = '-5min10s'
-    result = frequencies.to_offset(freqstr)
-    assert (result.n == -310)
+        freqstr = '2SMS-14'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.SemiMonthBegin(2, day_of_month=14)
+        assert (result == expected)
 
+        freqstr = '2SMS-15'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.SemiMonthBegin(2)
+        assert (result == expected)
 
-def test_to_offset_leading_zero():
-    freqstr = '00H 00T 01S'
-    result = frequencies.to_offset(freqstr)
-    assert (result.n == 1)
+        # malformed
+        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 2h20m'):
+            frequencies.to_offset('2h20m')
 
-    freqstr = '-00H 03T 14S'
-    result = frequencies.to_offset(freqstr)
-    assert (result.n == -194)
+    def test_to_offset_negative(self):
+        freqstr = '-1S'
+        result = frequencies.to_offset(freqstr)
+        assert (result.n == -1)
 
+        freqstr = '-5min10s'
+        result = frequencies.to_offset(freqstr)
+        assert (result.n == -310)
 
-def test_to_offset_pd_timedelta():
-    # Tests for #9064
-    td = Timedelta(days=1, seconds=1)
-    result = frequencies.to_offset(td)
-    expected = offsets.Second(86401)
-    assert (expected == result)
+        freqstr = '-2SM'
+        result = frequencies.to_offset(freqstr)
+        assert (result.n == -2)
 
-    td = Timedelta(days=-1, seconds=1)
-    result = frequencies.to_offset(td)
-    expected = offsets.Second(-86399)
-    assert (expected == result)
+        freqstr = '-1SMS'
+        result = frequencies.to_offset(freqstr)
+        assert (result.n == -1)
 
-    td = Timedelta(hours=1, minutes=10)
-    result = frequencies.to_offset(td)
-    expected = offsets.Minute(70)
-    assert (expected == result)
+    def test_to_offset_invalid(self):
+        # GH 13930
+        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: U1'):
+            frequencies.to_offset('U1')
+        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: -U'):
+            frequencies.to_offset('-U')
+        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 3U1'):
+            frequencies.to_offset('3U1')
+        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: -2-3U'):
+            frequencies.to_offset('-2-3U')
+        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: -2D:3H'):
+            frequencies.to_offset('-2D:3H')
 
-    td = Timedelta(hours=1, minutes=-10)
-    result = frequencies.to_offset(td)
-    expected = offsets.Minute(50)
-    assert (expected == result)
+        # ToDo: Must be fixed in #8419
+        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: .5S'):
+            frequencies.to_offset('.5S')
 
-    td = Timedelta(weeks=1)
-    result = frequencies.to_offset(td)
-    expected = offsets.Day(7)
-    assert (expected == result)
+        # split offsets with spaces are valid
+        assert frequencies.to_offset('2D 3H') == offsets.Hour(51)
+        assert frequencies.to_offset('2 D3 H') == offsets.Hour(51)
+        assert frequencies.to_offset('2 D 3 H') == offsets.Hour(51)
+        assert frequencies.to_offset('  2 D 3 H  ') == offsets.Hour(51)
+        assert frequencies.to_offset('   H    ') == offsets.Hour()
+        assert frequencies.to_offset(' 3  H    ') == offsets.Hour(3)
 
-    td1 = Timedelta(hours=1)
-    result1 = frequencies.to_offset(td1)
-    result2 = frequencies.to_offset('60min')
-    assert (result1 == result2)
+        # special cases
+        assert frequencies.to_offset('2SMS-15') == offsets.SemiMonthBegin(2)
+        with tm.assertRaisesRegexp(ValueError,
+                                   'Invalid frequency: 2SMS-15-15'):
+            frequencies.to_offset('2SMS-15-15')
+        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 2SMS-15D'):
+            frequencies.to_offset('2SMS-15D')
 
-    td = Timedelta(microseconds=1)
-    result = frequencies.to_offset(td)
-    expected = offsets.Micro(1)
-    assert (expected == result)
+    def test_to_offset_leading_zero(self):
+        freqstr = '00H 00T 01S'
+        result = frequencies.to_offset(freqstr)
+        assert (result.n == 1)
 
-    td = Timedelta(microseconds=0)
-    tm.assertRaises(ValueError, lambda: frequencies.to_offset(td))
+        freqstr = '-00H 03T 14S'
+        result = frequencies.to_offset(freqstr)
+        assert (result.n == -194)
 
+    def test_to_offset_pd_timedelta(self):
+        # Tests for #9064
+        td = Timedelta(days=1, seconds=1)
+        result = frequencies.to_offset(td)
+        expected = offsets.Second(86401)
+        assert (expected == result)
 
-def test_anchored_shortcuts():
-    result = frequencies.to_offset('W')
-    expected = frequencies.to_offset('W-SUN')
-    assert (result == expected)
+        td = Timedelta(days=-1, seconds=1)
+        result = frequencies.to_offset(td)
+        expected = offsets.Second(-86399)
+        assert (expected == result)
 
-    result1 = frequencies.to_offset('Q')
-    result2 = frequencies.to_offset('Q-DEC')
-    expected = offsets.QuarterEnd(startingMonth=12)
-    assert (result1 == expected)
-    assert (result2 == expected)
+        td = Timedelta(hours=1, minutes=10)
+        result = frequencies.to_offset(td)
+        expected = offsets.Minute(70)
+        assert (expected == result)
 
-    result1 = frequencies.to_offset('Q-MAY')
-    expected = offsets.QuarterEnd(startingMonth=5)
-    assert (result1 == expected)
+        td = Timedelta(hours=1, minutes=-10)
+        result = frequencies.to_offset(td)
+        expected = offsets.Minute(50)
+        assert (expected == result)
+
+        td = Timedelta(weeks=1)
+        result = frequencies.to_offset(td)
+        expected = offsets.Day(7)
+        assert (expected == result)
+
+        td1 = Timedelta(hours=1)
+        result1 = frequencies.to_offset(td1)
+        result2 = frequencies.to_offset('60min')
+        assert (result1 == result2)
+
+        td = Timedelta(microseconds=1)
+        result = frequencies.to_offset(td)
+        expected = offsets.Micro(1)
+        assert (expected == result)
+
+        td = Timedelta(microseconds=0)
+        tm.assertRaises(ValueError, lambda: frequencies.to_offset(td))
+
+    def test_anchored_shortcuts(self):
+        result = frequencies.to_offset('W')
+        expected = frequencies.to_offset('W-SUN')
+        assert (result == expected)
+
+        result1 = frequencies.to_offset('Q')
+        result2 = frequencies.to_offset('Q-DEC')
+        expected = offsets.QuarterEnd(startingMonth=12)
+        assert (result1 == expected)
+        assert (result2 == expected)
+
+        result1 = frequencies.to_offset('Q-MAY')
+        expected = offsets.QuarterEnd(startingMonth=5)
+        assert (result1 == expected)
+
+        result1 = frequencies.to_offset('SM')
+        result2 = frequencies.to_offset('SM-15')
+        expected = offsets.SemiMonthEnd(day_of_month=15)
+        assert (result1 == expected)
+        assert (result2 == expected)
+
+        result = frequencies.to_offset('SM-1')
+        expected = offsets.SemiMonthEnd(day_of_month=1)
+        assert (result == expected)
+
+        result = frequencies.to_offset('SM-27')
+        expected = offsets.SemiMonthEnd(day_of_month=27)
+        assert (result == expected)
+
+        result = frequencies.to_offset('SMS-2')
+        expected = offsets.SemiMonthBegin(day_of_month=2)
+        assert (result == expected)
+
+        result = frequencies.to_offset('SMS-27')
+        expected = offsets.SemiMonthBegin(day_of_month=27)
+        assert (result == expected)
+
+        # ensure invalid cases fail as expected
+        invalid_anchors = ['SM-0', 'SM-28', 'SM-29',
+                           'SM-FOO', 'BSM', 'SM--1'
+                           'SMS-1', 'SMS-28', 'SMS-30',
+                           'SMS-BAR', 'BSMS', 'SMS--2']
+        for invalid_anchor in invalid_anchors:
+            with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: '):
+                frequencies.to_offset(invalid_anchor)
 
 
 def test_get_rule_month():
@@ -182,10 +268,10 @@ def test_period_str_to_code():
         assert isinstance(aliases, list)
         assert (frequencies._period_str_to_code(freq) == expected)
 
+        msg = frequencies._INVALID_FREQ_ERROR
         for alias in aliases:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                assert (frequencies._period_str_to_code(alias) == expected)
+            with tm.assertRaisesRegexp(ValueError, msg):
+                frequencies._period_str_to_code(alias)
 
     _assert_depr("M", 3000, ["MTH", "MONTH", "MONTHLY"])
 
@@ -212,6 +298,7 @@ def test_period_str_to_code():
 
 
 class TestFrequencyCode(tm.TestCase):
+
     def test_freq_code(self):
         self.assertEqual(frequencies.get_freq('A'), 1000)
         self.assertEqual(frequencies.get_freq('3A'), 1000)
@@ -636,8 +723,9 @@ class TestFrequencyInference(tm.TestCase):
             s = Series(period_range('2013', periods=10, freq=freq))
             self.assertRaises(TypeError, lambda: frequencies.infer_freq(s))
         for freq in ['Y']:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
+
+            msg = frequencies._INVALID_FREQ_ERROR
+            with tm.assertRaisesRegexp(ValueError, msg):
                 s = Series(period_range('2013', periods=10, freq=freq))
             self.assertRaises(TypeError, lambda: frequencies.infer_freq(s))
 
@@ -652,17 +740,23 @@ class TestFrequencyInference(tm.TestCase):
         self.assertEqual(inferred, 'D')
 
     def test_legacy_offset_warnings(self):
-        for k, v in compat.iteritems(frequencies._rule_aliases):
-            with tm.assert_produces_warning(FutureWarning):
-                result = frequencies.get_offset(k)
-            exp = frequencies.get_offset(v)
-            self.assertEqual(result, exp)
+        freqs = ['WEEKDAY', 'EOM', 'W@MON', 'W@TUE', 'W@WED', 'W@THU',
+                 'W@FRI', 'W@SAT', 'W@SUN', 'Q@JAN', 'Q@FEB', 'Q@MAR',
+                 'A@JAN', 'A@FEB', 'A@MAR', 'A@APR', 'A@MAY', 'A@JUN',
+                 'A@JUL', 'A@AUG', 'A@SEP', 'A@OCT', 'A@NOV', 'A@DEC',
+                 'WOM@1MON', 'WOM@2MON', 'WOM@3MON', 'WOM@4MON',
+                 'WOM@1TUE', 'WOM@2TUE', 'WOM@3TUE', 'WOM@4TUE',
+                 'WOM@1WED', 'WOM@2WED', 'WOM@3WED', 'WOM@4WED',
+                 'WOM@1THU', 'WOM@2THU', 'WOM@3THU', 'WOM@4THU'
+                 'WOM@1FRI', 'WOM@2FRI', 'WOM@3FRI', 'WOM@4FRI']
 
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                idx = date_range('2011-01-01', periods=5, freq=k)
-            exp = date_range('2011-01-01', periods=5, freq=v)
-            self.assert_index_equal(idx, exp)
+        msg = frequencies._INVALID_FREQ_ERROR
+        for freq in freqs:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                frequencies.get_offset(freq)
+
+            with tm.assertRaisesRegexp(ValueError, msg):
+                date_range('2011-01-01', periods=5, freq=freq)
 
 
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT',
@@ -670,6 +764,15 @@ MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT',
 
 
 def test_is_superperiod_subperiod():
+
+    # input validation
+    assert not (frequencies.is_superperiod(offsets.YearEnd(), None))
+    assert not (frequencies.is_subperiod(offsets.MonthEnd(), None))
+    assert not (frequencies.is_superperiod(None, offsets.YearEnd()))
+    assert not (frequencies.is_subperiod(None, offsets.MonthEnd()))
+    assert not (frequencies.is_superperiod(None, None))
+    assert not (frequencies.is_subperiod(None, None))
+
     assert (frequencies.is_superperiod(offsets.YearEnd(), offsets.MonthEnd()))
     assert (frequencies.is_subperiod(offsets.MonthEnd(), offsets.YearEnd()))
 
