@@ -125,6 +125,9 @@ for module, files in _pxi_dep_template.items():
 class build_ext(_build_ext):
     def build_extensions(self):
 
+        if not cython:
+            raise ImportError('Building pandas requires cython')
+
         for pxifile in _pxifiles:
             # build pxifiles first, template extention must be .pxi.in
             assert pxifile.endswith('.pxi.in')
