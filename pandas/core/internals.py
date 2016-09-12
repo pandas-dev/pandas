@@ -27,6 +27,7 @@ from pandas.types.common import (_TD_DTYPE, _NS_DTYPE,
                                  is_re,
                                  is_re_compilable,
                                  is_scalar,
+                                 is_arraylike,
                                  _get_dtype)
 from pandas.types.cast import (_possibly_downcast_to_dtype,
                                _maybe_convert_string_to_object,

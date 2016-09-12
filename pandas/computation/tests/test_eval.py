@@ -13,7 +13,7 @@ from nose.tools import assert_raises
 from numpy.random import randn, rand, randint
 import numpy as np
 
-from pandas.types.common import is_list_like, is_scalar
+from pandas.types.common import is_list_like, is_scalar, is_arraylike
 import pandas as pd
 from pandas.core import common as com
 from pandas import DataFrame, Series, Panel, date_range

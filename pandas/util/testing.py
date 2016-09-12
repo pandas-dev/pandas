@@ -30,7 +30,8 @@ from pandas.types.common import (is_datetimelike_v_numeric,
                                  needs_i8_conversion,
                                  is_categorical_dtype,
                                  is_sequence,
-                                 is_list_like)
+                                 is_list_like,
+                                 is_arraylike)
 from pandas.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 
@@ -1079,7 +1080,7 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         _raise(left, right, err_msg)
 
     if check_dtype:
-        if is_arraylike(left) and isinstance(right, np.ndarray):
+        if is_arraylike(left) and is_arraylike(right):
             assert_attr_equal('dtype', left, right, obj=obj)
 
     return True

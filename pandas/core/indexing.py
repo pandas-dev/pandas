@@ -11,7 +11,8 @@ from pandas.types.common import (is_integer_dtype,
                                  is_sequence,
                                  is_scalar,
                                  is_sparse,
-                                 _ensure_platform_int)
+                                 _ensure_platform_int,
+                                 is_arraylike)
 from pandas.types.missing import isnull, _infer_fill_value
 
 from pandas.core.index import Index, MultiIndex

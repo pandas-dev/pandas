@@ -22,7 +22,7 @@ from pandas.stats.ols import OLS, MovingOLS
 import pandas.stats.common as com
 import pandas.stats.math as math
 from pandas.util.decorators import cache_readonly
-
+from pandas.types.common import is_arraylike
 
 class PanelOLS(OLS):
     """Implements panel OLS.

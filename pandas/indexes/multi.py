@@ -20,7 +20,8 @@ from pandas.types.common import (_ensure_int64,
                                  is_object_dtype,
                                  is_iterator,
                                  is_list_like,
-                                 is_scalar)
+                                 is_scalar,
+                                 is_arraylike)
 from pandas.types.missing import isnull, array_equivalent
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,

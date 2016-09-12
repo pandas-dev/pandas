@@ -14,7 +14,7 @@ from pandas import compat
 from pandas.compat import long, zip, iteritems
 from pandas.core.config import get_option
 from pandas.types.generic import ABCSeries
-from pandas.types.common import _NS_DTYPE
+from pandas.types.common import _NS_DTYPE, is_arraylike
 from pandas.types.inference import _iterable_not_string
 from pandas.types.missing import isnull
 from pandas.api import types

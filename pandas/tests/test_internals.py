@@ -21,6 +21,7 @@ from pandas import lib
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  randn, assert_series_equal)
 from pandas.compat import zip, u
+from pandas.types.common import is_arraylike
 
 
 def assert_block_equal(left, right):

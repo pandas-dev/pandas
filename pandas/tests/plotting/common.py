@@ -12,6 +12,7 @@ from pandas.types.api import is_list_like
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
                                  assert_is_valid_plot_return_object)
+from pandas.types.common import is_arraylike
 
 import numpy as np
 from numpy import random

@@ -30,7 +30,7 @@ from pandas.types.common import (_ensure_int64, _ensure_object,
                                  is_timedelta64_dtype,
                                  needs_i8_conversion,
                                  is_iterator, is_list_like,
-                                 is_scalar)
+                                 is_scalar, is_arraylike)
 from pandas.types.cast import _coerce_indexer_dtype
 from pandas.core.common import (is_bool_indexer,
                                 _values_from_object,

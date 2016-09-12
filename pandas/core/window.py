@@ -23,7 +23,8 @@ from pandas.types.common import (is_integer,
                                  needs_i8_conversion,
                                  is_timedelta64_dtype,
                                  is_list_like,
-                                 _ensure_float64)
+                                 _ensure_float64,
+                                 is_arraylike)
 import pandas as pd
 from pandas.lib import isscalar
 from pandas.core.base import (PandasObject, SelectionMixin,

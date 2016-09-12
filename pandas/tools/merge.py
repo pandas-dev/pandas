@@ -28,7 +28,8 @@ from pandas.types.common import (is_datetime64tz_dtype,
                                  is_list_like,
                                  _ensure_int64,
                                  _ensure_float64,
-                                 _ensure_object)
+                                 _ensure_object,
+                                 is_arraylike)
 from pandas.types.missing import na_value_for_dtype
 
 from pandas.core.generic import NDFrame

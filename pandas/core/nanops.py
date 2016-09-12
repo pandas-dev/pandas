@@ -20,7 +20,8 @@ from pandas.types.common import (_ensure_int64, _ensure_object,
                                  is_numeric_dtype,
                                  is_datetime64_dtype, is_timedelta64_dtype,
                                  is_datetime_or_timedelta_dtype,
-                                 is_int_or_datetime_dtype, is_any_int_dtype)
+                                 is_int_or_datetime_dtype, is_any_int_dtype,
+                                 is_arraylike)
 from pandas.types.cast import _int64_max, _maybe_upcast_putmask
 from pandas.types.missing import isnull, notnull
 

@@ -5,8 +5,7 @@ statistics implemented in Cython
 from __future__ import division
 
 import warnings
-import numpy as np
-from pandas.types.common import is_scalar
+from pandas.types.common import is_scalar, is_arraylike
 from pandas.core.api import DataFrame, Series
 from pandas.util.decorators import Substitution, Appender
 

@@ -20,7 +20,8 @@ import pandas as pd
 from pandas.tseries.offsets import BDay
 from pandas.types.common import (is_float_dtype,
                                  is_integer,
-                                 is_scalar)
+                                 is_scalar,
+                                 is_arraylike)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_numpy_array_equal,
                                  assert_series_equal,

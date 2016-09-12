@@ -21,7 +21,7 @@ from pandas.types.common import (_ensure_int64,
                                  is_categorical_dtype,
                                  is_integer_dtype, is_bool,
                                  is_list_like, is_sequence,
-                                 is_scalar)
+                                 is_scalar, is_arraylike)
 from pandas.core.common import is_null_slice
 
 from pandas.core.algorithms import factorize, take_1d

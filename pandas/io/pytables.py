@@ -17,6 +17,7 @@ from pandas.types.common import (is_list_like,
                                  is_timedelta64_dtype,
                                  is_datetime64tz_dtype,
                                  is_datetime64_dtype,
+                                 is_arraylike,
                                  _ensure_object,
                                  _ensure_int64,
                                  _ensure_platform_int)

@@ -26,7 +26,8 @@ from pandas.types.common import (is_integer_dtype,
                                  _ensure_object,
                                  _ensure_float64,
                                  _ensure_int64,
-                                 is_list_like)
+                                 is_list_like,
+                                 is_arraylike)
 from pandas.types.missing import isnull
 
 import pandas.core.common as com

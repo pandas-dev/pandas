@@ -29,6 +29,7 @@ from pandas.types.common import (needs_i8_conversion,
                                  is_datetime64_dtype, is_datetime64tz_dtype,
                                  is_bool_dtype, is_datetimetz,
                                  is_list_like,
+                                 is_arraylike,
                                  _ensure_object)
 from pandas.types.cast import _maybe_upcast_putmask, _find_common_type
 from pandas.types.generic import ABCSeries, ABCIndex, ABCPeriodIndex

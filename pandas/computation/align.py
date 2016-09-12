@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import compat
 import pandas.core.common as com
 from pandas.computation.common import _result_type_many
+from pandas.types.common import is_arraylike
 
 
 def _align_core_single_unary_op(term):

@@ -18,7 +18,8 @@ from pandas.types.common import (is_integer,
                                  is_bool_dtype,
                                  pandas_dtype,
                                  _ensure_int64,
-                                 _ensure_object)
+                                 _ensure_object,
+                                 is_arraylike)
 from pandas.types.dtypes import PeriodDtype
 from pandas.types.generic import ABCSeries
 

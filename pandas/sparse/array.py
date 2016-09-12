@@ -19,7 +19,7 @@ from pandas.types.common import (_ensure_platform_int,
                                  is_integer_dtype,
                                  is_bool_dtype,
                                  is_list_like,
-                                 is_scalar, is_dtype_equal)
+                                 is_scalar, is_dtype_equal, is_arraylike)
 from pandas.types.cast import (_possibly_convert_platform, _maybe_promote,
                                _astype_nansafe, _find_common_type)
 from pandas.types.missing import isnull, notnull, na_value_for_dtype

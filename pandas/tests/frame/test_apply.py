@@ -15,6 +15,7 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
+from pandas.types.common import is_arraylike
 
 
 class TestDataFrameApply(tm.TestCase, TestData):

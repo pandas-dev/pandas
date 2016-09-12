@@ -54,7 +54,8 @@ from pandas.types.common import (is_categorical_dtype,
                                  is_list_like,
                                  is_iterator,
                                  is_sequence,
-                                 is_named_tuple)
+                                 is_named_tuple,
+                                 is_arraylike)
 from pandas.types.missing import isnull, notnull
 
 from pandas.core.common import (PandasError, _try_sort,

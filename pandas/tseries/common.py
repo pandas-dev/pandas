@@ -9,7 +9,7 @@ from pandas.types.common import (_NS_DTYPE, _TD_DTYPE,
                                  is_datetime_arraylike, is_integer_dtype,
                                  is_datetime64_dtype, is_datetime64tz_dtype,
                                  is_timedelta64_dtype, is_categorical_dtype,
-                                 is_list_like)
+                                 is_list_like, is_arraylike)
 
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.tseries.index import DatetimeIndex

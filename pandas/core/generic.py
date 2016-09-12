@@ -22,6 +22,7 @@ from pandas.types.common import (_coerce_to_dtype,
                                  is_timedelta64_dtype,
                                  is_list_like,
                                  is_dict_like,
+                                 is_arraylike,
                                  is_re_compilable)
 from pandas.types.cast import _maybe_promote, _maybe_upcast_putmask
 from pandas.types.missing import isnull, notnull

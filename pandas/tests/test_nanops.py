@@ -6,7 +6,7 @@ from functools import partial
 import warnings
 import numpy as np
 from pandas import Series, isnull
-from pandas.types.common import is_integer_dtype
+from pandas.types.common import is_integer_dtype, is_arraylike
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 

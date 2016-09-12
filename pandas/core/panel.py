@@ -11,7 +11,8 @@ import numpy as np
 from pandas.types.cast import (_infer_dtype_from_scalar,
                                _possibly_cast_item)
 from pandas.types.common import (is_integer, is_list_like,
-                                 is_string_like, is_scalar)
+                                 is_string_like, is_scalar,
+                                 is_arraylike)
 from pandas.types.missing import notnull
 
 import pandas.computation.expressions as expressions

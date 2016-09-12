@@ -27,7 +27,8 @@ from pandas.types.common import (_DATELIKE_DTYPES,
                                  _ensure_platform_int,
                                  _ensure_int64,
                                  _ensure_object,
-                                 _ensure_float)
+                                 _ensure_float,
+                                 is_arraylike)
 from pandas.types.cast import _possibly_downcast_to_dtype
 from pandas.types.missing import isnull, notnull, _maybe_fill
 
