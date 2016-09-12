@@ -1328,6 +1328,9 @@ Other API Changes
 - ``pd.read_csv()`` in the C engine will now issue a ``ParserWarning`` or raise a ``ValueError`` when ``sep`` encoded is more than one character long (:issue:`14065`)
 - ``DataFrame.values`` will now return ``float64`` with a ``DataFrame`` of mixed ``int64`` and ``uint64`` dtypes, conforming to ``np.find_common_type`` (:issue:`10364`, :issue:`13917`)
 - ``pd.read_stata()`` can now handle some format 111 files, which are produced by SAS when generating Stata dta files (:issue:`11526`)
+- ``Series`` and ``Index`` now support ``divmod`` which will return a tuple of
+  series or indices. This behaves like a standard binary operator with regards
+  to broadcasting rules (:issue:`14208`).
 
 .. _whatsnew_0190.deprecations:
 

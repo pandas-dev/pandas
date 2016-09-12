@@ -73,6 +73,30 @@ class Numeric(Base):
         self.assertRaises(ValueError, lambda: idx * idx[0:3])
         self.assertRaises(ValueError, lambda: idx * np.array([1, 2]))
 
+        result = divmod(idx, 2)
+        with np.errstate(all='ignore'):
+            div, mod = divmod(idx.values, 2)
+            expected = Index(div), Index(mod)
+        for r, e in zip(result, expected):
+            tm.assert_index_equal(r, e)
+
+        result = divmod(idx, np.full_like(idx.values, 2))
+        with np.errstate(all='ignore'):
+            div, mod = divmod(idx.values, np.full_like(idx.values, 2))
+            expected = Index(div), Index(mod)
+        for r, e in zip(result, expected):
+            tm.assert_index_equal(r, e)
+
+        result = divmod(idx, Series(np.full_like(idx.values, 2)))
+        with np.errstate(all='ignore'):
+            div, mod = divmod(
+                idx.values,
+                np.full_like(idx.values, 2),
+            )
+            expected = Index(div), Index(mod)
+        for r, e in zip(result, expected):
+            tm.assert_index_equal(r, e)
+
     def test_explicit_conversions(self):
 
         # GH 8608

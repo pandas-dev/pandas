@@ -3426,7 +3426,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _add_numeric_methods_binary(cls):
         """ add in numeric methods """
 
-        def _make_evaluate_binop(op, opstr, reversed=False):
+        def _make_evaluate_binop(op, opstr, reversed=False, constructor=Index):
             def _evaluate_numeric_binop(self, other):
 
                 from pandas.tseries.offsets import DateOffset
@@ -3448,7 +3448,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 attrs = self._maybe_update_attributes(attrs)
                 with np.errstate(all='ignore'):
                     result = op(values, other)
-                return Index(result, **attrs)
+                return constructor(result, **attrs)
 
             return _evaluate_numeric_binop
 
@@ -3477,6 +3477,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 operator.div, '__div__')
             cls.__rdiv__ = _make_evaluate_binop(
                 operator.div, '__div__', reversed=True)
+
+        cls.__divmod__ = _make_evaluate_binop(
+            divmod,
+            '__divmod__',
+            constructor=lambda result, **attrs: (
+                Index(result[0], **attrs),
+                Index(result[1], **attrs),
+            ),
+        )
 
     @classmethod
     def _add_numeric_methods_unary(cls):
