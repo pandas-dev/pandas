@@ -516,8 +516,8 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
 
 def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
-           index=True, index_label=None, chunksize=None, dtype=None,
-           indexes=None):
+           index=True, index_label=None, indexes=None, chunksize=None,
+           dtype=None):
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -548,6 +548,10 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
         Column label for index column(s). If None is given (default) and
         `index` is True, then the index names are used.
         A sequence should be given if the DataFrame uses MultiIndex.
+    indexes : list of column name(s). Columns names in this list will have
+        an indexes created for them in the database.
+
+        .. versionadded:: 0.18.2
     chunksize : int, default None
         If not None, then rows will be written in batches of this size at a
         time.  If None, all rows will be written at once.
@@ -852,9 +856,13 @@ class SQLTable(PandasObject):
             return None
 
     def _is_column_indexed(self, label):
+        # column is explicitly set to be indexed
         if self.indexes is not None and label in self.indexes:
             return True
 
+        # if df index is also a column it needs an index unless it's
+        # also a primary key (otherwise there would be two indexes).
+        # multi-index can use primary key if the left hand side matches.
         if self.index is not None and label in self.index:
             if self.keys is None:
                 return True
