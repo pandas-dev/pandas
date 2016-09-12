@@ -787,18 +787,22 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_get_schema_index(self):
         # support index=True (GH9084)
-        frame = DataFrame({'col':[1,2,3]}, index=pd.date_range('2012-01-01', periods=3))
+        frame = DataFrame({'col': [1, 2, 3]},
+                          index=pd.date_range('2012-01-01', periods=3))
         create_sql = sql.get_schema(frame, 'test_schema', index=False)
         self.assertFalse('index' in create_sql)
         self.assertFalse('CREATE INDEX' in create_sql)
 
         create_sql = sql.get_schema(frame, 'test_schema', index=True)
         self.assertTrue('index' in create_sql)
-        self.assertTrue('CREATE INDEX "ix_test_schema_index"ON "test_schema" ("index")' in create_sql)
+        self.assertTrue('CREATE INDEX "ix_test_schema_index" '
+                        'ON "test_schema" ("index")' in create_sql)
 
-        create_sql = sql.get_schema(frame, 'test_schema', index=True, index_label="idx")
+        create_sql = sql.get_schema(frame, 'test_schema', index=True,
+                                    index_label="idx")
         self.assertTrue('idx' in create_sql)
-        self.assertTrue('CREATE INDEX "ix_test_schema_idx"ON "test_schema" ("idx")' in create_sql)
+        self.assertTrue('CREATE INDEX "ix_test_schema_idx" '
+                        'ON "test_schema" ("idx")' in create_sql)
 
     def test_chunksize_read(self):
         df = DataFrame(np.random.randn(22, 5), columns=list('abcde'))

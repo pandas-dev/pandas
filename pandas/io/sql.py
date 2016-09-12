@@ -1527,7 +1527,8 @@ class SQLiteDatabase(PandasSQL):
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, flavor=None, keys=None, con=None, dtype=None, index=False, index_label=None):
+def get_schema(frame, name, flavor=None, keys=None, con=None, dtype=None,
+               index=False, index_label=None):
     """
     Get the SQL db table schema for the given frame.
 
