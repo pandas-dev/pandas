@@ -2586,6 +2586,9 @@ class EngFormatter(object):
         if decimal.Decimal.is_nan(dnum):
             return 'NaN'
 
+        if decimal.Decimal.is_infinite(dnum):
+            return 'inf'
+
         sign = 1
 
         if dnum < 0:  # pragma: no cover
