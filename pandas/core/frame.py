@@ -3824,8 +3824,8 @@ class DataFrame(NDFrame):
         >>> df = s.unstack(level=0)
         >>> df.unstack()
         one  a  1.0
-             b  3.0
-        two  a  2.0
+             b  2.0
+        two  a  3.0
              b  4.0
         dtype: float64
         
