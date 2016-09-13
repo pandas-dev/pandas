@@ -2420,6 +2420,34 @@ Thur,Lunch,Yes,51.51,17"""
         m_df = pd.Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data), )
 
+    def test_iloc_mi(self):
+        # GH 13797
+        # Test if iloc can handle integer locations in MultiIndexed DataFrame
+
+        data = [
+            ['str00', 'str01'],
+            ['str10', 'str11'],
+            ['str20', 'srt21'],
+            ['str30', 'str31'],
+            ['str40', 'str41']
+        ]
+
+        mi = pd.MultiIndex.from_tuples(
+            [('CC', 'A'),
+             ('CC', 'B'),
+             ('CC', 'B'),
+             ('BB', 'a'),
+             ('BB', 'b')
+             ])
+
+        expected = pd.DataFrame(data)
+        df_mi = pd.DataFrame(data, index=mi)
+
+        result = pd.DataFrame([[df_mi.iloc[r, c] for c in range(2)]
+                               for r in range(5)])
+
+        assert_frame_equal(result, expected)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
