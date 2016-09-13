@@ -4047,6 +4047,14 @@ class TestEngFormatter(tm.TestCase):
         self.assertTrue('NaN' in result)
         self.reset_display_options()
 
+    def test_inf(self):
+        # Issue #11981
+
+        formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
+        result = formatter(np.inf)
+        self.assertEqual(result, u('inf'))
+
+
 def _three_digit_exp():
     return '%.4g' % 1.7e8 == '1.7e+008'
 
