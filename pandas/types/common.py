@@ -308,6 +308,7 @@ def _coerce_to_dtype(dtype):
 
 
 def is_arraylike(arg):
+    """ return if arg is arraylike """
     return isinstance(arg, np.ndarray)
 
 

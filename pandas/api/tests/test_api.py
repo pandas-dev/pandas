@@ -158,7 +158,7 @@ class TestTypes(Base, tm.TestCase):
                'is_dict_like', 'is_iterator',
                'is_list_like', 'is_hashable',
                'is_named_tuple', 'is_sequence',
-               'pandas_dtype']
+               'pandas_dtype', 'is_arraylike']
 
     def test_types(self):
 

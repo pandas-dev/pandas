@@ -4,7 +4,7 @@ import nose
 import numpy as np
 
 from pandas.types.dtypes import DatetimeTZDtype, PeriodDtype, CategoricalDtype
-from pandas.types.common import pandas_dtype, is_dtype_equal
+from pandas.types.common import pandas_dtype, is_dtype_equal, is_arraylike
 
 import pandas.util.testing as tm
 
@@ -39,6 +39,15 @@ class TestPandasDtype(tm.TestCase):
             self.assertIs(pandas_dtype(dtype), PeriodDtype(dtype))
             self.assertEqual(pandas_dtype(dtype), PeriodDtype(dtype))
             self.assertEqual(pandas_dtype(dtype), dtype)
+
+
+class TestIsLike(tm.TestCase):
+
+    def test_is_arraylike(self):
+        arr = np.ndarray([1,2,3,4])
+        l = [1,2,3,4]
+        self.assertTrue(is_arraylike(arr))
+        self.assertFalse(is_arraylike(l))
 
 
 def test_dtype_equal():

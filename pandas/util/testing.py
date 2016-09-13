@@ -165,8 +165,7 @@ def assert_almost_equal(left, right, check_exact=False,
                 # do not compare bool classes, like np.bool_ and bool
                 pass
             else:
-                if (is_arraylike(left) or
-                   is_arraylike(right)):
+                if is_arraylike(left) or is_arraylike(right):
                     obj = 'numpy array'
                 else:
                     obj = 'Input'
