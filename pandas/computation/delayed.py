@@ -1,5 +1,6 @@
 from __future__ import print_function
 from pandas.compat import iteritems
+from pandas import Series, DataFrame
 
 """
 Delayed (rename?)
@@ -11,17 +12,34 @@ delayed selection api through magic `X` variable
 
 _error_doc = """
 pandas `X` is a deferred object that cannot be passed into
-functions. {case} which is invalid.
+most functions. {case} which is invalid.
 To pass a deferred Series into a function, use the .pipe
-function, for example, X.a.pipe(np.log), instead np.log(df.a)
-"""
+function, for example, X.a.pipe(np.log), instead np.log(X.a) """
 
+# numpy / pandas access
 _disallow_attr = [
-    # numpy / pandas access
     '__array_struct__', '__array_interface__',
-    '_typ', '_data', 'index', 'columns', 'values',
-    # python methods
-    '__iter__', '__len__'
+    '_typ', '_data', 'columns', 'values',
+]
+
+_allowed_magic_methods = [
+    '__add__', '__div__', '__sub__', '__truediv__', '__mul__',
+    '__radd__', '__rdiv__', '__rsub__', '__rtruediv__', '__rmul__',
+    '__mod__', '__rmod__',
+    '__eq__', '__ge__', '__gt__', '__lt__', '__le__', '__ne__',
+    '__and__', '__or__', '__invert__' '__neg__', '__pos__',
+    '__rand__', '__ror__',
+    '__abs__', '__pow__',
+]
+# can leave most not implemented, but __iter__ is
+# needed, otherwise __getitem__ sastifies sequence protocol
+# and may iterate forever
+_blacklisted_magic_methods = [
+    '__iter__'
+]
+
+_accessors = [
+    'cat', 'dt', 'str'
 ]
 
 
@@ -61,10 +79,23 @@ class Expression(object):
             msg = "The {0} attribuate was called on the object".format(name)
             raise TypeError(_error_doc.format(case=msg))
 
-        # XXX currently assuming complete-ness
-        # always alternates, which often works but
-        # not always, eg., `X.c.str.upper()` fails
-        complete = not self._complete
+        # generally completeness alternates, for instance
+        # in the following expression, marking
+        # incomplete [i], complete [c]
+        #  X . a . pipe(np.exp) . sum()
+        # [i] [c]  [i]    [c]     [i][c]
+
+        # but, accessors may break this pattern, so
+        # as a special case do some introspection
+        # to check if what's being asked for is callable
+        if self._name in _accessors:
+            # cleaner way to do this?
+            acc = getattr(getattr(Series, self._name), name)
+            complete = True
+            if hasattr(acc, '__call__'):
+                complete = False
+        else:
+            complete = not self._complete
         return GetAttr(self, name, complete)
 
     def __getitem__(self, name):
@@ -73,7 +104,15 @@ class Expression(object):
     def __call__(self, *args, **kwargs):
         if self._complete:
             # selection lambda passed to pandas
+            if len(args) != 1:
+                msg = ("too many values passed into `X`, selection "
+                       "likely malformed")
+                raise ValueError(msg)
             df, = args
+            if not isinstance(df, DataFrame):
+                msg = ("`X` selection can only be evaluated in the context "
+                       "of a DataFrame ")
+                raise ValueError(msg)
             return self._eval({0: df})
         # symbolic call
         return Call(self, args=args, kwargs=kwargs)
@@ -84,21 +123,22 @@ class Expression(object):
         raise TypeError(_error_doc.format(case=msg))
 
 
-_allowed_magic_methods = [
-    '__abs__', '__and__', '__add__', '__div__', '__radd__', '__div__',
-    '__eq__', '__ge__', '__gt__', '__lt__', '__mul__', '__ne__', '__neg__',
-    '__or__', '__pos__', '__pow__', '__sub__', '__truediv__'
-]
-
-
 def _get_sym_magic_method(name):
     def magic_method(self, *args, **kwargs):
         return Call(GetAttr(self, name), args, kwargs)
     return magic_method
 
 
+def _get_blacklisted_method(name):
+    def blacklisted_method(self, *args, **kwargs):
+        msg = "The {0} method was called".format(name)
+        raise TypeError(_error_doc.format(case=msg))
+    return blacklisted_method
+
 for name in _allowed_magic_methods:
     setattr(Expression, name, _get_sym_magic_method(name))
+for name in _blacklisted_magic_methods:
+    setattr(Expression, name, _get_blacklisted_method(name))
 
 
 class Symbol(Expression):
@@ -180,6 +220,7 @@ class Call(Expression):
         self._args = args
         self._kwargs = kwargs
         self._complete = True
+        self._name = None
 
     def _eval(self, context, **options):
         if options.get('log'):

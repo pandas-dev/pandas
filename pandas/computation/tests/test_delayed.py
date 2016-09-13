@@ -17,6 +17,5 @@ class TestDelayedApi(tm.TestCase):
                            df.assign(e=X.b + 1))
         assert_frame_equal(df.assign(e=lambda x: x['d'].dt.day),
                            df.assign(e=X.d.dt.day))
-        # doesn't work yet
-        # assert_frame_equal(df.assign(e=lambda x: x['c'].str.upper()),
-        #                    df.assign(e=X.c.str.upper()))
+        assert_frame_equal(df.assign(e=lambda x: x['c'].str.upper()),
+                           df.assign(e=X.c.str.upper()))
