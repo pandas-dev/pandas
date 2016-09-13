@@ -903,7 +903,9 @@ class _NDFrameIndexer(object):
 
         # we maybe be using a tuple to represent multiple dimensions here
         ax0 = self.obj._get_axis(0)
-        if isinstance(ax0, MultiIndex):
+        # ...but iloc should handle the tuple as simple integer-location
+        # instead of checking it as multiindex representation (GH 13797)
+        if isinstance(ax0, MultiIndex) and self.name != 'iloc':
             result = self._handle_lowerdim_multi_index_axis0(tup)
             if result is not None:
                 return result
