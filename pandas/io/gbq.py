@@ -547,12 +547,17 @@ class GbqConnector(object):
             from apiclient.errors import HttpError
 
         try:
-            return (self.service.tables().get(
+            remote_schema = self.service.tables().get(
                 projectId=self.project_id,
                 datasetId=dataset_id,
-                tableId=table_id
-            ).execute()['schema']) == schema
+                tableId=table_id).execute()['schema']
 
+            fields_remote = set([json.dumps(field_remote)
+                                 for field_remote in remote_schema['fields']])
+            fields_local = set(json.dumps(field_local)
+                               for field_local in schema['fields'])
+
+            return fields_remote == fields_local
         except HttpError as ex:
             self.process_http_error(ex)
 
@@ -819,10 +824,9 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                 dataset_id, table_id, table_schema)
         elif if_exists == 'append':
             if not connector.verify_schema(dataset_id, table_id, table_schema):
-                raise InvalidSchema("Please verify that the column order, "
-                                    "structure and data types in the "
-                                    "DataFrame match the schema of the "
-                                    "destination table.")
+                raise InvalidSchema("Please verify that the structure and "
+                                    "data types in the DataFrame match the "
+                                    "schema of the destination table.")
     else:
         table.create(table_id, table_schema)
 
