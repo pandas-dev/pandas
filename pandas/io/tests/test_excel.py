@@ -1781,6 +1781,17 @@ class ExcelWriterBase(SharedItems):
             read = read_excel(path, 'Sheet1', header=0)
             tm.assert_frame_equal(read, expected)
 
+    # GH13347
+    def test_true_and_false_value_options(self):
+        df = pd.DataFrame([['foo', 'bar']], columns=['col1', 'col2'])
+        expected = df.replace({'foo': True,
+                               'bar': False})
+        with ensure_clean(self.ext) as path:
+            df.to_excel(path)
+            read_frame = read_excel(path, true_values=['foo'],
+                                    false_values=['bar'])
+            tm.assert_frame_equal(read_frame, expected)
+
 
 def raise_wrapper(major_ver):
     def versioned_raise_wrapper(orig_method):
