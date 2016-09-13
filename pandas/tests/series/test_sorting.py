@@ -5,7 +5,7 @@ import random
 
 from pandas import (DataFrame, Series, MultiIndex)
 
-from pandas.util.testing import (assert_series_equal, assert_almost_equal)
+from pandas.util.testing import (assert_series_equal, assert_almost_equal, assertRaisesRegexp)
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -144,3 +144,22 @@ class TestSeriesSorting(TestData, tm.TestCase):
         # rows share same level='A': sort has no effect without remaining lvls
         res = s.sort_index(level='A', sort_remaining=False)
         assert_series_equal(s, res)
+
+    def test_sort_index_nan(self):
+
+        # GH13729
+        ser = Series(['A', np.nan, 'C', 'D'], [1, 2, 0, np.nan])
+
+        # na_position='last', kind='quicksort'
+        result = ser.sort_index(kind='quicksort', na_position='last')
+        expected = Series(['C', 'A', np.nan, 'D'], [0, 1, 2, np.nan])
+        assert_series_equal(result, expected)
+
+        # na_position='first'
+        result = ser.sort_index(na_position='first')
+        expected = Series(['D', 'C', 'A', np.nan], [np.nan, 0, 1, 2])
+        assert_series_equal(result, expected)
+
+        # invalid argument
+        assertRaisesRegexp(TypeError, 'got an unexpected keyword argument',
+                            ser.sort_index, arg='first')
