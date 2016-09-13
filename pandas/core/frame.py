@@ -3828,7 +3828,7 @@ class DataFrame(NDFrame):
         two  a  3.0
              b  4.0
         dtype: float64
-        
+
         Returns
         -------
         unstacked : DataFrame or Series
