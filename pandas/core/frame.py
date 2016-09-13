@@ -3805,29 +3805,30 @@ class DataFrame(NDFrame):
         ...                                    ('two', 'a'), ('two', 'b')])
         >>> s = pd.Series(np.arange(1.0, 5.0), index=index)
         >>> s
-        one  a   1
-             b   2
-        two  a   3
-             b   4
+        one  a   1.0
+             b   2.0
+        two  a   3.0
+             b   4.0
         dtype: float64
 
         >>> s.unstack(level=-1)
              a   b
-        one  1  2
-        two  3  4
+        one  1.0  2.0
+        two  3.0  4.0
 
         >>> s.unstack(level=0)
            one  two
-        a  1   3
-        b  2   4
+        a  1.0   3.0
+        b  2.0   4.0
 
         >>> df = s.unstack(level=0)
         >>> df.unstack()
-        one  a  1.
-             b  3.
-        two  a  2.
-             b  4.
-
+        one  a  1.0
+             b  3.0
+        two  a  2.0
+             b  4.0
+        dtype: float64
+        
         Returns
         -------
         unstacked : DataFrame or Series
