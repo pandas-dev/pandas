@@ -795,13 +795,13 @@ class _TestSQLApi(PandasSQLTest):
 
         create_sql = sql.get_schema(frame, 'test_schema', index=True)
         self.assertTrue('index' in create_sql)
-        self.assertTrue('CREATE INDEX "ix_test_schema_index" '
+        self.assertTrue('CREATE INDEX "ix_test_schema_index"'
                         'ON "test_schema" ("index")' in create_sql)
 
         create_sql = sql.get_schema(frame, 'test_schema', index=True,
                                     index_label="idx")
         self.assertTrue('idx' in create_sql)
-        self.assertTrue('CREATE INDEX "ix_test_schema_idx" '
+        self.assertTrue('CREATE INDEX "ix_test_schema_idx"'
                         'ON "test_schema" ("idx")' in create_sql)
 
     def test_chunksize_read(self):
