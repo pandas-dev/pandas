@@ -31,14 +31,12 @@ from pandas.tseries.period import Period, PeriodIndex
 # see gh-14094.
 from pandas.util.depr_module import _DeprecatedModule
 
-_alts = ['pandas.tseries.tools', 'pandas.tseries.offsets',
-         'pandas.tseries.frequencies']
 _removals = ['day', 'bday', 'businessDay', 'cday', 'customBusinessDay',
              'customBusinessMonthEnd', 'customBusinessMonthBegin',
              'monthEnd', 'yearEnd', 'yearBegin', 'bmonthEnd', 'bmonthBegin',
              'cbmonthEnd', 'cbmonthBegin', 'bquarterEnd', 'quarterEnd',
              'byearEnd', 'week']
-datetools = _DeprecatedModule(deprmod='pandas.core.datetools', alts=_alts,
+datetools = _DeprecatedModule(deprmod='pandas.core.datetools',
                               removals=_removals)
 
 from pandas.core.config import (get_option, set_option, reset_option,
