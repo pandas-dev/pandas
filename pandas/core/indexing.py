@@ -11,7 +11,8 @@ from pandas.types.common import (is_integer_dtype,
                                  is_sequence,
                                  is_scalar,
                                  is_sparse,
-                                 _ensure_platform_int)
+                                 _ensure_platform_int,
+                                 is_arraylike)
 from pandas.types.missing import isnull, _infer_fill_value
 
 from pandas.core.index import Index, MultiIndex
@@ -606,7 +607,7 @@ class _NDFrameIndexer(object):
         if isinstance(indexer, tuple):
 
             # flatten np.ndarray indexers
-            ravel = lambda i: i.ravel() if isinstance(i, np.ndarray) else i
+            ravel = lambda i: i.ravel() if is_arraylike(i) else i
             indexer = tuple(map(ravel, indexer))
 
             aligners = [not is_null_slice(idx) for idx in indexer]

@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 from pandas.core.common import _values_from_object
 from pandas.computation import _NUMEXPR_INSTALLED
+from pandas.types.common import is_arraylike
 
 if _NUMEXPR_INSTALLED:
     import numexpr as ne
@@ -78,7 +79,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
                     if len(s) > 1:
                         return False
                     dtypes |= set(s.index)
-                elif isinstance(o, np.ndarray):
+                elif is_arraylike(o):
                     dtypes |= set([o.dtype.name])
 
             # allowed are a superset

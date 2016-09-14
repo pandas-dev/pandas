@@ -9,7 +9,8 @@ from pandas.types.common import (is_bool_dtype,
                                  is_string_like,
                                  is_list_like,
                                  is_scalar,
-                                 is_integer)
+                                 is_integer,
+                                 is_arraylike)
 from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
@@ -160,7 +161,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
 
     if isinstance(arr, ABCSeries):
         arr = arr.values
-    if not isinstance(arr, np.ndarray):
+    if not is_arraylike(arr):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
         mask = isnull(arr)

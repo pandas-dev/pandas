@@ -30,7 +30,7 @@ from pandas.types.common import (_ensure_int64, _ensure_object,
                                  is_timedelta64_dtype,
                                  needs_i8_conversion,
                                  is_iterator, is_list_like,
-                                 is_scalar)
+                                 is_scalar, is_arraylike)
 from pandas.types.cast import _coerce_indexer_dtype
 from pandas.core.common import (is_bool_indexer,
                                 _values_from_object,
@@ -3062,14 +3062,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 # raise the original KeyError
                 raise err
 
-        if isinstance(slc, np.ndarray):
+        if is_arraylike(slc):
             # get_loc may return a boolean array or an array of indices, which
             # is OK as long as they are representable by a slice.
             if is_bool_dtype(slc):
                 slc = lib.maybe_booleans_to_slice(slc.view('u1'))
             else:
                 slc = lib.maybe_indices_to_slice(slc.astype('i8'), len(self))
-            if isinstance(slc, np.ndarray):
+            if is_arraylike(slc):
                 raise KeyError("Cannot get %s slice bound for non-unique "
                                "label: %r" % (side, original_label))
 
@@ -3398,7 +3398,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                     opstr=type(self),
                                     typ=type(other))
                                 )
-        elif isinstance(other, np.ndarray) and not other.ndim:
+        elif is_arraylike(other) and not other.ndim:
                     other = other.item()
 
         if isinstance(other, (Index, ABCSeries, np.ndarray)):

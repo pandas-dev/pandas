@@ -19,7 +19,7 @@ from pandas.types.common import (_ensure_platform_int,
                                  is_integer_dtype,
                                  is_bool_dtype,
                                  is_list_like,
-                                 is_scalar, is_dtype_equal)
+                                 is_scalar, is_dtype_equal, is_arraylike)
 from pandas.types.cast import (_possibly_convert_platform, _maybe_promote,
                                _astype_nansafe, _find_common_type)
 from pandas.types.missing import isnull, notnull, na_value_for_dtype
@@ -45,7 +45,7 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
     """
 
     def wrapper(self, other):
-        if isinstance(other, np.ndarray):
+        if is_arraylike(other):
             if len(self) != len(other):
                 raise AssertionError("length mismatch: %d vs. %d" %
                                      (len(self), len(other)))
@@ -706,7 +706,7 @@ def _sanitize_values(arr):
             arr = [arr]
 
         # ndarray
-        if isinstance(arr, np.ndarray):
+        if is_arraylike(arr):
             pass
 
         elif is_list_like(arr) and len(arr) > 0:

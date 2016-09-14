@@ -16,7 +16,7 @@ from pandas.types.common import (is_float, is_integer,
                                  is_float_dtype,
                                  is_datetime64_ns_dtype,
                                  is_period_arraylike,
-                                 )
+                                 is_arraylike)
 
 from pandas.compat import lrange
 import pandas.compat as compat
@@ -203,7 +203,7 @@ class DatetimeConverter(dates.DateConverter):
         elif isinstance(values, (list, tuple, np.ndarray, Index)):
             if isinstance(values, Index):
                 values = values.values
-            if not isinstance(values, np.ndarray):
+            if not is_arraylike(values):
                 values = com._asarray_tuplesafe(values)
 
             if is_integer_dtype(values) or is_float_dtype(values):

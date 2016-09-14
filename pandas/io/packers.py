@@ -49,7 +49,8 @@ from pandas import compat
 from pandas.compat import u, u_safe
 
 from pandas.types.common import (is_categorical_dtype, is_object_dtype,
-                                 needs_i8_conversion, pandas_dtype)
+                                 needs_i8_conversion, pandas_dtype,
+                                 is_arraylike)
 
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
@@ -511,7 +512,7 @@ def encode(obj):
                 u'klass': u(obj.__class__.__name__),
                 u'indices': obj.indices,
                 u'length': obj.length}
-    elif isinstance(obj, np.ndarray):
+    elif is_arraylike(obj):
         return {u'typ': u'ndarray',
                 u'shape': obj.shape,
                 u'ndim': obj.ndim,

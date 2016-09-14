@@ -20,7 +20,8 @@ from pandas.types.common import (_ensure_int64, _ensure_object,
                                  is_numeric_dtype,
                                  is_datetime64_dtype, is_timedelta64_dtype,
                                  is_datetime_or_timedelta_dtype,
-                                 is_int_or_datetime_dtype, is_any_int_dtype)
+                                 is_int_or_datetime_dtype, is_any_int_dtype,
+                                 is_arraylike)
 from pandas.types.cast import _int64_max, _maybe_upcast_putmask
 from pandas.types.missing import isnull, notnull
 
@@ -136,7 +137,7 @@ def _bn_ok_dtype(dt, name):
 
 
 def _has_infs(result):
-    if isinstance(result, np.ndarray):
+    if is_arraylike(result):
         if result.dtype == 'f8':
             return lib.has_infs_f8(result.ravel())
         elif result.dtype == 'f4':
@@ -239,12 +240,12 @@ def _wrap_results(result, dtype):
     """ wrap our results if needed """
 
     if is_datetime64_dtype(dtype):
-        if not isinstance(result, np.ndarray):
+        if not is_arraylike(result):
             result = lib.Timestamp(result)
         else:
             result = result.view(dtype)
     elif is_timedelta64_dtype(dtype):
-        if not isinstance(result, np.ndarray):
+        if not is_arraylike(result):
 
             # raise if we have a timedelta64[ns] which is too large
             if np.fabs(result) > _int64_max:
@@ -521,7 +522,7 @@ def nanskew(values, axis=None, skipna=True):
     if is_float_dtype(dtype):
         result = result.astype(dtype)
 
-    if isinstance(result, np.ndarray):
+    if is_arraylike(result):
         result = np.where(m2 == 0, 0, result)
         result[count < 3] = np.nan
         return result
@@ -574,7 +575,7 @@ def nankurt(values, axis=None, skipna=True):
     numer = _zero_out_fperr(numer)
     denom = _zero_out_fperr(denom)
 
-    if not isinstance(denom, np.ndarray):
+    if not is_arraylike(denom):
         # if ``denom`` is a scalar, check these corner cases first before
         # doing division
         if count < 4:
@@ -589,7 +590,7 @@ def nankurt(values, axis=None, skipna=True):
     if is_float_dtype(dtype):
         result = result.astype(dtype)
 
-    if isinstance(result, np.ndarray):
+    if is_arraylike(result):
         result = np.where(denom == 0, 0, result)
         result[count < 4] = np.nan
 
@@ -661,7 +662,7 @@ def _maybe_null_out(result, axis, mask):
 
 
 def _zero_out_fperr(arg):
-    if isinstance(arg, np.ndarray):
+    if is_arraylike(arg):
         with np.errstate(invalid='ignore'):
             return np.where(np.abs(arg) < 1e-14, 0, arg)
     else:
@@ -735,7 +736,7 @@ def nancov(a, b, min_periods=None):
 
 
 def _ensure_numeric(x):
-    if isinstance(x, np.ndarray):
+    if is_arraylike(x):
         if is_integer_dtype(x) or is_bool_dtype(x):
             x = x.astype(np.float64)
         elif is_object_dtype(x):

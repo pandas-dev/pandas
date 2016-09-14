@@ -6,7 +6,7 @@ from datetime import datetime, date
 import numpy as np
 import pandas as pd
 
-from pandas.types.common import is_integer_dtype, is_list_like
+from pandas.types.common import is_integer_dtype, is_list_like, is_arraylike
 from pandas import (Index, Series, DataFrame, bdate_range,
                     date_range, period_range, timedelta_range)
 from pandas.tseries.period import PeriodIndex
@@ -49,7 +49,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         def get_expected(s, name):
             result = getattr(Index(s._values), prop)
-            if isinstance(result, np.ndarray):
+            if is_arraylike(result):
                 if is_integer_dtype(result):
                     result = result.astype('int64')
             elif not is_list_like(result):

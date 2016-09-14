@@ -29,6 +29,7 @@ from pandas.types.common import (needs_i8_conversion,
                                  is_datetime64_dtype, is_datetime64tz_dtype,
                                  is_bool_dtype, is_datetimetz,
                                  is_list_like,
+                                 is_arraylike,
                                  _ensure_object)
 from pandas.types.cast import _maybe_upcast_putmask, _find_common_type
 from pandas.types.generic import ABCSeries, ABCIndex, ABCPeriodIndex
@@ -635,7 +636,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                 result = np.empty(x.size, dtype=dtype)
                 mask = notnull(x) & notnull(y)
                 result[mask] = op(x[mask], _values_from_object(y[mask]))
-            elif isinstance(x, np.ndarray):
+            elif is_arraylike(x):
                 result = np.empty(len(x), dtype=x.dtype)
                 mask = notnull(x)
                 result[mask] = op(x[mask], y)
@@ -1110,7 +1111,7 @@ def _align_method_FRAME(left, right, axis):
     if isinstance(right, (list, tuple)):
         right = to_series(right)
 
-    elif isinstance(right, np.ndarray) and right.ndim:  # skips np scalar
+    elif is_arraylike(right) and right.ndim:  # skips np scalar
 
         if right.ndim == 1:
             right = to_series(right)
@@ -1311,7 +1312,7 @@ def _comp_method_PANEL(op, name, str_rep=None, masker=False):
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=bool)
-            if isinstance(y, np.ndarray):
+            if is_arraylike(y):
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
                 result[mask] = op(np.array(list(xrav[mask])),

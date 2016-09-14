@@ -27,6 +27,7 @@ from pandas.types.common import (_TD_DTYPE, _NS_DTYPE,
                                  is_re,
                                  is_re_compilable,
                                  is_scalar,
+                                 is_arraylike,
                                  _get_dtype)
 from pandas.types.cast import (_possibly_downcast_to_dtype,
                                _maybe_convert_string_to_object,
@@ -683,7 +684,7 @@ class Block(PandasObject):
         # boolean with truth values == len of the value is ok too
         if isinstance(indexer, (np.ndarray, list)):
             if is_list_like(value) and len(indexer) != len(value):
-                if not (isinstance(indexer, np.ndarray) and
+                if not (is_arraylike(indexer) and
                         indexer.dtype == np.bool_ and
                         len(indexer[indexer]) == len(value)):
                     raise ValueError("cannot set using a list-like indexer "
@@ -714,7 +715,7 @@ class Block(PandasObject):
                 if arr_value.ndim == 1:
                     if not isinstance(indexer, tuple):
                         indexer = tuple([indexer])
-                    return any(isinstance(idx, np.ndarray) and len(idx) == 0
+                    return any(is_arraylike(idx) and len(idx) == 0
                                for idx in indexer)
                 return False
 
@@ -833,7 +834,7 @@ class Block(PandasObject):
         elif mask.any():
             if transpose:
                 mask = mask.T
-                if isinstance(new, np.ndarray):
+                if is_arraylike(new):
                     new = new.T
                 axis = new_values.ndim - axis - 1
 
@@ -853,7 +854,7 @@ class Block(PandasObject):
 
                     # need a new block
                     if m.any():
-                        if isinstance(new, np.ndarray):
+                        if is_arraylike(new):
                             n = np.squeeze(new[i % new.shape[0]])
                         else:
                             n = np.array(new)
@@ -1131,13 +1132,13 @@ class Block(PandasObject):
                 result = func(values, other)
 
             # mask if needed
-            if isinstance(values_mask, np.ndarray) and values_mask.any():
+            if is_arraylike(values_mask) and values_mask.any():
                 result = result.astype('float64', copy=False)
                 result[values_mask] = np.nan
             if other_mask is True:
                 result = result.astype('float64', copy=False)
                 result[:] = np.nan
-            elif isinstance(other_mask, np.ndarray) and other_mask.any():
+            elif is_arraylike(other_mask) and other_mask.any():
                 result = result.astype('float64', copy=False)
                 result[other_mask.ravel()] = np.nan
 
@@ -1169,12 +1170,12 @@ class Block(PandasObject):
 
         # technically a broadcast error in numpy can 'work' by returning a
         # boolean False
-        if not isinstance(result, np.ndarray):
-            if not isinstance(result, np.ndarray):
+        if not is_arraylike(result):
+            if not is_arraylike(result):
 
                 # differentiate between an invalid ndarray-ndarray comparison
                 # and an invalid type comparison
-                if isinstance(values, np.ndarray) and is_list_like(other):
+                if is_arraylike(values) and is_list_like(other):
                     raise ValueError('Invalid broadcasting comparison [%s] '
                                      'with block values' % repr(other))
 
@@ -1493,7 +1494,7 @@ class NonConsolidatableMixIn(object):
         new_values = self.values if inplace else self.copy().values
         new_values, _, new, _ = self._try_coerce_args(new_values, new)
 
-        if isinstance(new, np.ndarray) and len(new) == len(mask):
+        if is_arraylike(new) and len(new) == len(mask):
             new = new[mask]
 
         mask = _safe_reshape(mask, new_values.shape)
@@ -1702,7 +1703,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             other = Timedelta(other).value
         elif isinstance(other, timedelta):
             other = Timedelta(other).value
-        elif isinstance(other, np.ndarray):
+        elif is_arraylike(other):
             other_mask = isnull(other)
             other = other.astype('i8', copy=False).view('i8')
         else:
@@ -1715,7 +1716,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args / try_operate """
-        if isinstance(result, np.ndarray):
+        if is_arraylike(result):
             mask = isnull(result)
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('m8[ns]')
@@ -2072,7 +2073,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         # GH12564: CategoricalBlock is 1-dim only
         # while returned results could be any dim
         if ((not is_categorical_dtype(result)) and
-                isinstance(result, np.ndarray)):
+                is_arraylike(result)):
             result = _block_shape(result, ndim=self.ndim)
 
         return result
@@ -2252,7 +2253,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
+        if is_arraylike(result):
             if result.dtype.kind in ['i', 'f', 'O']:
                 try:
                     result = result.astype('M8[ns]')
@@ -2416,12 +2417,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
+        if is_arraylike(result):
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('M8[ns]')
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = lib.Timestamp(result, tz=self.values.tz)
-        if isinstance(result, np.ndarray):
+        if is_arraylike(result):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
                 result = result.reshape(len(result))
@@ -4568,8 +4569,8 @@ def _vstack(to_stack, dtype):
 
 def _possibly_compare(a, b, op):
 
-    is_a_array = isinstance(a, np.ndarray)
-    is_b_array = isinstance(b, np.ndarray)
+    is_a_array = is_arraylike(a)
+    is_b_array = is_arraylike(b)
 
     # numpy deprecation warning to have i8 vs integer comparisions
     if is_datetimelike_v_numeric(a, b):
@@ -4739,7 +4740,7 @@ def _putmask_smart(v, m, n):
     # n should be the length of the mask or a scalar here
     if not is_list_like(n):
         n = np.array([n] * len(m))
-    elif isinstance(n, np.ndarray) and n.ndim == 0:  # numpy scalar
+    elif is_arraylike(n) and n.ndim == 0:  # numpy scalar
         n = np.repeat(np.array(n, ndmin=1), len(m))
 
     # see if we are only masking values that if putted
@@ -5211,7 +5212,7 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
     if isinstance(slice_or_indexer, slice):
         return 'slice', slice_or_indexer, lib.slice_len(slice_or_indexer,
                                                         length)
-    elif (isinstance(slice_or_indexer, np.ndarray) and
+    elif (is_arraylike(slice_or_indexer) and
           slice_or_indexer.dtype == np.bool_):
         return 'mask', slice_or_indexer, slice_or_indexer.sum()
     else:

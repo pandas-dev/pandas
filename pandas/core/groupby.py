@@ -27,7 +27,8 @@ from pandas.types.common import (_DATELIKE_DTYPES,
                                  _ensure_platform_int,
                                  _ensure_int64,
                                  _ensure_object,
-                                 _ensure_float)
+                                 _ensure_float,
+                                 is_arraylike)
 from pandas.types.cast import _possibly_downcast_to_dtype
 from pandas.types.missing import isnull, notnull, _maybe_fill
 
@@ -1029,7 +1030,7 @@ class GroupBy(_GroupBy):
             self._set_group_selection()
 
             def f(x):
-                if isinstance(x, np.ndarray):
+                if is_arraylike(x):
                     x = Series(x)
                 return x.median(axis=self.axis)
             return self._python_agg_general(f)

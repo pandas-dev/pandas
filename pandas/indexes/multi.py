@@ -20,7 +20,8 @@ from pandas.types.common import (_ensure_int64,
                                  is_object_dtype,
                                  is_iterator,
                                  is_list_like,
-                                 is_scalar)
+                                 is_scalar,
+                                 is_arraylike)
 from pandas.types.missing import isnull, array_equivalent
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,
@@ -1559,7 +1560,7 @@ class MultiIndex(Index):
 
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
-            if not isinstance(loc, np.ndarray) or loc.dtype != 'int64':
+            if not is_arraylike(loc) or loc.dtype != 'int64':
                 return loc
 
             loc = lib.maybe_indices_to_slice(loc, len(self))

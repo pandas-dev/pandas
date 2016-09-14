@@ -25,6 +25,7 @@ from pandas.types.common import (_coerce_to_dtype, is_categorical_dtype,
                                  is_iterator,
                                  is_dict_like,
                                  is_scalar,
+                                 is_arraylike,
                                  _ensure_platform_int)
 from pandas.types.generic import ABCSparseArray, ABCDataFrame
 from pandas.types.cast import (_maybe_upcast, _infer_dtype_from_scalar,
@@ -165,7 +166,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
                 data = data._to_embed(keep_tz=True)
                 copy = True
-            elif isinstance(data, np.ndarray):
+            elif is_arraylike(data):
                 pass
             elif isinstance(data, Series):
                 if name is None:
@@ -487,7 +488,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """
 
         # nice error message for non-ufunc types
-        if context is not None and not isinstance(self._values, np.ndarray):
+        if context is not None and not is_arraylike(self._values):
             obj = context[1][0]
             raise TypeError("{obj} with dtype {dtype} cannot perform "
                             "the numpy op {op}".format(
@@ -569,7 +570,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
             # dispatch to the values if we need
             values = self._values
-            if isinstance(values, np.ndarray):
+            if is_arraylike(values):
                 return _index.get_value_at(values, i)
             else:
                 return values[i]
@@ -1509,7 +1510,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                      index=other.columns).__finalize__(self)
         elif isinstance(other, Series):
             return np.dot(lvals, rvals)
-        elif isinstance(rvals, np.ndarray):
+        elif is_arraylike(rvals):
             return np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
@@ -2282,7 +2283,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         """
         delegate = self._values
-        if isinstance(delegate, np.ndarray):
+        if is_arraylike(delegate):
             # Validate that 'axis' is consistent with Series's single axis.
             self._get_axis_number(axis)
             if numeric_only:
@@ -2777,7 +2778,7 @@ def _sanitize_index(data, index, copy=False):
         data = data._to_embed(keep_tz=True)
         if copy:
             data = data.copy()
-    elif isinstance(data, np.ndarray):
+    elif is_arraylike(data):
 
         # coerce datetimelike types
         if data.dtype.kind in ['M', 'm']:
@@ -2918,7 +2919,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                                            subarr.dtype)
 
     elif subarr.ndim > 1:
-        if isinstance(data, np.ndarray):
+        if is_arraylike(data):
             raise Exception('Data must be 1-dimensional')
         else:
             subarr = _asarray_tuplesafe(data, dtype=dtype)

@@ -11,10 +11,11 @@ import pandas as pd
 from pandas import compat
 import pandas.core.common as com
 from pandas.computation.common import _result_type_many
+from pandas.types.common import is_arraylike
 
 
 def _align_core_single_unary_op(term):
-    if isinstance(term.value, np.ndarray):
+    if is_arraylike(term.value):
         typ = partial(np.asanyarray, dtype=term.value.dtype)
     else:
         typ = type(term.value)
@@ -177,7 +178,7 @@ def _reconstruct_object(typ, obj, axes, dtype):
         # scalar) and 1 element array
         # e.g. np.array(0) and np.array([0])
         if len(obj.shape) == 1 and len(obj) == 1:
-            if not isinstance(ret_value, np.ndarray):
+            if not is_arraylike(ret_value):
                 ret_value = np.array([ret_value]).astype(res_t)
 
     return ret_value

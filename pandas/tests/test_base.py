@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pandas.compat as compat
 from pandas.types.common import (is_object_dtype, is_datetimetz,
-                                 needs_i8_conversion)
+                                 needs_i8_conversion, is_arraylike)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta)
@@ -275,8 +275,7 @@ class Ops(tm.TestCase):
                     tm.assert_series_equal(result, expected)
                 elif isinstance(result, Index) and isinstance(expected, Index):
                     tm.assert_index_equal(result, expected)
-                elif isinstance(result, np.ndarray) and isinstance(expected,
-                                                                   np.ndarray):
+                elif is_arraylike(result) and is_arraylike(expected):
                     self.assert_numpy_array_equal(result, expected)
                 else:
                     self.assertEqual(result, expected)

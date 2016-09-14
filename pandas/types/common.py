@@ -188,8 +188,8 @@ def is_numeric_v_string_like(a, b):
     return a boolean result if this is the case for a,b or b,a
 
     """
-    is_a_array = isinstance(a, np.ndarray)
-    is_b_array = isinstance(b, np.ndarray)
+    is_a_array = is_arraylike(a)
+    is_b_array = is_arraylike(b)
 
     is_a_numeric_array = is_a_array and is_numeric_dtype(a)
     is_b_numeric_array = is_b_array and is_numeric_dtype(b)
@@ -305,6 +305,11 @@ def _coerce_to_dtype(dtype):
     else:
         dtype = np.dtype(dtype)
     return dtype
+
+
+def is_arraylike(arg):
+    """ return if arg is arraylike """
+    return isinstance(arg, np.ndarray)
 
 
 def _get_dtype(arr_or_dtype):

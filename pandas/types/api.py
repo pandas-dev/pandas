@@ -53,4 +53,5 @@ from .common import (pandas_dtype,
                      is_list_like,
                      is_hashable,
                      is_named_tuple,
-                     is_sequence)
+                     is_sequence,
+                     is_arraylike)

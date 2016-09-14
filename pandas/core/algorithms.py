@@ -26,7 +26,8 @@ from pandas.types.common import (is_integer_dtype,
                                  _ensure_object,
                                  _ensure_float64,
                                  _ensure_int64,
-                                 is_list_like)
+                                 is_list_like,
+                                 is_arraylike)
 from pandas.types.missing import isnull
 
 import pandas.core.common as com
@@ -135,7 +136,7 @@ def isin(comps, values):
         raise TypeError("only list-like objects are allowed to be passed"
                         " to isin(), you passed a "
                         "[{0}]".format(type(values).__name__))
-    if not isinstance(values, np.ndarray):
+    if not is_arraylike(values):
         values = list(values)
 
     # GH11232

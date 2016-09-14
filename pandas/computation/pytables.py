@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from pandas.types.common import is_list_like
+from pandas.types.common import is_list_like, is_arraylike
 import pandas.core.common as com
 from pandas.compat import u, string_types, DeepChainMap
 from pandas.core.base import StringMixin
@@ -131,7 +131,7 @@ class BinOp(ops.BinOp):
         """ inplace conform rhs """
         if not is_list_like(rhs):
             rhs = [rhs]
-        if isinstance(rhs, np.ndarray):
+        if is_arraylike(rhs):
             rhs = rhs.ravel()
         return rhs
 

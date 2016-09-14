@@ -6,7 +6,7 @@ from functools import partial
 import warnings
 import numpy as np
 from pandas import Series, isnull
-from pandas.types.common import is_integer_dtype
+from pandas.types.common import is_integer_dtype, is_arraylike
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 
@@ -440,7 +440,7 @@ class TestnanopsDataFrame(tm.TestCase):
             values = values.astype('f8')
         result = func(values, axis=axis, bias=False)
         # fix for handling cases where all elements in an axis are the same
-        if isinstance(result, np.ndarray):
+        if is_arraylike(result):
             result[np.max(values, axis=axis) == np.min(values, axis=axis)] = 0
             return result
         elif np.max(values) == np.min(values):

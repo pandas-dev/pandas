@@ -5,8 +5,7 @@ statistics implemented in Cython
 from __future__ import division
 
 import warnings
-import numpy as np
-from pandas.types.common import is_scalar
+from pandas.types.common import is_scalar, is_arraylike
 from pandas.core.api import DataFrame, Series
 from pandas.util.decorators import Substitution, Appender
 
@@ -184,7 +183,7 @@ def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
 
     can be removed when ndarray support is removed
     """
-    is_ndarray = isinstance(arg, np.ndarray)
+    is_ndarray = is_arraylike(arg)
     if is_ndarray:
         if arg.ndim == 1:
             arg = Series(arg)
