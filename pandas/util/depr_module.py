@@ -13,18 +13,11 @@ class _DeprecatedModule(object):
     Parameters
     ----------
     deprmod : name of module to be deprecated.
-    alts : alternative modules to be used to access objects or methods
-           available in module.
     removals : objects or methods in module that will no longer be
                accessible once module is removed.
     """
-    def __init__(self, deprmod, alts=None, removals=None):
+    def __init__(self, deprmod, removals=None):
         self.deprmod = deprmod
-
-        self.alts = alts
-        if self.alts is not None:
-            self.alts = frozenset(self.alts)
-
         self.removals = removals
         if self.removals is not None:
             self.removals = frozenset(self.removals)
@@ -33,47 +26,39 @@ class _DeprecatedModule(object):
         self.self_dir = frozenset(dir(self.__class__))
 
     def __dir__(self):
-        _dir = object.__dir__(self)
+        deprmodule = self._import_deprmod()
+        return dir(deprmodule)
 
-        if self.removals is not None:
-            _dir.extend(list(self.removals))
+    def __repr__(self):
+        deprmodule = self._import_deprmod()
+        return repr(deprmodule)
 
-        if self.alts is not None:
-            for modname in self.alts:
-                module = importlib.import_module(modname)
-                _dir.extend(dir(module))
-
-        return _dir
+    __str__ = __repr__
 
     def __getattr__(self, name):
         if name in self.self_dir:
             return object.__getattribute__(self, name)
 
-        if self.removals is not None and name in self.removals:
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore', category=FutureWarning)
-                module = importlib.import_module(self.deprmod)
+        deprmodule = self._import_deprmod()
+        obj = getattr(deprmodule, name)
 
+        if self.removals is not None and name in self.removals:
             warnings.warn(
                 "{deprmod}.{name} is deprecated and will be removed in "
                 "a future version.".format(deprmod=self.deprmod, name=name),
                 FutureWarning, stacklevel=2)
+        else:
+            # The object is actually located in another module.
+            warnings.warn(
+                "{deprmod}.{name} is deprecated. Please use "
+                "{modname}.{name} instead.".format(
+                    deprmod=self.deprmod, modname=obj.__module__, name=name),
+                FutureWarning, stacklevel=2)
 
-            return object.__getattribute__(module, name)
+        return obj
 
-        if self.alts is not None:
-            for modname in self.alts:
-                module = importlib.import_module(modname)
-
-                if hasattr(module, name):
-                    warnings.warn(
-                        "{deprmod}.{name} is deprecated. Please use "
-                        "{modname}.{name} instead.".format(
-                            deprmod=self.deprmod, modname=modname, name=name),
-                        FutureWarning, stacklevel=2)
-
-                    return getattr(module, name)
-
-        raise AttributeError("module '{deprmod}' has no attribute "
-                             "'{name}'".format(deprmod=self.deprmod,
-                                               name=name))
+    def _import_deprmod(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=FutureWarning)
+            deprmodule = importlib.import_module(self.deprmod)
+            return deprmodule
