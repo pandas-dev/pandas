@@ -1810,3 +1810,11 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
         res = Series([1, 2], index=idx1) + Series([1, 1], index=idx2)
         assert_series_equal(res, Series([np.nan, 3, np.nan], index=base))
+
+    def test_op_duplicate_index(self):
+        # GH14227
+        s1 = Series([1, 2], index=[1, 1])
+        s2 = Series([10, 10], index=[1, 2])
+        result = s1 + s2
+        expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
+        assert_series_equal(result, expected)

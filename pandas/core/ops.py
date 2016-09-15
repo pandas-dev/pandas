@@ -622,11 +622,14 @@ def _align_method_SERIES(left, right, align_asobject=False):
 
             left, right = left.align(right, copy=False)
 
-            index, lidx, ridx = left.index.join(right.index, how='outer',
-                                                return_indexers=True)
-            # if DatetimeIndex have different tz, convert to UTC
-            left.index = index
-            right.index = index
+            if is_datetime64tz_dtype(left.index):
+                if left.index.tz != right.index.tz:
+                    # if DatetimeIndex have different tz, convert to UTC
+                    index, lidx, ridx = left.index.join(
+                        right.index, how='outer', return_indexers=True)
+
+                    left.index = index
+                    right.index = index
 
     return left, right
 
