@@ -992,7 +992,7 @@ def is_lexsorted(list list_of_arrays):
 def groupby_indices(dict ids, ndarray[int64_t] labels,
                     ndarray[int64_t] counts):
     """
-    turn group_labels output into a combined indexer maping the labels to
+    turn group_labels output into a combined indexer mapping the labels to
     indexers
 
     Parameters
@@ -1312,6 +1312,9 @@ cdef inline float64_t _median_linear(float64_t* a, int n):
     cdef int i, j, na_count = 0
     cdef float64_t result
     cdef float64_t* tmp
+
+    if n == 0:
+        return NaN
 
     # count NAs
     for i in range(n):
