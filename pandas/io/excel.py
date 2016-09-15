@@ -29,6 +29,7 @@ import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
 from pandas.util.decorators import Appender
+from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
@@ -107,7 +108,7 @@ squeeze : boolean, default False
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
-    as NaN: '""" + "', '".join(sorted(_NA_VALUES)) + """'.
+    as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70) + """'.
 thousands : str, default None
     Thousands separator for parsing string columns to numeric.  Note that
     this parameter is only necessary for columns stored as TEXT in Excel,
