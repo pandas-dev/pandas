@@ -8,6 +8,7 @@ import csv
 import sys
 import warnings
 import datetime
+from textwrap import fill
 
 import numpy as np
 
@@ -133,7 +134,7 @@ nrows : int, default None
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values.  By default the following values are interpreted as
-    NaN: `'""" + "'`, `'".join(sorted(_NA_VALUES)) + """'`.
+    NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70) + """'`.
 keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to.
