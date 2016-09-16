@@ -154,7 +154,7 @@ class TestMultiIndex(Base, tm.TestCase):
             # as much as possible
             self.assertEqual(len(actual), len(expected))
             for act, exp in zip(actual, expected):
-                act = np.asarray(act)
+                act = np.asarray(act, dtype=np.object_)
                 exp = np.asarray(exp, dtype=np.object_)
                 tm.assert_numpy_array_equal(act, exp)
 
@@ -203,6 +203,25 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertIsNone(inplace_return)
         assert_matching(ind2.levels, new_levels)
         assert_matching(self.index.levels, levels)
+
+        # illegal level changing should not change levels
+        # GH 13754
+        original_index = self.index.copy()
+        with assertRaisesRegexp(ValueError, "^On"):
+            self.index.set_levels(['c'], level=0, inplace=True)
+        assert_matching(self.index.levels, original_index.levels)
+
+        with assertRaisesRegexp(ValueError, "^On"):
+            self.index.set_labels([0, 1, 2, 3, 4, 5], level=0, inplace=True)
+        assert_matching(self.index.labels, original_index.labels)
+
+        with assertRaisesRegexp(TypeError, "^Levels"):
+            self.index.set_levels('c', level=0, inplace=True)
+        assert_matching(self.index.levels, original_index.levels)
+
+        with assertRaisesRegexp(TypeError, "^Labels"):
+            self.index.set_labels(1, level=0, inplace=True)
+        assert_matching(self.index.labels, original_index.labels)
 
     def test_set_labels(self):
         # side note - you probably wouldn't want to use levels and labels
