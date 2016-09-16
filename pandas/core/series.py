@@ -2099,10 +2099,19 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         ----------
         arg : function, dict, or Series
         na_action : {None, 'ignore'}
-            If 'ignore', propagate NA values
+            If 'ignore', propagate NA values, without passing them to the
+            mapping function
+
+        Returns
+        -------
+        y : Series
+            same index as caller
 
         Examples
         --------
+
+        Map inputs to outputs
+
         >>> x
         one   1
         two   2
@@ -2118,10 +2127,27 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         two   bar
         three baz
 
-        Returns
-        -------
-        y : Series
-            same index as caller
+        Use na_action to control whether NA values are affected by the mapping
+        function.
+
+        >>> s = pd.Series([1, 2, 3, np.nan])
+
+        >>> s2 = s.map(lambda x: 'this is a string {}'.format(x),
+                       na_action=None)
+        0    this is a string 1.0
+        1    this is a string 2.0
+        2    this is a string 3.0
+        3    this is a string nan
+        dtype: object
+
+        >>> s3 = s.map(lambda x: 'this is a string {}'.format(x),
+                       na_action='ignore')
+        0    this is a string 1.0
+        1    this is a string 2.0
+        2    this is a string 3.0
+        3                     NaN
+        dtype: object
+
         """
 
         if is_extension_type(self.dtype):
