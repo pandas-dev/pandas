@@ -10,3 +10,4 @@ numexpr
 pytables
 matplotlib
 blosc
+pyqt=4.11.4
