@@ -799,6 +799,17 @@ class TestGroupBy(tm.TestCase):
         self.assertRaises(ValueError,
                           lambda: g.get_group(('foo', 'bar', 'baz')))
 
+    def test_get_group_empty_bins(self):
+        d = pd.DataFrame([3, 1, 7, 6])
+        bins = [0, 5, 10, 15]
+        g = d.groupby(pd.cut(d[0], bins))
+
+        result = g.get_group('(0, 5]')
+        expected = DataFrame([3, 1], index=[0, 1])
+        assert_frame_equal(result, expected)
+
+        self.assertRaises(KeyError, lambda: g.get_group('(10, 15]'))
+
     def test_get_group_grouped_by_tuple(self):
         # GH 8121
         df = DataFrame([[(1, ), (1, 2), (1, ), (1, 2)]], index=['ids']).T
@@ -4415,6 +4426,16 @@ class TestGroupBy(tm.TestCase):
         xp = df.groupby(labels).median()
         assert_frame_equal(rs, xp)
 
+    def test_median_empty_bins(self):
+        df = pd.DataFrame(np.random.randint(0, 44, 500))
+
+        grps = range(0, 55, 5)
+        bins = pd.cut(df[0], grps)
+
+        result = df.groupby(bins).median()
+        expected = df.groupby(bins).agg(lambda x: x.median())
+        assert_frame_equal(result, expected)
+
     def test_groupby_categorical_no_compress(self):
         data = Series(np.random.randn(9))
 
@@ -6121,6 +6142,27 @@ class TestGroupBy(tm.TestCase):
                 tm.assert_frame_equal(result, expected)
             except BaseException as exc:
                 exc.args += ('operation: %s' % op, )
+                raise
+
+    def test_cython_agg_empty_buckets(self):
+        ops = [('mean', np.mean),
+               ('median', np.median),
+               ('var', lambda x: np.var(x, ddof=1)),
+               ('add', lambda x: np.sum(x) if len(x) > 0 else np.nan),
+               ('prod', np.prod),
+               ('min', np.min),
+               ('max', np.max), ]
+
+        df = pd.DataFrame([11, 12, 13])
+        grps = range(0, 55, 5)
+
+        for op, targop in ops:
+            result = df.groupby(pd.cut(df[0], grps))._cython_agg_general(op)
+            expected = df.groupby(pd.cut(df[0], grps)).agg(lambda x: targop(x))
+            try:
+                tm.assert_frame_equal(result, expected)
+            except BaseException as exc:
+                exc.args += ('operation: %s' % op,)
                 raise
 
     def test_cython_group_transform_algos(self):
