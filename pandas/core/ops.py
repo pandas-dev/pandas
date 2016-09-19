@@ -39,7 +39,8 @@ from pandas.types.generic import ABCSeries, ABCIndex, ABCPeriodIndex
 
 
 def _create_methods(arith_method, comp_method, bool_method,
-                    use_numexpr, special=False, default_axis='columns'):
+                    use_numexpr, special=False, default_axis='columns',
+                    have_divmod=False):
     # creates actual methods based upon arithmetic, comp and bool method
     # constructors.
 
@@ -127,6 +128,15 @@ def _create_methods(arith_method, comp_method, bool_method,
                                   names('ror_'), op('|')),
                  rxor=bool_method(lambda x, y: operator.xor(y, x),
                                   names('rxor'), op('^'))))
+    if have_divmod:
+        # divmod doesn't have an op that is supported by numexpr
+        new_methods['divmod'] = arith_method(
+            divmod,
+            names('divmod'),
+            None,
+            default_axis=default_axis,
+            construct_result=_construct_divmod_result,
+        )
 
     new_methods = dict((names(k), v) for k, v in new_methods.items())
     return new_methods
@@ -156,7 +166,7 @@ def add_methods(cls, new_methods, force, select, exclude):
 def add_special_arithmetic_methods(cls, arith_method=None,
                                    comp_method=None, bool_method=None,
                                    use_numexpr=True, force=False, select=None,
-                                   exclude=None):
+                                   exclude=None, have_divmod=False):
     """
     Adds the full suite of special arithmetic methods (``__add__``,
     ``__sub__``, etc.) to the class.
@@ -177,6 +187,9 @@ def add_special_arithmetic_methods(cls, arith_method=None,
         if passed, only sets functions with names in select
     exclude : iterable of strings (optional)
         if passed, will not set functions with names in exclude
+    have_divmod : bool, (optional)
+        should a divmod method be added? this method is special because it
+        returns a tuple of cls instead of a single element of type cls
     """
 
     # in frame, special methods have default_axis = None, comp methods use
@@ -184,7 +197,7 @@ def add_special_arithmetic_methods(cls, arith_method=None,
 
     new_methods = _create_methods(arith_method, comp_method,
                                   bool_method, use_numexpr, default_axis=None,
-                                  special=True)
+                                  special=True, have_divmod=have_divmod)
 
     # inplace operators (I feel like these should get passed an `inplace=True`
     # or just be removed
@@ -618,8 +631,22 @@ def _align_method_SERIES(left, right, align_asobject=False):
     return left, right
 
 
+def _construct_result(left, result, index, name, dtype):
+    return left._constructor(result, index=index, name=name, dtype=dtype)
+
+
+def _construct_divmod_result(left, result, index, name, dtype):
+    """divmod returns a tuple of like indexed series instead of a single series.
+    """
+    constructor = left._constructor
+    return (
+        constructor(result[0], index=index, name=name, dtype=dtype),
+        constructor(result[1], index=index, name=name, dtype=dtype),
+    )
+
+
 def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
-                         **eval_kwargs):
+                         construct_result=_construct_result, **eval_kwargs):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -692,8 +719,14 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                 lvalues = lvalues.values
 
         result = wrap_results(safe_na_op(lvalues, rvalues))
-        return left._constructor(result, index=left.index,
-                                 name=name, dtype=dtype)
+        return construct_result(
+            left,
+            result,
+            index=left.index,
+            name=name,
+            dtype=dtype,
+        )
+
     return wrapper
 
 
@@ -933,6 +966,10 @@ _op_descriptions = {'add': {'op': '+',
                                  'desc': 'Integer division',
                                  'reversed': False,
                                  'reverse': 'rfloordiv'},
+                    'divmod': {'op': 'divmod',
+                               'desc': 'Integer division and modulo',
+                               'reversed': False,
+                               'reverse': None},
 
                     'eq': {'op': '==',
                                  'desc': 'Equal to',
@@ -1033,7 +1070,8 @@ series_flex_funcs = dict(flex_arith_method=_flex_method_SERIES,
 
 series_special_funcs = dict(arith_method=_arith_method_SERIES,
                             comp_method=_comp_method_SERIES,
-                            bool_method=_bool_method_SERIES)
+                            bool_method=_bool_method_SERIES,
+                            have_divmod=True)
 
 _arith_doc_FRAME = """
 Binary operator %s with support to substitute a fill_value for missing data in

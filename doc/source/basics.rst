@@ -188,6 +188,32 @@ And similarly for ``axis="items"`` and ``axis="minor"``.
    match the broadcasting behavior of Panel. Though it would require a
    transition period so users can change their code...
 
+Series and Index also support the :func:`divmod` builtin. This function takes
+the floor division and modulo operation at the same time returning a two-tuple
+of the same type as the left hand side. For example:
+
+.. ipython:: python
+
+   s = pd.Series(np.arange(10))
+   s
+   div, rem = divmod(s, 3)
+   div
+   rem
+
+   idx = pd.Index(np.arange(10))
+   idx
+   div, rem = divmod(idx, 3)
+   div
+   rem
+
+We can also do elementwise :func:`divmod`:
+
+.. ipython:: python
+
+   div, rem = divmod(s, [2, 2, 3, 3, 4, 4, 5, 5, 6, 6])
+   div
+   rem
+
 Missing data / operations with fill values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

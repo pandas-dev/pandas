@@ -1,6 +1,7 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+from collections import Iterable
 from datetime import datetime, timedelta
 import operator
 from itertools import product, starmap
@@ -19,7 +20,7 @@ import pandas.core.nanops as nanops
 from pandas.compat import range, zip
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal)
+                                 assert_frame_equal, assert_index_equal)
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -184,6 +185,34 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
         check_comparators(self.ts, 5)
         check_comparators(self.ts, self.ts + 1, check_dtype=False)
+
+    def test_divmod(self):
+        def check(series, other):
+            results = divmod(series, other)
+            if isinstance(other, Iterable) and len(series) != len(other):
+                # if the lengths don't match, this is the test where we use
+                # `self.ts[::2]`. Pad every other value in `other_np` with nan.
+                other_np = []
+                for n in other:
+                    other_np.append(n)
+                    other_np.append(np.nan)
+            else:
+                other_np = other
+            other_np = np.asarray(other_np)
+            with np.errstate(all='ignore'):
+                expecteds = divmod(series.values, np.asarray(other_np))
+
+            for result, expected in zip(results, expecteds):
+                # check the values, name, and index separatly
+                assert_almost_equal(np.asarray(result), expected)
+
+                self.assertEqual(result.name, series.name)
+                assert_index_equal(result.index, series.index)
+
+        check(self.ts, self.ts * 2)
+        check(self.ts, self.ts * 0)
+        check(self.ts, self.ts[::2])
+        check(self.ts, 5)
 
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
