@@ -758,21 +758,21 @@ ENGINES_PARSERS = list(product(_engines, expr._parsers))
 # typecasting rules consistency with python
 # issue #12388
 
-class TestTypeCasting(tm.TestCase):
+class TestTypeCasting(object):
 
     def check_binop_typecasting(self, engine, parser, op, dt):
         tm.skip_if_no_ne(engine)
         df = mkdf(5, 3, data_gen_f=f, dtype=dt)
         s = 'df {} 3'.format(op)
         res = pd.eval(s, engine=engine, parser=parser)
-        self.assertTrue(df.values.dtype == dt)
-        self.assertTrue(res.values.dtype == dt)
+        assert df.values.dtype == dt
+        assert res.values.dtype == dt
         assert_frame_equal(res, eval(s))
 
         s = '3 {} df'.format(op)
         res = pd.eval(s, engine=engine, parser=parser)
-        self.assertTrue(df.values.dtype == dt)
-        self.assertTrue(res.values.dtype == dt)
+        assert df.values.dtype == dt
+        assert res.values.dtype == dt
         assert_frame_equal(res, eval(s))
 
     def test_binop_typecasting(self):
