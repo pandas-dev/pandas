@@ -1369,7 +1369,7 @@ class _Concatenator(object):
                 clean_keys.append(k)
                 clean_objs.append(v)
             objs = clean_objs
-            keys = clean_keys
+            keys = Index(clean_keys, name=keys.name)
 
         if len(objs) == 0:
             raise ValueError('All objects passed were None')
@@ -1685,7 +1685,6 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
 
             # also copies
             names = names + _get_consensus_names(indexes)
-
         return MultiIndex(levels=levels, labels=label_list, names=names,
                           verify_integrity=False)
 
@@ -1694,8 +1693,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     kpieces = len(indexes)
 
     # also copies
-    new_names = list(names)
-    new_levels = list(levels)
+    new_names = names
+    new_levels = levels
 
     # construct labels
     new_labels = []
@@ -1723,8 +1722,12 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     if len(new_names) < len(new_levels):
         new_names.extend(new_index.names)
 
-    return MultiIndex(levels=new_levels, labels=new_labels, names=new_names,
-                      verify_integrity=False)
+    if any(new_names):
+        return MultiIndex(levels=new_levels, labels=new_labels,
+                          names=new_names, verify_integrity=False)
+    else:
+        return MultiIndex(levels=new_levels, labels=new_labels,
+                          verify_integrity=False)
 
 
 def _should_fill(lname, rname):
