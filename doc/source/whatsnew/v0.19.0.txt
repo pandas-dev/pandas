@@ -1567,7 +1567,7 @@ Bug Fixes
 - Bug in ``DataFrame.to_csv()`` with ``MultiIndex`` columns in which a stray empty line was added (:issue:`6618`)
 - Bug in ``DatetimeIndex``, ``TimedeltaIndex`` and ``PeriodIndex.equals()`` may return ``True`` when input isn't ``Index`` but contains the same values (:issue:`13107`)
 - Bug in assignment against datetime with timezone may not work if it contains datetime near DST boundary (:issue:`14146`)
-- Bug in ``pd.eval()`` truncating long float literals with python 2 (:issue:`14241`)
+- Bug in ``pd.eval()`` and ``HDFStore`` query truncating long float literals with python 2 (:issue:`14241`)
 - Bug in ``Index`` raises ``KeyError`` displaying incorrect column when column is not in the df and columns contains duplicate values (:issue:`13822`)
 - Bug in ``Period`` and ``PeriodIndex`` creating wrong dates when frequency has combined offset aliases (:issue:`13874`)
 - Bug in ``.to_string()`` when called with an integer ``line_width`` and ``index=False`` raises an UnboundLocalError exception because ``idx`` referenced before assignment.
