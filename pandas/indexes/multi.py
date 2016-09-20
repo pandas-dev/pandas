@@ -152,9 +152,10 @@ class MultiIndex(Index):
             raise ValueError('Length of levels must match length of level.')
 
         if level is None:
-            new_levels = FrozenList(
-                _ensure_index(lev, copy=copy)._shallow_copy()
-                for lev in levels)
+            new_levels = []
+            for lev in levels:
+                new_levels.append(
+                    _ensure_index(lev, copy=copy)._shallow_copy())
         else:
             level = [self._get_level_number(l) for l in level]
             new_levels = list(self._levels)

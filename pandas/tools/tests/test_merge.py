@@ -11,6 +11,7 @@ import random
 import pandas as pd
 from pandas.compat import lrange, lzip
 from pandas.tools.merge import merge, concat, MergeError
+from pandas.core.base import FrozenList
 from pandas.util.testing import (assert_frame_equal,
                                  assert_series_equal,
                                  slow)
@@ -833,6 +834,14 @@ class TestMergeMulti(tm.TestCase):
 
             merged2 = merged2.ix[:, merged1.columns]
             assert_frame_equal(merged1, merged2)
+
+    def test_concat_keys(self):
+        df = pd.DataFrame({'foo': [1, 2, 3, 4],
+                           'bar': [0.1, 0.2, 0.3, 0.4]})
+        index = pd.Index(['a', 'b'], name='baz')
+
+        concatted = pd.concat([df, df], keys=index)
+        self.assertEqual(FrozenList(['baz', None]), concatted.index.names)
 
     def test_compress_group_combinations(self):
 
