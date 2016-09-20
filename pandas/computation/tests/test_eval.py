@@ -678,6 +678,18 @@ class TestEvalNumexprPandas(tm.TestCase):
         result = pd.eval(exp, engine=self.engine, parser=self.parser)
         self.assertEqual(result, 12)
 
+    def test_float_truncation(self):
+        # GH 14241
+        exp = '1000000000.006'
+        result = pd.eval(exp, engine=self.engine, parser=self.parser)
+        expected = np.float64(exp)
+        self.assertEqual(result, expected)
+
+        df = pd.DataFrame([{"A": 1000000000.0099}])
+        cutoff = 1000000000.006
+        result = df.query("A < %.3f" % cutoff)
+        self.assertTrue(result.empty)
+
 
 class TestEvalNumexprPython(TestEvalNumexprPandas):
 
