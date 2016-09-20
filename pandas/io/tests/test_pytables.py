@@ -5002,7 +5002,6 @@ class TestHDFStore(Base, tm.TestCase):
 
         tm.assert_frame_equal(expected, actual)
 
-
     def test_query_long_float_literal(self):
         # GH 14241
         df = pd.DataFrame([{"A": 1000000000.0099}])
