@@ -5017,7 +5017,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             cutoff = 1000000000.0010
             result = store.select('test', "A > %.4f" % cutoff)
-            expected = df.loc[[1,2], :]
+            expected = df.loc[[1, 2], :]
             tm.assert_frame_equal(expected, result)
 
             exact = 1000000000.0011
