@@ -685,10 +685,23 @@ class TestEvalNumexprPandas(tm.TestCase):
         expected = np.float64(exp)
         self.assertEqual(result, expected)
 
-        df = pd.DataFrame([{"A": 1000000000.0099}])
-        cutoff = 1000000000.006
-        result = df.query("A < %.3f" % cutoff)
+        df = pd.DataFrame({'A': [1000000000.0009,
+                                 1000000000.0011,
+                                 1000000000.0015]})
+        cutoff = 1000000000.0006
+        result = df.query("A < %.4f" % cutoff)
         self.assertTrue(result.empty)
+
+        cutoff = 1000000000.0010
+        result = df.query("A > %.4f" % cutoff)
+        expected = df.loc[[1,2], :]
+        tm.assert_frame_equal(expected, result)
+
+        exact = 1000000000.0011
+        result = df.query('A == %.4f' % exact)
+        expected = df.loc[[1], :]
+        tm.assert_frame_equal(expected, result)
+
 
 
 class TestEvalNumexprPython(TestEvalNumexprPandas):

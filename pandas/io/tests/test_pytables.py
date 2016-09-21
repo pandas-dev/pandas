@@ -5004,12 +5004,26 @@ class TestHDFStore(Base, tm.TestCase):
 
     def test_query_long_float_literal(self):
         # GH 14241
-        df = pd.DataFrame([{"A": 1000000000.0099}])
-        cutoff = 1000000000.006
+        df = pd.DataFrame({'A': [1000000000.0009,
+                                 1000000000.0011,
+                                 1000000000.0015]})
+
         with ensure_clean_store(self.path) as store:
             store.append('test', df, format='table', data_columns=True)
-            result = store.select('test', "A < %.3f" % cutoff)
-        self.assertTrue(result.empty)
+
+            cutoff = 1000000000.0006
+            result = store.select('test', "A < %.4f" % cutoff)
+            self.assertTrue(result.empty)
+
+            cutoff = 1000000000.0010
+            result = store.select('test', "A > %.4f" % cutoff)
+            expected = df.loc[[1,2], :]
+            tm.assert_frame_equal(expected, result)
+
+            exact = 1000000000.0011
+            result = store.select('test', 'A == %.4f' % exact)
+            expected = df.loc[[1], :]
+            tm.assert_frame_equal(expected, result)
 
 
 class TestHDFComplexValues(Base):
