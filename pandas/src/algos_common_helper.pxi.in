@@ -362,27 +362,28 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
     """
     Returns
     -------
-    is_monotonic_inc, is_monotonic_dec
+    is_monotonic_inc, is_monotonic_dec, is_unique
     """
     cdef:
         Py_ssize_t i, n
         {{c_type}} prev, cur
         bint is_monotonic_inc = 1
         bint is_monotonic_dec = 1
+        bint is_unique = 1
 
     n = len(arr)
 
     if n == 1:
         if arr[0] != arr[0] or (timelike and arr[0] == iNaT):
             # single value is NaN
-            return False, False
+            return False, False, True
         else:
-            return True, True
+            return True, True, True
     elif n < 2:
-        return True, True
+        return True, True, True
 
     if timelike and arr[0] == iNaT:
-        return False, False
+        return False, False, True
 
     {{nogil_str}}
     {{tab}}prev = arr[0]
@@ -397,7 +398,7 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
     {{tab}}    elif cur > prev:
     {{tab}}        is_monotonic_dec = 0
     {{tab}}    elif cur == prev:
-    {{tab}}        pass # is_unique = 0
+    {{tab}}        is_unique = 0
     {{tab}}    else:
     {{tab}}        # cur or prev is NaN
     {{tab}}        is_monotonic_inc = 0
@@ -408,7 +409,8 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
     {{tab}}        is_monotonic_dec = 0
     {{tab}}        break
     {{tab}}    prev = cur
-    return is_monotonic_inc, is_monotonic_dec
+    return is_monotonic_inc, is_monotonic_dec, \
+           is_unique and (is_monotonic_inc or is_monotonic_dec)
 
 
 @cython.wraparound(False)

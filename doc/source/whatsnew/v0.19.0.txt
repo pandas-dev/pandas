@@ -1404,6 +1404,7 @@ Performance Improvements
 - Improved performance of datetime string parsing in ``DatetimeIndex`` (:issue:`13692`)
 - Improved performance of hashing ``Period`` (:issue:`12817`)
 - Improved performance of ``factorize`` of datetime with timezone (:issue:`13750`)
+- Improved performance of by lazily creating indexing hashtables on larger Indexes (:issue:`14266`)
 
 
 .. _whatsnew_0190.bug_fixes:
@@ -1422,7 +1423,6 @@ Bug Fixes
 - Bug in selection from a ``HDFStore`` with a fixed format and ``start`` and/or ``stop`` specified will now return the selected range (:issue:`8287`)
 - Bug in ``Categorical.from_codes()`` where an unhelpful error was raised when an invalid ``ordered`` parameter was passed in (:issue:`14058`)
 - Bug in ``Series`` construction from a tuple of integers on windows not returning default dtype (int64) (:issue:`13646`)
-
 - Bug in ``.groupby(..).resample(..)`` when the same object is called multiple times (:issue:`13174`)
 - Bug in ``.to_records()`` when index name is a unicode string (:issue:`13172`)
 
