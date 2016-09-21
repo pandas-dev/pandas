@@ -1,6 +1,15 @@
-#### Code Sample, a copy-pastable example if possible
+#### A small, complete example of the issue
+
+```python
+# Your code here
+
+```
 
 #### Expected Output
 
-#### output of ``pd.show_versions()``
+#### Output of ``pd.show_versions()``
 
+<details>
+# Paste the output here
+
+</details>
