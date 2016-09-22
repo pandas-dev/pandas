@@ -166,6 +166,11 @@ class Constant(Term):
     def name(self):
         return self.value
 
+    def __unicode__(self):
+        # in python 2 str() of float
+        # can truncate shorter than repr()
+        return repr(self.name)
+
 
 _bool_op_map = {'not': '~', 'and': '&', 'or': '|'}
 
