@@ -146,7 +146,7 @@ def ordered_merge(left, right, on=None,
                   left_by=None, right_by=None,
                   fill_method=None, suffixes=('_x', '_y')):
 
-    warnings.warn("ordered_merge is deprecated and replace by merged_ordered",
+    warnings.warn("ordered_merge is deprecated and replaced by merge_ordered",
                   FutureWarning, stacklevel=2)
     return merge_ordered(left, right, on=on,
                          left_on=left_on, right_on=right_on,
