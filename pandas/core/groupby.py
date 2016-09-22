@@ -23,6 +23,7 @@ from pandas.types.common import (_DATELIKE_DTYPES,
                                  is_complex_dtype,
                                  is_bool_dtype,
                                  is_scalar,
+                                 is_list_like,
                                  _ensure_float64,
                                  _ensure_platform_int,
                                  _ensure_int64,
@@ -2370,12 +2371,26 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     # axis of the object
     if level is not None:
         if not isinstance(group_axis, MultiIndex):
+            # allow level to be a length-one list-like object
+            # (e.g., level=[0])
+            # GH 13901
+            if is_list_like(level):
+                nlevels = len(level)
+                if nlevels == 1:
+                    level = level[0]
+                elif nlevels == 0:
+                    raise ValueError('No group keys passed!')
+                else:
+                    raise ValueError('multiple levels only valid with '
+                                     'MultiIndex')
+
             if isinstance(level, compat.string_types):
                 if obj.index.name != level:
                     raise ValueError('level name %s is not the name of the '
                                      'index' % level)
-            elif level > 0:
-                raise ValueError('level > 0 only valid with MultiIndex')
+            elif level > 0 or level < -1:
+                raise ValueError('level > 0 or level < -1 only valid with '
+                                 ' MultiIndex')
 
             level = None
             key = group_axis

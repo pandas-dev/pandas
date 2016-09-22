@@ -515,6 +515,7 @@ Other enhancements
 - ``astype()`` will now accept a dict of column name to data types mapping as the ``dtype`` argument. (:issue:`12086`)
 - The ``pd.read_json`` and ``DataFrame.to_json`` has gained support for reading and writing json lines with ``lines`` option see :ref:`Line delimited json <io.jsonl>` (:issue:`9180`)
 - :func:``read_excel`` now supports the true_values and false_values keyword arguments (:issue:`13347`)
+- ``groupby()`` will now accept a scalar and a single-element list for specifying ``level`` on a non-``MultiIndex`` grouper. (:issue:`13907`)
 
 .. _whatsnew_0190.api:
 

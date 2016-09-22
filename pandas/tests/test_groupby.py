@@ -2029,7 +2029,7 @@ class TestGroupBy(tm.TestCase):
 
             loop(frame)
 
-    def test_mulitindex_passthru(self):
+    def test_multiindex_passthru(self):
 
         # GH 7997
         # regression from 0.14.1
@@ -2038,6 +2038,24 @@ class TestGroupBy(tm.TestCase):
 
         result = df.groupby(axis=1, level=[0, 1]).first()
         assert_frame_equal(result, df)
+
+    def test_multiindex_negative_level(self):
+        # GH 13901
+        result = self.mframe.groupby(level=-1).sum()
+        expected = self.mframe.groupby(level='second').sum()
+        assert_frame_equal(result, expected)
+
+        result = self.mframe.groupby(level=-2).sum()
+        expected = self.mframe.groupby(level='first').sum()
+        assert_frame_equal(result, expected)
+
+        result = self.mframe.groupby(level=[-2, -1]).sum()
+        expected = self.mframe
+        assert_frame_equal(result, expected)
+
+        result = self.mframe.groupby(level=[-1, 'first']).sum()
+        expected = self.mframe.groupby(level=['second', 'first']).sum()
+        assert_frame_equal(result, expected)
 
     def test_multifunc_select_col_integer_cols(self):
         df = self.df
@@ -2566,13 +2584,28 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
 
-    def test_groupby_level_0_nonmulti(self):
-        # #1313
-        a = Series([1, 2, 3, 10, 4, 5, 20, 6], Index([1, 2, 3, 1,
-                                                      4, 5, 2, 6], name='foo'))
+    def test_groupby_level_nonmulti(self):
+        # GH 1313, GH 13901
+        s = Series([1, 2, 3, 10, 4, 5, 20, 6],
+                   Index([1, 2, 3, 1, 4, 5, 2, 6], name='foo'))
+        expected = Series([11, 22, 3, 4, 5, 6],
+                          Index(range(1, 7), name='foo'))
 
-        result = a.groupby(level=0).sum()
-        self.assertEqual(result.index.name, a.index.name)
+        result = s.groupby(level=0).sum()
+        self.assert_series_equal(result, expected)
+        result = s.groupby(level=[0]).sum()
+        self.assert_series_equal(result, expected)
+        result = s.groupby(level=-1).sum()
+        self.assert_series_equal(result, expected)
+        result = s.groupby(level=[-1]).sum()
+        self.assert_series_equal(result, expected)
+
+        tm.assertRaises(ValueError, s.groupby, level=1)
+        tm.assertRaises(ValueError, s.groupby, level=-2)
+        tm.assertRaises(ValueError, s.groupby, level=[])
+        tm.assertRaises(ValueError, s.groupby, level=[0, 0])
+        tm.assertRaises(ValueError, s.groupby, level=[0, 1])
+        tm.assertRaises(ValueError, s.groupby, level=[1])
 
     def test_groupby_complex(self):
         # GH 12902
