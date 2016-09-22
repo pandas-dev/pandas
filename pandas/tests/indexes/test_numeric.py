@@ -19,6 +19,14 @@ from pandas.lib import Timestamp
 from .common import Base
 
 
+def full_like(array, value):
+    """Compatibility for numpy<1.8.0
+    """
+    ret = np.empty(array.shape, dtype=np.array(value).dtype)
+    ret.fill(value)
+    return ret
+
+
 class Numeric(Base):
 
     def test_numeric_compat(self):
@@ -80,18 +88,18 @@ class Numeric(Base):
         for r, e in zip(result, expected):
             tm.assert_index_equal(r, e)
 
-        result = divmod(idx, np.full_like(idx.values, 2))
+        result = divmod(idx, full_like(idx.values, 2))
         with np.errstate(all='ignore'):
-            div, mod = divmod(idx.values, np.full_like(idx.values, 2))
+            div, mod = divmod(idx.values, full_like(idx.values, 2))
             expected = Index(div), Index(mod)
         for r, e in zip(result, expected):
             tm.assert_index_equal(r, e)
 
-        result = divmod(idx, Series(np.full_like(idx.values, 2)))
+        result = divmod(idx, Series(full_like(idx.values, 2)))
         with np.errstate(all='ignore'):
             div, mod = divmod(
                 idx.values,
-                np.full_like(idx.values, 2),
+                full_like(idx.values, 2),
             )
             expected = Index(div), Index(mod)
         for r, e in zip(result, expected):
