@@ -1387,6 +1387,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         -------
         loc : int
         """
+
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by
             # the try/except clauses below

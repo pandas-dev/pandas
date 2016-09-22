@@ -82,7 +82,7 @@ cdef class IndexEngine:
 
     cdef:
         bint unique, monotonic_inc, monotonic_dec
-        bint initialized, monotonic_check
+        bint initialized, monotonic_check, unique_check
 
     def __init__(self, vgetter, n):
         self.vgetter = vgetter
@@ -91,6 +91,7 @@ cdef class IndexEngine:
 
         self.initialized = 0
         self.monotonic_check = 0
+        self.unique_check = 0
 
         self.unique = 0
         self.monotonic_inc = 0
@@ -177,8 +178,8 @@ cdef class IndexEngine:
                 return left
             else:
                 return slice(left, right)
-        else:
-            return self._maybe_get_bool_indexer(val)
+
+        return self._maybe_get_bool_indexer(val)
 
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:
@@ -215,6 +216,7 @@ cdef class IndexEngine:
             if not self.initialized:
                 self.initialize()
 
+            self.unique_check = 1
             return self.unique == 1
 
     property is_monotonic_increasing:
@@ -234,15 +236,23 @@ cdef class IndexEngine:
             return self.monotonic_dec == 1
 
     cdef inline _do_monotonic_check(self):
+        cdef object is_unique
         try:
             values = self._get_index_values()
-            self.monotonic_inc, self.monotonic_dec = \
+            self.monotonic_inc, self.monotonic_dec, is_unique = \
                 self._call_monotonic(values)
         except TypeError:
             self.monotonic_inc = 0
             self.monotonic_dec = 0
+            is_unique = 0
 
         self.monotonic_check = 1
+
+        # we can only be sure of uniqueness if is_unique=1
+        if is_unique:
+            self.initialized = 1
+            self.unique = 1
+            self.unique_check = 1
 
     cdef _get_index_values(self):
         return self.vgetter()
@@ -257,6 +267,10 @@ cdef class IndexEngine:
         hash(val)
 
     cdef inline _ensure_mapping_populated(self):
+        # need to reset if we have previously
+        # set the initialized from monotonic checks
+        if self.unique_check:
+            self.initialized = 0
         if not self.initialized:
             self.initialize()
 
@@ -274,6 +288,12 @@ cdef class IndexEngine:
     def clear_mapping(self):
         self.mapping = None
         self.initialized = 0
+        self.monotonic_check = 0
+        self.unique_check = 0
+
+        self.unique = 0
+        self.monotonic_inc = 0
+        self.monotonic_dec = 0
 
     def get_indexer(self, values):
         self._ensure_mapping_populated()
@@ -537,7 +557,6 @@ cdef class DatetimeEngine(Int64Engine):
             raise TypeError
 
         # Welcome to the spaghetti factory
-
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 val = _to_i8(val)
