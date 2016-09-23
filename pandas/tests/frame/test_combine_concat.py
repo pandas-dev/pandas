@@ -332,8 +332,11 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         df = DataFrame({'foo': [1, 2, 3, 4],
                         'bar': [0.1, 0.2, 0.3, 0.4]})
         index = Index(['a', 'b'], name='baz')
-        concatted = pd.concat([df, df], keys=index)
-        assert_equal(concatted.index.names, FrozenList(['baz', None]))
+        concatted_named_from_keys = pd.concat([df, df], keys=index)
+        assert_equal(concatted_named_from_keys.index.names, FrozenList(['baz', None]))
+        index_no_name = ['a', 'b']
+        concatted_named_from_names = pd.concat([df, df], keys=index_no_name, names=['baz'])
+        assert_equal(concatted_named_from_names.index.names, FrozenList(['baz', None]))
 
 
 class TestDataFrameCombineFirst(tm.TestCase, TestData):
