@@ -1345,7 +1345,9 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame(dict(A=[1, 1, 1, 2, 2, 2], B=Series(1, dtype='float64'),
                             C=Series(
                                 [1, 2, 3, 1, 2, 3], dtype='float64'), D='foo'))
-        result = df.groupby('A').transform(lambda x: (x - x.mean()) / x.std())
+        with np.errstate(all='ignore'):
+            result = df.groupby('A').transform(
+                lambda x: (x - x.mean()) / x.std())
         expected = DataFrame(dict(B=np.nan, C=Series(
             [-1, 0, 1, -1, 0, 1], dtype='float64')))
         assert_frame_equal(result, expected)
@@ -1353,14 +1355,18 @@ class TestGroupBy(tm.TestCase):
         # int case
         df = DataFrame(dict(A=[1, 1, 1, 2, 2, 2], B=1,
                             C=[1, 2, 3, 1, 2, 3], D='foo'))
-        result = df.groupby('A').transform(lambda x: (x - x.mean()) / x.std())
+        with np.errstate(all='ignore'):
+            result = df.groupby('A').transform(
+                lambda x: (x - x.mean()) / x.std())
         expected = DataFrame(dict(B=np.nan, C=[-1, 0, 1, -1, 0, 1]))
         assert_frame_equal(result, expected)
 
         # int that needs float conversion
         s = Series([2, 3, 4, 10, 5, -1])
         df = DataFrame(dict(A=[1, 1, 1, 2, 2, 2], B=1, C=s, D='foo'))
-        result = df.groupby('A').transform(lambda x: (x - x.mean()) / x.std())
+        with np.errstate(all='ignore'):
+            result = df.groupby('A').transform(
+                lambda x: (x - x.mean()) / x.std())
 
         s1 = s.iloc[0:3]
         s1 = (s1 - s1.mean()) / s1.std()
@@ -6179,7 +6185,7 @@ class TestGroupBy(tm.TestCase):
 
     def test_cython_agg_empty_buckets(self):
         ops = [('mean', np.mean),
-               ('median', np.median),
+               ('median', lambda x: np.median(x) if len(x) > 0 else np.nan),
                ('var', lambda x: np.var(x, ddof=1)),
                ('add', lambda x: np.sum(x) if len(x) > 0 else np.nan),
                ('prod', np.prod),
