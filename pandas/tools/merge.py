@@ -1361,15 +1361,18 @@ class _Concatenator(object):
             objs = [obj for obj in objs if obj is not None]
         else:
             # #1649
-            clean_keys = []
+            clean_keys_list = []
             clean_objs = []
             for k, v in zip(keys, objs):
                 if v is None:
                     continue
-                clean_keys.append(k)
+                clean_keys_list.append(k)
                 clean_objs.append(v)
             objs = clean_objs
-            keys = clean_keys
+            clean_keys_index = Index(clean_keys_list)
+            if isinstance(keys, Index):
+                clean_keys_index.name = keys.name
+            keys = clean_keys_index
 
         if len(objs) == 0:
             raise ValueError('All objects passed were None')
@@ -1454,7 +1457,10 @@ class _Concatenator(object):
         self.axis = axis
         self.join_axes = join_axes
         self.keys = keys
-        self.names = names
+        if hasattr(keys, 'names'):
+            self.names = names or keys.names
+        else:
+            self.names = names
         self.levels = levels
 
         self.ignore_index = ignore_index

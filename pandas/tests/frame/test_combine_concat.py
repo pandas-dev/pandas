@@ -4,20 +4,23 @@ from __future__ import print_function
 
 from datetime import datetime
 
-from numpy import nan
 import numpy as np
+from numpy import nan
 
-from pandas.compat import lrange
-from pandas import DataFrame, Series, Index, Timestamp
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas import DataFrame, Index, Series, Timestamp
+from pandas.compat import lrange
 
-import pandas.util.testing as tm
+from pandas.core.base import FrozenList
 
 from pandas.tests.frame.common import TestData
+
+import pandas.util.testing as tm
+from pandas.util.testing import (assertRaisesRegexp,
+                                 assert_equal,
+                                 assert_frame_equal,
+                                 assert_series_equal)
 
 
 class TestDataFrameConcatCommon(tm.TestCase, TestData):
@@ -323,6 +326,14 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         assert_frame_equal(df1.join(df2, how='right'), exp)
         assert_frame_equal(df2.join(df1, how='left'),
                            exp[['value2', 'value1']])
+
+    def test_concat_named_keys(self):
+        # GH 14252
+        df = DataFrame({'foo': [1, 2, 3, 4],
+                        'bar': [0.1, 0.2, 0.3, 0.4]})
+        index = Index(['a', 'b'], name='baz')
+        concatted = pd.concat([df, df], keys=index)
+        assert_equal(concatted.index.names, FrozenList(['baz', None]))
 
 
 class TestDataFrameCombineFirst(tm.TestCase, TestData):
