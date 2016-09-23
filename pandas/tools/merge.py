@@ -1457,8 +1457,8 @@ class _Concatenator(object):
         self.axis = axis
         self.join_axes = join_axes
         self.keys = keys
-        if hasattr(keys, 'names'):
-            self.names = names or keys.names
+        if names is None and hasattr(keys, 'names'):
+            self.names = keys.names
         else:
             self.names = names
         self.levels = levels
