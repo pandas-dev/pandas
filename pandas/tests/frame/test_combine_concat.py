@@ -12,13 +12,10 @@ import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp
 from pandas.compat import lrange
 
-from pandas.core.base import FrozenList
-
 from pandas.tests.frame.common import TestData
 
 import pandas.util.testing as tm
 from pandas.util.testing import (assertRaisesRegexp,
-                                 assert_equal,
                                  assert_frame_equal,
                                  assert_series_equal)
 
@@ -329,14 +326,18 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
 
     def test_concat_named_keys(self):
         # GH 14252
-        df = DataFrame({'foo': [1, 2, 3, 4],
-                        'bar': [0.1, 0.2, 0.3, 0.4]})
+        df = pd.DataFrame({'foo': [1, 2], 'bar': [0.1, 0.2]})
+        df_concatted = pd.DataFrame(
+            {'foo': [1, 2, 1, 2], 'bar': [0.1, 0.2, 0.1, 0.2]},
+            index=pd.MultiIndex.from_product((['a', 'b'], [0, 1]),
+                                             names=['baz', None]))
         index = Index(['a', 'b'], name='baz')
         concatted_named_from_keys = pd.concat([df, df], keys=index)
-        assert_equal(concatted_named_from_keys.index.names, FrozenList(['baz', None]))
+        assert_frame_equal(concatted_named_from_keys, df_concatted)
         index_no_name = ['a', 'b']
-        concatted_named_from_names = pd.concat([df, df], keys=index_no_name, names=['baz'])
-        assert_equal(concatted_named_from_names.index.names, FrozenList(['baz', None]))
+        concatted_named_from_names = pd.concat(
+            [df, df], keys=index_no_name, names=['baz'])
+        assert_frame_equal(concatted_named_from_names, df_concatted)
 
 
 class TestDataFrameCombineFirst(tm.TestCase, TestData):
