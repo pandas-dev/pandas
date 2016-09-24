@@ -28,6 +28,7 @@ from pandas.types.common import (_DATELIKE_DTYPES,
                                  _ensure_platform_int,
                                  _ensure_int64,
                                  _ensure_object,
+                                 _ensure_categorical,
                                  _ensure_float)
 from pandas.types.cast import _possibly_downcast_to_dtype
 from pandas.types.missing import isnull, notnull, _maybe_fill
@@ -1657,7 +1658,7 @@ class BaseGrouper(object):
         else:
             to_groupby = lzip(*(ping.grouper for ping in self.groupings))
             to_groupby = Index(to_groupby)
-            return self.axis.groupby(to_groupby.values)
+            return self.axis.groupby(to_groupby)
 
     @cache_readonly
     def is_monotonic(self):
@@ -2319,7 +2320,8 @@ class Grouping(object):
 
     @cache_readonly
     def indices(self):
-        return _groupby_indices(self.grouper)
+        values = _ensure_categorical(self.grouper)
+        return values._reverse_indexer()
 
     @property
     def labels(self):
@@ -2342,7 +2344,8 @@ class Grouping(object):
 
     @cache_readonly
     def groups(self):
-        return self.index.groupby(self.grouper)
+        return self.index.groupby(Categorical.from_codes(self.labels,
+                                                         self.group_index))
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
@@ -4434,23 +4437,6 @@ def _reorder_by_uniques(uniques, labels):
     uniques = algos.take_nd(uniques, sorter, allow_fill=False)
 
     return uniques, labels
-
-
-def _groupby_indices(values):
-
-    if is_categorical_dtype(values):
-        # we have a categorical, so we can do quite a bit
-        # bit better than factorizing again
-        reverse = dict(enumerate(values.categories))
-        codes = values.codes.astype('int64')
-
-        mask = 0 <= codes
-        counts = np.bincount(codes[mask], minlength=values.categories.size)
-    else:
-        reverse, codes, counts = _algos.group_labels(
-            _values_from_object(_ensure_object(values)))
-
-    return _algos.groupby_indices(reverse, codes, counts)
 
 
 def numpy_groupby(data, labels, axis=0):
