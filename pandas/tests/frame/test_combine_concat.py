@@ -327,17 +327,25 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
     def test_concat_named_keys(self):
         # GH 14252
         df = pd.DataFrame({'foo': [1, 2], 'bar': [0.1, 0.2]})
-        df_concatted = pd.DataFrame(
+        index = Index(['a', 'b'], name='baz')
+        concatted_named_from_keys = pd.concat([df, df], keys=index)
+        expected_named = pd.DataFrame(
             {'foo': [1, 2, 1, 2], 'bar': [0.1, 0.2, 0.1, 0.2]},
             index=pd.MultiIndex.from_product((['a', 'b'], [0, 1]),
                                              names=['baz', None]))
-        index = Index(['a', 'b'], name='baz')
-        concatted_named_from_keys = pd.concat([df, df], keys=index)
-        assert_frame_equal(concatted_named_from_keys, df_concatted)
-        index_no_name = ['a', 'b']
+        assert_frame_equal(concatted_named_from_keys, expected_named)
+
+        index_no_name = Index(['a', 'b'], name=None)
         concatted_named_from_names = pd.concat(
             [df, df], keys=index_no_name, names=['baz'])
-        assert_frame_equal(concatted_named_from_names, df_concatted)
+        assert_frame_equal(concatted_named_from_names, expected_named)
+
+        concatted_unnamed = pd.concat([df, df], keys=index_no_name)
+        expected_unnamed = pd.DataFrame(
+            {'foo': [1, 2, 1, 2], 'bar': [0.1, 0.2, 0.1, 0.2]},
+            index=pd.MultiIndex.from_product((['a', 'b'], [0, 1]),
+                                             names=[None, None]))
+        assert_frame_equal(concatted_unnamed, expected_unnamed)
 
 
 class TestDataFrameCombineFirst(tm.TestCase, TestData):
