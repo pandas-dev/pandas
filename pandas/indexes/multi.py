@@ -175,6 +175,7 @@ class MultiIndex(Index):
         if verify_integrity:
             self._verify_integrity(new_levels=new_levels)
 
+
         names = self.names
         self._levels = new_levels
         if any(names):
