@@ -5,17 +5,12 @@ Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
 
-from datetime import datetime
-
-import nose
-
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 
-from pandas.lib import Timestamp
 from pandas import DataFrame, Series, Index, MultiIndex, Categorical
-from pandas.compat import parse_date, StringIO, lmap
+from pandas.compat import StringIO
 from pandas.types.dtypes import CategoricalDtype
 
 
@@ -30,8 +25,12 @@ class DtypeTests(object):
 
             # see gh-3795: passing 'str' as the dtype
             result = self.read_csv(path, dtype=str, index_col=0)
-            tm.assert_series_equal(result.dtypes, Series(
-                {'A': 'object', 'B': 'object'}))
+            expected = df.astype(str)
+            tm.assert_frame_equal(result, expected)
+
+            # for parsing, interpret object as str
+            result = self.read_csv(path, dtype=object, index_col=0)
+            tm.assert_frame_equal(result, expected)
 
             # we expect all object columns, so need to
             # convert to test for equivalence

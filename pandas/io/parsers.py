@@ -1304,7 +1304,7 @@ class ParserBase(object):
 
         cvals, na_count = self._infer_types(
             values, set(col_na_values) | col_na_fvalues,
-            try_numeric=False)
+            try_num_bool=False)
         return cvals, na_count
 
     def _convert_to_ndarrays(self, dct, na_values, na_fvalues, verbose=False,
@@ -1331,10 +1331,15 @@ class ParserBase(object):
                     values, conv_f, na_values,
                     col_na_values, col_na_fvalues)
             else:
+                try_num_bool = True
+                if cast_type and is_object_dtype(cast_type):
+                    # skip inference if specified dtype is object
+                    try_num_bool = False
+
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
                     values, set(col_na_values) | col_na_fvalues,
-                    try_numeric=True)
+                    try_num_bool)
 
             if issubclass(cvals.dtype.type, np.integer) and self.compact_ints:
                 cvals = lib.downcast_int64(
@@ -1357,7 +1362,7 @@ class ParserBase(object):
                 print('Filled %d NA values in column %s' % (na_count, str(c)))
         return result
 
-    def _infer_types(self, values, na_values, try_numeric=True):
+    def _infer_types(self, values, na_values, try_num_bool=True):
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
             mask = lib.ismember(values, na_values)
@@ -1368,7 +1373,7 @@ class ParserBase(object):
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
-        if try_numeric:
+        if try_num_bool:
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
                 na_count = isnull(result).sum()
@@ -1381,7 +1386,7 @@ class ParserBase(object):
             if values.dtype == np.object_:
                 na_count = lib.sanitize_objects(values, na_values, False)
 
-        if result.dtype == np.object_ and try_numeric:
+        if result.dtype == np.object_ and try_num_bool:
             result = lib.maybe_convert_bool(values,
                                             true_values=self.true_values,
                                             false_values=self.false_values)
