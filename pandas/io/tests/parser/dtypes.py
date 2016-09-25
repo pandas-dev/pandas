@@ -21,11 +21,11 @@ class DtypeTests(object):
             'AB'), index=['1A', '1B', '1C', '1D', '1E'])
 
         with tm.ensure_clean('__passing_str_as_dtype__.csv') as path:
-            df.to_csv(path)
+            df.to_csv(path, float_format='%.12f')
 
             # see gh-3795: passing 'str' as the dtype
             result = self.read_csv(path, dtype=str, index_col=0)
-            expected = df.astype(str)
+            expected = df.applymap(lambda x: '%.12f' % (x,))
             tm.assert_frame_equal(result, expected)
 
             # for parsing, interpret object as str
