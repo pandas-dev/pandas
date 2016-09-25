@@ -12,10 +12,9 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import DataFrame, Series, Index, MultiIndex, Categorical
+from pandas import DataFrame
 from pandas import compat
 from pandas.compat import StringIO, range, lrange
-from pandas.types.dtypes import CategoricalDtype
 
 
 class CParserTests(object):
