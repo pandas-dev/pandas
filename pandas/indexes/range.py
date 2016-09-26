@@ -4,14 +4,16 @@ import operator
 import numpy as np
 import pandas.index as _index
 
+from pandas.types.common import (is_integer,
+                                 is_scalar,
+                                 is_int64_dtype)
+
 from pandas import compat
 from pandas.compat import lrange, range
 from pandas.compat.numpy import function as nv
 from pandas.indexes.base import Index, _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
-import pandas.core.common as com
 import pandas.indexes.base as ibase
-import pandas.lib as lib
 
 from pandas.indexes.numeric import Int64Index
 
@@ -56,19 +58,24 @@ class RangeIndex(Int64Index):
 
         # validate the arguments
         def _ensure_int(value, field):
+            msg = ("RangeIndex(...) must be called with integers,"
+                   " {value} was passed for {field}")
+            if not is_scalar(value):
+                raise TypeError(msg.format(value=type(value).__name__,
+                                           field=field))
             try:
                 new_value = int(value)
                 assert(new_value == value)
-            except (ValueError, AssertionError):
-                raise TypeError("RangeIndex(...) must be called with integers,"
-                                " {value} was passed for {field}".format(
-                                    value=type(value).__name__,
-                                    field=field)
-                                )
+            except (TypeError, ValueError, AssertionError):
+                raise TypeError(msg.format(value=type(value).__name__,
+                                           field=field))
 
             return new_value
 
-        if start is None:
+        if start is None and stop is None and step is None:
+            msg = "RangeIndex(...) must be called with integers"
+            raise TypeError(msg)
+        elif start is None:
             start = 0
         else:
             start = _ensure_int(start, 'start')
@@ -120,8 +127,13 @@ class RangeIndex(Int64Index):
         result = object.__new__(cls)
 
         # handle passed None, non-integers
-        if start is None or not com.is_integer(start):
+        if start is None and stop is None:
+            # empty
+            start, stop, step = 0, 0, 1
+
+        if start is None or not is_integer(start):
             try:
+
                 return RangeIndex(start, stop, step, name=name, **kwargs)
             except TypeError:
                 return Index(start, stop, step, name=name, **kwargs)
@@ -139,7 +151,7 @@ class RangeIndex(Int64Index):
     @staticmethod
     def _validate_dtype(dtype):
         """ require dtype to be None or int64 """
-        if not (dtype is None or com.is_int64_dtype(dtype)):
+        if not (dtype is None or is_int64_dtype(dtype)):
             raise TypeError('Invalid to pass a non-int64 dtype to RangeIndex')
 
     @cache_readonly
@@ -218,6 +230,14 @@ class RangeIndex(Int64Index):
     def is_unique(self):
         """ return if the index has unique values """
         return True
+
+    @cache_readonly
+    def is_monotonic_increasing(self):
+        return self._step > 0 or len(self) <= 1
+
+    @cache_readonly
+    def is_monotonic_decreasing(self):
+        return self._step < 0 or len(self) <= 1
 
     @property
     def has_duplicates(self):
@@ -448,7 +468,7 @@ class RangeIndex(Int64Index):
         """
         super_getitem = super(RangeIndex, self).__getitem__
 
-        if lib.isscalar(key):
+        if is_scalar(key):
             n = int(key)
             if n != key:
                 return super_getitem(key)
@@ -510,7 +530,7 @@ class RangeIndex(Int64Index):
         return super_getitem(key)
 
     def __floordiv__(self, other):
-        if com.is_integer(other):
+        if is_integer(other):
             if (len(self) == 0 or
                     self._start % other == 0 and
                     self._step % other == 0):
@@ -556,18 +576,20 @@ class RangeIndex(Int64Index):
                 try:
                     # alppy if we have an override
                     if step:
-                        rstep = step(self._step, other)
+                        with np.errstate(all='ignore'):
+                            rstep = step(self._step, other)
 
                         # we don't have a representable op
                         # so return a base index
-                        if not com.is_integer(rstep) or not rstep:
+                        if not is_integer(rstep) or not rstep:
                             raise ValueError
 
                     else:
                         rstep = self._step
 
-                    rstart = op(self._start, other)
-                    rstop = op(self._stop, other)
+                    with np.errstate(all='ignore'):
+                        rstart = op(self._start, other)
+                        rstop = op(self._stop, other)
 
                     result = RangeIndex(rstart,
                                         rstop,
@@ -577,7 +599,7 @@ class RangeIndex(Int64Index):
                     # for compat with numpy / Int64Index
                     # even if we can represent as a RangeIndex, return
                     # as a Float64Index if we have float-like descriptors
-                    if not all([com.is_integer(x) for x in
+                    if not all([is_integer(x) for x in
                                 [rstart, rstop, rstep]]):
                         result = result.astype('float64')
 
@@ -592,7 +614,9 @@ class RangeIndex(Int64Index):
                 if isinstance(other, RangeIndex):
                     other = other.values
 
-                return Index(op(self, other), **attrs)
+                with np.errstate(all='ignore'):
+                    results = op(self, other)
+                return Index(results, **attrs)
 
             return _evaluate_numeric_binop
 

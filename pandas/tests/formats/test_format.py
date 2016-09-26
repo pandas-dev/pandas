@@ -456,6 +456,28 @@ class TestDataFrameFormatting(tm.TestCase):
                                   '2 0x3 [ 3.0]   -False-'))
         self.assertEqual(result, result2)
 
+    def test_to_string_with_datetime64_monthformatter(self):
+        months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
+        x = DataFrame({'months': months})
+
+        def format_func(x):
+            return x.strftime('%Y-%m')
+        result = x.to_string(formatters={'months': format_func})
+        expected = 'months\n0 2016-01\n1 2016-02'
+        self.assertEqual(result.strip(), expected)
+
+    def test_to_string_with_datetime64_hourformatter(self):
+
+        x = DataFrame({'hod': pd.to_datetime(['10:10:10.100', '12:12:12.120'],
+                                             format='%H:%M:%S.%f')})
+
+        def format_func(x):
+            return x.strftime('%H:%M')
+
+        result = x.to_string(formatters={'hod': format_func})
+        expected = 'hod\n0 10:10\n1 12:12'
+        self.assertEqual(result.strip(), expected)
+
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
         result = df.to_string(formatters={u('c/\u03c3'): lambda x: '%s' % x})
@@ -1233,6 +1255,63 @@ class TestDataFrameFormatting(tm.TestCase):
 
         self.assertEqual(result, expected)
 
+    def test_to_html_datetime64_monthformatter(self):
+        months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
+        x = DataFrame({'months': months})
+
+        def format_func(x):
+            return x.strftime('%Y-%m')
+        result = x.to_html(formatters={'months': format_func})
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>months</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2016-01</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2016-02</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(result, expected)
+
+    def test_to_html_datetime64_hourformatter(self):
+
+        x = DataFrame({'hod': pd.to_datetime(['10:10:10.100', '12:12:12.120'],
+                                             format='%H:%M:%S.%f')})
+
+        def format_func(x):
+            return x.strftime('%H:%M')
+        result = x.to_html(formatters={'hod': format_func})
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>hod</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>10:10</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>12:12</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(result, expected)
+
     def test_to_html_regression_GH6098(self):
         df = DataFrame({u('clé1'): [u('a'), u('a'), u('b'), u('b'), u('a')],
                         u('clé2'): [u('1er'), u('2ème'), u('1er'), u('2ème'),
@@ -1571,6 +1650,23 @@ class TestDataFrameFormatting(tm.TestCase):
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
 
+    def test_to_html_border(self):
+        df = DataFrame({'A': [1, 2]})
+        result = df.to_html()
+        assert 'border="1"' in result
+
+    def test_to_html_border_option(self):
+        df = DataFrame({'A': [1, 2]})
+        with pd.option_context('html.border', 0):
+            result = df.to_html()
+            self.assertTrue('border="0"' in result)
+            self.assertTrue('border="0"' in df._repr_html_())
+
+    def test_to_html_border_zero(self):
+        df = DataFrame({'A': [1, 2]})
+        result = df.to_html(border=0)
+        self.assertTrue('border="0"' in result)
+
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()
@@ -1589,7 +1685,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_repr_corner(self):
         # representing infs poses no problems
-        df = DataFrame({'foo': np.inf * np.empty(10)})
+        df = DataFrame({'foo': [-np.inf, np.inf]})
         repr(df)
 
     def test_frame_info_encoding(self):
@@ -1882,6 +1978,14 @@ class TestDataFrameFormatting(tm.TestCase):
 
         df_s = df.to_string(index=False)
         expected = "x  y\n1  4\n2  5\n3  6"
+
+        self.assertEqual(df_s, expected)
+
+    def test_to_string_line_width_no_index(self):
+        df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "x  \\\n1   \n2   \n3   \n\ny  \n4  \n5  \n6"
 
         self.assertEqual(df_s, expected)
 
@@ -2716,7 +2820,7 @@ c  10  11  12  13  14\
                 self.assertEqual(df.to_latex(), f.read())
 
         # test with utf-8 without encoding option
-        if compat.PY3:  # python3 default encoding is utf-8
+        if compat.PY3:  # python3: pandas default encoding is utf-8
             with tm.ensure_clean('test.tex') as path:
                 df.to_latex(path)
                 with codecs.open(path, 'r') as f:
@@ -2774,6 +2878,33 @@ c  10  11  12  13  14\
 """
 
         self.assertEqual(withindex_result, withindex_expected)
+
+    def test_to_latex_with_formatters(self):
+        df = DataFrame({'int': [1, 2, 3],
+                        'float': [1.0, 2.0, 3.0],
+                        'object': [(1, 2), True, False],
+                        'datetime64': [datetime(2016, 1, 1),
+                                   datetime(2016, 2, 5),
+                                   datetime(2016, 3, 3)]})
+
+        formatters = {'int': lambda x: '0x%x' % x,
+                      'float': lambda x: '[% 4.1f]' % x,
+                      'object': lambda x: '-%s-' % str(x),
+                      'datetime64': lambda x: x.strftime('%Y-%m'),
+                      '__index__': lambda x: 'index: %s' % x}
+        result = df.to_latex(formatters=dict(formatters))
+
+        expected = r"""\begin{tabular}{llrrl}
+\toprule
+{} & datetime64 &  float & int &    object \\
+\midrule
+index: 0 &    2016-01 & [ 1.0] & 0x1 &  -(1, 2)- \\
+index: 1 &    2016-02 & [ 2.0] & 0x2 &    -True- \\
+index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(result, expected)
 
     def test_to_latex_multiindex(self):
         df = DataFrame({('x', 'y'): ['a']})
@@ -3033,10 +3164,6 @@ b &       b &     b \\
             df.to_csv(path, quoting=1)  # 1=QUOTE_ALL
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         expected = """\
 $$,$col$
@@ -3048,17 +3175,10 @@ $1$,$2$
             df.to_csv(path, quoting=1, quotechar="$")
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, quotechar="$", engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         with tm.ensure_clean('test.csv') as path:
             with tm.assertRaisesRegexp(TypeError, 'quotechar'):
                 df.to_csv(path, quoting=1, quotechar=None)
-        with tm.ensure_clean('test.csv') as path:
-            with tm.assertRaisesRegexp(TypeError, 'quotechar'):
-                df.to_csv(path, quoting=1, quotechar=None, engine='python')
 
     def test_to_csv_doublequote(self):
         df = DataFrame({'col': ['a"a', '"bb"']})
@@ -3072,18 +3192,11 @@ $1$,$2$
             df.to_csv(path, quoting=1, doublequote=True)  # QUOTE_ALL
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, doublequote=True, engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         from _csv import Error
         with tm.ensure_clean('test.csv') as path:
             with tm.assertRaisesRegexp(Error, 'escapechar'):
                 df.to_csv(path, doublequote=False)  # no escapechar set
-        with tm.ensure_clean('test.csv') as path:
-            with tm.assertRaisesRegexp(Error, 'escapechar'):
-                df.to_csv(path, doublequote=False, engine='python')
 
     def test_to_csv_escapechar(self):
         df = DataFrame({'col': ['a"a', '"bb"']})
@@ -3097,11 +3210,6 @@ $1$,$2$
             df.to_csv(path, quoting=1, doublequote=False, escapechar='\\')
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, doublequote=False, escapechar='\\',
-                      engine='python')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
 
         df = DataFrame({'col': ['a,a', ',bb,']})
         expected = """\
@@ -3112,10 +3220,6 @@ $1$,$2$
 
         with tm.ensure_clean('test.csv') as path:
             df.to_csv(path, quoting=3, escapechar='\\')  # QUOTE_NONE
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=3, escapechar='\\', engine='python')
             with open(path, 'r') as f:
                 self.assertEqual(f.read(), expected)
 
@@ -3223,11 +3327,32 @@ $1$,$2$
         self.assertEqual(df_sec_grouped.mean().to_csv(date_format='%Y-%m-%d'),
                          expected_ymd_sec)
 
-    # deprecation GH11274
-    def test_to_csv_engine_kw_deprecation(self):
-        with tm.assert_produces_warning(FutureWarning):
-            df = DataFrame({'col1': [1], 'col2': ['a'], 'col3': [10.1]})
-            df.to_csv(engine='python')
+    def test_to_csv_multi_index(self):
+        # see gh-6618
+        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1],[2]]))
+
+        exp = ",1\n,2\n0,1\n"
+        self.assertEqual(df.to_csv(), exp)
+
+        exp = "1\n2\n1\n"
+        self.assertEqual(df.to_csv(index=False), exp)
+
+        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1],[2]]),
+                       index=pd.MultiIndex.from_arrays([[1],[2]]))
+
+        exp = ",,1\n,,2\n1,2,1\n"
+        self.assertEqual(df.to_csv(), exp)
+
+        exp = "1\n2\n1\n"
+        self.assertEqual(df.to_csv(index=False), exp)
+
+        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([['foo'],['bar']]))
+
+        exp = ",foo\n,bar\n0,1\n"
+        self.assertEqual(df.to_csv(), exp)
+
+        exp = "foo\nbar\n1\n"
+        self.assertEqual(df.to_csv(index=False), exp)
 
     def test_period(self):
         # GH 12615
@@ -3922,6 +4047,14 @@ class TestEngFormatter(tm.TestCase):
         self.assertTrue('NaN' in result)
         self.reset_display_options()
 
+    def test_inf(self):
+        # Issue #11981
+
+        formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
+        result = formatter(np.inf)
+        self.assertEqual(result, u('inf'))
+
+
 def _three_digit_exp():
     return '%.4g' % 1.7e8 == '1.7e+008'
 
@@ -4160,6 +4293,28 @@ class TestDatetime64Formatter(tm.TestCase):
         self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000000000")
         self.assertEqual(result[1].strip(), "NaT")
         self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.000000004")
+
+    def test_datetime64formatter_yearmonth(self):
+        x = Series([datetime(2016, 1, 1), datetime(2016, 2, 2)])
+
+        def format_func(x):
+            return x.strftime('%Y-%m')
+
+        formatter = fmt.Datetime64Formatter(x, formatter=format_func)
+        result = formatter.get_result()
+        self.assertEqual(result, ['2016-01', '2016-02'])
+
+    def test_datetime64formatter_hoursecond(self):
+
+        x = Series(pd.to_datetime(['10:10:10.100', '12:12:12.120'],
+                                  format='%H:%M:%S.%f'))
+
+        def format_func(x):
+            return x.strftime('%H:%M')
+
+        formatter = fmt.Datetime64Formatter(x, formatter=format_func)
+        result = formatter.get_result()
+        self.assertEqual(result, ['10:10', '12:12'])
 
 
 class TestNaTFormatting(tm.TestCase):

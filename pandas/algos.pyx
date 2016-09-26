@@ -1,3 +1,5 @@
+# cython: profile=False
+
 from numpy cimport *
 cimport numpy as np
 import numpy as np
@@ -11,6 +13,7 @@ cdef float64_t FP_ERR = 1e-13
 cimport util
 
 from libc.stdlib cimport malloc, free
+from libc.string cimport memmove
 
 from numpy cimport NPY_INT8 as NPY_int8
 from numpy cimport NPY_INT16 as NPY_int16
@@ -39,9 +42,13 @@ cdef extern from "src/headers/math.h":
     double fabs(double) nogil
 
 # this is our util.pxd
-from util cimport numeric
+from util cimport numeric, get_nat
 
+cimport lib
+from lib cimport is_null_datetimelike
 from pandas import lib
+
+cdef int64_t iNaT = get_nat()
 
 cdef:
     int TIEBREAK_AVERAGE = 0
@@ -52,11 +59,11 @@ cdef:
     int TIEBREAK_DENSE = 5
 
 tiebreakers = {
-    'average' : TIEBREAK_AVERAGE,
-    'min' : TIEBREAK_MIN,
-    'max' : TIEBREAK_MAX,
-    'first' : TIEBREAK_FIRST,
-    'dense' : TIEBREAK_DENSE,
+    'average': TIEBREAK_AVERAGE,
+    'min': TIEBREAK_MIN,
+    'max': TIEBREAK_MAX,
+    'first': TIEBREAK_FIRST,
+    'dense': TIEBREAK_DENSE,
 }
 
 
@@ -482,7 +489,6 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
         bint keep_na = 0
         float count = 0.0
 
-
     tiebreak = tiebreakers[ties_method]
 
     keep_na = na_option == 'keep'
@@ -560,28 +566,28 @@ cdef inline are_diff(object left, object right):
     except TypeError:
         return left != right
 
-_return_false = lambda self, other: False
-_return_true = lambda self, other: True
 
 class Infinity(object):
+    """ provide a positive Infinity comparision method for ranking """
 
-    __lt__ = _return_false
-    __le__ = _return_false
-    __eq__ = _return_false
-    __ne__ = _return_true
-    __gt__ = _return_true
-    __ge__ = _return_true
-    __cmp__ = _return_false
+    __lt__ = lambda self, other: False
+    __le__ = lambda self, other: self is other
+    __eq__ = lambda self, other: self is other
+    __ne__ = lambda self, other: self is not other
+    __gt__ = lambda self, other: self is not other
+    __ge__ = lambda self, other: True
+
 
 class NegInfinity(object):
+    """ provide a negative Infinity comparision method for ranking """
 
-    __lt__ = _return_true
-    __le__ = _return_true
-    __eq__ = _return_false
-    __ne__ = _return_true
-    __gt__ = _return_false
-    __ge__ = _return_false
-    __cmp__ = _return_true
+    __lt__ = lambda self, other: self is not other
+    __le__ = lambda self, other: True
+    __eq__ = lambda self, other: self is other
+    __ne__ = lambda self, other: self is not other
+    __gt__ = lambda self, other: False
+    __ge__ = lambda self, other: self is other
+
 
 def rank_2d_generic(object in_arr, axis=0, ties_method='average',
                     ascending=True, na_option='keep', pct=False):
@@ -699,7 +705,6 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
 #     return result
 
 
-
 cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil except -1:
     cdef numeric t
 
@@ -741,11 +746,11 @@ cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k):
 
 cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
     cdef:
-        Py_ssize_t i,j,l,m
+        Py_ssize_t i, j, l, m
         double_t x, t
 
     l = 0
-    m = n-1
+    m = n -1
     while (l<m):
         x = a[k]
         i = l
@@ -787,13 +792,13 @@ cpdef numeric median(numeric[:] arr):
 
 def max_subseq(ndarray[double_t] arr):
     cdef:
-        Py_ssize_t i=0,s=0,e=0,T,n
+        Py_ssize_t i=0, s=0, e=0, T, n
         double m, S
 
     n = len(arr)
 
     if len(arr) == 0:
-        return (-1,-1,None)
+        return (-1, -1, None)
 
     m = arr[0]
     S = m
@@ -813,6 +818,7 @@ def max_subseq(ndarray[double_t] arr):
 
     return (s, e, m)
 
+
 def min_subseq(ndarray[double_t] arr):
     cdef:
         Py_ssize_t s, e
@@ -824,6 +830,7 @@ def min_subseq(ndarray[double_t] arr):
 
 #----------------------------------------------------------------------
 # Pairwise correlation/covariance
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -883,6 +890,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, cov=False, minp=None):
 
 #----------------------------------------------------------------------
 # Pairwise Spearman correlation
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -947,6 +955,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
 #----------------------------------------------------------------------
 # group operations
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def is_lexsorted(list list_of_arrays):
@@ -961,16 +970,14 @@ def is_lexsorted(list list_of_arrays):
 
     cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
     for i from 0 <= i < nlevels:
-        # vecs[i] = <int64_t *> (<ndarray> list_of_arrays[i]).data
-
         arr = list_of_arrays[i]
-        vecs[i] = <int64_t *> arr.data
-    # assume uniqueness??
+        vecs[i] = <int64_t*> arr.data
 
+    # Assume uniqueness??
     for i from 1 <= i < n:
         for k from 0 <= k < nlevels:
             cur = vecs[k][i]
-            pre = vecs[k][i-1]
+            pre = vecs[k][i -1]
             if cur == pre:
                 continue
             elif cur > pre:
@@ -982,25 +989,40 @@ def is_lexsorted(list list_of_arrays):
 
 
 @cython.boundscheck(False)
-def groupby_indices(ndarray values):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[int64_t] labels, counts, arr, seen
-        int64_t loc
-        dict ids = {}
-        object val
-        int64_t k
+def groupby_indices(dict ids, ndarray[int64_t] labels,
+                    ndarray[int64_t] counts):
+    """
+    turn group_labels output into a combined indexer mapping the labels to
+    indexers
 
-    ids, labels, counts = group_labels(values)
+    Parameters
+    ----------
+    ids: dict
+        mapping of label -> group indexer
+    labels: ndarray
+        labels for positions
+    counts: ndarray
+        group counts
+
+    Returns
+    -------
+    list of ndarrays of indices
+
+    """
+    cdef:
+        Py_ssize_t i, n = len(labels)
+        ndarray[int64_t] arr, seen
+        int64_t loc
+        int64_t k
+        dict result = {}
+
     seen = np.zeros_like(counts)
 
-    # try not to get in trouble here...
     cdef int64_t **vecs = <int64_t **> malloc(len(ids) * sizeof(int64_t*))
-    result = {}
     for i from 0 <= i < len(counts):
         arr = np.empty(counts[i], dtype=np.int64)
         result[ids[i]] = arr
-        vecs[i] = <int64_t *> arr.data
+        vecs[i] = <int64_t*> arr.data
 
     for i from 0 <= i < n:
         k = labels[i]
@@ -1014,8 +1036,8 @@ def groupby_indices(ndarray values):
         seen[k] = loc + 1
 
     free(vecs)
-
     return result
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1023,8 +1045,15 @@ def group_labels(ndarray[object] values):
     """
     Compute label vector from input values and associated useful data
 
+    Parameters
+    ----------
+    values: object ndarray
+
     Returns
     -------
+    tuple of (reverse mappings of label -> group indexer,
+              factorized labels ndarray,
+              group counts ndarray)
     """
     cdef:
         Py_ssize_t i, n = len(values)
@@ -1090,6 +1119,7 @@ def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
 #----------------------------------------------------------------------
 # first, nth, last
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_nth_object(ndarray[object, ndim=2] out,
@@ -1133,6 +1163,7 @@ def group_nth_object(ndarray[object, ndim=2] out,
                 out[i, j] = <object> nan
             else:
                 out[i, j] = resx[i, j]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1184,6 +1215,7 @@ def group_nth_bin_object(ndarray[object, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_last_object(ndarray[object, ndim=2] out,
@@ -1225,6 +1257,7 @@ def group_last_object(ndarray[object, ndim=2] out,
                 out[i, j] = nan
             else:
                 out[i, j] = resx[i, j]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1280,6 +1313,9 @@ cdef inline float64_t _median_linear(float64_t* a, int n):
     cdef float64_t result
     cdef float64_t* tmp
 
+    if n == 0:
+        return NaN
+
     # count NAs
     for i in range(n):
         if a[i] != a[i]:
@@ -1300,7 +1336,6 @@ cdef inline float64_t _median_linear(float64_t* a, int n):
         a = tmp
         n -= na_count
 
-
     if n % 2:
         result = kth_smallest_c( a, n / 2, n)
     else:
@@ -1312,5 +1347,8 @@ cdef inline float64_t _median_linear(float64_t* a, int n):
 
     return result
 
-include "join.pyx"
-include "generated.pyx"
+
+# generated from template
+include "algos_common_helper.pxi"
+include "algos_groupby_helper.pxi"
+include "algos_take_helper.pxi"

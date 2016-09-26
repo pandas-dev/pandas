@@ -136,3 +136,29 @@ class dtype_infer_uint32(object):
 
     def time_dtype_infer_uint32(self):
         (self.df_uint32['A'] + self.df_uint32['B'])
+
+
+class to_numeric(object):
+
+    param_names = ['dtype', 'downcast']
+    params = [['string-float', 'string-int', 'string-nint', 'datetime64',
+               'int-list', 'int32'],
+              [None, 'integer', 'signed', 'unsigned', 'float']]
+
+    N = 500000
+
+    data_dict = {
+        'string-int': (['1'] * (N / 2)) + ([2] * (N / 2)),
+        'string-nint': (['-1'] * (N / 2)) + ([2] * (N / 2)),
+        'datetime64': np.repeat(np.array(['1970-01-01', '1970-01-02'],
+                                         dtype='datetime64[D]'), N),
+        'string-float': (['1.1'] * (N / 2)) + ([2] * (N / 2)),
+        'int-list': ([1] * (N / 2)) + ([2] * (N / 2)),
+        'int32': np.repeat(np.int32(1), N)
+        }
+
+    def setup(self, dtype, downcast):
+        self.data = self.data_dict[dtype]
+
+    def time_downcast(self, dtype, downcast):
+        pd.to_numeric(self.data, downcast=downcast)

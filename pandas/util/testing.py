@@ -23,11 +23,14 @@ from numpy.testing.decorators import slow     # noqa
 import numpy as np
 
 import pandas as pd
-from pandas.core.common import (is_sequence, array_equivalent,
-                                is_list_like, is_datetimelike_v_numeric,
-                                is_datetimelike_v_object,
-                                is_number, is_bool,
-                                needs_i8_conversion, is_categorical_dtype)
+from pandas.types.missing import array_equivalent
+from pandas.types.common import (is_datetimelike_v_numeric,
+                                 is_datetimelike_v_object,
+                                 is_number, is_bool,
+                                 needs_i8_conversion,
+                                 is_categorical_dtype,
+                                 is_sequence,
+                                 is_list_like)
 from pandas.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 
@@ -40,7 +43,7 @@ from pandas.compat import(
 
 from pandas.computation import expressions as expr
 
-from pandas import (bdate_range, CategoricalIndex, DatetimeIndex,
+from pandas import (bdate_range, CategoricalIndex, Categorical, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, RangeIndex, Index, MultiIndex,
                     Series, DataFrame, Panel, Panel4D)
 from pandas.util.decorators import deprecate
@@ -60,7 +63,6 @@ def set_testing_mode():
     # set the testing mode filters
     testing_mode = os.environ.get('PANDAS_TESTING_MODE', 'None')
     if 'deprecate' in testing_mode:
-
         warnings.simplefilter('always', _testing_mode_warnings)
 
 
@@ -747,10 +749,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         unique = index.levels[level]
         labels = index.labels[level]
         filled = take_1d(unique.values, labels, fill_value=unique._na_value)
-        values = unique._simple_new(filled,
-                                    name=index.names[level],
-                                    freq=getattr(unique, 'freq', None),
-                                    tz=getattr(unique, 'tz', None))
+        values = unique._shallow_copy(filled, name=index.names[level])
         return values
 
     # instance validation
@@ -881,12 +880,12 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
 
 def assert_is_valid_plot_return_object(objs):
     import matplotlib.pyplot as plt
-    if isinstance(objs, np.ndarray):
-        for el in objs.flat:
-            assert isinstance(el, plt.Axes), ('one of \'objs\' is not a '
-                                              'matplotlib Axes instance, '
-                                              'type encountered {0!r}'
-                                              ''.format(el.__class__.__name__))
+    if isinstance(objs, (pd.Series, np.ndarray)):
+        for el in objs.ravel():
+            msg = ('one of \'objs\' is not a matplotlib Axes instance, '
+                   'type encountered {0!r}')
+            assert isinstance(el, (plt.Axes, dict)), msg.format(
+                el.__class__.__name__)
     else:
         assert isinstance(objs, (plt.Artist, tuple, dict)), \
             ('objs is neither an ndarray of Artist instances nor a '
@@ -1001,7 +1000,7 @@ def assert_categorical_equal(left, right, check_dtype=True,
     assert_attr_equal('ordered', left, right, obj=obj)
 
 
-def raise_assert_detail(obj, message, left, right):
+def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
     if isinstance(right, np.ndarray):
@@ -1012,6 +1011,10 @@ def raise_assert_detail(obj, message, left, right):
 {1}
 [left]:  {2}
 [right]: {3}""".format(obj, message, left, right)
+
+    if diff is not None:
+        msg = msg + "\n[diff]: {diff}".format(diff=diff)
+
     raise AssertionError(msg)
 
 
@@ -1034,7 +1037,7 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         Specify object name being compared, internally used to show appropriate
         assertion message
     check_same : None|'copy'|'same', default None
-        Ensure "left" and "right refer/do not refer to the same memory area
+        Ensure left and right refer/do not refer to the same memory area
     """
 
     # instance validation
@@ -1101,10 +1104,10 @@ def assert_series_equal(left, right, check_dtype=True,
     right : Series
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
-    check_index_type : bool / string {'equiv'}, default False
+    check_index_type : bool / string {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_series_type : bool, default False
+    check_series_type : bool, default True
         Whether to check the Series class is identical.
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
@@ -1316,7 +1319,8 @@ def assert_panelnd_equal(left, right,
                          check_less_precise=False,
                          assert_func=assert_frame_equal,
                          check_names=False,
-                         by_blocks=False):
+                         by_blocks=False,
+                         obj='Panel'):
     """Check that left and right Panels are equal.
 
     Parameters
@@ -1337,6 +1341,9 @@ def assert_panelnd_equal(left, right,
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
+    obj : str, default 'Panel'
+        Specify the object name being compared, internally used to show
+        the appropriate assertion message.
     """
 
     if check_panel_type:
@@ -1378,11 +1385,22 @@ assert_panel4d_equal = partial(assert_panelnd_equal,
 # Sparse
 
 
-def assert_sp_array_equal(left, right):
+def assert_sp_array_equal(left, right, check_dtype=True):
+    """Check that the left and right SparseArray are equal.
+
+    Parameters
+    ----------
+    left : SparseArray
+    right : SparseArray
+    check_dtype : bool, default True
+        Whether to check the data dtype is identical.
+    """
+
     assertIsInstance(left, pd.SparseArray, '[SparseArray]')
     assertIsInstance(right, pd.SparseArray, '[SparseArray]')
 
-    assert_numpy_array_equal(left.sp_values, right.sp_values)
+    assert_numpy_array_equal(left.sp_values, right.sp_values,
+                             check_dtype=check_dtype)
 
     # SparseIndex comparison
     assertIsInstance(left.sp_index, pd._sparse.SparseIndex, '[SparseIndex]')
@@ -1393,14 +1411,37 @@ def assert_sp_array_equal(left, right):
                             left.sp_index, right.sp_index)
 
     assert_attr_equal('fill_value', left, right)
-    assert_attr_equal('dtype', left, right)
-    assert_numpy_array_equal(left.values, right.values)
+    if check_dtype:
+        assert_attr_equal('dtype', left, right)
+    assert_numpy_array_equal(left.values, right.values,
+                             check_dtype=check_dtype)
 
 
-def assert_sp_series_equal(left, right, exact_indices=True,
-                           check_names=True, obj='SparseSeries'):
+def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
+                           check_series_type=True, check_names=True,
+                           obj='SparseSeries'):
+    """Check that the left and right SparseSeries are equal.
+
+    Parameters
+    ----------
+    left : SparseSeries
+    right : SparseSeries
+    check_dtype : bool, default True
+        Whether to check the Series dtype is identical.
+    exact_indices : bool, default True
+    check_series_type : bool, default True
+        Whether to check the SparseSeries class is identical.
+    check_names : bool, default True
+        Whether to check the SparseSeries name attribute.
+    obj : str, default 'SparseSeries'
+        Specify the object name being compared, internally used to show
+        the appropriate assertion message.
+    """
     assertIsInstance(left, pd.SparseSeries, '[SparseSeries]')
     assertIsInstance(right, pd.SparseSeries, '[SparseSeries]')
+
+    if check_series_type:
+        assert_class_equal(left, right, obj=obj)
 
     assert_index_equal(left.index, right.index,
                        obj='{0}.index'.format(obj))
@@ -1409,19 +1450,36 @@ def assert_sp_series_equal(left, right, exact_indices=True,
 
     if check_names:
         assert_attr_equal('name', left, right)
-    assert_attr_equal('dtype', left, right)
+    if check_dtype:
+        assert_attr_equal('dtype', left, right)
 
     assert_numpy_array_equal(left.values, right.values)
 
 
-def assert_sp_frame_equal(left, right, exact_indices=True,
-                          obj='SparseDataFrame'):
-    """
-    exact: Series SparseIndex objects must be exactly the same, otherwise just
-    compare dense representations
+def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
+                          check_frame_type=True, obj='SparseDataFrame'):
+    """Check that the left and right SparseDataFrame are equal.
+
+    Parameters
+    ----------
+    left : SparseDataFrame
+    right : SparseDataFrame
+    check_dtype : bool, default True
+        Whether to check the Series dtype is identical.
+    exact_indices : bool, default True
+        SparseSeries SparseIndex objects must be exactly the same,
+        otherwise just compare dense representations.
+    check_frame_type : bool, default True
+        Whether to check the SparseDataFrame class is identical.
+    obj : str, default 'SparseDataFrame'
+        Specify the object name being compared, internally used to show
+        the appropriate assertion message.
     """
     assertIsInstance(left, pd.SparseDataFrame, '[SparseDataFrame]')
     assertIsInstance(right, pd.SparseDataFrame, '[SparseDataFrame]')
+
+    if check_frame_type:
+        assert_class_equal(left, right, obj=obj)
 
     assert_index_equal(left.index, right.index,
                        obj='{0}.index'.format(obj))
@@ -1433,9 +1491,11 @@ def assert_sp_frame_equal(left, right, exact_indices=True,
         # trade-off?
 
         if exact_indices:
-            assert_sp_series_equal(series, right[col])
+            assert_sp_series_equal(series, right[col],
+                                   check_dtype=check_dtype)
         else:
-            assert_series_equal(series.to_dense(), right[col].to_dense())
+            assert_series_equal(series.to_dense(), right[col].to_dense(),
+                                check_dtype=check_dtype)
 
     assert_attr_equal('default_fill_value', left, right, obj=obj)
 
@@ -1444,22 +1504,6 @@ def assert_sp_frame_equal(left, right, exact_indices=True,
 
     for col in right:
         assert (col in left)
-
-
-def assert_sp_panel_equal(left, right, exact_indices=True):
-    assertIsInstance(left, pd.SparsePanel, '[SparsePanel]')
-    assertIsInstance(right, pd.SparsePanel, '[SparsePanel]')
-
-    for item, frame in left.iteritems():
-        assert (item in right)
-        # trade-off?
-        assert_sp_frame_equal(frame, right[item], exact_indices=exact_indices)
-
-    assert_almost_equal(left.default_fill_value, right.default_fill_value)
-    assert (left.default_kind == right.default_kind)
-
-    for item in right:
-        assert (item in left)
 
 
 def assert_sp_list_equal(left, right):
@@ -1508,7 +1552,7 @@ def makeStringIndex(k=10, name=None):
 
 
 def makeUnicodeIndex(k=10, name=None):
-    return Index(randu_array(nchars=10, size=k))
+    return Index(randu_array(nchars=10, size=k), name=name)
 
 
 def makeCategoricalIndex(k=10, n=3, name=None):
@@ -2617,6 +2661,37 @@ class SubclassedDataFrame(DataFrame):
         return SubclassedSeries
 
 
+class SubclassedSparseSeries(pd.SparseSeries):
+    _metadata = ['testattr']
+
+    @property
+    def _constructor(self):
+        return SubclassedSparseSeries
+
+    @property
+    def _constructor_expanddim(self):
+        return SubclassedSparseDataFrame
+
+
+class SubclassedSparseDataFrame(pd.SparseDataFrame):
+    _metadata = ['testattr']
+
+    @property
+    def _constructor(self):
+        return SubclassedSparseDataFrame
+
+    @property
+    def _constructor_sliced(self):
+        return SubclassedSparseSeries
+
+
+class SubclassedCategorical(Categorical):
+
+    @property
+    def _constructor(self):
+        return SubclassedCategorical
+
+
 @contextmanager
 def patch(ob, attr, value):
     """Temporarily patch an attribute of an object.
@@ -2667,3 +2742,50 @@ def patch(ob, attr, value):
             delattr(ob, attr)
         else:
             setattr(ob, attr, old)
+
+
+@contextmanager
+def set_timezone(tz):
+    """Context manager for temporarily setting a timezone.
+
+    Parameters
+    ----------
+    tz : str
+        A string representing a valid timezone.
+
+    Examples
+    --------
+
+    >>> from datetime import datetime
+    >>> from dateutil.tz import tzlocal
+    >>> tzlocal().tzname(datetime.now())
+    'IST'
+
+    >>> with set_timezone('US/Eastern'):
+    ...     tzlocal().tzname(datetime.now())
+    ...
+    'EDT'
+    """
+    if is_platform_windows():
+        import nose
+        raise nose.SkipTest("timezone setting not supported on windows")
+
+    import os
+    import time
+
+    def setTZ(tz):
+        if tz is None:
+            try:
+                del os.environ['TZ']
+            except:
+                pass
+        else:
+            os.environ['TZ'] = tz
+            time.tzset()
+
+    orig_tz = os.environ.get('TZ')
+    setTZ(tz)
+    try:
+        yield
+    finally:
+        setTZ(orig_tz)

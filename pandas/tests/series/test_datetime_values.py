@@ -1,11 +1,12 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-from datetime import datetime
+from datetime import datetime, date
 
 import numpy as np
 import pandas as pd
 
+from pandas.types.common import is_integer_dtype, is_list_like
 from pandas import (Index, Series, DataFrame, bdate_range,
                     date_range, period_range, timedelta_range)
 from pandas.tseries.period import PeriodIndex
@@ -31,7 +32,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         ok_for_base = ['year', 'month', 'day', 'hour', 'minute', 'second',
                        'weekofyear', 'week', 'dayofweek', 'weekday',
                        'dayofyear', 'quarter', 'freq', 'days_in_month',
-                       'daysinmonth']
+                       'daysinmonth', 'is_leap_year']
         ok_for_period = ok_for_base + ['qyear', 'start_time', 'end_time']
         ok_for_period_methods = ['strftime', 'to_timestamp', 'asfreq']
         ok_for_dt = ok_for_base + ['date', 'time', 'microsecond', 'nanosecond',
@@ -49,16 +50,16 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         def get_expected(s, name):
             result = getattr(Index(s._values), prop)
             if isinstance(result, np.ndarray):
-                if com.is_integer_dtype(result):
+                if is_integer_dtype(result):
                     result = result.astype('int64')
-            elif not com.is_list_like(result):
+            elif not is_list_like(result):
                 return result
             return Series(result, index=s.index, name=s.name)
 
         def compare(s, name):
             a = getattr(s.dt, prop)
             b = get_expected(s, prop)
-            if not (com.is_list_like(a) and com.is_list_like(b)):
+            if not (is_list_like(a) and is_list_like(b)):
                 self.assertEqual(a, b)
             else:
                 tm.assert_series_equal(a, b)
@@ -409,3 +410,15 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         result = s[s.between(s[3], s[17], inclusive=False)]
         expected = s[5:16].dropna()
         assert_series_equal(result, expected)
+
+    def test_date_tz(self):
+        # GH11757
+        rng = pd.DatetimeIndex(['2014-04-04 23:56',
+                                '2014-07-18 21:24',
+                                '2015-11-22 22:14'], tz="US/Eastern")
+        s = Series(rng)
+        expected = Series([date(2014, 4, 4),
+                           date(2014, 7, 18),
+                           date(2015, 11, 22)])
+        assert_series_equal(s.dt.date, expected)
+        assert_series_equal(s.apply(lambda x: x.date()), expected)

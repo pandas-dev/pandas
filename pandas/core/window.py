@@ -11,16 +11,32 @@ import warnings
 import numpy as np
 from collections import defaultdict
 
+from pandas.types.generic import (ABCSeries,
+                                  ABCDataFrame,
+                                  ABCDatetimeIndex,
+                                  ABCTimedeltaIndex,
+                                  ABCPeriodIndex)
+from pandas.types.common import (is_integer,
+                                 is_bool,
+                                 is_float_dtype,
+                                 is_integer_dtype,
+                                 needs_i8_conversion,
+                                 is_timedelta64_dtype,
+                                 is_list_like,
+                                 _ensure_float64)
 import pandas as pd
 from pandas.lib import isscalar
 from pandas.core.base import (PandasObject, SelectionMixin,
                               GroupByMixin)
 import pandas.core.common as com
 import pandas._window as _window
+from pandas.tseries.offsets import DateOffset
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import Substitution, Appender
+from pandas.util.decorators import (Substitution, Appender,
+                                    cache_readonly)
 from textwrap import dedent
+
 
 _shared_docs = dict()
 _doc_template = """
@@ -38,19 +54,21 @@ pandas.DataFrame.%(name)s
 
 class _Window(PandasObject, SelectionMixin):
     _attributes = ['window', 'min_periods', 'freq', 'center', 'win_type',
-                   'axis']
+                   'axis', 'on']
     exclusions = set()
 
     def __init__(self, obj, window=None, min_periods=None, freq=None,
-                 center=False, win_type=None, axis=0, **kwargs):
+                 center=False, win_type=None, axis=0, on=None, **kwargs):
 
         if freq is not None:
             warnings.warn("The freq kw is deprecated and will be removed in a "
                           "future version. You can resample prior to passing "
                           "to a window function", FutureWarning, stacklevel=3)
 
+        self.__dict__.update(kwargs)
         self.blocks = []
         self.obj = obj
+        self.on = on
         self.window = window
         self.min_periods = min_periods
         self.freq = freq
@@ -63,19 +81,32 @@ class _Window(PandasObject, SelectionMixin):
     def _constructor(self):
         return Window
 
+    @property
+    def is_datetimelike(self):
+        return None
+
+    @property
+    def _on(self):
+        return None
+
+    @property
+    def is_freq_type(self):
+        return self.win_type == 'freq'
+
     def validate(self):
-        if self.center is not None and not com.is_bool(self.center):
+        if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
         if self.min_periods is not None and not \
-           com.is_integer(self.min_periods):
+           is_integer(self.min_periods):
             raise ValueError("min_periods must be an integer")
 
     def _convert_freq(self, how=None):
         """ resample according to the how, return a new object """
 
         obj = self._selected_obj
+        index = None
         if (self.freq is not None and
-                isinstance(obj, (com.ABCSeries, com.ABCDataFrame))):
+                isinstance(obj, (ABCSeries, ABCDataFrame))):
             if how is not None:
                 warnings.warn("The how kw argument is deprecated and removed "
                               "in a future version. You can resample prior "
@@ -83,13 +114,24 @@ class _Window(PandasObject, SelectionMixin):
                               stacklevel=6)
 
             obj = obj.resample(self.freq).aggregate(how or 'asfreq')
-        return obj
+
+        return obj, index
 
     def _create_blocks(self, how):
         """ split data into blocks & return conformed data """
 
-        obj = self._convert_freq(how)
-        return obj.as_blocks(copy=False).values(), obj
+        obj, index = self._convert_freq(how)
+        if index is not None:
+            index = self._on
+
+        # filter out the on from the object
+        if self.on is not None:
+            if obj.ndim == 2:
+                obj = obj.reindex(columns=obj.columns.difference([self.on]),
+                                  copy=False)
+        blocks = obj.as_blocks(copy=False).values()
+
+        return blocks, obj, index
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -111,7 +153,7 @@ class _Window(PandasObject, SelectionMixin):
         self = self._shallow_copy(subset)
         self._reset_cache()
         if subset.ndim == 2:
-            if isscalar(key) and key in subset or com.is_list_like(key):
+            if isscalar(key) and key in subset or is_list_like(key):
                 self._selection = key
         return self
 
@@ -143,6 +185,21 @@ class _Window(PandasObject, SelectionMixin):
         return "{klass} [{attrs}]".format(klass=self._window_type,
                                           attrs=','.join(attrs))
 
+    def _get_index(self, index=None):
+        """
+        Return index as ndarrays
+
+        Returns
+        -------
+        tuple of (index, index_as_ndarray)
+        """
+
+        if self.is_freq_type:
+            if index is None:
+                index = self._on
+            return index, index.asi8
+        return index, index
+
     def _prep_values(self, values=None, kill_inf=True, how=None):
 
         if values is None:
@@ -150,11 +207,11 @@ class _Window(PandasObject, SelectionMixin):
 
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
-        if com.is_float_dtype(values.dtype):
-            values = com._ensure_float64(values)
-        elif com.is_integer_dtype(values.dtype):
-            values = com._ensure_float64(values)
-        elif com.needs_i8_conversion(values.dtype):
+        if is_float_dtype(values.dtype):
+            values = _ensure_float64(values)
+        elif is_integer_dtype(values.dtype):
+            values = _ensure_float64(values)
+        elif needs_i8_conversion(values.dtype):
             raise NotImplementedError("ops for {action} for this "
                                       "dtype {dtype} are not "
                                       "implemented".format(
@@ -162,7 +219,7 @@ class _Window(PandasObject, SelectionMixin):
                                           dtype=values.dtype))
         else:
             try:
-                values = com._ensure_float64(values)
+                values = _ensure_float64(values)
             except (ValueError, TypeError):
                 raise TypeError("cannot handle this type -> {0}"
                                 "".format(values.dtype))
@@ -178,13 +235,13 @@ class _Window(PandasObject, SelectionMixin):
 
         if obj is None:
             obj = self._selected_obj
-
         index = obj.index
+
         if isinstance(result, np.ndarray):
 
             # coerce if necessary
             if block is not None:
-                if com.is_timedelta64_dtype(block.values.dtype):
+                if is_timedelta64_dtype(block.values.dtype):
                     result = pd.to_timedelta(
                         result.ravel(), unit='ns').values.reshape(result.shape)
 
@@ -206,6 +263,9 @@ class _Window(PandasObject, SelectionMixin):
         obj : conformed data (may be resampled)
         """
 
+        from pandas import Series
+        from pandas.core.index import _ensure_index
+
         final = []
         for result, block in zip(results, blocks):
 
@@ -214,9 +274,31 @@ class _Window(PandasObject, SelectionMixin):
                 return result
             final.append(result)
 
+        # if we have an 'on' column
+        # we want to put it back into the results
+        # in the same location
+        columns = self._selected_obj.columns
+        if self.on is not None \
+           and not self._on.equals(obj.index):
+
+            name = self._on.name
+            final.append(Series(self._on, index=obj.index, name=name))
+
+            if self._selection is not None:
+
+                selection = _ensure_index(self._selection)
+
+                # need to reorder to include original location of
+                # the on column (if its not already there)
+                if name not in selection:
+                    columns = self.obj.columns
+                    indexer = columns.get_indexer(selection.tolist() + [name])
+                    columns = columns.take(sorted(indexer))
+
         if not len(final):
             return obj.astype('float64')
-        return pd.concat(final, axis=1).reindex(columns=obj.columns)
+        return pd.concat(final, axis=1).reindex(columns=columns,
+                                                copy=False)
 
     def _center_window(self, result, window):
         """ center the result in the window """
@@ -262,18 +344,24 @@ class _Window(PandasObject, SelectionMixin):
 
 class Window(_Window):
     """
-    Provides rolling transformations.
+    Provides rolling window calculcations.
 
     .. versionadded:: 0.18.0
 
     Parameters
     ----------
-    window : int
-       Size of the moving window. This is the number of observations used for
-       calculating the statistic.
+    window : int, or offset
+        Size of the moving window. This is the number of observations used for
+        calculating the statistic. Each window will be a fixed size.
+
+        If its an offset then this will be the time period of each window. Each
+        window will be a variable sized based on the observations included in
+        the time-period. This is only valid for datetimelike indexes. This is
+        new in 0.19.0
     min_periods : int, default None
         Minimum number of observations in window required to have a value
-        (otherwise result is NA).
+        (otherwise result is NA). For a window that is specified by an offset,
+        this will default to 1.
     freq : string or DateOffset object, optional (default None) (DEPRECATED)
         Frequency to conform the data to before computing the statistic.
         Specified as a frequency string or DateOffset object.
@@ -281,11 +369,91 @@ class Window(_Window):
         Set the labels at the center of the window.
     win_type : string, default None
         Provide a window type. See the notes below.
-    axis : int, default 0
+    on : string, optional
+        For a DataFrame, column on which to calculate
+        the rolling window, rather than the index
+
+        .. versionadded:: 0.19.0
+
+    axis : int or string, default 0
 
     Returns
     -------
-    a Window sub-classed for the particular operation
+    a Window or Rolling sub-classed for the particular operation
+
+    Examples
+    --------
+
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df
+         B
+    0  0.0
+    1  1.0
+    2  2.0
+    3  NaN
+    4  4.0
+
+    Rolling sum with a window length of 2, using the 'triang'
+    window type.
+
+    >>> df.rolling(2, win_type='triang').sum()
+         B
+    0  NaN
+    1  1.0
+    2  2.5
+    3  NaN
+    4  NaN
+
+    Rolling sum with a window length of 2, min_periods defaults
+    to the window length.
+
+    >>> df.rolling(2).sum()
+         B
+    0  NaN
+    1  1.0
+    2  3.0
+    3  NaN
+    4  NaN
+
+    Same as above, but explicity set the min_periods
+
+    >>> df.rolling(2, min_periods=1).sum()
+         B
+    0  0.0
+    1  1.0
+    2  3.0
+    3  2.0
+    4  4.0
+
+    A ragged (meaning not-a-regular frequency), time-indexed DataFrame
+
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+    ....:                 index = [pd.Timestamp('20130101 09:00:00'),
+    ....:                          pd.Timestamp('20130101 09:00:02'),
+    ....:                          pd.Timestamp('20130101 09:00:03'),
+    ....:                          pd.Timestamp('20130101 09:00:05'),
+    ....:                          pd.Timestamp('20130101 09:00:06')])
+
+    >>> df
+                           B
+    2013-01-01 09:00:00  0.0
+    2013-01-01 09:00:02  1.0
+    2013-01-01 09:00:03  2.0
+    2013-01-01 09:00:05  NaN
+    2013-01-01 09:00:06  4.0
+
+
+    Contrasting to an integer rolling window, this will roll a variable
+    length window corresponding to the time period.
+    The default for min_periods is 1.
+
+    >>> df.rolling('2s').sum()
+                           B
+    2013-01-01 09:00:00  0.0
+    2013-01-01 09:00:02  1.0
+    2013-01-01 09:00:03  3.0
+    2013-01-01 09:00:05  NaN
+    2013-01-01 09:00:06  4.0
 
     Notes
     -----
@@ -296,7 +464,10 @@ class Window(_Window):
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 
-    The recognized window types are:
+    To learn more about the offsets & frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    The recognized win_types are:
 
     * ``boxcar``
     * ``triang``
@@ -312,7 +483,8 @@ class Window(_Window):
     * ``gaussian`` (needs std)
     * ``general_gaussian`` (needs power, width)
     * ``slepian`` (needs width).
-"""
+
+    """
 
     def validate(self):
         super(Window, self).validate()
@@ -320,7 +492,9 @@ class Window(_Window):
         window = self.window
         if isinstance(window, (list, tuple, np.ndarray)):
             pass
-        elif com.is_integer(window):
+        elif is_integer(window):
+            if window < 0:
+                raise ValueError("window must be non-negative")
             try:
                 import scipy.signal as sig
             except ImportError:
@@ -343,7 +517,7 @@ class Window(_Window):
         window = self._get_window()
         if isinstance(window, (list, tuple, np.ndarray)):
             return com._asarray_tuplesafe(window).astype(float)
-        elif com.is_integer(window):
+        elif is_integer(window):
             import scipy.signal as sig
 
             # the below may pop from kwargs
@@ -389,7 +563,7 @@ class Window(_Window):
         window = self._prep_window(**kwargs)
         center = self.center
 
-        blocks, obj = self._create_blocks(how=how)
+        blocks, obj, index = self._create_blocks(how=how)
         results = []
         for b in blocks:
             try:
@@ -518,7 +692,8 @@ class _Rolling(_Window):
         if check_minp is None:
             check_minp = _use_window
 
-        blocks, obj = self._create_blocks(how=how)
+        blocks, obj, index = self._create_blocks(how=how)
+        index, indexi = self._get_index(index=index)
         results = []
         for b in blocks:
             try:
@@ -540,9 +715,10 @@ class _Rolling(_Window):
 
                 def func(arg, window, min_periods=None):
                     minp = check_minp(min_periods, window)
-                    # GH #12373: rolling functions error on float32 data
-                    return cfunc(com._ensure_float64(arg),
-                                 window, minp, **kwargs)
+                    # ensure we are only rolling on floats
+                    arg = _ensure_float64(arg)
+                    return cfunc(arg,
+                                 window, minp, indexi, **kwargs)
 
             # calculation function
             if center:
@@ -557,10 +733,11 @@ class _Rolling(_Window):
                 def calc(x):
                     return func(x, window, min_periods=self.min_periods)
 
-            if values.ndim > 1:
-                result = np.apply_along_axis(calc, self.axis, values)
-            else:
-                result = calc(values)
+            with np.errstate(all='ignore'):
+                if values.ndim > 1:
+                    result = np.apply_along_axis(calc, self.axis, values)
+                else:
+                    result = calc(values)
 
             if center:
                 result = self._center_window(result, window)
@@ -576,15 +753,17 @@ class _Rolling_and_Expanding(_Rolling):
     observations inside provided window."""
 
     def count(self):
-        obj = self._convert_freq()
+
+        blocks, obj, index = self._create_blocks(how=None)
+        index, indexi = self._get_index(index=index)
+
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
 
-        blocks, obj = self._create_blocks(how=None)
         results = []
         for b in blocks:
 
-            if com.needs_i8_conversion(b.values):
+            if needs_i8_conversion(b.values):
                 result = b.notnull().astype(int)
             else:
                 try:
@@ -614,10 +793,12 @@ class _Rolling_and_Expanding(_Rolling):
         _level = kwargs.pop('_level', None)  # noqa
         window = self._get_window()
         offset = _offset(window, self.center)
+        index, indexi = self._get_index()
 
         def f(arg, window, min_periods):
             minp = _use_window(min_periods, window)
-            return _window.roll_generic(arg, window, minp, offset, func, args,
+            return _window.roll_generic(arg, window, minp, indexi,
+                                        offset, func, args,
                                         kwargs)
 
         return self._apply(f, func, args=args, kwargs=kwargs,
@@ -684,10 +865,12 @@ class _Rolling_and_Expanding(_Rolling):
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func('std', args, kwargs)
         window = self._get_window()
+        index, indexi = self._get_index()
 
         def f(arg, *args, **kwargs):
             minp = _require_min_periods(1)(self.min_periods, window)
-            return _zsqrt(_window.roll_var(arg, window, minp, ddof))
+            return _zsqrt(_window.roll_var(arg, window, minp, indexi,
+                                           ddof))
 
         return self._apply(f, 'std', check_minp=_require_min_periods(1),
                            ddof=ddof, **kwargs)
@@ -729,10 +912,12 @@ class _Rolling_and_Expanding(_Rolling):
 
     def quantile(self, quantile, **kwargs):
         window = self._get_window()
+        index, indexi = self._get_index()
 
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
-            return _window.roll_quantile(arg, window, minp, quantile)
+            return _window.roll_quantile(arg, window, minp, indexi,
+                                         quantile)
 
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)
@@ -812,44 +997,66 @@ class _Rolling_and_Expanding(_Rolling):
 
 
 class Rolling(_Rolling_and_Expanding):
-    """
-    Provides rolling window calculcations.
 
-    .. versionadded:: 0.18.0
+    @cache_readonly
+    def is_datetimelike(self):
+        return isinstance(self._on,
+                          (ABCDatetimeIndex,
+                           ABCTimedeltaIndex,
+                           ABCPeriodIndex))
 
-    Parameters
-    ----------
-    window : int
-        Size of the moving window. This is the number of observations used for
-        calculating the statistic.
-    min_periods : int, default None
-        Minimum number of observations in window required to have a value
-        (otherwise result is NA).
-    freq : string or DateOffset object, optional (default None) (DEPRECATED)
-        Frequency to conform the data to before computing the statistic.
-        Specified as a frequency string or DateOffset object.
-    center : boolean, default False
-        Set the labels at the center of the window.
-    axis : int, default 0
+    @cache_readonly
+    def _on(self):
 
-    Returns
-    -------
-    a Window sub-classed for the particular operation
-
-    Notes
-    -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
-
-    The `freq` keyword is used to conform time series data to a specified
-    frequency by resampling the data. This is done with the default parameters
-    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
-    """
+        if self.on is None:
+            return self.obj.index
+        elif (isinstance(self.obj, ABCDataFrame) and
+              self.on in self.obj.columns):
+            return pd.Index(self.obj[self.on])
+        else:
+            raise ValueError("invalid on specified as {0}, "
+                             "must be a column (if DataFrame) "
+                             "or None".format(self.on))
 
     def validate(self):
         super(Rolling, self).validate()
-        if not com.is_integer(self.window):
+
+        # we allow rolling on a datetimelike index
+        if (self.is_datetimelike and
+                isinstance(self.window, (compat.string_types, DateOffset))):
+
+            # must be monotonic for on
+            if not self._on.is_monotonic:
+                formatted = self.on or 'index'
+                raise ValueError("{0} must be "
+                                 "monotonic".format(formatted))
+
+            from pandas.tseries.frequencies import to_offset
+            try:
+                freq = to_offset(self.window)
+            except (TypeError, ValueError):
+                raise ValueError("passed window {0} in not "
+                                 "compat with a datetimelike "
+                                 "index".format(self.window))
+
+            # we don't allow center
+            if self.center:
+                raise NotImplementedError("center is not implemented "
+                                          "for datetimelike and offset "
+                                          "based windows")
+
+            # this will raise ValueError on non-fixed freqs
+            self.window = freq.nanos
+            self.win_type = 'freq'
+
+            # min_periods must be an integer
+            if self.min_periods is None:
+                self.min_periods = 1
+
+        elif not is_integer(self.window):
             raise ValueError("window must be an integer")
+        elif self.window < 0:
+            raise ValueError("window must be non-negative")
 
     @Substitution(name='rolling')
     @Appender(SelectionMixin._see_also_template)
@@ -863,6 +1070,11 @@ class Rolling(_Rolling_and_Expanding):
     @Appender(_doc_template)
     @Appender(_shared_docs['count'])
     def count(self):
+
+        # different impl for freq counting
+        if self.is_freq_type:
+            return self._apply('roll_count', 'count')
+
         return super(Rolling, self).count()
 
     @Substitution(name='rolling')
@@ -980,11 +1192,30 @@ class Expanding(_Rolling_and_Expanding):
         Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Set the labels at the center of the window.
-    axis : int, default 0
+    axis : int or string, default 0
 
     Returns
     -------
     a Window sub-classed for the particular operation
+
+    Examples
+    --------
+
+    >>> df = DataFrame({'B': [0, 1, 2, np.nan, 4]})
+         B
+    0  0.0
+    1  1.0
+    2  2.0
+    3  NaN
+    4  4.0
+
+    >>> df.expanding(2).sum()
+         B
+    0  NaN
+    1  1.0
+    2  3.0
+    3  3.0
+    4  7.0
 
     Notes
     -----
@@ -1192,6 +1423,25 @@ class EWM(_Rolling):
     -------
     a Window sub-classed for the particular operation
 
+    Examples
+    --------
+
+    >>> df = DataFrame({'B': [0, 1, 2, np.nan, 4]})
+         B
+    0  0.0
+    1  1.0
+    2  2.0
+    3  NaN
+    4  4.0
+
+    >>> df.ewm(com=0.5).mean()
+              B
+    0  0.000000
+    1  0.750000
+    2  1.615385
+    3  1.615385
+    4  3.670213
+
     Notes
     -----
     Exactly one of center of mass, span, half-life, and alpha must be provided.
@@ -1235,6 +1485,7 @@ class EWM(_Rolling):
         self.adjust = adjust
         self.ignore_na = ignore_na
         self.axis = axis
+        self.on = None
 
     @property
     def _constructor(self):
@@ -1263,7 +1514,7 @@ class EWM(_Rolling):
         y : type of input argument
 
         """
-        blocks, obj = self._create_blocks(how=how)
+        blocks, obj, index = self._create_blocks(how=how)
         results = []
         for b in blocks:
             try:
@@ -1367,10 +1618,11 @@ class EWM(_Rolling):
 
             x_values = X._prep_values()
             y_values = Y._prep_values()
-            cov = _cov(x_values, y_values)
-            x_var = _cov(x_values, x_values)
-            y_var = _cov(y_values, y_values)
-            corr = cov / _zsqrt(x_var * y_var)
+            with np.errstate(all='ignore'):
+                cov = _cov(x_values, y_values)
+                x_var = _cov(x_values, x_values)
+                y_var = _cov(y_values, y_values)
+                corr = cov / _zsqrt(x_var * y_var)
             return X._wrap_result(corr)
 
         return _flex_binary_moment(self._selected_obj, other._selected_obj,
@@ -1480,7 +1732,7 @@ def _get_center_of_mass(com, span, halflife, alpha):
 
 
 def _offset(window, center):
-    if not com.is_integer(window):
+    if not is_integer(window):
         window = len(window)
     offset = (window - 1) / 2. if center else 0
     try:
@@ -1507,8 +1759,9 @@ def _use_window(minp, window):
 
 
 def _zsqrt(x):
-    result = np.sqrt(x)
-    mask = x < 0
+    with np.errstate(all='ignore'):
+        result = np.sqrt(x)
+        mask = x < 0
 
     from pandas import DataFrame
     if isinstance(x, DataFrame):

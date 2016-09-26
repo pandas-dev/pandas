@@ -779,6 +779,48 @@ class TestPivotTable(tm.TestCase):
         )
         tm.assert_frame_equal(pivot_values_gen, pivot_values_list)
 
+    def test_pivot_table_margins_name_with_aggfunc_list(self):
+        # GH 13354
+        margins_name = 'Weekly'
+        costs = pd.DataFrame(
+            {'item': ['bacon', 'cheese', 'bacon', 'cheese'],
+             'cost': [2.5, 4.5, 3.2, 3.3],
+             'day': ['M', 'M', 'T', 'T']}
+        )
+        table = costs.pivot_table(
+            index="item", columns="day", margins=True,
+            margins_name=margins_name, aggfunc=[np.mean, max]
+        )
+        ix = pd.Index(
+            ['bacon', 'cheese', margins_name], dtype='object', name='item'
+        )
+        tups = [('mean', 'cost', 'M'), ('mean', 'cost', 'T'),
+                ('mean', 'cost', margins_name), ('max', 'cost', 'M'),
+                ('max', 'cost', 'T'), ('max', 'cost', margins_name)]
+        cols = pd.MultiIndex.from_tuples(tups, names=[None, None, 'day'])
+        expected = pd.DataFrame(table.values, index=ix, columns=cols)
+        tm.assert_frame_equal(table, expected)
+
+    def test_categorical_margins(self):
+        # GH 10989
+        df = pd.DataFrame({'x': np.arange(8),
+                           'y': np.arange(8) // 4,
+                           'z': np.arange(8) % 2})
+
+        expected = pd.DataFrame([[1.0, 2.0, 1.5], [5, 6, 5.5], [3, 4, 3.5]])
+        expected.index = Index([0, 1, 'All'], name='y')
+        expected.columns = Index([0, 1, 'All'], name='z')
+
+        data = df.copy()
+        table = data.pivot_table('x', 'y', 'z', margins=True)
+        tm.assert_frame_equal(table, expected)
+
+        data = df.copy()
+        data.y = data.y.astype('category')
+        data.z = data.z.astype('category')
+        table = data.pivot_table('x', 'y', 'z', margins=True)
+        tm.assert_frame_equal(table, expected)
+
 
 class TestCrosstab(tm.TestCase):
 
@@ -853,7 +895,9 @@ class TestCrosstab(tm.TestCase):
 
         all_cols = result['All', '']
         exp_cols = df.groupby(['a']).size().astype('i8')
-        exp_cols = exp_cols.append(Series([len(df)], index=['All']))
+        # to keep index.name
+        exp_margin = Series([len(df)], index=Index(['All'], name='a'))
+        exp_cols = exp_cols.append(exp_margin)
         exp_cols.name = ('All', '')
 
         tm.assert_series_equal(all_cols, exp_cols)
@@ -896,26 +940,6 @@ class TestCrosstab(tm.TestCase):
                                     ('two', 'dull'), ('two', 'shiny')],
                                    names=['b', 'c'])
         tm.assert_index_equal(res.columns, m)
-
-    def test_categorical_margins(self):
-        # GH 10989
-        df = pd.DataFrame({'x': np.arange(8),
-                           'y': np.arange(8) // 4,
-                           'z': np.arange(8) % 2})
-
-        expected = pd.DataFrame([[1.0, 2.0, 1.5], [5, 6, 5.5], [3, 4, 3.5]])
-        expected.index = Index([0, 1, 'All'], name='y')
-        expected.columns = Index([0, 1, 'All'], name='z')
-
-        data = df.copy()
-        table = data.pivot_table('x', 'y', 'z', margins=True)
-        tm.assert_frame_equal(table, expected)
-
-        data = df.copy()
-        data.y = data.y.astype('category')
-        data.z = data.z.astype('category')
-        table = data.pivot_table('x', 'y', 'z', margins=True)
-        tm.assert_frame_equal(table, expected)
 
     def test_crosstab_no_overlap(self):
         # GS 10291
@@ -1062,7 +1086,6 @@ class TestCrosstab(tm.TestCase):
                                                          dtype='object'),
                                           columns=pd.Index([3, 4, 'All'],
                                                            name='b'))
-
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index',
                                           margins=True), row_normal_margins)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns',

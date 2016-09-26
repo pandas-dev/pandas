@@ -10,6 +10,14 @@ import matplotlib.dates as dates
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 
+
+from pandas.types.common import (is_float, is_integer,
+                                 is_integer_dtype,
+                                 is_float_dtype,
+                                 is_datetime64_ns_dtype,
+                                 is_period_arraylike,
+                                 )
+
 from pandas.compat import lrange
 import pandas.compat as compat
 import pandas.lib as lib
@@ -73,8 +81,8 @@ class TimeConverter(units.ConversionInterface):
     @staticmethod
     def convert(value, unit, axis):
         valid_types = (str, pydt.time)
-        if (isinstance(value, valid_types) or com.is_integer(value) or
-                com.is_float(value)):
+        if (isinstance(value, valid_types) or is_integer(value) or
+                is_float(value)):
             return time2num(value)
         if isinstance(value, Index):
             return value.map(time2num)
@@ -129,15 +137,15 @@ class PeriodConverter(dates.DateConverter):
             raise TypeError('Axis must have `freq` set to convert to Periods')
         valid_types = (compat.string_types, datetime,
                        Period, pydt.date, pydt.time)
-        if (isinstance(values, valid_types) or com.is_integer(values) or
-                com.is_float(values)):
+        if (isinstance(values, valid_types) or is_integer(values) or
+                is_float(values)):
             return get_datevalue(values, axis.freq)
         if isinstance(values, PeriodIndex):
-            return values.asfreq(axis.freq).values
+            return values.asfreq(axis.freq)._values
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
-        if com.is_period_arraylike(values):
-            return PeriodIndex(values, freq=axis.freq).values
+        if is_period_arraylike(values):
+            return PeriodIndex(values, freq=axis.freq)._values
         if isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
@@ -149,7 +157,7 @@ def get_datevalue(date, freq):
     elif isinstance(date, (compat.string_types, datetime,
                            pydt.date, pydt.time)):
         return Period(date, freq).ordinal
-    elif (com.is_integer(date) or com.is_float(date) or
+    elif (is_integer(date) or is_float(date) or
           (isinstance(date, (np.ndarray, Index)) and (date.size == 1))):
         return date
     elif date is None:
@@ -163,8 +171,8 @@ def _dt_to_float_ordinal(dt):
     preserving hours, minutes, seconds and microseconds.  Return value
     is a :func:`float`.
     """
-    if (isinstance(dt, (np.ndarray, Index, Series)) and
-            com.is_datetime64_ns_dtype(dt)):
+    if (isinstance(dt, (np.ndarray, Index, Series)
+                   ) and is_datetime64_ns_dtype(dt)):
         base = dates.epoch2num(dt.asi8 / 1.0E9)
     else:
         base = dates.date2num(dt)
@@ -188,7 +196,7 @@ class DatetimeConverter(dates.DateConverter):
             return _dt_to_float_ordinal(lib.Timestamp(values))
         elif isinstance(values, pydt.time):
             return dates.date2num(values)
-        elif (com.is_integer(values) or com.is_float(values)):
+        elif (is_integer(values) or is_float(values)):
             return values
         elif isinstance(values, compat.string_types):
             return try_parse(values)
@@ -198,7 +206,7 @@ class DatetimeConverter(dates.DateConverter):
             if not isinstance(values, np.ndarray):
                 values = com._asarray_tuplesafe(values)
 
-            if com.is_integer_dtype(values) or com.is_float_dtype(values):
+            if is_integer_dtype(values) or is_float_dtype(values):
                 return values
 
             try:
@@ -208,7 +216,7 @@ class DatetimeConverter(dates.DateConverter):
                 else:
                     values = [_dt_to_float_ordinal(x) for x in values]
             except Exception:
-                pass
+                values = _dt_to_float_ordinal(values)
 
         return values
 
@@ -510,7 +518,7 @@ def _daily_finder(vmin, vmax, freq):
     info = np.zeros(span,
                     dtype=[('val', np.int64), ('maj', bool),
                            ('min', bool), ('fmt', '|S20')])
-    info['val'][:] = dates_.values
+    info['val'][:] = dates_._values
     info['fmt'][:] = ''
     info['maj'][[0, -1]] = True
     # .. and set some shortcuts

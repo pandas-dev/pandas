@@ -13,7 +13,7 @@ from pandas.core.config import option_context
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 
-class TestSeriesFormatting(tm.TestCase):
+class TestSparseSeriesFormatting(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -62,3 +62,59 @@ class TestSeriesFormatting(tm.TestCase):
                    "Block locations: array([0, 3]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dfm))
             self.assertEqual(result, exp)
+
+    def test_sparse_bool(self):
+        # GH 13110
+        s = pd.SparseSeries([True, False, False, True, False, False],
+                            fill_value=False)
+        result = repr(s)
+        dtype = '' if use_32bit_repr else ', dtype=int32'
+        exp = ("0     True\n1    False\n2    False\n"
+               "3     True\n4    False\n5    False\n"
+               "dtype: bool\nBlockIndex\n"
+               "Block locations: array([0, 3]{0})\n"
+               "Block lengths: array([1, 1]{0})".format(dtype))
+        self.assertEqual(result, exp)
+
+        with option_context("display.max_rows", 3):
+            result = repr(s)
+            exp = ("0     True\n     ...  \n5    False\n"
+                   "dtype: bool\nBlockIndex\n"
+                   "Block locations: array([0, 3]{0})\n"
+                   "Block lengths: array([1, 1]{0})".format(dtype))
+            self.assertEqual(result, exp)
+
+    def test_sparse_int(self):
+        # GH 13110
+        s = pd.SparseSeries([0, 1, 0, 0, 1, 0], fill_value=False)
+
+        result = repr(s)
+        dtype = '' if use_32bit_repr else ', dtype=int32'
+        exp = ("0    0\n1    1\n2    0\n3    0\n4    1\n"
+               "5    0\ndtype: int64\nBlockIndex\n"
+               "Block locations: array([1, 4]{0})\n"
+               "Block lengths: array([1, 1]{0})".format(dtype))
+        self.assertEqual(result, exp)
+
+        with option_context("display.max_rows", 3):
+            result = repr(s)
+            exp = ("0    0\n    ..\n5    0\n"
+                   "dtype: int64\nBlockIndex\n"
+                   "Block locations: array([1, 4]{0})\n"
+                   "Block lengths: array([1, 1]{0})".format(dtype))
+            self.assertEqual(result, exp)
+
+
+class TestSparseDataFrameFormatting(tm.TestCase):
+
+    def test_sparse_frame(self):
+        # GH 13110
+        df = pd.DataFrame({'A': [True, False, True, False, True],
+                           'B': [True, False, True, False, True],
+                           'C': [0, 0, 3, 0, 5],
+                           'D': [np.nan, np.nan, np.nan, 1, 2]})
+        sparse = df.to_sparse()
+        self.assertEqual(repr(sparse), repr(df))
+
+        with option_context("display.max_rows", 3):
+            self.assertEqual(repr(sparse), repr(df))

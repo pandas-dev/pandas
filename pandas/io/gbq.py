@@ -46,8 +46,12 @@ def _test_google_api_imports():
 
     try:
         import httplib2  # noqa
-        from apiclient.discovery import build  # noqa
-        from apiclient.errors import HttpError  # noqa
+        try:
+            from googleapiclient.discovery import build  # noqa
+            from googleapiclient.errors import HttpError  # noqa
+        except:
+            from apiclient.discovery import build  # noqa
+            from apiclient.errors import HttpError  # noqa
         from oauth2client.client import AccessTokenRefreshError  # noqa
         from oauth2client.client import OAuth2WebServerFlow  # noqa
         from oauth2client.file import Storage  # noqa
@@ -141,13 +145,14 @@ class GbqConnector(object):
     scope = 'https://www.googleapis.com/auth/bigquery'
 
     def __init__(self, project_id, reauth=False, verbose=False,
-                 private_key=None):
+                 private_key=None, dialect='legacy'):
         _check_google_client_version()
         _test_google_api_imports()
         self.project_id = project_id
         self.reauth = reauth
         self.verbose = verbose
         self.private_key = private_key
+        self.dialect = dialect
         self.credentials = self.get_credentials()
         self.service = self.get_service()
 
@@ -155,7 +160,60 @@ class GbqConnector(object):
         if self.private_key:
             return self.get_service_account_credentials()
         else:
-            return self.get_user_account_credentials()
+            # Try to retrieve Application Default Credentials
+            credentials = self.get_application_default_credentials()
+            if not credentials:
+                credentials = self.get_user_account_credentials()
+            return credentials
+
+    def get_application_default_credentials(self):
+        """
+        This method tries to retrieve the "default application credentials".
+        This could be useful for running code on Google Cloud Platform.
+
+        .. versionadded:: 0.19.0
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        - GoogleCredentials,
+            If the default application credentials can be retrieved
+            from the environment. The retrieved credentials should also
+            have access to the project (self.project_id) on BigQuery.
+        - OR None,
+            If default application credentials can not be retrieved
+            from the environment. Or, the retrieved credentials do not
+            have access to the project (self.project_id) on BigQuery.
+        """
+        import httplib2
+        try:
+            from googleapiclient.discovery import build
+        except ImportError:
+            from apiclient.discovery import build
+        try:
+            from oauth2client.client import GoogleCredentials
+        except ImportError:
+            return None
+
+        try:
+            credentials = GoogleCredentials.get_application_default()
+        except:
+            return None
+
+        http = httplib2.Http()
+        try:
+            http = credentials.authorize(http)
+            bigquery_service = build('bigquery', 'v2', http=http)
+            # Check if the application has rights to the BigQuery project
+            jobs = bigquery_service.jobs()
+            job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
+            jobs.insert(projectId=self.project_id, body=job_data).execute()
+            return credentials
+        except:
+            return None
 
     def get_user_account_credentials(self):
         from oauth2client.client import OAuth2WebServerFlow
@@ -266,7 +324,10 @@ class GbqConnector(object):
 
     def get_service(self):
         import httplib2
-        from apiclient.discovery import build
+        try:
+            from googleapiclient.discovery import build
+        except:
+            from apiclient.discovery import build
 
         http = httplib2.Http()
         http = self.credentials.authorize(http)
@@ -315,7 +376,10 @@ class GbqConnector(object):
         raise StreamingInsertError
 
     def run_query(self, query):
-        from apiclient.errors import HttpError
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
         from oauth2client.client import AccessTokenRefreshError
 
         _check_google_client_version()
@@ -324,7 +388,8 @@ class GbqConnector(object):
         job_data = {
             'configuration': {
                 'query': {
-                    'query': query
+                    'query': query,
+                    'useLegacySql': self.dialect == 'legacy'
                     # 'allowLargeResults', 'createDisposition',
                     # 'preserveNulls', destinationTable, useQueryCache
                 }
@@ -420,15 +485,17 @@ class GbqConnector(object):
         return schema, result_pages
 
     def load_data(self, dataframe, dataset_id, table_id, chunksize):
-        from apiclient.errors import HttpError
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
 
         job_id = uuid.uuid4().hex
         rows = []
         remaining_rows = len(dataframe)
 
-        if self.verbose:
-            total_rows = remaining_rows
-            self._print("\n\n")
+        total_rows = remaining_rows
+        self._print("\n\n")
 
         for index, row in dataframe.reset_index(drop=True).iterrows():
             row_dict = dict()
@@ -474,15 +541,23 @@ class GbqConnector(object):
         self._print("\n")
 
     def verify_schema(self, dataset_id, table_id, schema):
-        from apiclient.errors import HttpError
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
 
         try:
-            return (self.service.tables().get(
+            remote_schema = self.service.tables().get(
                 projectId=self.project_id,
                 datasetId=dataset_id,
-                tableId=table_id
-            ).execute()['schema']) == schema
+                tableId=table_id).execute()['schema']
 
+            fields_remote = set([json.dumps(field_remote)
+                                 for field_remote in remote_schema['fields']])
+            fields_local = set(json.dumps(field_local)
+                               for field_local in schema['fields'])
+
+            return fields_remote == fields_local
         except HttpError as ex:
             self.process_http_error(ex)
 
@@ -547,7 +622,7 @@ def _parse_entry(field_value, field_type):
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None):
+             reauth=False, verbose=True, private_key=None, dialect='legacy'):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -560,10 +635,20 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     https://developers.google.com/api-client-library/python/apis/bigquery/v2
 
     Authentication to the Google BigQuery service is via OAuth 2.0.
-    By default user account credentials are used. You will be asked to
-    grant permissions for product name 'pandas GBQ'. It is also posible
-    to authenticate via service account credentials by using
-    private_key parameter.
+
+    - If "private_key" is not provided:
+
+      By default "application default credentials" are used.
+
+      .. versionadded:: 0.19.0
+
+      If default application credentials are not found or are restrictive,
+      user account credentials are used. In this case, you will be asked to
+      grant permissions for product name 'pandas GBQ'.
+
+    - If "private_key" is provided:
+
+      Service account credentials will be used to authenticate.
 
     Parameters
     ----------
@@ -586,6 +671,17 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         or string contents. This is useful for remote server
         authentication (eg. jupyter iPython notebook on remote host)
 
+        .. versionadded:: 0.18.1
+
+    dialect : {'legacy', 'standard'}, default 'legacy'
+        'legacy' : Use BigQuery's legacy SQL dialect.
+        'standard' : Use BigQuery's standard SQL (beta), which is
+        compliant with the SQL 2011 standard. For more information
+        see `BigQuery SQL Reference
+        <https://cloud.google.com/bigquery/sql-reference/>`__
+
+        .. versionadded:: 0.19.0
+
     Returns
     -------
     df: DataFrame
@@ -596,8 +692,12 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     if not project_id:
         raise TypeError("Missing required parameter: project_id")
 
+    if dialect not in ('legacy', 'standard'):
+        raise ValueError("'{0}' is not valid for dialect".format(dialect))
+
     connector = GbqConnector(project_id, reauth=reauth, verbose=verbose,
-                             private_key=private_key)
+                             private_key=private_key,
+                             dialect=dialect)
     schema, pages = connector.run_query(query)
     dataframe_list = []
     while len(pages) > 0:
@@ -656,10 +756,20 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     https://developers.google.com/api-client-library/python/apis/bigquery/v2
 
     Authentication to the Google BigQuery service is via OAuth 2.0.
-    By default user account credentials are used. You will be asked to
-    grant permissions for product name 'pandas GBQ'. It is also posible
-    to authenticate via service account credentials by using
-    private_key parameter.
+
+    - If "private_key" is not provided:
+
+      By default "application default credentials" are used.
+
+      .. versionadded:: 0.19.0
+
+      If default application credentials are not found or are restrictive,
+      user account credentials are used. In this case, you will be asked to
+      grant permissions for product name 'pandas GBQ'.
+
+    - If "private_key" is provided:
+
+      Service account credentials will be used to authenticate.
 
     Parameters
     ----------
@@ -714,10 +824,9 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                 dataset_id, table_id, table_schema)
         elif if_exists == 'append':
             if not connector.verify_schema(dataset_id, table_id, table_schema):
-                raise InvalidSchema("Please verify that the column order, "
-                                    "structure and data types in the "
-                                    "DataFrame match the schema of the "
-                                    "destination table.")
+                raise InvalidSchema("Please verify that the structure and "
+                                    "data types in the DataFrame match the "
+                                    "schema of the destination table.")
     else:
         table.create(table_id, table_schema)
 
@@ -765,7 +874,10 @@ class _Table(GbqConnector):
 
     def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
                  private_key=None):
-        from apiclient.errors import HttpError
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
         self.http_error = HttpError
         self.dataset_id = dataset_id
         super(_Table, self).__init__(project_id, reauth, verbose, private_key)
@@ -865,7 +977,10 @@ class _Dataset(GbqConnector):
 
     def __init__(self, project_id, reauth=False, verbose=False,
                  private_key=None):
-        from apiclient.errors import HttpError
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
         self.http_error = HttpError
         super(_Dataset, self).__init__(project_id, reauth, verbose,
                                        private_key)

@@ -374,7 +374,7 @@ New Behavior:
    df.groupby('c', sort=False).nth(1)
 
 
-.. _whatsnew_0181.numpy_compatibility
+.. _whatsnew_0181.numpy_compatibility:
 
 numpy function compatibility
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -658,7 +658,7 @@ Bug Fixes
 - Bug in ``CategoricalIndex.get_loc`` returns different result from regular ``Index`` (:issue:`12531`)
 - Bug in ``PeriodIndex.resample`` where name not propagated (:issue:`12769`)
 
-
+- Bug in ``date_range`` ``closed`` keyword and timezones (:issue:`12684`).
 
 - Bug in ``pd.concat`` raises ``AttributeError`` when input data contains tz-aware datetime and timedelta (:issue:`12620`)
 - Bug in ``pd.concat`` did not handle empty ``Series`` properly (:issue:`11082`)

@@ -5,7 +5,7 @@
 import numpy as np
 
 from pandas.core.algorithms import factorize, match, unique, value_counts
-from pandas.core.common import isnull, notnull
+from pandas.types.missing import isnull, notnull
 from pandas.core.categorical import Categorical
 from pandas.core.groupby import Grouper
 from pandas.formats.format import set_eng_float_format
@@ -28,8 +28,16 @@ from pandas.tseries.index import (DatetimeIndex, Timestamp,
 from pandas.tseries.tdi import TimedeltaIndex, Timedelta
 from pandas.tseries.period import Period, PeriodIndex
 
-# legacy
-import pandas.core.datetools as datetools
+# see gh-14094.
+from pandas.util.depr_module import _DeprecatedModule
+
+_removals = ['day', 'bday', 'businessDay', 'cday', 'customBusinessDay',
+             'customBusinessMonthEnd', 'customBusinessMonthBegin',
+             'monthEnd', 'yearEnd', 'yearBegin', 'bmonthEnd', 'bmonthBegin',
+             'cbmonthEnd', 'cbmonthBegin', 'bquarterEnd', 'quarterEnd',
+             'byearEnd', 'week']
+datetools = _DeprecatedModule(deprmod='pandas.core.datetools',
+                              removals=_removals)
 
 from pandas.core.config import (get_option, set_option, reset_option,
                                 describe_option, option_context, options)

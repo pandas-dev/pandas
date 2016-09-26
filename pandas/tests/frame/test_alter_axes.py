@@ -268,6 +268,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                 lambda d: pd.Timestamp(d, tz=tz))
             assert_frame_equal(df.reset_index(), expected)
 
+    def test_set_index_timezone(self):
         # GH 12358
         # tz-aware Series should retain the tz
         i = pd.to_datetime(["2014-01-01 10:10:10"],
@@ -276,6 +277,25 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         self.assertEqual(df.set_index(i).index[0].hour, 11)
         self.assertEqual(pd.DatetimeIndex(pd.Series(df.i))[0].hour, 11)
         self.assertEqual(df.set_index(df.i).index[0].hour, 11)
+
+    def test_set_index_dst(self):
+        di = pd.date_range('2006-10-29 00:00:00', periods=3,
+                           req='H', tz='US/Pacific')
+
+        df = pd.DataFrame(data={'a': [0, 1, 2], 'b': [3, 4, 5]},
+                          index=di).reset_index()
+        # single level
+        res = df.set_index('index')
+        exp = pd.DataFrame(data={'a': [0, 1, 2], 'b': [3, 4, 5]},
+                           index=pd.Index(di, name='index'))
+        tm.assert_frame_equal(res, exp)
+
+        # GH 12920
+        res = df.set_index(['index', 'a'])
+        exp_index = pd.MultiIndex.from_arrays([di, [0, 1, 2]],
+                                              names=['index', 'a'])
+        exp = pd.DataFrame({'b': [3, 4, 5]}, index=exp_index)
+        tm.assert_frame_equal(res, exp)
 
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
@@ -644,3 +664,18 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         frame.columns = ['foo', 'bar', 'baz', 'quux', 'foo2']
         assert_series_equal(self.frame['C'], frame['baz'], check_names=False)
         assert_series_equal(self.frame['hi'], frame['foo2'], check_names=False)
+
+    def test_set_index_preserve_categorical_dtype(self):
+        # GH13743, GH13854
+        df = DataFrame({'A': [1, 2, 1, 1, 2],
+                        'B': [10, 16, 22, 28, 34],
+                        'C1': pd.Categorical(list("abaab"),
+                                             categories=list("bac"),
+                                             ordered=False),
+                        'C2': pd.Categorical(list("abaab"),
+                                             categories=list("bac"),
+                                             ordered=True)})
+        for cols in ['C1', 'C2', ['A', 'C1'], ['A', 'C2'], ['C1', 'C2']]:
+            result = df.set_index(cols).reset_index()
+            result = result.reindex(columns=df.columns)
+            tm.assert_frame_equal(result, df)

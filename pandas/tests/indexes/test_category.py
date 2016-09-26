@@ -271,12 +271,12 @@ class TestCategoricalIndex(Base, tm.TestCase):
             lambda: ci.append(ci.values.reorder_categories(list('abc'))))
 
         # with objects
-        result = ci.append(['c', 'a'])
+        result = ci.append(Index(['c', 'a']))
         expected = CategoricalIndex(list('aabbcaca'), categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid objects
-        self.assertRaises(TypeError, lambda: ci.append(['a', 'd']))
+        self.assertRaises(TypeError, lambda: ci.append(Index(['a', 'd'])))
 
     def test_insert(self):
 
@@ -336,7 +336,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         # determined by cat ordering
         idx = self.create_index()
-        expected = np.array([4, 0, 1, 5, 2, 3])
+        expected = np.array([4, 0, 1, 5, 2, 3], dtype=np.intp)
 
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
@@ -395,6 +395,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         expected = CategoricalIndex([0], name='foo')
         self.assert_index_equal(idx.drop_duplicates(), expected)
+        self.assert_index_equal(idx.unique(), expected)
 
     def test_get_indexer(self):
 
@@ -403,7 +404,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         for indexer in [idx2, list('abf'), Index(list('abf'))]:
             r1 = idx1.get_indexer(idx2)
-            assert_almost_equal(r1, np.array([0, 1, 2, -1]))
+            assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
 
         self.assertRaises(NotImplementedError,
                           lambda: idx2.get_indexer(idx1, method='pad'))
@@ -521,7 +522,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
             result = CategoricalIndex(index.values, copy=False)
             self.assertIs(_base(index.values), _base(result.values))
 
-    def test_equals(self):
+    def test_equals_categorical(self):
 
         ci1 = CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=True)
         ci2 = CategoricalIndex(['a', 'b'], categories=['a', 'b', 'c'],
@@ -555,19 +556,30 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         # tests
         # make sure that we are testing for category inclusion properly
-        self.assertTrue(CategoricalIndex(
-            list('aabca'), categories=['c', 'a', 'b']).equals(list('aabca')))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertTrue(CategoricalIndex(
-                list('aabca'), categories=['c', 'a', 'b', np.nan]).equals(list(
-                    'aabca')))
+        ci = CategoricalIndex(list('aabca'), categories=['c', 'a', 'b'])
+        self.assertFalse(ci.equals(list('aabca')))
+        self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
+        self.assertTrue(ci.equals(ci.copy()))
 
-        self.assertFalse(CategoricalIndex(
-            list('aabca') + [np.nan], categories=['c', 'a', 'b']).equals(list(
-                'aabca')))
-        self.assertTrue(CategoricalIndex(
-            list('aabca') + [np.nan], categories=['c', 'a', 'b']).equals(list(
-                'aabca') + [np.nan]))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            ci = CategoricalIndex(list('aabca'),
+                                  categories=['c', 'a', 'b', np.nan])
+        self.assertFalse(ci.equals(list('aabca')))
+        self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertTrue(ci.equals(ci.copy()))
+
+        ci = CategoricalIndex(list('aabca') + [np.nan],
+                              categories=['c', 'a', 'b'])
+        self.assertFalse(ci.equals(list('aabca')))
+        self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
+        self.assertTrue(ci.equals(ci.copy()))
+
+        ci = CategoricalIndex(list('aabca') + [np.nan],
+                              categories=['c', 'a', 'b'])
+        self.assertFalse(ci.equals(list('aabca') + [np.nan]))
+        self.assertFalse(ci.equals(CategoricalIndex(list('aabca') + [np.nan])))
+        self.assertTrue(ci.equals(ci.copy()))
 
     def test_string_categorical_index_repr(self):
         # short

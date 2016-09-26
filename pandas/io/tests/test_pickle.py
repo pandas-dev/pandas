@@ -46,6 +46,12 @@ class TestPickle():
         if typ.startswith('sp_'):
             comparator = getattr(tm, "assert_%s_equal" % typ)
             comparator(result, expected, exact_indices=False)
+        elif typ == 'timestamp':
+            if expected is pd.NaT:
+                assert result is pd.NaT
+            else:
+                tm.assert_equal(result, expected)
+                tm.assert_equal(result.freq, expected.freq)
         else:
             comparator = getattr(tm, "assert_%s_equal" %
                                  typ, tm.assert_almost_equal)
@@ -80,6 +86,14 @@ class TestPickle():
                 comparator(result, expected, typ, version)
         return data
 
+    def compare_sp_series_ts(self, res, exp, typ, version):
+        # SparseTimeSeries integrated into SparseSeries in 0.12.0
+        # and deprecated in 0.17.0
+        if version and LooseVersion(version) <= "0.12.0":
+            tm.assert_sp_series_equal(res, exp, check_series_type=False)
+        else:
+            tm.assert_sp_series_equal(res, exp)
+
     def compare_series_ts(self, result, expected, typ, version):
         # GH 7748
         tm.assert_series_equal(result, expected)
@@ -109,8 +123,12 @@ class TestPickle():
             tm.assert_series_equal(result, expected)
 
     def compare_series_cat(self, result, expected, typ, version):
-        # Categorical.ordered is changed in < 0.16.0
-        if LooseVersion(version) < '0.16.0':
+        # Categorical dtype is added in 0.15.0
+        # ordered is changed in 0.16.0
+        if LooseVersion(version) < '0.15.0':
+            tm.assert_series_equal(result, expected, check_dtype=False,
+                                   check_categorical=False)
+        elif LooseVersion(version) < '0.16.0':
             tm.assert_series_equal(result, expected, check_categorical=False)
         else:
             tm.assert_series_equal(result, expected)
@@ -125,8 +143,12 @@ class TestPickle():
             tm.assert_frame_equal(result, expected)
 
     def compare_frame_cat_onecol(self, result, expected, typ, version):
-        # Categorical.ordered is changed in < 0.16.0
-        if LooseVersion(version) < '0.16.0':
+        # Categorical dtype is added in 0.15.0
+        # ordered is changed in 0.16.0
+        if LooseVersion(version) < '0.15.0':
+            tm.assert_frame_equal(result, expected, check_dtype=False,
+                                  check_categorical=False)
+        elif LooseVersion(version) < '0.16.0':
             tm.assert_frame_equal(result, expected, check_categorical=False)
         else:
             tm.assert_frame_equal(result, expected)
@@ -140,6 +162,13 @@ class TestPickle():
         tm.assert_equal(result.freq, MonthEnd())
         tm.assert_equal(result.freqstr, 'M')
         tm.assert_index_equal(result.shift(2), expected.shift(2))
+
+    def compare_sp_frame_float(self, result, expected, typ, version):
+        if LooseVersion(version) <= '0.18.1':
+            tm.assert_sp_frame_equal(result, expected, exact_indices=False,
+                                     check_dtype=False)
+        else:
+            tm.assert_sp_frame_equal(result, expected)
 
     def read_pickles(self, version):
         if not is_platform_little_endian():
@@ -216,6 +245,44 @@ class TestPickle():
 
                         result = python_unpickler(path)
                         self.compare_element(result, expected, typ)
+
+    def test_pickle_v0_14_1(self):
+
+        # we have the name warning
+        # 10482
+        with tm.assert_produces_warning(UserWarning):
+            cat = pd.Categorical(values=['a', 'b', 'c'],
+                                 categories=['a', 'b', 'c', 'd'],
+                                 name='foobar', ordered=False)
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'categorical_0_14_1.pickle')
+        # This code was executed once on v0.14.1 to generate the pickle:
+        #
+        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
+        #                   name='foobar')
+        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
+        #
+        tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
+
+    def test_pickle_v0_15_2(self):
+        # ordered -> _ordered
+        # GH 9347
+
+        # we have the name warning
+        # 10482
+        with tm.assert_produces_warning(UserWarning):
+            cat = pd.Categorical(values=['a', 'b', 'c'],
+                                 categories=['a', 'b', 'c', 'd'],
+                                 name='foobar', ordered=False)
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'categorical_0_15_2.pickle')
+        # This code was executed once on v0.15.2 to generate the pickle:
+        #
+        # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
+        #                   name='foobar')
+        # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
+        #
+        tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
 
 if __name__ == '__main__':

@@ -47,19 +47,21 @@ import warnings
 import numpy as np
 from pandas import compat
 from pandas.compat import u, u_safe
+
+from pandas.types.common import (is_categorical_dtype, is_object_dtype,
+                                 needs_i8_conversion, pandas_dtype)
+
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
                     Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
                     Categorical)
 from pandas.tslib import NaTType
-from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
+from pandas.sparse.api import SparseSeries, SparseDataFrame
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
-from pandas.core.common import (PerformanceWarning,
-                                is_categorical_dtype, is_object_dtype,
-                                needs_i8_conversion, pandas_dtype)
+from pandas.core.common import PerformanceWarning
 from pandas.io.common import get_filepath_or_buffer
-from pandas.core.internals import BlockManager, make_block
+from pandas.core.internals import BlockManager, make_block, _safe_reshape
 import pandas.core.internals as internals
 
 from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
@@ -445,18 +447,6 @@ def encode(obj):
             # d['data'] = dict([(name, ss)
             #                 for name, ss in compat.iteritems(obj)])
             # return d
-        elif isinstance(obj, SparsePanel):
-            raise NotImplementedError(
-                'msgpack sparse frame is not implemented'
-            )
-            # d = {'typ': 'sparse_panel',
-            #     'klass': obj.__class__.__name__,
-            #     'items': obj.items}
-            # for f in ['default_fill_value', 'default_kind']:
-            #    d[f] = getattr(obj, f, None)
-            # d['data'] = dict([(name, df)
-            #                 for name, df in compat.iteritems(obj)])
-            # return d
         else:
 
             data = obj._data
@@ -481,12 +471,12 @@ def encode(obj):
             tz = obj.tzinfo
             if tz is not None:
                 tz = u(tz.zone)
-            offset = obj.offset
-            if offset is not None:
-                offset = u(offset.freqstr)
+            freq = obj.freq
+            if freq is not None:
+                freq = u(freq.freqstr)
             return {u'typ': u'timestamp',
                     u'value': obj.value,
-                    u'offset': offset,
+                    u'freq': freq,
                     u'tz': tz}
         if isinstance(obj, NaTType):
             return {u'typ': u'nat'}
@@ -556,7 +546,8 @@ def decode(obj):
     if typ is None:
         return obj
     elif typ == u'timestamp':
-        return Timestamp(obj[u'value'], tz=obj[u'tz'], offset=obj[u'offset'])
+        freq = obj[u'freq'] if 'freq' in obj else obj[u'offset']
+        return Timestamp(obj[u'value'], tz=obj[u'tz'], freq=freq)
     elif typ == u'nat':
         return NaT
     elif typ == u'period':
@@ -619,8 +610,9 @@ def decode(obj):
         axes = obj[u'axes']
 
         def create_block(b):
-            values = unconvert(b[u'values'], dtype_for(b[u'dtype']),
-                               b[u'compress']).reshape(b[u'shape'])
+            values = _safe_reshape(unconvert(
+                b[u'values'], dtype_for(b[u'dtype']),
+                b[u'compress']), b[u'shape'])
 
             # locs handles duplicate column names, and should be used instead
             # of items; see GH 9618

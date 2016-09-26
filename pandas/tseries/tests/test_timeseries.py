@@ -12,10 +12,10 @@ import pandas.index as _index
 import pandas.lib as lib
 import pandas.tslib as tslib
 
+from pandas.types.common import is_datetime64_ns_dtype
 import pandas as pd
 import pandas.compat as compat
 import pandas.core.common as com
-import pandas.core.datetools as datetools
 import pandas.tseries.frequencies as frequencies
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
@@ -565,7 +565,7 @@ class TestTimeSeries(tm.TestCase):
     def test_frame_setitem_timestamp(self):
         # 2155
         columns = DatetimeIndex(start='1/1/2012', end='2/1/2012',
-                                freq=datetools.bday)
+                                freq=offsets.BDay())
         index = lrange(10)
         data = DataFrame(columns=columns, index=index)
         t = datetime(2012, 11, 1)
@@ -742,6 +742,14 @@ class TestTimeSeries(tm.TestCase):
         result = to_datetime(s, unit='s')
         expected = Series([Timestamp('2013-06-09 02:42:28') + timedelta(
             seconds=t) for t in range(20)] + [NaT])
+        assert_series_equal(result, expected)
+
+        # GH13834
+        s = Series([epoch + t for t in np.arange(0, 2, .25)] +
+                   [iNaT]).astype(float)
+        result = to_datetime(s, unit='s')
+        expected = Series([Timestamp('2013-06-09 02:42:28') + timedelta(
+            seconds=t) for t in np.arange(0, 2, .25)] + [NaT])
         assert_series_equal(result, expected)
 
         s = concat([Series([epoch + t for t in range(20)]
@@ -968,12 +976,19 @@ class TestTimeSeries(tm.TestCase):
 
         fields = ['year', 'quarter', 'month', 'day', 'hour', 'minute',
                   'second', 'microsecond', 'nanosecond', 'week', 'dayofyear',
-                  'days_in_month']
+                  'days_in_month', 'is_leap_year']
+
         for field in fields:
             result = getattr(idx, field)
-            expected = [getattr(x, field) if x is not NaT else np.nan
-                        for x in idx]
+            expected = [getattr(x, field) for x in idx]
             self.assert_numpy_array_equal(result, np.array(expected))
+
+        s = pd.Series(idx)
+
+        for field in fields:
+            result = getattr(s.dt, field)
+            expected = [getattr(x, field) for x in idx]
+            self.assert_series_equal(result, pd.Series(expected))
 
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour', 'minute',
@@ -1004,7 +1019,13 @@ class TestTimeSeries(tm.TestCase):
 
         for method in nat_methods:
             if hasattr(NaT, method):
-                self.assertIs(getattr(NaT, method)(), NaT)
+                # see gh-8254
+                exp_warning = None
+                if method == 'to_datetime':
+                    exp_warning = FutureWarning
+                with tm.assert_produces_warning(
+                        exp_warning, check_stacklevel=False):
+                    self.assertIs(getattr(NaT, method)(), NaT)
 
         # GH 12300
         self.assertEqual(NaT.isoformat(), 'NaT')
@@ -1073,6 +1094,71 @@ class TestTimeSeries(tm.TestCase):
         rs = xp.to_datetime()
         self.assertEqual(xp.freq, rs.freq)
         self.assertEqual(xp.tzinfo, rs.tzinfo)
+
+    def test_range_edges(self):
+        # GH 13672
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000001'),
+                            end=Timestamp('1970-01-01 00:00:00.000000004'),
+                            freq='N')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.000000001',
+                             '1970-01-01 00:00:00.000000002',
+                             '1970-01-01 00:00:00.000000003',
+                             '1970-01-01 00:00:00.000000004'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000004'),
+                            end=Timestamp('1970-01-01 00:00:00.000000001'),
+                            freq='N')
+        exp = DatetimeIndex([])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000001'),
+                            end=Timestamp('1970-01-01 00:00:00.000000001'),
+                            freq='N')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.000000001'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000001'),
+                            end=Timestamp('1970-01-01 00:00:00.000004'),
+                            freq='U')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.000001',
+                             '1970-01-01 00:00:00.000002',
+                             '1970-01-01 00:00:00.000003',
+                             '1970-01-01 00:00:00.000004'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.001'),
+                            end=Timestamp('1970-01-01 00:00:00.004'),
+                            freq='L')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.001',
+                             '1970-01-01 00:00:00.002',
+                             '1970-01-01 00:00:00.003',
+                             '1970-01-01 00:00:00.004'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:01'),
+                            end=Timestamp('1970-01-01 00:00:04'), freq='S')
+        exp = DatetimeIndex(['1970-01-01 00:00:01', '1970-01-01 00:00:02',
+                             '1970-01-01 00:00:03', '1970-01-01 00:00:04'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:01'),
+                            end=Timestamp('1970-01-01 00:04'), freq='T')
+        exp = DatetimeIndex(['1970-01-01 00:01', '1970-01-01 00:02',
+                             '1970-01-01 00:03', '1970-01-01 00:04'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 01:00'),
+                            end=Timestamp('1970-01-01 04:00'), freq='H')
+        exp = DatetimeIndex(['1970-01-01 01:00', '1970-01-01 02:00',
+                             '1970-01-01 03:00', '1970-01-01 04:00'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01'),
+                            end=Timestamp('1970-01-04'), freq='D')
+        exp = DatetimeIndex(['1970-01-01', '1970-01-02',
+                             '1970-01-03', '1970-01-04'])
+        tm.assert_index_equal(idx, exp)
 
     def test_range_misspecified(self):
         # GH #1095
@@ -1260,13 +1346,6 @@ class TestTimeSeries(tm.TestCase):
         rng.format()
         ts = Series(1, index=rng)
         repr(ts)
-
-    def test_repeat(self):
-        rng = date_range('1/1/2000', '1/1/2001')
-
-        result = rng.repeat(5)
-        self.assertIsNone(result.freq)
-        self.assertEqual(len(result), 5 * len(rng))
 
     def test_at_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
@@ -1518,6 +1597,27 @@ class TestTimeSeries(tm.TestCase):
             for rng, expected in [(rng1, expected1), (rng2, expected2),
                                   (rng3, expected3), (rng4, expected4)]:
                 tm.assert_index_equal(rng, expected)
+
+    def test_dti_constructor_small_int(self):
+        # GH 13721
+        exp = DatetimeIndex(['1970-01-01 00:00:00.00000000',
+                             '1970-01-01 00:00:00.00000001',
+                             '1970-01-01 00:00:00.00000002'])
+
+        for dtype in [np.int64, np.int32, np.int16, np.int8]:
+            arr = np.array([0, 10, 20], dtype=dtype)
+            tm.assert_index_equal(DatetimeIndex(arr), exp)
+
+    def test_dti_constructor_numpy_timeunits(self):
+        # GH 9114
+        base = pd.to_datetime(['2000-01-01T00:00', '2000-01-02T00:00', 'NaT'])
+
+        for dtype in ['datetime64[h]', 'datetime64[m]', 'datetime64[s]',
+                      'datetime64[ms]', 'datetime64[us]', 'datetime64[ns]']:
+            values = base.values.astype(dtype)
+
+            tm.assert_index_equal(DatetimeIndex(values), base)
+            tm.assert_index_equal(to_datetime(values), base)
 
     def test_normalize(self):
         rng = date_range('1/1/2000 9:30', periods=10, freq='D')
@@ -1817,7 +1917,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(casted.tolist(), exp_values)
 
     def test_catch_infinite_loop(self):
-        offset = datetools.DateOffset(minute=5)
+        offset = offsets.DateOffset(minute=5)
         # blow up, don't loop forever
         self.assertRaises(Exception, date_range, datetime(2011, 11, 11),
                           datetime(2011, 11, 12), freq=offset)
@@ -2282,7 +2382,7 @@ class TestToDatetime(tm.TestCase):
         i = pd.DatetimeIndex([
             '2000-01-01 08:00:00+00:00'
         ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
-        self.assertFalse(com.is_datetime64_ns_dtype(i))
+        self.assertFalse(is_datetime64_ns_dtype(i))
 
         # tz coerceion
         result = pd.to_datetime(i, errors='coerce')
@@ -2440,15 +2540,19 @@ class TestToDatetime(tm.TestCase):
     def test_index_to_datetime(self):
         idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
 
-        result = idx.to_datetime()
-        expected = DatetimeIndex(datetools.to_datetime(idx.values))
-        tm.assert_index_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = idx.to_datetime()
+            expected = DatetimeIndex(pd.to_datetime(idx.values))
+            tm.assert_index_equal(result, expected)
 
-        today = datetime.today()
-        idx = Index([today], dtype=object)
-        result = idx.to_datetime()
-        expected = DatetimeIndex([today])
-        tm.assert_index_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            today = datetime.today()
+            idx = Index([today], dtype=object)
+            result = idx.to_datetime()
+            expected = DatetimeIndex([today])
+            tm.assert_index_equal(result, expected)
 
     def test_dataframe(self):
 
@@ -2562,6 +2666,33 @@ class TestToDatetime(tm.TestCase):
         df2.columns = ['year', 'month', 'day', 'day']
         with self.assertRaises(ValueError):
             to_datetime(df2)
+
+    def test_dataframe_dtypes(self):
+        # #13451
+        df = DataFrame({'year': [2015, 2016],
+                        'month': [2, 3],
+                        'day': [4, 5]})
+
+        # int16
+        result = to_datetime(df.astype('int16'))
+        expected = Series([Timestamp('20150204 00:00:00'),
+                           Timestamp('20160305 00:00:00')])
+        assert_series_equal(result, expected)
+
+        # mixed dtypes
+        df['month'] = df['month'].astype('int8')
+        df['day'] = df['day'].astype('int8')
+        result = to_datetime(df)
+        expected = Series([Timestamp('20150204 00:00:00'),
+                           Timestamp('20160305 00:00:00')])
+        assert_series_equal(result, expected)
+
+        # float
+        df = DataFrame({'year': [2000, 2001],
+                        'month': [1.5, 1],
+                        'day': [1, 1]})
+        with self.assertRaises(ValueError):
+            to_datetime(df)
 
 
 class TestDatetimeIndex(tm.TestCase):
@@ -2900,7 +3031,7 @@ class TestDatetimeIndex(tm.TestCase):
         tm.assertIsInstance(list(result.values())[0][0], Timestamp)
 
         idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
-        self.assertTrue(idx.equals(list(idx)))
+        self.assertFalse(idx.equals(list(idx)))
 
         non_datetime = Index(list('abc'))
         self.assertFalse(idx.equals(list(non_datetime)))
@@ -3647,7 +3778,7 @@ class TestDatetimeIndex(tm.TestCase):
         dtstart = np.datetime64('2012-09-20T00:00:00')
 
         dt = dtstart + np.arange(nsamples) * np.timedelta64(ns, 'ns')
-        freq = ns * pd.datetools.Nano()
+        freq = ns * offsets.Nano()
         index = pd.DatetimeIndex(dt, freq=freq, name='time')
         self.assert_index_parameters(index)
 
@@ -3671,7 +3802,7 @@ class TestDatetimeIndex(tm.TestCase):
         idx1 = DatetimeIndex(['2014-01', '2014-01', '2014-02', '2014-02',
                               '2014-03', '2014-03'])
 
-        exp_arr = np.array([0, 0, 1, 1, 2, 2])
+        exp_arr = np.array([0, 0, 1, 1, 2, 2], dtype=np.intp)
         exp_idx = DatetimeIndex(['2014-01', '2014-02', '2014-03'])
 
         arr, idx = idx1.factorize()
@@ -3693,13 +3824,13 @@ class TestDatetimeIndex(tm.TestCase):
         idx2 = pd.DatetimeIndex(['2014-03', '2014-03', '2014-02', '2014-01',
                                  '2014-03', '2014-01'])
 
-        exp_arr = np.array([2, 2, 1, 0, 2, 0])
+        exp_arr = np.array([2, 2, 1, 0, 2, 0], dtype=np.intp)
         exp_idx = DatetimeIndex(['2014-01', '2014-02', '2014-03'])
         arr, idx = idx2.factorize(sort=True)
         self.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
-        exp_arr = np.array([0, 0, 1, 2, 0, 2])
+        exp_arr = np.array([0, 0, 1, 2, 0, 2], dtype=np.intp)
         exp_idx = DatetimeIndex(['2014-03', '2014-02', '2014-01'])
         arr, idx = idx2.factorize()
         self.assert_numpy_array_equal(arr, exp_arr)
@@ -3707,10 +3838,41 @@ class TestDatetimeIndex(tm.TestCase):
 
         # freq must be preserved
         idx3 = date_range('2000-01', periods=4, freq='M', tz='Asia/Tokyo')
-        exp_arr = np.array([0, 1, 2, 3])
+        exp_arr = np.array([0, 1, 2, 3], dtype=np.intp)
         arr, idx = idx3.factorize()
         self.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
+
+    def test_factorize_tz(self):
+        # GH 13750
+        for tz in [None, 'UTC', 'US/Eastern', 'Asia/Tokyo']:
+            base = pd.date_range('2016-11-05', freq='H', periods=100, tz=tz)
+            idx = base.repeat(5)
+
+            exp_arr = np.arange(100, dtype=np.intp).repeat(5)
+
+            for obj in [idx, pd.Series(idx)]:
+                arr, res = obj.factorize()
+                self.assert_numpy_array_equal(arr, exp_arr)
+                tm.assert_index_equal(res, base)
+
+    def test_factorize_dst(self):
+        # GH 13750
+        idx = pd.date_range('2016-11-06', freq='H', periods=12,
+                            tz='US/Eastern')
+
+        for obj in [idx, pd.Series(idx)]:
+            arr, res = obj.factorize()
+            self.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
+            tm.assert_index_equal(res, idx)
+
+        idx = pd.date_range('2016-06-13', freq='H', periods=12,
+                            tz='US/Eastern')
+
+        for obj in [idx, pd.Series(idx)]:
+            arr, res = obj.factorize()
+            self.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
+            tm.assert_index_equal(res, idx)
 
     def test_slice_with_negative_step(self):
         ts = Series(np.arange(20),
@@ -3857,36 +4019,36 @@ class TestDatetime64(tm.TestCase):
         self.assertEqual(dti.is_month_start[0], 1)
 
         tests = [
-            (Timestamp('2013-06-01', offset='M').is_month_start, 1),
-            (Timestamp('2013-06-01', offset='BM').is_month_start, 0),
-            (Timestamp('2013-06-03', offset='M').is_month_start, 0),
-            (Timestamp('2013-06-03', offset='BM').is_month_start, 1),
-            (Timestamp('2013-02-28', offset='Q-FEB').is_month_end, 1),
-            (Timestamp('2013-02-28', offset='Q-FEB').is_quarter_end, 1),
-            (Timestamp('2013-02-28', offset='Q-FEB').is_year_end, 1),
-            (Timestamp('2013-03-01', offset='Q-FEB').is_month_start, 1),
-            (Timestamp('2013-03-01', offset='Q-FEB').is_quarter_start, 1),
-            (Timestamp('2013-03-01', offset='Q-FEB').is_year_start, 1),
-            (Timestamp('2013-03-31', offset='QS-FEB').is_month_end, 1),
-            (Timestamp('2013-03-31', offset='QS-FEB').is_quarter_end, 0),
-            (Timestamp('2013-03-31', offset='QS-FEB').is_year_end, 0),
-            (Timestamp('2013-02-01', offset='QS-FEB').is_month_start, 1),
-            (Timestamp('2013-02-01', offset='QS-FEB').is_quarter_start, 1),
-            (Timestamp('2013-02-01', offset='QS-FEB').is_year_start, 1),
-            (Timestamp('2013-06-30', offset='BQ').is_month_end, 0),
-            (Timestamp('2013-06-30', offset='BQ').is_quarter_end, 0),
-            (Timestamp('2013-06-30', offset='BQ').is_year_end, 0),
-            (Timestamp('2013-06-28', offset='BQ').is_month_end, 1),
-            (Timestamp('2013-06-28', offset='BQ').is_quarter_end, 1),
-            (Timestamp('2013-06-28', offset='BQ').is_year_end, 0),
-            (Timestamp('2013-06-30', offset='BQS-APR').is_month_end, 0),
-            (Timestamp('2013-06-30', offset='BQS-APR').is_quarter_end, 0),
-            (Timestamp('2013-06-30', offset='BQS-APR').is_year_end, 0),
-            (Timestamp('2013-06-28', offset='BQS-APR').is_month_end, 1),
-            (Timestamp('2013-06-28', offset='BQS-APR').is_quarter_end, 1),
-            (Timestamp('2013-03-29', offset='BQS-APR').is_year_end, 1),
-            (Timestamp('2013-11-01', offset='AS-NOV').is_year_start, 1),
-            (Timestamp('2013-10-31', offset='AS-NOV').is_year_end, 1),
+            (Timestamp('2013-06-01', freq='M').is_month_start, 1),
+            (Timestamp('2013-06-01', freq='BM').is_month_start, 0),
+            (Timestamp('2013-06-03', freq='M').is_month_start, 0),
+            (Timestamp('2013-06-03', freq='BM').is_month_start, 1),
+            (Timestamp('2013-02-28', freq='Q-FEB').is_month_end, 1),
+            (Timestamp('2013-02-28', freq='Q-FEB').is_quarter_end, 1),
+            (Timestamp('2013-02-28', freq='Q-FEB').is_year_end, 1),
+            (Timestamp('2013-03-01', freq='Q-FEB').is_month_start, 1),
+            (Timestamp('2013-03-01', freq='Q-FEB').is_quarter_start, 1),
+            (Timestamp('2013-03-01', freq='Q-FEB').is_year_start, 1),
+            (Timestamp('2013-03-31', freq='QS-FEB').is_month_end, 1),
+            (Timestamp('2013-03-31', freq='QS-FEB').is_quarter_end, 0),
+            (Timestamp('2013-03-31', freq='QS-FEB').is_year_end, 0),
+            (Timestamp('2013-02-01', freq='QS-FEB').is_month_start, 1),
+            (Timestamp('2013-02-01', freq='QS-FEB').is_quarter_start, 1),
+            (Timestamp('2013-02-01', freq='QS-FEB').is_year_start, 1),
+            (Timestamp('2013-06-30', freq='BQ').is_month_end, 0),
+            (Timestamp('2013-06-30', freq='BQ').is_quarter_end, 0),
+            (Timestamp('2013-06-30', freq='BQ').is_year_end, 0),
+            (Timestamp('2013-06-28', freq='BQ').is_month_end, 1),
+            (Timestamp('2013-06-28', freq='BQ').is_quarter_end, 1),
+            (Timestamp('2013-06-28', freq='BQ').is_year_end, 0),
+            (Timestamp('2013-06-30', freq='BQS-APR').is_month_end, 0),
+            (Timestamp('2013-06-30', freq='BQS-APR').is_quarter_end, 0),
+            (Timestamp('2013-06-30', freq='BQS-APR').is_year_end, 0),
+            (Timestamp('2013-06-28', freq='BQS-APR').is_month_end, 1),
+            (Timestamp('2013-06-28', freq='BQS-APR').is_quarter_end, 1),
+            (Timestamp('2013-03-29', freq='BQS-APR').is_year_end, 1),
+            (Timestamp('2013-11-01', freq='AS-NOV').is_year_start, 1),
+            (Timestamp('2013-10-31', freq='AS-NOV').is_year_end, 1),
             (Timestamp('2012-02-01').days_in_month, 29),
             (Timestamp('2013-02-01').days_in_month, 28)]
 
@@ -3971,7 +4133,7 @@ class TestDatetime64(tm.TestCase):
         edate = datetime(2000, 1, 1)
         idx = DatetimeIndex(start=sdate, freq='1B', periods=20)
         self.assertEqual(len(idx), 20)
-        self.assertEqual(idx[0], sdate + 0 * datetools.bday)
+        self.assertEqual(idx[0], sdate + 0 * offsets.BDay())
         self.assertEqual(idx.freq, 'B')
 
         idx = DatetimeIndex(end=edate, freq=('D', 5), periods=20)
@@ -3981,19 +4143,19 @@ class TestDatetime64(tm.TestCase):
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='W-SUN')
         idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=datetools.Week(weekday=6))
+                             freq=offsets.Week(weekday=6))
         self.assertEqual(len(idx1), len(idx2))
         self.assertEqual(idx1.offset, idx2.offset)
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='QS')
         idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=datetools.QuarterBegin(startingMonth=1))
+                             freq=offsets.QuarterBegin(startingMonth=1))
         self.assertEqual(len(idx1), len(idx2))
         self.assertEqual(idx1.offset, idx2.offset)
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='BQ')
         idx2 = DatetimeIndex(start=sdate, end=edate,
-                             freq=datetools.BQuarterEnd(startingMonth=12))
+                             freq=offsets.BQuarterEnd(startingMonth=12))
         self.assertEqual(len(idx1), len(idx2))
         self.assertEqual(idx1.offset, idx2.offset)
 
@@ -4059,8 +4221,9 @@ class TestDatetime64(tm.TestCase):
 
         # 11314
         # with tz
-        index = date_range(datetime(2015, 10, 1), datetime(
-            2015, 10, 1, 23), freq='H', tz='US/Eastern')
+        index = date_range(datetime(2015, 10, 1),
+                           datetime(2015, 10, 1, 23),
+                           freq='H', tz='US/Eastern')
         df = DataFrame(np.random.randn(24, 1), columns=['a'], index=index)
         new_index = date_range(datetime(2015, 10, 2),
                                datetime(2015, 10, 2, 23),
@@ -4236,6 +4399,14 @@ class TestSeriesDatetime64(tm.TestCase):
         result = df.values.squeeze()
         self.assertTrue((result[:, 0] == expected.values).all())
 
+    def test_nat_operations(self):
+        # GH 8617
+        s = Series([0, pd.NaT], dtype='m8[ns]')
+        exp = s[0]
+        self.assertEqual(s.median(), exp)
+        self.assertEqual(s.min(), exp)
+        self.assertEqual(s.max(), exp)
+
 
 class TestTimestamp(tm.TestCase):
     def test_class_ops_pytz(self):
@@ -4359,6 +4530,8 @@ class TestTimestamp(tm.TestCase):
 
         result = Timestamp('NaT')
         self.assertIs(result, NaT)
+
+        self.assertTrue(isnull(Timestamp('nat')))
 
     def test_roundtrip(self):
 
@@ -4545,7 +4718,8 @@ class TestTimestamp(tm.TestCase):
 
         self.assertRaises(ValueError, frequencies.to_offset, ('', ''))
 
-        result = frequencies.get_standard_freq(offsets.Hour())
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = frequencies.get_standard_freq(offsets.Hour())
         self.assertEqual(result, 'H')
 
     def test_hash_equivalent(self):
@@ -4612,6 +4786,25 @@ class TestTimestamp(tm.TestCase):
             expected = left_f(s_nat, Timestamp('nat'))
             result = right_f(Timestamp('nat'), s_nat)
             tm.assert_series_equal(result, expected)
+
+    def test_is_leap_year(self):
+        # GH 13727
+        for tz in [None, 'UTC', 'US/Eastern', 'Asia/Tokyo']:
+            dt = Timestamp('2000-01-01 00:00:00', tz=tz)
+            self.assertTrue(dt.is_leap_year)
+            self.assertIsInstance(dt.is_leap_year, bool)
+
+            dt = Timestamp('1999-01-01 00:00:00', tz=tz)
+            self.assertFalse(dt.is_leap_year)
+
+            dt = Timestamp('2004-01-01 00:00:00', tz=tz)
+            self.assertTrue(dt.is_leap_year)
+
+            dt = Timestamp('2100-01-01 00:00:00', tz=tz)
+            self.assertFalse(dt.is_leap_year)
+
+        self.assertFalse(pd.NaT.is_leap_year)
+        self.assertIsInstance(pd.NaT.is_leap_year, bool)
 
 
 class TestSlicing(tm.TestCase):
@@ -4825,7 +5018,7 @@ class TestSlicing(tm.TestCase):
 
         # GH #1063, multiple of same base
         result = ts.shift(1, freq='4H')
-        exp_index = ts.index + datetools.Hour(4)
+        exp_index = ts.index + offsets.Hour(4)
         tm.assert_index_equal(result.index, exp_index)
 
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])

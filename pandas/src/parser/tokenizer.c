@@ -684,13 +684,18 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 
 #define IS_WHITESPACE(c) ((c == ' ' || c == '\t'))
 
-#define IS_TERMINATOR(c) ((self->lineterminator == '\0' &&          \
-                           c == '\n') || c == self->lineterminator)
+#define IS_TERMINATOR(c) ((self->lineterminator == '\0' && c == '\n') || \
+                          (self->lineterminator != '\0' &&               \
+                           c == self->lineterminator))
 
 #define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
 
 // don't parse '\r' with a custom line terminator
 #define IS_CARRIAGE(c) ((self->lineterminator == '\0' && c == '\r'))
+
+#define IS_COMMENT_CHAR(c) ((self->commentchar != '\0' && c == self->commentchar))
+
+#define IS_ESCAPE_CHAR(c) ((self->escapechar != '\0' && c == self->escapechar))
 
 #define IS_SKIPPABLE_SPACE(c) ((!self->delim_whitespace && c == ' ' && \
                                 self->skipinitialspace))
@@ -704,6 +709,11 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     self->datapos = i;                                                  \
     TRACE(("_TOKEN_CLEANUP: datapos: %d, datalen: %d\n", self->datapos, self->datalen));
 
+#define CHECK_FOR_BOM()                                                   \
+    if (*buf == '\xef' && *(buf + 1) == '\xbb' && *(buf + 2) == '\xbf') { \
+        buf += 3;                                                         \
+        self->datapos += 3;                                               \
+    }
 
 int skip_this_line(parser_t *self, int64_t rownum) {
     if (self->skipset != NULL) {
@@ -735,6 +745,10 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
     maxstreamsize = self->stream_cap;
 
     TRACE(("%s\n", buf));
+
+    if (self->file_lines == 0) {
+        CHECK_FOR_BOM();
+    }
 
     for (i = self->datapos; i < self->datalen; ++i)
     {
@@ -857,7 +871,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
                     self->state = EAT_CRNL;
                 }
                 break;
-            } else if (c == self->commentchar) {
+            } else if (IS_COMMENT_CHAR(c)) {
                 self->state = EAT_LINE_COMMENT;
                 break;
             } else if (IS_WHITESPACE(c)) {
@@ -890,7 +904,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
             } else if (IS_QUOTE(c)) {
                 // start quoted field
                 self->state = IN_QUOTED_FIELD;
-            } else if (c == self->escapechar) {
+            } else if (IS_ESCAPE_CHAR(c)) {
                 // possible escaped character
                 self->state = ESCAPED_CHAR;
             } else if (IS_SKIPPABLE_SPACE(c)) {
@@ -903,7 +917,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
                     // save empty field
                     END_FIELD();
                 }
-            } else if (c == self->commentchar) {
+            } else if (IS_COMMENT_CHAR(c)) {
                 END_FIELD();
                 self->state = EAT_COMMENT;
             } else {
@@ -941,7 +955,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
             } else if (IS_CARRIAGE(c)) {
                 END_FIELD();
                 self->state = EAT_CRNL;
-            } else if (c == self->escapechar) {
+            } else if (IS_ESCAPE_CHAR(c)) {
                 // possible escaped character
                 self->state = ESCAPED_CHAR;
             } else if (IS_DELIMITER(c)) {
@@ -953,7 +967,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
                 } else {
                     self->state = START_FIELD;
                 }
-            } else if (c == self->commentchar) {
+            } else if (IS_COMMENT_CHAR(c)) {
                 END_FIELD();
                 self->state = EAT_COMMENT;
             } else {
@@ -964,7 +978,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
 
         case IN_QUOTED_FIELD:
             // in quoted field
-            if (c == self->escapechar) {
+            if (IS_ESCAPE_CHAR(c)) {
                 // possible escape character
                 self->state = ESCAPE_IN_QUOTED_FIELD;
             } else if (IS_QUOTE(c)) {
@@ -1221,20 +1235,7 @@ int parser_trim_buffers(parser_t *self) {
     size_t new_cap;
     void *newptr;
 
-    /* trim stream */
-    new_cap = _next_pow2(self->stream_len) + 1;
-    TRACE(("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = %zu\n",
-           new_cap, self->stream_cap, self->lines_cap));
-    if (new_cap < self->stream_cap) {
-        TRACE(("parser_trim_buffers: new_cap < self->stream_cap, calling safe_realloc\n"));
-        newptr = safe_realloc((void*) self->stream, new_cap);
-        if (newptr == NULL) {
-            return PARSER_OUT_OF_MEMORY;
-        } else {
-            self->stream = newptr;
-            self->stream_cap = new_cap;
-        }
-    }
+    int i;
 
     /* trim words, word_starts */
     new_cap = _next_pow2(self->words_len) + 1;
@@ -1252,6 +1253,35 @@ int parser_trim_buffers(parser_t *self) {
         } else {
             self->word_starts = (int*) newptr;
             self->words_cap = new_cap;
+        }
+    }
+
+    /* trim stream */
+    new_cap = _next_pow2(self->stream_len) + 1;
+    TRACE(("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = %zu\n",
+           new_cap, self->stream_cap, self->lines_cap));
+    if (new_cap < self->stream_cap) {
+        TRACE(("parser_trim_buffers: new_cap < self->stream_cap, calling safe_realloc\n"));
+        newptr = safe_realloc((void*) self->stream, new_cap);
+        if (newptr == NULL) {
+            return PARSER_OUT_OF_MEMORY;
+        } else {
+            // Update the pointers in the self->words array (char **) if `safe_realloc`
+            //  moved the `self->stream` buffer. This block mirrors a similar block in
+            //  `make_stream_space`.
+            if (self->stream != newptr) {
+                /* TRACE(("Moving word pointers\n")) */
+                self->pword_start = (char*) newptr + self->word_start;
+
+                for (i = 0; i < self->words_len; ++i)
+                {
+                    self->words[i] = (char*) newptr + self->word_starts[i];
+                }
+            }
+
+            self->stream = newptr;
+            self->stream_cap = new_cap;
+
         }
     }
 

@@ -9,31 +9,31 @@ from nose.tools import assert_raises
 import numpy as np
 
 from pandas.compat.numpy import np_datetime64_compat
-from pandas.core.datetools import (bday, BDay, CDay, BQuarterEnd, BMonthEnd,
-                                   BusinessHour, CustomBusinessHour,
-                                   CBMonthEnd, CBMonthBegin, BYearEnd,
-                                   MonthEnd, MonthBegin, SemiMonthBegin,
-                                   SemiMonthEnd, BYearBegin, QuarterBegin,
-                                   BQuarterBegin, BMonthBegin, DateOffset,
-                                   Week, YearBegin, YearEnd, Hour, Minute,
-                                   Second, Day, Micro, Milli, Nano, Easter,
-                                   WeekOfMonth, format, ole2datetime,
-                                   QuarterEnd, to_datetime, normalize_date,
-                                   get_offset, get_standard_freq)
 
 from pandas.core.series import Series
 from pandas.tseries.frequencies import (_offset_map, get_freq_code,
-                                        _get_freq_str)
+                                        _get_freq_str, _INVALID_FREQ_ERROR,
+                                        get_offset, get_standard_freq)
 from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache
-from pandas.tseries.tools import parse_time_string, DateParseError
+from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
+                                    BusinessHour, WeekOfMonth, CBMonthEnd,
+                                    CustomBusinessHour, WeekDay,
+                                    CBMonthBegin, BYearEnd, MonthEnd,
+                                    MonthBegin, SemiMonthBegin, SemiMonthEnd,
+                                    BYearBegin, QuarterBegin, BQuarterBegin,
+                                    BMonthBegin, DateOffset, Week, YearBegin,
+                                    YearEnd, Hour, Minute, Second, Day, Micro,
+                                    QuarterEnd, BusinessMonthEnd, FY5253,
+                                    Milli, Nano, Easter, FY5253Quarter,
+                                    LastWeekOfMonth, CacheableOffset)
+from pandas.tseries.tools import (format, ole2datetime, parse_time_string,
+                                  to_datetime, DateParseError)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
-from pandas.tslib import NaT, Timestamp, Timedelta
+from pandas.tslib import normalize_date, NaT, Timestamp, Timedelta
 import pandas.tslib as tslib
 from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
-from pandas.tseries.offsets import BusinessMonthEnd, CacheableOffset, \
-    LastWeekOfMonth, FY5253, FY5253Quarter, WeekDay
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 _multiprocess_can_split_ = True
@@ -261,8 +261,19 @@ class TestCommon(Base):
         self.assertTrue(isinstance(result, Timestamp))
         self.assertEqual(result, expected)
 
-        # test nano second is preserved
-        result = func(Timestamp(dt) + Nano(5))
+        # see gh-14101
+        exp_warning = None
+        ts = Timestamp(dt) + Nano(5)
+
+        if (offset_s.__class__.__name__ == 'DateOffset' and
+                (funcname == 'apply' or normalize) and
+                ts.nanosecond > 0):
+            exp_warning = UserWarning
+
+        # test nanosecond is preserved
+        with tm.assert_produces_warning(exp_warning,
+                                        check_stacklevel=False):
+            result = func(ts)
         self.assertTrue(isinstance(result, Timestamp))
         if normalize is False:
             self.assertEqual(result, expected + Nano(5))
@@ -289,8 +300,19 @@ class TestCommon(Base):
             self.assertTrue(isinstance(result, Timestamp))
             self.assertEqual(result, expected_localize)
 
-            # test nano second is preserved
-            result = func(Timestamp(dt, tz=tz) + Nano(5))
+            # see gh-14101
+            exp_warning = None
+            ts = Timestamp(dt, tz=tz) + Nano(5)
+
+            if (offset_s.__class__.__name__ == 'DateOffset' and
+                    (funcname == 'apply' or normalize) and
+                    ts.nanosecond > 0):
+                exp_warning = UserWarning
+
+            # test nanosecond is preserved
+            with tm.assert_produces_warning(exp_warning,
+                                            check_stacklevel=False):
+                result = func(ts)
             self.assertTrue(isinstance(result, Timestamp))
             if normalize is False:
                 self.assertEqual(result, expected_localize + Nano(5))
@@ -624,38 +646,43 @@ class TestBusinessDay(Base):
     def test_apply(self):
         tests = []
 
-        tests.append((bday, {datetime(2008, 1, 1): datetime(2008, 1, 2),
-                             datetime(2008, 1, 4): datetime(2008, 1, 7),
-                             datetime(2008, 1, 5): datetime(2008, 1, 7),
-                             datetime(2008, 1, 6): datetime(2008, 1, 7),
-                             datetime(2008, 1, 7): datetime(2008, 1, 8)}))
+        tests.append((BDay(), {datetime(2008, 1, 1): datetime(2008, 1, 2),
+                               datetime(2008, 1, 4): datetime(2008, 1, 7),
+                               datetime(2008, 1, 5): datetime(2008, 1, 7),
+                               datetime(2008, 1, 6): datetime(2008, 1, 7),
+                               datetime(2008, 1, 7): datetime(2008, 1, 8)}))
 
-        tests.append((2 * bday, {datetime(2008, 1, 1): datetime(2008, 1, 3),
-                                 datetime(2008, 1, 4): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 5): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 6): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 7): datetime(2008, 1, 9)}))
+        tests.append((2 * BDay(), {datetime(2008, 1, 1): datetime(2008, 1, 3),
+                                   datetime(2008, 1, 4): datetime(2008, 1, 8),
+                                   datetime(2008, 1, 5): datetime(2008, 1, 8),
+                                   datetime(2008, 1, 6): datetime(2008, 1, 8),
+                                   datetime(2008, 1, 7): datetime(2008, 1, 9)}
+                      ))
 
-        tests.append((-bday, {datetime(2008, 1, 1): datetime(2007, 12, 31),
-                              datetime(2008, 1, 4): datetime(2008, 1, 3),
-                              datetime(2008, 1, 5): datetime(2008, 1, 4),
-                              datetime(2008, 1, 6): datetime(2008, 1, 4),
-                              datetime(2008, 1, 7): datetime(2008, 1, 4),
-                              datetime(2008, 1, 8): datetime(2008, 1, 7)}))
+        tests.append((-BDay(), {datetime(2008, 1, 1): datetime(2007, 12, 31),
+                                datetime(2008, 1, 4): datetime(2008, 1, 3),
+                                datetime(2008, 1, 5): datetime(2008, 1, 4),
+                                datetime(2008, 1, 6): datetime(2008, 1, 4),
+                                datetime(2008, 1, 7): datetime(2008, 1, 4),
+                                datetime(2008, 1, 8): datetime(2008, 1, 7)}
+                      ))
 
-        tests.append((-2 * bday, {datetime(2008, 1, 1): datetime(2007, 12, 28),
-                                  datetime(2008, 1, 4): datetime(2008, 1, 2),
-                                  datetime(2008, 1, 5): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 6): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 7): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 8): datetime(2008, 1, 4),
-                                  datetime(2008, 1, 9): datetime(2008, 1, 7)}))
+        tests.append((-2 * BDay(), {
+            datetime(2008, 1, 1): datetime(2007, 12, 28),
+            datetime(2008, 1, 4): datetime(2008, 1, 2),
+            datetime(2008, 1, 5): datetime(2008, 1, 3),
+            datetime(2008, 1, 6): datetime(2008, 1, 3),
+            datetime(2008, 1, 7): datetime(2008, 1, 3),
+            datetime(2008, 1, 8): datetime(2008, 1, 4),
+            datetime(2008, 1, 9): datetime(2008, 1, 7)}
+        ))
 
         tests.append((BDay(0), {datetime(2008, 1, 1): datetime(2008, 1, 1),
                                 datetime(2008, 1, 4): datetime(2008, 1, 4),
                                 datetime(2008, 1, 5): datetime(2008, 1, 7),
                                 datetime(2008, 1, 6): datetime(2008, 1, 7),
-                                datetime(2008, 1, 7): datetime(2008, 1, 7)}))
+                                datetime(2008, 1, 7): datetime(2008, 1, 7)}
+                      ))
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
@@ -1765,35 +1792,40 @@ class TestCustomBusinessDay(Base):
             assertOnOffset(offset, d, expected)
 
     def test_apply(self):
-        from pandas.core.datetools import cday
         tests = []
 
-        tests.append((cday, {datetime(2008, 1, 1): datetime(2008, 1, 2),
-                             datetime(2008, 1, 4): datetime(2008, 1, 7),
-                             datetime(2008, 1, 5): datetime(2008, 1, 7),
-                             datetime(2008, 1, 6): datetime(2008, 1, 7),
-                             datetime(2008, 1, 7): datetime(2008, 1, 8)}))
+        tests.append((CDay(), {datetime(2008, 1, 1): datetime(2008, 1, 2),
+                               datetime(2008, 1, 4): datetime(2008, 1, 7),
+                               datetime(2008, 1, 5): datetime(2008, 1, 7),
+                               datetime(2008, 1, 6): datetime(2008, 1, 7),
+                               datetime(2008, 1, 7): datetime(2008, 1, 8)}))
 
-        tests.append((2 * cday, {datetime(2008, 1, 1): datetime(2008, 1, 3),
-                                 datetime(2008, 1, 4): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 5): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 6): datetime(2008, 1, 8),
-                                 datetime(2008, 1, 7): datetime(2008, 1, 9)}))
+        tests.append((2 * CDay(), {
+            datetime(2008, 1, 1): datetime(2008, 1, 3),
+            datetime(2008, 1, 4): datetime(2008, 1, 8),
+            datetime(2008, 1, 5): datetime(2008, 1, 8),
+            datetime(2008, 1, 6): datetime(2008, 1, 8),
+            datetime(2008, 1, 7): datetime(2008, 1, 9)}
+        ))
 
-        tests.append((-cday, {datetime(2008, 1, 1): datetime(2007, 12, 31),
-                              datetime(2008, 1, 4): datetime(2008, 1, 3),
-                              datetime(2008, 1, 5): datetime(2008, 1, 4),
-                              datetime(2008, 1, 6): datetime(2008, 1, 4),
-                              datetime(2008, 1, 7): datetime(2008, 1, 4),
-                              datetime(2008, 1, 8): datetime(2008, 1, 7)}))
+        tests.append((-CDay(), {
+            datetime(2008, 1, 1): datetime(2007, 12, 31),
+            datetime(2008, 1, 4): datetime(2008, 1, 3),
+            datetime(2008, 1, 5): datetime(2008, 1, 4),
+            datetime(2008, 1, 6): datetime(2008, 1, 4),
+            datetime(2008, 1, 7): datetime(2008, 1, 4),
+            datetime(2008, 1, 8): datetime(2008, 1, 7)}
+        ))
 
-        tests.append((-2 * cday, {datetime(2008, 1, 1): datetime(2007, 12, 28),
-                                  datetime(2008, 1, 4): datetime(2008, 1, 2),
-                                  datetime(2008, 1, 5): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 6): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 7): datetime(2008, 1, 3),
-                                  datetime(2008, 1, 8): datetime(2008, 1, 4),
-                                  datetime(2008, 1, 9): datetime(2008, 1, 7)}))
+        tests.append((-2 * CDay(), {
+            datetime(2008, 1, 1): datetime(2007, 12, 28),
+            datetime(2008, 1, 4): datetime(2008, 1, 2),
+            datetime(2008, 1, 5): datetime(2008, 1, 3),
+            datetime(2008, 1, 6): datetime(2008, 1, 3),
+            datetime(2008, 1, 7): datetime(2008, 1, 3),
+            datetime(2008, 1, 8): datetime(2008, 1, 4),
+            datetime(2008, 1, 9): datetime(2008, 1, 7)}
+        ))
 
         tests.append((CDay(0), {datetime(2008, 1, 1): datetime(2008, 1, 1),
                                 datetime(2008, 1, 4): datetime(2008, 1, 4),
@@ -4531,8 +4563,11 @@ class TestOffsetNames(tm.TestCase):
 
 
 def test_get_offset():
-    assertRaisesRegexp(ValueError, "rule.*GIBBERISH", get_offset, 'gibberish')
-    assertRaisesRegexp(ValueError, "rule.*QS-JAN-B", get_offset, 'QS-JAN-B')
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        get_offset('gibberish')
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        get_offset('QS-JAN-B')
+
     pairs = [
         ('B', BDay()), ('b', BDay()), ('bm', BMonthEnd()),
         ('Bm', BMonthEnd()), ('W-MON', Week(weekday=0)),
@@ -4558,10 +4593,8 @@ def test_get_offset():
 def test_get_offset_legacy():
     pairs = [('w@Sat', Week(weekday=5))]
     for name, expected in pairs:
-        with tm.assert_produces_warning(FutureWarning):
-            offset = get_offset(name)
-        assert offset == expected, ("Expected %r to yield %r (actual: %r)" %
-                                    (name, expected, offset))
+        with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+            get_offset(name)
 
 
 class TestParseTimeString(tm.TestCase):
@@ -4590,23 +4623,30 @@ class TestParseTimeString(tm.TestCase):
 
 
 def test_get_standard_freq():
-    fstr = get_standard_freq('W')
-    assert fstr == get_standard_freq('w')
-    assert fstr == get_standard_freq('1w')
-    assert fstr == get_standard_freq(('W', 1))
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        fstr = get_standard_freq('W')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq('w')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq('1w')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq(('W', 1))
+
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            get_standard_freq('WeEk')
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = get_standard_freq('WeEk')
-    assert fstr == result
+        fstr = get_standard_freq('5Q')
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert fstr == get_standard_freq('5q')
 
-    fstr = get_standard_freq('5Q')
-    assert fstr == get_standard_freq('5q')
+    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            get_standard_freq('5QuarTer')
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = get_standard_freq('5QuarTer')
-    assert fstr == result
-
-    assert fstr == get_standard_freq(('q', 5))
+        assert fstr == get_standard_freq(('q', 5))
 
 
 def test_quarterly_dont_normalize():

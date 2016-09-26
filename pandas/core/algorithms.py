@@ -7,10 +7,31 @@ from warnings import warn
 import numpy as np
 
 from pandas import compat, lib, tslib, _np_version_under1p8
+from pandas.types.cast import _maybe_promote
+from pandas.types.generic import ABCSeries, ABCIndex
+from pandas.types.common import (is_integer_dtype,
+                                 is_int64_dtype,
+                                 is_categorical_dtype,
+                                 is_extension_type,
+                                 is_datetimetz,
+                                 is_period_dtype,
+                                 is_period_arraylike,
+                                 is_float_dtype,
+                                 needs_i8_conversion,
+                                 is_categorical,
+                                 is_datetime64_dtype,
+                                 is_timedelta64_dtype,
+                                 is_scalar,
+                                 _ensure_platform_int,
+                                 _ensure_object,
+                                 _ensure_float64,
+                                 _ensure_int64,
+                                 is_list_like)
+from pandas.types.missing import isnull
+
 import pandas.core.common as com
 import pandas.algos as algos
 import pandas.hashtable as htable
-from pandas.types import api as gt
 from pandas.compat import string_types
 from pandas.tslib import iNaT
 
@@ -105,12 +126,12 @@ def isin(comps, values):
     boolean array same length as comps
     """
 
-    if not com.is_list_like(comps):
+    if not is_list_like(comps):
         raise TypeError("only list-like objects are allowed to be passed"
                         " to isin(), you passed a "
                         "[{0}]".format(type(comps).__name__))
     comps = np.asarray(comps)
-    if not com.is_list_like(values):
+    if not is_list_like(values):
         raise TypeError("only list-like objects are allowed to be passed"
                         " to isin(), you passed a "
                         "[{0}]".format(type(values).__name__))
@@ -126,20 +147,118 @@ def isin(comps, values):
         f = lambda x, y: lib.ismember_int64(x, set(y))
 
     # may need i8 conversion for proper membership testing
-    if com.is_datetime64_dtype(comps):
+    if is_datetime64_dtype(comps):
         from pandas.tseries.tools import to_datetime
         values = to_datetime(values)._values.view('i8')
         comps = comps.view('i8')
-    elif com.is_timedelta64_dtype(comps):
+    elif is_timedelta64_dtype(comps):
         from pandas.tseries.timedeltas import to_timedelta
         values = to_timedelta(values)._values.view('i8')
         comps = comps.view('i8')
-    elif com.is_int64_dtype(comps):
+    elif is_int64_dtype(comps):
         pass
     else:
         f = lambda x, y: lib.ismember(x, set(values))
 
     return f(comps, values)
+
+
+def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
+    """
+    Sort ``values`` and reorder corresponding ``labels``.
+    ``values`` should be unique if ``labels`` is not None.
+    Safe for use with mixed types (int, str), orders ints before strs.
+
+    .. versionadded:: 0.19.0
+
+    Parameters
+    ----------
+    values : list-like
+        Sequence; must be unique if ``labels`` is not None.
+    labels : list_like
+        Indices to ``values``. All out of bound indices are treated as
+        "not found" and will be masked with ``na_sentinel``.
+    na_sentinel : int, default -1
+        Value in ``labels`` to mark "not found".
+        Ignored when ``labels`` is None.
+    assume_unique : bool, default False
+        When True, ``values`` are assumed to be unique, which can speed up
+        the calculation. Ignored when ``labels`` is None.
+
+    Returns
+    -------
+    ordered : ndarray
+        Sorted ``values``
+    new_labels : ndarray
+        Reordered ``labels``; returned when ``labels`` is not None.
+
+    Raises
+    ------
+    TypeError
+        * If ``values`` is not list-like or if ``labels`` is neither None
+        nor list-like
+        * If ``values`` cannot be sorted
+    ValueError
+        * If ``labels`` is not None and ``values`` contain duplicates.
+    """
+    if not is_list_like(values):
+        raise TypeError("Only list-like objects are allowed to be passed to"
+                        "safe_sort as values")
+    values = np.array(values, copy=False)
+
+    def sort_mixed(values):
+        # order ints before strings, safe in py3
+        str_pos = np.array([isinstance(x, string_types) for x in values],
+                           dtype=bool)
+        nums = np.sort(values[~str_pos])
+        strs = np.sort(values[str_pos])
+        return _ensure_object(np.concatenate([nums, strs]))
+
+    sorter = None
+    if compat.PY3 and lib.infer_dtype(values) == 'mixed-integer':
+        # unorderable in py3 if mixed str/int
+        ordered = sort_mixed(values)
+    else:
+        try:
+            sorter = values.argsort()
+            ordered = values.take(sorter)
+        except TypeError:
+            # try this anyway
+            ordered = sort_mixed(values)
+
+    # labels:
+
+    if labels is None:
+        return ordered
+
+    if not is_list_like(labels):
+        raise TypeError("Only list-like objects or None are allowed to be"
+                        "passed to safe_sort as labels")
+    labels = _ensure_platform_int(np.asarray(labels))
+
+    from pandas import Index
+    if not assume_unique and not Index(values).is_unique:
+        raise ValueError("values should be unique if labels is not None")
+
+    if sorter is None:
+        # mixed types
+        (hash_klass, _), values = _get_data_algo(values, _hashtables)
+        t = hash_klass(len(values))
+        t.map_locations(values)
+        sorter = _ensure_platform_int(t.lookup(ordered))
+
+    reverse_indexer = np.empty(len(sorter), dtype=np.int_)
+    reverse_indexer.put(sorter, np.arange(len(sorter)))
+
+    mask = (labels < -len(values)) | (labels >= len(values)) | \
+        (labels == na_sentinel)
+
+    # (Out of bound indices will be masked with `na_sentinel` next, so we may
+    # deal with them here without performance loss using `mode='wrap'`.)
+    new_labels = reverse_indexer.take(labels, mode='wrap')
+    np.putmask(new_labels, mask, na_sentinel)
+
+    return ordered, _ensure_platform_int(new_labels)
 
 
 def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
@@ -171,54 +290,30 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     vals = np.asarray(values)
 
     # localize to UTC
-    is_datetimetz = com.is_datetimetz(values)
-    if is_datetimetz:
+    is_datetimetz_type = is_datetimetz(values)
+    if is_datetimetz_type:
         values = DatetimeIndex(values)
-        vals = values.tz_localize(None)
+        vals = values.asi8
 
-    is_datetime = com.is_datetime64_dtype(vals)
-    is_timedelta = com.is_timedelta64_dtype(vals)
+    is_datetime = is_datetime64_dtype(vals)
+    is_timedelta = is_timedelta64_dtype(vals)
     (hash_klass, vec_klass), vals = _get_data_algo(vals, _hashtables)
 
     table = hash_klass(size_hint or len(vals))
     uniques = vec_klass()
     labels = table.get_labels(vals, uniques, 0, na_sentinel, True)
 
-    labels = com._ensure_platform_int(labels)
+    labels = _ensure_platform_int(labels)
 
     uniques = uniques.to_array()
 
     if sort and len(uniques) > 0:
-        try:
-            sorter = uniques.argsort()
-        except:
-            # unorderable in py3 if mixed str/int
-            t = hash_klass(len(uniques))
-            t.map_locations(com._ensure_object(uniques))
+        uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
+                                    assume_unique=True)
 
-            # order ints before strings
-            ordered = np.concatenate([
-                np.sort(np.array([e for i, e in enumerate(uniques) if f(e)],
-                                 dtype=object)) for f in
-                [lambda x: not isinstance(x, string_types),
-                 lambda x: isinstance(x, string_types)]])
-            sorter = com._ensure_platform_int(t.lookup(
-                com._ensure_object(ordered)))
-
-        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
-        reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-        mask = labels < 0
-        labels = reverse_indexer.take(labels)
-        np.putmask(labels, mask, -1)
-
-        uniques = uniques.take(sorter)
-
-    if is_datetimetz:
-
+    if is_datetimetz_type:
         # reset tz
-        uniques = DatetimeIndex(uniques.astype('M8[ns]')).tz_localize(
-            values.tz)
+        uniques = values._shallow_copy(uniques)
     elif is_datetime:
         uniques = uniques.astype('M8[ns]')
     elif is_timedelta:
@@ -267,7 +362,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             raise TypeError("bins argument only works with numeric data.")
         values = cat.codes
 
-    if com.is_extension_type(values) and not com.is_datetimetz(values):
+    if is_extension_type(values) and not is_datetimetz(values):
         # handle Categorical and sparse,
         # datetime tz can be handeled in ndarray path
         result = Series(values).values.value_counts(dropna=dropna)
@@ -298,9 +393,9 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
 
 def _value_counts_arraylike(values, dropna=True):
-    is_datetimetz = com.is_datetimetz(values)
-    is_period = (isinstance(values, gt.ABCPeriodIndex) or
-                 com.is_period_arraylike(values))
+    is_datetimetz_type = is_datetimetz(values)
+    is_period_type = (is_period_dtype(values) or
+                      is_period_arraylike(values))
 
     orig = values
 
@@ -308,16 +403,18 @@ def _value_counts_arraylike(values, dropna=True):
     values = Series(values).values
     dtype = values.dtype
 
-    if com.is_datetime_or_timedelta_dtype(dtype) or is_period:
+    if needs_i8_conversion(dtype) or is_period_type:
+
         from pandas.tseries.index import DatetimeIndex
         from pandas.tseries.period import PeriodIndex
 
-        if is_period:
+        if is_period_type:
+            # values may be an object
             values = PeriodIndex(values)
             freq = values.freq
 
         values = values.view(np.int64)
-        keys, counts = htable.value_count_scalar64(values, dropna)
+        keys, counts = htable.value_count_int64(values, dropna)
 
         if dropna:
             msk = keys != iNaT
@@ -327,30 +424,72 @@ def _value_counts_arraylike(values, dropna=True):
         keys = keys.astype(dtype)
 
         # dtype handling
-        if is_datetimetz:
-            if isinstance(orig, gt.ABCDatetimeIndex):
-                tz = orig.tz
-            else:
-                tz = orig.dt.tz
-            keys = DatetimeIndex._simple_new(keys, tz=tz)
-        if is_period:
+        if is_datetimetz_type:
+            keys = DatetimeIndex._simple_new(keys, tz=orig.dtype.tz)
+        if is_period_type:
             keys = PeriodIndex._simple_new(keys, freq=freq)
 
-    elif com.is_integer_dtype(dtype):
-        values = com._ensure_int64(values)
-        keys, counts = htable.value_count_scalar64(values, dropna)
-    elif com.is_float_dtype(dtype):
-        values = com._ensure_float64(values)
-        keys, counts = htable.value_count_scalar64(values, dropna)
+    elif is_integer_dtype(dtype):
+        values = _ensure_int64(values)
+        keys, counts = htable.value_count_int64(values, dropna)
+    elif is_float_dtype(dtype):
+        values = _ensure_float64(values)
+        keys, counts = htable.value_count_float64(values, dropna)
     else:
-        values = com._ensure_object(values)
-        mask = com.isnull(values)
+        values = _ensure_object(values)
+        mask = isnull(values)
         keys, counts = htable.value_count_object(values, mask)
         if not dropna and mask.any():
             keys = np.insert(keys, 0, np.NaN)
             counts = np.insert(counts, 0, mask.sum())
 
     return keys, counts
+
+
+def duplicated(values, keep='first'):
+    """
+    Return boolean ndarray denoting duplicate values
+
+    .. versionadded:: 0.19.0
+
+    Parameters
+    ----------
+    keep : {'first', 'last', False}, default 'first'
+        - ``first`` : Mark duplicates as ``True`` except for the first
+          occurrence.
+        - ``last`` : Mark duplicates as ``True`` except for the last
+          occurrence.
+        - False : Mark all duplicates as ``True``.
+
+    Returns
+    -------
+    duplicated : ndarray
+    """
+
+    dtype = values.dtype
+
+    # no need to revert to original type
+    if needs_i8_conversion(dtype):
+        values = values.view(np.int64)
+    elif is_period_arraylike(values):
+        from pandas.tseries.period import PeriodIndex
+        values = PeriodIndex(values).asi8
+    elif is_categorical_dtype(dtype):
+        values = values.values.codes
+    elif isinstance(values, (ABCSeries, ABCIndex)):
+        values = values.values
+
+    if is_integer_dtype(dtype):
+        values = _ensure_int64(values)
+        duplicated = htable.duplicated_int64(values, keep=keep)
+    elif is_float_dtype(dtype):
+        values = _ensure_float64(values)
+        duplicated = htable.duplicated_float64(values, keep=keep)
+    else:
+        values = _ensure_object(values)
+        duplicated = htable.duplicated_object(values, keep=keep)
+
+    return duplicated
 
 
 def mode(values):
@@ -366,8 +505,8 @@ def mode(values):
         constructor = Series
 
     dtype = values.dtype
-    if com.is_integer_dtype(values):
-        values = com._ensure_int64(values)
+    if is_integer_dtype(values):
+        values = _ensure_int64(values)
         result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
 
     elif issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
@@ -375,11 +514,11 @@ def mode(values):
         values = values.view(np.int64)
         result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
 
-    elif com.is_categorical_dtype(values):
+    elif is_categorical_dtype(values):
         result = constructor(values.mode())
     else:
-        mask = com.isnull(values)
-        values = com._ensure_object(values)
+        mask = isnull(values)
+        values = _ensure_object(values)
         res = htable.mode_object(values, mask)
         try:
             res = sorted(res)
@@ -459,7 +598,7 @@ def quantile(x, q, interpolation_method='fraction'):
 
     """
     x = np.asarray(x)
-    mask = com.isnull(x)
+    mask = isnull(x)
 
     x = x[~mask]
 
@@ -486,7 +625,7 @@ def quantile(x, q, interpolation_method='fraction'):
 
         return score
 
-    if lib.isscalar(q):
+    if is_scalar(q):
         return _get_score(q)
     else:
         q = np.asarray(q, np.float64)
@@ -593,18 +732,18 @@ def _hashtable_algo(f, dtype, return_dtype=None):
     """
     f(HashTable, type_caster) -> result
     """
-    if com.is_float_dtype(dtype):
-        return f(htable.Float64HashTable, com._ensure_float64)
-    elif com.is_integer_dtype(dtype):
-        return f(htable.Int64HashTable, com._ensure_int64)
-    elif com.is_datetime64_dtype(dtype):
+    if is_float_dtype(dtype):
+        return f(htable.Float64HashTable, _ensure_float64)
+    elif is_integer_dtype(dtype):
+        return f(htable.Int64HashTable, _ensure_int64)
+    elif is_datetime64_dtype(dtype):
         return_dtype = return_dtype or 'M8[ns]'
-        return f(htable.Int64HashTable, com._ensure_int64).view(return_dtype)
-    elif com.is_timedelta64_dtype(dtype):
+        return f(htable.Int64HashTable, _ensure_int64).view(return_dtype)
+    elif is_timedelta64_dtype(dtype):
         return_dtype = return_dtype or 'm8[ns]'
-        return f(htable.Int64HashTable, com._ensure_int64).view(return_dtype)
+        return f(htable.Int64HashTable, _ensure_int64).view(return_dtype)
     else:
-        return f(htable.PyObjectHashTable, com._ensure_object)
+        return f(htable.PyObjectHashTable, _ensure_object)
 
 _hashtables = {
     'float64': (htable.Float64HashTable, htable.Float64Vector),
@@ -614,20 +753,20 @@ _hashtables = {
 
 
 def _get_data_algo(values, func_map):
-    if com.is_float_dtype(values):
+    if is_float_dtype(values):
         f = func_map['float64']
-        values = com._ensure_float64(values)
+        values = _ensure_float64(values)
 
-    elif com.needs_i8_conversion(values):
+    elif needs_i8_conversion(values):
         f = func_map['int64']
         values = values.view('i8')
 
-    elif com.is_integer_dtype(values):
+    elif is_integer_dtype(values):
         f = func_map['int64']
-        values = com._ensure_int64(values)
+        values = _ensure_int64(values)
     else:
         f = func_map['generic']
-        values = com._ensure_object(values)
+        values = _ensure_object(values)
     return f, values
 
 
@@ -689,7 +828,7 @@ def _take_nd_generic(arr, indexer, out, axis, fill_value, mask_info):
     if arr.dtype != out.dtype:
         arr = arr.astype(out.dtype)
     if arr.shape[axis] > 0:
-        arr.take(com._ensure_platform_int(indexer), axis=axis, out=out)
+        arr.take(_ensure_platform_int(indexer), axis=axis, out=out)
     if needs_masking:
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask
@@ -830,7 +969,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
             return func
 
     def func(arr, indexer, out, fill_value=np.nan):
-        indexer = com._ensure_int64(indexer)
+        indexer = _ensure_int64(indexer)
         _take_nd_generic(arr, indexer, out, axis=axis, fill_value=fill_value,
                          mask_info=mask_info)
 
@@ -854,7 +993,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     out : ndarray or None, default None
         Optional output array, must be appropriate type to hold input and
         fill_value together, if indexer has any -1 value entries; call
-        common._maybe_promote to determine this type for any fill_value
+        _maybe_promote to determine this type for any fill_value
     fill_value : any, default np.nan
         Fill value to replace -1 values with
     mask_info : tuple of (ndarray, boolean)
@@ -868,24 +1007,24 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     """
 
     # dispatch to internal type takes
-    if com.is_categorical(arr):
+    if is_categorical(arr):
         return arr.take_nd(indexer, fill_value=fill_value,
                            allow_fill=allow_fill)
-    elif com.is_datetimetz(arr):
+    elif is_datetimetz(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = com._ensure_int64(indexer)
+        indexer = _ensure_int64(indexer)
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()
             mask_info = None, False
         else:
             # check for promotion based on types only (do this first because
             # it's faster than computing a mask)
-            dtype, fill_value = com._maybe_promote(arr.dtype, fill_value)
+            dtype, fill_value = _maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 if mask_info is not None:
@@ -931,7 +1070,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype, axis=axis,
                                  mask_info=mask_info)
-    indexer = com._ensure_int64(indexer)
+    indexer = _ensure_int64(indexer)
     func(arr, indexer, out, fill_value)
 
     if flip_order:
@@ -957,11 +1096,11 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
         if row_idx is None:
             row_idx = np.arange(arr.shape[0], dtype=np.int64)
         else:
-            row_idx = com._ensure_int64(row_idx)
+            row_idx = _ensure_int64(row_idx)
         if col_idx is None:
             col_idx = np.arange(arr.shape[1], dtype=np.int64)
         else:
-            col_idx = com._ensure_int64(col_idx)
+            col_idx = _ensure_int64(col_idx)
         indexer = row_idx, col_idx
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()
@@ -969,7 +1108,7 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
         else:
             # check for promotion based on types only (do this first because
             # it's faster than computing a mask)
-            dtype, fill_value = com._maybe_promote(arr.dtype, fill_value)
+            dtype, fill_value = _maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 if mask_info is not None:
@@ -1032,7 +1171,7 @@ def diff(arr, n, axis=0):
     na = np.nan
     dtype = arr.dtype
     is_timedelta = False
-    if com.needs_i8_conversion(arr):
+    if needs_i8_conversion(arr):
         dtype = np.float64
         arr = arr.view('i8')
         na = tslib.iNaT

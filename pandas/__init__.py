@@ -16,7 +16,7 @@ for dependency in hard_dependencies:
 
 if missing_dependencies:
     raise ImportError("Missing required dependencies {0}".format(missing_dependencies))
-
+del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
 from pandas.compat.numpy import *
@@ -43,7 +43,8 @@ from pandas.tseries.api import *
 from pandas.io.api import *
 from pandas.computation.api import *
 
-from pandas.tools.merge import merge, concat, ordered_merge
+from pandas.tools.merge import (merge, concat, ordered_merge,
+                                merge_ordered, merge_asof)
 from pandas.tools.pivot import pivot_table, crosstab
 from pandas.tools.plotting import scatter_matrix, plot_params
 from pandas.tools.tile import cut, qcut

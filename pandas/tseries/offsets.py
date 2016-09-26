@@ -3,9 +3,9 @@ from pandas.compat import range
 from pandas import compat
 import numpy as np
 
+from pandas.types.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
 from pandas.tseries.tools import to_datetime, normalize_date
-from pandas.core.common import (ABCSeries, ABCDatetimeIndex, ABCPeriod,
-                                AbstractMethodError)
+from pandas.core.common import AbstractMethodError
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
@@ -814,7 +814,7 @@ class BusinessHourMixin(BusinessMixin):
 
             if bd != 0:
                 skip_bd = BusinessDay(n=bd)
-                # midnight busienss hour may not on BusinessDay
+                # midnight business hour may not on BusinessDay
                 if not self.next_bday.onOffset(other):
                     remain = other - self._prev_opening_time(other)
                     other = self._next_opening_time(other + skip_bd) + remain
@@ -1258,7 +1258,7 @@ class SemiMonthEnd(SemiMonthOffset):
     Two DateOffset's per month repeating on the last
     day of the month and day_of_month.
 
-    .. versionadded:: 0.18.2
+    .. versionadded:: 0.19.0
 
     Parameters
     ----------
@@ -1317,7 +1317,7 @@ class SemiMonthBegin(SemiMonthOffset):
     Two DateOffset's per month repeating on the first
     day of the month and day_of_month.
 
-    .. versionadded:: 0.18.2
+    .. versionadded:: 0.19.0
 
     Parameters
     ----------

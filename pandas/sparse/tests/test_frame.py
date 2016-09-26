@@ -8,14 +8,14 @@ import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range, Panel
 from pandas.tseries.index import DatetimeIndex
-import pandas.core.datetools as datetools
+from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 from pandas.compat import lrange
 from pandas import compat
 import pandas.sparse.frame as spf
 
 from pandas._sparse import BlockIndex, IntIndex
-from pandas.sparse.api import SparseSeries, SparseDataFrame
+from pandas.sparse.api import SparseSeries, SparseDataFrame, SparseArray
 from pandas.tests.frame.test_misc_api import SharedWithSparse
 
 
@@ -25,10 +25,9 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
     _multiprocess_can_split_ = True
 
     def setUp(self):
-
         self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
-                     'C': np.arange(10),
+                     'C': np.arange(10, dtype=np.float64),
                      'D': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
 
         self.dates = bdate_range('1/1/2011', periods=10)
@@ -125,10 +124,12 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
             default_fill_value=self.frame.default_fill_value,
             default_kind=self.frame.default_kind, copy=True)
         reindexed = self.frame.reindex(idx)
+
         tm.assert_sp_frame_equal(cons, reindexed, exact_indices=False)
 
         # assert level parameter breaks reindex
-        self.assertRaises(TypeError, self.frame.reindex, idx, level=0)
+        with tm.assertRaises(TypeError):
+            self.frame.reindex(idx, level=0)
 
         repr(self.frame)
 
@@ -191,6 +192,28 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         y_sparse = y.to_sparse(fill_value=0)  # noqa
         # without sparse value raises error
         # df2 = SparseDataFrame([x2_sparse, y])
+
+    def test_constructor_preserve_attr(self):
+        # GH 13866
+        arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)
+        self.assertEqual(arr.dtype, np.int64)
+        self.assertEqual(arr.fill_value, 0)
+
+        df = pd.SparseDataFrame({'x': arr})
+        self.assertEqual(df['x'].dtype, np.int64)
+        self.assertEqual(df['x'].fill_value, 0)
+
+        s = pd.SparseSeries(arr, name='x')
+        self.assertEqual(s.dtype, np.int64)
+        self.assertEqual(s.fill_value, 0)
+
+        df = pd.SparseDataFrame(s)
+        self.assertEqual(df['x'].dtype, np.int64)
+        self.assertEqual(df['x'].fill_value, 0)
+
+        df = pd.SparseDataFrame({'x': s})
+        self.assertEqual(df['x'].dtype, np.int64)
+        self.assertEqual(df['x'].fill_value, 0)
 
     def test_dtypes(self):
         df = DataFrame(np.random.randn(10000, 4))
@@ -547,18 +570,23 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                                self.frame.to_dense().apply(nanops.nansum))
 
     def test_apply_nonuq(self):
-        df_orig = DataFrame(
-            [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
-        df = df_orig.to_sparse()
-        rs = df.apply(lambda s: s[0], axis=1)
-        xp = Series([1., 4., 7.], ['a', 'a', 'c'])
-        tm.assert_series_equal(rs, xp)
+        orig = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                         index=['a', 'a', 'c'])
+        sparse = orig.to_sparse()
+        res = sparse.apply(lambda s: s[0], axis=1)
+        exp = orig.apply(lambda s: s[0], axis=1)
+        # dtype must be kept
+        self.assertEqual(res.dtype, np.int64)
+        # ToDo: apply must return subclassed dtype
+        self.assertIsInstance(res, pd.Series)
+        tm.assert_series_equal(res.to_dense(), exp)
 
         # df.T breaks
-        df = df_orig.T.to_sparse()
-        rs = df.apply(lambda s: s[0], axis=0)  # noqa
+        sparse = orig.T.to_sparse()
+        res = sparse.apply(lambda s: s[0], axis=0)  # noqa
+        exp = orig.T.apply(lambda s: s[0], axis=0)
         # TODO: no non-unique columns supported in sparse yet
-        # assert_series_equal(rs, xp)
+        # tm.assert_series_equal(res.to_dense(), exp)
 
     def test_applymap(self):
         # just test that it works
@@ -566,7 +594,63 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assertIsInstance(result, SparseDataFrame)
 
     def test_astype(self):
-        self.assertRaises(Exception, self.frame.astype, np.int64)
+        sparse = pd.SparseDataFrame({'A': SparseArray([1, 2, 3, 4],
+                                                      dtype=np.int64),
+                                     'B': SparseArray([4, 5, 6, 7],
+                                                      dtype=np.int64)})
+        self.assertEqual(sparse['A'].dtype, np.int64)
+        self.assertEqual(sparse['B'].dtype, np.int64)
+
+        res = sparse.astype(np.float64)
+        exp = pd.SparseDataFrame({'A': SparseArray([1., 2., 3., 4.],
+                                                   fill_value=0.),
+                                  'B': SparseArray([4., 5., 6., 7.],
+                                                   fill_value=0.)},
+                                 default_fill_value=np.nan)
+        tm.assert_sp_frame_equal(res, exp)
+        self.assertEqual(res['A'].dtype, np.float64)
+        self.assertEqual(res['B'].dtype, np.float64)
+
+        sparse = pd.SparseDataFrame({'A': SparseArray([0, 2, 0, 4],
+                                                      dtype=np.int64),
+                                     'B': SparseArray([0, 5, 0, 7],
+                                                      dtype=np.int64)},
+                                    default_fill_value=0)
+        self.assertEqual(sparse['A'].dtype, np.int64)
+        self.assertEqual(sparse['B'].dtype, np.int64)
+
+        res = sparse.astype(np.float64)
+        exp = pd.SparseDataFrame({'A': SparseArray([0., 2., 0., 4.],
+                                                   fill_value=0.),
+                                  'B': SparseArray([0., 5., 0., 7.],
+                                                   fill_value=0.)},
+                                 default_fill_value=0.)
+        tm.assert_sp_frame_equal(res, exp)
+        self.assertEqual(res['A'].dtype, np.float64)
+        self.assertEqual(res['B'].dtype, np.float64)
+
+    def test_astype_bool(self):
+        sparse = pd.SparseDataFrame({'A': SparseArray([0, 2, 0, 4],
+                                                      fill_value=0,
+                                                      dtype=np.int64),
+                                     'B': SparseArray([0, 5, 0, 7],
+                                                      fill_value=0,
+                                                      dtype=np.int64)},
+                                    default_fill_value=0)
+        self.assertEqual(sparse['A'].dtype, np.int64)
+        self.assertEqual(sparse['B'].dtype, np.int64)
+
+        res = sparse.astype(bool)
+        exp = pd.SparseDataFrame({'A': SparseArray([False, True, False, True],
+                                                   dtype=np.bool,
+                                                   fill_value=False),
+                                  'B': SparseArray([False, True, False, True],
+                                                   dtype=np.bool,
+                                                   fill_value=False)},
+                                 default_fill_value=False)
+        tm.assert_sp_frame_equal(res, exp)
+        self.assertEqual(res['A'].dtype, np.bool)
+        self.assertEqual(res['B'].dtype, np.bool)
 
     def test_fillna(self):
         df = self.zframe.reindex(lrange(5))
@@ -739,6 +823,10 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
             untransposed = transposed.T
             tm.assert_sp_frame_equal(frame, untransposed)
 
+            tm.assert_frame_equal(frame.T.to_dense(), orig.T)
+            tm.assert_frame_equal(frame.T.T.to_dense(), orig.T.T)
+            tm.assert_sp_frame_equal(frame, frame.T.T, exact_indices=False)
+
         self._check_all(_check)
 
     def test_shift(self):
@@ -747,8 +835,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
             shifted = frame.shift(0)
             exp = orig.shift(0)
-            # int is coerced to float dtype
-            tm.assert_frame_equal(shifted.to_dense(), exp, check_dtype=False)
+            tm.assert_frame_equal(shifted.to_dense(), exp)
+
             shifted = frame.shift(1)
             exp = orig.shift(1)
             tm.assert_frame_equal(shifted, exp)
@@ -762,8 +850,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
             exp = exp.to_sparse(frame.default_fill_value)
             tm.assert_frame_equal(shifted, exp)
 
-            shifted = frame.shift(2, freq=datetools.bday)
-            exp = orig.shift(2, freq=datetools.bday)
+            shifted = frame.shift(2, freq=BDay())
+            exp = orig.shift(2, freq=BDay())
             exp = exp.to_sparse(frame.default_fill_value)
             tm.assert_frame_equal(shifted, exp)
 
@@ -858,12 +946,85 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         nan_colname_sparse = nan_colname.to_sparse()
         self.assertTrue(np.isnan(nan_colname_sparse.columns[0]))
 
+    def test_isnull(self):
+        # GH 8276
+        df = pd.SparseDataFrame({'A': [np.nan, np.nan, 1, 2, np.nan],
+                                 'B': [0, np.nan, np.nan, 2, np.nan]})
+
+        res = df.isnull()
+        exp = pd.SparseDataFrame({'A': [True, True, False, False, True],
+                                  'B': [False, True, True, False, True]},
+                                 default_fill_value=True)
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(res, exp)
+
+        # if fill_value is not nan, True can be included in sp_values
+        df = pd.SparseDataFrame({'A': [0, 0, 1, 2, np.nan],
+                                 'B': [0, np.nan, 0, 2, np.nan]},
+                                default_fill_value=0.)
+        res = df.isnull()
+        tm.assertIsInstance(res, pd.SparseDataFrame)
+        exp = pd.DataFrame({'A': [False, False, False, False, True],
+                            'B': [False, True, False, False, True]})
+        tm.assert_frame_equal(res.to_dense(), exp)
+
+    def test_isnotnull(self):
+        # GH 8276
+        df = pd.SparseDataFrame({'A': [np.nan, np.nan, 1, 2, np.nan],
+                                 'B': [0, np.nan, np.nan, 2, np.nan]})
+
+        res = df.isnotnull()
+        exp = pd.SparseDataFrame({'A': [False, False, True, True, False],
+                                  'B': [True, False, False, True, False]},
+                                 default_fill_value=False)
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(res, exp)
+
+        # if fill_value is not nan, True can be included in sp_values
+        df = pd.SparseDataFrame({'A': [0, 0, 1, 2, np.nan],
+                                 'B': [0, np.nan, 0, 2, np.nan]},
+                                default_fill_value=0.)
+        res = df.isnotnull()
+        tm.assertIsInstance(res, pd.SparseDataFrame)
+        exp = pd.DataFrame({'A': [True, True, True, True, False],
+                            'B': [True, False, True, True, False]})
+        tm.assert_frame_equal(res.to_dense(), exp)
+
+
+class TestSparseDataFrameArithmetic(tm.TestCase):
+
+    def test_numeric_op_scalar(self):
+        df = pd.DataFrame({'A': [nan, nan, 0, 1, ],
+                           'B': [0, 1, 2, nan],
+                           'C': [1., 2., 3., 4.],
+                           'D': [nan, nan, nan, nan]})
+        sparse = df.to_sparse()
+
+        tm.assert_sp_frame_equal(sparse + 1, (df + 1).to_sparse())
+
+    def test_comparison_op_scalar(self):
+        # GH 13001
+        df = pd.DataFrame({'A': [nan, nan, 0, 1, ],
+                           'B': [0, 1, 2, nan],
+                           'C': [1., 2., 3., 4.],
+                           'D': [nan, nan, nan, nan]})
+        sparse = df.to_sparse()
+
+        # comparison changes internal repr, compare with dense
+        res = sparse > 1
+        tm.assertIsInstance(res, pd.SparseDataFrame)
+        tm.assert_frame_equal(res.to_dense(), df > 1)
+
+        res = sparse != 0
+        tm.assertIsInstance(res, pd.SparseDataFrame)
+        tm.assert_frame_equal(res.to_dense(), df != 0)
+
 
 class TestSparseDataFrameAnalytics(tm.TestCase):
     def setUp(self):
         self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
-                     'C': np.arange(10),
+                     'C': np.arange(10, dtype=float),
                      'D': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
 
         self.dates = bdate_range('1/1/2011', periods=10)

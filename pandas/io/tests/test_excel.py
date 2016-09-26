@@ -244,6 +244,21 @@ class ReadingTestsBase(SharedItems):
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
+        # 13967
+        excel = self.get_excelfile('test5')
+
+        parsed = read_excel(excel, 'Sheet1', keep_default_na=False,
+                            na_values=['apple'])
+        expected = DataFrame([['1.#QNAN'], [1], ['nan'], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
+        parsed = read_excel(excel, 'Sheet1', keep_default_na=True,
+                            na_values=['apple'])
+        expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
     def test_excel_table_sheet_by_index(self):
 
         excel = self.get_excelfile('test1')
@@ -1328,6 +1343,20 @@ class ExcelWriterBase(SharedItems):
                             parse_dates=False)
             tm.assert_frame_equal(frame, df)
 
+    # GH13511
+    def test_to_excel_multiindex_nan_label(self):
+        _skip_if_no_xlrd()
+
+        frame = pd.DataFrame({'A': [None, 2, 3],
+                              'B': [10, 20, 30],
+                              'C': np.random.sample(3)})
+        frame = frame.set_index(['A', 'B'])
+
+        with ensure_clean(self.ext) as path:
+            frame.to_excel(path, merge_cells=self.merge_cells)
+            df = read_excel(path, index_col=[0, 1])
+            tm.assert_frame_equal(frame, df)
+
     # Test for Issue 11328. If column indices are integers, make
     # sure they are handled correctly for either setting of
     # merge_cells
@@ -1751,6 +1780,17 @@ class ExcelWriterBase(SharedItems):
             df.to_excel(path, 'Sheet1')
             read = read_excel(path, 'Sheet1', header=0)
             tm.assert_frame_equal(read, expected)
+
+    # GH13347
+    def test_true_and_false_value_options(self):
+        df = pd.DataFrame([['foo', 'bar']], columns=['col1', 'col2'])
+        expected = df.replace({'foo': True,
+                               'bar': False})
+        with ensure_clean(self.ext) as path:
+            df.to_excel(path)
+            read_frame = read_excel(path, true_values=['foo'],
+                                    false_values=['bar'])
+            tm.assert_frame_equal(read_frame, expected)
 
 
 def raise_wrapper(major_ver):

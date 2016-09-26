@@ -456,28 +456,29 @@ columns:
 
 .. _visualization.box.return:
 
-Basically, plot functions return :class:`matplotlib Axes <matplotlib.axes.Axes>` as a return value.
-In ``boxplot``, the return type can be changed by argument ``return_type``, and whether the subplots is enabled (``subplots=True`` in ``plot`` or ``by`` is specified in ``boxplot``).
+.. warning::
 
-When ``subplots=False`` / ``by`` is ``None``:
+   The default changed from ``'dict'`` to ``'axes'`` in version 0.19.0.
 
-* if ``return_type`` is ``'dict'``, a dictionary containing the :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned. The keys are "boxes", "caps", "fliers", "medians", and "whiskers".
-   This is the default of ``boxplot`` in historical reason.
-   Note that ``plot.box()`` returns ``Axes`` by default same as other plots.
-* if ``return_type`` is ``'axes'``, a :class:`matplotlib Axes <matplotlib.axes.Axes>` containing the boxplot is returned.
-* if ``return_type`` is ``'both'`` a namedtuple containing the :class:`matplotlib Axes <matplotlib.axes.Axes>`
-   and :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned
+In ``boxplot``, the return type can be controlled by the ``return_type``, keyword. The valid choices are ``{"axes", "dict", "both", None}``.
+Faceting, created by ``DataFrame.boxplot`` with the ``by``
+keyword, will affect the output type as well:
 
-When ``subplots=True`` / ``by`` is some column of the DataFrame:
+================ ======= ==========================
+``return_type=`` Faceted Output type
+---------------- ------- --------------------------
 
-* A dict of ``return_type`` is returned, where the keys are the columns
-  of the DataFrame. The plot has a facet for each column of
-  the DataFrame, with a separate box for each value of ``by``.
+``None``         No      axes
+``None``         Yes     2-D ndarray of axes
+``'axes'``       No      axes
+``'axes'``       Yes     Series of axes
+``'dict'``       No      dict of artists
+``'dict'``       Yes     Series of dicts of artists
+``'both'``       No      namedtuple
+``'both'``       Yes     Series of namedtuples
+================ ======= ==========================
 
-Finally, when calling boxplot on a :class:`Groupby` object, a dict of ``return_type``
-is returned, where the keys are the same as the Groupby object. The plot has a
-facet for each key, with each facet containing a box for each column of the
-DataFrame.
+``Groupby.boxplot`` always returns a Series of ``return_type``.
 
 .. ipython:: python
    :okwarning:
@@ -1615,246 +1616,8 @@ Trellis plotting interface
 
 .. warning::
 
-    The ``rplot`` trellis plotting interface is **deprecated and will be removed
-    in a future version**. We refer to external packages like
-    `seaborn <https://github.com/mwaskom/seaborn>`_ for similar but more
-    refined functionality.
-
-    The docs below include some example on how to convert your existing code to
-    ``seaborn``.
-
-.. ipython:: python
-   :suppress:
-
-   tips_data = pd.read_csv('data/tips.csv')
-   iris_data = pd.read_csv('data/iris.data')
-   plt.close('all')
-
-
-.. note::
-
-   The tips data set can be downloaded `here
-   <https://raw.github.com/pydata/pandas/master/pandas/tests/data/tips.csv>`__. Once you download it execute
-
-   .. code-block:: python
-
-      tips_data = pd.read_csv('tips.csv')
-
-   from the directory where you downloaded the file.
-
-We import the rplot API:
-
-.. ipython:: python
-   :okwarning:
-
-   import pandas.tools.rplot as rplot
-
-Examples
-~~~~~~~~
-
-RPlot was an API for producing Trellis plots. These plots allow you to
-arrange data in a rectangular grid by values of certain attributes.
-In the example below, data from the tips data set is arranged by the attributes
-'sex' and 'smoker'. Since both of those attributes can take on one of two
-values, the resulting grid has two columns and two rows. A histogram is
-displayed for each cell of the grid.
-
-.. ipython:: python
-   :okwarning:
-
-   plt.figure()
-
-   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
-   plot.add(rplot.TrellisGrid(['sex', 'smoker']))
-   plot.add(rplot.GeomHistogram())
-
-   @savefig rplot1_tips.png
-   plot.render(plt.gcf())
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-
-A similar plot can be made with ``seaborn`` using the ``FacetGrid`` object,
-resulting in the following image:
-
-.. code-block:: python
-
-    import seaborn as sns
-    g = sns.FacetGrid(tips_data, row="sex", col="smoker")
-    g.map(plt.hist, "total_bill")
-
-.. image:: _static/rplot-seaborn-example1.png
-
-
-Example below is the same as previous except the plot is set to kernel density
-estimation. A ``seaborn`` example is included beneath.
-
-.. ipython:: python
-   :okwarning:
-
-   plt.figure()
-
-   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
-   plot.add(rplot.TrellisGrid(['sex', 'smoker']))
-   plot.add(rplot.GeomDensity())
-
-   @savefig rplot2_tips.png
-   plot.render(plt.gcf())
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-
-.. code-block:: python
-
-    g = sns.FacetGrid(tips_data, row="sex", col="smoker")
-    g.map(sns.kdeplot, "total_bill")
-
-.. image:: _static/rplot-seaborn-example2.png
-
-The plot below shows that it is possible to have two or more plots for the same
-data displayed on the same Trellis grid cell.
-
-.. ipython:: python
-   :okwarning:
-
-   plt.figure()
-
-   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
-   plot.add(rplot.TrellisGrid(['sex', 'smoker']))
-   plot.add(rplot.GeomScatter())
-   plot.add(rplot.GeomPolyFit(degree=2))
-
-   @savefig rplot3_tips.png
-   plot.render(plt.gcf())
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-
-A seaborn equivalent for a simple scatter plot:
-
-.. code-block:: python
-
-    g = sns.FacetGrid(tips_data, row="sex", col="smoker")
-    g.map(plt.scatter, "total_bill", "tip")
-
-.. image:: _static/rplot-seaborn-example3.png
-
-and with a regression line, using the dedicated ``seaborn`` ``regplot`` function:
-
-.. code-block:: python
-
-    g = sns.FacetGrid(tips_data, row="sex", col="smoker", margin_titles=True)
-    g.map(sns.regplot, "total_bill", "tip", order=2)
-
-.. image:: _static/rplot-seaborn-example3b.png
-
-
-Below is a similar plot but with 2D kernel density estimation plot superimposed,
-followed by a ``seaborn`` equivalent:
-
-.. ipython:: python
-   :okwarning:
-
-   plt.figure()
-
-   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
-   plot.add(rplot.TrellisGrid(['sex', 'smoker']))
-   plot.add(rplot.GeomScatter())
-   plot.add(rplot.GeomDensity2D())
-
-   @savefig rplot4_tips.png
-   plot.render(plt.gcf())
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-
-.. code-block:: python
-
-    g = sns.FacetGrid(tips_data, row="sex", col="smoker")
-    g.map(plt.scatter, "total_bill", "tip")
-    g.map(sns.kdeplot, "total_bill", "tip")
-
-.. image:: _static/rplot-seaborn-example4.png
-
-It is possible to only use one attribute for grouping data. The example above
-only uses 'sex' attribute. If the second grouping attribute is not specified,
-the plots will be arranged in a column.
-
-.. ipython:: python
-   :okwarning:
-
-   plt.figure()
-
-   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
-   plot.add(rplot.TrellisGrid(['sex', '.']))
-   plot.add(rplot.GeomHistogram())
-
-   @savefig rplot5_tips.png
-   plot.render(plt.gcf())
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-
-If the first grouping attribute is not specified the plots will be arranged in a row.
-
-.. ipython:: python
-   :okwarning:
-
-   plt.figure()
-
-   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
-   plot.add(rplot.TrellisGrid(['.', 'smoker']))
-   plot.add(rplot.GeomHistogram())
-
-   @savefig rplot6_tips.png
-   plot.render(plt.gcf())
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-
-In ``seaborn``, this can also be done by only specifying one of the ``row``
-and ``col`` arguments.
-
-In the example below the colour and shape of the scatter plot graphical
-objects is mapped to 'day' and 'size' attributes respectively. You use
-scale objects to specify these mappings. The list of scale classes is
-given below with initialization arguments for quick reference.
-
-.. ipython:: python
-   :okwarning:
-
-   plt.figure()
-
-   plot = rplot.RPlot(tips_data, x='tip', y='total_bill')
-   plot.add(rplot.TrellisGrid(['sex', 'smoker']))
-   plot.add(rplot.GeomPoint(size=80.0, colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size'), alpha=1.0))
-
-   @savefig rplot7_tips.png
-   plot.render(plt.gcf())
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-
-This can also be done in ``seaborn``, at least for 3 variables:
-
-.. code-block:: python
-
-    g = sns.FacetGrid(tips_data, row="sex", col="smoker", hue="day")
-    g.map(plt.scatter, "tip", "total_bill")
-    g.add_legend()
-
-.. image:: _static/rplot-seaborn-example6.png
+    The ``rplot`` trellis plotting interface has been **removed**. Please use
+    external packages like `seaborn <https://github.com/mwaskom/seaborn>`_ for
+    similar but more refined functionality and refer to our 0.18.1 documentation
+    `here <http://pandas.pydata.org/pandas-docs/version/0.18.1/visualization.html>`__
+    for how to convert to using it.

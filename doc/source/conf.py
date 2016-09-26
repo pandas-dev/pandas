@@ -13,6 +13,7 @@
 import sys
 import os
 import re
+import inspect
 from pandas.compat import u, PY3
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -47,6 +48,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.coverage',
               'sphinx.ext.pngmath',
               'sphinx.ext.ifconfig',
+              'sphinx.ext.linkcode',
               ]
 
 
@@ -288,11 +290,11 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'statsmodels': ('http://statsmodels.sourceforge.net/devel/', None),
+    'statsmodels': ('http://www.statsmodels.org/devel/', None),
     'matplotlib': ('http://matplotlib.org/', None),
     'python': ('http://docs.python.org/3', None),
     'numpy': ('http://docs.scipy.org/doc/numpy', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy', None),
+    'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
     'py': ('http://pylib.readthedocs.org/en/latest/', None)
 }
 import glob
@@ -318,6 +320,7 @@ ipython_exec_lines = [
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
+import sphinx
 from sphinx.util import rpartition
 from sphinx.ext.autodoc import Documenter, MethodDocumenter, AttributeDocumenter
 from sphinx.ext.autosummary import Autosummary
@@ -365,7 +368,10 @@ class AccessorLevelDocumenter(Documenter):
             if not modname:
                 modname = self.env.temp_data.get('autodoc:module')
             if not modname:
-                modname = self.env.temp_data.get('py:module')
+                if sphinx.__version__ > '1.3':
+                    modname = self.env.ref_context.get('py:module')
+                else:
+                    modname = self.env.temp_data.get('py:module')
             # ... else, it stays None, which means invalid
         return modname, parents + [base]
 
@@ -418,6 +424,55 @@ class PandasAutosummary(Autosummary):
         items = Autosummary.get_items(self, names)
         items = [self._replace_pandas_items(*item) for item in items]
         return items
+
+
+# based on numpy doc/source/conf.py
+def linkcode_resolve(domain, info):
+    """
+    Determine the URL corresponding to Python object
+    """
+    if domain != 'py':
+        return None
+
+    modname = info['module']
+    fullname = info['fullname']
+
+    submod = sys.modules.get(modname)
+    if submod is None:
+        return None
+
+    obj = submod
+    for part in fullname.split('.'):
+        try:
+            obj = getattr(obj, part)
+        except:
+            return None
+
+    try:
+        fn = inspect.getsourcefile(obj)
+    except:
+        fn = None
+    if not fn:
+        return None
+
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except:
+        lineno = None
+
+    if lineno:
+        linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+    else:
+        linespec = ""
+
+    fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
+
+    if '+' in pandas.__version__:
+        return "http://github.com/pydata/pandas/blob/master/pandas/%s%s" % (
+            fn, linespec)
+    else:
+        return "http://github.com/pydata/pandas/blob/v%s/pandas/%s%s" % (
+            pandas.__version__, fn, linespec)
 
 
 # remove the docstring of the flags attribute (inherited from numpy ndarray)

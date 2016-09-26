@@ -1,4 +1,5 @@
 # pylint: disable-msg=W0612,E1101
+import nose
 from pandas.compat import range, lrange, StringIO, OrderedDict
 import os
 
@@ -907,17 +908,17 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         ts = Timestamp('2013-01-10 05:00:00Z')
         self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
-        dt = ts.to_datetime()
+        dt = ts.to_pydatetime()
         self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
 
         ts = Timestamp('2013-01-10 00:00:00', tz='US/Eastern')
         self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
-        dt = ts.to_datetime()
+        dt = ts.to_pydatetime()
         self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
 
         ts = Timestamp('2013-01-10 00:00:00-0500')
         self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
-        dt = ts.to_datetime()
+        dt = ts.to_pydatetime()
         self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
 
     def test_tz_range_is_utc(self):
@@ -948,8 +949,63 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame({'DT': dti})
         self.assertEqual(dfexp, pd.json.dumps(df, iso_dates=True))
 
+    def test_read_jsonl(self):
+        # GH9180
+        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
+        expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_to_jsonl(self):
+        # GH9180
+        df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
+        self.assertEqual(result, expected)
+
+    def test_latin_encoding(self):
+        if compat.PY2:
+            self.assertRaisesRegexp(
+                TypeError, '\[unicode\] is not implemented as a table column')
+            return
+
+        # GH 13774
+        raise nose.SkipTest("encoding not implemented in .to_json(), "
+                            "xref #13774")
+
+        values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
+                  [b'E\xc9, 17', b'a', b'b', b'c'],
+                  [b'EE, 17', b'', b'a', b'b', b'c'],
+                  [b'E\xc9, 17', b'\xf8\xfc', b'a', b'b', b'c'],
+                  [b'', b'a', b'b', b'c'],
+                  [b'\xf8\xfc', b'a', b'b', b'c'],
+                  [b'A\xf8\xfc', b'', b'a', b'b', b'c'],
+                  [np.nan, b'', b'b', b'c'],
+                  [b'A\xf8\xfc', np.nan, b'', b'b', b'c']]
+
+        def _try_decode(x, encoding='latin-1'):
+            try:
+                return x.decode(encoding)
+            except AttributeError:
+                return x
+
+        # not sure how to remove latin-1 from code in python 2 and 3
+        values = [[_try_decode(x) for x in y] for y in values]
+
+        examples = []
+        for dtype in ['category', object]:
+            for val in values:
+                examples.append(Series(val, dtype=dtype))
+
+        def roundtrip(s, encoding='latin-1'):
+            with ensure_clean('test.json') as path:
+                s.to_json(path, encoding=encoding)
+                retr = read_json(path, encoding=encoding)
+                assert_series_equal(s, retr, check_categorical=False)
+
+        for s in examples:
+            roundtrip(s)
+
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb',
                          '--pdb-failure', '-s'], exit=False)

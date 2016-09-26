@@ -1,15 +1,21 @@
 import numpy as np
 
 from pandas.compat import zip
-from pandas.core.common import (isnull, notnull, _values_from_object,
-                                is_bool_dtype,
-                                is_list_like, is_categorical_dtype,
-                                is_object_dtype)
+from pandas.types.generic import ABCSeries, ABCIndex
+from pandas.types.missing import isnull, notnull
+from pandas.types.common import (is_bool_dtype,
+                                 is_categorical_dtype,
+                                 is_object_dtype,
+                                 is_string_like,
+                                 is_list_like,
+                                 is_scalar,
+                                 is_integer)
+from pandas.core.common import _values_from_object
+
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
-from pandas.types import api as gt
-from pandas.util.decorators import Appender, deprecate_kwarg
+from pandas.util.decorators import Appender
 import re
 import pandas.lib as lib
 import warnings
@@ -152,14 +158,15 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
     if not len(arr):
         return np.ndarray(0, dtype=dtype)
 
-    if isinstance(arr, gt.ABCSeries):
+    if isinstance(arr, ABCSeries):
         arr = arr.values
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
         mask = isnull(arr)
         try:
-            result = lib.map_infer_mask(arr, f, mask.view(np.uint8))
+            convert = not all(mask)
+            result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
         except (TypeError, AttributeError):
 
             def g(x):
@@ -309,6 +316,10 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     -------
     replaced : Series/Index of objects
     """
+
+    # Check whether repl is valid (GH 13438)
+    if not is_string_like(repl):
+        raise TypeError("repl must be a string")
     use_re = not case or len(pat) > 1 or flags
 
     if use_re:
@@ -339,7 +350,7 @@ def str_repeat(arr, repeats):
     -------
     repeated : Series/Index of objects
     """
-    if lib.isscalar(repeats):
+    if is_scalar(repeats):
 
         def rep(x):
             try:
@@ -692,7 +703,7 @@ def str_extractall(arr, pat, flags=0):
     if regex.groups == 0:
         raise ValueError("pattern contains no capture groups")
 
-    if isinstance(arr, gt.ABCIndex):
+    if isinstance(arr, ABCIndex):
         arr = arr.to_series().reset_index(drop=True)
 
     names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
@@ -904,6 +915,10 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
     if len(fillchar) != 1:
         raise TypeError('fillchar must be a character, not str')
+
+    if not is_integer(width):
+        msg = 'width must be of integer type, not {0}'
+        raise TypeError(msg.format(type(width).__name__))
 
     if side == 'left':
         f = lambda x: x.rjust(width, fillchar)
@@ -1387,8 +1402,6 @@ class StringMethods(NoNewAttributesMixin):
         result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
         return self._wrap_result(result, use_codes=(not self._is_categorical))
 
-    @deprecate_kwarg('return_type', 'expand', mapping={'series': False,
-                                                       'frame': True})
     @copy(str_split)
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._data, pat, n=n)
@@ -1534,7 +1547,7 @@ class StringMethods(NoNewAttributesMixin):
         return self.pad(width, side='left', fillchar=fillchar)
 
     def zfill(self, width):
-        """"
+        """
         Filling left side of strings in the Series/Index with 0.
         Equivalent to :meth:`str.zfill`.
 
@@ -1816,7 +1829,7 @@ class StringAccessorMixin(object):
     def _make_str_accessor(self):
         from pandas.core.index import Index
 
-        if (isinstance(self, gt.ABCSeries) and
+        if (isinstance(self, ABCSeries) and
                 not ((is_categorical_dtype(self.dtype) and
                       is_object_dtype(self.values.categories)) or
                      (is_object_dtype(self.dtype)))):

@@ -5,7 +5,8 @@ import nose
 from datetime import datetime
 from numpy import nan
 
-from pandas import date_range, bdate_range, Timestamp
+from pandas.types.common import _ensure_platform_int
+from pandas import date_range, bdate_range, Timestamp, isnull
 from pandas.core.index import Index, MultiIndex, CategoricalIndex
 from pandas.core.api import Categorical, DataFrame
 from pandas.core.common import UnsupportedFunctionCall
@@ -163,9 +164,9 @@ class TestGroupBy(tm.TestCase):
         grouped['B'].nth(0)
 
         self.df.loc[self.df['A'] == 'foo', 'B'] = np.nan
-        self.assertTrue(com.isnull(grouped['B'].first()['foo']))
-        self.assertTrue(com.isnull(grouped['B'].last()['foo']))
-        self.assertTrue(com.isnull(grouped['B'].nth(0)['foo']))
+        self.assertTrue(isnull(grouped['B'].first()['foo']))
+        self.assertTrue(isnull(grouped['B'].last()['foo']))
+        self.assertTrue(isnull(grouped['B'].nth(0)['foo']))
 
         # v0.14.0 whatsnew
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
@@ -353,6 +354,35 @@ class TestGroupBy(tm.TestCase):
                                           ['one', 'two', 'one', 'two']],
                                          names=['A', 'B']))
         assert_frame_equal(result, expected)
+
+    def test_group_selection_cache(self):
+        # GH 12839 nth, head, and tail should return same result consistently
+        df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+        expected = df.iloc[[0, 2]].set_index('A')
+
+        g = df.groupby('A')
+        result1 = g.head(n=2)
+        result2 = g.nth(0)
+        assert_frame_equal(result1, df)
+        assert_frame_equal(result2, expected)
+
+        g = df.groupby('A')
+        result1 = g.tail(n=2)
+        result2 = g.nth(0)
+        assert_frame_equal(result1, df)
+        assert_frame_equal(result2, expected)
+
+        g = df.groupby('A')
+        result1 = g.nth(0)
+        result2 = g.head(n=2)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, df)
+
+        g = df.groupby('A')
+        result1 = g.nth(0)
+        result2 = g.tail(n=2)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, df)
 
     def test_grouper_index_types(self):
         # related GH5375
@@ -690,6 +720,32 @@ class TestGroupBy(tm.TestCase):
         grouped = df.groupby(df.index.month)
         list(grouped)
 
+    def test_agg_dict_parameter_cast_result_dtypes(self):
+        # GH 12821
+
+        df = DataFrame(
+            {'class': ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D'],
+             'time': date_range('1/1/2011', periods=8, freq='H')})
+        df.loc[[0, 1, 2, 5], 'time'] = None
+
+        # test for `first` function
+        exp = df.loc[[0, 3, 4, 6]].set_index('class')
+        grouped = df.groupby('class')
+        assert_frame_equal(grouped.first(), exp)
+        assert_frame_equal(grouped.agg('first'), exp)
+        assert_frame_equal(grouped.agg({'time': 'first'}), exp)
+        assert_series_equal(grouped.time.first(), exp['time'])
+        assert_series_equal(grouped.time.agg('first'), exp['time'])
+
+        # test for `last` function
+        exp = df.loc[[0, 3, 4, 7]].set_index('class')
+        grouped = df.groupby('class')
+        assert_frame_equal(grouped.last(), exp)
+        assert_frame_equal(grouped.agg('last'), exp)
+        assert_frame_equal(grouped.agg({'time': 'last'}), exp)
+        assert_series_equal(grouped.time.last(), exp['time'])
+        assert_series_equal(grouped.time.agg('last'), exp['time'])
+
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
         self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
@@ -723,7 +779,7 @@ class TestGroupBy(tm.TestCase):
         g = df.groupby('DATE')
         key = list(g.groups)[0]
         result1 = g.get_group(key)
-        result2 = g.get_group(Timestamp(key).to_datetime())
+        result2 = g.get_group(Timestamp(key).to_pydatetime())
         result3 = g.get_group(str(Timestamp(key)))
         assert_frame_equal(result1, result2)
         assert_frame_equal(result1, result3)
@@ -732,7 +788,7 @@ class TestGroupBy(tm.TestCase):
 
         key = list(g.groups)[0]
         result1 = g.get_group(key)
-        result2 = g.get_group((Timestamp(key[0]).to_datetime(), key[1]))
+        result2 = g.get_group((Timestamp(key[0]).to_pydatetime(), key[1]))
         result3 = g.get_group((str(Timestamp(key[0])), key[1]))
         assert_frame_equal(result1, result2)
         assert_frame_equal(result1, result3)
@@ -742,6 +798,17 @@ class TestGroupBy(tm.TestCase):
         self.assertRaises(ValueError, lambda: g.get_group(('foo')))
         self.assertRaises(ValueError,
                           lambda: g.get_group(('foo', 'bar', 'baz')))
+
+    def test_get_group_empty_bins(self):
+        d = pd.DataFrame([3, 1, 7, 6])
+        bins = [0, 5, 10, 15]
+        g = d.groupby(pd.cut(d[0], bins))
+
+        result = g.get_group('(0, 5]')
+        expected = DataFrame([3, 1], index=[0, 1])
+        assert_frame_equal(result, expected)
+
+        self.assertRaises(KeyError, lambda: g.get_group('(10, 15]'))
 
     def test_get_group_grouped_by_tuple(self):
         # GH 8121
@@ -1050,8 +1117,9 @@ class TestGroupBy(tm.TestCase):
         grp = df.groupby('id')['val']
 
         values = np.repeat(grp.mean().values,
-                           com._ensure_platform_int(grp.count().values))
+                           _ensure_platform_int(grp.count().values))
         expected = pd.Series(values, index=df.index, name='val')
+
         result = grp.transform(np.mean)
         assert_series_equal(result, expected)
 
@@ -1961,7 +2029,7 @@ class TestGroupBy(tm.TestCase):
 
             loop(frame)
 
-    def test_mulitindex_passthru(self):
+    def test_multiindex_passthru(self):
 
         # GH 7997
         # regression from 0.14.1
@@ -1970,6 +2038,24 @@ class TestGroupBy(tm.TestCase):
 
         result = df.groupby(axis=1, level=[0, 1]).first()
         assert_frame_equal(result, df)
+
+    def test_multiindex_negative_level(self):
+        # GH 13901
+        result = self.mframe.groupby(level=-1).sum()
+        expected = self.mframe.groupby(level='second').sum()
+        assert_frame_equal(result, expected)
+
+        result = self.mframe.groupby(level=-2).sum()
+        expected = self.mframe.groupby(level='first').sum()
+        assert_frame_equal(result, expected)
+
+        result = self.mframe.groupby(level=[-2, -1]).sum()
+        expected = self.mframe
+        assert_frame_equal(result, expected)
+
+        result = self.mframe.groupby(level=[-1, 'first']).sum()
+        expected = self.mframe.groupby(level=['second', 'first']).sum()
+        assert_frame_equal(result, expected)
 
     def test_multifunc_select_col_integer_cols(self):
         df = self.df
@@ -2085,8 +2171,8 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(df.loc[[0, 2]], g_not_as.head(1))
         assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
 
-        empty_not_as = DataFrame(columns=df.columns, index=pd.Index(
-            [], dtype=df.index.dtype))
+        empty_not_as = DataFrame(columns=df.columns,
+                                 index=pd.Index([], dtype=df.index.dtype))
         empty_not_as['A'] = empty_not_as['A'].astype(df.A.dtype)
         empty_not_as['B'] = empty_not_as['B'].astype(df.B.dtype)
         assert_frame_equal(empty_not_as, g_not_as.head(0))
@@ -2498,13 +2584,28 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
 
-    def test_groupby_level_0_nonmulti(self):
-        # #1313
-        a = Series([1, 2, 3, 10, 4, 5, 20, 6], Index([1, 2, 3, 1,
-                                                      4, 5, 2, 6], name='foo'))
+    def test_groupby_level_nonmulti(self):
+        # GH 1313, GH 13901
+        s = Series([1, 2, 3, 10, 4, 5, 20, 6],
+                   Index([1, 2, 3, 1, 4, 5, 2, 6], name='foo'))
+        expected = Series([11, 22, 3, 4, 5, 6],
+                          Index(range(1, 7), name='foo'))
 
-        result = a.groupby(level=0).sum()
-        self.assertEqual(result.index.name, a.index.name)
+        result = s.groupby(level=0).sum()
+        self.assert_series_equal(result, expected)
+        result = s.groupby(level=[0]).sum()
+        self.assert_series_equal(result, expected)
+        result = s.groupby(level=-1).sum()
+        self.assert_series_equal(result, expected)
+        result = s.groupby(level=[-1]).sum()
+        self.assert_series_equal(result, expected)
+
+        tm.assertRaises(ValueError, s.groupby, level=1)
+        tm.assertRaises(ValueError, s.groupby, level=-2)
+        tm.assertRaises(ValueError, s.groupby, level=[])
+        tm.assertRaises(ValueError, s.groupby, level=[0, 0])
+        tm.assertRaises(ValueError, s.groupby, level=[0, 1])
+        tm.assertRaises(ValueError, s.groupby, level=[1])
 
     def test_groupby_complex(self):
         # GH 12902
@@ -2519,12 +2620,12 @@ class TestGroupBy(tm.TestCase):
 
     def test_level_preserve_order(self):
         grouped = self.mframe.groupby(level=0)
-        exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3])
+        exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3], np.intp)
         assert_almost_equal(grouped.grouper.labels[0], exp_labels)
 
     def test_grouping_labels(self):
         grouped = self.mframe.groupby(self.mframe.index.get_level_values(0))
-        exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3])
+        exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3], dtype=np.intp)
         assert_almost_equal(grouped.grouper.labels[0], exp_labels)
 
     def test_cython_fail_agg(self):
@@ -2538,9 +2639,11 @@ class TestGroupBy(tm.TestCase):
 
     def test_apply_series_to_frame(self):
         def f(piece):
+            with np.errstate(invalid='ignore'):
+                logged = np.log(piece)
             return DataFrame({'value': piece,
                               'demeaned': piece - piece.mean(),
-                              'logged': np.log(piece)})
+                              'logged': logged})
 
         dr = bdate_range('1/1/2000', periods=100)
         ts = Series(np.random.randn(100), index=dr)
@@ -2554,6 +2657,16 @@ class TestGroupBy(tm.TestCase):
     def test_apply_series_yield_constant(self):
         result = self.df.groupby(['A', 'B'])['C'].apply(len)
         self.assertEqual(result.index.names[:2], ('A', 'B'))
+
+    def test_apply_frame_yield_constant(self):
+        # GH13568
+        result = self.df.groupby(['A', 'B']).apply(len)
+        self.assertTrue(isinstance(result, Series))
+        self.assertIsNone(result.name)
+
+        result = self.df.groupby(['A', 'B'])[['C', 'D']].apply(len)
+        self.assertTrue(isinstance(result, Series))
+        self.assertIsNone(result.name)
 
     def test_apply_frame_to_series(self):
         grouped = self.df.groupby(['A', 'B'])
@@ -2906,6 +3019,14 @@ class TestGroupBy(tm.TestCase):
         result = df.groupby('A', as_index=False).cumsum()
         assert_frame_equal(result, expected)
 
+        # GH 13994
+        result = df.groupby('A').cumsum(axis=1)
+        expected = df.cumsum(axis=1)
+        assert_frame_equal(result, expected)
+        result = df.groupby('A').cumprod(axis=1)
+        expected = df.cumprod(axis=1)
+        assert_frame_equal(result, expected)
+
     def test_grouping_ndarray(self):
         grouped = self.df.groupby(self.df['A'].values)
 
@@ -3031,8 +3152,10 @@ class TestGroupBy(tm.TestCase):
             grouped = df.groupby(['missing', 'dense'])
 
             # missing category 'b' should still exist in the output index
-            idx = MultiIndex.from_product([['a', 'b'], ['a', 'b', 'c']],
-                                          names=['missing', 'dense'])
+            idx = MultiIndex.from_product(
+                [Categorical(['a', 'b'], ordered=ordered),
+                 Categorical(['a', 'b', 'c'], ordered=ordered)],
+                names=['missing', 'dense'])
             expected = DataFrame([0, 1, 2, np.nan, np.nan, np.nan],
                                  index=idx,
                                  columns=['values'])
@@ -3168,6 +3291,18 @@ class TestGroupBy(tm.TestCase):
         result = grouped.mean()
         expected = df.groupby(df[0]).mean()
         assert_frame_equal(result, expected)
+
+    def test_groupby_mixed_type_columns(self):
+        # GH 13432, unorderable types in py3
+        df = DataFrame([[0, 1, 2]], columns=['A', 'B', 0])
+        expected = DataFrame([[1, 2]], columns=['B', 0],
+                             index=Index([0], name='A'))
+
+        result = df.groupby('A').first()
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby('A').sum()
+        tm.assert_frame_equal(result, expected)
 
     def test_cython_grouper_series_bug_noncontig(self):
         arr = np.empty((100, 100))
@@ -3711,6 +3846,22 @@ class TestGroupBy(tm.TestCase):
         result3 = df.groupby('A')[df.columns[2:4]].mean()
 
         expected = df.ix[:, ['A', 'C', 'D']].groupby('A').mean()
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+        assert_frame_equal(result3, expected)
+
+    def test_getitem_numeric_column_names(self):
+        # GH #13731
+        df = DataFrame({0: list('abcd') * 2,
+                        2: np.random.randn(8),
+                        4: np.random.randn(8),
+                        6: np.random.randn(8)})
+        result = df.groupby(0)[df.columns[1:3]].mean()
+        result2 = df.groupby(0)[2, 4].mean()
+        result3 = df.groupby(0)[[2, 4]].mean()
+
+        expected = df.ix[:, [0, 2, 4]].groupby(0).mean()
 
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
@@ -4308,6 +4459,16 @@ class TestGroupBy(tm.TestCase):
         xp = df.groupby(labels).median()
         assert_frame_equal(rs, xp)
 
+    def test_median_empty_bins(self):
+        df = pd.DataFrame(np.random.randint(0, 44, 500))
+
+        grps = range(0, 55, 5)
+        bins = pd.cut(df[0], grps)
+
+        result = df.groupby(bins).median()
+        expected = df.groupby(bins).agg(lambda x: x.median())
+        assert_frame_equal(result, expected)
+
     def test_groupby_categorical_no_compress(self):
         data = Series(np.random.randn(9))
 
@@ -4548,6 +4709,15 @@ class TestGroupBy(tm.TestCase):
         grouper = pd.tseries.resample.TimeGrouper('D')
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
+
+    def test_groupby_with_single_column(self):
+        df = pd.DataFrame({'a': list('abssbab')})
+        tm.assert_frame_equal(df.groupby('a').get_group('a'), df.iloc[[0, 5]])
+        # GH 13530
+        exp = pd.DataFrame([], index=pd.Index(['a', 'b', 's'], name='a'))
+        tm.assert_frame_equal(df.groupby('a').count(), exp)
+        tm.assert_frame_equal(df.groupby('a').sum(), exp)
+        tm.assert_frame_equal(df.groupby('a').nth(1), exp)
 
     def test_groupby_with_small_elem(self):
         # GH 8542
@@ -4989,8 +5159,8 @@ class TestGroupBy(tm.TestCase):
         ge = DataFrame().groupby(level=0)
         se = Series().groupby(level=0)
 
-        e = Series(dtype='int64'
-                   )  # edge case, as this is usually considered float
+        # edge case, as this is usually considered float
+        e = Series(dtype='int64')
 
         assert_series_equal(e, ge.cumcount())
         assert_series_equal(e, se.cumcount())
@@ -5854,22 +6024,22 @@ class TestGroupBy(tm.TestCase):
         # orders=True, na_position='last'
         result = _lexsort_indexer(keys, orders=True, na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
         # orders=True, na_position='first'
         result = _lexsort_indexer(keys, orders=True, na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, np.array(exp))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
         # orders=False, na_position='last'
         result = _lexsort_indexer(keys, orders=False, na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
         # orders=False, na_position='first'
         result = _lexsort_indexer(keys, orders=False, na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
-        tm.assert_numpy_array_equal(result, np.array(exp))
+        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
     def test_nargsort(self):
         # np.argsort(items) places NaNs last
@@ -5896,49 +6066,49 @@ class TestGroupBy(tm.TestCase):
         result = _nargsort(items, kind='mergesort', ascending=True,
                            na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='first'
         result = _nargsort(items, kind='mergesort', ascending=True,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='last'
         result = _nargsort(items, kind='mergesort', ascending=False,
                            na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='first'
         result = _nargsort(items, kind='mergesort', ascending=False,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='last'
         result = _nargsort(items2, kind='mergesort', ascending=True,
                            na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='first'
         result = _nargsort(items2, kind='mergesort', ascending=True,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='last'
         result = _nargsort(items2, kind='mergesort', ascending=False,
                            na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='first'
         result = _nargsort(items2, kind='mergesort', ascending=False,
                            na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
     def test_datetime_count(self):
         df = DataFrame({'a': [1, 2, 3] * 2,
@@ -6005,6 +6175,27 @@ class TestGroupBy(tm.TestCase):
                 tm.assert_frame_equal(result, expected)
             except BaseException as exc:
                 exc.args += ('operation: %s' % op, )
+                raise
+
+    def test_cython_agg_empty_buckets(self):
+        ops = [('mean', np.mean),
+               ('median', np.median),
+               ('var', lambda x: np.var(x, ddof=1)),
+               ('add', lambda x: np.sum(x) if len(x) > 0 else np.nan),
+               ('prod', np.prod),
+               ('min', np.min),
+               ('max', np.max), ]
+
+        df = pd.DataFrame([11, 12, 13])
+        grps = range(0, 55, 5)
+
+        for op, targop in ops:
+            result = df.groupby(pd.cut(df[0], grps))._cython_agg_general(op)
+            expected = df.groupby(pd.cut(df[0], grps)).agg(lambda x: targop(x))
+            try:
+                tm.assert_frame_equal(result, expected)
+            except BaseException as exc:
+                exc.args += ('operation: %s' % op,)
                 raise
 
     def test_cython_group_transform_algos(self):
@@ -6107,7 +6298,7 @@ class TestGroupBy(tm.TestCase):
                 # bit a of hack to make sure the cythonized shift
                 # is equivalent to pre 0.17.1 behavior
                 if op == 'shift':
-                    gb._set_selection_from_grouper()
+                    gb._set_group_selection()
 
                 for (op, args), targop in ops:
                     if op != 'shift' and 'int' not in gb_target:
@@ -6275,7 +6466,8 @@ class TestGroupBy(tm.TestCase):
         groups_double_key = test.groupby(["cat", "ints"])
         res = groups_double_key.agg('mean')
         exp = DataFrame({"val": [10, 30, 20, 40, np.nan, np.nan],
-                         "cat": ["a", "a", "b", "b", "c", "c"],
+                         "cat": pd.Categorical(["a", "a", "b", "b", "c", "c"],
+                                               ordered=True),
                          "ints": [1, 2, 1, 2, 1, 2]}).set_index(["cat", "ints"
                                                                  ])
         tm.assert_frame_equal(res, exp)
@@ -6295,14 +6487,99 @@ class TestGroupBy(tm.TestCase):
 
         res = groups_double_key.agg('mean')
         nan = np.nan
-        idx = MultiIndex.from_product([["(1, 2]", "(2, 3]", "(3, 6]"],
-                                       [1, 2, 3, 4]],
-                                      names=["cat", "C2"])
+        idx = MultiIndex.from_product(
+            [Categorical(["(1, 2]", "(2, 3]", "(3, 6]"], ordered=True),
+             [1, 2, 3, 4]],
+            names=["cat", "C2"])
         exp = DataFrame({"C1": [nan, nan, nan, nan, 3, 3,
                                 nan, nan, nan, nan, 4, 5],
                          "C3": [nan, nan, nan, nan, 10, 100,
                                 nan, nan, nan, nan, 200, 34]}, index=idx)
         tm.assert_frame_equal(res, exp)
+
+    def test_groupby_multi_categorical_as_index(self):
+        # GH13204
+        df = DataFrame({'cat': Categorical([1, 2, 2], [1, 2, 3]),
+                        'A': [10, 11, 11],
+                        'B': [101, 102, 103]})
+        result = df.groupby(['cat', 'A'], as_index=False).sum()
+        expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
+                              'A': [10, 11, 10, 11, 10, 11],
+                              'B': [101.0, nan, nan, 205.0, nan, nan]},
+                             columns=['cat', 'A', 'B'])
+        tm.assert_frame_equal(result, expected)
+
+        # function grouper
+        f = lambda r: df.loc[r, 'A']
+        result = df.groupby(['cat', f], as_index=False).sum()
+        expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
+                              'A': [10.0, nan, nan, 22.0, nan, nan],
+                              'B': [101.0, nan, nan, 205.0, nan, nan]},
+                             columns=['cat', 'A', 'B'])
+        tm.assert_frame_equal(result, expected)
+
+        # another not in-axis grouper (conflicting names in index)
+        s = Series(['a', 'b', 'b'], name='cat')
+        result = df.groupby(['cat', s], as_index=False).sum()
+        expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
+                              'A': [10.0, nan, nan, 22.0, nan, nan],
+                              'B': [101.0, nan, nan, 205.0, nan, nan]},
+                             columns=['cat', 'A', 'B'])
+        tm.assert_frame_equal(result, expected)
+
+        # is original index dropped?
+        expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
+                              'A': [10, 11, 10, 11, 10, 11],
+                              'B': [101.0, nan, nan, 205.0, nan, nan]},
+                             columns=['cat', 'A', 'B'])
+
+        for name in [None, 'X', 'B', 'cat']:
+            df.index = Index(list("abc"), name=name)
+            result = df.groupby(['cat', 'A'], as_index=False).sum()
+            tm.assert_frame_equal(result, expected, check_index_type=True)
+
+    def test_groupby_preserve_categorical_dtype(self):
+        # GH13743, GH13854
+        df = DataFrame({'A': [1, 2, 1, 1, 2],
+                        'B': [10, 16, 22, 28, 34],
+                        'C1': Categorical(list("abaab"),
+                                          categories=list("bac"),
+                                          ordered=False),
+                        'C2': Categorical(list("abaab"),
+                                          categories=list("bac"),
+                                          ordered=True)})
+        # single grouper
+        exp_full = DataFrame({'A': [2.0, 1.0, np.nan],
+                              'B': [25.0, 20.0, np.nan],
+                              'C1': Categorical(list("bac"),
+                                                categories=list("bac"),
+                                                ordered=False),
+                              'C2': Categorical(list("bac"),
+                                                categories=list("bac"),
+                                                ordered=True)})
+        for col in ['C1', 'C2']:
+            result1 = df.groupby(by=col, as_index=False).mean()
+            result2 = df.groupby(by=col, as_index=True).mean().reset_index()
+            expected = exp_full.reindex(columns=result1.columns)
+            tm.assert_frame_equal(result1, expected)
+            tm.assert_frame_equal(result2, expected)
+
+        # multiple grouper
+        exp_full = DataFrame({'A': [1, 1, 1, 2, 2, 2],
+                              'B': [np.nan, 20.0, np.nan, 25.0, np.nan,
+                                    np.nan],
+                              'C1': Categorical(list("bacbac"),
+                                                categories=list("bac"),
+                                                ordered=False),
+                              'C2': Categorical(list("bacbac"),
+                                                categories=list("bac"),
+                                                ordered=True)})
+        for cols in [['A', 'C1'], ['A', 'C2']]:
+            result1 = df.groupby(by=cols, as_index=False).mean()
+            result2 = df.groupby(by=cols, as_index=True).mean().reset_index()
+            expected = exp_full.reindex(columns=result1.columns)
+            tm.assert_frame_equal(result1, expected)
+            tm.assert_frame_equal(result2, expected)
 
     def test_groupby_apply_all_none(self):
         # Tests to make sure no errors if apply function returns all None
@@ -6430,6 +6707,37 @@ class TestGroupBy(tm.TestCase):
                                   getattr(g, func), 1, 2, 3)
             tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
                                   getattr(g, func), foo=1)
+
+    def test_grouping_string_repr(self):
+        # GH 13394
+        mi = MultiIndex.from_arrays([list("AAB"), list("aba")])
+        df = DataFrame([[1, 2, 3]], columns=mi)
+        gr = df.groupby(df[('A', 'a')])
+
+        result = gr.grouper.groupings[0].__repr__()
+        expected = "Grouping(('A', 'a'))"
+        tm.assert_equal(result, expected)
+
+    def test_group_shift_with_null_key(self):
+        # This test is designed to replicate the segfault in issue #13813.
+        n_rows = 1200
+
+        # Generate a moderately large dataframe with occasional missing
+        # values in column `B`, and then group by [`A`, `B`]. This should
+        # force `-1` in `labels` array of `g.grouper.group_info` exactly
+        # at those places, where the group-by key is partilly missing.
+        df = DataFrame([(i % 12, i % 3 if i % 3 else np.nan, i)
+                        for i in range(n_rows)], dtype=float,
+                       columns=["A", "B", "Z"], index=None)
+        g = df.groupby(["A", "B"])
+
+        expected = DataFrame([(i + 12 if i % 3 and i < n_rows - 12
+                              else np.nan)
+                             for i in range(n_rows)], dtype=float,
+                             columns=["Z"], index=None)
+        result = g.shift(-1)
+
+        assert_frame_equal(result, expected)
 
 
 def assert_fp_equal(a, b):

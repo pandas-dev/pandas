@@ -1306,43 +1306,47 @@ class PandasJSONTests(TestCase):
 
         # column indexed
         outp = Series(ujson.decode(ujson.encode(s))).sort_values()
-        self.assertTrue((s == outp).values.all())
+        exp = Series([10, 20, 30, 40, 50, 60],
+                     index=['6', '7', '8', '9', '10', '15'])
+        tm.assert_series_equal(outp, exp)
 
         outp = Series(ujson.decode(ujson.encode(s), numpy=True)).sort_values()
-        self.assertTrue((s == outp).values.all())
+        tm.assert_series_equal(outp, exp)
 
         dec = _clean_dict(ujson.decode(ujson.encode(s, orient="split")))
         outp = Series(**dec)
-        self.assertTrue((s == outp).values.all())
-        self.assertTrue(s.name == outp.name)
+        tm.assert_series_equal(outp, s)
 
         dec = _clean_dict(ujson.decode(ujson.encode(s, orient="split"),
                                        numpy=True))
         outp = Series(**dec)
-        self.assertTrue((s == outp).values.all())
-        self.assertTrue(s.name == outp.name)
 
-        outp = Series(ujson.decode(ujson.encode(
-            s, orient="records"), numpy=True))
-        self.assertTrue((s == outp).values.all())
+        exp_np = Series(np.array([10, 20, 30, 40, 50, 60]))
+        exp_pd = Series([10, 20, 30, 40, 50, 60])
+        outp = Series(ujson.decode(ujson.encode(s, orient="records"),
+                                   numpy=True))
+        tm.assert_series_equal(outp, exp_np)
 
         outp = Series(ujson.decode(ujson.encode(s, orient="records")))
-        self.assertTrue((s == outp).values.all())
+        exp = Series([10, 20, 30, 40, 50, 60])
+        tm.assert_series_equal(outp, exp_pd)
 
-        outp = Series(ujson.decode(
-            ujson.encode(s, orient="values"), numpy=True))
-        self.assertTrue((s == outp).values.all())
+        outp = Series(ujson.decode(ujson.encode(s, orient="values"),
+                                   numpy=True))
+        tm.assert_series_equal(outp, exp_np)
 
         outp = Series(ujson.decode(ujson.encode(s, orient="values")))
-        self.assertTrue((s == outp).values.all())
+        tm.assert_series_equal(outp, exp_pd)
 
         outp = Series(ujson.decode(ujson.encode(
             s, orient="index"))).sort_values()
-        self.assertTrue((s == outp).values.all())
+        exp = Series([10, 20, 30, 40, 50, 60],
+                     index=['6', '7', '8', '9', '10', '15'])
+        tm.assert_series_equal(outp, exp)
 
         outp = Series(ujson.decode(ujson.encode(
             s, orient="index"), numpy=True)).sort_values()
-        self.assertTrue((s == outp).values.all())
+        tm.assert_series_equal(outp, exp)
 
     def testSeriesNested(self):
         s = Series([10, 20, 30, 40, 50, 60], name="series",

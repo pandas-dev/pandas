@@ -3,6 +3,8 @@ Module that contains many useful utilities
 for validating data or function arguments
 """
 
+from pandas.types.common import is_bool
+
 
 def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
     """
@@ -35,8 +37,6 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
     checked that arg_val_dict.keys() is a subset of compat_args
 
     """
-    from pandas.core.common import is_bool
-
     for key in arg_val_dict:
         # try checking equality directly with '=' operator,
         # as comparison may have been overriden for the left

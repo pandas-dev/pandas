@@ -52,7 +52,7 @@ class TestUnsupportedFeatures(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), sep='\s', dtype={'a': float})
         with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), skip_footer=1, dtype={'a': float})
+            read_table(StringIO(data), skipfooter=1, dtype={'a': float})
 
         # specify C engine with unsupported options (raise)
         with tm.assertRaisesRegexp(ValueError, msg):
@@ -61,7 +61,7 @@ class TestUnsupportedFeatures(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), engine='c', sep='\s')
         with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), engine='c', skip_footer=1)
+            read_table(StringIO(data), engine='c', skipfooter=1)
 
         # specify C-unsupported options without python-unsupported options
         with tm.assert_produces_warning(parsers.ParserWarning):
@@ -69,7 +69,7 @@ class TestUnsupportedFeatures(tm.TestCase):
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_table(StringIO(data), sep='\s')
         with tm.assert_produces_warning(parsers.ParserWarning):
-            read_table(StringIO(data), skip_footer=1)
+            read_table(StringIO(data), skipfooter=1)
 
         text = """                      A       B       C       D        E
 one two three   four
@@ -127,6 +127,7 @@ class TestDeprecatedFeatures(tm.TestCase):
             'as_recarray': True,
             'buffer_lines': True,
             'compact_ints': True,
+            'skip_footer': True,
             'use_unsigned': True,
         }
 
@@ -134,8 +135,12 @@ class TestDeprecatedFeatures(tm.TestCase):
 
         for engine in engines:
             for arg, non_default_val in deprecated.items():
+                if engine == 'c' and arg == 'skip_footer':
+                    # unsupported --> exception is raised
+                    continue
+
                 if engine == 'python' and arg == 'buffer_lines':
-                    # unsupported --> exception is raised first
+                    # unsupported --> exception is raised
                     continue
 
                 with tm.assert_produces_warning(

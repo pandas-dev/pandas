@@ -8,18 +8,19 @@ from __future__ import print_function, division
 from datetime import datetime, date, time
 
 import warnings
-import traceback
 import re
 import numpy as np
 
 import pandas.lib as lib
-import pandas.core.common as com
-from pandas.compat import (lzip, map, zip, raise_with_traceback,
+from pandas.types.missing import isnull
+from pandas.types.dtypes import DatetimeTZDtype
+from pandas.types.common import (is_list_like, is_dict_like,
+                                 is_datetime64tz_dtype)
+
+from pandas.compat import (map, zip, raise_with_traceback,
                            string_types, text_type)
 from pandas.core.api import DataFrame, Series
-from pandas.core.common import isnull
 from pandas.core.base import PandasObject
-from pandas.types.api import DatetimeTZDtype
 from pandas.tseries.tools import to_datetime
 
 from contextlib import contextmanager
@@ -37,6 +38,24 @@ class DatabaseError(IOError):
 # -- Helper functions
 
 _SQLALCHEMY_INSTALLED = None
+
+
+def _validate_flavor_parameter(flavor):
+    """
+    Checks whether a database 'flavor' was specified.
+    If not None, produces FutureWarning if 'sqlite' and
+    raises a ValueError if anything else.
+    """
+    if flavor is not None:
+        if flavor == 'sqlite':
+            warnings.warn("the 'flavor' parameter is deprecated "
+                          "and will be removed in a future version, "
+                          "as 'sqlite' is the only supported option "
+                          "when SQLAlchemy is not installed.",
+                          FutureWarning, stacklevel=2)
+        else:
+            raise ValueError("database flavor {flavor} is not "
+                             "supported".format(flavor=flavor))
 
 
 def _is_sqlalchemy_connectable(con):
@@ -90,7 +109,7 @@ def _handle_date_column(col, format=None):
             # parse dates as timestamp
             format = 's' if format is None else format
             return to_datetime(col, errors='coerce', unit=format, utc=True)
-        elif com.is_datetime64tz_dtype(col):
+        elif is_datetime64tz_dtype(col):
             # coerce to UTC timezone
             # GH11216
             return (to_datetime(col, errors='coerce')
@@ -123,7 +142,7 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.iteritems():
-        if com.is_datetime64tz_dtype(df_col):
+        if is_datetime64tz_dtype(df_col):
             data_frame[col_name] = _handle_date_column(df_col)
 
     return data_frame
@@ -170,125 +189,6 @@ def execute(sql, con, cur=None, params=None):
         pandas_sql = pandasSQL_builder(cur, is_cursor=True)
     args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
-
-
-# -----------------------------------------------------------------------------
-# -- Deprecated tquery and uquery
-
-def _safe_fetch(cur):
-    try:
-        result = cur.fetchall()
-        if not isinstance(result, list):
-            result = list(result)
-        return result
-    except Exception as e:  # pragma: no cover
-        excName = e.__class__.__name__
-        if excName == 'OperationalError':
-            return []
-
-
-def tquery(sql, con=None, cur=None, retry=True):
-    """
-    DEPRECATED. Returns list of tuples corresponding to each row in given sql
-    query.
-
-    If only one column selected, then plain list is returned.
-
-    To obtain the same result in the future, you can use the following:
-
-    >>> execute(sql, con, params).fetchall()
-
-    Parameters
-    ----------
-    sql: string
-        SQL query to be executed
-    con: DBAPI2 connection, default: None
-    cur: deprecated, cursor is obtained from connection, default: None
-    retry: boolean value to specify whether to retry after failure
-        default: True
-
-    Returns
-    -------
-    Results Iterable
-
-    """
-    warnings.warn(
-        "tquery is deprecated, and will be removed in future versions. "
-        "You can use ``execute(...).fetchall()`` instead.",
-        FutureWarning, stacklevel=2)
-
-    cur = execute(sql, con, cur=cur)
-    result = _safe_fetch(cur)
-
-    if con is not None:
-        try:
-            cur.close()
-            con.commit()
-        except Exception as e:
-            excName = e.__class__.__name__
-            if excName == 'OperationalError':  # pragma: no cover
-                print('Failed to commit, may need to restart interpreter')
-            else:
-                raise
-
-            traceback.print_exc()
-            if retry:
-                return tquery(sql, con=con, retry=False)
-
-    if result and len(result[0]) == 1:
-        # python 3 compat
-        result = list(lzip(*result)[0])
-    elif result is None:  # pragma: no cover
-        result = []
-
-    return result
-
-
-def uquery(sql, con=None, cur=None, retry=True, params=None):
-    """
-    DEPRECATED. Does the same thing as tquery, but instead of returning
-    results, it returns the number of rows affected.  Good for update queries.
-
-    To obtain the same result in the future, you can use the following:
-
-    >>> execute(sql, con).rowcount
-
-    Parameters
-    ----------
-    sql: string
-        SQL query to be executed
-    con: DBAPI2 connection, default: None
-    cur: deprecated, cursor is obtained from connection, default: None
-    retry: boolean value to specify whether to retry after failure
-        default: True
-    params: list or tuple, optional, default: None
-        List of parameters to pass to execute method.
-
-    Returns
-    -------
-    Number of affected rows
-
-    """
-    warnings.warn(
-        "uquery is deprecated, and will be removed in future versions. "
-        "You can use ``execute(...).rowcount`` instead.",
-        FutureWarning, stacklevel=2)
-
-    cur = execute(sql, con, cur=cur, params=params)
-
-    result = cur.rowcount
-    try:
-        con.commit()
-    except Exception as e:
-        excName = e.__class__.__name__
-        if excName != 'OperationalError':
-            raise
-
-        traceback.print_exc()
-        if retry:
-            print('Looks like your connection failed, reconnecting...')
-            return uquery(sql, con, retry=False)
-    return result
 
 
 # -----------------------------------------------------------------------------
@@ -515,7 +415,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
             chunksize=chunksize)
 
 
-def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
+def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
            index=True, index_label=None, chunksize=None, dtype=None):
     """
     Write records stored in a DataFrame to a SQL database.
@@ -530,10 +430,8 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    flavor : {'sqlite', 'mysql'}, default 'sqlite'
-        The flavor of SQL to use. Ignored when using SQLAlchemy connectable.
-        'mysql' is deprecated and will be removed in future versions, but it
-        will be further supported through SQLAlchemy connectables.
+    flavor : 'sqlite', default None
+        DEPRECATED: this parameter will be removed in a future version
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
@@ -550,9 +448,10 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
     chunksize : int, default None
         If not None, then rows will be written in batches of this size at a
         time.  If None, all rows will be written at once.
-    dtype : dict of column name to SQL type, default None
+    dtype : single SQLtype or dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
+        If all columns are of the same type, one single value can be used.
 
     """
     if if_exists not in ('fail', 'replace', 'append'):
@@ -571,7 +470,7 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
                       chunksize=chunksize, dtype=dtype)
 
 
-def has_table(table_name, con, flavor='sqlite', schema=None):
+def has_table(table_name, con, flavor=None, schema=None):
     """
     Check if DataBase has named table.
 
@@ -583,10 +482,8 @@ def has_table(table_name, con, flavor='sqlite', schema=None):
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    flavor: {'sqlite', 'mysql'}, default 'sqlite'
-        The flavor of SQL to use. Ignored when using SQLAlchemy connectable.
-        'mysql' is deprecated and will be removed in future versions, but it
-        will be further supported through SQLAlchemy connectables.
+    flavor : 'sqlite', default None
+        DEPRECATED: this parameter will be removed in a future version
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor supports
         this). If None, use default schema (default).
@@ -599,12 +496,6 @@ def has_table(table_name, con, flavor='sqlite', schema=None):
     return pandas_sql.has_table(table_name)
 
 table_exists = has_table
-
-
-_MYSQL_WARNING = ("The 'mysql' flavor with DBAPI connection is deprecated "
-                  "and will be removed in future versions. "
-                  "MySQL will be further supported with SQLAlchemy "
-                  "connectables.")
 
 
 def _engine_builder(con):
@@ -630,15 +521,17 @@ def pandasSQL_builder(con, flavor=None, schema=None, meta=None,
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters
     """
+    _validate_flavor_parameter(flavor)
+
     # When support for DBAPI connections is removed,
     # is_cursor should not be necessary.
     con = _engine_builder(con)
     if _is_sqlalchemy_connectable(con):
         return SQLDatabase(con, schema=schema, meta=meta)
+    elif isinstance(con, string_types):
+        raise ImportError("Using URI string without sqlalchemy installed.")
     else:
-        if flavor == 'mysql':
-            warnings.warn(_MYSQL_WARNING, FutureWarning, stacklevel=3)
-        return SQLiteDatabase(con, flavor, is_cursor=is_cursor)
+        return SQLiteDatabase(con, is_cursor=is_cursor)
 
 
 class SQLTable(PandasObject):
@@ -876,7 +769,7 @@ class SQLTable(PandasObject):
                    for name, typ, is_index in column_names_and_types]
 
         if self.keys is not None:
-            if not com.is_list_like(self.keys):
+            if not is_list_like(self.keys):
                 keys = [self.keys]
             else:
                 keys = self.keys
@@ -1033,11 +926,11 @@ class PandasSQL(PandasObject):
 
     def read_sql(self, *args, **kwargs):
         raise ValueError("PandasSQL must be created with an SQLAlchemy "
-                         "connectable  or connection+sql flavor")
+                         "connectable or sqlite connection")
 
     def to_sql(self, *args, **kwargs):
         raise ValueError("PandasSQL must be created with an SQLAlchemy "
-                         "connectable or connection+sql flavor")
+                         "connectable or sqlite connection")
 
 
 class SQLDatabase(PandasSQL):
@@ -1231,11 +1124,15 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If not None, then rows will be written in batches of this size at a
             time.  If None, all rows will be written at once.
-        dtype : dict of column name to SQL type, default None
+        dtype : single type or dict of column name to SQL type, default None
             Optional specifying the datatype for columns. The SQL type should
-            be a SQLAlchemy type.
+            be a SQLAlchemy type. If all columns are of the same type, one
+            single value can be used.
 
         """
+        if dtype and not is_dict_like(dtype):
+            dtype = {col_name: dtype for col_name in frame}
+
         if dtype is not None:
             from sqlalchemy.types import to_instance, TypeEngine
             for col, my_type in dtype.items():
@@ -1306,38 +1203,16 @@ class SQLDatabase(PandasSQL):
 
 
 # ---- SQL without SQLAlchemy ---
-# Flavour specific sql strings and handler class for access to DBs without
-# SQLAlchemy installed
-# SQL type convertions for each DB
+# sqlite-specific sql strings and handler class
+# dictionary used for readability purposes
 _SQL_TYPES = {
-    'string': {
-        'mysql': 'VARCHAR (63)',
-        'sqlite': 'TEXT',
-    },
-    'floating': {
-        'mysql': 'DOUBLE',
-        'sqlite': 'REAL',
-    },
-    'integer': {
-        'mysql': 'BIGINT',
-        'sqlite': 'INTEGER',
-    },
-    'datetime': {
-        'mysql': 'DATETIME',
-        'sqlite': 'TIMESTAMP',
-    },
-    'date': {
-        'mysql': 'DATE',
-        'sqlite': 'DATE',
-    },
-    'time': {
-        'mysql': 'TIME',
-        'sqlite': 'TIME',
-    },
-    'boolean': {
-        'mysql': 'BOOLEAN',
-        'sqlite': 'INTEGER',
-    }
+    'string': 'TEXT',
+    'floating': 'REAL',
+    'integer': 'INTEGER',
+    'datetime': 'TIMESTAMP',
+    'date': 'DATE',
+    'time': 'TIME',
+    'boolean': 'INTEGER',
 }
 
 
@@ -1347,22 +1222,6 @@ def _get_unicode_name(name):
     except UnicodeError:
         raise ValueError("Cannot convert identifier to UTF-8: '%s'" % name)
     return uname
-
-
-def _get_valid_mysql_name(name):
-    # Filter for unquoted identifiers
-    # See http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
-    uname = _get_unicode_name(name)
-    if not len(uname):
-        raise ValueError("Empty table or column name specified")
-
-    basere = r'[0-9,a-z,A-Z$_]'
-    for c in uname:
-        if not re.match(basere, c):
-            if not (0x80 < ord(c) < 0xFFFF):
-                raise ValueError("Invalid MySQL identifier '%s'" % uname)
-
-    return '`' + uname + '`'
 
 
 def _get_valid_sqlite_name(name):
@@ -1381,19 +1240,6 @@ def _get_valid_sqlite_name(name):
     if nul_index >= 0:
         raise ValueError('SQLite identifier cannot contain NULs')
     return '"' + uname.replace('"', '""') + '"'
-
-
-# SQL enquote and wildcard symbols
-_SQL_WILDCARD = {
-    'mysql': '%s',
-    'sqlite': '?'
-}
-
-# Validate and return escaped identifier
-_SQL_GET_IDENTIFIER = {
-    'mysql': _get_valid_mysql_name,
-    'sqlite': _get_valid_sqlite_name,
-}
 
 
 _SAFE_NAMES_WARNING = ("The spaces in these column names will not be changed. "
@@ -1426,9 +1272,8 @@ class SQLiteTable(SQLTable):
 
     def insert_statement(self):
         names = list(map(text_type, self.frame.columns))
-        flv = self.pd_sql.flavor
-        wld = _SQL_WILDCARD[flv]  # wildcard char
-        escape = _SQL_GET_IDENTIFIER[flv]
+        wld = '?'  # wildcard char
+        escape = _get_valid_sqlite_name
 
         if self.index is not None:
             [names.insert(0, idx) for idx in self.index[::-1]]
@@ -1458,14 +1303,13 @@ class SQLiteTable(SQLTable):
         if any(map(pat.search, column_names)):
             warnings.warn(_SAFE_NAMES_WARNING, stacklevel=6)
 
-        flv = self.pd_sql.flavor
-        escape = _SQL_GET_IDENTIFIER[flv]
+        escape = _get_valid_sqlite_name
 
         create_tbl_stmts = [escape(cname) + ' ' + ctype
                             for cname, ctype, _ in column_names_and_types]
 
         if self.keys is not None and len(self.keys):
-            if not com.is_list_like(self.keys):
+            if not is_list_like(self.keys):
                 keys = [self.keys]
             else:
                 keys = self.keys
@@ -1512,7 +1356,7 @@ class SQLiteTable(SQLTable):
         if col_type not in _SQL_TYPES:
             col_type = "string"
 
-        return _SQL_TYPES[col_type][self.pd_sql.flavor]
+        return _SQL_TYPES[col_type]
 
 
 class SQLiteDatabase(PandasSQL):
@@ -1520,25 +1364,17 @@ class SQLiteDatabase(PandasSQL):
     Version of SQLDatabase to support sqlite connections (fallback without
     sqlalchemy). This should only be used internally.
 
-    For now still supports `flavor` argument to deal with 'mysql' database
-    for backwards compatibility, but this will be removed in future versions.
-
     Parameters
     ----------
     con : sqlite connection object
 
     """
 
-    def __init__(self, con, flavor, is_cursor=False):
+    def __init__(self, con, flavor=None, is_cursor=False):
+        _validate_flavor_parameter(flavor)
+
         self.is_cursor = is_cursor
         self.con = con
-        if flavor is None:
-            flavor = 'sqlite'
-        if flavor not in ['sqlite', 'mysql']:
-            raise NotImplementedError("flavors other than SQLite and MySQL "
-                                      "are not supported")
-        else:
-            self.flavor = flavor
 
     @contextmanager
     def run_transaction(self):
@@ -1644,11 +1480,15 @@ class SQLiteDatabase(PandasSQL):
         chunksize : int, default None
             If not None, then rows will be written in batches of this
             size at a time. If None, all rows will be written at once.
-        dtype : dict of column name to SQL type, default None
+        dtype : single type or dict of column name to SQL type, default None
             Optional specifying the datatype for columns. The SQL type should
-            be a string.
+            be a string. If all columns are of the same type, one single value
+            can be used.
 
         """
+        if dtype and not is_dict_like(dtype):
+            dtype = {col_name: dtype for col_name in frame}
+
         if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
@@ -1663,15 +1503,12 @@ class SQLiteDatabase(PandasSQL):
 
     def has_table(self, name, schema=None):
         # TODO(wesm): unused?
-        # escape = _SQL_GET_IDENTIFIER[self.flavor]
+        # escape = _get_valid_sqlite_name
         # esc_name = escape(name)
 
-        wld = _SQL_WILDCARD[self.flavor]
-        flavor_map = {
-            'sqlite': ("SELECT name FROM sqlite_master "
-                       "WHERE type='table' AND name=%s;") % wld,
-            'mysql': "SHOW TABLES LIKE %s" % wld}
-        query = flavor_map.get(self.flavor)
+        wld = '?'
+        query = ("SELECT name FROM sqlite_master "
+                 "WHERE type='table' AND name=%s;") % wld
 
         return len(self.execute(query, [name, ]).fetchall()) > 0
 
@@ -1679,8 +1516,7 @@ class SQLiteDatabase(PandasSQL):
         return None  # not supported in fallback mode
 
     def drop_table(self, name, schema=None):
-        escape = _SQL_GET_IDENTIFIER[self.flavor]
-        drop_sql = "DROP TABLE %s" % escape(name)
+        drop_sql = "DROP TABLE %s" % _get_valid_sqlite_name(name)
         self.execute(drop_sql)
 
     def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
@@ -1689,7 +1525,7 @@ class SQLiteDatabase(PandasSQL):
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, flavor='sqlite', keys=None, con=None, dtype=None):
+def get_schema(frame, name, flavor=None, keys=None, con=None, dtype=None):
     """
     Get the SQL db table schema for the given frame.
 
@@ -1698,16 +1534,14 @@ def get_schema(frame, name, flavor='sqlite', keys=None, con=None, dtype=None):
     frame : DataFrame
     name : string
         name of SQL table
-    flavor : {'sqlite', 'mysql'}, default 'sqlite'
-        The flavor of SQL to use. Ignored when using SQLAlchemy connectable.
-        'mysql' is deprecated and will be removed in future versions, but it
-        will be further supported through SQLAlchemy engines.
     keys : string or sequence, default: None
         columns to use a primary key
     con: an open SQL database connection object or a SQLAlchemy connectable
         Using SQLAlchemy makes it possible to use any DB supported by that
         library, default: None
         If a DBAPI2 object, only sqlite3 is supported.
+    flavor : 'sqlite', default None
+        DEPRECATED: this parameter will be removed in a future version
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.

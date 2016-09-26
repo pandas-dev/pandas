@@ -7,7 +7,7 @@
    from datetime import datetime, timedelta, time
    import numpy as np
    import pandas as pd
-   from pandas import datetools
+   from pandas import offsets
    np.random.seed(123456)
    randn = np.random.randn
    randint = np.random.randint
@@ -544,8 +544,8 @@ There are several time/date properties that one can access from ``Timestamp`` or
     second,"The seconds of the datetime"
     microsecond,"The microseconds of the datetime"
     nanosecond,"The nanoseconds of the datetime"
-    date,"Returns datetime.date"
-    time,"Returns datetime.time"
+    date,"Returns datetime.date (does not contain timezone information)"
+    time,"Returns datetime.time (does not contain timezone information)"
     dayofyear,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
@@ -560,6 +560,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_quarter_end,"Logical indicating if last day of quarter (defined by frequency)"
     is_year_start,"Logical indicating if first day of year (defined by frequency)"
     is_year_end,"Logical indicating if last day of year (defined by frequency)"
+    is_leap_year,"Logical indicating if the date belongs to a leap year"
 
 Furthermore, if you have a ``Series`` with datetimelike values, then you can access these properties via the ``.dt`` accessor, see the :ref:`docs <basics.dt_accessors>`
 
@@ -567,11 +568,11 @@ DateOffset objects
 ------------------
 
 In the preceding examples, we created DatetimeIndex objects at various
-frequencies by passing in frequency strings like 'M', 'W', and 'BM to the
-``freq`` keyword. Under the hood, these frequency strings are being translated
-into an instance of pandas ``DateOffset``, which represents a regular
-frequency increment. Specific offset logic like "month", "business day", or
-"one hour" is represented in its various subclasses.
+frequencies by passing in :ref:`frequency strings <timeseries.offset_aliases>`
+like 'M', 'W', and 'BM to the ``freq`` keyword. Under the hood, these frequency
+strings are being translated into an instance of pandas ``DateOffset``,
+which represents a regular frequency increment. Specific offset logic like
+"month", "business day", or "one hour" is represented in its various subclasses.
 
 .. csv-table::
     :header: "Class name", "Description"
@@ -752,7 +753,7 @@ calculate significantly slower and will raise a ``PerformanceWarning``
    rng + BQuarterEnd()
 
 
-.. _timeseries.alias:
+.. _timeseries.custombusinessdays:
 
 Custom Business Days (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -953,6 +954,8 @@ You can use keyword arguments suported by either ``BusinessHour`` and ``CustomBu
     # Monday is skipped because it's a holiday, business hour starts from 10:00
     dt + bhour_mon * 2
 
+.. _timeseries.offset_aliases:
+
 Offset Aliases
 ~~~~~~~~~~~~~~
 
@@ -1103,48 +1106,6 @@ it is rolled forward to the next anchor point.
    pd.Timestamp('2014-01-01') + MonthBegin(n=0)
    pd.Timestamp('2014-01-31') + MonthEnd(n=0)
 
-.. _timeseries.legacyaliases:
-
-Legacy Aliases
-~~~~~~~~~~~~~~
-Note that prior to v0.8.0, time rules had a slightly different look. These are
-deprecated in v0.17.0, and removed in future version.
-
-.. csv-table::
-    :header: "Legacy Time Rule", "Offset Alias"
-    :widths: 15, 65
-
-    "WEEKDAY", "B"
-    "EOM", "BM"
-    "W\@MON", "W\-MON"
-    "W\@TUE", "W\-TUE"
-    "W\@WED", "W\-WED"
-    "W\@THU", "W\-THU"
-    "W\@FRI", "W\-FRI"
-    "W\@SAT", "W\-SAT"
-    "W\@SUN", "W\-SUN"
-    "Q\@JAN", "BQ\-JAN"
-    "Q\@FEB", "BQ\-FEB"
-    "Q\@MAR", "BQ\-MAR"
-    "A\@JAN", "BA\-JAN"
-    "A\@FEB", "BA\-FEB"
-    "A\@MAR", "BA\-MAR"
-    "A\@APR", "BA\-APR"
-    "A\@MAY", "BA\-MAY"
-    "A\@JUN", "BA\-JUN"
-    "A\@JUL", "BA\-JUL"
-    "A\@AUG", "BA\-AUG"
-    "A\@SEP", "BA\-SEP"
-    "A\@OCT", "BA\-OCT"
-    "A\@NOV", "BA\-NOV"
-    "A\@DEC", "BA\-DEC"
-
-
-As you can see, legacy quarterly and annual frequencies are business quarters
-and business year ends. Please also note the legacy time rule for milliseconds
-``ms`` versus the new offset alias for month start ``MS``. This means that
-offset alias parsing is case sensitive.
-
 .. _timeseries.holiday:
 
 Holidays / Holiday Calendars
@@ -1258,11 +1219,11 @@ objects.
    ts.shift(1)
 
 The shift method accepts an ``freq`` argument which can accept a
-``DateOffset`` class or other ``timedelta``-like object or also a :ref:`offset alias <timeseries.alias>`:
+``DateOffset`` class or other ``timedelta``-like object or also a :ref:`offset alias <timeseries.offset_aliases>`:
 
 .. ipython:: python
 
-   ts.shift(5, freq=datetools.bday)
+   ts.shift(5, freq=offsets.BDay())
    ts.shift(5, freq='BM')
 
 Rather than changing the alignment of the data and the index, ``DataFrame`` and
@@ -1285,7 +1246,7 @@ around ``reindex`` which generates a ``date_range`` and calls ``reindex``.
 
 .. ipython:: python
 
-   dr = pd.date_range('1/1/2010', periods=3, freq=3 * datetools.bday)
+   dr = pd.date_range('1/1/2010', periods=3, freq=3 * offsets.BDay())
    ts = pd.Series(randn(3), index=dr)
    ts
    ts.asfreq(BDay())
@@ -1324,7 +1285,11 @@ performing resampling operations during frequency conversion (e.g., converting
 secondly data into 5-minutely data). This is extremely common in, but not
 limited to, financial applications.
 
-``resample`` is a time-based groupby, followed by a reduction method on each of its groups.
+``.resample()`` is a time-based groupby, followed by a reduction method on each of its groups.
+
+.. note::
+
+   ``.resample()`` is similar to using a ``.rolling()`` operation with a time-based offset, see a discussion `here <stats.moments.ts-versus-resampling>`
 
 See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
 
@@ -1508,6 +1473,30 @@ Furthermore, you can also specify multiple aggregation functions for each column
    r.agg({'A' : ['sum','std'], 'B' : ['mean','std'] })
 
 
+If a ``DataFrame`` does not have a datetimelike index, but instead you want
+to resample based on datetimelike column in the frame, it can passed to the
+``on`` keyword.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'date': pd.date_range('2015-01-01', freq='W', periods=5),
+                      'a': np.arange(5)},
+                     index=pd.MultiIndex.from_arrays([
+                              [1,2,3,4,5],
+                              pd.date_range('2015-01-01', freq='W', periods=5)],
+                          names=['v','d']))
+   df
+   df.resample('M', on='date').sum()
+
+Similarly, if you instead want to resample by a datetimelike
+level of ``MultiIndex``, its name or location can be passed to the
+``level`` keyword.
+
+.. ipython:: python
+
+   df.resample('M', level='d').sum()
+
+
 .. _timeseries.periods:
 
 Time Span Representation
@@ -1628,6 +1617,45 @@ objects:
    idx = pd.period_range('2014-07', periods=5, freq='M')
    idx
    idx + MonthEnd(3)
+
+``PeriodIndex`` has its own dtype named ``period``, refer to :ref:`Period Dtypes <timeseries.period_dtype>`.
+
+.. _timeseries.period_dtype:
+
+Period Dtypes
+~~~~~~~~~~~~~
+
+.. versionadded:: 0.19.0
+
+``PeriodIndex`` has a custom ``period`` dtype. This is a pandas extension
+dtype similar to the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``).
+
+The ``period`` dtype holds the ``freq`` attribute and is represented with
+``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
+
+.. ipython:: python
+
+   pi = pd.period_range('2016-01-01', periods=3, freq='M')
+   pi
+   pi.dtype
+
+The ``period`` dtype can be used in ``.astype(...)``. It allows one to change the
+``freq`` of a ``PeriodIndex`` like ``.asfreq()`` and convert a
+``DatetimeIndex`` to ``PeriodIndex`` like ``to_period()``:
+
+.. ipython:: python
+
+   # change monthly freq to daily freq
+   pi.astype('period[D]')
+
+   # convert to DatetimeIndex
+   pi.astype('datetime64[ns]')
+
+   # convert to PeriodIndex
+   dti = pd.date_range('2011-01-01', freq='M', periods=3)
+   dti
+   dti.astype('period[M]')
+
 
 PeriodIndex Partial String Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -11,8 +11,16 @@ from contextlib import contextmanager, closing
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
 from pandas.formats.printing import pprint_thing
-from pandas.core.common import is_number, AbstractMethodError
+from pandas.core.common import AbstractMethodError
+from pandas.types.common import is_number
 
+# common NA values
+# no longer excluding inf representations
+# '1.#INF','-1.#INF', '1.#INF000000',
+_NA_VALUES = set([
+    '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
+    'N/A', 'NA', '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''
+])
 
 try:
     import pathlib
@@ -327,7 +335,9 @@ def _get_handle(path, mode, encoding=None, compression=None, memory_map=False):
 
     if memory_map and hasattr(f, 'fileno'):
         try:
-            f = MMapWrapper(f)
+            g = MMapWrapper(f)
+            f.close()
+            f = g
         except Exception:
             # we catch any errors that may have occurred
             # because that is consistent with the lower-level

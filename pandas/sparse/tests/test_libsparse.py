@@ -243,6 +243,61 @@ class TestSparseIndexCommon(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
+    def test_int_internal(self):
+        idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind='integer')
+        self.assertIsInstance(idx, IntIndex)
+        self.assertEqual(idx.npoints, 2)
+        tm.assert_numpy_array_equal(idx.indices,
+                                    np.array([2, 3], dtype=np.int32))
+
+        idx = _make_index(4, np.array([], dtype=np.int32), kind='integer')
+        self.assertIsInstance(idx, IntIndex)
+        self.assertEqual(idx.npoints, 0)
+        tm.assert_numpy_array_equal(idx.indices,
+                                    np.array([], dtype=np.int32))
+
+        idx = _make_index(4, np.array([0, 1, 2, 3], dtype=np.int32),
+                          kind='integer')
+        self.assertIsInstance(idx, IntIndex)
+        self.assertEqual(idx.npoints, 4)
+        tm.assert_numpy_array_equal(idx.indices,
+                                    np.array([0, 1, 2, 3], dtype=np.int32))
+
+    def test_block_internal(self):
+        idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind='block')
+        self.assertIsInstance(idx, BlockIndex)
+        self.assertEqual(idx.npoints, 2)
+        tm.assert_numpy_array_equal(idx.blocs,
+                                    np.array([2], dtype=np.int32))
+        tm.assert_numpy_array_equal(idx.blengths,
+                                    np.array([2], dtype=np.int32))
+
+        idx = _make_index(4, np.array([], dtype=np.int32), kind='block')
+        self.assertIsInstance(idx, BlockIndex)
+        self.assertEqual(idx.npoints, 0)
+        tm.assert_numpy_array_equal(idx.blocs,
+                                    np.array([], dtype=np.int32))
+        tm.assert_numpy_array_equal(idx.blengths,
+                                    np.array([], dtype=np.int32))
+
+        idx = _make_index(4, np.array([0, 1, 2, 3], dtype=np.int32),
+                          kind='block')
+        self.assertIsInstance(idx, BlockIndex)
+        self.assertEqual(idx.npoints, 4)
+        tm.assert_numpy_array_equal(idx.blocs,
+                                    np.array([0], dtype=np.int32))
+        tm.assert_numpy_array_equal(idx.blengths,
+                                    np.array([4], dtype=np.int32))
+
+        idx = _make_index(4, np.array([0, 2, 3], dtype=np.int32),
+                          kind='block')
+        self.assertIsInstance(idx, BlockIndex)
+        self.assertEqual(idx.npoints, 3)
+        tm.assert_numpy_array_equal(idx.blocs,
+                                    np.array([0, 2], dtype=np.int32))
+        tm.assert_numpy_array_equal(idx.blengths,
+                                    np.array([1, 2], dtype=np.int32))
+
     def test_lookup(self):
         for kind in ['integer', 'block']:
             idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind=kind)
@@ -486,13 +541,14 @@ class TestSparseOperators(tm.TestCase):
             xfill = 0
             yfill = 2
 
-            result_block_vals, rb_index = sparse_op(x, xindex, xfill, y,
-                                                    yindex, yfill)
-            result_int_vals, ri_index = sparse_op(x, xdindex, xfill, y,
-                                                  ydindex, yfill)
+            result_block_vals, rb_index, bfill = sparse_op(x, xindex, xfill, y,
+                                                           yindex, yfill)
+            result_int_vals, ri_index, ifill = sparse_op(x, xdindex, xfill, y,
+                                                         ydindex, yfill)
 
             self.assertTrue(rb_index.to_int_index().equals(ri_index))
             tm.assert_numpy_array_equal(result_block_vals, result_int_vals)
+            self.assertEqual(bfill, ifill)
 
             # check versus Series...
             xseries = Series(x, xdindex.indices)
@@ -517,7 +573,7 @@ check_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
 
 def make_optestf(op):
     def f(self):
-        sparse_op = getattr(splib, 'sparse_%s' % op)
+        sparse_op = getattr(splib, 'sparse_%s_float64' % op)
         python_op = getattr(operator, op)
         self._op_tests(sparse_op, python_op)
 

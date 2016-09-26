@@ -92,9 +92,16 @@ class SAS7BDATReader(BaseIterator):
         self._path_or_buf, _, _ = get_filepath_or_buffer(path_or_buf)
         if isinstance(self._path_or_buf, compat.string_types):
             self._path_or_buf = open(self._path_or_buf, 'rb')
+            self.handle = self._path_or_buf
 
         self._get_properties()
         self._parse_metadata()
+
+    def close(self):
+        try:
+            self.handle.close()
+        except AttributeError:
+            pass
 
     def _get_properties(self):
 
@@ -102,6 +109,7 @@ class SAS7BDATReader(BaseIterator):
         self._path_or_buf.seek(0)
         self._cached_page = self._path_or_buf.read(288)
         if self._cached_page[0:len(const.magic)] != const.magic:
+            self.close()
             raise ValueError("magic number mismatch (not a SAS file?)")
 
         # Get alignment information
@@ -175,6 +183,7 @@ class SAS7BDATReader(BaseIterator):
         buf = self._path_or_buf.read(self.header_length - 288)
         self._cached_page += buf
         if len(self._cached_page) != self.header_length:
+            self.close()
             raise ValueError("The SAS7BDAT file appears to be truncated.")
 
         self._page_length = self._read_int(const.page_size_offset + align1,
@@ -219,6 +228,7 @@ class SAS7BDATReader(BaseIterator):
     # Read a single float of the given width (4 or 8).
     def _read_float(self, offset, width):
         if width not in (4, 8):
+            self.close()
             raise ValueError("invalid float width")
         buf = self._read_bytes(offset, width)
         fd = "f" if width == 4 else "d"
@@ -227,6 +237,7 @@ class SAS7BDATReader(BaseIterator):
     # Read a single signed integer of the given width (1, 2, 4 or 8).
     def _read_int(self, offset, width):
         if width not in (1, 2, 4, 8):
+            self.close()
             raise ValueError("invalid int width")
         buf = self._read_bytes(offset, width)
         it = {1: "b", 2: "h", 4: "l", 8: "q"}[width]
@@ -238,11 +249,13 @@ class SAS7BDATReader(BaseIterator):
             self._path_or_buf.seek(offset)
             buf = self._path_or_buf.read(length)
             if len(buf) < length:
+                self.close()
                 msg = "Unable to read {:d} bytes from file position {:d}."
                 raise ValueError(msg.format(length, offset))
             return buf
         else:
             if offset + length > len(self._cached_page):
+                self.close()
                 raise ValueError("The cached page is too small.")
             return self._cached_page[offset:offset + length]
 
@@ -253,6 +266,7 @@ class SAS7BDATReader(BaseIterator):
             if len(self._cached_page) <= 0:
                 break
             if len(self._cached_page) != self._page_length:
+                self.close()
                 raise ValueError(
                     "Failed to read a meta data page from the SAS file.")
             done = self._process_page_meta()
@@ -302,6 +316,7 @@ class SAS7BDATReader(BaseIterator):
             if (self.compression != "") and f1 and f2:
                 index = const.index.dataSubheaderIndex
             else:
+                self.close()
                 raise ValueError("Unknown subheader signature")
         return index
 
@@ -598,6 +613,7 @@ class SAS7BDATReader(BaseIterator):
         if len(self._cached_page) <= 0:
             return True
         elif len(self._cached_page) != self._page_length:
+            self.close()
             msg = ("failed to read complete page from file "
                    "(read {:d} of {:d} bytes)")
             raise ValueError(msg.format(len(self._cached_page),
@@ -643,6 +659,7 @@ class SAS7BDATReader(BaseIterator):
                     rslt.loc[ii, name] = np.nan
                 js += 1
             else:
+                self.close()
                 raise ValueError("unknown column type %s" %
                                  self.column_types[j])
 

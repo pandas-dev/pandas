@@ -13,7 +13,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Series, isnull
 from pandas.core.base import StringMixin
-from pandas.core.common import _ensure_float64
+from pandas.types.common import _ensure_float64
 from pandas.core.index import MultiIndex
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
@@ -51,7 +51,8 @@ class OLS(StringMixin):
         import warnings
         warnings.warn("The pandas.stats.ols module is deprecated and will be "
                       "removed in a future version. We refer to external packages "
-                      "like statsmodels, see some examples here: http://statsmodels.sourceforge.net/stable/regression.html",
+                      "like statsmodels, see some examples here: "
+                      "http://www.statsmodels.org/stable/regression.html",
                       FutureWarning, stacklevel=4)
 
         try:

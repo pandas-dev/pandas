@@ -11,10 +11,17 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
+from pandas.types.common import (is_list_like,
+                                 is_integer,
+                                 is_number,
+                                 is_hashable,
+                                 is_iterator)
+from pandas.types.missing import isnull, notnull
+
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 from pandas.core.base import PandasObject
-import pandas.core.common as com
-from pandas.core.common import AbstractMethodError
+
+from pandas.core.common import AbstractMethodError, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series, remove_na
@@ -134,6 +141,14 @@ def _mpl_ge_1_5_0():
     except ImportError:
         return False
 
+
+def _mpl_ge_2_0_0():
+    try:
+        import matplotlib
+        return matplotlib.__version__ >= LooseVersion('2.0')
+    except ImportError:
+        return False
+
 if _mpl_ge_1_5_0():
     # Compat with mp 1.5, which uses cycler.
     import cycler
@@ -161,7 +176,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         if colormap is not None:
             warnings.warn("'color' and 'colormap' cannot be used "
                           "simultaneously. Using 'color'")
-        colors = list(color) if com.is_list_like(color) else color
+        colors = list(color) if is_list_like(color) else color
     else:
         if color_type == 'default':
             # need to call list() on the result to copy so we don't
@@ -336,7 +351,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
 
-    mask = com.notnull(df)
+    mask = notnull(df)
 
     marker = _get_marker_compat(marker)
 
@@ -980,7 +995,7 @@ class MPLPlot(object):
                           "simultaneously. Using 'color'")
 
         if 'color' in self.kwds and self.style is not None:
-            if com.is_list_like(self.style):
+            if is_list_like(self.style):
                 styles = self.style
             else:
                 styles = [self.style]
@@ -1001,7 +1016,7 @@ class MPLPlot(object):
 
         # TODO: unused?
         # if self.sort_columns:
-        #     columns = com._try_sort(data.columns)
+        #     columns = _try_sort(data.columns)
         # else:
         #     columns = data.columns
 
@@ -1099,13 +1114,13 @@ class MPLPlot(object):
         Return result axes
         """
         if self.subplots:
-            if self.layout is not None and not com.is_list_like(self.ax):
+            if self.layout is not None and not is_list_like(self.ax):
                 return self.axes.reshape(*self.layout)
             else:
                 return self.axes
         else:
             sec_true = isinstance(self.secondary_y, bool) and self.secondary_y
-            all_sec = (com.is_list_like(self.secondary_y) and
+            all_sec = (is_list_like(self.secondary_y) and
                        len(self.secondary_y) == self.nseries)
             if (sec_true or all_sec):
                 # if all data is plotted on secondary, return right axes
@@ -1322,7 +1337,7 @@ class MPLPlot(object):
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
-        mask = com.isnull(y)
+        mask = isnull(y)
         if mask.any():
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
@@ -1463,8 +1478,8 @@ class MPLPlot(object):
             err = np.atleast_2d(evalues)
             err = np.tile(err, (self.nseries, 1))
 
-        elif com.is_list_like(err):
-            if com.is_iterator(err):
+        elif is_list_like(err):
+            if is_iterator(err):
                 err = np.atleast_2d(list(err))
             else:
                 # raw error values
@@ -1486,7 +1501,7 @@ class MPLPlot(object):
             if len(err) == 1:
                 err = np.tile(err, (self.nseries, 1))
 
-        elif com.is_number(err):
+        elif is_number(err):
             err = np.tile([err], (self.nseries, len(self.data)))
 
         else:
@@ -1543,9 +1558,9 @@ class PlanePlot(MPLPlot):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + ' requires and x and y column')
-        if com.is_integer(x) and not self.data.columns.holds_integer():
+        if is_integer(x) and not self.data.columns.holds_integer():
             x = self.data.columns[x]
-        if com.is_integer(y) and not self.data.columns.holds_integer():
+        if is_integer(y) and not self.data.columns.holds_integer():
             y = self.data.columns[y]
         self.x = x
         self.y = y
@@ -1569,7 +1584,7 @@ class ScatterPlot(PlanePlot):
             # the handling of this argument later
             s = 20
         super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
-        if com.is_integer(c) and not self.data.columns.holds_integer():
+        if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
         self.c = c
 
@@ -1577,7 +1592,7 @@ class ScatterPlot(PlanePlot):
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
 
-        c_is_column = com.is_hashable(c) and c in self.data.columns
+        c_is_column = is_hashable(c) and c in self.data.columns
 
         # plot a colorbar only if a colormap is provided or necessary
         cb = self.kwds.pop('colorbar', self.colormap or c_is_column)
@@ -1629,7 +1644,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, **kwargs):
         super(HexBinPlot, self).__init__(data, x, y, **kwargs)
-        if com.is_integer(C) and not self.data.columns.holds_integer():
+        if is_integer(C) and not self.data.columns.holds_integer():
             C = self.data.columns[C]
         self.C = C
 
@@ -1832,10 +1847,16 @@ class AreaPlot(LinePlot):
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None,
               stacking_id=None, is_errorbar=False, **kwds):
+
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(y))
         y_values = cls._get_stacked_values(ax, stacking_id, y, kwds['label'])
-        lines = MPLPlot._plot(ax, x, y_values, style=style, **kwds)
+
+        # need to remove label, because subplots uses mpl legend as it is
+        line_kwds = kwds.copy()
+        if cls.mpl_ge_1_5_0():
+            line_kwds.pop('label')
+        lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
 
         # get data from the line to get coordinates for fill_between
         xdata, y_values = lines[0].get_data(orig=False)
@@ -1853,18 +1874,21 @@ class AreaPlot(LinePlot):
         if 'color' not in kwds:
             kwds['color'] = lines[0].get_color()
 
-        if cls.mpl_ge_1_5_0():  # mpl 1.5 added real support for poly legends
-            kwds.pop('label')
-        ax.fill_between(xdata, start, y_values, **kwds)
+        rect = ax.fill_between(xdata, start, y_values, **kwds)
         cls._update_stacker(ax, stacking_id, y)
-        return lines
+
+        # LinePlot expects list of artists
+        res = [rect] if cls.mpl_ge_1_5_0() else lines
+        return res
 
     def _add_legend_handle(self, handle, label, index=None):
-        from matplotlib.patches import Rectangle
-        # Because fill_between isn't supported in legend,
-        # specifically add Rectangle handle here
-        alpha = self.kwds.get('alpha', None)
-        handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(), alpha=alpha)
+        if not self.mpl_ge_1_5_0():
+            from matplotlib.patches import Rectangle
+            # Because fill_between isn't supported in legend,
+            # specifically add Rectangle handle here
+            alpha = self.kwds.get('alpha', None)
+            handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(),
+                               alpha=alpha)
         LinePlot._add_legend_handle(self, handle, label, index=index)
 
     def _post_plot_logic(self, ax, data):
@@ -1912,9 +1936,9 @@ class BarPlot(MPLPlot):
         self.ax_pos = self.tick_pos - self.tickoffset
 
     def _args_adjust(self):
-        if com.is_list_like(self.bottom):
+        if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
-        if com.is_list_like(self.left):
+        if is_list_like(self.left):
             self.left = np.array(self.left)
 
     @classmethod
@@ -2027,18 +2051,18 @@ class HistPlot(LinePlot):
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
-        if com.is_integer(self.bins):
+        if is_integer(self.bins):
             # create common bin edge
             values = (self.data._convert(datetime=True)._get_numeric_data())
             values = np.ravel(values)
-            values = values[~com.isnull(values)]
+            values = values[~isnull(values)]
 
             hist, self.bins = np.histogram(
                 values, bins=self.bins,
                 range=self.kwds.get('range', None),
                 weights=self.kwds.get('weights', None))
 
-        if com.is_list_like(self.bottom):
+        if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
 
     @classmethod
@@ -2046,7 +2070,7 @@ class HistPlot(LinePlot):
               stacking_id=None, **kwds):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
-        y = y[~com.isnull(y)]
+        y = y[~isnull(y)]
 
         base = np.zeros(len(bins) - 1)
         bottom = bottom + \
@@ -2223,7 +2247,7 @@ class BoxPlot(LinePlot):
     # namedtuple to hold results
     BP = namedtuple("Boxplot", ['ax', 'lines'])
 
-    def __init__(self, data, return_type=None, **kwargs):
+    def __init__(self, data, return_type='axes', **kwargs):
         # Do not call LinePlot.__init__ which may fill nan
         if return_type not in self._valid_return_types:
             raise ValueError(
@@ -2242,7 +2266,7 @@ class BoxPlot(LinePlot):
                 self.sharey = False
 
     @classmethod
-    def _plot(cls, ax, y, column_num=None, return_type=None, **kwds):
+    def _plot(cls, ax, y, column_num=None, return_type='axes', **kwds):
         if y.ndim == 2:
             y = [remove_na(v) for v in y]
             # Boxplot fails with empty arrays, so need to add a NaN
@@ -2315,7 +2339,7 @@ class BoxPlot(LinePlot):
 
     def _make_plot(self):
         if self.subplots:
-            self._return_obj = compat.OrderedDict()
+            self._return_obj = Series()
 
             for i, (label, y) in enumerate(self._iter_data()):
                 ax = self._get_ax(i)
@@ -2411,7 +2435,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 msg = "{0} requires either y column or 'subplots=True'"
                 raise ValueError(msg.format(kind))
             elif y is not None:
-                if com.is_integer(y) and not data.columns.holds_integer():
+                if is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
                 # converted to series actually. copy to not modify
                 data = data[y].copy()
@@ -2420,12 +2444,12 @@ def _plot(data, x=None, y=None, subplots=False,
     else:
         if isinstance(data, DataFrame):
             if x is not None:
-                if com.is_integer(x) and not data.columns.holds_integer():
+                if is_integer(x) and not data.columns.holds_integer():
                     x = data.columns[x]
                 data = data.set_index(x)
 
             if y is not None:
-                if com.is_integer(y) and not data.columns.holds_integer():
+                if is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
                 label = kwds['label'] if 'label' in kwds else y
                 series = data[y].copy()  # Don't modify
@@ -2434,7 +2458,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
                         (isinstance(kwds[kw], string_types) or
-                            com.is_integer(kwds[kw])):
+                            is_integer(kwds[kw])):
                         try:
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
@@ -2667,14 +2691,17 @@ _shared_docs['boxplot'] = """
     grid : Setting this to True will show the grid
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
-    return_type : {'axes', 'dict', 'both'}, default 'dict'
-        The kind of object to return. 'dict' returns a dictionary
-        whose values are the matplotlib Lines of the boxplot;
+    return_type : {None, 'axes', 'dict', 'both'}, default None
+        The kind of object to return. The default is ``axes``
         'axes' returns the matplotlib axes the boxplot is drawn on;
+        'dict' returns a dictionary  whose values are the matplotlib
+        Lines of the boxplot;
         'both' returns a namedtuple with the axes and dict.
 
-        When grouping with ``by``, a dict mapping columns to ``return_type``
-        is returned.
+        When grouping with ``by``, a Series mapping columns to ``return_type``
+        is returned, unless ``return_type`` is None, in which case a NumPy
+        array of axes is returned with the same shape as ``layout``.
+        See the prose documentation for more.
 
     kwds : other plotting keyword arguments to be passed to matplotlib boxplot
            function
@@ -2700,7 +2727,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:
-        raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
+        raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
     from pandas import Series, DataFrame
     if isinstance(data, Series):
@@ -2745,23 +2772,19 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             columns = [column]
 
     if by is not None:
+        # Prefer array return type for 2-D plots to match the subplot layout
+        # https://github.com/pydata/pandas/pull/12216#issuecomment-241175580
         result = _grouped_plot_by_column(plot_group, data, columns=columns,
                                          by=by, grid=grid, figsize=figsize,
                                          ax=ax, layout=layout,
                                          return_type=return_type)
     else:
+        if return_type is None:
+            return_type = 'axes'
         if layout is not None:
             raise ValueError("The 'layout' keyword is not supported when "
                              "'by' is None")
 
-        if return_type is None:
-            msg = ("\nThe default value for 'return_type' will change to "
-                   "'axes' in a future release.\n To use the future behavior "
-                   "now, set return_type='axes'.\n To keep the previous "
-                   "behavior and silence this warning, set "
-                   "return_type='dict'.")
-            warnings.warn(msg, FutureWarning, stacklevel=3)
-            return_type = 'dict'
         if ax is None:
             ax = _gca()
         data = data._get_numeric_data()
@@ -2897,7 +2920,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                           layout=layout)
     _axes = _flatten(axes)
 
-    for i, col in enumerate(com._try_sort(data.columns)):
+    for i, col in enumerate(_try_sort(data.columns)):
         ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
@@ -3080,12 +3103,12 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                               figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
-        ret = compat.OrderedDict()
+        ret = Series()
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
                               rot=rot, grid=grid, **kwds)
             ax.set_title(pprint_thing(key))
-            ret[key] = d
+            ret.loc[key] = d
         fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1,
                             right=0.9, wspace=0.2)
     else:
@@ -3151,7 +3174,9 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 
     _axes = _flatten(axes)
 
-    result = compat.OrderedDict()
+    result = Series()
+    ax_values = []
+
     for i, col in enumerate(columns):
         ax = _axes[i]
         gp_col = grouped[col]
@@ -3159,8 +3184,10 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         re_plotf = plotf(keys, values, ax, **kwargs)
         ax.set_title(col)
         ax.set_xlabel(pprint_thing(by))
-        result[col] = re_plotf
+        ax_values.append(re_plotf)
         ax.grid(grid)
+
+    result = Series(ax_values, index=columns)
 
     # Return axes in multiplot case, maybe revisit later # 985
     if return_type is None:
@@ -3345,7 +3372,7 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
     if ax is None:
         fig = plt.figure(**fig_kw)
     else:
-        if com.is_list_like(ax):
+        if is_list_like(ax):
             ax = _flatten(ax)
             if layout is not None:
                 warnings.warn("When passing multiple axes, layout keyword is "
@@ -3353,7 +3380,8 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
             if sharex or sharey:
                 warnings.warn("When passing multiple axes, sharex and sharey "
                               "are ignored. These settings must be specified "
-                              "when creating axes", UserWarning)
+                              "when creating axes", UserWarning,
+                              stacklevel=4)
             if len(ax) == naxes:
                 fig = ax[0].get_figure()
                 return fig, ax
@@ -3370,7 +3398,8 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
                 return fig, _flatten(ax)
         else:
             warnings.warn("To output multiple subplots, the figure containing "
-                          "the passed axes is being cleared", UserWarning)
+                          "the passed axes is being cleared", UserWarning,
+                          stacklevel=4)
             fig.clear()
 
     nrows, ncols = _get_layout(naxes, layout=layout, layout_type=layout_type)
@@ -3485,7 +3514,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
 
 
 def _flatten(axes):
-    if not com.is_list_like(axes):
+    if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, Index)):
         return axes.ravel()

@@ -1,6 +1,7 @@
 # pylint: disable=E1103
 
 
+from pandas.types.common import is_list_like, is_scalar
 from pandas import Series, DataFrame
 from pandas.core.index import MultiIndex, Index
 from pandas.core.groupby import Grouper
@@ -9,7 +10,6 @@ from pandas.tools.util import cartesian_product
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
-import pandas.lib as lib
 import numpy as np
 
 
@@ -86,7 +86,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
             table = pivot_table(data, values=values, index=index,
                                 columns=columns,
                                 fill_value=fill_value, aggfunc=func,
-                                margins=margins)
+                                margins=margins, margins_name=margins_name)
             pieces.append(table)
             keys.append(func.__name__)
         return concat(pieces, keys=keys, axis=1)
@@ -95,7 +95,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     values_passed = values is not None
     if values_passed:
-        if com.is_list_like(values):
+        if is_list_like(values):
             values_multi = True
             values = list(values)
         else:
@@ -361,7 +361,7 @@ def _generate_marginal_results_without_values(
 def _convert_by(by):
     if by is None:
         by = []
-    elif (lib.isscalar(by) or
+    elif (is_scalar(by) or
           isinstance(by, (np.ndarray, Index, Series, Grouper)) or
           hasattr(by, '__call__')):
         by = [by]
@@ -523,6 +523,9 @@ def _normalize(table, normalize, margins):
         column_margin = table.loc[:, 'All'].drop('All')
         index_margin = table.loc['All', :].drop('All')
         table = table.drop('All', axis=1).drop('All')
+        # to keep index and columns names
+        table_index_names = table.index.names
+        table_columns_names = table.columns.names
 
         # Normalize core
         table = _normalize(table, normalize=normalize, margins=False)
@@ -549,6 +552,9 @@ def _normalize(table, normalize, margins):
 
         else:
             raise ValueError("Not a valid normalize argument")
+
+        table.index.names = table_index_names
+        table.columns.names = table_columns_names
 
     else:
         raise ValueError("Not a valid margins argument")

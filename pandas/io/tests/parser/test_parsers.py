@@ -11,6 +11,7 @@ from pandas.core.common import AbstractMethodError
 from .common import ParserTests
 from .header import HeaderTests
 from .comment import CommentTests
+from .quoting import QuotingTests
 from .usecols import UsecolsTests
 from .skiprows import SkipRowsTests
 from .index_col import IndexColTests
@@ -28,7 +29,7 @@ class BaseParser(CommentTests, CompressionTests,
                  IndexColTests, MultithreadTests,
                  NAvaluesTests, ParseDatesTests,
                  ParserTests, SkipRowsTests,
-                 UsecolsTests):
+                 UsecolsTests, QuotingTests):
     def read_csv(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -43,6 +44,7 @@ class BaseParser(CommentTests, CompressionTests,
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
+        self.csv_shiftjs = os.path.join(self.dirpath, 'sauron.SHIFT_JIS.csv')
 
 
 class TestCParserHighMemory(BaseParser, CParserTests, tm.TestCase):

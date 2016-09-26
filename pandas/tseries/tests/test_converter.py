@@ -77,6 +77,24 @@ class TestDateTimeConverter(tm.TestCase):
         rs = self.dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
         tm.assert_almost_equal(rs, xp, decimals)
 
+    def test_conversion_outofbounds_datetime(self):
+        # 2579
+        values = [date(1677, 1, 1), date(1677, 1, 2)]
+        rs = self.dtc.convert(values, None, None)
+        xp = converter.dates.date2num(values)
+        tm.assert_numpy_array_equal(rs, xp)
+        rs = self.dtc.convert(values[0], None, None)
+        xp = converter.dates.date2num(values[0])
+        self.assertEqual(rs, xp)
+
+        values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
+        rs = self.dtc.convert(values, None, None)
+        xp = converter.dates.date2num(values)
+        tm.assert_numpy_array_equal(rs, xp)
+        rs = self.dtc.convert(values[0], None, None)
+        xp = converter.dates.date2num(values[0])
+        self.assertEqual(rs, xp)
+
     def test_time_formatter(self):
         self.tc(90000)
 

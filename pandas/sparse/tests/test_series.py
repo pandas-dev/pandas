@@ -7,9 +7,8 @@ import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range
-from pandas.core.datetools import BDay
-import pandas.core.datetools as datetools
 from pandas.core.common import isnull
+from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 from pandas.compat import range
 from pandas import compat
@@ -98,9 +97,13 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         self.assertEqual(arr.dtype, np.float64)
         self.assertEqual(arr.fill_value, 0)
 
-        arr = SparseSeries([0, 1, 2, 4], dtype=np.int64)
+        arr = SparseSeries([0, 1, 2, 4], dtype=np.int64, fill_value=np.nan)
         self.assertEqual(arr.dtype, np.int64)
         self.assertTrue(np.isnan(arr.fill_value))
+
+        arr = SparseSeries([0, 1, 2, 4], dtype=np.int64)
+        self.assertEqual(arr.dtype, np.int64)
+        self.assertEqual(arr.fill_value, 0)
 
         arr = SparseSeries([0, 1, 2, 4], fill_value=0, dtype=np.int64)
         self.assertEqual(arr.dtype, np.int64)
@@ -135,6 +138,15 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         expected = Series({'col': 'float64:sparse'})
         result = df.ftypes
         tm.assert_series_equal(expected, result)
+
+    def test_constructor_preserve_attr(self):
+        arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)
+        self.assertEqual(arr.dtype, np.int64)
+        self.assertEqual(arr.fill_value, 0)
+
+        s = pd.SparseSeries(arr, name='x')
+        self.assertEqual(s.dtype, np.int64)
+        self.assertEqual(s.fill_value, 0)
 
     def test_series_density(self):
         # GH2803
@@ -345,7 +357,19 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         self.assertEqual(self.ziseries2.shape, (15, ))
 
     def test_astype(self):
-        self.assertRaises(Exception, self.bseries.astype, np.int64)
+        with tm.assertRaises(ValueError):
+            self.bseries.astype(np.int64)
+
+    def test_astype_all(self):
+        orig = pd.Series(np.array([1, 2, 3]))
+        s = SparseSeries(orig)
+
+        types = [np.float64, np.float32, np.int64,
+                 np.int32, np.int16, np.int8]
+        for typ in types:
+            res = s.astype(typ)
+            self.assertEqual(res.dtype, typ)
+            tm.assert_series_equal(res.to_dense(), orig.astype(typ))
 
     def test_kind(self):
         self.assertEqual(self.bseries.kind, 'block')
@@ -503,6 +527,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
                                       name=self.bseries.name))
 
     def test_operators(self):
+
         def _check_op(a, b, op):
             sp_result = op(a, b)
             adense = a.to_dense() if isinstance(a, SparseSeries) else a
@@ -568,6 +593,21 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_abs(self):
         s = SparseSeries([1, 2, -3], name='x')
         expected = SparseSeries([1, 2, 3], name='x')
+        result = s.abs()
+        tm.assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
+        result = abs(s)
+        tm.assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
+        result = np.abs(s)
+        tm.assert_sp_series_equal(result, expected)
+        self.assertEqual(result.name, 'x')
+
+        s = SparseSeries([1, -2, 2, -3], fill_value=-2, name='x')
+        expected = SparseSeries([1, 2, 3], sparse_index=s.sp_index,
+                                fill_value=2, name='x')
         result = s.abs()
         tm.assert_sp_series_equal(result, expected)
         self.assertEqual(result.name, 'x')
@@ -741,7 +781,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
             data = {}
             for i, idx in enumerate(indices):
                 data[i] = SparseSeries(idx.to_int_index().indices,
-                                       sparse_index=idx)
+                                       sparse_index=idx, fill_value=np.nan)
+            # homogenized is only valid with NaN fill values
             homogenized = spf.homogenize(data)
 
             for k, v in compat.iteritems(homogenized):
@@ -772,7 +813,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         cop2 = self.zbseries.copy()
         cop2.fill_value = 1
         result = cop2 / cop
-        self.assertTrue(np.isnan(result.fill_value))
+        # 1 / 0 is inf
+        self.assertTrue(np.isinf(result.fill_value))
 
     def test_fill_value_when_combine_const(self):
         # GH12723
@@ -800,7 +842,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         f = lambda s: s.shift(2, freq='B')
         _dense_series_compare(series, f)
 
-        f = lambda s: s.shift(2, freq=datetools.bday)
+        f = lambda s: s.shift(2, freq=BDay())
         _dense_series_compare(series, f)
 
     def test_shift_nan(self):
@@ -840,9 +882,14 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_shift_dtype(self):
         # GH 12908
         orig = pd.Series([1, 2, 3, 4], dtype=np.int64)
-        sparse = orig.to_sparse()
 
+        sparse = orig.to_sparse()
         tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).to_sparse())
+
+        sparse = orig.to_sparse(fill_value=np.nan)
+        tm.assert_sp_series_equal(sparse.shift(0),
+                                  orig.shift(0).to_sparse(fill_value=np.nan))
+        # shift(1) or more span changes dtype to float64
         tm.assert_sp_series_equal(sparse.shift(1), orig.shift(1).to_sparse())
         tm.assert_sp_series_equal(sparse.shift(2), orig.shift(2).to_sparse())
         tm.assert_sp_series_equal(sparse.shift(3), orig.shift(3).to_sparse())
@@ -855,25 +902,27 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_shift_dtype_fill_value(self):
         # GH 12908
         orig = pd.Series([1, 0, 0, 4], dtype=np.int64)
-        sparse = orig.to_sparse(fill_value=0)
 
-        tm.assert_sp_series_equal(sparse.shift(0),
-                                  orig.shift(0).to_sparse(fill_value=0))
-        tm.assert_sp_series_equal(sparse.shift(1),
-                                  orig.shift(1).to_sparse(fill_value=0))
-        tm.assert_sp_series_equal(sparse.shift(2),
-                                  orig.shift(2).to_sparse(fill_value=0))
-        tm.assert_sp_series_equal(sparse.shift(3),
-                                  orig.shift(3).to_sparse(fill_value=0))
+        for v in [0, 1, np.nan]:
+            sparse = orig.to_sparse(fill_value=v)
 
-        tm.assert_sp_series_equal(sparse.shift(-1),
-                                  orig.shift(-1).to_sparse(fill_value=0))
-        tm.assert_sp_series_equal(sparse.shift(-2),
-                                  orig.shift(-2).to_sparse(fill_value=0))
-        tm.assert_sp_series_equal(sparse.shift(-3),
-                                  orig.shift(-3).to_sparse(fill_value=0))
-        tm.assert_sp_series_equal(sparse.shift(-4),
-                                  orig.shift(-4).to_sparse(fill_value=0))
+            tm.assert_sp_series_equal(sparse.shift(0),
+                                      orig.shift(0).to_sparse(fill_value=v))
+            tm.assert_sp_series_equal(sparse.shift(1),
+                                      orig.shift(1).to_sparse(fill_value=v))
+            tm.assert_sp_series_equal(sparse.shift(2),
+                                      orig.shift(2).to_sparse(fill_value=v))
+            tm.assert_sp_series_equal(sparse.shift(3),
+                                      orig.shift(3).to_sparse(fill_value=v))
+
+            tm.assert_sp_series_equal(sparse.shift(-1),
+                                      orig.shift(-1).to_sparse(fill_value=v))
+            tm.assert_sp_series_equal(sparse.shift(-2),
+                                      orig.shift(-2).to_sparse(fill_value=v))
+            tm.assert_sp_series_equal(sparse.shift(-3),
+                                      orig.shift(-3).to_sparse(fill_value=v))
+            tm.assert_sp_series_equal(sparse.shift(-4),
+                                      orig.shift(-4).to_sparse(fill_value=v))
 
     def test_combine_first(self):
         s = self.bseries
@@ -1221,6 +1270,40 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         tm.assert_series_equal(sparse.value_counts(dropna=False),
                                dense.value_counts(dropna=False))
 
+    def test_isnull(self):
+        # GH 8276
+        s = pd.SparseSeries([np.nan, np.nan, 1, 2, np.nan], name='xxx')
+
+        res = s.isnull()
+        exp = pd.SparseSeries([True, True, False, False, True], name='xxx',
+                              fill_value=True)
+        tm.assert_sp_series_equal(res, exp)
+
+        # if fill_value is not nan, True can be included in sp_values
+        s = pd.SparseSeries([np.nan, 0., 1., 2., 0.], name='xxx',
+                            fill_value=0.)
+        res = s.isnull()
+        tm.assertIsInstance(res, pd.SparseSeries)
+        exp = pd.Series([True, False, False, False, False], name='xxx')
+        tm.assert_series_equal(res.to_dense(), exp)
+
+    def test_isnotnull(self):
+        # GH 8276
+        s = pd.SparseSeries([np.nan, np.nan, 1, 2, np.nan], name='xxx')
+
+        res = s.isnotnull()
+        exp = pd.SparseSeries([False, False, True, True, False], name='xxx',
+                              fill_value=False)
+        tm.assert_sp_series_equal(res, exp)
+
+        # if fill_value is not nan, True can be included in sp_values
+        s = pd.SparseSeries([np.nan, 0., 1., 2., 0.], name='xxx',
+                            fill_value=0.)
+        res = s.isnotnull()
+        tm.assertIsInstance(res, pd.SparseSeries)
+        exp = pd.Series([False, True, True, True, True], name='xxx')
+        tm.assert_series_equal(res.to_dense(), exp)
+
 
 def _dense_series_compare(s, f):
     result = f(s)
@@ -1230,6 +1313,7 @@ def _dense_series_compare(s, f):
 
 
 class TestSparseSeriesAnalytics(tm.TestCase):
+
     def setUp(self):
         arr, index = _test_data1()
         self.bseries = SparseSeries(arr, index=index, kind='block',
@@ -1278,6 +1362,7 @@ class TestSparseSeriesAnalytics(tm.TestCase):
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
+
 
 if __name__ == '__main__':
     import nose

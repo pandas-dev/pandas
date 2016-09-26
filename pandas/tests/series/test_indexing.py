@@ -7,22 +7,20 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
+from pandas.types.common import is_integer, is_scalar
 from pandas import Index, Series, DataFrame, isnull, date_range
 from pandas.core.index import MultiIndex
 from pandas.core.indexing import IndexingError
 from pandas.tseries.index import Timestamp
+from pandas.tseries.offsets import BDay
 from pandas.tseries.tdi import Timedelta
-import pandas.core.common as com
-
-import pandas.core.datetools as datetools
-import pandas.lib as lib
 
 from pandas.compat import lrange, range
 from pandas import compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
-from .common import TestData
+from pandas.tests.series.common import TestData
 
 JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
@@ -155,7 +153,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         self.assertEqual(self.series[5], self.series.get(self.series.index[5]))
 
         # missing
-        d = self.ts.index[0] - datetools.bday
+        d = self.ts.index[0] - BDay()
         self.assertRaises(KeyError, self.ts.__getitem__, d)
 
         # None
@@ -323,7 +321,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_getitem_setitem_boolean_corner(self):
         ts = self.ts
-        mask_shifted = ts.shift(1, freq=datetools.bday) > ts.median()
+        mask_shifted = ts.shift(1, freq=BDay()) > ts.median()
 
         # these used to raise...??
 
@@ -375,7 +373,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_getitem_unordered_dup(self):
         obj = Series(lrange(5), index=['c', 'a', 'a', 'b', 'b'])
-        self.assertTrue(lib.isscalar(obj['c']))
+        self.assertTrue(is_scalar(obj['c']))
         self.assertEqual(obj['c'], 0)
 
     def test_getitem_dups_with_missing(self):
@@ -440,6 +438,16 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s = pd.Series([1, 2, 3, 4], index=list('ABCD'))
         s[lambda x: 'A'] = -1
         tm.assert_series_equal(s, pd.Series([-1, 2, 3, 4], index=list('ABCD')))
+
+    def test_setitem_other_callable(self):
+        # GH 13299
+        inc = lambda x: x + 1
+
+        s = pd.Series([1, 2, -1, 4])
+        s[s < 0] = inc
+
+        expected = pd.Series([1, 2, inc, 4])
+        tm.assert_series_equal(s, expected)
 
     def test_slice(self):
         numSlice = self.series[10:20]
@@ -767,6 +775,89 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         idx = iter(self.series.index[:10])
         result = self.series.ix[idx]
         assert_series_equal(result, self.series[:10])
+
+    def test_setitem_with_tz(self):
+        for tz in ['US/Eastern', 'UTC', 'Asia/Tokyo']:
+            orig = pd.Series(pd.date_range('2016-01-01', freq='H', periods=3,
+                                           tz=tz))
+            self.assertEqual(orig.dtype, 'datetime64[ns, {0}]'.format(tz))
+
+            # scalar
+            s = orig.copy()
+            s[1] = pd.Timestamp('2011-01-01', tz=tz)
+            exp = pd.Series([pd.Timestamp('2016-01-01 00:00', tz=tz),
+                             pd.Timestamp('2011-01-01 00:00', tz=tz),
+                             pd.Timestamp('2016-01-01 02:00', tz=tz)])
+            tm.assert_series_equal(s, exp)
+
+            s = orig.copy()
+            s.loc[1] = pd.Timestamp('2011-01-01', tz=tz)
+            tm.assert_series_equal(s, exp)
+
+            s = orig.copy()
+            s.iloc[1] = pd.Timestamp('2011-01-01', tz=tz)
+            tm.assert_series_equal(s, exp)
+
+            # vector
+            vals = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
+                              pd.Timestamp('2012-01-01', tz=tz)], index=[1, 2])
+            self.assertEqual(vals.dtype, 'datetime64[ns, {0}]'.format(tz))
+
+            s[[1, 2]] = vals
+            exp = pd.Series([pd.Timestamp('2016-01-01 00:00', tz=tz),
+                             pd.Timestamp('2011-01-01 00:00', tz=tz),
+                             pd.Timestamp('2012-01-01 00:00', tz=tz)])
+            tm.assert_series_equal(s, exp)
+
+            s = orig.copy()
+            s.loc[[1, 2]] = vals
+            tm.assert_series_equal(s, exp)
+
+            s = orig.copy()
+            s.iloc[[1, 2]] = vals
+            tm.assert_series_equal(s, exp)
+
+    def test_setitem_with_tz_dst(self):
+        # GH XXX
+        tz = 'US/Eastern'
+        orig = pd.Series(pd.date_range('2016-11-06', freq='H', periods=3,
+                                       tz=tz))
+        self.assertEqual(orig.dtype, 'datetime64[ns, {0}]'.format(tz))
+
+        # scalar
+        s = orig.copy()
+        s[1] = pd.Timestamp('2011-01-01', tz=tz)
+        exp = pd.Series([pd.Timestamp('2016-11-06 00:00', tz=tz),
+                         pd.Timestamp('2011-01-01 00:00', tz=tz),
+                         pd.Timestamp('2016-11-06 02:00', tz=tz)])
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.loc[1] = pd.Timestamp('2011-01-01', tz=tz)
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.iloc[1] = pd.Timestamp('2011-01-01', tz=tz)
+        tm.assert_series_equal(s, exp)
+
+        # vector
+        vals = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
+                          pd.Timestamp('2012-01-01', tz=tz)], index=[1, 2])
+        self.assertEqual(vals.dtype, 'datetime64[ns, {0}]'.format(tz))
+
+        s[[1, 2]] = vals
+        exp = pd.Series([pd.Timestamp('2016-11-06 00:00', tz=tz),
+                         pd.Timestamp('2011-01-01 00:00', tz=tz),
+                         pd.Timestamp('2012-01-01 00:00', tz=tz)])
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.loc[[1, 2]] = vals
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.iloc[[1, 2]] = vals
+        tm.assert_series_equal(s, exp)
 
     def test_where(self):
         s = Series(np.random.randn(5))
@@ -1164,23 +1255,23 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s = pd.Series([1, 2, 3])
         w = s.where(s > 1, 'X')
 
-        self.assertFalse(com.is_integer(w[0]))
-        self.assertTrue(com.is_integer(w[1]))
-        self.assertTrue(com.is_integer(w[2]))
+        self.assertFalse(is_integer(w[0]))
+        self.assertTrue(is_integer(w[1]))
+        self.assertTrue(is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
         self.assertTrue(w.dtype == 'object')
 
         w = s.where(s > 1, ['X', 'Y', 'Z'])
-        self.assertFalse(com.is_integer(w[0]))
-        self.assertTrue(com.is_integer(w[1]))
-        self.assertTrue(com.is_integer(w[2]))
+        self.assertFalse(is_integer(w[0]))
+        self.assertTrue(is_integer(w[1]))
+        self.assertTrue(is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
         self.assertTrue(w.dtype == 'object')
 
         w = s.where(s > 1, np.array(['X', 'Y', 'Z']))
-        self.assertFalse(com.is_integer(w[0]))
-        self.assertTrue(com.is_integer(w[1]))
-        self.assertTrue(com.is_integer(w[2]))
+        self.assertFalse(is_integer(w[0]))
+        self.assertTrue(is_integer(w[1]))
+        self.assertTrue(is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
         self.assertTrue(w.dtype == 'object')
 
@@ -1314,6 +1405,13 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         s.loc['A'] = timedelta(1)
+        tm.assert_series_equal(s, expected)
+
+        # GH 14155
+        s = Series(10 * [np.timedelta64(10, 'm')])
+        s.loc[[1, 2, 3]] = np.timedelta64(20, 'm')
+        expected = pd.Series(10 * [np.timedelta64(10, 'm')])
+        expected.loc[[1, 2, 3]] = pd.Timedelta(np.timedelta64(20, 'm'))
         tm.assert_series_equal(s, expected)
 
     def test_underlying_data_conversion(self):
@@ -1848,3 +1946,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         result2 = s.ix['foo']
         self.assertEqual(result.name, s.name)
         self.assertEqual(result2.name, s.name)
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

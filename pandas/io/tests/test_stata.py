@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=E1101
 
-from datetime import datetime
 import datetime as dt
 import os
-import warnings
-import nose
 import struct
 import sys
+import warnings
+from datetime import datetime
 from distutils.version import LooseVersion
 
+import nose
 import numpy as np
+from pandas.tslib import NaT
 
 import pandas as pd
+import pandas.util.testing as tm
+from pandas import compat
 from pandas.compat import iterkeys
 from pandas.core.frame import DataFrame, Series
-from pandas.core.common import is_categorical_dtype
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)
-import pandas.util.testing as tm
-from pandas.tslib import NaT
-from pandas import compat
+from pandas.types.common import is_categorical_dtype
 
 
 class TestStata(tm.TestCase):
@@ -80,6 +80,9 @@ class TestStata(tm.TestCase):
         self.dta21_117 = os.path.join(self.dirpath, 'stata12_117.dta')
 
         self.dta22_118 = os.path.join(self.dirpath, 'stata14_118.dta')
+        self.dta23 = os.path.join(self.dirpath, 'stata15.dta')
+
+        self.dta24_111 = os.path.join(self.dirpath, 'stata7_111.dta')
 
     def read_dta(self, file):
         # Legacy default reader configuration
@@ -1112,6 +1115,124 @@ class TestStata(tm.TestCase):
                 from_frame = parsed.iloc[pos:pos + chunksize, :]
                 tm.assert_frame_equal(from_frame, chunk, check_dtype=False)
                 pos += chunksize
+
+    def test_write_variable_labels(self):
+        # GH 13631, add support for writing variable labels
+        original = pd.DataFrame({'a': [1, 2, 3, 4],
+                                 'b': [1.0, 3.0, 27.0, 81.0],
+                                 'c': ['Atlanta', 'Birmingham',
+                                       'Cincinnati', 'Detroit']})
+        original.index.name = 'index'
+        variable_labels = {'a': 'City Rank', 'b': 'City Exponent', 'c': 'City'}
+        with tm.ensure_clean() as path:
+            original.to_stata(path, variable_labels=variable_labels)
+            with StataReader(path) as sr:
+                read_labels = sr.variable_labels()
+            expected_labels = {'index': '',
+                               'a': 'City Rank',
+                               'b': 'City Exponent',
+                               'c': 'City'}
+            tm.assert_equal(read_labels, expected_labels)
+
+        variable_labels['index'] = 'The Index'
+        with tm.ensure_clean() as path:
+            original.to_stata(path, variable_labels=variable_labels)
+            with StataReader(path) as sr:
+                read_labels = sr.variable_labels()
+            tm.assert_equal(read_labels, variable_labels)
+
+    def test_write_variable_label_errors(self):
+        original = pd.DataFrame({'a': [1, 2, 3, 4],
+                                 'b': [1.0, 3.0, 27.0, 81.0],
+                                 'c': ['Atlanta', 'Birmingham',
+                                       'Cincinnati', 'Detroit']})
+        values = [u'\u03A1', u'\u0391',
+                  u'\u039D', u'\u0394',
+                  u'\u0391', u'\u03A3']
+
+        variable_labels_utf8 = {'a': 'City Rank',
+                                'b': 'City Exponent',
+                                'c': u''.join(values)}
+
+        with tm.assertRaises(ValueError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path, variable_labels=variable_labels_utf8)
+
+        variable_labels_long = {'a': 'City Rank',
+                                'b': 'City Exponent',
+                                'c': 'A very, very, very long variable label '
+                                     'that is too long for Stata which means '
+                                     'that it has more than 80 characters'}
+
+        with tm.assertRaises(ValueError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path, variable_labels=variable_labels_long)
+
+    def test_default_date_conversion(self):
+        # GH 12259
+        dates = [dt.datetime(1999, 12, 31, 12, 12, 12, 12000),
+                 dt.datetime(2012, 12, 21, 12, 21, 12, 21000),
+                 dt.datetime(1776, 7, 4, 7, 4, 7, 4000)]
+        original = pd.DataFrame({'nums': [1.0, 2.0, 3.0],
+                                 'strs': ['apple', 'banana', 'cherry'],
+                                 'dates': dates})
+
+        with tm.ensure_clean() as path:
+            original.to_stata(path, write_index=False)
+            reread = read_stata(path, convert_dates=True)
+            tm.assert_frame_equal(original, reread)
+
+            original.to_stata(path,
+                              write_index=False,
+                              convert_dates={'dates': 'tc'})
+            direct = read_stata(path, convert_dates=True)
+            tm.assert_frame_equal(reread, direct)
+
+    def test_unsupported_type(self):
+        original = pd.DataFrame({'a': [1 + 2j, 2 + 4j]})
+
+        with tm.assertRaises(NotImplementedError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path)
+
+    def test_unsupported_datetype(self):
+        dates = [dt.datetime(1999, 12, 31, 12, 12, 12, 12000),
+                 dt.datetime(2012, 12, 21, 12, 21, 12, 21000),
+                 dt.datetime(1776, 7, 4, 7, 4, 7, 4000)]
+        original = pd.DataFrame({'nums': [1.0, 2.0, 3.0],
+                                 'strs': ['apple', 'banana', 'cherry'],
+                                 'dates': dates})
+
+        with tm.assertRaises(NotImplementedError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path, convert_dates={'dates': 'tC'})
+
+        dates = pd.date_range('1-1-1990', periods=3, tz='Asia/Hong_Kong')
+        original = pd.DataFrame({'nums': [1.0, 2.0, 3.0],
+                                 'strs': ['apple', 'banana', 'cherry'],
+                                 'dates': dates})
+        with tm.assertRaises(NotImplementedError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path)
+
+    def test_repeated_column_labels(self):
+        # GH 13923
+        with tm.assertRaises(ValueError) as cm:
+            read_stata(self.dta23, convert_categoricals=True)
+            tm.assertTrue('wolof' in cm.exception)
+
+    def test_stata_111(self):
+        # 111 is an old version but still used by current versions of
+        # SAS when exporting to Stata format. We do not know of any
+        # on-line documentation for this version.
+        df = read_stata(self.dta24_111)
+        original = pd.DataFrame({'y': [1, 1, 1, 1, 1, 0, 0, np.NaN, 0, 0],
+                                 'x': [1, 2, 1, 3, np.NaN, 4, 3, 5, 1, 6],
+                                 'w': [2, np.NaN, 5, 2, 4, 4, 3, 1, 2, 3],
+                                 'z': ['a', 'b', 'c', 'd', 'e', '', 'g', 'h',
+                                       'i', 'j']})
+        original = original[['y', 'x', 'w', 'z']]
+        tm.assert_frame_equal(original, df)
 
 
 if __name__ == '__main__':

@@ -11,16 +11,20 @@ except ImportError:  # pragma: no cover
 
 import pandas.hashtable as _hash
 from pandas import compat, lib, algos, tslib
-from pandas.core.common import (isnull, notnull, _values_from_object,
-                                _maybe_upcast_putmask, _ensure_float64,
-                                _ensure_int64, _ensure_object, is_float,
-                                is_integer, is_complex, is_float_dtype,
-                                is_complex_dtype, is_integer_dtype,
-                                is_bool_dtype, is_object_dtype,
-                                is_datetime64_dtype, is_timedelta64_dtype,
-                                is_datetime_or_timedelta_dtype, _get_dtype,
-                                is_int_or_datetime_dtype, is_any_int_dtype,
-                                _int64_max)
+from pandas.types.common import (_ensure_int64, _ensure_object,
+                                 _ensure_float64, _get_dtype,
+                                 is_float, is_scalar,
+                                 is_integer, is_complex, is_float_dtype,
+                                 is_complex_dtype, is_integer_dtype,
+                                 is_bool_dtype, is_object_dtype,
+                                 is_numeric_dtype,
+                                 is_datetime64_dtype, is_timedelta64_dtype,
+                                 is_datetime_or_timedelta_dtype,
+                                 is_int_or_datetime_dtype, is_any_int_dtype)
+from pandas.types.cast import _int64_max, _maybe_upcast_putmask
+from pandas.types.missing import isnull, notnull
+
+from pandas.core.common import _values_from_object
 
 
 class disallow(object):
@@ -41,7 +45,8 @@ class disallow(object):
                                 'this dtype'.format(
                                     f.__name__.replace('nan', '')))
             try:
-                return f(*args, **kwargs)
+                with np.errstate(invalid='ignore'):
+                    return f(*args, **kwargs)
             except ValueError as e:
                 # we want to transform an object array
                 # ValueError message to the more typical TypeError
@@ -351,7 +356,7 @@ def _get_counts_nanvar(mask, axis, ddof, dtype=float):
     d = count - dtype.type(ddof)
 
     # always return NaN, never inf
-    if lib.isscalar(count):
+    if is_scalar(count):
         if count <= ddof:
             count = np.nan
             d = np.nan
@@ -509,7 +514,8 @@ def nanskew(values, axis=None, skipna=True):
     m2 = _zero_out_fperr(m2)
     m3 = _zero_out_fperr(m3)
 
-    result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2 ** 1.5)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2 ** 1.5)
 
     dtype = values.dtype
     if is_float_dtype(dtype):
@@ -558,10 +564,11 @@ def nankurt(values, axis=None, skipna=True):
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m4 = adjusted4.sum(axis, dtype=np.float64)
 
-    adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
-    numer = count * (count + 1) * (count - 1) * m4
-    denom = (count - 2) * (count - 3) * m2**2
-    result = numer / denom - adj
+    with np.errstate(invalid='ignore', divide='ignore'):
+        adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
+        numer = count * (count + 1) * (count - 1) * m4
+        denom = (count - 2) * (count - 3) * m2**2
+        result = numer / denom - adj
 
     # floating point error
     numer = _zero_out_fperr(numer)
@@ -575,7 +582,8 @@ def nankurt(values, axis=None, skipna=True):
         if denom == 0:
             return 0
 
-    result = numer / denom - adj
+    with np.errstate(invalid='ignore', divide='ignore'):
+        result = numer / denom - adj
 
     dtype = values.dtype
     if is_float_dtype(dtype):
@@ -623,7 +631,7 @@ def _get_counts(mask, axis, dtype=float):
         return dtype.type(mask.size - mask.sum())
 
     count = mask.shape[axis] - mask.sum(axis)
-    if lib.isscalar(count):
+    if is_scalar(count):
         return dtype.type(count)
     try:
         return count.astype(dtype)
@@ -635,11 +643,15 @@ def _maybe_null_out(result, axis, mask):
     if axis is not None and getattr(result, 'ndim', False):
         null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
         if np.any(null_mask):
-            if np.iscomplexobj(result):
-                result = result.astype('c16')
+            if is_numeric_dtype(result):
+                if np.iscomplexobj(result):
+                    result = result.astype('c16')
+                else:
+                    result = result.astype('f8')
+                result[null_mask] = np.nan
             else:
-                result = result.astype('f8')
-            result[null_mask] = np.nan
+                # GH12941, use None to auto cast null
+                result[null_mask] = None
     elif result is not tslib.NaT:
         null_mask = mask.size - mask.sum()
         if null_mask == 0:
@@ -650,7 +662,8 @@ def _maybe_null_out(result, axis, mask):
 
 def _zero_out_fperr(arg):
     if isinstance(arg, np.ndarray):
-        return np.where(np.abs(arg) < 1e-14, 0, arg)
+        with np.errstate(invalid='ignore'):
+            return np.where(np.abs(arg) < 1e-14, 0, arg)
     else:
         return arg.dtype.type(0) if np.abs(arg) < 1e-14 else arg
 
@@ -752,7 +765,8 @@ def make_nancomp(op):
         ymask = isnull(y)
         mask = xmask | ymask
 
-        result = op(x, y)
+        with np.errstate(all='ignore'):
+            result = op(x, y)
 
         if mask.any():
             if is_bool_dtype(result):

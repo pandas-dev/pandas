@@ -7,11 +7,11 @@ from datetime import datetime
 
 import numpy as np
 
+from pandas.types.common import is_list_like, is_scalar
 import pandas as pd
 from pandas.compat import PY3, string_types, text_type
 import pandas.core.common as com
 from pandas.formats.printing import pprint_thing, pprint_thing_encoded
-import pandas.lib as lib
 from pandas.core.base import StringMixin
 from pandas.computation.common import _ensure_decoded, _result_type_many
 from pandas.computation.scope import _DEFAULT_GLOBALS
@@ -100,7 +100,7 @@ class Term(StringMixin):
 
     @property
     def isscalar(self):
-        return lib.isscalar(self._value)
+        return is_scalar(self._value)
 
     @property
     def type(self):
@@ -166,6 +166,11 @@ class Constant(Term):
     def name(self):
         return self.value
 
+    def __unicode__(self):
+        # in python 2 str() of float
+        # can truncate shorter than repr()
+        return repr(self.name)
+
 
 _bool_op_map = {'not': '~', 'and': '&', 'or': '|'}
 
@@ -229,7 +234,7 @@ def _in(x, y):
     try:
         return x.isin(y)
     except AttributeError:
-        if com.is_list_like(x):
+        if is_list_like(x):
             try:
                 return y.isin(x)
             except AttributeError:
@@ -244,7 +249,7 @@ def _not_in(x, y):
     try:
         return ~x.isin(y)
     except AttributeError:
-        if com.is_list_like(x):
+        if is_list_like(x):
             try:
                 return ~y.isin(x)
             except AttributeError:
@@ -286,7 +291,7 @@ def _cast_inplace(terms, acceptable_dtypes, dtype):
     acceptable_dtypes : list of acceptable numpy.dtype
         Will not cast if term's dtype in this list.
 
-        .. versionadded:: 0.18.2
+        .. versionadded:: 0.19.0
 
     dtype : str or numpy.dtype
         The dtype to cast to.
@@ -523,7 +528,8 @@ class MathCall(Op):
 
     def __call__(self, env):
         operands = [op(env) for op in self.operands]
-        return self.func.func(*operands)
+        with np.errstate(all='ignore'):
+            return self.func.func(*operands)
 
     def __unicode__(self):
         operands = map(str, self.operands)

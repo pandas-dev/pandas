@@ -5,7 +5,6 @@ from itertools import product
 from distutils.version import LooseVersion
 
 import nose
-import random
 
 from numpy import nan
 import numpy as np
@@ -261,8 +260,29 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                 self.assertEqual(0, s.kurt())
                 self.assertTrue((df.kurt() == 0).all())
 
+    def test_describe(self):
+        s = Series([0, 1, 2, 3, 4], name='int_data')
+        result = s.describe()
+        expected = Series([5, 2, s.std(), 0, 1, 2, 3, 4],
+                          name='int_data',
+                          index=['count', 'mean', 'std', 'min', '25%',
+                                 '50%', '75%', 'max'])
+        self.assert_series_equal(result, expected)
+
+        s = Series([True, True, False, False, False], name='bool_data')
+        result = s.describe()
+        expected = Series([5, 2, False, 3], name='bool_data',
+                          index=['count', 'unique', 'top', 'freq'])
+        self.assert_series_equal(result, expected)
+
+        s = Series(['a', 'a', 'b', 'c', 'd'], name='str_data')
+        result = s.describe()
+        expected = Series([5, 4, 'a', 2], name='str_data',
+                          index=['count', 'unique', 'top', 'freq'])
+        self.assert_series_equal(result, expected)
+
     def test_argsort(self):
-        self._check_accum_op('argsort')
+        self._check_accum_op('argsort', check_dtype=False)
         argsorted = self.ts.argsort()
         self.assertTrue(issubclass(argsorted.dtype.type, np.integer))
 
@@ -289,8 +309,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         mexpected = np.argsort(s.values, kind='mergesort')
         qexpected = np.argsort(s.values, kind='quicksort')
 
-        self.assert_series_equal(mindexer, Series(mexpected))
-        self.assert_series_equal(qindexer, Series(qexpected))
+        self.assert_series_equal(mindexer, Series(mexpected),
+                                 check_dtype=False)
+        self.assert_series_equal(qindexer, Series(qexpected),
+                                 check_dtype=False)
         self.assertFalse(np.array_equal(qindexer, mindexer))
 
     def test_cumsum(self):
@@ -487,10 +509,11 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         except ImportError:
             pass
 
-    def _check_accum_op(self, name):
+    def _check_accum_op(self, name, check_dtype=True):
         func = getattr(np, name)
         self.assert_numpy_array_equal(func(self.ts).values,
-                                      func(np.array(self.ts)))
+                                      func(np.array(self.ts)),
+                                      check_dtype=check_dtype)
 
         # with missing values
         ts = self.ts.copy()
@@ -499,7 +522,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = func(ts)[1::2]
         expected = func(np.array(ts.valid()))
 
-        self.assert_numpy_array_equal(result.values, expected)
+        self.assert_numpy_array_equal(result.values, expected,
+                                      check_dtype=False)
 
     def test_compress(self):
         cond = [True, False, True, False, False]
@@ -598,39 +622,40 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertRaises(NotImplementedError, s.all, bool_only=True)
 
     def test_modulo(self):
+        with np.errstate(all='ignore'):
 
-        # GH3590, modulo as ints
-        p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-        result = p['first'] % p['second']
-        expected = Series(p['first'].values % p['second'].values,
-                          dtype='float64')
-        expected.iloc[0:3] = np.nan
-        assert_series_equal(result, expected)
+            # GH3590, modulo as ints
+            p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+            result = p['first'] % p['second']
+            expected = Series(p['first'].values % p['second'].values,
+                              dtype='float64')
+            expected.iloc[0:3] = np.nan
+            assert_series_equal(result, expected)
 
-        result = p['first'] % 0
-        expected = Series(np.nan, index=p.index, name='first')
-        assert_series_equal(result, expected)
+            result = p['first'] % 0
+            expected = Series(np.nan, index=p.index, name='first')
+            assert_series_equal(result, expected)
 
-        p = p.astype('float64')
-        result = p['first'] % p['second']
-        expected = Series(p['first'].values % p['second'].values)
-        assert_series_equal(result, expected)
+            p = p.astype('float64')
+            result = p['first'] % p['second']
+            expected = Series(p['first'].values % p['second'].values)
+            assert_series_equal(result, expected)
 
-        p = p.astype('float64')
-        result = p['first'] % p['second']
-        result2 = p['second'] % p['first']
-        self.assertFalse(np.array_equal(result, result2))
+            p = p.astype('float64')
+            result = p['first'] % p['second']
+            result2 = p['second'] % p['first']
+            self.assertFalse(np.array_equal(result, result2))
 
-        # GH 9144
-        s = Series([0, 1])
+            # GH 9144
+            s = Series([0, 1])
 
-        result = s % 0
-        expected = Series([nan, nan])
-        assert_series_equal(result, expected)
+            result = s % 0
+            expected = Series([nan, nan])
+            assert_series_equal(result, expected)
 
-        result = 0 % s
-        expected = Series([nan, 0.0])
-        assert_series_equal(result, expected)
+            result = 0 % s
+            expected = Series([nan, 0.0])
+            assert_series_equal(result, expected)
 
     def test_ops_consistency_on_empty(self):
 
@@ -1360,13 +1385,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertEqual(r, e)
 
         r = s.searchsorted([30])
-        e = np.array([2], dtype=np.int64)
+        e = np.array([2], dtype=np.intp)
         tm.assert_numpy_array_equal(r, e)
 
     def test_searchsorted_numeric_dtypes_vector(self):
         s = Series([1, 2, 90, 1000, 3e9])
         r = s.searchsorted([91, 2e6])
-        e = np.array([3, 4], dtype=np.int64)
+        e = np.array([3, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(r, e)
 
     def test_search_sorted_datetime64_scalar(self):
@@ -1380,14 +1405,14 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series(pd.date_range('20120101', periods=10, freq='2D'))
         v = [pd.Timestamp('20120102'), pd.Timestamp('20120104')]
         r = s.searchsorted(v)
-        e = np.array([1, 2], dtype=np.int64)
+        e = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(r, e)
 
     def test_searchsorted_sorter(self):
         # GH8490
         s = Series([3, 1, 2])
         r = s.searchsorted([0, 3], sorter=np.argsort(s))
-        e = np.array([0, 2], dtype=np.int64)
+        e = np.array([0, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(r, e)
 
     def test_is_unique(self):
@@ -1413,141 +1438,6 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series(list(reversed(s.tolist())))
         self.assertFalse(s.is_monotonic)
         self.assertTrue(s.is_monotonic_decreasing)
-
-    def test_sort_values(self):
-
-        ts = self.ts.copy()
-
-        # 9816 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            ts.sort()
-
-        self.assert_series_equal(ts, self.ts.sort_values())
-        self.assert_index_equal(ts.index, self.ts.sort_values().index)
-
-        ts.sort_values(ascending=False, inplace=True)
-        self.assert_series_equal(ts, self.ts.sort_values(ascending=False))
-        self.assert_index_equal(ts.index,
-                                self.ts.sort_values(ascending=False).index)
-
-        # GH 5856/5853
-        # Series.sort_values operating on a view
-        df = DataFrame(np.random.randn(10, 4))
-        s = df.iloc[:, 0]
-
-        def f():
-            s.sort_values(inplace=True)
-
-        self.assertRaises(ValueError, f)
-
-        # test order/sort inplace
-        # GH6859
-        ts1 = self.ts.copy()
-        ts1.sort_values(ascending=False, inplace=True)
-        ts2 = self.ts.copy()
-        ts2.sort_values(ascending=False, inplace=True)
-        assert_series_equal(ts1, ts2)
-
-        ts1 = self.ts.copy()
-        ts1 = ts1.sort_values(ascending=False, inplace=False)
-        ts2 = self.ts.copy()
-        ts2 = ts.sort_values(ascending=False)
-        assert_series_equal(ts1, ts2)
-
-    def test_sort_index(self):
-        rindex = list(self.ts.index)
-        random.shuffle(rindex)
-
-        random_order = self.ts.reindex(rindex)
-        sorted_series = random_order.sort_index()
-        assert_series_equal(sorted_series, self.ts)
-
-        # descending
-        sorted_series = random_order.sort_index(ascending=False)
-        assert_series_equal(sorted_series,
-                            self.ts.reindex(self.ts.index[::-1]))
-
-    def test_sort_index_inplace(self):
-
-        # For #11402
-        rindex = list(self.ts.index)
-        random.shuffle(rindex)
-
-        # descending
-        random_order = self.ts.reindex(rindex)
-        result = random_order.sort_index(ascending=False, inplace=True)
-        self.assertIs(result, None,
-                      msg='sort_index() inplace should return None')
-        assert_series_equal(random_order, self.ts.reindex(self.ts.index[::-1]))
-
-        # ascending
-        random_order = self.ts.reindex(rindex)
-        result = random_order.sort_index(ascending=True, inplace=True)
-        self.assertIs(result, None,
-                      msg='sort_index() inplace should return None')
-        assert_series_equal(random_order, self.ts)
-
-    def test_sort_API(self):
-
-        # API for 9816
-
-        # sortlevel
-        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
-        s = Series([1, 2], mi)
-        backwards = s.iloc[[1, 0]]
-
-        res = s.sort_index(level='A')
-        assert_series_equal(backwards, res)
-
-        # sort_index
-        rindex = list(self.ts.index)
-        random.shuffle(rindex)
-
-        random_order = self.ts.reindex(rindex)
-        sorted_series = random_order.sort_index(level=0)
-        assert_series_equal(sorted_series, self.ts)
-
-        # compat on axis
-        sorted_series = random_order.sort_index(axis=0)
-        assert_series_equal(sorted_series, self.ts)
-
-        self.assertRaises(ValueError, lambda: random_order.sort_values(axis=1))
-
-        sorted_series = random_order.sort_index(level=0, axis=0)
-        assert_series_equal(sorted_series, self.ts)
-
-        self.assertRaises(ValueError,
-                          lambda: random_order.sort_index(level=0, axis=1))
-
-    def test_order(self):
-
-        # 9816 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            self.ts.order()
-
-        ts = self.ts.copy()
-        ts[:5] = np.NaN
-        vals = ts.values
-
-        result = ts.sort_values()
-        self.assertTrue(np.isnan(result[-5:]).all())
-        self.assert_numpy_array_equal(result[:-5].values, np.sort(vals[5:]))
-
-        result = ts.sort_values(na_position='first')
-        self.assertTrue(np.isnan(result[:5]).all())
-        self.assert_numpy_array_equal(result[5:].values, np.sort(vals[5:]))
-
-        # something object-type
-        ser = Series(['A', 'B'], [1, 2])
-        # no failure
-        ser.sort_values()
-
-        # ascending=False
-        ordered = ts.sort_values(ascending=False)
-        expected = np.sort(ts.valid().values)[::-1]
-        assert_almost_equal(expected, ordered.valid().values)
-        ordered = ts.sort_values(ascending=False, na_position='first')
-        assert_almost_equal(expected, ordered.valid().values)
 
     def test_nsmallest_nlargest(self):
         # float, int, datetime64 (use i8), timedelts64 (same),
@@ -1686,49 +1576,63 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_index_equal(s.values.categories, sp1.values.categories)
         assert_index_equal(s.values.categories, sn2.values.categories)
 
-    def test_reshape_non_2d(self):
-        # GH 4554
-        x = Series(np.random.random(201), name='x')
-        self.assertTrue(x.reshape(x.shape, ) is x)
+    def test_reshape_deprecate(self):
+        x = Series(np.random.random(10), name='x')
+        tm.assert_produces_warning(FutureWarning, x.reshape, x.shape)
 
-        # GH 2719
-        a = Series([1, 2, 3, 4])
-        result = a.reshape(2, 2)
-        expected = a.values.reshape(2, 2)
-        tm.assert_numpy_array_equal(result, expected)
-        self.assertIsInstance(result, type(expected))
+    def test_reshape_non_2d(self):
+        # see gh-4554
+        with tm.assert_produces_warning(FutureWarning):
+            x = Series(np.random.random(201), name='x')
+            self.assertTrue(x.reshape(x.shape, ) is x)
+
+        # see gh-2719
+        with tm.assert_produces_warning(FutureWarning):
+            a = Series([1, 2, 3, 4])
+            result = a.reshape(2, 2)
+            expected = a.values.reshape(2, 2)
+            tm.assert_numpy_array_equal(result, expected)
+            self.assertIsInstance(result, type(expected))
 
     def test_reshape_2d_return_array(self):
         x = Series(np.random.random(201), name='x')
-        result = x.reshape((-1, 1))
-        self.assertNotIsInstance(result, Series)
 
-        result2 = np.reshape(x, (-1, 1))
-        self.assertNotIsInstance(result2, Series)
+        with tm.assert_produces_warning(FutureWarning):
+            result = x.reshape((-1, 1))
+            self.assertNotIsInstance(result, Series)
 
-        result = x[:, None]
-        expected = x.reshape((-1, 1))
-        assert_almost_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result2 = np.reshape(x, (-1, 1))
+            self.assertNotIsInstance(result2, Series)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = x[:, None]
+            expected = x.reshape((-1, 1))
+            assert_almost_equal(result, expected)
 
     def test_reshape_bad_kwarg(self):
         a = Series([1, 2, 3, 4])
 
-        msg = "'foo' is an invalid keyword argument for this function"
-        tm.assertRaisesRegexp(TypeError, msg, a.reshape, (2, 2), foo=2)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "'foo' is an invalid keyword argument for this function"
+            tm.assertRaisesRegexp(TypeError, msg, a.reshape, (2, 2), foo=2)
 
-        msg = "reshape\(\) got an unexpected keyword argument 'foo'"
-        tm.assertRaisesRegexp(TypeError, msg, a.reshape, a.shape, foo=2)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "reshape\(\) got an unexpected keyword argument 'foo'"
+            tm.assertRaisesRegexp(TypeError, msg, a.reshape, a.shape, foo=2)
 
     def test_numpy_reshape(self):
         a = Series([1, 2, 3, 4])
 
-        result = np.reshape(a, (2, 2))
-        expected = a.values.reshape(2, 2)
-        tm.assert_numpy_array_equal(result, expected)
-        self.assertIsInstance(result, type(expected))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.reshape(a, (2, 2))
+            expected = a.values.reshape(2, 2)
+            tm.assert_numpy_array_equal(result, expected)
+            self.assertIsInstance(result, type(expected))
 
-        result = np.reshape(a, a.shape)
-        tm.assert_series_equal(result, a)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.reshape(a, a.shape)
+            tm.assert_series_equal(result, a)
 
     def test_unstack(self):
         from numpy import nan

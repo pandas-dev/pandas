@@ -1,0 +1,261 @@
+"""
+Template for each `dtype` helper function for take
+
+WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
+"""
+
+#----------------------------------------------------------------------
+# take_1d, take_2d
+#----------------------------------------------------------------------
+
+{{py:
+
+# name, dest, c_type_in, c_type_out, preval, postval, can_copy, nogil
+dtypes = [
+    ('bool', 'bool', 'uint8_t', 'uint8_t', '', '', True, True),
+    ('bool', 'object', 'uint8_t', 'object',
+     'True if ', ' > 0 else False', False, False),
+    ('int8', 'int8', 'int8_t', 'int8_t', '', '', True, False),
+    ('int8', 'int32', 'int8_t', 'int32_t', '', '', False, True),
+    ('int8', 'int64', 'int8_t', 'int64_t', '', '', False, True),
+    ('int8', 'float64', 'int8_t', 'float64_t', '', '', False, True),
+    ('int16', 'int16', 'int16_t', 'int16_t', '', '', True, True),
+    ('int16', 'int32', 'int16_t', 'int32_t', '', '', False, True),
+    ('int16', 'int64', 'int16_t', 'int64_t', '', '', False, True),
+    ('int16', 'float64', 'int16_t', 'float64_t', '', '', False, True),
+    ('int32', 'int32', 'int32_t', 'int32_t', '', '', True, True),
+    ('int32', 'int64', 'int32_t', 'int64_t', '', '', False, True),
+    ('int32', 'float64', 'int32_t', 'float64_t', '', '', False, True),
+    ('int64', 'int64', 'int64_t', 'int64_t', '', '', True, True),
+    ('int64', 'float64', 'int64_t', 'float64_t', '', '', False, True),
+    ('float32', 'float32', 'float32_t', 'float32_t', '', '', True, True),
+    ('float32', 'float64', 'float32_t', 'float64_t', '', '', False, True),
+    ('float64', 'float64', 'float64_t', 'float64_t', '', '', True, True),
+    ('object', 'object', 'object', 'object', '', '', False, False)]
+
+
+def get_dispatch(dtypes):
+
+    inner_take_1d_template = """
+    cdef:
+        Py_ssize_t i, n, idx
+        %(c_type_out)s fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    %(nogil_str)s
+    %(tab)sfor i from 0 <= i < n:
+    %(tab)s    idx = indexer[i]
+    %(tab)s    if idx == -1:
+    %(tab)s        out[i] = fv
+    %(tab)s    else:
+    %(tab)s        out[i] = %(preval)svalues[idx]%(postval)s
+"""
+
+    inner_take_2d_axis0_template = """\
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        %(c_type_out)s fv
+
+    n = len(indexer)
+    k = values.shape[1]
+
+    fv = fill_value
+
+    IF %(can_copy)s:
+        cdef:
+            %(c_type_out)s *v
+            %(c_type_out)s *o
+
+        #GH3130
+        if (values.strides[1] == out.strides[1] and
+            values.strides[1] == sizeof(%(c_type_out)s) and
+            sizeof(%(c_type_out)s) * n >= 256):
+
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        out[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &out[i, 0]
+                    memmove(o, v, <size_t>(sizeof(%(c_type_out)s) * k))
+            return
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                out[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                out[i, j] = %(preval)svalues[idx, j]%(postval)s
+"""
+
+    inner_take_2d_axis1_template = """\
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        %(c_type_out)s fv
+
+    n = len(values)
+    k = len(indexer)
+
+    if n == 0 or k == 0:
+        return
+
+    fv = fill_value
+
+    for i from 0 <= i < n:
+        for j from 0 <= j < k:
+            idx = indexer[j]
+            if idx == -1:
+                out[i, j] = fv
+            else:
+                out[i, j] = %(preval)svalues[i, idx]%(postval)s
+"""
+
+    for (name, dest, c_type_in, c_type_out, preval, postval,
+         can_copy, nogil) in dtypes:
+        if nogil:
+            nogil_str = "with nogil:"
+            tab = '    '
+        else:
+            nogil_str = ''
+            tab = ''
+
+        args = dict(name=name, dest=dest, c_type_in=c_type_in,
+                    c_type_out=c_type_out, preval=preval, postval=postval,
+                    can_copy=can_copy, nogil_str=nogil_str, tab=tab)
+
+        inner_take_1d = inner_take_1d_template % args
+        inner_take_2d_axis0 = inner_take_2d_axis0_template % args
+        inner_take_2d_axis1 = inner_take_2d_axis1_template % args
+
+        yield (name, dest, c_type_in, c_type_out, preval, postval, can_copy,
+               inner_take_1d, inner_take_2d_axis0, inner_take_2d_axis1)
+
+}}
+
+
+{{for name, dest, c_type_in, c_type_out, preval, postval, can_copy,
+      inner_take_1d, inner_take_2d_axis0, inner_take_2d_axis1
+      in get_dispatch(dtypes)}}
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_{{name}}_{{dest}}_memview({{c_type_in}}[:] values,
+                                              int64_t[:] indexer,
+                                              {{c_type_out}}[:] out,
+                                              fill_value=np.nan):
+
+
+{{inner_take_1d}}
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
+                              int64_t[:] indexer,
+                              {{c_type_out}}[:] out,
+                              fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_{{name}}_{{dest}}_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+{{inner_take_1d}}
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_2d_axis0_{{name}}_{{dest}}_memview({{c_type_in}}[:, :] values,
+                                                    int64_t[:] indexer,
+                                                    {{c_type_out}}[:, :] out,
+                                                    fill_value=np.nan):
+{{inner_take_2d_axis0}}
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
+                                    ndarray[int64_t] indexer,
+                                    {{c_type_out}}[:, :] out,
+                                    fill_value=np.nan):
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_2d_axis0_{{name}}_{{dest}}_memview(values, indexer, out,
+                                                fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+{{inner_take_2d_axis0}}
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_2d_axis1_{{name}}_{{dest}}_memview({{c_type_in}}[:, :] values,
+                                                    int64_t[:] indexer,
+                                                    {{c_type_out}}[:, :] out,
+                                                    fill_value=np.nan):
+{{inner_take_2d_axis1}}
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
+                                    ndarray[int64_t] indexer,
+                                    {{c_type_out}}[:, :] out,
+                                    fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_2d_axis1_{{name}}_{{dest}}_memview(values, indexer, out,
+                                                fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+{{inner_take_2d_axis1}}
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
+                                    indexer,
+                                    ndarray[{{c_type_out}}, ndim=2] out,
+                                    fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[int64_t] idx0 = indexer[0]
+        ndarray[int64_t] idx1 = indexer[1]
+        {{c_type_out}} fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                out[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
+                    out[i, j] = fv
+                else:
+                    out[i, j] = {{preval}}values[idx, idx1[j]]{{postval}}
+
+{{endfor}}

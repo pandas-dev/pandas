@@ -346,6 +346,17 @@ cf.deprecate_option('display.line_width',
 cf.deprecate_option('display.height', msg=pc_height_deprecation_warning,
                     rkey='display.max_rows')
 
+pc_html_border_doc = """
+: int
+    A ``border=value`` attribute is inserted in the ``<table>`` tag
+    for the DataFrame HTML repr.
+"""
+
+with cf.config_prefix('html'):
+    cf.register_option('border', 1, pc_html_border_doc,
+                       validator=is_int)
+
+
 tc_sim_interactive_doc = """
 : boolean
     Whether to simulate interactive mode for purposes of testing
@@ -366,7 +377,7 @@ use_inf_as_null_doc = """
 
 
 def use_inf_as_null_cb(key):
-    from pandas.core.common import _use_inf_as_null
+    from pandas.types.missing import _use_inf_as_null
     _use_inf_as_null(key)
 
 with cf.config_prefix('mode'):

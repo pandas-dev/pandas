@@ -52,7 +52,7 @@ int main() {
 	* The capacity is a power of 2. This seems to dramatically improve the
 	  speed for simple keys. Thank Zilong Tan for the suggestion. Reference:
 
-	   - http://code.google.com/p/ulib/
+	   - https://github.com/stefanocasazza/ULib
 	   - http://nothings.org/computer/judy/
 
 	* Allow to optionally use linear probing which usually has better

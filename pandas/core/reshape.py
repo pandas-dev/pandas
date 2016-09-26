@@ -6,6 +6,11 @@ import itertools
 
 import numpy as np
 
+from pandas.types.common import _ensure_platform_int, is_list_like
+from pandas.types.cast import _maybe_promote
+from pandas.types.missing import notnull
+import pandas.types.concat as _concat
+
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
@@ -13,12 +18,9 @@ from pandas.core.sparse import SparseDataFrame, SparseSeries
 from pandas.sparse.array import SparseArray
 from pandas._sparse import IntIndex
 
-from pandas.core.categorical import Categorical
-from pandas.core.common import notnull, _ensure_platform_int, _maybe_promote
+from pandas.core.categorical import Categorical, _factorize_from_iterable
 from pandas.core.groupby import get_group_index, _compress_group_index
 
-import pandas.core.common as com
-import pandas.types.concat as _concat
 import pandas.core.algorithms as algos
 import pandas.algos as _algos
 
@@ -164,9 +166,8 @@ class _Unstacker(object):
         if self.is_categorical is not None:
             categories = self.is_categorical.categories
             ordered = self.is_categorical.ordered
-            values = [Categorical.from_array(values[:, i],
-                                             categories=categories,
-                                             ordered=ordered)
+            values = [Categorical(values[:, i], categories=categories,
+                                  ordered=ordered)
                       for i in range(values.shape[-1])]
 
         return DataFrame(values, index=index, columns=columns)
@@ -469,8 +470,8 @@ def stack(frame, level=-1, dropna=True):
     def factorize(index):
         if index.is_unique:
             return index, np.arange(len(index))
-        cat = Categorical(index, ordered=True)
-        return cat.categories, cat.codes
+        codes, categories = _factorize_from_iterable(index)
+        return categories, codes
 
     N, K = frame.shape
     if isinstance(frame.columns, MultiIndex):
@@ -983,7 +984,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
         .. versionadded:: 0.16.1
     drop_first : bool, default False
-        Whether to get k-1 dummies out of n categorical levels by removing the
+        Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
 
         .. versionadded:: 0.18.0
@@ -1063,7 +1064,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
             length_msg = ("Length of '{0}' ({1}) did not match the length of "
                           "the columns being encoded ({2}).")
 
-            if com.is_list_like(item):
+            if is_list_like(item):
                 if not len(item) == len(columns_to_encode):
                     raise ValueError(length_msg.format(name, len(item),
                                                        len(columns_to_encode)))
@@ -1105,8 +1106,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
                     sparse=False, drop_first=False):
     # Series avoids inconsistent NaN handling
-    cat = Categorical.from_array(Series(data), ordered=True)
-    levels = cat.categories
+    codes, levels = _factorize_from_iterable(Series(data))
 
     def get_empty_Frame(data, sparse):
         if isinstance(data, Series):
@@ -1122,10 +1122,10 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
     if not dummy_na and len(levels) == 0:
         return get_empty_Frame(data, sparse)
 
-    codes = cat.codes.copy()
+    codes = codes.copy()
     if dummy_na:
-        codes[codes == -1] = len(cat.categories)
-        levels = np.append(cat.categories, np.nan)
+        codes[codes == -1] = len(levels)
+        levels = np.append(levels, np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:
@@ -1159,14 +1159,17 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices):
-            sarr = SparseArray(np.ones(len(ixs)),
-                               sparse_index=IntIndex(N, ixs), fill_value=0)
+            sarr = SparseArray(np.ones(len(ixs), dtype=np.uint8),
+                               sparse_index=IntIndex(N, ixs), fill_value=0,
+                               dtype=np.uint8)
             sparse_series[col] = SparseSeries(data=sarr, index=index)
 
-        return SparseDataFrame(sparse_series, index=index, columns=dummy_cols)
+        out = SparseDataFrame(sparse_series, index=index, columns=dummy_cols,
+                              dtype=np.uint8)
+        return out
 
     else:
-        dummy_mat = np.eye(number_of_cols).take(codes, axis=0)
+        dummy_mat = np.eye(number_of_cols, dtype=np.uint8).take(codes, axis=0)
 
         if not dummy_na:
             # reset NaN GH4446
@@ -1207,9 +1210,7 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     labels = frame.index.labels[num]
     if transform is not None:
         mapped_items = items.map(transform)
-        cat = Categorical.from_array(mapped_items.take(labels), ordered=True)
-        labels = cat.codes
-        items = cat.categories
+        labels, items = _factorize_from_iterable(mapped_items.take(labels))
 
     values = np.eye(len(items), dtype=float)
     values = values.take(labels, axis=0)

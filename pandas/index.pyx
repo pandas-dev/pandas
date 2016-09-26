@@ -54,7 +54,8 @@ cdef inline is_definitely_invalid_key(object val):
 
     # we have a _data, means we are a NDFrame
     return (PySlice_Check(val) or cnp.PyArray_Check(val)
-            or PyList_Check(val) or hasattr(val,'_data'))
+            or PyList_Check(val) or hasattr(val, '_data'))
+
 
 def get_value_at(ndarray arr, object loc):
     if arr.descr.type_num == NPY_DATETIME:
@@ -62,6 +63,7 @@ def get_value_at(ndarray arr, object loc):
     elif arr.descr.type_num == NPY_TIMEDELTA:
         return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
+
 
 def set_value_at(ndarray arr, object loc, object val):
     return util.set_value_at(arr, loc, val)
@@ -89,9 +91,9 @@ cdef class IndexEngine:
 
         self.initialized = 0
         self.monotonic_check = 0
+        self.unique_check = 0
 
         self.unique = 0
-        self.unique_check = 0
         self.monotonic_inc = 0
         self.monotonic_dec = 0
 
@@ -176,8 +178,8 @@ cdef class IndexEngine:
                 return left
             else:
                 return slice(left, right)
-        else:
-            return self._maybe_get_bool_indexer(val)
+
+        return self._maybe_get_bool_indexer(val)
 
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:
@@ -211,9 +213,10 @@ cdef class IndexEngine:
     property is_unique:
 
         def __get__(self):
-            if not self.unique_check:
-                self._do_unique_check()
+            if not self.initialized:
+                self.initialize()
 
+            self.unique_check = 1
             return self.unique == 1
 
     property is_monotonic_increasing:
@@ -233,21 +236,26 @@ cdef class IndexEngine:
             return self.monotonic_dec == 1
 
     cdef inline _do_monotonic_check(self):
+        cdef object is_unique
         try:
             values = self._get_index_values()
-            self.monotonic_inc, self.monotonic_dec = \
+            self.monotonic_inc, self.monotonic_dec, is_unique = \
                 self._call_monotonic(values)
         except TypeError:
             self.monotonic_inc = 0
             self.monotonic_dec = 0
+            is_unique = 0
 
         self.monotonic_check = 1
 
+        # we can only be sure of uniqueness if is_unique=1
+        if is_unique:
+            self.initialized = 1
+            self.unique = 1
+            self.unique_check = 1
+
     cdef _get_index_values(self):
         return self.vgetter()
-
-    cdef inline _do_unique_check(self):
-        self._ensure_mapping_populated()
 
     def _call_monotonic(self, values):
         raise NotImplementedError
@@ -259,6 +267,10 @@ cdef class IndexEngine:
         hash(val)
 
     cdef inline _ensure_mapping_populated(self):
+        # need to reset if we have previously
+        # set the initialized from monotonic checks
+        if self.unique_check:
+            self.initialized = 0
         if not self.initialized:
             self.initialize()
 
@@ -270,13 +282,18 @@ cdef class IndexEngine:
 
         if len(self.mapping) == len(values):
             self.unique = 1
-            self.unique_check = 1
 
         self.initialized = 1
 
     def clear_mapping(self):
         self.mapping = None
         self.initialized = 0
+        self.monotonic_check = 0
+        self.unique_check = 0
+
+        self.unique = 0
+        self.monotonic_inc = 0
+        self.monotonic_dec = 0
 
     def get_indexer(self, values):
         self._ensure_mapping_populated()
@@ -307,7 +324,7 @@ cdef class IndexEngine:
         else:
             n_alloc = n
 
-        result  = np.empty(n_alloc, dtype=np.int64)
+        result = np.empty(n_alloc, dtype=np.int64)
         missing = np.empty(n_t, dtype=np.int64)
 
         # form the set of the results (like ismember)
@@ -316,7 +333,7 @@ cdef class IndexEngine:
             val = util.get_value_1d(values, i)
             if val in stargets:
                 if val not in d:
-                   d[val] = []
+                    d[val] = []
                 d[val].append(i)
 
         for i in range(n_t):
@@ -327,20 +344,20 @@ cdef class IndexEngine:
             if val in d:
                 for j in d[val]:
 
-                   # realloc if needed
-                   if count >= n_alloc:
-                      n_alloc += 10000
-                      result = np.resize(result, n_alloc)
+                    # realloc if needed
+                    if count >= n_alloc:
+                        n_alloc += 10000
+                        result = np.resize(result, n_alloc)
 
-                   result[count] = j
-                   count += 1
+                    result[count] = j
+                    count += 1
 
             # value not found
             else:
 
                 if count >= n_alloc:
-                     n_alloc += 10000
-                     result = np.resize(result, n_alloc)
+                    n_alloc += 10000
+                    result = np.resize(result, n_alloc)
                 result[count] = -1
                 count += 1
                 missing[count_missing] = i
@@ -484,9 +501,9 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         return mid + 1
 
 _pad_functions = {
-    'object' : algos.pad_object,
-    'int64' : algos.pad_int64,
-    'float64' : algos.pad_float64
+    'object': algos.pad_object,
+    'int64': algos.pad_int64,
+    'float64': algos.pad_float64
 }
 
 _backfill_functions = {
@@ -540,7 +557,6 @@ cdef class DatetimeEngine(Int64Engine):
             raise TypeError
 
         # Welcome to the spaghetti factory
-
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 val = _to_i8(val)
@@ -611,7 +627,7 @@ cdef class TimedeltaEngine(DatetimeEngine):
 
 cpdef convert_scalar(ndarray arr, object value):
     if arr.descr.type_num == NPY_DATETIME:
-        if isinstance(value,np.ndarray):
+        if isinstance(value, np.ndarray):
             pass
         elif isinstance(value, Timestamp):
             return value.value
@@ -620,7 +636,7 @@ cpdef convert_scalar(ndarray arr, object value):
         else:
             return Timestamp(value).value
     elif arr.descr.type_num == NPY_TIMEDELTA:
-        if isinstance(value,np.ndarray):
+        if isinstance(value, np.ndarray):
             pass
         elif isinstance(value, Timedelta):
             return value.value
@@ -644,7 +660,8 @@ cdef inline _to_i8(object val):
             return get_datetime64_value(val)
         elif PyDateTime_Check(val):
             tzinfo = getattr(val, 'tzinfo', None)
-            ival = _pydatetime_to_dts(val, &dts)  # Save the original date value so we can get the utcoffset from it.
+            # Save the original date value so we can get the utcoffset from it.
+            ival = _pydatetime_to_dts(val, &dts)
             if tzinfo is not None and not _is_utc(tzinfo):
                 offset = tslib._get_utcoffset(tzinfo, val)
                 ival -= tslib._delta_to_nanoseconds(offset)

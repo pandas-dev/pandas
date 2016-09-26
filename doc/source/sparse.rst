@@ -9,19 +9,20 @@
    import pandas as pd
    import pandas.util.testing as tm
    np.set_printoptions(precision=4, suppress=True)
-   options.display.max_rows = 15
+   pd.options.display.max_rows = 15
 
 **********************
 Sparse data structures
 **********************
 
-We have implemented "sparse" versions of Series, DataFrame, and Panel. These
-are not sparse in the typical "mostly 0". You can view these objects as being
-"compressed" where any data matching a specific value (NaN/missing by default,
-though any value can be chosen) is omitted. A special ``SparseIndex`` object
-tracks where data has been "sparsified". This will make much more sense in an
-example. All of the standard pandas data structures have a ``to_sparse``
-method:
+.. note:: The ``SparsePanel`` class has been removed in 0.19.0
+
+We have implemented "sparse" versions of Series and DataFrame. These are not sparse
+in the typical "mostly 0". Rather, you can view these objects as being "compressed"
+where any data matching a specific value (``NaN`` / missing value, though any value
+can be chosen) is omitted. A special ``SparseIndex`` object tracks where data has been
+"sparsified". This will make much more sense in an example. All of the standard pandas
+data structures have a ``to_sparse`` method:
 
 .. ipython:: python
 
@@ -77,9 +78,8 @@ distinct from the ``fill_value``:
    sparr = pd.SparseArray(arr)
    sparr
 
-Like the indexed objects (SparseSeries, SparseDataFrame, SparsePanel), a
-``SparseArray`` can be converted back to a regular ndarray by calling
-``to_dense``:
+Like the indexed objects (SparseSeries, SparseDataFrame), a ``SparseArray``
+can be converted back to a regular ndarray by calling ``to_dense``:
 
 .. ipython:: python
 
@@ -90,36 +90,10 @@ Like the indexed objects (SparseSeries, SparseDataFrame, SparsePanel), a
 SparseList
 ----------
 
-``SparseList`` is a list-like data structure for managing a dynamic collection
-of SparseArrays. To create one, simply call the ``SparseList`` constructor with
-a ``fill_value`` (defaulting to ``NaN``):
+The ``SparseList`` class has been deprecated and will be removed in a future version.
+See the `docs of a previous version <http://pandas.pydata.org/pandas-docs/version/0.18.1/sparse.html#sparselist>`__
+for documentation on ``SparseList``.
 
-.. ipython:: python
-
-   spl = pd.SparseList()
-   spl
-
-The two important methods are ``append`` and ``to_array``. ``append`` can
-accept scalar values or any 1-dimensional sequence:
-
-.. ipython:: python
-   :suppress:
-
-.. ipython:: python
-
-   spl.append(np.array([1., np.nan, np.nan, 2., 3.]))
-   spl.append(5)
-   spl.append(sparr)
-   spl
-
-As you can see, all of the contents are stored internally as a list of
-memory-efficient ``SparseArray`` objects. Once you've accumulated all of the
-data, you can call ``to_array`` to get a single ``SparseArray`` with all the
-data:
-
-.. ipython:: python
-
-   spl.to_array()
 
 SparseIndex objects
 -------------------
@@ -129,6 +103,83 @@ recommend using ``block`` as it's more memory efficient. The ``integer`` format
 keeps an arrays of all of the locations where the data are not equal to the
 fill value. The ``block`` format tracks only the locations and sizes of blocks
 of data.
+
+.. _sparse.dtype:
+
+Sparse Dtypes
+-------------
+
+Sparse data should have the same dtype as its dense representation. Currently,
+``float64``, ``int64`` and ``bool`` dtypes are supported. Depending on the original
+dtype, ``fill_value`` default changes:
+
+- ``float64``: ``np.nan``
+- ``int64``: ``0``
+- ``bool``: ``False``
+
+.. ipython:: python
+
+   s = pd.Series([1, np.nan, np.nan])
+   s
+   s.to_sparse()
+
+   s = pd.Series([1, 0, 0])
+   s
+   s.to_sparse()
+
+   s = pd.Series([True, False, True])
+   s
+   s.to_sparse()
+
+You can change the dtype using ``.astype()``, the result is also sparse. Note that
+``.astype()`` also affects to the ``fill_value`` to keep its dense represantation.
+
+
+.. ipython:: python
+
+   s = pd.Series([1, 0, 0, 0, 0])
+   s
+   ss = s.to_sparse()
+   ss
+   ss.astype(np.float64)
+
+It raises if any value cannot be coerced to specified dtype.
+
+.. code-block:: ipython
+
+   In [1]: ss = pd.Series([1, np.nan, np.nan]).to_sparse()
+   0    1.0
+   1    NaN
+   2    NaN
+   dtype: float64
+   BlockIndex
+   Block locations: array([0], dtype=int32)
+   Block lengths: array([1], dtype=int32)
+
+   In [2]: ss.astype(np.int64)
+   ValueError: unable to coerce current fill_value nan to int64 dtype
+
+.. _sparse.calculation:
+
+Sparse Calculation
+------------------
+
+You can apply NumPy *ufuncs* to ``SparseArray`` and get a ``SparseArray`` as a result.
+
+.. ipython:: python
+
+   arr = pd.SparseArray([1., np.nan, np.nan, -2., np.nan])
+   np.abs(arr)
+
+
+The *ufunc* is also applied to ``fill_value``. This is needed to get
+the correct dense result.
+
+.. ipython:: python
+
+   arr = pd.SparseArray([1., -1, -1, -2., -1], fill_value=-1)
+   np.abs(arr)
+   np.abs(arr).to_dense()
 
 .. _sparse.scipysparse:
 

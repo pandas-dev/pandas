@@ -18,13 +18,16 @@ python make.py html
 """
 from __future__ import print_function
 
-import glob
+import io
+import glob  # noqa
 import os
 import shutil
 import sys
-import sphinx
+from contextlib import contextmanager
+
+import sphinx  # noqa
 import argparse
-import jinja2
+import jinja2  # noqa
 
 os.environ['PYTHONPATH'] = '..'
 
@@ -102,10 +105,98 @@ def clean():
         shutil.rmtree('source/generated')
 
 
+@contextmanager
+def cleanup_nb(nb):
+    try:
+        yield
+    finally:
+        try:
+            os.remove(nb + '.executed')
+        except OSError:
+            pass
+
+
+def get_kernel():
+    """Find the kernel name for your python version"""
+    return 'python%s' % sys.version_info.major
+
+
+def execute_nb(src, dst, allow_errors=False, timeout=1000, kernel_name=''):
+    """
+    Execute notebook in `src` and write the output to `dst`
+
+    Parameters
+    ----------
+    src, dst: str
+        path to notebook
+    allow_errors: bool
+    timeout: int
+    kernel_name: str
+        defualts to value set in notebook metadata
+
+    Returns
+    -------
+    dst: str
+    """
+    import nbformat
+    from nbconvert.preprocessors import ExecutePreprocessor
+
+    with io.open(src, encoding='utf-8') as f:
+        nb = nbformat.read(f, as_version=4)
+
+    ep = ExecutePreprocessor(allow_errors=allow_errors,
+                             timeout=timeout,
+                             kernel_name=kernel_name)
+    ep.preprocess(nb, resources={})
+
+    with io.open(dst, 'wt', encoding='utf-8') as f:
+        nbformat.write(nb, f)
+    return dst
+
+
+def convert_nb(src, dst, to='html', template_file='basic'):
+    """
+    Convert a notebook `src`.
+
+    Parameters
+    ----------
+    src, dst: str
+        filepaths
+    to: {'rst', 'html'}
+        format to export to
+    template_file: str
+        name of template file to use. Default 'basic'
+    """
+    from nbconvert import HTMLExporter, RSTExporter
+
+    dispatch = {'rst': RSTExporter, 'html': HTMLExporter}
+    exporter = dispatch[to.lower()](template_file=template_file)
+
+    (body, resources) = exporter.from_filename(src)
+    with io.open(dst, 'wt', encoding='utf-8') as f:
+        f.write(body)
+    return dst
+
+
 def html():
     check_build()
-    os.system('jupyter nbconvert --to=html --template=basic '
-              '--output=source/html-styling.html source/html-styling.ipynb')
+
+    notebooks = [
+        'source/html-styling.ipynb',
+    ]
+
+    for nb in notebooks:
+        with cleanup_nb(nb):
+            try:
+                print("Converting %s" % nb)
+                kernel_name = get_kernel()
+                executed = execute_nb(nb, nb + '.executed', allow_errors=True,
+                                      kernel_name=kernel_name)
+                convert_nb(executed, nb.rstrip('.ipynb') + '.html')
+            except (ImportError, IndexError) as e:
+                print(e)
+                print("Failed to convert %s" % nb)
+
     if os.system('sphinx-build -P -b html -d build/doctrees '
                  'source build/html'):
         raise SystemExit("Building HTML failed.")
@@ -115,6 +206,7 @@ def html():
         os.system('cd build; rm -f html/pandas.zip;')
     except:
         pass
+
 
 def zip_html():
     try:

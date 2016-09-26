@@ -74,24 +74,36 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertEqual(index._step, 2)
         tm.assert_index_equal(Index(expected), index)
 
-        index = RangeIndex()
-        expected = np.empty(0, dtype=np.int64)
-        self.assertIsInstance(index, RangeIndex)
-        self.assertEqual(index._start, 0)
-        self.assertEqual(index._stop, 0)
-        self.assertEqual(index._step, 1)
-        tm.assert_index_equal(Index(expected), index)
+        msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            RangeIndex()
 
-        index = RangeIndex(name='Foo')
-        self.assertIsInstance(index, RangeIndex)
-        self.assertEqual(index.name, 'Foo')
+        for index in [RangeIndex(0), RangeIndex(start=0), RangeIndex(stop=0),
+                      RangeIndex(0, 0)]:
+            expected = np.empty(0, dtype=np.int64)
+            self.assertIsInstance(index, RangeIndex)
+            self.assertEqual(index._start, 0)
+            self.assertEqual(index._stop, 0)
+            self.assertEqual(index._step, 1)
+            tm.assert_index_equal(Index(expected), index)
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            RangeIndex(name='Foo')
+
+        for index in [RangeIndex(0, name='Foo'),
+                      RangeIndex(start=0, name='Foo'),
+                      RangeIndex(stop=0, name='Foo'),
+                      RangeIndex(0, 0, name='Foo')]:
+            self.assertIsInstance(index, RangeIndex)
+            self.assertEqual(index.name, 'Foo')
 
         # we don't allow on a bare Index
         self.assertRaises(TypeError, lambda: Index(0, 1000))
 
         # invalid args
         for i in [Index(['a', 'b']), Series(['a', 'b']), np.array(['a', 'b']),
-                  [], 'foo', datetime(2000, 1, 1, 0, 0), np.arange(0, 10)]:
+                  [], 'foo', datetime(2000, 1, 1, 0, 0), np.arange(0, 10),
+                  np.array([1]), [1]]:
             self.assertRaises(TypeError, lambda: RangeIndex(i))
 
     def test_constructor_same(self):
@@ -210,10 +222,10 @@ class TestRangeIndex(Numeric, tm.TestCase):
                         RangeIndex(0, 1000, 1)._int64index // 2),
                        (RangeIndex(0, 100, 1), 2.0,
                         RangeIndex(0, 100, 1)._int64index // 2.0),
-                       (RangeIndex(), 50, RangeIndex()),
+                       (RangeIndex(0), 50, RangeIndex(0)),
                        (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
                        (RangeIndex(-5, -10, -6), 4, RangeIndex(-2, -1, 1)),
-                       (RangeIndex(-100, -200, 3), 2, RangeIndex())]
+                       (RangeIndex(-100, -200, 3), 2, RangeIndex(0))]
         for idx, div, expected in cases_exact:
             tm.assert_index_equal(idx // div, expected, exact=True)
 
@@ -288,7 +300,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
     def test_view(self):
         super(TestRangeIndex, self).test_view()
 
-        i = RangeIndex(name='Foo')
+        i = RangeIndex(0, name='Foo')
         i_view = i.view()
         self.assertEqual(i_view.name, 'Foo')
 
@@ -315,7 +327,17 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertTrue(index.is_monotonic_increasing)
         self.assertTrue(index.is_monotonic_decreasing)
 
-    def test_equals(self):
+        index = RangeIndex(2, 1)
+        self.assertTrue(index.is_monotonic)
+        self.assertTrue(index.is_monotonic_increasing)
+        self.assertTrue(index.is_monotonic_decreasing)
+
+        index = RangeIndex(1, 1)
+        self.assertTrue(index.is_monotonic)
+        self.assertTrue(index.is_monotonic_increasing)
+        self.assertTrue(index.is_monotonic_decreasing)
+
+    def test_equals_range(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
                        (RangeIndex(0), RangeIndex(1, -1, 3)),
                        (RangeIndex(1, 2, 3), RangeIndex(1, 3, 4)),
@@ -355,19 +377,19 @@ class TestRangeIndex(Numeric, tm.TestCase):
     def test_get_indexer(self):
         target = RangeIndex(10)
         indexer = self.index.get_indexer(target)
-        expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1])
+        expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1], dtype=np.intp)
         self.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_pad(self):
         target = RangeIndex(10)
         indexer = self.index.get_indexer(target, method='pad')
-        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
+        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
         self.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_backfill(self):
         target = RangeIndex(10)
         indexer = self.index.get_indexer(target, method='backfill')
-        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5])
+        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         self.assert_numpy_array_equal(indexer, expected)
 
     def test_join_outer(self):
@@ -382,9 +404,9 @@ class TestRangeIndex(Numeric, tm.TestCase):
         eres = Int64Index([0, 2, 4, 6, 8, 10, 12, 14, 15, 16, 17, 18, 19, 20,
                            21, 22, 23, 24, 25])
         elidx = np.array([0, 1, 2, 3, 4, 5, 6, 7, -1, 8, -1, 9,
-                          -1, -1, -1, -1, -1, -1, -1], dtype=np.int_)
+                          -1, -1, -1, -1, -1, -1, -1], dtype=np.intp)
         eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 8, 7, 6,
-                          5, 4, 3, 2, 1, 0], dtype=np.int_)
+                          5, 4, 3, 2, 1, 0], dtype=np.intp)
 
         self.assertIsInstance(res, Int64Index)
         self.assertFalse(isinstance(res, RangeIndex))
@@ -420,8 +442,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
         ridx = ridx.take(ind)
 
         eres = Int64Index([16, 18])
-        elidx = np.array([8, 9])
-        eridx = np.array([9, 7])
+        elidx = np.array([8, 9], dtype=np.intp)
+        eridx = np.array([9, 7], dtype=np.intp)
 
         self.assertIsInstance(res, Int64Index)
         self.assert_index_equal(res, eres)
@@ -446,7 +468,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, how='left',
                                           return_indexers=True)
         eres = self.index
-        eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 9, 7], dtype=np.int_)
+        eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 9, 7], dtype=np.intp)
 
         self.assertIsInstance(res, RangeIndex)
         self.assert_index_equal(res, eres)
@@ -472,7 +494,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                                           return_indexers=True)
         eres = other
         elidx = np.array([-1, -1, -1, -1, -1, -1, -1, 9, -1, 8, -1],
-                         dtype=np.int_)
+                         dtype=np.intp)
 
         self.assertIsInstance(other, Int64Index)
         self.assert_index_equal(res, eres)
@@ -524,9 +546,9 @@ class TestRangeIndex(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, return_indexers=True)
 
         eres = Int64Index([0, 2, 4, 4, 6, 8, 10, 12, 14, 16, 18])
-        elidx = np.array([0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.int_)
+        elidx = np.array([0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.intp)
         eridx = np.array([-1, -1, 0, 1, -1, -1, -1, -1, -1, -1, -1],
-                         dtype=np.int_)
+                         dtype=np.intp)
 
         self.assert_index_equal(res, eres)
         self.assert_numpy_array_equal(lidx, elidx)
@@ -602,8 +624,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
                  (RI(0, 100, 5), RI(0, 100, 20), RI(0, 100, 5)),
                  (RI(0, -100, -5), RI(5, -100, -20), RI(-95, 10, 5)),
                  (RI(0, -11, -1), RI(1, -12, -4), RI(-11, 2, 1)),
-                 (RI(), RI(), RI()),
-                 (RI(0, -10, -2), RI(), RI(0, -10, -2)),
+                 (RI(0), RI(0), RI(0)),
+                 (RI(0, -10, -2), RI(0), RI(0, -10, -2)),
                  (RI(0, 100, 2), RI(100, 150, 200), RI(0, 102, 2)),
                  (RI(0, -100, -2), RI(-100, 50, 102), RI(-100, 4, 2)),
                  (RI(0, -100, -1), RI(0, -50, -3), RI(-99, 1, 1)),
@@ -611,7 +633,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                  (RI(0, 10, 5), RI(-5, -6, -20), RI(-5, 10, 5)),
                  (RI(0, 3, 1), RI(4, 5, 1), I64([0, 1, 2, 4])),
                  (RI(0, 10, 1), I64([]), RI(0, 10, 1)),
-                 (RI(), I64([1, 5, 6]), I64([1, 5, 6]))]
+                 (RI(0), I64([1, 5, 6]), I64([1, 5, 6]))]
         for idx1, idx2, expected in cases:
             res1 = idx1.union(idx2)
             res2 = idx2.union(idx1)

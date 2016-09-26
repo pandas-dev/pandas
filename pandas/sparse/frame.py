@@ -10,20 +10,26 @@ from pandas.compat import lmap
 from pandas import compat
 import numpy as np
 
+from pandas.types.missing import isnull, notnull
+from pandas.types.cast import _maybe_upcast
+from pandas.types.common import _ensure_platform_int
+
+from pandas.core.common import _try_sort
 from pandas.compat.numpy import function as nv
-from pandas.core.common import isnull, _try_sort
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.series import Series
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
-import pandas.core.common as com
 import pandas.core.algorithms as algos
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays)
-from pandas.core.generic import NDFrame
+import pandas.core.generic as generic
 from pandas.sparse.series import SparseSeries, SparseArray
 from pandas.util.decorators import Appender
 import pandas.core.ops as ops
+
+
+_shared_doc_kwargs = dict(klass='SparseDataFrame')
 
 
 class SparseDataFrame(DataFrame):
@@ -116,7 +122,7 @@ class SparseDataFrame(DataFrame):
             if dtype is not None:
                 mgr = mgr.astype(dtype)
 
-        NDFrame.__init__(self, mgr)
+        generic.NDFrame.__init__(self, mgr)
 
     @property
     def _constructor(self):
@@ -149,7 +155,7 @@ class SparseDataFrame(DataFrame):
                 if not isinstance(v, SparseSeries):
                     v = sp_maker(v.values)
             elif isinstance(v, SparseArray):
-                v = sp_maker(v.values)
+                v = v.copy()
             else:
                 if isinstance(v, dict):
                     v = [v.get(i, nan) for i in index]
@@ -186,7 +192,7 @@ class SparseDataFrame(DataFrame):
         return self._init_dict(data, index, columns, dtype)
 
     def __array_wrap__(self, result):
-        return SparseDataFrame(
+        return self._constructor(
             result, index=self.index, columns=self.columns,
             default_kind=self._default_kind,
             default_fill_value=self._default_fill_value).__finalize__(self)
@@ -233,8 +239,19 @@ class SparseDataFrame(DataFrame):
         data = dict((k, v.to_dense()) for k, v in compat.iteritems(self))
         return DataFrame(data, index=self.index, columns=self.columns)
 
+    def _apply_columns(self, func):
+        """ get new SparseDataFrame applying func to each columns """
+
+        new_data = {}
+        for col, series in compat.iteritems(self):
+            new_data[col] = func(series)
+
+        return self._constructor(
+            data=new_data, index=self.index, columns=self.columns,
+            default_fill_value=self.default_fill_value).__finalize__(self)
+
     def astype(self, dtype):
-        raise NotImplementedError
+        return self._apply_columns(lambda x: x.astype(dtype))
 
     def copy(self, deep=True):
         """
@@ -405,7 +422,7 @@ class SparseDataFrame(DataFrame):
             raise NotImplementedError("'level' argument is not supported")
 
         if self.empty and other.empty:
-            return SparseDataFrame(index=new_index).__finalize__(self)
+            return self._constructor(index=new_index).__finalize__(self)
 
         new_data = {}
         new_fill_value = None
@@ -496,14 +513,8 @@ class SparseDataFrame(DataFrame):
             new_data, index=self.index, columns=union,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
-    def _combine_const(self, other, func):
-        new_data = {}
-        for col, series in compat.iteritems(self):
-            new_data[col] = func(series, other)
-
-        return self._constructor(
-            data=new_data, index=self.index, columns=self.columns,
-            default_fill_value=self.default_fill_value).__finalize__(self)
+    def _combine_const(self, other, func, raise_on_error=True):
+        return self._apply_columns(lambda x: func(x, other))
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
                        limit=None, takeable=False):
@@ -517,10 +528,11 @@ class SparseDataFrame(DataFrame):
                 return self
 
         if len(self.index) == 0:
-            return SparseDataFrame(index=index, columns=self.columns)
+            return self._constructor(
+                index=index, columns=self.columns).__finalize__(self)
 
         indexer = self.index.get_indexer(index, method, limit=limit)
-        indexer = com._ensure_platform_int(indexer)
+        indexer = _ensure_platform_int(indexer)
         mask = indexer == -1
         need_mask = mask.any()
 
@@ -534,19 +546,23 @@ class SparseDataFrame(DataFrame):
             new = values.take(indexer)
             if need_mask:
                 new = new.values
+                # convert integer to float if necessary. need to do a lot
+                # more than that, handle boolean etc also
+                new, fill_value = _maybe_upcast(new, fill_value=fill_value)
                 np.putmask(new, mask, fill_value)
 
             new_series[col] = new
 
-        return SparseDataFrame(new_series, index=index, columns=self.columns,
-                               default_fill_value=self._default_fill_value)
+        return self._constructor(
+            new_series, index=index, columns=self.columns,
+            default_fill_value=self._default_fill_value).__finalize__(self)
 
     def _reindex_columns(self, columns, copy, level, fill_value, limit=None,
                          takeable=False):
         if level is not None:
             raise TypeError('Reindex by level not supported for sparse')
 
-        if com.notnull(fill_value):
+        if notnull(fill_value):
             raise NotImplementedError("'fill_value' argument is not supported")
 
         if limit:
@@ -554,8 +570,9 @@ class SparseDataFrame(DataFrame):
 
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in compat.iteritems(self) if k in columns)
-        return SparseDataFrame(sdict, index=self.index, columns=columns,
-                               default_fill_value=self._default_fill_value)
+        return self._constructor(
+            sdict, index=self.index, columns=columns,
+            default_fill_value=self._default_fill_value).__finalize__(self)
 
     def _reindex_with_indexers(self, reindexers, method=None, fill_value=None,
                                limit=None, copy=False, allow_dups=False):
@@ -584,8 +601,8 @@ class SparseDataFrame(DataFrame):
             else:
                 new_arrays[col] = self[col]
 
-        return SparseDataFrame(new_arrays, index=index,
-                               columns=columns).__finalize__(self)
+        return self._constructor(new_arrays, index=index,
+                                 columns=columns).__finalize__(self)
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
@@ -642,7 +659,7 @@ class SparseDataFrame(DataFrame):
         Returns a DataFrame with the rows/columns switched.
         """
         nv.validate_transpose(args, kwargs)
-        return SparseDataFrame(
+        return self._constructor(
             self.values.T, index=self.columns, columns=self.index,
             default_fill_value=self._default_fill_value,
             default_kind=self._default_kind).__finalize__(self)
@@ -676,6 +693,14 @@ class SparseDataFrame(DataFrame):
 
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
+    @Appender(generic._shared_docs['isnull'])
+    def isnull(self):
+        return self._apply_columns(lambda x: x.isnull())
+
+    @Appender(generic._shared_docs['isnotnull'])
+    def isnotnull(self):
+        return self._apply_columns(lambda x: x.isnotnull())
+
     def apply(self, func, axis=0, broadcast=False, reduce=False):
         """
         Analogous to DataFrame.apply, for SparseDataFrame
@@ -701,7 +726,7 @@ class SparseDataFrame(DataFrame):
             new_series = {}
             for k, v in compat.iteritems(self):
                 applied = func(v)
-                applied.fill_value = func(applied.fill_value)
+                applied.fill_value = func(v.fill_value)
                 new_series[k] = applied
             return self._constructor(
                 new_series, index=self.index, columns=self.columns,

@@ -173,7 +173,7 @@ dtype in order to store the NAs. These are summarized by this table:
    ``integer``, cast to ``float64``
    ``boolean``, cast to ``object``
 
-While this may seem like a heavy trade-off, in practice I have found very few
+While this may seem like a heavy trade-off, I have found very few
 cases where this is an issue in practice. Some explanation for the motivation
 here in the next section.
 

@@ -30,7 +30,8 @@ You need to populate the client_secrets.json file found at:
 
    %s
 
-with information from the APIs Console <https://code.google.com/apis/console>.
+with information from the APIs Console
+<https://console.developers.google.com/iam-admin/projects>.
 
 """
 DOC_URL = ('https://developers.google.com/api-client-library/python/guide/'

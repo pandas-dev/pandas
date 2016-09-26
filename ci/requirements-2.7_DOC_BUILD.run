@@ -1,6 +1,9 @@
 ipython
+ipykernel
 sphinx
 nbconvert
+nbformat
+notebook
 matplotlib
 scipy
 lxml

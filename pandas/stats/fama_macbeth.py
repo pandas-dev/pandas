@@ -37,7 +37,8 @@ class FamaMacBeth(StringMixin):
         import warnings
         warnings.warn("The pandas.stats.fama_macbeth module is deprecated and will be "
                       "removed in a future version. We refer to external packages "
-                      "like statsmodels, see here: http://statsmodels.sourceforge.net/stable/index.html",
+                      "like statsmodels, see here: "
+                      "http://www.statsmodels.org/stable/index.html",
                       FutureWarning, stacklevel=4)
 
         if dropped_dummies is None:

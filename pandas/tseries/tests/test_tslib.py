@@ -7,7 +7,8 @@ import pandas._period as period
 import datetime
 
 import pandas as pd
-from pandas.core.api import Timestamp, Series, Timedelta, Period, to_datetime
+from pandas.core.api import (Timestamp, Index, Series, Timedelta, Period,
+                             to_datetime)
 from pandas.tslib import get_timezone
 from pandas._period import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range, DatetimeIndex
@@ -46,12 +47,17 @@ class TestTsUtil(tm.TestCase):
     def test_to_datetime_bijective(self):
         # Ensure that converting to datetime and back only loses precision
         # by going from nanoseconds to microseconds.
-        self.assertEqual(
-            Timestamp(Timestamp.max.to_pydatetime()).value / 1000,
-            Timestamp.max.value / 1000)
-        self.assertEqual(
-            Timestamp(Timestamp.min.to_pydatetime()).value / 1000,
-            Timestamp.min.value / 1000)
+        exp_warning = None if Timestamp.max.nanosecond == 0 else UserWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            self.assertEqual(
+                Timestamp(Timestamp.max.to_pydatetime()).value / 1000,
+                Timestamp.max.value / 1000)
+
+        exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            self.assertEqual(
+                Timestamp(Timestamp.min.to_pydatetime()).value / 1000,
+                Timestamp.min.value / 1000)
 
 
 class TestTimestamp(tm.TestCase):
@@ -255,6 +261,48 @@ class TestTimestamp(tm.TestCase):
                            hour=1, minute=2, second=3, microsecond=999999)),
             repr(Timestamp('2015-11-12 01:02:03.999999')))
 
+    def test_constructor_fromordinal(self):
+        base = datetime.datetime(2000, 1, 1)
+
+        ts = Timestamp.fromordinal(base.toordinal(), freq='D')
+        self.assertEqual(base, ts)
+        self.assertEqual(ts.freq, 'D')
+        self.assertEqual(base.toordinal(), ts.toordinal())
+
+        ts = Timestamp.fromordinal(base.toordinal(), tz='US/Eastern')
+        self.assertEqual(pd.Timestamp('2000-01-01', tz='US/Eastern'), ts)
+        self.assertEqual(base.toordinal(), ts.toordinal())
+
+    def test_constructor_offset_depr(self):
+        # GH 12160
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ts = Timestamp('2011-01-01', offset='D')
+        self.assertEqual(ts.freq, 'D')
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            self.assertEqual(ts.offset, 'D')
+
+        msg = "Can only specify freq or offset, not both"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Timestamp('2011-01-01', offset='D', freq='D')
+
+    def test_constructor_offset_depr_fromordinal(self):
+        # GH 12160
+        base = datetime.datetime(2000, 1, 1)
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            ts = Timestamp.fromordinal(base.toordinal(), offset='D')
+        self.assertEqual(pd.Timestamp('2000-01-01'), ts)
+        self.assertEqual(ts.freq, 'D')
+        self.assertEqual(base.toordinal(), ts.toordinal())
+
+        msg = "Can only specify freq or offset, not both"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Timestamp.fromordinal(base.toordinal(), offset='D', freq='D')
+
     def test_conversion(self):
         # GH 9255
         ts = Timestamp('2000-01-01')
@@ -312,13 +360,13 @@ class TestTimestamp(tm.TestCase):
                     self.assertNotIn(freq_repr, repr(date_tz))
                     self.assertEqual(date_tz, eval(repr(date_tz)))
 
-                    date_freq = Timestamp(date, offset=freq)
+                    date_freq = Timestamp(date, freq=freq)
                     self.assertIn(date, repr(date_freq))
                     self.assertNotIn(tz_repr, repr(date_freq))
                     self.assertIn(freq_repr, repr(date_freq))
                     self.assertEqual(date_freq, eval(repr(date_freq)))
 
-                    date_tz_freq = Timestamp(date, tz=tz, offset=freq)
+                    date_tz_freq = Timestamp(date, tz=tz, freq=freq)
                     self.assertIn(date, repr(date_tz_freq))
                     self.assertIn(tz_repr, repr(date_tz_freq))
                     self.assertIn(freq_repr, repr(date_tz_freq))
@@ -573,6 +621,26 @@ class TestTimestamp(tm.TestCase):
  'foo': 1}"""
         self.assertEqual(result, expected)
 
+    def to_datetime_depr(self):
+        # see gh-8254
+        ts = Timestamp('2011-01-01')
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = datetime.datetime(2011, 1, 1)
+            result = ts.to_datetime()
+            self.assertEqual(result, expected)
+
+    def to_pydatetime_nonzero_nano(self):
+        ts = Timestamp('2011-01-01 9:00:00.123456789')
+
+        # Warn the user of data loss (nanoseconds).
+        with tm.assert_produces_warning(UserWarning,
+                                        check_stacklevel=False):
+            expected = datetime.datetime(2011, 1, 1, 9, 0, 0, 123456)
+            result = ts.to_pydatetime()
+            self.assertEqual(result, expected)
+
 
 class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):
@@ -619,7 +687,6 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                  '00-Q4': datetime.datetime(2000, 10, 1),
                  '4Q-2000': datetime.datetime(2000, 10, 1),
                  '4Q-00': datetime.datetime(2000, 10, 1),
-                 '2000q4': datetime.datetime(2000, 10, 1),
                  '00q4': datetime.datetime(2000, 10, 1),
                  '2005': datetime.datetime(2005, 1, 1),
                  '2005-11': datetime.datetime(2005, 11, 1),
@@ -656,14 +723,19 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                                                     yearfirst=yearfirst)
             result2 = to_datetime(date_str, yearfirst=yearfirst)
             result3 = to_datetime([date_str], yearfirst=yearfirst)
+            # result5 is used below
             result4 = to_datetime(np.array([date_str], dtype=object),
                                   yearfirst=yearfirst)
-            result6 = DatetimeIndex([date_str], yearfirst=yearfirst)[0]
-            self.assertEqual(result1, expected)
-            self.assertEqual(result2, expected)
-            self.assertEqual(result3, expected)
-            self.assertEqual(result4, expected)
-            self.assertEqual(result6, expected)
+            result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
+            # result7 is used below
+            result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
+            result9 = DatetimeIndex(Series([date_str]), yearfirst=yearfirst)
+
+            for res in [result1, result2]:
+                self.assertEqual(res, expected)
+            for res in [result3, result4, result6, result8, result9]:
+                exp = DatetimeIndex([pd.Timestamp(expected)])
+                tm.assert_index_equal(res, exp)
 
             # these really need to have yearfist, but we don't support
             if not yearfirst:
@@ -851,9 +923,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 
         for date_str, expected in compat.iteritems(cases):
             result1, _, _ = tools.parse_time_string(date_str, freq='M')
-            result2 = tools._to_datetime(date_str, freq='M')
             self.assertEqual(result1, expected)
-            self.assertEqual(result2, expected)
 
     def test_parsers_quarterly_with_freq(self):
         msg = ('Incorrect quarterly string is given, quarter '
@@ -1182,6 +1252,13 @@ class TestTimestampNsOperations(tm.TestCase):
             self.assertIs(left - right, pd.NaT)
             self.assertIs(right - left, pd.NaT)
 
+        # int addition / subtraction
+        for (left, right) in [(pd.NaT, 2), (pd.NaT, 0), (pd.NaT, -3)]:
+            self.assertIs(right + left, pd.NaT)
+            self.assertIs(left + right, pd.NaT)
+            self.assertIs(left - right, pd.NaT)
+            self.assertIs(right - left, pd.NaT)
+
     def test_nat_arithmetic_index(self):
         # GH 11718
 
@@ -1373,16 +1450,14 @@ class TestTslib(tm.TestCase):
             result = stamp.round(freq=freq)
             self.assertEqual(result, expected)
 
-        for freq, expected in [
-            ('D', Timestamp('2000-01-05 00:00:00')),
-            ('H', Timestamp('2000-01-05 05:00:00')),
-            ('S', Timestamp('2000-01-05 05:09:15'))
-        ]:
+        for freq, expected in [('D', Timestamp('2000-01-05 00:00:00')),
+                               ('H', Timestamp('2000-01-05 05:00:00')),
+                               ('S', Timestamp('2000-01-05 05:09:15'))]:
             _check_round(freq, expected)
 
-        msg = "Could not evaluate"
-        tm.assertRaisesRegexp(ValueError, msg,
-                              stamp.round, 'foo')
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
+            stamp.round('foo')
 
 
 class TestTimestampOps(tm.TestCase):

@@ -129,27 +129,17 @@ Here are just a few of the things that pandas does well:
 The source code is currently hosted on GitHub at:
 http://github.com/pydata/pandas
 
-Binary installers for the latest released version are available at the Python
-package index
-
-    http://pypi.python.org/pypi/pandas/
-
-And via `easy_install`:
+Binary installers for the latest released version are available at the [Python
+package index](http://pypi.python.org/pypi/pandas/) and on conda.
 
 ```sh
-easy_install pandas
-```
-
-or  `pip`:
-
-```sh
-pip install pandas
-```
-
-or  `conda`:
-
-```sh
+# conda
 conda install pandas
+```
+
+```sh
+# or PyPI
+pip install pandas
 ```
 
 ## Dependencies
@@ -158,73 +148,8 @@ conda install pandas
 - [pytz](http://pytz.sourceforge.net)
     - Needed for time zone support with ``pandas.date_range``
 
-### Highly Recommended Dependencies
-- [numexpr](https://github.com/pydata/numexpr)
-   - Needed to accelerate some expression evaluation operations
-   - Required by PyTables
-- [bottleneck](http://berkeleyanalytics.com/bottleneck)
-   - Needed to accelerate certain numerical operations
-
-### Optional dependencies
-- [Cython](http://www.cython.org): Only necessary to build development version. Version 0.17.1 or higher.
-- [SciPy](http://www.scipy.org): miscellaneous statistical functions
-- [PyTables](http://www.pytables.org): necessary for HDF5-based storage
-- [SQLAlchemy](http://www.sqlalchemy.org): for SQL database support. Version 0.8.1 or higher recommended.
-- [matplotlib](http://matplotlib.sourceforge.net/): for plotting
-- [statsmodels](http://statsmodels.sourceforge.net/)
-   - Needed for parts of `pandas.stats`
-- For Excel I/O:
-  - [xlrd/xlwt](http://www.python-excel.org/)
-     - Excel reading (xlrd) and writing (xlwt)
-  - [openpyxl](http://packages.python.org/openpyxl/)
-     - openpyxl version 1.6.1 or higher, but lower than 2.0.0, for
-       writing .xlsx files
-     - xlrd >= 0.9.0
-  - [XlsxWriter](https://pypi.python.org/pypi/XlsxWriter)
-     - Alternative Excel writer.
-- [Google bq Command Line Tool](https://cloud.google.com/bigquery/bq-command-line-tool)
-  - Needed for `pandas.io.gbq`
-- [boto](https://pypi.python.org/pypi/boto): necessary for Amazon S3 access.
-- One of the following combinations of libraries is needed to use the
-  top-level [`pandas.read_html`][read-html-docs] function:
-  - [BeautifulSoup4][BeautifulSoup4] and [html5lib][html5lib] (Any
-    recent version of [html5lib][html5lib] is okay.)
-  - [BeautifulSoup4][BeautifulSoup4] and [lxml][lxml]
-  - [BeautifulSoup4][BeautifulSoup4] and [html5lib][html5lib] and [lxml][lxml]
-  - Only [lxml][lxml], although see [HTML reading gotchas][html-gotchas]
-    for reasons as to why you should probably **not** take this approach.
-
-#### Notes about HTML parsing libraries
-- If you install [BeautifulSoup4][BeautifulSoup4] you must install
-  either [lxml][lxml] or [html5lib][html5lib] or both.
-  `pandas.read_html` will **not** work with *only* `BeautifulSoup4`
-  installed.
-- You are strongly encouraged to read [HTML reading
-  gotchas][html-gotchas]. It explains issues surrounding the
-  installation and usage of the above three libraries.
-- You may need to install an older version of
-  [BeautifulSoup4][BeautifulSoup4]:
-    - Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and
-      32-bit Ubuntu/Debian
-- Additionally, if you're using [Anaconda][Anaconda] you should
-  definitely read [the gotchas about HTML parsing][html-gotchas]
-  libraries
-- If you're on a system with `apt-get` you can do
-
-  ```sh
-  sudo apt-get build-dep python-lxml
-  ```
-
-  to get the necessary dependencies for installation of [lxml][lxml].
-  This will prevent further headaches down the line.
-
-   [html5lib]: https://github.com/html5lib/html5lib-python "html5lib"
-   [BeautifulSoup4]: http://www.crummy.com/software/BeautifulSoup "BeautifulSoup4"
-   [lxml]: http://lxml.de
-   [Anaconda]: https://store.continuum.io/cshop/anaconda
-   [NumPy]: http://numpy.scipy.org/
-   [html-gotchas]: http://pandas.pydata.org/pandas-docs/stable/gotchas.html#html-table-parsing
-   [read-html-docs]: http://pandas.pydata.org/pandas-docs/stable/generated/pandas.io.html.read_html.html#pandas.io.html.read_html
+See the [full installation instructions](http://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
+for recommended and optional dependencies.
 
 ## Installation from sources
 To install pandas from source you need Cython in addition to the normal
