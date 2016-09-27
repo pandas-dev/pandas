@@ -17,15 +17,15 @@ from pandas.types.dtypes import CategoricalDtype
 class DtypeTests(object):
     def test_passing_dtype(self):
         # see gh-6607
-        df = DataFrame(np.random.rand(5, 2), columns=list(
+        df = DataFrame(np.random.rand(5, 2).round(4), columns=list(
             'AB'), index=['1A', '1B', '1C', '1D', '1E'])
 
         with tm.ensure_clean('__passing_str_as_dtype__.csv') as path:
-            df.to_csv(path, float_format='%.12f')
+            df.to_csv(path)
 
             # see gh-3795: passing 'str' as the dtype
             result = self.read_csv(path, dtype=str, index_col=0)
-            expected = df.applymap(lambda x: '%.12f' % (x,))
+            expected = df.astype(str)
             tm.assert_frame_equal(result, expected)
 
             # for parsing, interpret object as str
