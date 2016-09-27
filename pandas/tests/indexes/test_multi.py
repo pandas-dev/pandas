@@ -207,21 +207,22 @@ class TestMultiIndex(Base, tm.TestCase):
         # illegal level changing should not change levels
         # GH 13754
         original_index = self.index.copy()
-        with assertRaisesRegexp(ValueError, "^On"):
-            self.index.set_levels(['c'], level=0, inplace=True)
-        assert_matching(self.index.levels, original_index.levels)
+        for inplace in [True, False]:
+            with assertRaisesRegexp(ValueError, "^On"):
+                self.index.set_levels(['c'], level=0, inplace=inplace)
+            assert_matching(self.index.levels, original_index.levels)
 
-        with assertRaisesRegexp(ValueError, "^On"):
-            self.index.set_labels([0, 1, 2, 3, 4, 5], level=0, inplace=True)
-        assert_matching(self.index.labels, original_index.labels)
+            with assertRaisesRegexp(ValueError, "^On"):
+                self.index.set_labels([0, 1, 2, 3, 4, 5], level=0, inplace=inplace)
+            assert_matching(self.index.labels, original_index.labels)
 
-        with assertRaisesRegexp(TypeError, "^Levels"):
-            self.index.set_levels('c', level=0, inplace=True)
-        assert_matching(self.index.levels, original_index.levels)
+            with assertRaisesRegexp(TypeError, "^Levels"):
+                self.index.set_levels('c', level=0, inplace=inplace)
+            assert_matching(self.index.levels, original_index.levels)
 
-        with assertRaisesRegexp(TypeError, "^Labels"):
-            self.index.set_labels(1, level=0, inplace=True)
-        assert_matching(self.index.labels, original_index.labels)
+            with assertRaisesRegexp(TypeError, "^Labels"):
+                self.index.set_labels(1, level=0, inplace=inplace)
+            assert_matching(self.index.labels, original_index.labels)
 
     def test_set_labels(self):
         # side note - you probably wouldn't want to use levels and labels
