@@ -1409,7 +1409,7 @@ Performance Improvements
 - Improved performance of ``factorize`` of datetime with timezone (:issue:`13750`)
 - Improved performance of by lazily creating indexing hashtables on larger Indexes (:issue:`14266`)
 - Improved performance of ``groupby.groups`` (:issue:`14293`)
-
+- Unecessary materializing of a MultiIndex when introspecting for memory usage (:issue:`14308`)
 
 .. _whatsnew_0190.bug_fixes:
 
