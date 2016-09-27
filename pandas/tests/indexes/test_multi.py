@@ -415,6 +415,28 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertIsNone(df.is_copy)
         self.assertEqual(df.index.names, ('Name', 'Number'))
 
+    def test_copy_names(self):
+        # Check that adding a "names" parameter to the copy is honored
+        # GH14302
+        multi_idx = pd.Index([(1, 2), (3, 4)], names=['MyName1', 'MyName2'])
+        multi_idx1 = multi_idx.copy()
+
+        self.assertTrue(multi_idx.equals(multi_idx1))
+        self.assertEqual(multi_idx.names, ['MyName1', 'MyName2'])
+        self.assertEqual(multi_idx1.names, ['MyName1', 'MyName2'])
+
+        multi_idx2 = multi_idx.copy(names=['NewName1', 'NewName2'])
+
+        self.assertTrue(multi_idx.equals(multi_idx2))
+        self.assertEqual(multi_idx.names, ['MyName1', 'MyName2'])
+        self.assertEqual(multi_idx2.names, ['NewName1', 'NewName2'])
+
+        multi_idx3 = multi_idx.copy(name=['NewName1', 'NewName2'])
+
+        self.assertTrue(multi_idx.equals(multi_idx3))
+        self.assertEqual(multi_idx.names, ['MyName1', 'MyName2'])
+        self.assertEqual(multi_idx3.names, ['NewName1', 'NewName2'])
+
     def test_names(self):
 
         # names are assigned in __init__
