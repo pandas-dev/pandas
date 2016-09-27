@@ -346,7 +346,7 @@ class MultiIndex(Index):
     labels = property(fget=_get_labels, fset=__set_labels)
 
     def copy(self, names=None, dtype=None, levels=None, labels=None,
-             deep=False, _set_identity=False):
+             deep=False, _set_identity=False, **kwargs):
         """
         Make a copy of this object. Names, dtype, levels and labels can be
         passed and will be set on new copy.
@@ -368,15 +368,20 @@ class MultiIndex(Index):
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         This could be potentially expensive on large MultiIndex objects.
         """
+        name = kwargs.get('name')
+        names = self._validate_names(name=name, names=names, deep=deep)
+
         if deep:
             from copy import deepcopy
-            levels = levels if levels is not None else deepcopy(self.levels)
-            labels = labels if labels is not None else deepcopy(self.labels)
-            names = names if names is not None else deepcopy(self.names)
+            if levels is None:
+                levels = deepcopy(self.levels)
+            if labels is None:
+                labels = deepcopy(self.labels)
         else:
-            levels = self.levels
-            labels = self.labels
-            names = self.names
+            if levels is None:
+                levels = self.levels
+            if labels is None:
+                labels = self.labels
         return MultiIndex(levels=levels, labels=labels, names=names,
                           sortorder=self.sortorder, verify_integrity=False,
                           _set_identity=_set_identity)
