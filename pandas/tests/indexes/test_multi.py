@@ -213,7 +213,8 @@ class TestMultiIndex(Base, tm.TestCase):
             assert_matching(self.index.levels, original_index.levels)
 
             with assertRaisesRegexp(ValueError, "^On"):
-                self.index.set_labels([0, 1, 2, 3, 4, 5], level=0, inplace=inplace)
+                self.index.set_labels([0, 1, 2, 3, 4, 5], level=0,
+                                      inplace=inplace)
             assert_matching(self.index.labels, original_index.labels)
 
             with assertRaisesRegexp(TypeError, "^Levels"):
