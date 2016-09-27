@@ -16,7 +16,7 @@ import pandas as pd
 from pandas import lib, tslib
 from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
-                    Panel, Period)
+                    Panel, Period, Categorical)
 from pandas.compat import u, PY2, lrange
 from pandas.types import inference
 from pandas.types.common import (is_timedelta64_dtype,
@@ -26,7 +26,8 @@ from pandas.types.common import (is_timedelta64_dtype,
                                  is_float,
                                  is_bool,
                                  is_scalar,
-                                 _ensure_int32)
+                                 _ensure_int32,
+                                 _ensure_categorical)
 from pandas.types.missing import isnull
 from pandas.util import testing as tm
 
@@ -840,6 +841,16 @@ def test_ensure_int32():
     values = np.arange(10, dtype=np.int64)
     result = _ensure_int32(values)
     assert (result.dtype == np.int32)
+
+
+def test_ensure_categorical():
+    values = np.arange(10, dtype=np.int32)
+    result = _ensure_categorical(values)
+    assert (result.dtype == 'category')
+
+    values = Categorical(values)
+    result = _ensure_categorical(values)
+    tm.assert_categorical_equal(result, values)
 
 
 if __name__ == '__main__':

@@ -33,6 +33,32 @@ class groupby_apply_dict_return(object):
 
 
 #----------------------------------------------------------------------
+# groups
+
+class groupby_groups(object):
+    goal_time = 0.1
+
+    def setup(self):
+        size = 2**22
+        self.data = Series(np.random.randint(0, 100, size=size))
+        self.data2 = Series(np.random.randint(0, 10000, size=size))
+        self.data3 = Series(tm.makeStringIndex(100).take(np.random.randint(0, 100, size=size)))
+        self.data4 = Series(tm.makeStringIndex(10000).take(np.random.randint(0, 10000, size=size)))
+
+    def time_groupby_groups_int64_small(self):
+        self.data.groupby(self.data).groups
+
+    def time_groupby_groups_int64_large(self):
+        self.data2.groupby(self.data2).groups
+
+    def time_groupby_groups_object_small(self):
+        self.data3.groupby(self.data3).groups
+
+    def time_groupby_groups_object_large(self):
+        self.data4.groupby(self.data4).groups
+
+
+#----------------------------------------------------------------------
 # First / last functions
 
 class groupby_first_last(object):

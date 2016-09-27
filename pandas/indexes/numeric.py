@@ -113,7 +113,6 @@ class Int64Index(NumericIndex):
     """
 
     _typ = 'int64index'
-    _groupby = _algos.groupby_int64
     _arrmap = _algos.arrmap_int64
     _left_indexer_unique = _join.left_join_indexer_unique_int64
     _left_indexer = _join.left_join_indexer_int64
@@ -200,7 +199,6 @@ class Float64Index(NumericIndex):
 
     _typ = 'float64index'
     _engine_type = _index.Float64Engine
-    _groupby = _algos.groupby_float64
     _arrmap = _algos.arrmap_float64
     _left_indexer_unique = _join.left_join_indexer_unique_float64
     _left_indexer = _join.left_join_indexer_float64

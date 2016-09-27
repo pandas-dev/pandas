@@ -10,7 +10,6 @@ Template for each `dtype` helper function using 1-d template
 - backfill_1d
 - backfill_2d
 - is_monotonic
-- groupby
 - arrmap
 
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
@@ -389,35 +388,6 @@ def is_monotonic_float64(ndarray[float64_t] arr, bint timelike):
             prev = cur
     return is_monotonic_inc, is_monotonic_dec, \
            is_unique and (is_monotonic_inc or is_monotonic_dec)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def groupby_float64(ndarray[float64_t] index, ndarray labels):
-    cdef dict result = {}
-    cdef Py_ssize_t i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-
-    if not length == len(labels):
-        raise AssertionError("len(index) != len(labels)")
-
-    for i in range(length):
-        key = util.get_value_1d(labels, i)
-
-        if is_null_datetimelike(key):
-            continue
-
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
 
 
 @cython.wraparound(False)
@@ -808,35 +778,6 @@ def is_monotonic_float32(ndarray[float32_t] arr, bint timelike):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def groupby_float32(ndarray[float32_t] index, ndarray labels):
-    cdef dict result = {}
-    cdef Py_ssize_t i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-
-    if not length == len(labels):
-        raise AssertionError("len(index) != len(labels)")
-
-    for i in range(length):
-        key = util.get_value_1d(labels, i)
-
-        if is_null_datetimelike(key):
-            continue
-
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def arrmap_float32(ndarray[float32_t] index, object func):
     cdef Py_ssize_t length = index.shape[0]
     cdef Py_ssize_t i = 0
@@ -1219,35 +1160,6 @@ def is_monotonic_object(ndarray[object] arr, bint timelike):
         prev = cur
     return is_monotonic_inc, is_monotonic_dec, \
            is_unique and (is_monotonic_inc or is_monotonic_dec)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def groupby_object(ndarray[object] index, ndarray labels):
-    cdef dict result = {}
-    cdef Py_ssize_t i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-
-    if not length == len(labels):
-        raise AssertionError("len(index) != len(labels)")
-
-    for i in range(length):
-        key = util.get_value_1d(labels, i)
-
-        if is_null_datetimelike(key):
-            continue
-
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
 
 
 @cython.wraparound(False)
@@ -1638,35 +1550,6 @@ def is_monotonic_int32(ndarray[int32_t] arr, bint timelike):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def groupby_int32(ndarray[int32_t] index, ndarray labels):
-    cdef dict result = {}
-    cdef Py_ssize_t i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-
-    if not length == len(labels):
-        raise AssertionError("len(index) != len(labels)")
-
-    for i in range(length):
-        key = util.get_value_1d(labels, i)
-
-        if is_null_datetimelike(key):
-            continue
-
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def arrmap_int32(ndarray[int32_t] index, object func):
     cdef Py_ssize_t length = index.shape[0]
     cdef Py_ssize_t i = 0
@@ -2053,35 +1936,6 @@ def is_monotonic_int64(ndarray[int64_t] arr, bint timelike):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def groupby_int64(ndarray[int64_t] index, ndarray labels):
-    cdef dict result = {}
-    cdef Py_ssize_t i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-
-    if not length == len(labels):
-        raise AssertionError("len(index) != len(labels)")
-
-    for i in range(length):
-        key = util.get_value_1d(labels, i)
-
-        if is_null_datetimelike(key):
-            continue
-
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def arrmap_int64(ndarray[int64_t] index, object func):
     cdef Py_ssize_t length = index.shape[0]
     cdef Py_ssize_t i = 0
@@ -2464,35 +2318,6 @@ def is_monotonic_bool(ndarray[uint8_t] arr, bint timelike):
             prev = cur
     return is_monotonic_inc, is_monotonic_dec, \
            is_unique and (is_monotonic_inc or is_monotonic_dec)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def groupby_bool(ndarray[uint8_t] index, ndarray labels):
-    cdef dict result = {}
-    cdef Py_ssize_t i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-
-    if not length == len(labels):
-        raise AssertionError("len(index) != len(labels)")
-
-    for i in range(length):
-        key = util.get_value_1d(labels, i)
-
-        if is_null_datetimelike(key):
-            continue
-
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
 
 
 @cython.wraparound(False)

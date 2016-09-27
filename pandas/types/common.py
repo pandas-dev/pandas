@@ -42,6 +42,13 @@ _ensure_platform_int = algos.ensure_platform_int
 _ensure_object = algos.ensure_object
 
 
+def _ensure_categorical(arr):
+    if not is_categorical(arr):
+        from pandas import Categorical
+        arr = Categorical(arr)
+    return arr
+
+
 def is_object_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.object_)

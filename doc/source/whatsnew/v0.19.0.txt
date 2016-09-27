@@ -1335,6 +1335,7 @@ Other API Changes
 - ``Series`` and ``Index`` now support ``divmod`` which will return a tuple of
   series or indices. This behaves like a standard binary operator with regards
   to broadcasting rules (:issue:`14208`).
+- ``.groupby.groups`` will now return a dictionary of ``Index`` objects, rather than a dictionary of ``np.ndarray`` or ``lists`` (:issue:`14293`)
 
 .. _whatsnew_0190.deprecations:
 
@@ -1407,6 +1408,7 @@ Performance Improvements
 - Improved performance of hashing ``Period`` (:issue:`12817`)
 - Improved performance of ``factorize`` of datetime with timezone (:issue:`13750`)
 - Improved performance of by lazily creating indexing hashtables on larger Indexes (:issue:`14266`)
+- Improved performance of ``groupby.groups`` (:issue:`14293`)
 
 
 .. _whatsnew_0190.bug_fixes:

@@ -17,7 +17,9 @@ from pandas import compat
 
 from pandas.types.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
 from pandas.types.missing import isnull, array_equivalent
-from pandas.types.common import (_ensure_int64, _ensure_object,
+from pandas.types.common import (_ensure_int64,
+                                 _ensure_object,
+                                 _ensure_categorical,
                                  _ensure_platform_int,
                                  is_integer,
                                  is_float,
@@ -111,7 +113,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     _join_precedence = 1
 
     # Cython methods
-    _groupby = _algos.groupby_object
     _arrmap = _algos.arrmap_object
     _left_indexer_unique = _join.left_join_indexer_unique_object
     _left_indexer = _join.left_join_indexer_object
@@ -2352,13 +2353,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 return self.astype('object'), other.astype('object')
         return self, other
 
-    def groupby(self, to_groupby):
+    def groupby(self, values):
         """
         Group the index labels by a given array of values.
 
         Parameters
         ----------
-        to_groupby : array
+        values : array
             Values used to determine the groups.
 
         Returns
@@ -2366,7 +2367,19 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         groups : dict
             {group name -> group labels}
         """
-        return self._groupby(self.values, _values_from_object(to_groupby))
+
+        # TODO: if we are a MultiIndex, we can do better
+        # that converting to tuples
+        from .multi import MultiIndex
+        if isinstance(values, MultiIndex):
+            values = values.values
+        values = _ensure_categorical(values)
+        result = values._reverse_indexer()
+
+        # map to the label
+        result = {k: self.take(v) for k, v in compat.iteritems(result)}
+
+        return result
 
     def map(self, mapper):
         """

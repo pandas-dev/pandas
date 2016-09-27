@@ -521,13 +521,6 @@ class TestGroupBy(tm.TestCase):
         assert_series_equal(result, result2)
         assert_series_equal(result, expected2)
 
-    def test_groupby_bounds_check(self):
-        # groupby_X is code-generated, so if one variant
-        # does, the rest probably do to
-        a = np.array([1, 2], dtype='object')
-        b = np.array([1, 2, 3], dtype='object')
-        self.assertRaises(AssertionError, pd.algos.groupby_object, a, b)
-
     def test_groupby_grouper_f_sanity_checked(self):
         dates = date_range('01-Jan-2013', periods=12, freq='MS')
         ts = Series(np.random.randn(12), index=dates)
@@ -3478,13 +3471,13 @@ class TestGroupBy(tm.TestCase):
              'str': [np.nan, 'a', np.nan, 'a', np.nan, 'a', np.nan, 'b']})
         grouped = df.groupby('dt')
 
-        expected = [[1, 7], [3, 5]]
+        expected = [pd.Index([1, 7]), pd.Index([3, 5])]
         keys = sorted(grouped.groups.keys())
         self.assertEqual(len(keys), 2)
         for k, e in zip(keys, expected):
             # grouped.groups keys are np.datetime64 with system tz
             # not to be affected by tz, only compare values
-            self.assertEqual(grouped.groups[k], e)
+            tm.assert_index_equal(grouped.groups[k], e)
 
         # confirm obj is not filtered
         tm.assert_frame_equal(grouped.grouper.groupings[0].obj, df)
@@ -4447,7 +4440,7 @@ class TestGroupBy(tm.TestCase):
 
         expected = df.groupby('to filter').groups
         result = df.groupby([('to filter', '')]).groups
-        self.assertEqual(result, expected)
+        tm.assert_dict_equal(result, expected)
 
     def test_cython_median(self):
         df = DataFrame(np.random.randn(1000))
