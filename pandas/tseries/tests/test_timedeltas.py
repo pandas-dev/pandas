@@ -1950,6 +1950,17 @@ class TestSlicing(tm.TestCase):
         tm.assert_index_equal(result, exp)
         self.assertEqual(result.freq, None)
 
+    def test_add_overflow(self):
+        # see gh-14068
+        msg = "too (big|large) to convert"
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            to_timedelta(106580, 'D') + Timestamp('2000')
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            Timestamp('2000') + to_timedelta(106580, 'D')
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            to_timedelta([106580], 'D') + Timestamp('2000')
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            Timestamp('2000') + to_timedelta([106580], 'D')
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
