@@ -1979,12 +1979,15 @@ def _factorize_from_iterable(values):
 
     Returns
     -------
-    codes : np.array
+    codes : ndarray
     categories : Index
         If `values` has a categorical dtype, then `categories` is
         a CategoricalIndex keeping the categories and order of `values`.
     """
     from pandas.indexes.category import CategoricalIndex
+
+    if not is_list_like(values):
+        raise TypeError("Input must be list-like")
 
     if is_categorical(values):
         if isinstance(values, (ABCCategoricalIndex, ABCSeries)):
@@ -2003,8 +2006,23 @@ def _factorize_from_iterable(values):
 def _factorize_from_iterables(iterables):
     """
     A higher-level wrapper over `_factorize_from_iterable`.
-    See `_factorize_from_iterable` for more info.
 
     *This is an internal function*
+
+    Parameters
+    ----------
+    iterables : list-like of list-likes
+
+    Returns
+    -------
+    codes_tuple : tuple of ndarrays
+    categories_tuple : tuple of Indexes
+
+    Notes
+    -----
+    See `_factorize_from_iterable` for more info.
     """
+    if len(iterables) == 0:
+        # For consistency, it should return a list of 2 tuples.
+        return [(), ()]
     return lzip(*[_factorize_from_iterable(it) for it in iterables])

@@ -1471,6 +1471,7 @@ Bug Fixes
 - Bug in ``MultiIndex`` slicing where extra elements were returned when level is non-unique (:issue:`12896`)
 - Bug in ``.str.replace`` does not raise ``TypeError`` for invalid replacement (:issue:`13438`)
 - Bug in ``MultiIndex.from_arrays`` which didn't check for input array lengths matching (:issue:`13599`)
+- Bug in ``cartesian_product`` and ``MultiIndex.from_product`` which may raise with empty input arrays (:issue:`12258`)
 
 
 - Bug in ``pd.read_csv()`` which may cause a segfault or corruption when iterating in large chunks over a stream/file under rare circumstances (:issue:`13703`)
