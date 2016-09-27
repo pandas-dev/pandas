@@ -989,129 +989,47 @@ def is_lexsorted(list list_of_arrays):
 
 
 @cython.boundscheck(False)
-def groupby_indices(dict ids, ndarray[int64_t] labels,
-                    ndarray[int64_t] counts):
-    """
-    turn group_labels output into a combined indexer mapping the labels to
-    indexers
-
-    Parameters
-    ----------
-    ids: dict
-        mapping of label -> group indexer
-    labels: ndarray
-        labels for positions
-    counts: ndarray
-        group counts
-
-    Returns
-    -------
-    list of ndarrays of indices
-
-    """
-    cdef:
-        Py_ssize_t i, n = len(labels)
-        ndarray[int64_t] arr, seen
-        int64_t loc
-        int64_t k
-        dict result = {}
-
-    seen = np.zeros_like(counts)
-
-    cdef int64_t **vecs = <int64_t **> malloc(len(ids) * sizeof(int64_t*))
-    for i from 0 <= i < len(counts):
-        arr = np.empty(counts[i], dtype=np.int64)
-        result[ids[i]] = arr
-        vecs[i] = <int64_t*> arr.data
-
-    for i from 0 <= i < n:
-        k = labels[i]
-
-        # was NaN
-        if k == -1:
-            continue
-
-        loc = seen[k]
-        vecs[k][loc] = i
-        seen[k] = loc + 1
-
-    free(vecs)
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def group_labels(ndarray[object] values):
-    """
-    Compute label vector from input values and associated useful data
-
-    Parameters
-    ----------
-    values: object ndarray
-
-    Returns
-    -------
-    tuple of (reverse mappings of label -> group indexer,
-              factorized labels ndarray,
-              group counts ndarray)
-    """
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] counts = np.empty(n, dtype=np.int64)
-        dict ids = {}, reverse = {}
-        int64_t idx
-        object val
-        int64_t count = 0
-
-    for i from 0 <= i < n:
-        val = values[i]
-
-        # is NaN
-        if val != val:
-            labels[i] = -1
-            continue
-
-        # for large number of groups, not doing try: except: makes a big
-        # difference
-        if val in ids:
-            idx = ids[val]
-            labels[i] = idx
-            counts[idx] = counts[idx] + 1
-        else:
-            ids[val] = count
-            reverse[count] = val
-            labels[i] = count
-            counts[count] = 1
-            count += 1
-
-    return reverse, labels, counts[:count].copy()
-
-
-@cython.boundscheck(False)
 @cython.wraparound(False)
 def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
+    """
+    compute a 1-d indexer that is an ordering of the passed index,
+    ordered by the groups. This is a reverse of the label
+    factorization process.
+
+    Parameters
+    ----------
+    index: int64 ndarray
+        mappings from group -> position
+    ngroups: int64
+        number of groups
+
+    return a tuple of (1-d indexer ordered by groups, group counts)
+    """
+
     cdef:
         Py_ssize_t i, loc, label, n
         ndarray[int64_t] counts, where, result
 
-    # count group sizes, location 0 for NA
     counts = np.zeros(ngroups + 1, dtype=np.int64)
     n = len(index)
-    for i from 0 <= i < n:
-        counts[index[i] + 1] += 1
-
-    # mark the start of each contiguous group of like-indexed data
-    where = np.zeros(ngroups + 1, dtype=np.int64)
-    for i from 1 <= i < ngroups + 1:
-        where[i] = where[i - 1] + counts[i - 1]
-
-    # this is our indexer
     result = np.zeros(n, dtype=np.int64)
-    for i from 0 <= i < n:
-        label = index[i] + 1
-        result[where[label]] = i
-        where[label] += 1
+    where = np.zeros(ngroups + 1, dtype=np.int64)
+
+    with nogil:
+
+        # count group sizes, location 0 for NA
+        for i from 0 <= i < n:
+            counts[index[i] + 1] += 1
+
+        # mark the start of each contiguous group of like-indexed data
+        for i from 1 <= i < ngroups + 1:
+            where[i] = where[i - 1] + counts[i - 1]
+
+        # this is our indexer
+        for i from 0 <= i < n:
+            label = index[i] + 1
+            result[where[label]] = i
+            where[label] += 1
 
     return result, counts
 

@@ -1541,7 +1541,7 @@ class TestIndex(Base, tm.TestCase):
     def test_groupby(self):
         idx = Index(range(5))
         groups = idx.groupby(np.array([1, 1, 2, 2, 2]))
-        exp = {1: [0, 1], 2: [2, 3, 4]}
+        exp = {1: pd.Index([0, 1]), 2: pd.Index([2, 3, 4])}
         tm.assert_dict_equal(groups, exp)
 
     def test_equals_op_multiindex(self):

@@ -10,7 +10,6 @@ Template for each `dtype` helper function using 1-d template
 - backfill_1d
 - backfill_2d
 - is_monotonic
-- groupby
 - arrmap
 
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
@@ -411,35 +410,6 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
     {{tab}}    prev = cur
     return is_monotonic_inc, is_monotonic_dec, \
            is_unique and (is_monotonic_inc or is_monotonic_dec)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def groupby_{{name}}(ndarray[{{c_type}}] index, ndarray labels):
-    cdef dict result = {}
-    cdef Py_ssize_t i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-
-    if not length == len(labels):
-        raise AssertionError("len(index) != len(labels)")
-
-    for i in range(length):
-        key = util.get_value_1d(labels, i)
-
-        if is_null_datetimelike(key):
-            continue
-
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
 
 
 @cython.wraparound(False)
