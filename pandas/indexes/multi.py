@@ -413,10 +413,27 @@ class MultiIndex(Index):
     def dtype(self):
         return np.dtype('O')
 
+    @Appender(Index.memory_usage.__doc__)
+    def memory_usage(self, deep=False):
+        # we are overwriting our base class to avoid
+        # computing .values here which could materialize
+        # a tuple representation uncessarily
+        return self._nbytes(deep)
+
     @cache_readonly
     def nbytes(self):
         """ return the number of bytes in the underlying data """
-        level_nbytes = sum((i.nbytes for i in self.levels))
+        return self._nbytes(False)
+
+    def _nbytes(self, deep=False):
+        """
+        return the number of bytes in the underlying data
+        deeply introspect the level data if deep=True
+
+        *this is in internal routine*
+
+        """
+        level_nbytes = sum((i.memory_usage(deep=deep) for i in self.levels))
         label_nbytes = sum((i.nbytes for i in self.labels))
         names_nbytes = sum((getsizeof(i) for i in self.names))
         return level_nbytes + label_nbytes + names_nbytes
