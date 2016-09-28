@@ -154,7 +154,7 @@ class TestMultiIndex(Base, tm.TestCase):
             # as much as possible
             self.assertEqual(len(actual), len(expected))
             for act, exp in zip(actual, expected):
-                act = np.asarray(act, dtype=np.object_)
+                act = np.asarray(act)
                 exp = np.asarray(exp, dtype=np.object_)
                 tm.assert_numpy_array_equal(act, exp)
 
