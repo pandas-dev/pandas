@@ -381,3 +381,27 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         # deep=True, and add on some GC overhead
         diff = df.memory_usage(deep=True).sum() - sys.getsizeof(df)
         self.assertTrue(abs(diff) < 100)
+
+    def test_info_memory_usage_bug_on_multiindex(self):
+        # GH 14308
+        # memory usage introspection should not materialize .values
+
+        from string import ascii_uppercase as uppercase
+
+        def memory_usage(f):
+            return f.memory_usage(deep=True).sum()
+
+        N = 100
+        M = len(uppercase)
+        index = pd.MultiIndex.from_product([list(uppercase),
+                                            pd.date_range('20160101',
+                                                          periods=N)],
+                                           names=['id', 'date'])
+        df = DataFrame({'value': np.random.randn(N * M)}, index=index)
+
+        unstacked = df.unstack('id')
+        self.assertEqual(df.values.nbytes, unstacked.values.nbytes)
+        self.assertTrue(memory_usage(df) > memory_usage(unstacked))
+
+        # high upper bound
+        self.assertTrue(memory_usage(unstacked) - memory_usage(df) < 2000)
