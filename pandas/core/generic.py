@@ -5510,8 +5510,8 @@ level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s
 numeric_only : boolean, default None
-    Include only float, int, boolean data. If None, will attempt to use
-    everything, then use only numeric data
+    Include only float, int, boolean columns. If None, will attempt to use
+    everything, then use only numeric data. Not implemented for Series.
 
 Returns
 -------
@@ -5533,8 +5533,8 @@ level : int or level name, default None
 ddof : int, default 1
     degrees of freedom
 numeric_only : boolean, default None
-    Include only float, int, boolean data. If None, will attempt to use
-    everything, then use only numeric data
+    Include only float, int, boolean columns. If None, will attempt to use
+    everything, then use only numeric data. Not implemented for Series.
 
 Returns
 -------
@@ -5554,8 +5554,8 @@ level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s
 bool_only : boolean, default None
-    Include only boolean data. If None, will attempt to use everything,
-    then use only boolean data
+    Include only boolean columns. If None, will attempt to use everything,
+    then use only boolean data. Not implemented for Series.
 
 Returns
 -------
