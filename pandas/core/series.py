@@ -66,6 +66,7 @@ import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.formats.format as fmt
 from pandas.util.decorators import Appender, deprecate_kwarg, Substitution
+from pandas.util.validators import validate_bool_kwarg
 
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -975,6 +976,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         ----------
         resetted : DataFrame, or Series if drop == True
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
             new_index = _default_index(len(self))
             if level is not None and isinstance(self.index, MultiIndex):
@@ -1175,6 +1177,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         inplace : bool
             whether to modify `self` directly or return a copy
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         ser = self if inplace else self.copy()
         ser.name = name
         return ser
@@ -1722,6 +1725,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def sort_values(self, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
 
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
 
         # GH 5856/5853
@@ -1774,6 +1778,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True):
 
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
         index = self.index
         if level is not None:
@@ -2350,6 +2355,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     @Appender(generic._shared_docs['rename'] % _shared_doc_kwargs)
     def rename(self, index=None, **kwargs):
+        kwargs['inplace'] = validate_bool_kwarg(kwargs.get('inplace', False),
+                                                'inplace')
+
         non_mapping = is_scalar(index) or (is_list_like(index) and
                                            not is_dict_like(index))
         if non_mapping:
@@ -2646,6 +2654,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         inplace : boolean, default False
             Do operation in place.
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         kwargs.pop('how', None)
         if kwargs:
             raise TypeError('dropna() got an unexpected keyword '

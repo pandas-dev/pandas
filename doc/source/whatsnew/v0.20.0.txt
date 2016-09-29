@@ -129,6 +129,7 @@ Map on Index types now return other Index types
 
 -  ``map`` on an ``Index`` now returns an ``Index``, not a numpy array (:issue:`12766`)
 
+<<<<<<< HEAD
   .. ipython:: python
 
      idx = Index([1, 2])
@@ -247,6 +248,7 @@ Other API Changes
 
 - ``pd.read_csv()`` will now issue a ``ParserWarning`` whenever there are conflicting values provided by the ``dialect`` parameter and the user (:issue:`14898`)
 - ``pd.read_csv()`` will now raise a ``ValueError`` for the C engine if the quote character is larger than than one byte (:issue:`11592`)
+- ``inplace`` arguments now require a boolean value, else a ``ValueError`` is thrown (:issue:`14189`)
 
 .. _whatsnew_0200.deprecations:
 
