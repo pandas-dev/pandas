@@ -1447,7 +1447,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                            getattr(self, 'inferred_freq', None))
             _, parsed, reso = parse_time_string(label, freq)
             bounds = self._parsed_string_to_bounds(reso, parsed)
-            return bounds[0 if side == 'left' else 1]
+            bounds_side = 0 if side == 'left' else 1
+            if self.is_monotonic_decreasing:
+                # swap edges
+                bounds_side = 1 - bounds_side
+            return bounds[bounds_side]
         else:
             return label
 
