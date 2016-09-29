@@ -35,6 +35,7 @@ Bug Fixes
 
 
 - Bug in localizing an ambiguous timezone when a boolean is passed (:issue:`14402`)
+- Bug in ``TimedeltaIndex`` addition with a Datetime-like object where addition overflow in the negative direction was not being caught (:issue:`14068`, :issue:`14453`)
 
 
 
