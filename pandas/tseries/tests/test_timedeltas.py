@@ -1957,6 +1957,8 @@ class TestSlicing(tm.TestCase):
             to_timedelta(106580, 'D') + Timestamp('2000')
         with tm.assertRaisesRegexp(OverflowError, msg):
             Timestamp('2000') + to_timedelta(106580, 'D')
+
+        msg = "Overflow in int64 addition"
         with tm.assertRaisesRegexp(OverflowError, msg):
             to_timedelta([106580], 'D') + Timestamp('2000')
         with tm.assertRaisesRegexp(OverflowError, msg):

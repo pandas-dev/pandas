@@ -1,5 +1,5 @@
 from .pandas_vb_common import *
-from pandas import to_timedelta
+from pandas import to_timedelta, Timestamp
 
 
 class timedelta_convert_int(object):
@@ -47,3 +47,14 @@ class timedelta_convert_bad_parse(object):
 
     def time_timedelta_convert_ignore(self):
         to_timedelta(self.arr, errors='ignore')
+
+
+class timedelta_add_overflow(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.td = to_timedelta(np.arange(1000000))
+        self.ts = Timestamp('2000')
+
+    def test_add_td_ts(self):
+        self.td + self.ts
