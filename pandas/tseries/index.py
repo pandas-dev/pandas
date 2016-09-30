@@ -1446,8 +1446,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             freq = getattr(self, 'freqstr',
                            getattr(self, 'inferred_freq', None))
             _, parsed, reso = parse_time_string(label, freq)
-            bounds = self._parsed_string_to_bounds(reso, parsed)
-            return bounds[0 if side == 'left' else 1]
+            lower, upper = self._parsed_string_to_bounds(reso, parsed)
+            # lower, upper form the half-open interval:
+            #   [parsed, parsed + 1 freq)
+            # because label may be passed to searchsorted
+            # the bounds need swapped if index is reverse sorted
+            if self.is_monotonic_decreasing:
+                return upper if side == 'left' else lower
+            return lower if side == 'left' else upper
         else:
             return label
 
