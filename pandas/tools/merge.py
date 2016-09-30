@@ -1369,10 +1369,9 @@ class _Concatenator(object):
                 clean_keys.append(k)
                 clean_objs.append(v)
             objs = clean_objs
-            if isinstance(keys, Index):
-                keys = Index(_ensure_index(clean_keys), name=keys.name)
-            else:
-                keys = clean_keys
+            name = getattr(keys, 'name', None)
+            keys = _ensure_index(clean_keys)
+            keys.name = name
 
         if len(objs) == 0:
             raise ValueError('All objects passed were None')
