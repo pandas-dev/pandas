@@ -889,8 +889,9 @@ class XlrdTests(ReadingTestsBase):
     def test_read_excel_parse_dates(self):
         # GH 11544, 12051
 
-        df = DataFrame({'col': [1, 2, 3],
-                        'date_strings': pd.date_range('2012-01-01', periods=3)})
+        df = DataFrame(
+            {'col': [1, 2, 3],
+             'date_strings': pd.date_range('2012-01-01', periods=3)})
         df2 = df.copy()
         df2['date_strings'] = df2['date_strings'].dt.strftime('%m/%d/%Y')
 
