@@ -18,3 +18,4 @@ sqlalchemy
 numexpr
 bottleneck
 statsmodels
+pyqt=4.11.4
