@@ -100,7 +100,7 @@ class TestIndexing(tm.TestCase):
     _multiprocess_can_split_ = True
 
     _objs = set(['series', 'frame', 'panel'])
-    _typs = set(['ints', 'labels', 'mixed', 'ts', 'floats', 'empty'])
+    _typs = set(['ints', 'labels', 'mixed', 'ts', 'floats', 'empty', 'ts_rev'])
 
     def setUp(self):
 
@@ -136,6 +136,15 @@ class TestIndexing(tm.TestCase):
                                   index=date_range('20130101', periods=4))
         self.panel_ts = Panel(np.random.randn(4, 4, 4),
                               items=date_range('20130101', periods=4))
+
+        dates_rev = (date_range('20130101', periods=4)
+                     .sort_values(ascending=False))
+        self.series_ts_rev = Series(np.random.randn(4),
+                                    index=dates_rev)
+        self.frame_ts_rev = DataFrame(np.random.randn(4, 4),
+                                      index=dates_rev)
+        self.panel_ts_rev = Panel(np.random.randn(4, 4, 4),
+                                  items=dates_rev)
 
         self.frame_empty = DataFrame({})
         self.series_empty = Series({})
@@ -1357,6 +1366,10 @@ class TestIndexing(tm.TestCase):
         self.check_result('ts  slice', 'loc', slice('20130102', '20130104'),
                           'ix', slice('20130102', '20130104'),
                           typs=['ts'], axes=2, fails=TypeError)
+
+        # GH 14316
+        self.check_result('ts slice rev', 'loc', slice('20130104', '20130102'),
+                          'indexer', [0, 1, 2], typs=['ts_rev'], axes=0)
 
         self.check_result('mixed slice', 'loc', slice(2, 8), 'ix', slice(2, 8),
                           typs=['mixed'], axes=0, fails=TypeError)
