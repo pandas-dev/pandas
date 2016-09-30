@@ -1290,6 +1290,28 @@ class TestTimeZones(tm.TestCase):
         self.assertEqual(df1.index.tz, new1.index.tz)
         self.assertEqual(df2.index.tz, new2.index.tz)
 
+        # # different timezones convert to UTC
+
+        # frame
+        df1_central = df1.tz_convert('US/Central')
+        new1, new2 = df1.align(df1_central)
+        self.assertEqual(new1.index.tz, pytz.UTC)
+        self.assertEqual(new2.index.tz, pytz.UTC)
+
+        # series
+        new1, new2 = df1[0].align(df1_central[0])
+        self.assertEqual(new1.index.tz, pytz.UTC)
+        self.assertEqual(new2.index.tz, pytz.UTC)
+
+        # combination
+        new1, new2 = df1.align(df1_central[0], axis=0)
+        self.assertEqual(new1.index.tz, pytz.UTC)
+        self.assertEqual(new2.index.tz, pytz.UTC)
+
+        df1[0].align(df1_central, axis=0)
+        self.assertEqual(new1.index.tz, pytz.UTC)
+        self.assertEqual(new2.index.tz, pytz.UTC)
+
     def test_append_aware(self):
         rng1 = date_range('1/1/2011 01:00', periods=1, freq='H',
                           tz='US/Eastern')
