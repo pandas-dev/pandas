@@ -654,6 +654,9 @@ class DataFrameFormatter(TableFormatter):
         latex_renderer = LatexFormatter(self, column_format=column_format,
                                         longtable=longtable)
 
+        if encoding is None:
+            encoding = 'ascii' if compat.PY2 else 'utf-8'
+
         if hasattr(self.buf, 'write'):
             latex_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
