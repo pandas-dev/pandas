@@ -1994,7 +1994,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         ``symmetric_difference`` contains elements that appear in either
         ``idx1`` or ``idx2`` but not both. Equivalent to the Index created by
         ``idx1.difference(idx2) | idx2.difference(idx1)`` with duplicates
-         dropped.
+        dropped.
 
         Examples
         --------
