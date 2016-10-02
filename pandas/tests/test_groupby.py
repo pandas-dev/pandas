@@ -458,6 +458,28 @@ class TestGroupBy(tm.TestCase):
         expected = s.groupby(level='one').sum()
         assert_series_equal(result, expected)
 
+    def test_grouper_column_and_index(self):
+        # GH 14327
+
+        # Grouping a multi-index frame by a column and an index level should
+        # be equivalent to resetting the index and grouping by two columns
+        idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 3),
+                                         ('b', 1), ('b', 2), ('b', 3)])
+        idx.names = ['outer', 'inner']
+        df_multi = pd.DataFrame({"A": np.arange(6),
+                                 'B': ['one', 'one', 'two',
+                                       'two', 'one', 'one']},
+                                index=idx)
+        result = df_multi.groupby(['B', pd.Grouper(level='inner')]).mean()
+        expected = df_multi.reset_index().groupby(['B', 'inner']).mean()
+        assert_frame_equal(result, expected)
+
+        # Grouping a single-index frame by a column and the index should
+        # be equivalent to resetting the index and grouping by two columns
+        df_single = df_multi.reset_index('outer')
+        result = df_single.groupby(['B', pd.Grouper(level='inner')]).mean()
+        assert_frame_equal(result, expected)
+
     def test_grouper_getting_correct_binner(self):
 
         # GH 10063
