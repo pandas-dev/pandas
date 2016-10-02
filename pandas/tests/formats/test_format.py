@@ -2823,7 +2823,7 @@ c  10  11  12  13  14\
         if compat.PY3:  # python3: pandas default encoding is utf-8
             with tm.ensure_clean('test.tex') as path:
                 df.to_latex(path)
-                with codecs.open(path, 'r') as f:
+                with codecs.open(path, 'r', encoding='utf-8') as f:
                     self.assertEqual(df.to_latex(), f.read())
         else:
             # python2 default encoding is ascii, so an error should be raised

@@ -1635,7 +1635,8 @@ class DataFrame(NDFrame):
             When set to False prevents from escaping latex special
             characters in column names.
         encoding : str, default None
-            Default encoding is ascii in Python 2 and utf-8 in Python 3
+            A string representing the encoding to use in the output file,
+            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         decimal : string, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe
 
