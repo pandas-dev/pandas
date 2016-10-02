@@ -757,12 +757,18 @@ Use ``.astype`` or ``union_categoricals`` to get ``category`` result.
 
 Following table summarizes the results of ``Categoricals`` related concatenations.
 
-| arg1         | arg2                                 | result  |
-|---------|-------------------------------------------|---------|
-| category | category (identical categories) | category |
-| category | category (different categories, both not ordered) | object (dtype is inferred) |
++----------+--------------------------------------------------------+----------------------------+
+| arg1     | arg2                                                   | result                     |
++==========+========================================================+============================+
+| category | category (identical categories)                        | category                   |
++----------+--------------------------------------------------------+----------------------------+
+| category | category (different categories, both not ordered)      | object (dtype is inferred) |
++----------+--------------------------------------------------------+----------------------------+
 | category | category (different categories, either one is ordered) | object (dtype is inferred) |
-| category | not category | object (dtype is inferred) |
++----------+--------------------------------------------------------+----------------------------+
+| category | not category                                           | object (dtype is inferred) |
++----------+--------------------------------------------------------+----------------------------+
+
 
 Getting Data In/Out
 -------------------
