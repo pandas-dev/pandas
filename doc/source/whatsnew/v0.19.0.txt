@@ -275,10 +275,10 @@ Categorical Concatenation
 
 - ``concat`` and ``append`` now can concat ``category`` dtypes with different ``categories`` as ``object`` dtype (:issue:`13524`)
 
-   .. ipython:: python
+  .. ipython:: python
 
-       s1 = pd.Series(['a', 'b'], dtype='category')
-       s2 = pd.Series(['b', 'c'], dtype='category')
+     s1 = pd.Series(['a', 'b'], dtype='category')
+     s2 = pd.Series(['b', 'c'], dtype='category')
 
   **Previous behavior**:
 
@@ -515,7 +515,7 @@ Other enhancements
 - ``Timestamp``, ``Period``, ``DatetimeIndex``, ``PeriodIndex`` and ``.dt`` accessor have gained a ``.is_leap_year`` property to check whether the date belongs to a leap year. (:issue:`13727`)
 - ``astype()`` will now accept a dict of column name to data types mapping as the ``dtype`` argument. (:issue:`12086`)
 - The ``pd.read_json`` and ``DataFrame.to_json`` has gained support for reading and writing json lines with ``lines`` option see :ref:`Line delimited json <io.jsonl>` (:issue:`9180`)
-- :func:``read_excel`` now supports the true_values and false_values keyword arguments (:issue:`13347`)
+- :func:`read_excel` now supports the true_values and false_values keyword arguments (:issue:`13347`)
 - ``groupby()`` will now accept a scalar and a single-element list for specifying ``level`` on a non-``MultiIndex`` grouper. (:issue:`13907`)
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception (:issue:`10001`).
 - ``pd.Timedelta(None)`` is now accepted and will return ``NaT``, mirroring ``pd.Timestamp`` (:issue:`13687`)
