@@ -516,6 +516,7 @@ Other enhancements
 - The ``pd.read_json`` and ``DataFrame.to_json`` has gained support for reading and writing json lines with ``lines`` option see :ref:`Line delimited json <io.jsonl>` (:issue:`9180`)
 - :func:``read_excel`` now supports the true_values and false_values keyword arguments (:issue:`13347`)
 - ``groupby()`` will now accept a scalar and a single-element list for specifying ``level`` on a non-``MultiIndex`` grouper. (:issue:`13907`)
+- Re-enable the ``parse_dates`` keyword of ``read_excel`` to parse string columns as dates (:issue:`14326`)
 
 .. _whatsnew_0190.api:
 
