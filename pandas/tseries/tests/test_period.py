@@ -23,7 +23,8 @@ from pandas.compat import range, lrange, lmap, zip, text_type, PY3, iteritems
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas import (Series, DataFrame,
-                    _np_version_under1p9, _np_version_under1p12)
+                    _np_version_under1p9, _np_version_under1p10,
+                    _np_version_under1p12)
 from pandas import tslib
 import pandas.util.testing as tm
 
@@ -4177,7 +4178,7 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
                 with tm.assertRaises(TypeError):
                     np.add(obj, ng)
 
-                if _np_version_under1p9:
+                if _np_version_under1p10:
                     self.assertIs(np.add(ng, obj), NotImplemented)
                 else:
                     with tm.assertRaises(TypeError):
@@ -4186,7 +4187,7 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
                 with tm.assertRaises(TypeError):
                     np.subtract(obj, ng)
 
-                if _np_version_under1p9:
+                if _np_version_under1p10:
                     self.assertIs(np.subtract(ng, obj), NotImplemented)
                 else:
                     with tm.assertRaises(TypeError):
@@ -4293,7 +4294,7 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
         tm.assert_index_equal(result, exp)
 
         result = np.subtract(pd.Period('2012-01', freq='M'), idx)
-        if _np_version_under1p9:
+        if _np_version_under1p10:
             self.assertIs(result, NotImplemented)
         else:
             tm.assert_index_equal(result, exp)
