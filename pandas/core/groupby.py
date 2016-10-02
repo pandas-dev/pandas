@@ -2201,36 +2201,45 @@ class Grouping(object):
                     raise AssertionError('Level %s not in index' % str(level))
                 level = index.names.index(level)
 
-            inds = index.labels[level]
-            level_index = index.levels[level]
-
             if self.name is None:
                 self.name = index.names[level]
 
-            # XXX complete hack
+            if isinstance(index, MultiIndex):
+                inds = index.labels[level]
+                level_index = index.levels[level]
 
-            if grouper is not None:
-                level_values = index.levels[level].take(inds)
-                self.grouper = level_values.map(self.grouper)
+                # XXX complete hack
+
+                if grouper is not None:
+                    level_values = index.levels[level].take(inds)
+                    self.grouper = level_values.map(self.grouper)
+                else:
+                    # all levels may not be observed
+                    labels, uniques = algos.factorize(inds, sort=True)
+
+                    if len(uniques) > 0 and uniques[0] == -1:
+                        # handle NAs
+                        mask = inds != -1
+                        ok_labels, uniques = algos.factorize(inds[mask],
+                                                             sort=True)
+
+                        labels = np.empty(len(inds), dtype=inds.dtype)
+                        labels[mask] = ok_labels
+                        labels[~mask] = -1
+
+                    if len(uniques) < len(level_index):
+                        level_index = level_index.take(uniques)
+
+                    self._labels = labels
+                    self._group_index = level_index
+                    self.grouper = level_index.take(labels)
+
+            # Single level index passed
             else:
-                # all levels may not be observed
-                labels, uniques = algos.factorize(inds, sort=True)
+                # Use single level index as grouper if none passed
+                if grouper is None:
+                    self.grouper = index
 
-                if len(uniques) > 0 and uniques[0] == -1:
-                    # handle NAs
-                    mask = inds != -1
-                    ok_labels, uniques = algos.factorize(inds[mask], sort=True)
-
-                    labels = np.empty(len(inds), dtype=inds.dtype)
-                    labels[mask] = ok_labels
-                    labels[~mask] = -1
-
-                if len(uniques) < len(level_index):
-                    level_index = level_index.take(uniques)
-
-                self._labels = labels
-                self._group_index = level_index
-                self.grouper = level_index.take(labels)
         else:
             if isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
