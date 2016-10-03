@@ -79,3 +79,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``asfreq``, where frequency wasn't set for empty series (:issue:`14320`)
