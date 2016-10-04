@@ -425,11 +425,15 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             except (ValueError, TypeError):
                 raise e
 
-    def result_without_offset(arg):
+    def intermediate_result(arg):
         if origin == 'julian':
             if unit != 'D':
                 raise ValueError("unit must be 'D' for origin='julian'")
-            arg = arg - tslib.Timestamp(0).to_julian_date()
+            try:
+                arg = arg - tslib.Timestamp(0).to_julian_date()
+            except:
+                raise ValueError("incompatible 'arg' type for given "
+                                 "'origin'='julian'")
         if arg is None:
             return arg
         elif isinstance(arg, tslib.Timestamp):
@@ -446,10 +450,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             return _convert_listlike(arg, box, format)
         return _convert_listlike(np.array([arg]), box, format)[0]
 
-    result = result_without_offset(arg)
+    result = intermediate_result(arg)
 
     offset = None
-    if origin != 'epoch' and origin != 'julian':
+    if origin not in ['epoch', 'julian']:
         try:
             offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
         except ValueError:

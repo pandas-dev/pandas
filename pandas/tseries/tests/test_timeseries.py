@@ -796,7 +796,7 @@ class TestTimeSeries(tm.TestCase):
         epoch_timestamp_convertible = [epoch_1960, epoch_1960.to_datetime(),
                                        epoch_1960.to_datetime64(),
                                        str(epoch_1960)]
-        invalid_origins = ['random_string', '13-24-1990']
+        invalid_origins = ['random_string', '13-24-1990', '0001-01-01']
         units_from_epoch = [0, 1, 2, 3, 4]
 
         for unit in units:
