@@ -442,6 +442,11 @@ class TestGroupBy(tm.TestCase):
         result = g.sum()
         assert_frame_equal(result, expected)
 
+        # GH14334
+        g = df.groupby([pd.Grouper(key='A')])
+        result = g.sum()
+        assert_frame_equal(result, expected)
+
         # GH8866
         s = Series(np.arange(8, dtype='int64'),
                    index=pd.MultiIndex.from_product(
