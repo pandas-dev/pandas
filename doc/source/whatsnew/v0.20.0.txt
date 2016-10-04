@@ -80,3 +80,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``df.groupby`` where ``TypeError`` raised when key-only Grouper is passed in a list (:issue:`14334`)
