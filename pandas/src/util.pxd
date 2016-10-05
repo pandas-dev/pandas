@@ -70,7 +70,12 @@ cdef inline object get_value_at(ndarray arr, object loc):
 
     return get_value_1d(arr, i)
 
-cdef inline set_value_at(ndarray arr, object loc, object value):
+cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
+    """Sets a value into the array without checking the writeable flag.
+
+    This should be used when setting values in a loop, check the writeable
+    flag above the loop and then eschew the check on each iteration.
+    """
     cdef:
         Py_ssize_t i, sz
     if is_float_object(loc):
@@ -86,6 +91,14 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
         raise IndexError('index out of bounds')
 
     assign_value_1d(arr, i, value)
+
+cdef inline set_value_at(ndarray arr, object loc, object value):
+    """Sets a value into the array after checking that the array is mutable.
+    """
+    if not cnp.PyArray_ISWRITEABLE(arr):
+        raise ValueError('assignment destination is read-only')
+
+    set_value_at_unsafe(arr, loc, value)
 
 cdef inline int is_contiguous(ndarray arr):
     return cnp.PyArray_CHKFLAGS(arr, cnp.NPY_C_CONTIGUOUS)
