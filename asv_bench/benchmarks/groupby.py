@@ -554,12 +554,25 @@ class groupby_period(object):
 
     def setup(self):
         N = 10000
-        self.pi = pd.period_range('1900-01-01', freq='D', periods=N)
+        self.grouper = self.make_grouper()
         self.df = pd.DataFrame(np.random.randn(N, 2))
 
-    def time_groupby_sum(self):
-        self.df.groupby(self.pi).sum()
+    def make_grouper(self):
+        return pd.period_range('1900-01-01', freq='D', periods=N)
 
+    def time_groupby_sum(self):
+        self.df.groupby(self.grouper).sum()
+
+
+class groupby_datetime(groupby_period):
+    def make_grouper(self):
+        return pd.date_range('1900-01-01', freq='D', periods=N)
+
+
+class groupby_datetimetz(groupby_period):
+    def make_grouper(self):
+        return pd.date_range('1900-01-01', freq='D', periods=N
+                             tz='US/Central')
 
 #----------------------------------------------------------------------
 # Series.value_counts

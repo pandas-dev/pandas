@@ -287,18 +287,25 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     """
     from pandas import Index, Series, DatetimeIndex, PeriodIndex
 
-    if is_datetimetz(values):
-        values = DatetimeIndex(values)
-
-    if is_period_dtype(values):
-        values = PeriodIndex(values)
-        # period array interface goes to object so intercept
-        vals = values.view(np.int64)
+    # handling two possibilities here
+    # - for a numpy datetimelike simply view as i8 then cast back
+    # - for an extension datetimelike view as i8 then
+    #   reconstruct from boxed values to transfer metadata
+    dtype = None
+    if needs_i8_conversion(values):
+        if is_period_dtype(values):
+            values = PeriodIndex(values)
+            vals = values.asi8
+        elif is_datetimetz(values):
+            values = DatetimeIndex(values)
+            vals = values.asi8
+        else:
+            # numpy dtype
+            dtype = values.dtype
+            vals = values.view(np.int64)
     else:
         vals = np.asarray(values)
 
-    is_datetime = is_datetime64_dtype(vals)
-    is_timedelta = is_timedelta64_dtype(vals)
     (hash_klass, vec_klass), vals = _get_data_algo(vals, _hashtables)
 
     table = hash_klass(size_hint or len(vals))
@@ -313,10 +320,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
                                     assume_unique=True)
 
-    if is_datetime:
-        uniques = uniques.astype('M8[ns]')
-    elif is_timedelta:
-        uniques = uniques.astype('m8[ns]')
+    if dtype is not None:
+        uniques = uniques.astype(dtype)
+
     if isinstance(values, Index):
         uniques = values._shallow_copy(uniques, name=None)
     elif isinstance(values, Series):
