@@ -433,10 +433,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         raise TypeError("Index can't be updated inplace")
 
     def _get_grouper_for_level(self, grouper, level):
-        # return grouper if grouper is not None else self
+        # Use self (Index) as grouper if None was passed
         if grouper is None:
             grouper = self
 
+        # Return tuple of (grouper, labels, level_index)
+        # where labels and level_index are None for the Index
+        # implementation.  The labels and level_index values
+        # are only calculated in the MultiIndex implementation
         return grouper, None, None
 
     def is_(self, other):
