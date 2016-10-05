@@ -547,6 +547,7 @@ class groupby_float32(object):
     def time_groupby_sum(self):
         self.df.groupby(['a'])['b'].sum()
 
+
 class groupby_period(object):
     # GH 14338
     goal_time = 0.2

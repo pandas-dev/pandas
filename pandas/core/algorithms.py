@@ -14,7 +14,6 @@ from pandas.types.common import (is_integer_dtype,
                                  is_categorical_dtype,
                                  is_extension_type,
                                  is_datetimetz,
-                                 is_period,
                                  is_period_dtype,
                                  is_period_arraylike,
                                  is_float_dtype,
@@ -288,7 +287,6 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     """
     from pandas import Index, Series, DatetimeIndex, PeriodIndex
 
-
     if is_datetimetz(values):
         values = DatetimeIndex(values)
 
@@ -298,7 +296,6 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         vals = values.view(np.int64)
     else:
         vals = np.asarray(values)
-
 
     is_datetime = is_datetime64_dtype(vals)
     is_timedelta = is_timedelta64_dtype(vals)
