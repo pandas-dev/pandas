@@ -2707,7 +2707,7 @@ Freq: Q-DEC"""
     def test_nat(self):
         self.assertIs(pd.PeriodIndex._na_value, pd.NaT)
         self.assertIs(pd.PeriodIndex([], freq='M')._na_value, pd.NaT)
-        
+
         idx = pd.PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
         self.assertTrue(idx._can_hold_na)
 
