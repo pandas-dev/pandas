@@ -552,26 +552,26 @@ class groupby_period(object):
     # GH 14338
     goal_time = 0.2
 
+    def make_grouper(self, N):
+        return pd.period_range('1900-01-01', freq='D', periods=N)
+
     def setup(self):
         N = 10000
-        self.grouper = self.make_grouper()
+        self.grouper = self.make_grouper(N)
         self.df = pd.DataFrame(np.random.randn(N, 2))
-
-    def make_grouper(self):
-        return pd.period_range('1900-01-01', freq='D', periods=N)
 
     def time_groupby_sum(self):
         self.df.groupby(self.grouper).sum()
 
 
 class groupby_datetime(groupby_period):
-    def make_grouper(self):
+    def make_grouper(self, N):
         return pd.date_range('1900-01-01', freq='D', periods=N)
 
 
 class groupby_datetimetz(groupby_period):
-    def make_grouper(self):
-        return pd.date_range('1900-01-01', freq='D', periods=N
+    def make_grouper(self, N):
+        return pd.date_range('1900-01-01', freq='D', periods=N,
                              tz='US/Central')
 
 #----------------------------------------------------------------------
