@@ -14,6 +14,7 @@ from pandas.types.common import (is_integer_dtype,
                                  is_categorical_dtype,
                                  is_extension_type,
                                  is_datetimetz,
+                                 is_period,
                                  is_period_dtype,
                                  is_period_arraylike,
                                  is_float_dtype,
@@ -285,15 +286,19 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     note: an array of Periods will ignore sort as it returns an always sorted
     PeriodIndex
     """
-    from pandas import Index, Series, DatetimeIndex
+    from pandas import Index, Series, DatetimeIndex, PeriodIndex
 
-    vals = np.asarray(values)
 
-    # localize to UTC
-    is_datetimetz_type = is_datetimetz(values)
-    if is_datetimetz_type:
+    if is_datetimetz(values):
         values = DatetimeIndex(values)
-        vals = values.asi8
+
+    if is_period_dtype(values):
+        values = PeriodIndex(values)
+        # period array interface goes to object so intercept
+        vals = values.view(np.int64)
+    else:
+        vals = np.asarray(values)
+
 
     is_datetime = is_datetime64_dtype(vals)
     is_timedelta = is_timedelta64_dtype(vals)
@@ -311,10 +316,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
                                     assume_unique=True)
 
-    if is_datetimetz_type:
-        # reset tz
-        uniques = values._shallow_copy(uniques)
-    elif is_datetime:
+    if is_datetime:
         uniques = uniques.astype('M8[ns]')
     elif is_timedelta:
         uniques = uniques.astype('m8[ns]')

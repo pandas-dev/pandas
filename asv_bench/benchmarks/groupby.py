@@ -547,6 +547,18 @@ class groupby_float32(object):
     def time_groupby_sum(self):
         self.df.groupby(['a'])['b'].sum()
 
+class groupby_period(object):
+    # GH 14338
+    goal_time = 0.2
+
+    def setup(self):
+        N = 10000
+        self.pi = pd.period_range('1900-01-01', freq='D', periods=N)
+        self.df = pd.DataFrame(np.random.randn(N, 2))
+
+    def time_groupby_sum(self):
+        self.df.groupby(self.pi).sum()
+
 
 #----------------------------------------------------------------------
 # Series.value_counts
