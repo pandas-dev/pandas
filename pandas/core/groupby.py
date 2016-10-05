@@ -2204,7 +2204,9 @@ class Grouping(object):
             if self.name is None:
                 self.name = index.names[level]
 
-            self.grouper, self._labels, self._group_index = index._get_grouper_for_level(self.grouper, level)
+            self.grouper, self._labels, self._group_index = \
+                index._get_grouper_for_level(self.grouper, level)
+
         else:
             if isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
