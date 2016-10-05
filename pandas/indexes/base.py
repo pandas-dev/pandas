@@ -432,6 +432,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
 
+    def _get_grouper_for_level(self, grouper, level):
+        # return grouper if grouper is not None else self
+        if grouper is None:
+            grouper = self
+
+        return grouper, None, None
+
     def is_(self, other):
         """
         More flexible, faster check like ``is`` but that works through views
