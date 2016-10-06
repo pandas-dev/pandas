@@ -85,6 +85,7 @@ cdef inline bint _checknull(object val):
     except ValueError:
         return False
 
+
 cdef inline bint _checknull_old(object val):
     import numpy as np
     cdef double INF = <double> np.inf
