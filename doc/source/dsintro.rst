@@ -41,12 +41,6 @@ categories of functionality and methods in separate sections.
 Series
 ------
 
-.. warning::
-
-   In 0.13.0 ``Series`` has internally been refactored to no longer sub-class ``ndarray``
-   but instead subclass ``NDFrame``, similarly to the rest of the pandas containers. This should be
-   a transparent change with only very limited API implications (See the :ref:`Internal Refactoring<whatsnew_0130.refactoring>`)
-
 :class:`Series` is a one-dimensional labeled array capable of holding any data
 type (integers, strings, floating point numbers, Python objects, etc.). The axis
 labels are collectively referred to as the **index**. The basic method to create a Series is to call:
