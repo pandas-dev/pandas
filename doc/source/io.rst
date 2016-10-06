@@ -1481,7 +1481,7 @@ function takes a number of arguments. Only the first is required.
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ASCII, for python versions prior to 3
   - ``line_terminator``: Character sequence denoting line end (default '\\n')
-  - ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL)
+  - ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a `float_format` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
   - ``quotechar``: Character used to quote fields (default '"')
   - ``doublequote``: Control quoting of ``quotechar`` in fields (default True)
   - ``escapechar``: Character used to escape ``sep`` and ``quotechar`` when
