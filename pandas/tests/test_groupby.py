@@ -474,10 +474,21 @@ class TestGroupBy(tm.TestCase):
         expected = df_multi.reset_index().groupby(['B', 'inner']).mean()
         assert_frame_equal(result, expected)
 
+        # Test the reverse grouping order
+        result = df_multi.groupby([pd.Grouper(level='inner'), 'B']).mean()
+        expected = df_multi.reset_index().groupby(['inner', 'B']).mean()
+        assert_frame_equal(result, expected)
+
         # Grouping a single-index frame by a column and the index should
         # be equivalent to resetting the index and grouping by two columns
         df_single = df_multi.reset_index('outer')
         result = df_single.groupby(['B', pd.Grouper(level='inner')]).mean()
+        expected = df_single.reset_index().groupby(['B', 'inner']).mean()
+        assert_frame_equal(result, expected)
+
+        # Test the reverse grouping order
+        result = df_single.groupby([pd.Grouper(level='inner'), 'B']).mean()
+        expected = df_single.reset_index().groupby(['inner', 'B']).mean()
         assert_frame_equal(result, expected)
 
     def test_grouper_getting_correct_binner(self):
