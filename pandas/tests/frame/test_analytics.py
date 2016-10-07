@@ -410,6 +410,11 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         expected = Series(0, index=[])
         tm.assert_series_equal(result, expected)
 
+    def test_nunique(self):
+        f = lambda s: len(nanops.unique1d(s.dropna()))
+        self._check_stat_op('nunique', f, has_skipna=False,
+                            check_dtype=False, check_dates=True)
+
     def test_sum(self):
         self._check_stat_op('sum', np.sum, has_numeric_only=True)
 

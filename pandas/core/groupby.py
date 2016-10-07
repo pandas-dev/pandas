@@ -3899,6 +3899,21 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         return self._wrap_agged_blocks(data.items, list(blk))
 
+    def nunique(self, dropna=True):
+        """
+        Return Series with number of distinct observations per group.
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include NaN in the counts.
+        """
+        from functools import partial
+        func = partial(Series.nunique, dropna=dropna)
+        return self.apply(lambda g: g.apply(func))
+
 
 from pandas.tools.plotting import boxplot_frame_groupby  # noqa
 DataFrameGroupBy.boxplot = boxplot_frame_groupby

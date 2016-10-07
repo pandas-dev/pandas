@@ -4969,6 +4969,27 @@ class DataFrame(NDFrame):
 
         return Series(result, index=labels)
 
+    def nunique(self, axis=0, dropna=True):
+        """
+        Return Series with number of distinct observations over requested
+        axis.
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        dropna : boolean, default True
+            Don't include NaN in the counts.
+
+        Returns
+        -------
+        nunique : Series
+        """
+        func = functools.partial(Series.nunique, dropna=dropna)
+        return self.apply(func, axis=axis)
+
     def idxmin(self, axis=0, skipna=True):
         """
         Return index of first occurrence of minimum over requested axis.
