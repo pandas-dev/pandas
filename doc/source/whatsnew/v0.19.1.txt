@@ -1,0 +1,32 @@
+.. _whatsnew_0191:
+
+v0.19.1 (????, 2016)
+---------------------
+
+This is a minor bug-fix release from 0.19.0 and includes a large number of
+bug fixes along with several new features, enhancements, and performance improvements.
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+
+.. contents:: What's new in v0.19.1
+    :local:
+    :backlinks: none
+
+
+.. _whatsnew_0191.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
+
+
+.. _whatsnew_0191.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
