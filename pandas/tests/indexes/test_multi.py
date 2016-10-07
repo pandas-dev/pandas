@@ -149,17 +149,14 @@ class TestMultiIndex(Base, tm.TestCase):
         levels = self.index.levels
         new_levels = [[lev + 'a' for lev in level] for level in levels]
 
-        def assert_matching(actual, expected, coerce_to_obj=True):
+        def assert_matching(actual, expected, check_dtype=False):
             # avoid specifying internal representation
             # as much as possible
             self.assertEqual(len(actual), len(expected))
             for act, exp in zip(actual, expected):
                 act = np.asarray(act)
-                if coerce_to_obj:
-                    exp = np.asarray(exp, dtype=np.object_)
-                else:
-                    exp = np.asarray(exp)
-                tm.assert_numpy_array_equal(act, exp)
+                exp = np.asarray(exp)
+                tm.assert_numpy_array_equal(act, exp, check_dtype=check_dtype)
 
         # level changing [w/o mutation]
         ind2 = self.index.set_levels(new_levels)
@@ -214,23 +211,23 @@ class TestMultiIndex(Base, tm.TestCase):
             with assertRaisesRegexp(ValueError, "^On"):
                 self.index.set_levels(['c'], level=0, inplace=inplace)
             assert_matching(self.index.levels, original_index.levels,
-                            coerce_to_obj=False)
+                            check_dtype=True)
 
             with assertRaisesRegexp(ValueError, "^On"):
                 self.index.set_labels([0, 1, 2, 3, 4, 5], level=0,
                                       inplace=inplace)
             assert_matching(self.index.labels, original_index.labels,
-                            coerce_to_obj=False)
+                            check_dtype=True)
 
             with assertRaisesRegexp(TypeError, "^Levels"):
                 self.index.set_levels('c', level=0, inplace=inplace)
             assert_matching(self.index.levels, original_index.levels,
-                            coerce_to_obj=False)
+                            check_dtype=True)
 
             with assertRaisesRegexp(TypeError, "^Labels"):
                 self.index.set_labels(1, level=0, inplace=inplace)
             assert_matching(self.index.labels, original_index.labels,
-                            coerce_to_obj=False)
+                            check_dtype=True)
 
     def test_set_labels(self):
         # side note - you probably wouldn't want to use levels and labels

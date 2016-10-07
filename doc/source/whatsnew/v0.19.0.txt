@@ -1563,4 +1563,3 @@ Bug Fixes
 - ``PeriodIndex`` can now accept ``list`` and ``array`` which contains ``pd.NaT`` (:issue:`13430`)
 - Bug in ``df.groupby`` where ``.median()`` returns arbitrary values if grouped dataframe contains empty bins (:issue:`13629`)
 - Bug in ``Index.copy()`` where ``name`` parameter was ignored (:issue:`14302`)
-- Bug in ``MultiIndex.set_levels`` where illegal level values were still set after raising an error (:issue:`13754`)

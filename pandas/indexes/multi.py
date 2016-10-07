@@ -116,21 +116,26 @@ class MultiIndex(Index):
 
         return result
 
-    def _verify_integrity(self, new_labels=None, new_levels=None):
-        """Raises ValueError if length of levels and labels don't match or any
-        label would exceed level bounds
+    def _verify_integrity(self, labels=None, levels=None):
+        """
 
         Parameters
         ----------
-        new_labels : optional list
+        labels : optional list
             Labels to check for validity. Defaults to current labels.
-        new_levels : optional list
+        levels : optional list
             Levels to check for validity. Defaults to current levels.
+
+        Raises
+        ------
+        ValueError
+            * if length of levels and labels don't match or any label would
+            exceed level bounds
         """
         # NOTE: Currently does not check, among other things, that cached
         # nlevels matches nor that sortorder matches actually sortorder.
-        labels = new_labels or self.labels
-        levels = new_levels or self.levels
+        labels = labels or self.labels
+        levels = levels or self.levels
 
         if len(levels) != len(labels):
             raise ValueError("Length of levels and labels must match. NOTE:"
@@ -173,7 +178,7 @@ class MultiIndex(Index):
             new_levels = FrozenList(new_levels)
 
         if verify_integrity:
-            self._verify_integrity(new_levels=new_levels)
+            self._verify_integrity(levels=new_levels)
 
         names = self.names
         self._levels = new_levels
@@ -279,7 +284,7 @@ class MultiIndex(Index):
             new_labels = FrozenList(new_labels)
 
         if verify_integrity:
-            self._verify_integrity(new_labels=new_labels)
+            self._verify_integrity(labels=new_labels)
 
         self._labels = new_labels
         self._tuples = None
