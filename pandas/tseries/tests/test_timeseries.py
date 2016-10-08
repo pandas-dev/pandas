@@ -779,6 +779,48 @@ class TestTimeSeries(tm.TestCase):
         result = to_datetime([1, 2, 111111111], unit='D', errors='coerce')
         tm.assert_index_equal(result, expected)
 
+    def test_to_datetime_origin(self):
+        units = ['D', 's', 'ms', 'us', 'ns']
+        # Addresses Issue Number 11276, 11745
+        # for origin as julian
+        julian_dates = pd.date_range(
+            '2014-1-1', periods=10).to_julian_date().values
+        result = Series(pd.to_datetime(
+            julian_dates, unit='D', origin='julian'))
+        expected = Series(pd.to_datetime(
+            julian_dates - pd.Timestamp(0).to_julian_date(), unit='D'))
+        assert_series_equal(result, expected)
+
+        # checking for invalid combination of origin='julian' and unit != D
+        for unit in units:
+            if unit == 'D':
+                continue
+            with self.assertRaises(ValueError):
+                pd.to_datetime(julian_dates, unit=unit, origin='julian')
+
+        # for origin as 1960-01-01
+        epoch_1960 = pd.Timestamp('1960-01-01')
+        epoch_timestamp_convertible = [epoch_1960, epoch_1960.to_datetime(),
+                                       epoch_1960.to_datetime64(),
+                                       str(epoch_1960)]
+        invalid_origins = ['random_string', '13-24-1990', '0001-01-01']
+        units_from_epoch = [0, 1, 2, 3, 4]
+
+        for unit in units:
+            for epoch in epoch_timestamp_convertible:
+                expected = Series(
+                    [pd.Timedelta(x, unit=unit) +
+                     epoch_1960 for x in units_from_epoch])
+                result = Series(pd.to_datetime(
+                    units_from_epoch, unit=unit, origin=epoch))
+                assert_series_equal(result, expected)
+
+            # check for invalid origins
+            for origin in invalid_origins:
+                with self.assertRaises(ValueError):
+                    pd.to_datetime(units_from_epoch, unit=unit,
+                                   origin=origin)
+
     def test_series_ctor_datetime64(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
         dates = np.asarray(rng)
