@@ -81,3 +81,4 @@ Bug Fixes
 
 - Bug in ``pd.pivot_table`` may raise ``TypeError`` or ``ValueError`` when ``index`` or ``columns``
   is not scalar and ``values`` is not specified (:issue:`14380`)
+- Bug in multiple offset aliases with decimal points regarded as ints (e.g. 0.5s as 5s) (:issue:`8419`)
