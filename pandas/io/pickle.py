@@ -4,9 +4,10 @@ import numpy as np
 from numpy.lib.format import read_array, write_array
 from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc, PY3
 from pandas.types.common import is_datetime64_dtype, _NS_DTYPE
+from pandas.io.common import _get_handle, _infer_compression
 
 
-def to_pickle(obj, path):
+def to_pickle(obj, path, compression='infer'):
     """
     Pickle (serialize) object to input file path
 
@@ -15,12 +16,16 @@ def to_pickle(obj, path):
     obj : any object
     path : string
         File path
+    compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+        .. versionadded:: 0.19.2
     """
-    with open(path, 'wb') as f:
+    inferred_compression = _infer_compression(path, compression)
+    f, fh = _get_handle(path, 'wb', compression=inferred_compression, is_text=False)
+    with f:
         pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
 
 
-def read_pickle(path):
+def read_pickle(path, compression='infer'):
     """
     Load pickled pandas object (or any other pickled object) from the specified
     file path
@@ -32,11 +37,15 @@ def read_pickle(path):
     ----------
     path : string
         File path
+    compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+        .. versionadded:: 0.19.2
 
     Returns
     -------
     unpickled : type of object stored in file
     """
+
+    inferred_compression = _infer_compression(path, compression)
 
     def try_read(path, encoding=None):
         # try with cPickle
@@ -48,18 +57,21 @@ def read_pickle(path):
         # cpickle
         # GH 6899
         try:
-            with open(path, 'rb') as fh:
-                return pkl.load(fh)
+            f, fh = _get_handle(path, 'rb', compression=inferred_compression, is_text=False)
+            with f:
+                return pkl.load(f)
         except Exception:
             # reg/patched pickle
             try:
-                with open(path, 'rb') as fh:
-                    return pc.load(fh, encoding=encoding, compat=False)
+                f, fh = _get_handle(path, 'rb', compression=inferred_compression, is_text=False)
+                with f:
+                    return pc.load(f, encoding=encoding, compat=False)
 
             # compat pickle
             except:
-                with open(path, 'rb') as fh:
-                    return pc.load(fh, encoding=encoding, compat=True)
+                f, fh = _get_handle(path, 'rb', compression=inferred_compression, is_text=False)
+                with f:
+                    return pc.load(f, encoding=encoding, compat=True)
 
     try:
         return try_read(path)
@@ -67,6 +79,7 @@ def read_pickle(path):
         if PY3:
             return try_read(path, encoding='latin1')
         raise
+
 
 # compat with sparse pickle / unpickle
 

@@ -284,6 +284,40 @@ class TestPickle():
         #
         tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
+    def compression_explicit(self, compression):
+        # issue 11666
+        with tm.ensure_clean(self.path) as path:
+            df = tm.makeDataFrame()
+            df.to_pickle(path, compression=compression)
+            tm.assert_frame_equal(df, pandas.read_pickle(path, compression=compression))
+
+    def test_compression_explicit(self):
+        compressions = [None, 'gzip', 'bz2', 'xz']
+        for c in compressions:
+            yield self.compression_explicit, c
+
+    def compression_explicit_bad(self, compression):
+        with tm.assertRaisesRegexp(ValueError, "Unrecognized compression type"):
+            with tm.ensure_clean(self.path) as path:
+                df = tm.makeDataFrame()
+                df.to_pickle(path, compression=compression)
+
+    def test_compression_explicit_bad(self):
+        compressions = ['', 'None', 'bad', '7z']
+        for c in compressions:
+            yield self.compression_explicit_bad, c
+
+    def compression_infer(self, ext):
+        with tm.ensure_clean(self.path + ext) as p:
+            df = tm.makeDataFrame()
+            df.to_pickle(p)
+            tm.assert_frame_equal(df, pandas.read_pickle(p))
+
+    def test_compression_infer(self):
+        extensions = ['', '.gz', '.bz2', '.xz', '.who_am_i']
+        for ext in extensions:
+            yield self.compression_infer, ext
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
