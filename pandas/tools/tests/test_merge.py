@@ -709,6 +709,19 @@ class TestMerge(tm.TestCase):
                           how='outer', indicator=True)
         assert_frame_equal(test5, hand_coded_result)
 
+    def test_categorical_index_merge(self):
+        cat_index = pd.CategoricalIndex(['y', 'x'], categories=list("xyz"), ordered=True)
+        df = pd.DataFrame([[10, 11, 12]])
+
+        idx = pd.MultiIndex(levels=[cat_index, [0]], labels=[[0, 1], [0, 0]])
+        expected = pd.DataFrame([[10, 11, 12], [10, 11, 12]], index=idx)
+
+        result = pd.concat([df, df], keys=cat_index)
+
+        self.assertIsInstance(result.index.levels[0], pd.CategoricalIndex)
+        self.assertTrue(cat_index.equals(result.index.levels[0]))
+        assert_frame_equal(result, expected)
+
 
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
