@@ -97,6 +97,5 @@ cdef inline bint _checknull_old(object val):
 cdef inline bint _checknan(object val):
     return not cnp.PyArray_Check(val) and val != val
 
-
 cdef inline bint is_period_object(object val):
     return getattr(val, '_typ', '_typ') == 'period'
