@@ -1370,7 +1370,7 @@ class _Concatenator(object):
                 clean_objs.append(v)
             objs = clean_objs
             name = getattr(keys, 'name', None)
-            keys = _ensure_index(clean_keys)
+            keys = _ensure_index(Index(clean_keys))
             keys.name = name
 
         if len(objs) == 0:
