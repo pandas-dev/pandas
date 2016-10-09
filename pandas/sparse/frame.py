@@ -302,7 +302,21 @@ class SparseDataFrame(DataFrame):
     # ----------------------------------------------------------------------
     # Support different internal representation of SparseDataFrame
 
-    def _sanitize_column(self, key, value):
+    def _sanitize_column(self, key, value, **kwargs):
+        """
+        Creates a new SparseArray from the input value.
+
+        Parameters
+        ----------
+        key : object
+        value : scalar, Series, or array-like
+        kwargs : dict
+
+        Returns
+        -------
+        sanitized_column : SparseArray
+
+        """
         sp_maker = lambda x, index=None: SparseArray(
             x, index=index, fill_value=self._default_fill_value,
             kind=self._default_kind)
