@@ -30,3 +30,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``concat`` where names of keys were not propagated to the resulting MultiIndex (:issue:`14252`)

@@ -4,20 +4,20 @@ from __future__ import print_function
 
 from datetime import datetime
 
-from numpy import nan
 import numpy as np
+from numpy import nan
 
-from pandas.compat import lrange
-from pandas import DataFrame, Series, Index, Timestamp
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
-
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, Series, Timestamp
+from pandas.compat import lrange
 
 from pandas.tests.frame.common import TestData
+
+import pandas.util.testing as tm
+from pandas.util.testing import (assertRaisesRegexp,
+                                 assert_frame_equal,
+                                 assert_series_equal)
 
 
 class TestDataFrameConcatCommon(tm.TestCase, TestData):
@@ -323,6 +323,29 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         assert_frame_equal(df1.join(df2, how='right'), exp)
         assert_frame_equal(df2.join(df1, how='left'),
                            exp[['value2', 'value1']])
+
+    def test_concat_named_keys(self):
+        # GH 14252
+        df = pd.DataFrame({'foo': [1, 2], 'bar': [0.1, 0.2]})
+        index = Index(['a', 'b'], name='baz')
+        concatted_named_from_keys = pd.concat([df, df], keys=index)
+        expected_named = pd.DataFrame(
+            {'foo': [1, 2, 1, 2], 'bar': [0.1, 0.2, 0.1, 0.2]},
+            index=pd.MultiIndex.from_product((['a', 'b'], [0, 1]),
+                                             names=['baz', None]))
+        assert_frame_equal(concatted_named_from_keys, expected_named)
+
+        index_no_name = Index(['a', 'b'], name=None)
+        concatted_named_from_names = pd.concat(
+            [df, df], keys=index_no_name, names=['baz'])
+        assert_frame_equal(concatted_named_from_names, expected_named)
+
+        concatted_unnamed = pd.concat([df, df], keys=index_no_name)
+        expected_unnamed = pd.DataFrame(
+            {'foo': [1, 2, 1, 2], 'bar': [0.1, 0.2, 0.1, 0.2]},
+            index=pd.MultiIndex.from_product((['a', 'b'], [0, 1]),
+                                             names=[None, None]))
+        assert_frame_equal(concatted_unnamed, expected_unnamed)
 
 
 class TestDataFrameCombineFirst(tm.TestCase, TestData):

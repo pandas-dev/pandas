@@ -1369,7 +1369,9 @@ class _Concatenator(object):
                 clean_keys.append(k)
                 clean_objs.append(v)
             objs = clean_objs
-            keys = clean_keys
+            name = getattr(keys, 'name', None)
+            keys = Index(clean_keys)
+            keys.name = name
 
         if len(objs) == 0:
             raise ValueError('All objects passed were None')
@@ -1454,7 +1456,7 @@ class _Concatenator(object):
         self.axis = axis
         self.join_axes = join_axes
         self.keys = keys
-        self.names = names
+        self.names = names or getattr(keys, 'names', None)
         self.levels = levels
 
         self.ignore_index = ignore_index
