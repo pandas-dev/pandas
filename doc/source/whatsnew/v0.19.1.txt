@@ -59,3 +59,4 @@ Bug Fixes
 
 - Bug in ``pd.pivot_table`` may raise ``TypeError`` or ``ValueError`` when ``index`` or ``columns``
   is not scalar and ``values`` is not specified (:issue:`14380`)
+- Bug in ``DataFrame.insert`` where multiple calls with duplicate columns can fail (:issue:`14291`)
