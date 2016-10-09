@@ -2487,7 +2487,7 @@ class DataFrame(NDFrame):
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
-        # value exeption to occur first
+        # value exception to occur first
         if len(self):
             self._check_setitem_copy()
 
@@ -2503,10 +2503,10 @@ class DataFrame(NDFrame):
         loc : int
             Must have 0 <= loc <= len(columns)
         column : object
-        value : int, Series, or array-like
+        value : scalar, Series, or array-like
         """
         self._ensure_valid_index(value)
-        value = self._sanitize_column(column, value)
+        value = self._sanitize_column(column, value, broadcast=False)
         self._data.insert(loc, column, value,
                           allow_duplicates=allow_duplicates)
 
@@ -2590,9 +2590,25 @@ class DataFrame(NDFrame):
 
         return data
 
-    def _sanitize_column(self, key, value):
-        # Need to make sure new columns (which go into the BlockManager as new
-        # blocks) are always copied
+    def _sanitize_column(self, key, value, broadcast=True):
+        """
+        Ensures new columns (which go into the BlockManager as new blocks) are
+        always copied and converted into an array.
+
+        Parameters
+        ----------
+        key : object
+        value : scalar, Series, or array-like
+        broadcast : bool, default True
+            If ``key`` matches multiple duplicate column names in the
+            DataFrame, this parameter indicates whether ``value`` should be
+            tiled so that the returned array contains a (duplicated) column for
+            each occurrence of the key. If False, ``value`` will not be tiled.
+
+        Returns
+        -------
+        sanitized_column : numpy-array
+        """
 
         def reindexer(value):
             # reindex if necessary
@@ -2665,7 +2681,7 @@ class DataFrame(NDFrame):
             return value
 
         # broadcast across multiple columns if necessary
-        if key in self.columns and value.ndim == 1:
+        if broadcast and key in self.columns and value.ndim == 1:
             if (not self.columns.is_unique or
                     isinstance(self.columns, MultiIndex)):
                 existing_piece = self[key]
