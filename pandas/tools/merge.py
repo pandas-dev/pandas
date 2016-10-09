@@ -1370,8 +1370,7 @@ class _Concatenator(object):
                 clean_objs.append(v)
             objs = clean_objs
             name = getattr(keys, 'name', None)
-            keys = Index(clean_keys)
-            keys.name = name
+            keys = Index(clean_keys, name=name)
 
         if len(objs) == 0:
             raise ValueError('All objects passed were None')
