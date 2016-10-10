@@ -116,12 +116,27 @@ class MultiIndex(Index):
 
         return result
 
-    def _verify_integrity(self):
-        """Raises ValueError if length of levels and labels don't match or any
-        label would exceed level bounds"""
+    def _verify_integrity(self, labels=None, levels=None):
+        """
+
+        Parameters
+        ----------
+        labels : optional list
+            Labels to check for validity. Defaults to current labels.
+        levels : optional list
+            Levels to check for validity. Defaults to current levels.
+
+        Raises
+        ------
+        ValueError
+            * if length of levels and labels don't match or any label would
+            exceed level bounds
+        """
         # NOTE: Currently does not check, among other things, that cached
         # nlevels matches nor that sortorder matches actually sortorder.
-        labels, levels = self.labels, self.levels
+        labels = labels or self.labels
+        levels = levels or self.levels
+
         if len(levels) != len(labels):
             raise ValueError("Length of levels and labels must match. NOTE:"
                              " this index is in an inconsistent state.")
@@ -162,6 +177,9 @@ class MultiIndex(Index):
                 new_levels[l] = _ensure_index(v, copy=copy)._shallow_copy()
             new_levels = FrozenList(new_levels)
 
+        if verify_integrity:
+            self._verify_integrity(levels=new_levels)
+
         names = self.names
         self._levels = new_levels
         if any(names):
@@ -169,9 +187,6 @@ class MultiIndex(Index):
 
         self._tuples = None
         self._reset_cache()
-
-        if verify_integrity:
-            self._verify_integrity()
 
     def set_levels(self, levels, level=None, inplace=False,
                    verify_integrity=True):
@@ -268,12 +283,12 @@ class MultiIndex(Index):
                     lab, lev, copy=copy)._shallow_copy()
             new_labels = FrozenList(new_labels)
 
+        if verify_integrity:
+            self._verify_integrity(labels=new_labels)
+
         self._labels = new_labels
         self._tuples = None
         self._reset_cache()
-
-        if verify_integrity:
-            self._verify_integrity()
 
     def set_labels(self, labels, level=None, inplace=False,
                    verify_integrity=True):
