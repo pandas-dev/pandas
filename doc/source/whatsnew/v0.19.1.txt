@@ -44,3 +44,4 @@ Bug Fixes
 
 
 - Bug in ``pd.concat`` where names of the ``keys`` were not propagated to the resulting ``MultiIndex`` (:issue:`14252`)
+- Bug in ``MultiIndex.set_levels`` where illegal level values were still set after raising an error (:issue:`13754`)

@@ -1560,6 +1560,6 @@ Bug Fixes
 - Bug in ``.to_string()`` when called with an integer ``line_width`` and ``index=False`` raises an UnboundLocalError exception because ``idx`` referenced before assignment.
 - Bug in ``eval()`` where the ``resolvers`` argument would not accept a list (:issue:`14095`)
 - Bugs in ``stack``, ``get_dummies``, ``make_axis_dummies`` which don't preserve categorical dtypes in (multi)indexes (:issue:`13854`)
-- ``PeridIndex`` can now accept ``list`` and ``array`` which contains ``pd.NaT`` (:issue:`13430`)
+- ``PeriodIndex`` can now accept ``list`` and ``array`` which contains ``pd.NaT`` (:issue:`13430`)
 - Bug in ``df.groupby`` where ``.median()`` returns arbitrary values if grouped dataframe contains empty bins (:issue:`13629`)
 - Bug in ``Index.copy()`` where ``name`` parameter was ignored (:issue:`14302`)
