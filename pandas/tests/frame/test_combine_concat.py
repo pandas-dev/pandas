@@ -347,6 +347,20 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
                                              names=[None, None]))
         assert_frame_equal(concatted_unnamed, expected_unnamed)
 
+    def test_concat_axis_parameter(self):
+        # GH 14369
+        df1 = pd.DataFrame({'A': [0.1, 0.2]}, index=range(2))
+        df2 = pd.DataFrame({'A': [0.3, 0.4]}, index=range(2))
+        expected_row = pd.DataFrame(
+            {'A': [0.1, 0.2, 0.3, 0.4]}, index=[0, 1, 0, 1])
+        concatted_row = pd.concat([df1, df2], axis='rows')
+        assert_frame_equal(concatted_row, expected_row)
+
+        expected_columns = pd.DataFrame(
+            [[0.1, 0.3], [0.2, 0.4]], index=[0, 1], columns=['A', 'A'])
+        concatted_columns = pd.concat([df1, df2], axis='columns')
+        assert_frame_equal(concatted_columns, expected_columns)
+
 
 class TestDataFrameCombineFirst(tm.TestCase, TestData):
 
