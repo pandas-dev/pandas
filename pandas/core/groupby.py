@@ -3674,10 +3674,25 @@ class NDFrameGroupBy(GroupBy):
         Each subframe is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
+        The current implementation imposes three requirements on f:
+
+        * f must return a value that either has the same shape as the input
+          subframe or can be broadcast to the shape of the input subframe.
+          For example, f returns a scalar it will be broadcast to have the
+          same shape as the input subframe.
+        * f must support application column-by-column in the subframe. If f 
+          also supports application to the entire subframe, then a fast path 
+          is used starting from the second chunk.
+        * f must not mutate subframes. Mutation is not supported and may
+          produce unexpected results.
+
         Examples
         --------
         >>> grouped = df.groupby(lambda x: mapping[x])
+        # Same shape
         >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
+        # Broadcastable
+        >>> grouped.transform(lambda x: x.max() - x.min())
         """
 
         # optimized transforms
