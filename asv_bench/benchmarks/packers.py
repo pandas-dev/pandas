@@ -546,6 +546,7 @@ class packers_write_json(object):
         except:
             pass
 
+
 class packers_write_json_lines(object):
     goal_time = 0.2
 
