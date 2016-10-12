@@ -34,7 +34,7 @@ Bug Fixes
 
 
 
-
+- Bug in localizing an ambiguous timezone when a boolean is passed (:issue:`14402`)
 
 
 
