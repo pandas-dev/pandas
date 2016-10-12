@@ -2,15 +2,14 @@
 
 from __future__ import print_function
 
-from numpy import nan
+import datetime
+
+import pytz
+
 import numpy as np
-
-from pandas import compat
-from pandas import (DataFrame, Series, MultiIndex, Timestamp,
-                    date_range)
-
 import pandas.util.testing as tm
-
+from numpy import nan
+from pandas import DataFrame, MultiIndex, Series, Timestamp, compat, date_range
 from pandas.tests.frame.common import TestData
 
 
@@ -179,3 +178,31 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
             .to_records()
         expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
         tm.assert_almost_equal(result, expected)
+
+    def test_to_records_with_tz_gmt(self):
+        data = [datetime.datetime.now(pytz.timezone('UTC')) for _ in range(10)]
+        df = DataFrame({'datetime': data})
+        df.set_index('datetime', inplace=True)
+        dfgmt = df.tz_convert("GMT")
+        tm.assert_frame_equal(df.to_records()['datetime'][0].tzinfo,
+                              dfgmt.to_records()['datetime'][0].tzinfo)
+
+    def test_to_records_with_tz_convert_to_utc(self):
+        data_utc = [datetime.datetime.now(
+            pytz.timezone('UTC')) for _ in range(10)]
+        df = DataFrame({'datetime': data_utc})
+        data_gmt = [datetime.datetime.now(
+            pytz.timezone('GMT')) for _ in range(10)]
+        df2 = DataFrame({'datetime': data_gmt})
+        df.set_index('datetime', inplace=True)
+        df2.set_index('datetime', inplace=True)
+        dfgmt = df2.tz_convert("UTC")
+        tm.assert_frame_equal(df.to_records()['datetime'][0].tzinfo,
+                              dfgmt.to_records()['datetime'][0].tzinfo)
+
+    def test_to_records_with_tzinfo(self):
+        data = [datetime.datetime.now(pytz.timezone('UTC')) for _ in range(10)]
+        df = DataFrame({'datetime': data})
+        df.set_index('datetime', inplace=True)
+        tm.assert_frame_equal(df.index.tzinfo,
+                              df.to_records()['datetime'][0].tzinfo)
