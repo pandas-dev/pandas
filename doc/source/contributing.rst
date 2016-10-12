@@ -360,7 +360,7 @@ follow the Numpy Docstring Standard (see above), but you don't need to install
 this because a local copy of numpydoc is included in the *pandas* source
 code.
 `nbconvert <https://nbconvert.readthedocs.io/en/latest/>`_ and
-`nbformat <http://nbformat.readthedocs.io/en/latest/>`_ are required to build
+`nbformat <https://nbformat.readthedocs.io/en/latest/>`_ are required to build
 the Jupyter notebooks included in the documentation.
 
 If you have a conda environment named ``pandas_dev``, you can install the extra
@@ -490,7 +490,7 @@ Adding tests is one of the most common requests after code is pushed to *pandas*
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
 Like many packages, *pandas* uses the `Nose testing system
-<http://nose.readthedocs.org/en/latest/index.html>`_ and the convenient
+<https://nose.readthedocs.io/en/latest/index.html>`_ and the convenient
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
@@ -569,7 +569,7 @@ supports both python2 and python3.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
-webpage <http://asv.readthedocs.org/en/latest/installing.html>`_.
+webpage <https://asv.readthedocs.io/en/latest/installing.html>`_.
 
 To install asv::
 
@@ -624,7 +624,7 @@ This will display stderr from the benchmarks, and use your local
 ``python`` that comes from your ``$PATH``.
 
 Information on how to write a benchmark and how to use asv can be found in the
-`asv documentation <http://asv.readthedocs.org/en/latest/writing_benchmarks.html>`_.
+`asv documentation <https://asv.readthedocs.io/en/latest/writing_benchmarks.html>`_.
 
 .. _contributing.gbq_integration_tests:
 
