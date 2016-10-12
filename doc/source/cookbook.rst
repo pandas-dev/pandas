@@ -877,7 +877,7 @@ The :ref:`Plotting <visualization>` docs.
 <http://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot>`__
 
 `Generate Embedded plots in excel files using Pandas, Vincent and xlsxwriter
-<http://pandas-xlsxwriter-charts.readthedocs.org/en/latest/introduction.html>`__
+<https://pandas-xlsxwriter-charts.readthedocs.io/>`__
 
 `Boxplot for each quartile of a stratifying variable
 <http://stackoverflow.com/questions/23232989/boxplot-stratified-by-column-in-python-pandas>`__
