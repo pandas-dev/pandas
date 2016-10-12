@@ -3,8 +3,8 @@
 ls "$HOME/.cache/"
 
 PYX_CACHE_DIR="$HOME/.cache/pyxfiles"
-pyx_file_list=`find ${TRAVIS_BUILD_DIR} -name "*.pyx"`
-pyx_cache_file_list=`find ${PYX_CACHE_DIR} -name "*.pyx"`
+pyx_file_list=`find ${TRAVIS_BUILD_DIR} -name "*.pyx" -o -name "*.pxd"`
+pyx_cache_file_list=`find ${PYX_CACHE_DIR} -name "*.pyx" -o -name "*.pxd"`
 
 CACHE_File="$HOME/.cache/cython_files.tar"
 
