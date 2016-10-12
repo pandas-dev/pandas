@@ -351,30 +351,25 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         # GH 14369
         df1 = pd.DataFrame({'A': [0.1, 0.2]}, index=range(2))
         df2 = pd.DataFrame({'A': [0.3, 0.4]}, index=range(2))
-        expected_row = pd.DataFrame(
-            {'A': [0.1, 0.2, 0.3, 0.4]}, index=[0, 1, 0, 1])
-        concatted_row = pd.concat([df1, df2], axis='rows')
-        assert_frame_equal(concatted_row, expected_row)
 
         expected_index = pd.DataFrame(
             {'A': [0.1, 0.2, 0.3, 0.4]}, index=[0, 1, 0, 1])
         concatted_index = pd.concat([df1, df2], axis='index')
         assert_frame_equal(concatted_index, expected_index)
 
-        expected_0 = pd.DataFrame(
-            {'A': [0.1, 0.2, 0.3, 0.4]}, index=[0, 1, 0, 1])
+        concatted_row = pd.concat([df1, df2], axis='rows')
+        assert_frame_equal(concatted_row, expected_index)
+
         concatted_0 = pd.concat([df1, df2], axis=0)
-        assert_frame_equal(concatted_0, expected_0)
+        assert_frame_equal(concatted_0, expected_index)
 
         expected_columns = pd.DataFrame(
             [[0.1, 0.3], [0.2, 0.4]], index=[0, 1], columns=['A', 'A'])
         concatted_columns = pd.concat([df1, df2], axis='columns')
         assert_frame_equal(concatted_columns, expected_columns)
 
-        expected_1 = pd.DataFrame(
-            [[0.1, 0.3], [0.2, 0.4]], index=[0, 1], columns=['A', 'A'])
         concatted_1 = pd.concat([df1, df2], axis=1)
-        assert_frame_equal(concatted_1, expected_1)
+        assert_frame_equal(concatted_1, expected_columns)
 
         series1 = pd.Series([0.1, 0.2])
         series2 = pd.Series([0.3, 0.4])
