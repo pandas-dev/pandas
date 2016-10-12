@@ -962,9 +962,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
         self.assertEqual(result, expected)
 
-        df = DataFrame([["foo}", "bar"], ["foo", "bar"]], columns=['a', 'b'])
+        df = DataFrame([["foo}", "bar"], ["foo\"", "bar"]], columns=['a', 'b'])
         result = df.to_json(orient="records", lines=True)
-        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo","b":"bar"}'
+        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\"","b":"bar"}'
         self.assertEqual(result, expected)
 
     def test_latin_encoding(self):
