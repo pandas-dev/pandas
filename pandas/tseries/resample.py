@@ -1344,7 +1344,10 @@ def asfreq(obj, freq, method=None, how=None, normalize=False):
         return new_obj
     else:
         if len(obj.index) == 0:
-            return obj.copy()
+            new_index = obj.index._shallow_copy(freq=to_offset(freq))
+            new_obj = obj.copy()
+            new_obj.index = new_index
+            return new_obj
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
         dti.name = obj.index.name
         rs = obj.reindex(dti, method=method)
