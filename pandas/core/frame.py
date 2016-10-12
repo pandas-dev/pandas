@@ -2487,7 +2487,7 @@ class DataFrame(NDFrame):
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
-        # value exeption to occur first
+        # value exception to occur first
         if len(self):
             self._check_setitem_copy()
 
@@ -2506,7 +2506,7 @@ class DataFrame(NDFrame):
         value : int, Series, or array-like
         """
         self._ensure_valid_index(value)
-        value = self._sanitize_column(column, value)
+        value = self._sanitize_column(column, value, broadcast=False)
         self._data.insert(loc, column, value,
                           allow_duplicates=allow_duplicates)
 
@@ -2590,9 +2590,15 @@ class DataFrame(NDFrame):
 
         return data
 
-    def _sanitize_column(self, key, value):
-        # Need to make sure new columns (which go into the BlockManager as new
-        # blocks) are always copied
+    def _sanitize_column(self, key, value, broadcast=True):
+        """
+        Ensures new columns (which go into the BlockManager as new blocks) are
+        always copied.
+
+        The "broadcast" parameter indicates whether all columns with the given
+        key should be returned. The default behavior is desirable when
+        calling this method prior to modifying existing values in a DataFrame.
+        """
 
         def reindexer(value):
             # reindex if necessary
@@ -2665,7 +2671,7 @@ class DataFrame(NDFrame):
             return value
 
         # broadcast across multiple columns if necessary
-        if key in self.columns and value.ndim == 1:
+        if broadcast and key in self.columns and value.ndim == 1:
             if (not self.columns.is_unique or
                     isinstance(self.columns, MultiIndex)):
                 existing_piece = self[key]
