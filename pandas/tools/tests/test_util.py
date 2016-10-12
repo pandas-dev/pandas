@@ -391,6 +391,14 @@ class TestToNumeric(tm.TestCase):
             res = pd.to_numeric(data, downcast=downcast)
             tm.assert_numpy_array_equal(res, expected)
 
+        #check that 0 works as a unsigned downcast
+
+        data = [0, 1, 2, 3]
+        res = pd.to_numeric(data, downcast=downcast)
+        expected = np.array(data, dtype=np.uint8)
+        tm.assert_numpy_array_equal(res, expected)
+        
+
         # the smallest integer dtype need not be np.(u)int8
         data = ['256', 257, 258]
 
