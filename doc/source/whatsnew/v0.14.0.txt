@@ -401,7 +401,7 @@ through SQLAlchemy (:issue:`2717`, :issue:`4163`, :issue:`5950`, :issue:`6292`).
 All databases supported by SQLAlchemy can be used, such
 as PostgreSQL, MySQL, Oracle, Microsoft SQL server (see documentation of
 SQLAlchemy on `included dialects
-<http://sqlalchemy.readthedocs.org/en/latest/dialects/index.html>`_).
+<https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html>`_).
 
 The functionality of providing DBAPI connection objects will only be supported
 for sqlite3 in the future. The ``'mysql'`` flavor is deprecated.

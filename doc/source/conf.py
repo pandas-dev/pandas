@@ -295,7 +295,7 @@ intersphinx_mapping = {
     'python': ('http://docs.python.org/3', None),
     'numpy': ('http://docs.scipy.org/doc/numpy', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
-    'py': ('http://pylib.readthedocs.org/en/latest/', None)
+    'py': ('https://pylib.readthedocs.io/en/latest/', None)
 }
 import glob
 autosummary_generate = glob.glob("*.rst")

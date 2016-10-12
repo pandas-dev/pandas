@@ -145,7 +145,7 @@ API
 
 `pandas-datareader <https://github.com/pydata/pandas-datareader>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-``pandas-datareader`` is a remote data access library for pandas. ``pandas.io`` from pandas < 0.17.0 is now refactored/split-off to and importable from ``pandas_datareader`` (PyPI:``pandas-datareader``). Many/most of the supported APIs have at least a documentation paragraph in the `pandas-datareader docs <https://pandas-datareader.readthedocs.org/en/latest/>`_:
+``pandas-datareader`` is a remote data access library for pandas. ``pandas.io`` from pandas < 0.17.0 is now refactored/split-off to and importable from ``pandas_datareader`` (PyPI:``pandas-datareader``). Many/most of the supported APIs have at least a documentation paragraph in the `pandas-datareader docs <https://pandas-datareader.readthedocs.io/en/latest/>`_:
 
 The following data feeds are available:
 
@@ -170,7 +170,7 @@ PyDatastream is a Python interface to the
 SOAP API to return indexed Pandas DataFrames or Panels with financial data.
 This package requires valid credentials for this API (non free).
 
-`pandaSDMX <http://pandasdmx.readthedocs.org>`__
+`pandaSDMX <https://pandasdmx.readthedocs.io>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pandaSDMX is an extensible library to retrieve and acquire statistical data
 and metadata disseminated in
@@ -215,7 +215,7 @@ dimensional arrays, rather than the tabular data for which pandas excels.
 Out-of-core
 -------------
 
-`Dask <https://dask.readthedocs.org/en/latest/>`__
+`Dask <https://dask.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Dask is a flexible parallel computing library for analytics. Dask

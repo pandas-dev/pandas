@@ -138,7 +138,7 @@ Modern Pandas
 Excel charts with pandas, vincent and xlsxwriter
 ------------------------------------------------
 
--  `Using Pandas and XlsxWriter to create Excel charts <http://pandas-xlsxwriter-charts.readthedocs.org/>`_
+-  `Using Pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
 
 Various Tutorials
 -----------------
