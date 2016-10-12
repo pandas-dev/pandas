@@ -4,9 +4,10 @@ import codecs
 import nose
 
 import numpy as np
+from numpy import iinfo
 
 import pandas as pd
-from pandas import date_range, Index
+from pandas import (date_range, Index, _np_version_under1p9)
 import pandas.util.testing as tm
 from pandas.tools.util import cartesian_product, to_numeric
 
@@ -400,6 +401,41 @@ class TestToNumeric(tm.TestCase):
             expected = np.array([256, 257, 258], dtype=expected_dtype)
             res = pd.to_numeric(data, downcast=downcast)
             tm.assert_numpy_array_equal(res, expected)
+
+    def test_downcast_limits(self):
+        # Test the limits of each downcast. Bug: #14401.
+        # Check to make sure numpy is new enough to run this test.
+        if _np_version_under1p9:
+            raise nose.SkipTest("Numpy version is under 1.9")
+
+        i = 'integer'
+        u = 'unsigned'
+        dtype_downcast_min_max = [
+            ('int8', i, [iinfo(np.int8).min, iinfo(np.int8).max]),
+            ('int16', i, [iinfo(np.int16).min, iinfo(np.int16).max]),
+            ('int32', i, [iinfo(np.int32).min, iinfo(np.int32).max]),
+            ('int64', i, [iinfo(np.int64).min, iinfo(np.int64).max]),
+            ('uint8', u, [iinfo(np.uint8).min, iinfo(np.uint8).max]),
+            ('uint16', u, [iinfo(np.uint16).min, iinfo(np.uint16).max]),
+            ('uint32', u, [iinfo(np.uint32).min, iinfo(np.uint32).max]),
+            # Test will be skipped until there is more uint64 support.
+            # ('uint64', u, [iinfo(uint64).min, iinfo(uint64).max]),
+            ('int16', i, [iinfo(np.int8).min, iinfo(np.int8).max + 1]),
+            ('int32', i, [iinfo(np.int16).min, iinfo(np.int16).max + 1]),
+            ('int64', i, [iinfo(np.int32).min, iinfo(np.int32).max + 1]),
+            ('int16', i, [iinfo(np.int8).min - 1, iinfo(np.int16).max]),
+            ('int32', i, [iinfo(np.int16).min - 1, iinfo(np.int32).max]),
+            ('int64', i, [iinfo(np.int32).min - 1, iinfo(np.int64).max]),
+            ('uint16', u, [iinfo(np.uint8).min, iinfo(np.uint8).max + 1]),
+            ('uint32', u, [iinfo(np.uint16).min, iinfo(np.uint16).max + 1]),
+            # Test will be skipped until there is more uint64 support.
+            # ('uint64', u, [iinfo(np.uint32).min, iinfo(np.uint32).max + 1]),
+        ]
+
+        for dtype, downcast, min_max in dtype_downcast_min_max:
+            series = pd.to_numeric(pd.Series(min_max), downcast=downcast)
+            tm.assert_equal(series.dtype, dtype)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
