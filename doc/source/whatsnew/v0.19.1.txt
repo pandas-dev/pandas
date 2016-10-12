@@ -20,7 +20,7 @@ Highlights include:
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-
+ - Fixed performance regression in factorization of ``Period`` data (:issue:`14338`)
 
 
 
