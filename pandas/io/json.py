@@ -609,7 +609,7 @@ def _convert_to_line_delimits(s):
     commas_to_replace = []
     in_quotes = False
     for idx, char in enumerate(s):              # iter through to find all
-        if char == '"' and idx > 0 and s[idx-1] != '\\':
+        if char == '"' and idx > 0 and s[idx - 1] != '\\':
             in_quotes = ~in_quotes
         elif char == ',':                         # commas that should be \n
             if num_open_brackets_seen == 0 and not in_quotes:
