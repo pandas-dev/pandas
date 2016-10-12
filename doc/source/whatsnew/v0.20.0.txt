@@ -79,3 +79,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``df.groupby`` causing an ``AttributeError`` when grouping a single index frame by a column and the index (:issue`14327`)

@@ -432,6 +432,35 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
 
+    def _get_grouper_for_level(self, group_mapper, level):
+        """
+        Get index grouper corresponding to an index level
+
+        Parameters
+        ----------
+        group_mapper: Group mapping function or None
+            Function mapping index values to groups
+        level : int
+            Index level (Only used by MultiIndex override)
+
+        Returns
+        -------
+        grouper : Index
+            Index of values to group on
+        labels : None
+            Array of locations in level_index
+            (Only returned by MultiIndex override)
+        level_index : None
+            Index of unique values for level
+            (Only returned by MultiIndex override)
+        """
+        if group_mapper is None:
+            grouper = self
+        else:
+            grouper = self.map(group_mapper)
+
+        return grouper, None, None
+
     def is_(self, other):
         """
         More flexible, faster check like ``is`` but that works through views

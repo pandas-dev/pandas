@@ -539,6 +539,55 @@ class MultiIndex(Index):
 
         return mi.values
 
+    def _get_grouper_for_level(self, group_mapper, level):
+        """
+        Get index grouper corresponding to an index level
+
+        Parameters
+        ----------
+        group_mapper: Group mapping function or None
+            Function mapping index values to groups
+        level : int
+            Index level
+
+        Returns
+        -------
+        grouper : Index
+            Index of values to group on
+        labels : ndarray of int or None
+            Array of locations in level_index
+        level_index : Index or None
+            Index of unique values for level
+        """
+        inds = self.labels[level]
+        level_index = self.levels[level]
+
+        if group_mapper is not None:
+            # Handle group mapping function and return
+            level_values = self.levels[level].take(inds)
+            grouper = level_values.map(group_mapper)
+            return grouper, None, None
+
+        labels, uniques = algos.factorize(inds, sort=True)
+
+        if len(uniques) > 0 and uniques[0] == -1:
+            # Handle NAs
+            mask = inds != -1
+            ok_labels, uniques = algos.factorize(inds[mask],
+                                                 sort=True)
+
+            labels = np.empty(len(inds), dtype=inds.dtype)
+            labels[mask] = ok_labels
+            labels[~mask] = -1
+
+        if len(uniques) < len(level_index):
+            # Remove unobserved levels from level_index
+            level_index = level_index.take(uniques)
+
+        grouper = level_index.take(labels)
+
+        return grouper, labels, level_index
+
     @property
     def _constructor(self):
         return MultiIndex.from_tuples
