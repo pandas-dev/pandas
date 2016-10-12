@@ -391,7 +391,7 @@ This is because ``reindex_like`` silently inserts ``NaNs`` and the ``dtype``
 changes accordingly.  This can cause some issues when using ``numpy`` ``ufuncs``
 such as ``numpy.logical_and``.
 
-See the `this old issue <https://github.com/pydata/pandas/issues/2388>`__ for a more
+See the `this old issue <https://github.com/pandas-dev/pandas/issues/2388>`__ for a more
 detailed discussion.
 
 Parsing Dates from Text Files

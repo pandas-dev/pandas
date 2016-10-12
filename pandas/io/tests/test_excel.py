@@ -543,7 +543,7 @@ class XlrdTests(ReadingTestsBase):
 
     @tm.network
     def test_read_from_http_url(self):
-        url = ('https://raw.github.com/pydata/pandas/master/'
+        url = ('https://raw.github.com/pandas-dev/pandas/master/'
                'pandas/io/tests/data/test1' + self.ext)
         url_table = read_excel(url)
         local_table = self.get_exceldf('test1')

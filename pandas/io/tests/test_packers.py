@@ -544,7 +544,7 @@ class TestSparse(TestPackers):
 
 
 class TestCompression(TestPackers):
-    """See https://github.com/pydata/pandas/pull/9783
+    """See https://github.com/pandas-dev/pandas/pull/9783
     """
 
     def setUp(self):

@@ -392,7 +392,7 @@ class OrderedDefaultdict(OrderedDict):
         return type(self), args, None, None, list(self.items())
 
 
-# https://github.com/pydata/pandas/pull/9123
+# https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():
     """ am I little endian """
     return sys.byteorder == 'little'

@@ -629,7 +629,7 @@ bar"""
     @tm.network
     def test_url(self):
         # HTTP(S)
-        url = ('https://raw.github.com/pydata/pandas/master/'
+        url = ('https://raw.github.com/pandas-dev/pandas/master/'
                'pandas/io/tests/parser/data/salary.table.csv')
         url_table = self.read_table(url)
         dirpath = tm.get_data_path()
