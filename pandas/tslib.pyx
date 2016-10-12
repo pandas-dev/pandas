@@ -4155,6 +4155,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     """
     cdef:
         ndarray[int64_t] trans, deltas, idx_shifted
+        ndarray ambiguous_array
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         int64_t *tdata
         int64_t v, left, right
@@ -4190,11 +4191,18 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             infer_dst = True
         elif ambiguous == 'NaT':
             fill = True
+    elif isinstance(ambiguous, bool):
+        is_dst = True
+        if ambiguous:
+            ambiguous_array = np.ones(len(vals), dtype=bool)
+        else:
+            ambiguous_array = np.zeros(len(vals), dtype=bool)
     elif hasattr(ambiguous, '__iter__'):
         is_dst = True
         if len(ambiguous) != len(vals):
             raise ValueError(
                 "Length of ambiguous bool-array must be the same size as vals")
+        ambiguous_array = np.asarray(ambiguous)
 
     trans, deltas, typ = _get_dst_info(tz)
 
@@ -4286,7 +4294,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 if infer_dst and dst_hours[i] != NPY_NAT:
                     result[i] = dst_hours[i]
                 elif is_dst:
-                    if ambiguous[i]:
+                    if ambiguous_array[i]:
                         result[i] = left
                     else:
                         result[i] = right
