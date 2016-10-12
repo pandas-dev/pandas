@@ -966,6 +966,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = df.to_json(orient="records", lines=True)
         expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
         self.assertEqual(result, expected)
+        assert_frame_equal(pd.read_json(result, lines=True), df)
 
     def test_latin_encoding(self):
         if compat.PY2:
