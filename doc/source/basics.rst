@@ -1794,18 +1794,18 @@ The following functions are available for one dimensional object arrays or scala
 
 - :meth:`~pandas.to_datetime` (conversion to datetime objects)
 
-   .. ipython:: python
+  .. ipython:: python
 
-      import datetime
-      m = ['2016-07-09', datetime.datetime(2016, 3, 2)]
-      pd.to_datetime(m)
+     import datetime
+     m = ['2016-07-09', datetime.datetime(2016, 3, 2)]
+     pd.to_datetime(m)
 
 - :meth:`~pandas.to_timedelta` (conversion to timedelta objects)
 
-   .. ipython:: python
+  .. ipython:: python
 
-      m = ['5us', pd.Timedelta('1day')]
-      pd.to_timedelta(m)
+     m = ['5us', pd.Timedelta('1day')]
+     pd.to_timedelta(m)
 
 To force a conversion, we can pass in an ``errors`` argument, which specifies how pandas should deal with elements
 that cannot be converted to desired dtype or object. By default, ``errors='raise'``, meaning that any errors encountered
