@@ -352,8 +352,10 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         df1 = pd.DataFrame({'A': [0.1, 0.2]}, index=range(2))
         df2 = pd.DataFrame({'A': [0.3, 0.4]}, index=range(2))
 
+        # Index/row/0 DataFrame
         expected_index = pd.DataFrame(
             {'A': [0.1, 0.2, 0.3, 0.4]}, index=[0, 1, 0, 1])
+
         concatted_index = pd.concat([df1, df2], axis='index')
         assert_frame_equal(concatted_index, expected_index)
 
@@ -363,8 +365,10 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         concatted_0 = pd.concat([df1, df2], axis=0)
         assert_frame_equal(concatted_0, expected_index)
 
+        # Columns/1 DataFrame
         expected_columns = pd.DataFrame(
             [[0.1, 0.3], [0.2, 0.4]], index=[0, 1], columns=['A', 'A'])
+
         concatted_columns = pd.concat([df1, df2], axis='columns')
         assert_frame_equal(concatted_columns, expected_columns)
 
@@ -374,14 +378,33 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         series1 = pd.Series([0.1, 0.2])
         series2 = pd.Series([0.3, 0.4])
 
-        expected_row_series = pd.Series(
+        # Index/row/0 Series
+        expected_index_series = pd.Series(
             [0.1, 0.2, 0.3, 0.4], index=[0, 1, 0, 1])
-        concatted_row_series = pd.concat([series1, series2], axis='rows')
-        assert_series_equal(concatted_row_series, expected_row_series)
 
-        # A Series has no 'columns' axis
-        with assertRaisesRegexp(ValueError, 'No axis named columns'):
-            pd.concat([series1, series2], axis='columns')
+        concatted_index_series = pd.concat([series1, series2], axis='index')
+        assert_series_equal(concatted_index_series, expected_index_series)
+
+        concatted_row_series = pd.concat([series1, series2], axis='rows')
+        assert_series_equal(concatted_row_series, expected_index_series)
+
+        concatted_0_series = pd.concat([series1, series2], axis=0)
+        assert_series_equal(concatted_0_series, expected_index_series)
+
+        # Columns/1 Series
+        expected_columns_series = pd.DataFrame(
+            [[0.1, 0.3], [0.2, 0.4]], index=[0, 1], columns=[0, 1])
+
+        concatted_columns_series = pd.concat(
+            [series1, series2], axis='columns')
+        assert_frame_equal(concatted_columns_series, expected_columns_series)
+
+        concatted_1_series = pd.concat([series1, series2], axis=1)
+        assert_frame_equal(concatted_1_series, expected_columns_series)
+
+        # Testing ValueError
+        with assertRaisesRegexp(ValueError, 'No axis named'):
+            pd.concat([series1, series2], axis='something')
 
 
 class TestDataFrameCombineFirst(tm.TestCase, TestData):

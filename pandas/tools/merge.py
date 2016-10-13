@@ -1411,9 +1411,8 @@ class _Concatenator(object):
             sample = objs[0]
         self.objs = objs
 
-        # Check for string axis parameter
-        if isinstance(axis, str):
-            axis = objs[0]._get_axis_number(axis)
+        # Standardize axis parameter to int
+        axis = DataFrame()._get_axis_number(axis)
 
         # Need to flip BlockManager axis in the DataFrame special case
         self._is_frame = isinstance(sample, DataFrame)
