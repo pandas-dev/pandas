@@ -49,3 +49,4 @@ Bug Fixes
 - Bug in ``DataFrame.to_json`` where ``lines=True`` and a value contained a ``}`` character (:issue:`14391`)
 - Bug in ``df.groupby`` causing an ``AttributeError`` when grouping a single index frame by a column and the index level (:issue`14327`)
 - Bug in ``pd.to_numeric`` where it would not downcast a 0 to a uint8 (:issue:`14404`)
+- Bug in ``pd.to_numeric`` where it would not downcast a 0 properly. (:issue:`14401`)
