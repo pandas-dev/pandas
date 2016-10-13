@@ -2449,8 +2449,13 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
             exclusions.append(name)
 
         elif is_in_axis(gpr):  # df.groupby('name')
-            in_axis, name, gpr = True, gpr, obj[gpr]
-            exclusions.append(name)
+            if gpr in obj:
+                in_axis, name, gpr = True, gpr, obj[gpr]
+                exclusions.append(name)
+            elif gpr in obj.index.names:
+                in_axis, name, level, gpr = False, None, gpr, None
+            else:
+                raise KeyError(gpr)
         elif isinstance(gpr, Grouper) and gpr.key is not None:
             # Add key to exclusions
             exclusions.append(gpr.key)
