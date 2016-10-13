@@ -973,7 +973,7 @@ are not numeric data (even in the case that ``.categories`` is numeric).
          print("TypeError: " + str(e))
 
 .. note::
-    If such a function works, please file a bug at https://github.com/pydata/pandas!
+    If such a function works, please file a bug at https://github.com/pandas-dev/pandas!
 
 dtype in apply
 ~~~~~~~~~~~~~~

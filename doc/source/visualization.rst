@@ -892,7 +892,7 @@ for Fourier series. By coloring these curves differently for each class
 it is possible to visualize data clustering. Curves belonging to samples
 of the same class will usually be closer together and form larger structures.
 
-**Note**: The "Iris" dataset is available `here <https://raw.github.com/pydata/pandas/master/pandas/tests/data/iris.csv>`__.
+**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv>`__.
 
 .. ipython:: python
 
@@ -1044,7 +1044,7 @@ forces acting on our sample are at an equilibrium) is where a dot representing
 our sample will be drawn. Depending on which class that sample belongs it will
 be colored differently.
 
-**Note**: The "Iris" dataset is available `here <https://raw.github.com/pydata/pandas/master/pandas/tests/data/iris.csv>`__.
+**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv>`__.
 
 .. ipython:: python
 

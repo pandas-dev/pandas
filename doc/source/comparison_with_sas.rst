@@ -116,7 +116,7 @@ Reading External Data
 
 Like SAS, pandas provides utilities for reading in data from
 many formats.  The ``tips`` dataset, found within the pandas
-tests (`csv <https://raw.github.com/pydata/pandas/master/pandas/tests/data/tips.csv>`_)
+tests (`csv <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/tips.csv>`_)
 will be used in many of the following examples.
 
 SAS provides ``PROC IMPORT`` to read csv data into a data set.
@@ -131,7 +131,7 @@ The pandas method is :func:`read_csv`, which works similarly.
 
 .. ipython:: python
 
-   url = 'https://raw.github.com/pydata/pandas/master/pandas/tests/data/tips.csv'
+   url = 'https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/tips.csv'
    tips = pd.read_csv(url)
    tips.head()
 

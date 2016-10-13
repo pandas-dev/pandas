@@ -1693,11 +1693,11 @@ class TestMathPythonPython(tm.TestCase):
         self.check_result_type(np.float64, np.float64)
 
     def test_result_types2(self):
-        # xref https://github.com/pydata/pandas/issues/12293
+        # xref https://github.com/pandas-dev/pandas/issues/12293
         raise nose.SkipTest("unreliable tests on complex128")
 
         # Did not test complex64 because DataFrame is converting it to
-        # complex128. Due to https://github.com/pydata/pandas/issues/10952
+        # complex128. Due to https://github.com/pandas-dev/pandas/issues/10952
         self.check_result_type(np.complex128, np.complex128)
 
     def test_undefined_func(self):
