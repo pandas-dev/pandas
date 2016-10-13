@@ -324,10 +324,11 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         tm.assertIsInstance(ts.index, DatetimeIndex)
 
     def test_asfreq_datetimeindex_empty_series(self):
-        empty_series = Series(index=pd.DatetimeIndex([]), data=[]).asfreq('H')
-        normal_series = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"]),
+        # GH 14340
+        empty = Series(index=pd.DatetimeIndex([])).asfreq('H')
+        normal = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"]),
                                                       data=[3]).asfreq('H')
-        self.assertEqual(empty_series.index.freq, normal_series.index.freq)
+        self.assertEqual(empty.index.freq, normal.index.freq)
 
     def test_first_last_valid(self):
         N = len(self.frame.index)
