@@ -3936,7 +3936,7 @@ class NDFrame(PandasObject):
         Parameters
         ----------
         by : mapping function / list of functions, dict, Series, or tuple /
-            list of column names.
+            list of column names or index level names.
             Called on each element of the object index to determine the groups.
             If a dict or Series is passed, the Series or dict VALUES will be
             used to determine the groups

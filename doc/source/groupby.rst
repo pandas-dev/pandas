@@ -94,6 +94,9 @@ The mapping can be specified many different ways:
   - For DataFrame objects, a string indicating a column to be used to group. Of
     course ``df.groupby('A')`` is just syntactic sugar for
     ``df.groupby(df['A'])``, but it makes life simpler
+  - For DataFrame objects, a string indicating an index level to be used to group.
+    If a string matches both an index level name and a column name then the column
+    takes precedence
   - A list of any of the above things
 
 Collectively we refer to the grouping objects as the **keys**. For example,
