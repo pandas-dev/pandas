@@ -942,7 +942,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
     def test_tz_convert_hour_overflow_dst(self):
         # Regression test for:
-        # https://github.com/pydata/pandas/issues/13306
+        # https://github.com/pandas-dev/pandas/issues/13306
 
         # sorted case US/Eastern -> UTC
         ts = ['2008-05-12 09:50:00',
@@ -982,7 +982,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
     def test_tz_convert_hour_overflow_dst_timestamps(self):
         # Regression test for:
-        # https://github.com/pydata/pandas/issues/13306
+        # https://github.com/pandas-dev/pandas/issues/13306
 
         tz = self.tzstr('US/Eastern')
 
@@ -1024,7 +1024,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
     def test_tslib_tz_convert_trans_pos_plus_1__bug(self):
         # Regression test for tslib.tz_convert(vals, tz1, tz2).
-        # See https://github.com/pydata/pandas/issues/4496 for details.
+        # See https://github.com/pandas-dev/pandas/issues/4496 for details.
         for freq, n in [('H', 1), ('T', 60), ('S', 3600)]:
             idx = date_range(datetime(2011, 3, 26, 23),
                              datetime(2011, 3, 27, 1), freq=freq)

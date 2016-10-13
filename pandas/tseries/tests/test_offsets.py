@@ -4606,7 +4606,7 @@ class TestParseTimeString(tm.TestCase):
         self.assertEqual(reso, reso_lower)
 
     def test_parse_time_quarter_w_dash(self):
-        # https://github.com/pydata/pandas/issue/9688
+        # https://github.com/pandas-dev/pandas/issue/9688
         pairs = [('1988-Q2', '1988Q2'), ('2Q-1988', '2Q1988'), ]
 
         for dashed, normal in pairs:

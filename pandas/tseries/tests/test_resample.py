@@ -1678,7 +1678,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         # start date gets used to determine the offset.  Fixes issue where
         # a one day period is not a multiple of the frequency.
         #
-        # See: https://github.com/pydata/pandas/issues/8683
+        # See: https://github.com/pandas-dev/pandas/issues/8683
 
         index = pd.date_range(
             '2014-10-14 23:06:23.206', periods=3, freq='400L'

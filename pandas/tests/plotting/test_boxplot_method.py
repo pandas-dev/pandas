@@ -100,7 +100,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_boxplot_return_type_legacy(self):
-        # API change in https://github.com/pydata/pandas/pull/7096
+        # API change in https://github.com/pandas-dev/pandas/pull/7096
         import matplotlib as mpl  # noqa
 
         df = DataFrame(randn(6, 4),

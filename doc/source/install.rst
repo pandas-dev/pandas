@@ -13,7 +13,7 @@ This is the recommended installation method for most users.
 
 Instructions for installing from source,
 `PyPI <http://pypi.python.org/pypi/pandas>`__, various Linux distributions, or a
-`development version <http://github.com/pydata/pandas>`__ are also provided.
+`development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
 Python version support
 ----------------------

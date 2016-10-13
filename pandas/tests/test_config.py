@@ -427,7 +427,7 @@ class TestConfig(unittest.TestCase):
     def test_option_context_scope(self):
         # Ensure that creating a context does not affect the existing
         # environment as it is supposed to be used with the `with` statement.
-        # See https://github.com/pydata/pandas/issues/8514
+        # See https://github.com/pandas-dev/pandas/issues/8514
 
         original_value = 60
         context_value = 10

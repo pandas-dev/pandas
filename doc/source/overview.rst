@@ -81,7 +81,7 @@ Getting Support
 ---------------
 
 The first stop for pandas issues and ideas is the `Github Issue Tracker
-<https://github.com/pydata/pandas/issues>`__. If you have a general question,
+<https://github.com/pandas-dev/pandas/issues>`__. If you have a general question,
 pandas community experts can answer through `Stack Overflow
 <http://stackoverflow.com/questions/tagged/pandas>`__.
 
@@ -103,7 +103,7 @@ training, and consulting for pandas.
 
 pandas is only made possible by a group of people around the world like you
 who have contributed new code, bug reports, fixes, comments and ideas. A
-complete list can be found `on Github <http://www.github.com/pydata/pandas/contributors>`__.
+complete list can be found `on Github <http://www.github.com/pandas-dev/pandas/contributors>`__.
 
 Development Team
 ----------------

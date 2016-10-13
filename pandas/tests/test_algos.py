@@ -595,7 +595,7 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(result, expected, check_index_type=True)
 
     def test_dropna(self):
-        # https://github.com/pydata/pandas/issues/9443#issuecomment-73719328
+        # https://github.com/pandas-dev/pandas/issues/9443#issuecomment-73719328
 
         tm.assert_series_equal(
             pd.Series([True, True, False]).value_counts(dropna=True),

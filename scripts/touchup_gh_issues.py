@@ -14,7 +14,7 @@ section header
 
 pat = "((?:\s*GH\s*)?)#(\d{3,4})([^_]|$)?"
 rep_pat = r"\1GH\2_\3"
-anchor_pat = ".. _GH{id}: https://github.com/pydata/pandas/issues/{id}"
+anchor_pat = ".. _GH{id}: https://github.com/pandas-dev/pandas/issues/{id}"
 section_pat = "^pandas\s[\d\.]+\s*$"
 
 

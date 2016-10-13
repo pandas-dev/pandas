@@ -150,7 +150,7 @@ def _test_imports():
         raise ImportError(
             "pandas requires httplib2 for Google BigQuery support")
 
-    # Bug fix for https://github.com/pydata/pandas/issues/12572
+    # Bug fix for https://github.com/pandas-dev/pandas/issues/12572
     # We need to know that a supported version of oauth2client is installed
     # Test that either of the following is installed:
     # - SignedJwtAssertionCredentials from oauth2client.client
@@ -651,7 +651,7 @@ class TestReadGBQIntegration(tm.TestCase):
         self.assertEqual(len(df.drop_duplicates()), test_size)
 
     def test_zero_rows(self):
-        # Bug fix for https://github.com/pydata/pandas/issues/10273
+        # Bug fix for https://github.com/pandas-dev/pandas/issues/10273
         df = gbq.read_gbq("SELECT title, id "
                           "FROM [publicdata:samples.wikipedia] "
                           "WHERE timestamp=-9999999",

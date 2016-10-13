@@ -19,7 +19,7 @@ parser.add_argument('-p', '--path', metavar='PATH', type=str, required=False,
 parser.add_argument('-m', '--module', metavar='MODULE', type=str,required=True,
                    help='name of package to import and examine',action='store')
 parser.add_argument('-G', '--github_repo', metavar='REPO', type=str,required=False,
-                   help='github project where the the code lives, e.g. "pydata/pandas"',
+                   help='github project where the the code lives, e.g. "pandas-dev/pandas"',
                    default=None,action='store')
 
 args = parser.parse_args()

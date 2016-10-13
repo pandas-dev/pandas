@@ -6443,7 +6443,7 @@ class TestGroupBy(tm.TestCase):
 
     def test_groupby_categorical_two_columns(self):
 
-        # https://github.com/pydata/pandas/issues/8138
+        # https://github.com/pandas-dev/pandas/issues/8138
         d = {'cat':
              pd.Categorical(["a", "b", "a", "b"], categories=["a", "b", "c"],
                             ordered=True),

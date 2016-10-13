@@ -71,7 +71,7 @@ The ``convert_to_r_matrix`` function can be replaced by the normal
     Not all conversion functions in rpy2 are working exactly the same as the
     current methods in pandas. If you experience problems or limitations in
     comparison to the ones in pandas, please report this at the
-    `issue tracker <https://github.com/pydata/pandas/issues>`_.
+    `issue tracker <https://github.com/pandas-dev/pandas/issues>`_.
 
 See also the documentation of the `rpy2 <http://rpy2.bitbucket.org/>`__ project.
 

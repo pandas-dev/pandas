@@ -1412,7 +1412,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # NotImplemented
 
         # this is an alignment issue; these are equivalent
-        # https://github.com/pydata/pandas/issues/5284
+        # https://github.com/pandas-dev/pandas/issues/5284
 
         self.assertRaises(ValueError, lambda: d.__and__(s, axis='columns'))
         self.assertRaises(ValueError, tester, s, d)

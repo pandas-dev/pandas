@@ -1610,7 +1610,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_connectable_issue_example(self):
         # This tests the example raised in issue
-        # https://github.com/pydata/pandas/issues/10104
+        # https://github.com/pandas-dev/pandas/issues/10104
 
         def foo(connection):
             query = 'SELECT test_foo_data FROM test_foo_data'

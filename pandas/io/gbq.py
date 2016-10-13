@@ -236,7 +236,7 @@ class GbqConnector(object):
         return credentials
 
     def get_service_account_credentials(self):
-        # Bug fix for https://github.com/pydata/pandas/issues/12572
+        # Bug fix for https://github.com/pandas-dev/pandas/issues/12572
         # We need to know that a supported version of oauth2client is installed
         # Test that either of the following is installed:
         # - SignedJwtAssertionCredentials from oauth2client.client

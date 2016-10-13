@@ -84,7 +84,7 @@ class TestDataFramePlots(TestPlotBase):
         # We have to redo it here because _check_plot_works does two plots,
         # once without an ax kwarg and once with an ax kwarg and the new sharex
         # behaviour does not remove the visibility of the latter axis (as ax is
-        # present).  see: https://github.com/pydata/pandas/issues/9737
+        # present).  see: https://github.com/pandas-dev/pandas/issues/9737
 
         axes = df.plot(subplots=True, title='blah')
         self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
@@ -927,7 +927,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # Ensure that we can pass an np.array straight through to matplotlib,
         # this functionality was accidentally removed previously.
-        # See https://github.com/pydata/pandas/issues/8852 for bug report
+        # See https://github.com/pandas-dev/pandas/issues/8852 for bug report
         #
         # Exercise colormap path and non-colormap path as they are independent
         #
@@ -2115,7 +2115,7 @@ class TestDataFramePlots(TestPlotBase):
             self.assertEqual(result, expected)
             # legend labels
             # NaN's not included in legend with subplots
-            # see https://github.com/pydata/pandas/issues/8390
+            # see https://github.com/pandas-dev/pandas/issues/8390
             self.assertEqual([x.get_text() for x in
                               ax.get_legend().get_texts()],
                              base_expected[:i] + base_expected[i + 1:])
@@ -2336,9 +2336,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_sharex_and_ax(self):
-        # https://github.com/pydata/pandas/issues/9737 using gridspec, the axis
-        # in fig.get_axis() are sorted differently than pandas expected them,
-        # so make sure that only the right ones are removed
+        # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
+        # the axis in fig.get_axis() are sorted differently than pandas
+        # expected them, so make sure that only the right ones are removed
         import matplotlib.pyplot as plt
         plt.close('all')
         gs, axes = _generate_4_axes_via_gridspec()
@@ -2388,9 +2388,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_sharey_and_ax(self):
-        # https://github.com/pydata/pandas/issues/9737 using gridspec, the axis
-        # in fig.get_axis() are sorted differently than pandas expected them,
-        # so make sure that only the right ones are removed
+        # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
+        # the axis in fig.get_axis() are sorted differently than pandas
+        # expected them, so make sure that only the right ones are removed
         import matplotlib.pyplot as plt
 
         gs, axes = _generate_4_axes_via_gridspec()

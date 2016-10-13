@@ -301,9 +301,9 @@ import glob
 autosummary_generate = glob.glob("*.rst")
 
 # extlinks alias
-extlinks = {'issue': ('https://github.com/pydata/pandas/issues/%s',
+extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',
                       'GH'),
-            'wiki': ('https://github.com/pydata/pandas/wiki/%s',
+            'wiki': ('https://github.com/pandas-dev/pandas/wiki/%s',
                      'wiki ')}
 
 ipython_exec_lines = [
@@ -468,10 +468,10 @@ def linkcode_resolve(domain, info):
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if '+' in pandas.__version__:
-        return "http://github.com/pydata/pandas/blob/master/pandas/%s%s" % (
+        return "http://github.com/pandas-dev/pandas/blob/master/pandas/%s%s" % (
             fn, linespec)
     else:
-        return "http://github.com/pydata/pandas/blob/v%s/pandas/%s%s" % (
+        return "http://github.com/pandas-dev/pandas/blob/v%s/pandas/%s%s" % (
             pandas.__version__, fn, linespec)
 
 

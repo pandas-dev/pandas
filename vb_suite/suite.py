@@ -67,7 +67,7 @@ try:
     TMP_DIR = config.get('setup', 'tmp_dir')
 except:
     REPO_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
-    REPO_URL = 'git@github.com:pydata/pandas.git'
+    REPO_URL = 'git@github.com:pandas-dev/pandas.git'
     DB_PATH = os.path.join(REPO_PATH, 'vb_suite/benchmarks.db')
     TMP_DIR = os.path.join(HOME, 'tmp/vb_pandas')
 
@@ -138,7 +138,7 @@ These historical benchmark graphs were produced with `vbench
 
 The ``.pandas_vb_common`` setup script can be found here_
 
-.. _here: https://github.com/pydata/pandas/tree/master/vb_suite
+.. _here: https://github.com/pandas-dev/pandas/tree/master/vb_suite
 
 Produced on a machine with
 
