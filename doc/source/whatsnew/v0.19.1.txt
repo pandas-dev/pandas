@@ -59,3 +59,4 @@ Bug Fixes
 - Bug in ``df.groupby`` where ``TypeError`` raised when ``pd.Grouper(key=...)`` is passed in a list (:issue:`14334`)
 - Bug in ``pd.pivot_table`` may raise ``TypeError`` or ``ValueError`` when ``index`` or ``columns``
   is not scalar and ``values`` is not specified (:issue:`14380`)
+- Bug in ``pd.to_numeric`` where a 0 was not unsigned on a downcast = 'unsigned' argument (:issue:`14401`)
