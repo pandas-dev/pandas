@@ -117,6 +117,75 @@ class TestAsOfMerge(tm.TestCase):
                             by='ticker')
         assert_frame_equal(result, expected)
 
+    def test_basic_left_index(self):
+
+        expected = self.asof
+        trades = self.trades.set_index('time')
+        quotes = self.quotes
+
+        result = merge_asof(trades, quotes,
+                            left_index=True,
+                            right_on='time',
+                            by='ticker')
+        # left-only index uses right's index, oddly
+        expected.index = result.index
+        # time column appears after left's columns
+        expected = expected[result.columns]
+        assert_frame_equal(result, expected)
+
+    def test_basic_right_index(self):
+
+        expected = self.asof
+        trades = self.trades
+        quotes = self.quotes.set_index('time')
+
+        result = merge_asof(trades, quotes,
+                            left_on='time',
+                            right_index=True,
+                            by='ticker')
+        assert_frame_equal(result, expected)
+
+    def test_basic_left_index_right_index(self):
+
+        expected = self.asof.set_index('time')
+        trades = self.trades.set_index('time')
+        quotes = self.quotes.set_index('time')
+
+        result = merge_asof(trades, quotes,
+                            left_index=True,
+                            right_index=True,
+                            by='ticker')
+        assert_frame_equal(result, expected)
+
+    def test_multi_index(self):
+
+        # MultiIndex is prohibited
+        trades = self.trades.set_index(['time', 'price'])
+        quotes = self.quotes.set_index('time')
+        with self.assertRaises(MergeError):
+            merge_asof(trades, quotes,
+                       left_index=True,
+                       right_index=True)
+
+        trades = self.trades.set_index('time')
+        quotes = self.quotes.set_index(['time', 'bid'])
+        with self.assertRaises(MergeError):
+            merge_asof(trades, quotes,
+                       left_index=True,
+                       right_index=True)
+
+    def test_basic_left_by_right_by(self):
+
+        expected = self.asof
+        trades = self.trades
+        quotes = self.quotes
+
+        result = merge_asof(trades, quotes,
+                            on='time',
+                            left_by='ticker',
+                            right_by='ticker')
+        assert_frame_equal(result, expected)
+
     def test_missing_right_by(self):
 
         expected = self.asof
