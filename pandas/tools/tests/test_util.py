@@ -391,14 +391,6 @@ class TestToNumeric(tm.TestCase):
             res = pd.to_numeric(data, downcast=downcast)
             tm.assert_numpy_array_equal(res, expected)
 
-        #check that 0 works as a unsigned downcast
-
-        data = [0, 1, 2, 3]
-        res = pd.to_numeric(data, downcast=downcast)
-        expected = np.array(data, dtype=np.uint8)
-        tm.assert_numpy_array_equal(res, expected)
-        
-
         # the smallest integer dtype need not be np.(u)int8
         data = ['256', 257, 258]
 
@@ -408,6 +400,32 @@ class TestToNumeric(tm.TestCase):
             expected = np.array([256, 257, 258], dtype=expected_dtype)
             res = pd.to_numeric(data, downcast=downcast)
             tm.assert_numpy_array_equal(res, expected)
+
+        # check that the smallest and largest values in each integer type pass to each type.
+        int8 = [-128, 127]
+        int8_Series = pd.to_numeric(int8, downcast = 'integer')
+        tm.assert_equal(int8_Series.dtype, 'int8')
+        int16 = [-32768, 32767]
+        int16_Series = pd.to_numeric(int16, downcast = 'integer')
+        tm.assert_equal(int16_Series.dtype, 'int16')
+        int32 = [-2147483648, 2147483647]
+        int32_Series = pd.to_numeric(int32, downcast = 'integer')
+        tm.assert_equal(int32_Series.dtype, 'int32')
+        int64 = [-9223372036854775808, 9223372036854775807]
+        int64_Series = pd.to_numeric(int64, downcast = 'integer')
+        tm.assert_equal(int64_Series.dtype, 'int64')
+        uint8 = [0, 255]
+        uint8_Series = pd.to_numeric(uint8, downcast = 'unsigned')
+        tm.assert_equal(uint8_Series.dtype, 'uint8')
+        uint16 = [0, 65535]
+        uint16_Series = pd.to_numeric(uint16, downcast = 'unsigned')
+        tm.assert_equal(uint16_Series.dtype, 'uint16')
+        uint32 = [0, 4294967295]
+        uint32_Series = pd.to_numeric(uint32, downcast = 'unsigned')
+        tm.assert_equal(uint32_Series.dtype, 'uint32')
+        # uint64 = [0, 18446744073709551615]
+        # uint64_Series = pd.to_numeric(uint64, downcast = 'unsigned')
+        # tm.assert_equal(uint64_Series.dtype, 'uint64')
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
