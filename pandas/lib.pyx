@@ -1089,6 +1089,44 @@ def string_array_replace_from_nan_rep(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def convert_json_to_lines(object arr):
+    """
+    replace comma separated json with line feeds, paying special attention
+    to quotes & brackets
+    """
+    cdef:
+        Py_ssize_t i = 0, num_open_brackets_seen = 0, in_quotes = 0, length
+        ndarray[uint8_t] narr
+        unsigned char v, comma, left_bracket, right_brack, newline
+
+    newline = ord('\n')
+    comma = ord(',')
+    left_bracket = ord('{')
+    right_bracket = ord('}')
+    quote = ord('"')
+    backslash = ord('\\')
+
+    narr = np.frombuffer(arr.encode('utf-8'), dtype='u1').copy()
+    length = narr.shape[0]
+    for i in range(length):
+        v = narr[i]
+        if v == quote and i > 0 and narr[i - 1] != backslash:
+            in_quotes = ~in_quotes
+        if v == comma: # commas that should be \n
+            if num_open_brackets_seen == 0 and not in_quotes:
+                narr[i] = newline
+        elif v == left_bracket:
+            if not in_quotes:
+                num_open_brackets_seen += 1
+        elif v == right_bracket:
+            if not in_quotes:
+                num_open_brackets_seen -= 1
+
+    return narr.tostring().decode('utf-8')
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def write_csv_rows(list data, ndarray data_index,
                    int nlevels, ndarray cols, object writer):
 

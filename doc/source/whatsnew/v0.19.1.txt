@@ -20,8 +20,8 @@ Highlights include:
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
- - Fixed performance regression in factorization of ``Period`` data (:issue:`14338`)
-
+- Fixed performance regression in factorization of ``Period`` data (:issue:`14338`)
+- Improved Performance in ``.to_json()`` when ``lines=True`` (:issue:`14408`)
 
 
 
