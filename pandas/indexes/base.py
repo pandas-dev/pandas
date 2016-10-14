@@ -432,16 +432,16 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
 
-    def _get_grouper_for_level(self, group_mapper, level):
+    def _get_grouper_for_level(self, mapper, level=None):
         """
         Get index grouper corresponding to an index level
 
         Parameters
         ----------
-        group_mapper: Group mapping function or None
+        mapper: Group mapping function or None
             Function mapping index values to groups
-        level : int
-            Index level (Only used by MultiIndex override)
+        level : int, default None
+            Index level
 
         Returns
         -------
@@ -449,15 +449,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             Index of values to group on
         labels : None
             Array of locations in level_index
-            (Only returned by MultiIndex override)
         level_index : None
             Index of unique values for level
-            (Only returned by MultiIndex override)
         """
-        if group_mapper is None:
+        assert level is None or level == 0
+        if mapper is None:
             grouper = self
         else:
-            grouper = self.map(group_mapper)
+            grouper = self.map(mapper)
 
         return grouper, None, None
 
