@@ -122,11 +122,22 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         The string could be a URL. Valid URL schemes include http, ftp, s3, and
         file. For file URLs, a host is expected. For instance, a local file
         could be ``file://localhost/path/to/table.json``
-    meta_prefix : string, default None
 
     orient : string,
-        Indication of expected JSON input format.
-        The set of allowed orients changes depending on the value
+        Indication of expected JSON string format.
+        Compatible JSON strings can be produced by ``to_json()`` with a
+        corresponding orient value.
+        The set of possible orients is:
+
+          - ``'split'`` : dict like
+            ``{index -> [index], columns -> [columns], data -> [values]}``
+          - ``'records'`` : list like
+            ``[{column -> value}, ... , {column -> value}]``
+          - ``'index'`` : dict like ``{index -> {column -> value}}``
+          - ``'columns'`` : dict like ``{column -> {index -> value}}``
+          - ``'values'`` : just the values array
+
+        The allowed and default values depend on the value
         of the `typ` parameter.
 
         * when ``typ == 'series'``,
@@ -144,20 +155,6 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             ``'columns'``.
           - The DataFrame columns must be unique for orients ``'index'``,
             ``'columns'``, and ``'records'``.
-
-
-        The value of `orient` specifies the expected format of the
-        JSON string. The expected JSON formats are compatible with the
-        strings produced by ``to_json()`` with a corresponding value
-        of `orient`.
-
-        - ``'split'`` : dict like
-          ``{index -> [index], columns -> [columns], data -> [values]}``
-        - ``'records'`` : list like
-          ``[{column -> value}, ... , {column -> value}]``
-        - ``'index'`` : dict like ``{index -> {column -> value}}``
-        - ``'columns'`` : dict like ``{column -> {index -> value}}``
-        - ``'values'`` : just the values array
 
     typ : type of object to recover (series or frame), default 'frame'
     dtype : boolean or dict, default True
@@ -215,32 +212,35 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     ...                   index=['row 1', 'row 2'],
     ...                   columns=['col 1', 'col 2'])
 
+    Encoding/decoding a Dataframe using ``'split'`` formatted JSON:
+
     >>> df.to_json(orient='split')
     '{"columns":["col 1","col 2"],
       "index":["row 1","row 2"],
       "data":[["a","b"],["c","d"]]}'
-    <BLANKLINE>
     >>> pd.read_json(_, orient='split')
           col 1 col 2
     row 1     a     b
     row 2     c     d
 
-    >>> df.to_json(orient='records')
-    '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
-    <BLANKLINE>
-    >>> pd.read_json(_, orient='records')
-      col 1 col 2
-    0     a     b
-    1     c     d
+    Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
     >>> df.to_json(orient='index')
     '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
-    <BLANKLINE>
     >>> pd.read_json(_, orient='index')
           col 1 col 2
     row 1     a     b
     row 2     c     d
 
+    Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
+    Note that index labels are not preserved with this encoding.
+
+    >>> df.to_json(orient='records')
+    '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+    >>> pd.read_json(_, orient='records')
+      col 1 col 2
+    0     a     b
+    1     c     d
     """
 
     filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
