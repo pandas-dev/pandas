@@ -605,25 +605,9 @@ def _convert_to_line_delimits(s):
     if not s[0] == '[' and s[-1] == ']':
         return s
     s = s[1:-1]
-    num_open_brackets_seen = 0
-    commas_to_replace = []
-    in_quotes = False
-    for idx, char in enumerate(s):              # iter through to find all
-        if char == '"' and idx > 0 and s[idx - 1] != '\\':
-            in_quotes = ~in_quotes
-        elif char == ',':                         # commas that should be \n
-            if num_open_brackets_seen == 0 and not in_quotes:
-                commas_to_replace.append(idx)
-        elif char == '{':
-            if not in_quotes:
-                num_open_brackets_seen += 1
-        elif char == '}':
-            if not in_quotes:
-                num_open_brackets_seen -= 1
-    s_arr = np.array(list(s))                  # Turn to an array to set
-    s_arr[commas_to_replace] = '\n'            # all commas at once.
-    s = ''.join(s_arr)
-    return s
+
+    from pandas.lib import convert_json_to_lines
+    return convert_json_to_lines(s)
 
 
 def nested_to_record(ds, prefix="", level=0):
