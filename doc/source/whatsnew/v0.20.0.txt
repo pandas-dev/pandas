@@ -62,6 +62,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+- ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
 
 
 

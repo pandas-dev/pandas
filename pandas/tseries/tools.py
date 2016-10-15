@@ -16,7 +16,6 @@ from pandas.types.generic import (ABCIndexClass, ABCSeries,
 from pandas.types.missing import notnull
 
 import pandas.compat as compat
-from pandas.util.decorators import deprecate_kwarg
 
 _DATEUTIL_LEXER_SPLIT = None
 try:
@@ -175,10 +174,8 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
-@deprecate_kwarg(old_arg_name='coerce', new_arg_name='errors',
-                 mapping={True: 'coerce', False: 'raise'})
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
-                utc=None, box=True, format=None, exact=True, coerce=None,
+                utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False):
     """
     Convert argument to datetime.
