@@ -539,6 +539,37 @@ class MultiIndex(Index):
 
         return mi.values
 
+    @Appender(_index_shared_docs['_get_grouper_for_level'])
+    def _get_grouper_for_level(self, mapper, level):
+        indexer = self.labels[level]
+        level_index = self.levels[level]
+
+        if mapper is not None:
+            # Handle group mapping function and return
+            level_values = self.levels[level].take(indexer)
+            grouper = level_values.map(mapper)
+            return grouper, None, None
+
+        labels, uniques = algos.factorize(indexer, sort=True)
+
+        if len(uniques) > 0 and uniques[0] == -1:
+            # Handle NAs
+            mask = indexer != -1
+            ok_labels, uniques = algos.factorize(indexer[mask],
+                                                 sort=True)
+
+            labels = np.empty(len(indexer), dtype=indexer.dtype)
+            labels[mask] = ok_labels
+            labels[~mask] = -1
+
+        if len(uniques) < len(level_index):
+            # Remove unobserved levels from level_index
+            level_index = level_index.take(uniques)
+
+        grouper = level_index.take(labels)
+
+        return grouper, labels, level_index
+
     @property
     def _constructor(self):
         return MultiIndex.from_tuples
