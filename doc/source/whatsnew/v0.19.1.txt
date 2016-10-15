@@ -21,7 +21,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-
+- Improved Performance in ``.to_json()`` when ``lines=True`` (:issue:`14408`)
 
 
 
