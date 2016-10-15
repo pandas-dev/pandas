@@ -1412,7 +1412,10 @@ class _Concatenator(object):
         self.objs = objs
 
         # Standardize axis parameter to int
-        axis = DataFrame()._get_axis_number(axis)
+        if isinstance(sample, Series):
+            axis = DataFrame()._get_axis_number(axis)
+        else:
+            axis = sample._get_axis_number(axis)
 
         # Need to flip BlockManager axis in the DataFrame special case
         self._is_frame = isinstance(sample, DataFrame)
