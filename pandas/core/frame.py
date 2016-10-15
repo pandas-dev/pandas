@@ -3868,9 +3868,8 @@ class DataFrame(NDFrame):
     def pivot(self, index=None, columns=None, values=None):
         """
         Reshape data (produce a "pivot" table) based on column values. Uses
-        unique values from index / columns to form axes and return either
-        DataFrame or Panel, depending on whether you request a single value
-        column (DataFrame) or all columns (Panel)
+        unique values from index / columns to form axes of the resulting
+        DataFrame.
 
         Parameters
         ----------
@@ -3880,7 +3879,20 @@ class DataFrame(NDFrame):
         columns : string or object
             Column name to use to make new frame's columns
         values : string or object, optional
-            Column name to use for populating new frame's values
+            Column name to use for populating new frame's values. If not
+            specified, all remaining columns will be used and the result will
+            have hierarchically indexed columns
+
+        Returns
+        -------
+        pivoted : DataFrame
+
+        See also
+        --------
+        DataFrame.pivot_table : generalization of pivot that can handle
+            duplicate values for one index/column pair
+        DataFrame.unstack : pivot based on the index values instead of a
+            column
 
         Notes
         -----
@@ -3889,30 +3901,30 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+
+        >>> df = pd.DataFrame({'foo': ['one','one','one','two','two','two'],
+                               'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+                               'baz': [1, 2, 3, 4, 5, 6]})
         >>> df
             foo   bar  baz
-        0   one   A    1.
-        1   one   B    2.
-        2   one   C    3.
-        3   two   A    4.
-        4   two   B    5.
-        5   two   C    6.
+        0   one   A    1
+        1   one   B    2
+        2   one   C    3
+        3   two   A    4
+        4   two   B    5
+        5   two   C    6
 
-        >>> df.pivot('foo', 'bar', 'baz')
+        >>> df.pivot(index='foo', columns='bar', values='baz')
              A   B   C
         one  1   2   3
         two  4   5   6
 
-        >>> df.pivot('foo', 'bar')['baz']
+        >>> df.pivot(index='foo', columns='bar')['baz']
              A   B   C
         one  1   2   3
         two  4   5   6
 
-        Returns
-        -------
-        pivoted : DataFrame
-            If no values column specified, will have hierarchically indexed
-            columns
+
         """
         from pandas.core.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
