@@ -1726,8 +1726,9 @@ Sorting
    The sorting API is substantially changed in 0.17.0, see :ref:`here <whatsnew_0170.api_breaking.sorting>` for these changes.
    In particular, all sorting methods now return a new object by default, and **DO NOT** operate in-place (except by passing ``inplace=True``).
 
-There are two obvious kinds of sorting that you may be interested in: sorting
-by label and sorting by actual values.
+There are three obvious kinds of sorting that you may be interested in: sorting
+by labels (indexes), sorting by values (columns), and sorting by a
+combination of both.
 
 By Index
 ~~~~~~~~
@@ -1737,8 +1738,13 @@ labels (indexes) are the ``Series.sort_index()`` and the ``DataFrame.sort_index(
 
 .. ipython:: python
 
+   df = pd.DataFrame({'one' : pd.Series(np.random.randn(3), index=['a', 'b', 'c']),
+                      'two' : pd.Series(np.random.randn(4), index=['a', 'b', 'c', 'd']),
+                      'three' : pd.Series(np.random.randn(3), index=['b', 'c', 'd'])})
+
    unsorted_df = df.reindex(index=['a', 'd', 'c', 'b'],
                             columns=['three', 'two', 'one'])
+   unsorted_df
 
    # DataFrame
    unsorted_df.sort_index()
@@ -1751,7 +1757,8 @@ labels (indexes) are the ``Series.sort_index()`` and the ``DataFrame.sort_index(
 By Values
 ~~~~~~~~~
 
-The :meth:`Series.sort_values` and :meth:`DataFrame.sort_values` are the entry points for **value** sorting (that is the values in a column or row).
+The :meth:`Series.sort_values` and :meth:`DataFrame.sort_values` methods are
+the entry points for **value** sorting (that is the values in a column or row).
 :meth:`DataFrame.sort_values` can accept an optional ``by`` argument for ``axis=0``
 which will use an arbitrary vector or a column name of the DataFrame to
 determine the sort order:
@@ -1776,6 +1783,34 @@ argument:
    s.sort_values()
    s.sort_values(na_position='first')
 
+By Indexes and Values
+~~~~~~~~~~~~~~~~~~~~~
+.. versionadded:: 0.21
+Strings passed as the ``by`` argument to :meth:`DataFrame.sort_values` may
+refer to either columns or index levels.
+
+.. ipython:: python
+
+   # Build MultiIndex
+   idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
+                                 ('b', 2), ('b', 1), ('b', 1)])
+   idx.names = ['first', 'second']
+
+   # Build DataFrame
+   df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
+                        index=idx)
+   df_multi
+
+   # Sort by 'second' (index) and 'A' (column)
+   df_multi.sort_values(by=['second', 'A'])
+
+.. note::
+
+   .. versionadded:: 0.21
+
+   If a string matches both a column name and an index level name then a
+   warning is issued and the column takes precedence. This will result in an
+   ambiguity error in a future version.
 
 .. _basics.searchsorted:
 
