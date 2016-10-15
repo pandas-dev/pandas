@@ -11,12 +11,9 @@ from pandas.types.common import (_ensure_object,
                                  is_timedelta64_dtype,
                                  is_list_like)
 from pandas.types.generic import ABCSeries, ABCIndexClass
-from pandas.util.decorators import deprecate_kwarg
 
 
-@deprecate_kwarg(old_arg_name='coerce', new_arg_name='errors',
-                 mapping={True: 'coerce', False: 'raise'})
-def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
+def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     """
     Convert argument to timedelta
 

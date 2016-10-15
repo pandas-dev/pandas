@@ -5514,22 +5514,6 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
 
 
 class TestDaysInMonth(tm.TestCase):
-    def test_coerce_deprecation(self):
-
-        # deprecation of coerce
-        with tm.assert_produces_warning(FutureWarning):
-            to_datetime('2015-02-29', coerce=True)
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertRaises(ValueError,
-                              lambda: to_datetime('2015-02-29', coerce=False))
-
-        # multiple arguments
-        for e, c in zip(['raise', 'ignore', 'coerce'], [True, False]):
-            with tm.assert_produces_warning(FutureWarning):
-                self.assertRaises(TypeError,
-                                  lambda: to_datetime('2015-02-29', errors=e,
-                                                      coerce=c))
-
     # tests for issue #10154
     def test_day_not_in_month_coerce(self):
         self.assertTrue(isnull(to_datetime('2015-02-29', errors='coerce')))
