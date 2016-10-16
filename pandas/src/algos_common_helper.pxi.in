@@ -362,13 +362,20 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
     Returns
     -------
     is_monotonic_inc, is_monotonic_dec, is_unique
+        Tuple of (bool, bool, bool or None). is_unique is None when the
+        uniqueness of the array was not determined by the monotonicity check.
     """
     cdef:
         Py_ssize_t i, n
         {{c_type}} prev, cur
         bint is_monotonic_inc = 1
         bint is_monotonic_dec = 1
+
+        # We short-circuit the loop once we know for sure that we're
+        # non-monotonic in both directions. In such cases, we don't know if the
+        # input values are unique, so we return is_unique=None.
         bint is_unique = 1
+        bint short_circuited = 0
 
     n = len(arr)
 
@@ -391,6 +398,7 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
     {{tab}}    if timelike and cur == iNaT:
     {{tab}}        is_monotonic_inc = 0
     {{tab}}        is_monotonic_dec = 0
+    {{tab}}        short_circuited = 1
     {{tab}}        break
     {{tab}}    if cur < prev:
     {{tab}}        is_monotonic_inc = 0
@@ -402,14 +410,20 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
     {{tab}}        # cur or prev is NaN
     {{tab}}        is_monotonic_inc = 0
     {{tab}}        is_monotonic_dec = 0
+    {{tab}}        short_circuited = 1
     {{tab}}        break
     {{tab}}    if not is_monotonic_inc and not is_monotonic_dec:
     {{tab}}        is_monotonic_inc = 0
     {{tab}}        is_monotonic_dec = 0
+    {{tab}}        short_circuited = 1
     {{tab}}        break
     {{tab}}    prev = cur
-    return is_monotonic_inc, is_monotonic_dec, \
-           is_unique and (is_monotonic_inc or is_monotonic_dec)
+
+    return (
+        is_monotonic_inc,
+        is_monotonic_dec,
+        is_unique if not short_circuited else None,
+    )
 
 
 @cython.wraparound(False)

@@ -27,6 +27,7 @@ from cpython cimport PyTuple_Check, PyList_Check
 
 cdef extern from "datetime.h":
     bint PyDateTime_Check(object o)
+    bint PyTime_Check(object o)
     void PyDateTime_IMPORT()
 
 cdef int64_t iNaT = util.get_nat()
@@ -78,29 +79,48 @@ cdef class IndexEngine:
     cdef readonly:
         object vgetter
         HashTable mapping
-        bint over_size_threshold
+        bint avoid_hashtable
 
     cdef:
+        # Metadata indicating properties of our index labels. These are lazily
+        # computed and used to dispatch to more efficient algorithms
+        # (e.g. binary search instead of linear) when possible.
         bint unique, monotonic_inc, monotonic_dec
-        bint initialized, monotonic_check, unique_check
 
-    def __init__(self, vgetter, n):
+        # Flags indicating whether we've populated a hash table, whether we've
+        # checked our index labels for uniqueness, and whether we've checked
+        # our index labels for monotonicity.
+        bint hashtable_populated, uniqueness_checked, monotonicity_checked
+
+    def __init__(self, vgetter, n, avoid_hashtable=None):
         self.vgetter = vgetter
 
-        self.over_size_threshold = n >= _SIZE_CUTOFF
-
-        self.initialized = 0
-        self.monotonic_check = 0
-        self.unique_check = 0
+        if avoid_hashtable is not None:
+            self.avoid_hashtable = avoid_hashtable
+        else:
+            self.avoid_hashtable = (n >= _SIZE_CUTOFF)
 
         self.unique = 0
         self.monotonic_inc = 0
         self.monotonic_dec = 0
 
-    def __contains__(self, object val):
-        self._ensure_mapping_populated()
-        hash(val)
-        return val in self.mapping
+        self.hashtable_populated = 0
+        self.uniqueness_checked = 0
+        self.monotonicity_checked = 0
+
+    def _call_monotonic(self, ndarray values):
+        """Check whether ``values`` are monotonic."""
+        raise NotImplementedError('_call_monotonic')
+
+    cdef _make_hash_table(self, ndarray values):
+        """Make a hash table specific to our value type."""
+        raise NotImplementedError('_make_hash_table')
+
+    def get_pad_indexer(self, other, limit=None):
+        raise NotImplementedError('get_pad_indexer')
+
+    def get_backfill_indexer(self, other, limit=None):
+        raise NotImplementedError('get_backfill_indexer')
 
     cpdef get_value(self, ndarray arr, object key, object tz=None):
         """
@@ -157,31 +177,62 @@ cdef class IndexEngine:
         else:
             util.set_value_at(arr, loc, value)
 
+    def __contains__(self, object val):
+        hash(val)  # Force a TypeError on non-hashable input.
+        try:
+            self.get_loc(val)
+            return True
+        except KeyError:
+            return False
+
     cpdef get_loc(self, object val):
+        """
+        Compute an indexer for a single key.
+
+        May return an integer, a slice, or a boolean array, depending on the
+        structure of the index values.
+
+        - If the index values are unique, returns an integer.
+
+        - If the index values are non-unique but monotonically-increasing,
+          returns an integer or a slice.
+
+        - If the index values are non-unique and non-monotonically-increasing,
+          returns a boolean array.
+
+        Raises a KeyError if `val` does not appear in the index.
+        """
         if is_definitely_invalid_key(val):
             raise TypeError("'{val}' is an invalid key".format(val=val))
 
-        if self.over_size_threshold and self.is_monotonic_increasing:
-            if not self.is_unique:
-                return self._get_loc_duplicates(val)
-            values = self._get_index_values()
-            loc = _bin_search(values, val) # .searchsorted(val, side='left')
-            if loc >= len(values):
-                raise KeyError(val)
-            if util.get_value_at(values, loc) != val:
-                raise KeyError(val)
-            return loc
-
-        self._ensure_mapping_populated()
-        if not self.unique:
-            return self._get_loc_duplicates(val)
-
         self._check_type(val)
 
+        if self.avoid_hashtable and self.is_monotonic_increasing:
+            # XXX: This branch is duplicated with an identical branch below
+            # because the first access of is_monotonic_increasing can set
+            # self.is_unique without requiring the creation of a hashtable over
+            # our values.
+            if not self.is_unique:
+                return self._get_loc_duplicates(val)
+            return self._get_loc_binsearch_scalar(val)
+
+        elif not self.is_unique:
+            return self._get_loc_duplicates(val)
+
         try:
+            self._ensure_hashtable_populated()
             return self.mapping.get_item(val)
         except TypeError:
             raise KeyError(val)
+
+    cdef _get_loc_binsearch_scalar(self, object val):
+        values = self._get_index_values()
+        loc = _bin_search(values, val) # .searchsorted(val, side='left')
+        if loc >= len(values):
+            raise KeyError(val)
+        if util.get_value_at(values, loc) != val:
+            raise KeyError(val)
+        return loc
 
     cdef inline _get_loc_duplicates(self, object val):
         cdef:
@@ -234,30 +285,38 @@ cdef class IndexEngine:
     property is_unique:
 
         def __get__(self):
-            if not self.initialized:
-                self.initialize()
+            if not self.uniqueness_checked:
+                if self.avoid_hashtable:
+                    # Create a table to determine uniqueness, but don't store.
+                    values = self._get_index_values()
+                    tmp_table = self._make_hash_table(values)
+                    self.unique = (len(tmp_table) == len(values))
+                    self.uniqueness_checked = 1
+                else:
+                    self._ensure_hashtable_populated()
+                    assert self.uniqueness_checked, \
+                        "Failed to set uniqueness in populate_hashtable!"
 
-            self.unique_check = 1
+            # Either we had already checked uniqueness, or one of the two
+            # branches above must have performed the check.
             return self.unique == 1
 
     property is_monotonic_increasing:
 
         def __get__(self):
-            if not self.monotonic_check:
+            if not self.monotonicity_checked:
                 self._do_monotonic_check()
-
             return self.monotonic_inc == 1
 
     property is_monotonic_decreasing:
 
         def __get__(self):
-            if not self.monotonic_check:
+            if not self.monotonicity_checked:
                 self._do_monotonic_check()
-
             return self.monotonic_dec == 1
 
     cdef inline _do_monotonic_check(self):
-        cdef object is_unique
+        cdef object is_unique  # This is either a bint or None.
         try:
             values = self._get_index_values()
             self.monotonic_inc, self.monotonic_dec, is_unique = \
@@ -265,59 +324,44 @@ cdef class IndexEngine:
         except TypeError:
             self.monotonic_inc = 0
             self.monotonic_dec = 0
-            is_unique = 0
+            is_unique = None
 
-        self.monotonic_check = 1
+        self.monotonicity_checked = 1
 
-        # we can only be sure of uniqueness if is_unique=1
-        if is_unique:
-            self.initialized = 1
-            self.unique = 1
-            self.unique_check = 1
+        # _call_monotonic returns None for is_unique if uniqueness could not be
+        # determined from the monotonicity check.
+        if is_unique is not None:
+            self.unique = is_unique
+            self.uniqueness_checked = 1
 
     cdef _get_index_values(self):
         return self.vgetter()
 
-    def _call_monotonic(self, values):
-        raise NotImplementedError
-
-    cdef _make_hash_table(self, n):
-        raise NotImplementedError
-
     cdef _check_type(self, object val):
         hash(val)
 
-    cdef inline _ensure_mapping_populated(self):
-        # need to reset if we have previously
-        # set the initialized from monotonic checks
-        if self.unique_check:
-            self.initialized = 0
-        if not self.initialized:
-            self.initialize()
+    cdef inline _ensure_hashtable_populated(self):
+        if not self.hashtable_populated:
+            values = self._get_index_values()
 
-    cdef initialize(self):
-        values = self._get_index_values()
+            self.mapping = self._make_hash_table(values)
+            self.hashtable_populated = 1
 
-        self.mapping = self._make_hash_table(len(values))
-        self.mapping.map_locations(values)
-
-        if len(self.mapping) == len(values):
-            self.unique = 1
-
-        self.initialized = 1
+            self.unique = (len(self.mapping) == len(values))
+            self.uniqueness_checked = 1
 
     def clear_mapping(self):
         self.mapping = None
-        self.initialized = 0
-        self.monotonic_check = 0
-        self.unique_check = 0
+        self.hashtable_populated = 0
+        self.monotonicity_checked = 0
+        self.uniqueness_checked = 0
 
         self.unique = 0
         self.monotonic_inc = 0
         self.monotonic_dec = 0
 
     def get_indexer(self, values):
-        self._ensure_mapping_populated()
+        self._ensure_hashtable_populated()
         return self.mapping.lookup(values)
 
     def get_indexer_non_unique(self, targets):
@@ -327,7 +371,7 @@ cdef class IndexEngine:
             to the -1 indicies in the results """
 
         cdef:
-            ndarray values, x
+            ndarray values
             ndarray[int64_t] result, missing
             set stargets
             dict d = {}
@@ -335,7 +379,6 @@ cdef class IndexEngine:
             int count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc
 
-        self._ensure_mapping_populated()
         values = self._get_index_values()
         stargets = set(targets)
         n = len(values)
@@ -349,7 +392,6 @@ cdef class IndexEngine:
         missing = np.empty(n_t, dtype=np.int64)
 
         # form the set of the results (like ismember)
-        members = np.empty(n, dtype=np.uint8)
         for i in range(n):
             val = util.get_value_1d(values, i)
             if val in stargets:
@@ -391,8 +433,10 @@ cdef class Int64Engine(IndexEngine):
     cdef _get_index_values(self):
         return algos.ensure_int64(self.vgetter())
 
-    cdef _make_hash_table(self, n):
-        return _hash.Int64HashTable(n)
+    cdef _make_hash_table(self, ndarray values):
+        t = _hash.Int64HashTable(len(values))
+        t.map_locations(values)
+        return t
 
     def _call_monotonic(self, values):
         return algos.is_monotonic_int64(values, timelike=False)
@@ -407,9 +451,7 @@ cdef class Int64Engine(IndexEngine):
 
     cdef _check_type(self, object val):
         hash(val)
-        if util.is_bool_object(val):
-            raise KeyError(val)
-        elif util.is_float_object(val):
+        if not util.is_integer_object(val):
             raise KeyError(val)
 
     cdef _maybe_get_bool_indexer(self, object val):
@@ -421,8 +463,7 @@ cdef class Int64Engine(IndexEngine):
             int64_t ival
             int last_true
 
-        if not util.is_integer_object(val):
-            raise KeyError(val)
+        self._check_type(val)
 
         ival = val
 
@@ -433,7 +474,7 @@ cdef class Int64Engine(IndexEngine):
         indexer = result.view(np.uint8)
 
         for i in range(n):
-            if values[i] == val:
+            if values[i] == ival:
                 count += 1
                 indexer[i] = 1
                 last_true = i
@@ -449,8 +490,10 @@ cdef class Int64Engine(IndexEngine):
 
 cdef class Float64Engine(IndexEngine):
 
-    cdef _make_hash_table(self, n):
-        return _hash.Float64HashTable(n)
+    cdef _make_hash_table(self, ndarray values):
+        t = _hash.Float64HashTable(len(values))
+        t.map_locations(values)
+        return t
 
     cdef _get_index_values(self):
         return algos.ensure_float64(self.vgetter())
@@ -521,22 +564,13 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     else:
         return mid + 1
 
-_pad_functions = {
-    'object': algos.pad_object,
-    'int64': algos.pad_int64,
-    'float64': algos.pad_float64
-}
-
-_backfill_functions = {
-    'object': algos.backfill_object,
-    'int64': algos.backfill_int64,
-    'float64': algos.backfill_float64
-}
 
 cdef class ObjectEngine(IndexEngine):
 
-    cdef _make_hash_table(self, n):
-        return _hash.PyObjectHashTable(n)
+    cdef _make_hash_table(self, ndarray values):
+        t = _hash.PyObjectHashTable(len(values))
+        t.map_locations(values)
+        return t
 
     def _call_monotonic(self, values):
         return algos.is_monotonic_object(values, timelike=False)
@@ -555,18 +589,6 @@ cdef class DatetimeEngine(Int64Engine):
     cdef _get_box_dtype(self):
         return 'M8[ns]'
 
-    def __contains__(self, object val):
-        if self.over_size_threshold and self.is_monotonic_increasing:
-            if not self.is_unique:
-                return self._get_loc_duplicates(val)
-            values = self._get_index_values()
-            conv = _to_i8(val)
-            loc = values.searchsorted(conv, side='left')
-            return util.get_value_at(values, loc) == conv
-
-        self._ensure_mapping_populated()
-        return _to_i8(val) in self.mapping
-
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
 
@@ -574,53 +596,17 @@ cdef class DatetimeEngine(Int64Engine):
         return algos.is_monotonic_int64(values, timelike=True)
 
     cpdef get_loc(self, object val):
-        if is_definitely_invalid_key(val):
-            raise TypeError
-
-        # Welcome to the spaghetti factory
-        if self.over_size_threshold and self.is_monotonic_increasing:
-            if not self.is_unique:
-                val = _to_i8(val)
-                return self._get_loc_duplicates(val)
-            values = self._get_index_values()
-
-            try:
-                conv = _to_i8(val)
-                loc = values.searchsorted(conv, side='left')
-            except TypeError:
-                self._date_check_type(val)
-                raise KeyError(val)
-
-            if loc == len(values) or util.get_value_at(values, loc) != conv:
-                raise KeyError(val)
-            return loc
-
-        self._ensure_mapping_populated()
-        if not self.unique:
-            val = _to_i8(val)
-            return self._get_loc_duplicates(val)
-
-        try:
-            return self.mapping.get_item(val.value)
-        except KeyError:
+        if PyTime_Check(val):  # TODO: Document this.
             raise KeyError(val)
-        except AttributeError:
-            pass
+        return super(DatetimeEngine, self).get_loc(_to_i8(val))
 
-        try:
-            val = _to_i8(val)
-            return self.mapping.get_item(val)
-        except TypeError:
-            self._date_check_type(val)
-            raise KeyError(val)
-
-    cdef inline _date_check_type(self, object val):
+    cdef inline _check_type(self, object val):
         hash(val)
         if not util.is_integer_object(val):
             raise KeyError(val)
 
     def get_indexer(self, values):
-        self._ensure_mapping_populated()
+        self._ensure_hashtable_populated()
         if values.dtype != self._get_box_dtype():
             return np.repeat(-1, len(values)).astype('i4')
         values = np.asarray(values).view('i8')
