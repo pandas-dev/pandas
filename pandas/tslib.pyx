@@ -906,11 +906,11 @@ cpdef object get_value_box(ndarray arr, object loc):
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = INT64_MAX
-# smallest value we could actually represent is
+# the smallest value we could actually represent is
 #   INT64_MIN + 1 == -9223372036854775807
 # but to allow overflow free conversion with a microsecond resolution
-# use the smallest value with a 0 nanosecond unit
-cdef int64_t _NS_LOWER_BOUND = -9223285636854775000LL
+# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
+cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
 
 cdef pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 pandas_datetime_to_datetimestruct(_NS_LOWER_BOUND, PANDAS_FR_ns, &_NS_MIN_DTS)
