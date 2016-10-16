@@ -104,7 +104,20 @@ cdef class IndexEngine:
 
     cpdef get_value(self, ndarray arr, object key, object tz=None):
         """
-        arr : 1-dimensional ndarray
+        Look up value(s) from ``arr`` at the index(es) of ``key``.
+
+        Roughly equivalent to ``arr[self.get_loc(key)]``, with special handling
+        for datetime types.
+
+        Parameters
+        ----------
+        arr : ndarray
+            Array from which to look up values.
+        key : object
+            Index key to use to find values in ``arr``.
+        tz : object, optional
+            Timezone to associate with ``key``.  Ignored unless ``arr`` is of
+            datetime dtype.
         """
         cdef:
             object loc
@@ -122,8 +135,18 @@ cdef class IndexEngine:
 
     cpdef set_value(self, ndarray arr, object key, object value):
         """
-        arr : 1-dimensional ndarray
+        Set ``value`` into ``arr`` at the index(es) of ``key``.
+
+        Roughly equivalent to ``arr[self.get_loc(key)] = value``.
+
+        Parameters
+        ----------
+        arr : ndarray
+            Array from which to look up values.
+        key : object
+            Index key to use to find values in ``arr``.
         """
+        # XXX: Why does get_value take a tz but this method doesn't?
         cdef:
             object loc
             void* data_ptr
