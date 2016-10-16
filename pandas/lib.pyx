@@ -65,13 +65,8 @@ cdef int64_t NPY_NAT = util.get_nat()
 ctypedef unsigned char UChar
 
 cimport util
-from util cimport is_array, _checknull, _checknan
-
-cdef extern from "headers/stdint.h":
-    enum: UINT8_MAX
-    enum: INT64_MAX
-    enum: INT64_MIN
-
+from util cimport (is_array, _checknull, _checknan, INT64_MAX,
+                   INT64_MIN, UINT8_MAX)
 
 cdef extern from "math.h":
     double sqrt(double x)

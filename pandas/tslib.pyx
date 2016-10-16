@@ -25,10 +25,6 @@ from cpython cimport (
 )
 
 
-cdef extern from "headers/stdint.h":
-    enum: INT64_MAX
-    enum: INT64_MIN
-
 # Cython < 0.17 doesn't have this in cpython
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
@@ -42,7 +38,7 @@ from datetime cimport cmp_pandas_datetimestruct
 from libc.stdlib cimport free
 
 from util cimport (is_integer_object, is_float_object, is_datetime64_object,
-                   is_timedelta64_object)
+                   is_timedelta64_object, INT64_MAX)
 cimport util
 
 from datetime cimport *
@@ -909,9 +905,12 @@ cpdef object get_value_box(ndarray arr, object loc):
 
 
 # Add the min and max fields at the class level
-# INT64_MIN is reserved for NaT
-cdef int64_t _NS_LOWER_BOUND = INT64_MIN + 1
 cdef int64_t _NS_UPPER_BOUND = INT64_MAX
+# smallest value we could actually represent is
+#   INT64_MIN + 1 == -9223372036854775807
+# but to allow overflow free conversion with a microsecond resolution
+# use the smallest value with a 0 nanosecond unit
+cdef int64_t _NS_LOWER_BOUND = -9223285636854775000LL
 
 cdef pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 pandas_datetime_to_datetimestruct(_NS_LOWER_BOUND, PANDAS_FR_ns, &_NS_MIN_DTS)
