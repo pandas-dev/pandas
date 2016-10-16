@@ -121,7 +121,6 @@ cdef class IndexEngine:
         """
         cdef:
             object loc
-            void* data_ptr
 
         loc = self.get_loc(key)
         if PySlice_Check(loc) or cnp.PyArray_Check(loc):
@@ -149,7 +148,6 @@ cdef class IndexEngine:
         # XXX: Why does get_value take a tz but this method doesn't?
         cdef:
             object loc
-            void* data_ptr
 
         loc = self.get_loc(key)
         value = convert_scalar(arr, value)
