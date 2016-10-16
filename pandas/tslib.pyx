@@ -24,6 +24,11 @@ from cpython cimport (
     PyUnicode_AsUTF8String,
 )
 
+
+cdef extern from "headers/stdint.h":
+    enum: INT64_MAX
+    enum: INT64_MIN
+
 # Cython < 0.17 doesn't have this in cpython
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
@@ -904,10 +909,9 @@ cpdef object get_value_box(ndarray arr, object loc):
 
 
 # Add the min and max fields at the class level
-# These are defined as magic numbers due to strange
-# wraparound behavior when using the true int64 lower boundary
-cdef int64_t _NS_LOWER_BOUND = -9223285636854775000LL
-cdef int64_t _NS_UPPER_BOUND = 9223372036854775807LL
+# INT64_MIN is reserved for NaT
+cdef int64_t _NS_LOWER_BOUND = INT64_MIN + 1
+cdef int64_t _NS_UPPER_BOUND = INT64_MAX
 
 cdef pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 pandas_datetime_to_datetimestruct(_NS_LOWER_BOUND, PANDAS_FR_ns, &_NS_MIN_DTS)
