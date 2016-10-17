@@ -409,7 +409,7 @@ class TestToNumeric(tm.TestCase):
                 'int64': [np.iinfo(np.int64).min, np.iinfo(np.int64).max]
                 }
 
-        for dtype, min_max in integer_dtype_min_max.iteritems(): 
+        for dtype, min_max in integer_dtype_min_max.items(): 
             series = pd.to_numeric(pd.Series(min_max), downcast = 'integer')
             tm.assert_equal(series.dtype, dtype)
 
@@ -421,7 +421,7 @@ class TestToNumeric(tm.TestCase):
                 # 'uint64': [np.iinfo(np.uint64).min, np.iinfo(np.uint64).max]
                 }
 
-        for dtype, min_max in unsigned_dtype_min_max.iteritems():
+        for dtype, min_max in unsigned_dtype_min_max.items():
             series = pd.to_numeric(pd.Series(min_max), downcast = 'unsigned')
             tm.assert_equal(series.dtype, dtype)
 
@@ -433,7 +433,7 @@ class TestToNumeric(tm.TestCase):
                 'int64': [np.iinfo(np.int32).min, np.iinfo(np.int32).max + 1],
                 }
 
-        for dtype, min_max in integer_dtype_min_max_plus.iteritems(): 
+        for dtype, min_max in integer_dtype_min_max_plus.items(): 
             series = pd.to_numeric(pd.Series(min_max), downcast = 'integer')
             tm.assert_equal(series.dtype, dtype)
 
@@ -443,7 +443,7 @@ class TestToNumeric(tm.TestCase):
                 'int64': [np.iinfo(np.int32).min - 1, np.iinfo(np.int64).max]
                 }
 
-        for dtype, min_max in integer_dtype_min_max_minus.iteritems(): 
+        for dtype, min_max in integer_dtype_min_max_minus.items(): 
             series = pd.to_numeric(pd.Series(min_max), downcast = 'integer')
             tm.assert_equal(series.dtype, dtype)
 
@@ -453,7 +453,7 @@ class TestToNumeric(tm.TestCase):
                 # 'uint64': [np.iinfo(np.uint32).min, np.iinfo(np.uint32).max + 1],
                 }
 
-        for dtype, min_max in unsigned_dtype_min_max_plus.iteritems():
+        for dtype, min_max in unsigned_dtype_min_max_plus.items():
             series = pd.to_numeric(pd.Series(min_max), downcast = 'unsigned')
             tm.assert_equal(series.dtype, dtype)
 
