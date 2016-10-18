@@ -46,8 +46,8 @@ PR_REMOTE_NAME = os.environ.get("PR_REMOTE_NAME", "upstream")
 # Remote name where results pushed
 PUSH_REMOTE_NAME = os.environ.get("PUSH_REMOTE_NAME", "upstream")
 
-GITHUB_BASE = "https://github.com/pydata/" + PROJECT_NAME + "/pull"
-GITHUB_API_BASE = "https://api.github.com/repos/pydata/" + PROJECT_NAME
+GITHUB_BASE = "https://github.com/pandas-dev/" + PROJECT_NAME + "/pull"
+GITHUB_API_BASE = "https://api.github.com/repos/pandas-dev/" + PROJECT_NAME
 
 # Prefix added to temporary branches
 BRANCH_PREFIX = "PR_TOOL"
