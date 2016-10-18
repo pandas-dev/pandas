@@ -124,7 +124,7 @@ def clean_up():
         run_cmd("git branch -D %s" % branch)
 
 
-# merge the requested PR and return the merge hash
+# Merge the requested PR and return the merge hash
 def merge_pr(pr_num, target_ref):
 
     pr_branch_name = "%s_MERGE_PR_%s" % (BRANCH_PREFIX, pr_num)
@@ -243,13 +243,6 @@ def fix_version_from_branch(branch, versions):
     else:
         branch_ver = branch.replace("branch-", "")
         return filter(lambda x: x.name.startswith(branch_ver), versions)[-1]
-
-
-# branches = get_json("%s/branches" % GITHUB_API_BASE)
-# branch_names = filter(lambda x: x.startswith("branch-"),
-#                       [x['name'] for x in branches])
-# Assumes branch names can be sorted lexicographically
-# latest_branch = sorted(branch_names, reverse=True)[0]
 
 pr_num = input("Which pull request would you like to merge? (e.g. 34): ")
 pr = get_json("%s/pulls/%s" % (GITHUB_API_BASE, pr_num))
