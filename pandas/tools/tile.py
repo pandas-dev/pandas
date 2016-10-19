@@ -119,7 +119,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                          include_lowest=include_lowest)
 
 
-def qcut(x, q, labels=None, retbins=False, precision=3, 
+def qcut(x, q, labels=None, retbins=False, precision=3,
          duplicate_edges='raise'):
     """
     Quantile-based discretization function. Discretize variable into
@@ -196,10 +196,9 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
 
-    
     if len(algos.unique(bins)) < len(bins):
         if (duplicate_edges == 'raise'):
-            raise ValueError('Bin edges must be unique: %s' 
+            raise ValueError('Bin edges must be unique: %s'
                              % repr(bins))
         else:
             bins = algos.unique(bins)
