@@ -270,7 +270,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     If a date that does not meet timestamp limitations, passing errors='coerce'
     will force to NaT. Furthermore this will force non-dates to NaT as well.
 
-    >>> pd.to_datetime('13000101', format='%Y%m%d')
+    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
     datetime.datetime(1300, 1, 1, 0, 0)
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
