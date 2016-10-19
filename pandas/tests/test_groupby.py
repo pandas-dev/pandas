@@ -443,6 +443,7 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result, expected)
 
         # GH14334
+        # pd.Grouper(key=...) may be passed in a list
         g = df.groupby([pd.Grouper(key='A')])
         result = g.sum()
         assert_frame_equal(result, expected)
