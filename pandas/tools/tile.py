@@ -119,7 +119,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                          include_lowest=include_lowest)
 
 
-def qcut(x, q, labels=None, retbins=False, precision=3):
+def qcut(x, q, labels=None, retbins=False, precision=3, 
+         duplicate_edges='raise'):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -141,6 +142,9 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
         as a scalar.
     precision : int
         The precision at which to store and display the bins labels
+    duplicate_edges : {'raise', 'drop'}, optional
+        If binned edges are not unique, raise ValueError or drop non-
+        uniques.
 
     Returns
     -------
@@ -172,11 +176,13 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
         quantiles = q
     bins = algos.quantile(x, quantiles)
     return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
-                         precision=precision, include_lowest=True)
+                         precision=precision, include_lowest=True,
+                         duplicate_edges='raise')
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
-                  precision=3, name=None, include_lowest=False):
+                  precision=3, name=None, include_lowest=False,
+                  duplicate_edges='raise'):
     x_is_series = isinstance(x, Series)
     series_index = None
 
@@ -190,8 +196,13 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
 
+    
     if len(algos.unique(bins)) < len(bins):
-        raise ValueError('Bin edges must be unique: %s' % repr(bins))
+        if (duplicate_edges == 'raise'):
+            raise ValueError('Bin edges must be unique: %s' 
+                             % repr(bins))
+        else:
+            bins = algos.unique(bins)
 
     if include_lowest:
         ids[x == bins[0]] = 1
