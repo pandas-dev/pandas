@@ -46,8 +46,8 @@ PR_REMOTE_NAME = os.environ.get("PR_REMOTE_NAME", "upstream")
 # Remote name where results pushed
 PUSH_REMOTE_NAME = os.environ.get("PUSH_REMOTE_NAME", "upstream")
 
-GITHUB_BASE = "https://github.com/pydata/" + PROJECT_NAME + "/pull"
-GITHUB_API_BASE = "https://api.github.com/repos/pydata/" + PROJECT_NAME
+GITHUB_BASE = "https://github.com/pandas-dev/" + PROJECT_NAME + "/pull"
+GITHUB_API_BASE = "https://api.github.com/repos/pandas-dev/" + PROJECT_NAME
 
 # Prefix added to temporary branches
 BRANCH_PREFIX = "PR_TOOL"
@@ -124,7 +124,7 @@ def clean_up():
         run_cmd("git branch -D %s" % branch)
 
 
-# merge the requested PR and return the merge hash
+# Merge the requested PR and return the merge hash
 def merge_pr(pr_num, target_ref):
 
     pr_branch_name = "%s_MERGE_PR_%s" % (BRANCH_PREFIX, pr_num)
@@ -243,13 +243,6 @@ def fix_version_from_branch(branch, versions):
     else:
         branch_ver = branch.replace("branch-", "")
         return filter(lambda x: x.name.startswith(branch_ver), versions)[-1]
-
-
-# branches = get_json("%s/branches" % GITHUB_API_BASE)
-# branch_names = filter(lambda x: x.startswith("branch-"),
-#                       [x['name'] for x in branches])
-# Assumes branch names can be sorted lexicographically
-# latest_branch = sorted(branch_names, reverse=True)[0]
 
 pr_num = input("Which pull request would you like to merge? (e.g. 34): ")
 pr = get_json("%s/pulls/%s" % (GITHUB_API_BASE, pr_num))
