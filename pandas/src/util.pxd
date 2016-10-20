@@ -38,6 +38,20 @@ ctypedef fused numeric:
     cnp.float32_t
     cnp.float64_t
 
+cdef extern from "headers/stdint.h":
+    enum: UINT8_MAX
+    enum: UINT16_MAX
+    enum: UINT32_MAX
+    enum: UINT64_MAX
+    enum: INT8_MIN
+    enum: INT8_MAX
+    enum: INT16_MIN
+    enum: INT16_MAX
+    enum: INT32_MAX
+    enum: INT32_MIN
+    enum: INT64_MAX
+    enum: INT64_MIN
+
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
