@@ -846,7 +846,8 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                 dt  = dt % perday;
             }
             else {
-                set_datetimestruct_days((dt - (perday-1)) / perday, out);
+                set_datetimestruct_days(dt / perday - (dt % perday == 0 ? 0 : 1),
+                                        out);
                 dt = (perday-1) + (dt + 1) % perday;
             }
             out->hour = dt;
@@ -860,7 +861,8 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                 dt  = dt % perday;
             }
             else {
-                set_datetimestruct_days((dt - (perday-1)) / perday, out);
+                set_datetimestruct_days(dt / perday - (dt % perday == 0 ? 0 : 1),
+                                        out);
                 dt = (perday-1) + (dt + 1) % perday;
             }
             out->hour = dt / 60;
@@ -875,7 +877,8 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                 dt  = dt % perday;
             }
             else {
-                set_datetimestruct_days((dt - (perday-1)) / perday, out);
+                set_datetimestruct_days(dt / perday - (dt % perday == 0 ? 0 : 1),
+                                        out);
                 dt = (perday-1) + (dt + 1) % perday;
             }
             out->hour = dt / (60*60);
@@ -891,7 +894,8 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                 dt  = dt % perday;
             }
             else {
-                set_datetimestruct_days((dt - (perday-1)) / perday, out);
+                set_datetimestruct_days(dt / perday - (dt % perday == 0 ? 0 : 1),
+                                        out);
                 dt = (perday-1) + (dt + 1) % perday;
             }
             out->hour = dt / (60*60*1000LL);
@@ -908,7 +912,8 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                 dt  = dt % perday;
             }
             else {
-                set_datetimestruct_days((dt - (perday-1)) / perday, out);
+                set_datetimestruct_days(dt / perday - (dt % perday == 0 ? 0 : 1),
+                                        out);
                 dt = (perday-1) + (dt + 1) % perday;
             }
             out->hour = dt / (60*60*1000000LL);
@@ -925,7 +930,8 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                 dt  = dt % perday;
             }
             else {
-                set_datetimestruct_days((dt - (perday-1)) / perday, out);
+                set_datetimestruct_days(dt / perday - (dt % perday == 0 ? 0 : 1),
+                                        out);
                 dt = (perday-1) + (dt + 1) % perday;
             }
             out->hour = dt / (60*60*1000000000LL);
@@ -943,7 +949,8 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                 dt  = dt % perday;
             }
             else {
-                set_datetimestruct_days((dt - (perday-1)) / perday, out);
+                set_datetimestruct_days(dt / perday - (dt % perday == 0 ? 0 : 1),
+                                        out);
                 dt = (perday-1) + (dt + 1) % perday;
             }
             out->hour = dt / (60*60*1000000000000LL);

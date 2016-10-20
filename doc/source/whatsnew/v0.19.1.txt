@@ -46,6 +46,7 @@ Bug Fixes
 - ``pd.merge()`` will raise ``ValueError`` with non-boolean parameters in passed boolean type arguments (:issue:`14434`)
 
 
+- Bug in ``Timestamp`` where dates very near the minimum (1677-09) could underflow on creation (:issue:`14415`)
 
 - Bug in ``pd.concat`` where names of the ``keys`` were not propagated to the resulting ``MultiIndex`` (:issue:`14252`)
 - Bug in ``pd.concat`` where ``axis`` cannot take string parameters ``'rows'`` or ``'columns'`` (:issue:`14369`)

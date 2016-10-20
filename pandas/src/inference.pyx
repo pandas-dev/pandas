@@ -6,19 +6,9 @@ iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
 
-cdef extern from "headers/stdint.h":
-    enum: UINT8_MAX
-    enum: UINT16_MAX
-    enum: UINT32_MAX
-    enum: UINT64_MAX
-    enum: INT8_MIN
-    enum: INT8_MAX
-    enum: INT16_MIN
-    enum: INT16_MAX
-    enum: INT32_MAX
-    enum: INT32_MIN
-    enum: INT64_MAX
-    enum: INT64_MIN
+from util cimport (UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX,
+                   INT8_MIN, INT8_MAX, INT16_MIN, INT16_MAX,
+                   INT32_MAX, INT32_MIN, INT64_MAX, INT64_MIN)
 
 # core.common import for fast inference checks
 

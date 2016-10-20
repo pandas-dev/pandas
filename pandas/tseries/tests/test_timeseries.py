@@ -4463,6 +4463,15 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(stamp.microsecond, 0)
         self.assertEqual(stamp.nanosecond, 500)
 
+        # GH 14415
+        val = np.iinfo(np.int64).min + 80000000000000
+        stamp = Timestamp(val)
+        self.assertEqual(stamp.year, 1677)
+        self.assertEqual(stamp.month, 9)
+        self.assertEqual(stamp.day, 21)
+        self.assertEqual(stamp.microsecond, 145224)
+        self.assertEqual(stamp.nanosecond, 192)
+
     def test_unit(self):
 
         def check(val, unit=None, h=1, s=1, us=0):
