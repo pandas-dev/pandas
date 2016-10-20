@@ -57,6 +57,24 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         expected = DataFrame(dict(time=[ts2, ts3]))
         assert_frame_equal(results, expected)
 
+    def test_concat_tuple_keys(self):
+        # GH 14438
+        df1 = pd.DataFrame(np.ones((2, 2)), columns=list('AB'))
+        df2 = pd.DataFrame(np.ones((3, 2)) * 2, columns=list('AB'))
+        results = pd.concat((df1, df2), keys=[('bee', 'bah'), ('bee', 'boo')])
+        expected = pd.DataFrame(
+            {'A': {('bee', 'bah', 0): 1.0,
+                   ('bee', 'bah', 1): 1.0,
+                   ('bee', 'boo', 0): 2.0,
+                   ('bee', 'boo', 1): 2.0,
+                   ('bee', 'boo', 2): 2.0},
+             'B': {('bee', 'bah', 0): 1.0,
+                   ('bee', 'bah', 1): 1.0,
+                   ('bee', 'boo', 0): 2.0,
+                   ('bee', 'boo', 1): 2.0,
+                   ('bee', 'boo', 2): 2.0}})
+        assert_frame_equal(results, expected)
+
     def test_append_series_dict(self):
         df = DataFrame(np.random.randn(5, 4),
                        columns=['foo', 'bar', 'baz', 'qux'])
