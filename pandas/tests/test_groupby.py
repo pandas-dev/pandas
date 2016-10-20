@@ -444,7 +444,31 @@ class TestGroupBy(tm.TestCase):
 
         # GH14334
         # pd.Grouper(key=...) may be passed in a list
+        df = DataFrame({'A': [0, 0, 0, 1, 1, 1],
+                        'B': [1, 1, 2, 2, 3, 3],
+                        'C': [1, 2, 3, 4, 5, 6]})
+        # Group by single column
+        expected = df.groupby('A').sum()
         g = df.groupby([pd.Grouper(key='A')])
+        result = g.sum()
+        assert_frame_equal(result, expected)
+
+        # Group by two columns
+        # using a combination of strings and Grouper objects
+        expected = df.groupby(['A', 'B']).sum()
+
+        # Group with two Grouper objects
+        g = df.groupby([pd.Grouper(key='A'), pd.Grouper(key='B')])
+        result = g.sum()
+        assert_frame_equal(result, expected)
+
+        # Group with a string and a Grouper object
+        g = df.groupby(['A', pd.Grouper(key='B')])
+        result = g.sum()
+        assert_frame_equal(result, expected)
+
+        # Group with a Grouper object and a string
+        g = df.groupby([pd.Grouper(key='A'), 'B'])
         result = g.sum()
         assert_frame_equal(result, expected)
 
