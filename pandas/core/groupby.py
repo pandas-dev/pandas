@@ -3454,7 +3454,6 @@ class NDFrameGroupBy(GroupBy):
         from pandas.tools.merge import concat
 
         applied = []
-
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
@@ -3475,14 +3474,24 @@ class NDFrameGroupBy(GroupBy):
             else:
                 res = path(group)
 
-            # broadcasting
             if isinstance(res, Series):
-                if res.index.is_(obj.index):
-                    group.T.values[:] = res
-                else:
-                    group.values[:] = res
 
-                applied.append(group)
+                # we need to broadcast across the
+                # other dimension; this will preserve dtypes
+                # GH14457
+                if not np.prod(group.shape):
+                    continue
+                elif res.index.is_(obj.index):
+                    r = concat([res] * len(group.columns), axis=1)
+                    r.columns = group.columns
+                    r.index = group.index
+                else:
+                    r = DataFrame(
+                        np.concatenate([res.values] * len(group.index)
+                                       ).reshape(group.shape),
+                        columns=group.columns, index=group.index)
+
+                applied.append(r)
             else:
                 applied.append(res)
 

@@ -1336,6 +1336,18 @@ class TestGroupBy(tm.TestCase):
         for result in results:
             assert_series_equal(result, expected, check_names=False)
 
+    def test_transform_coercion(self):
+
+        # 14457
+        # when we are transforming be sure to not coerce
+        # via assignment
+        df = pd.DataFrame(dict(A=['a', 'a'], B=[0, 1]))
+        g = df.groupby('A')
+
+        expected = g.transform(np.mean)
+        result = g.transform(lambda x: np.mean(x))
+        assert_frame_equal(result, expected)
+
     def test_with_na(self):
         index = Index(np.arange(10))
 
