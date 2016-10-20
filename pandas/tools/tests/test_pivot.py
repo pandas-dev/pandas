@@ -131,6 +131,39 @@ class TestPivotTable(tm.TestCase):
         expected = Series(dict(float64=2))
         tm.assert_series_equal(result, expected)
 
+    def test_pivot_no_values(self):
+        # GH 14380
+        idx = pd.DatetimeIndex(['2011-01-01', '2011-02-01', '2011-01-02',
+                                '2011-01-01', '2011-01-02'])
+        df = pd.DataFrame({'A': [1, 2, 3, 4, 5]},
+                          index=idx)
+        res = df.pivot_table(index=df.index.month, columns=df.index.day)
+
+        exp_columns = pd.MultiIndex.from_tuples([('A', 1), ('A', 2)])
+        exp = pd.DataFrame([[2.5, 4.0], [2.0, np.nan]],
+                           index=[1, 2], columns=exp_columns)
+        tm.assert_frame_equal(res, exp)
+
+        df = pd.DataFrame({'A': [1, 2, 3, 4, 5],
+                           'dt': pd.date_range('2011-01-01', freq='D',
+                                               periods=5)},
+                          index=idx)
+        res = df.pivot_table(index=df.index.month,
+                             columns=pd.Grouper(key='dt', freq='M'))
+        exp_columns = pd.MultiIndex.from_tuples([('A',
+                                                  pd.Timestamp('2011-01-31'))])
+        exp_columns.names = [None, 'dt']
+        exp = pd.DataFrame([3.25, 2.0],
+                           index=[1, 2], columns=exp_columns)
+        tm.assert_frame_equal(res, exp)
+
+        res = df.pivot_table(index=pd.Grouper(freq='A'),
+                             columns=pd.Grouper(key='dt', freq='M'))
+        exp = pd.DataFrame([3],
+                           index=pd.DatetimeIndex(['2011-12-31']),
+                           columns=exp_columns)
+        tm.assert_frame_equal(res, exp)
+
     def test_pivot_multi_values(self):
         result = pivot_table(self.data, values=['D', 'E'],
                              index='A', columns=['B', 'C'], fill_value=0)
