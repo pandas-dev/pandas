@@ -1149,3 +1149,5 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         exp = pd.Index(
             [pd.Timedelta('1 day'), 'x', pd.Timedelta('3 day')], dtype=object)
         self.assert_index_equal(idx.fillna('x'), exp)
+
+
