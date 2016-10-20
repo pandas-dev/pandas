@@ -26,6 +26,7 @@ Performance Improvements
 
 
 
+
 .. _whatsnew_0191.bug_fixes:
 
 Bug Fixes
@@ -40,6 +41,9 @@ Bug Fixes
 
 
 
+
+
+- ``pd.merge()`` will raise ``ValueError`` with non-boolean parameters in passed boolean type arguments (:issue:`14434`)
 
 
 

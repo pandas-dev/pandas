@@ -109,6 +109,15 @@ class TestMerge(tm.TestCase):
         self.assertRaises(ValueError, merge, self.df, self.df2,
                           left_on=['key1'], right_on=['key1', 'key2'])
 
+    def test_index_and_on_parameters_confusion(self):
+        self.assertRaises(ValueError, merge, self.df, self.df2, how='left',
+                          left_index=False, right_index=['key1', 'key2'])
+        self.assertRaises(ValueError, merge, self.df, self.df2, how='left',
+                          left_index=['key1', 'key2'], right_index=False)
+        self.assertRaises(ValueError, merge, self.df, self.df2, how='left',
+                          left_index=['key1', 'key2'],
+                          right_index=['key1', 'key2'])
+
     def test_merge_overlap(self):
         merged = merge(self.left, self.left, on='key')
         exp_len = (self.left['key'].value_counts() ** 2).sum()

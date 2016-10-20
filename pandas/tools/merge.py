@@ -472,6 +472,15 @@ class _MergeOperation(object):
                 'can not merge DataFrame with instance of '
                 'type {0}'.format(type(right)))
 
+        if not is_bool(left_index):
+            raise ValueError(
+                'left_index parameter must be of type bool, not '
+                '{0}'.format(type(left_index)))
+        if not is_bool(right_index):
+            raise ValueError(
+                'right_index parameter must be of type bool, not '
+                '{0}'.format(type(right_index)))
+
         # warn user when merging between different levels
         if left.columns.nlevels != right.columns.nlevels:
             msg = ('merging between different levels can give an unintended '
