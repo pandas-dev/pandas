@@ -25,12 +25,12 @@
 
 from __future__ import print_function
 
+from subprocess import check_output
 from requests.auth import HTTPBasicAuth
 import requests
 
 import os
 import six
-import subprocess
 import sys
 import textwrap
 
@@ -83,21 +83,10 @@ def fail(msg):
 
 
 def run_cmd(cmd):
-    # py2.6 does not have subprocess.check_output
     if isinstance(cmd, six.string_types):
         cmd = cmd.split(' ')
 
-    popenargs = [cmd]
-    kwargs = {}
-
-    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise subprocess.CalledProcessError(retcode, cmd, output=output)
+    output = check_output(cmd)
 
     if isinstance(output, six.binary_type):
         output = output.decode('utf-8')
