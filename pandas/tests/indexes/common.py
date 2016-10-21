@@ -852,3 +852,41 @@ class Base(object):
                 expected[1] = True
                 self.assert_numpy_array_equal(idx._isnan, expected)
                 self.assertTrue(idx.hasnans)
+
+    def test_map(self):
+        for name, index in self.indices.items():
+            if len(index) == 0 or isinstance(index, MultiIndex):
+                pass
+            else:
+                # Applying a function to the Index
+                index = index.map(lambda x: x)
+                print(name, index)
+                self.assertTrue(isinstance(index, Index))
+                #self.assertTrue(index.equals(Index(['I1', 'I2'])))
+                #self.assertEqual(index.name, "Numbering")
+#
+                #testIdx = self.unicodeIndex.map(lambda x: len(x))
+                #tm.assert_index_equal(testIdx, Int64Index([10]*100))
+#
+                #testIdx = self.strIndex.map(lambda x: len(x))
+                #tm.assert_index_equal(testIdx, Int64Index([10]*100))
+#
+                #testIdx = self.dateIndex.map(lambda x: x + timedelta(days=1))
+                #tm.assert_index_equal(
+                #    testIdx, DatetimeIndex([dt + timedelta(days=1) for dt in tm.makeDateIndex(100)]))
+#
+                #testIdx = self.periodIndex.map(lambda x: x.to_timestamp())
+                #tm.assert_index_equal(testIdx, self.dateIndex)
+#
+                #testIdx = self.intIndex.map(lambda x: str(x))
+                #tm.assert_index_equal(testIdx, Index([str(i) for i in range(100)]))
+#
+                #testIdx = self.floatIndex.map(lambda x: -1 if x < 0 else 1)
+                #self.assertEqual(len(testIdx), 100)
+                #self.assertTrue(isinstance(testIdx, Int64Index))
+                #self.assertTrue(set(testIdx == {-1, 1}))
+#
+                #testIdx = self.boolIndex.map(lambda x: not x)
+                #tm.assert_index_equal(testIdx, Index([False, True]))
+#
+                #testIdx = self.catIndex.map(lambda x: len(x))
