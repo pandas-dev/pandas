@@ -11,6 +11,7 @@ except ImportError:  # pragma: no cover
 
 import pandas.hashtable as _hash
 from pandas import compat, lib, algos, tslib
+from pandas.compat.numpy import _np_version_under1p10
 from pandas.types.common import (_ensure_int64, _ensure_object,
                                  _ensure_float64, _get_dtype,
                                  is_float, is_scalar,
@@ -829,9 +830,37 @@ def _checked_add_with_arr(arr, b):
 
     Raises
     ------
-    OverflowError if any x + y exceeds the maximum int64 value.
+    OverflowError if any x + y exceeds the maximum or minimum int64 value.
     """
-    if (np.iinfo(np.int64).max - b < arr).any():
-        raise OverflowError("Python int too large to "
-                            "convert to C long")
+    # For performance reasons, we broadcast 'b' to the new array 'b2'
+    # so that it has the same size as 'arr'.
+    if _np_version_under1p10:
+        if lib.isscalar(b):
+            b2 = np.empty(arr.shape)
+            b2.fill(b)
+        else:
+            b2 = b
+    else:
+        b2 = np.broadcast_to(b, arr.shape)
+
+    # gh-14324: For each element in 'arr' and its corresponding element
+    # in 'b2', we check the sign of the element in 'b2'. If it is positive,
+    # we then check whether its sum with the element in 'arr' exceeds
+    # np.iinfo(np.int64).max. If so, we have an overflow error. If it
+    # it is negative, we then check whether its sum with the element in
+    # 'arr' exceeds np.iinfo(np.int64).min. If so, we have an overflow
+    # error as well.
+    mask1 = b2 > 0
+    mask2 = b2 < 0
+
+    if not mask1.any():
+        to_raise = (np.iinfo(np.int64).min - b2 > arr).any()
+    elif not mask2.any():
+        to_raise = (np.iinfo(np.int64).max - b2 < arr).any()
+    else:
+        to_raise = ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]).any() or
+                    (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]).any())
+
+    if to_raise:
+        raise OverflowError("Overflow in int64 addition")
     return arr + b
