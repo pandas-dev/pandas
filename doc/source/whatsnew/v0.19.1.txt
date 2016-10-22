@@ -44,6 +44,7 @@ Bug Fixes
 
 
 
+- Source installs from PyPI will now work without ``cython`` installed, as in previous version (:issue:`14204`)
 
 - ``pd.merge()`` will raise ``ValueError`` with non-boolean parameters in passed boolean type arguments (:issue:`14434`)
 
