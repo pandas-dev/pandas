@@ -2966,6 +2966,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         name = self.name if self.name == other.name else None
         return Index(joined, name=name)
 
+    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
+        # this is for partial string indexing,
+        # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
+        raise NotImplementedError
+
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
         For an ordered Index, compute the slice indexer for input labels and
