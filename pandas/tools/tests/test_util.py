@@ -402,60 +402,30 @@ class TestToNumeric(tm.TestCase):
             tm.assert_numpy_array_equal(res, expected)
 
         # check that the smallest and largest values in each integer type pass to each type.
-        integer_dtype_min_max = {
-                'int8': [np.iinfo(np.int8).min, np.iinfo(np.int8).max],
-                'int16': [np.iinfo(np.int16).min, np.iinfo(np.int16).max],
-                'int32': [np.iinfo(np.int32).min, np.iinfo(np.int32).max],
-                'int64': [np.iinfo(np.int64).min, np.iinfo(np.int64).max]
-                }
+        dtype_downcast_min_max = [
+                ('int8', 'integer', [np.iinfo(np.int8).min, np.iinfo(np.int8).max]),
+                ('int16', 'integer', [np.iinfo(np.int16).min, np.iinfo(np.int16).max]),
+                ('int32', 'integer', [np.iinfo(np.int32).min, np.iinfo(np.int32).max]),
+                ('int64', 'integer', [np.iinfo(np.int64).min, np.iinfo(np.int64).max]),
+                ('uint8', 'unsigned', [np.iinfo(np.uint8).min, np.iinfo(np.uint8).max]),
+                ('uint16', 'unsigned', [np.iinfo(np.uint16).min, np.iinfo(np.uint16).max]),
+                ('uint32', 'unsigned', [np.iinfo(np.uint32).min, np.iinfo(np.uint32).max]),
+                # ('uint64', 'unsigned', [np.iinfo(np.uint64).min, np.iinfo(np.uint64).max]),
+                ('int16', 'integer', [np.iinfo(np.int8).min, np.iinfo(np.int8).max + 1]),
+                ('int32', 'integer', [np.iinfo(np.int16).min, np.iinfo(np.int16).max + 1]),
+                ('int64', 'integer', [np.iinfo(np.int32).min, np.iinfo(np.int32).max + 1]),
+                ('int16', 'integer', [np.iinfo(np.int8).min - 1, np.iinfo(np.int16).max]),
+                ('int32', 'integer', [np.iinfo(np.int16).min - 1, np.iinfo(np.int32).max]),
+                ('int64', 'integer', [np.iinfo(np.int32).min - 1, np.iinfo(np.int64).max]),
+                ('uint16', 'unsigned', [np.iinfo(np.uint8).min, np.iinfo(np.uint8).max + 1]),
+                ('uint32', 'unsigned', [np.iinfo(np.uint16).min, np.iinfo(np.uint16).max + 1]),
+                # ('uint64', 'unsigned', [np.iinfo(np.uint32).min, np.iinfo(np.uint32).max + 1]),
+                ]
 
-        for dtype, min_max in integer_dtype_min_max.items(): 
-            series = pd.to_numeric(pd.Series(min_max), downcast = 'integer')
+        for dtype, downcast, min_max in dtype_downcast_min_max: 
+            series = pd.to_numeric(pd.Series(min_max), downcast = downcast)
             tm.assert_equal(series.dtype, dtype)
 
-        
-        unsigned_dtype_min_max = {
-                'uint8': [np.iinfo(np.uint8).min, np.iinfo(np.uint8).max],
-                'uint16': [np.iinfo(np.uint16).min, np.iinfo(np.uint16).max],
-                'uint32': [np.iinfo(np.uint32).min, np.iinfo(np.uint32).max],
-                # 'uint64': [np.iinfo(np.uint64).min, np.iinfo(np.uint64).max]
-                }
-
-        for dtype, min_max in unsigned_dtype_min_max.items():
-            series = pd.to_numeric(pd.Series(min_max), downcast = 'unsigned')
-            tm.assert_equal(series.dtype, dtype)
-
-        #check to see if the minimum number to shift integer types actually shifts
-
-        integer_dtype_min_max_plus = {
-                'int16': [np.iinfo(np.int8).min, np.iinfo(np.int8).max + 1],
-                'int32': [np.iinfo(np.int16).min, np.iinfo(np.int16).max + 1],
-                'int64': [np.iinfo(np.int32).min, np.iinfo(np.int32).max + 1],
-                }
-
-        for dtype, min_max in integer_dtype_min_max_plus.items(): 
-            series = pd.to_numeric(pd.Series(min_max), downcast = 'integer')
-            tm.assert_equal(series.dtype, dtype)
-
-        integer_dtype_min_max_minus = {
-                'int16': [np.iinfo(np.int8).min - 1, np.iinfo(np.int16).max],
-                'int32': [np.iinfo(np.int16).min - 1, np.iinfo(np.int32).max],
-                'int64': [np.iinfo(np.int32).min - 1, np.iinfo(np.int64).max]
-                }
-
-        for dtype, min_max in integer_dtype_min_max_minus.items(): 
-            series = pd.to_numeric(pd.Series(min_max), downcast = 'integer')
-            tm.assert_equal(series.dtype, dtype)
-
-        unsigned_dtype_min_max_plus = {
-                'uint16': [np.iinfo(np.uint8).min, np.iinfo(np.uint8).max + 1],
-                'uint32': [np.iinfo(np.uint16).min, np.iinfo(np.uint16).max + 1],
-                # 'uint64': [np.iinfo(np.uint32).min, np.iinfo(np.uint32).max + 1],
-                }
-
-        for dtype, min_max in unsigned_dtype_min_max_plus.items():
-            series = pd.to_numeric(pd.Series(min_max), downcast = 'unsigned')
-            tm.assert_equal(series.dtype, dtype)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
