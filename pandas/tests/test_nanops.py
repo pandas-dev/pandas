@@ -1004,13 +1004,20 @@ class TestNankurtFixedValues(tm.TestCase):
 
 def test_int64_add_overflow():
     # see gh-14068
-    msg = "too (big|large) to convert"
+    msg = "Overflow in int64 addition"
     m = np.iinfo(np.int64).max
+    n = np.iinfo(np.int64).min
 
     with tm.assertRaisesRegexp(OverflowError, msg):
         nanops._checked_add_with_arr(np.array([m, m]), m)
     with tm.assertRaisesRegexp(OverflowError, msg):
         nanops._checked_add_with_arr(np.array([m, m]), np.array([m, m]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        nanops._checked_add_with_arr(np.array([n, n]), n)
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        nanops._checked_add_with_arr(np.array([n, n]), np.array([n, n]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        nanops._checked_add_with_arr(np.array([m, n]), np.array([n, n]))
     with tm.assertRaisesRegexp(OverflowError, msg):
         with tm.assert_produces_warning(RuntimeWarning):
             nanops._checked_add_with_arr(np.array([m, m]),
