@@ -3613,6 +3613,27 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df2.loc[idx]
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
+    def test_string_slice(self):
+        # GH 14424
+        # string indexing against datetimelike with object
+        # dtype should properly raises KeyError
+        df = pd.DataFrame([1], pd.Index([pd.Timestamp('2011-01-01')],
+                                        dtype=object))
+        self.assertTrue(df.index.is_all_dates)
+        with tm.assertRaises(KeyError):
+            df['2011']
+
+        with tm.assertRaises(KeyError):
+            df.loc['2011', 0]
+
+        df = pd.DataFrame()
+        self.assertFalse(df.index.is_all_dates)
+        with tm.assertRaises(KeyError):
+            df['2011']
+
+        with tm.assertRaises(KeyError):
+            df.loc['2011', 0]
+
     def test_mi_access(self):
 
         # GH 4145
