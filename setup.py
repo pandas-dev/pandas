@@ -125,25 +125,25 @@ for module, files in _pxi_dep_template.items():
 class build_ext(_build_ext):
     def build_extensions(self):
 
-        if not cython:
-            raise ImportError('Building pandas requires cython')
+        # if builing from c files, don't need to
+        # generate template output
+        if cython:
+            for pxifile in _pxifiles:
+                # build pxifiles first, template extention must be .pxi.in
+                assert pxifile.endswith('.pxi.in')
+                outfile = pxifile[:-3]
 
-        for pxifile in _pxifiles:
-            # build pxifiles first, template extention must be .pxi.in
-            assert pxifile.endswith('.pxi.in')
-            outfile = pxifile[:-3]
+                if (os.path.exists(outfile) and
+                    os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
+                    # if .pxi.in is not updated, no need to output .pxi
+                    continue
 
-            if (os.path.exists(outfile) and
-               os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
-                # if .pxi.in is not updated, no need to output .pxi
-                continue
+                with open(pxifile, "r") as f:
+                    tmpl = f.read()
+                pyxcontent = tempita.sub(tmpl)
 
-            with open(pxifile, "r") as f:
-                tmpl = f.read()
-            pyxcontent = tempita.sub(tmpl)
-
-            with open(outfile, "w") as f:
-                f.write(pyxcontent)
+                with open(outfile, "w") as f:
+                    f.write(pyxcontent)
 
         numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
 
