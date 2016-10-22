@@ -1891,6 +1891,17 @@ def test_bad_resolver_raises():
         yield check_bad_resolver_raises, engine, parser
 
 
+def check_empty_string_raises(engine, parser):
+    tm.skip_if_no_ne(engine)
+    with tm.assertRaisesRegexp(ValueError, 'expr cannot be an empty string'):
+        pd.eval('', engine=engine, parser=parser)
+
+
+def test_empty_string_raises():
+    for engine, parser in ENGINES_PARSERS:
+        yield check_empty_string_raises, engine, parser
+
+
 def check_more_than_one_expression_raises(engine, parser):
     tm.skip_if_no_ne(engine)
     with tm.assertRaisesRegexp(SyntaxError,
