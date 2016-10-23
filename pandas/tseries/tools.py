@@ -267,11 +267,13 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1   2016-03-05
     dtype: datetime64[ns]
 
-    If a date that does not meet timestamp limitations, passing errors='coerce'
-    will force to NaT. Furthermore this will force non-dates to NaT as well.
-
+    Since pandas represents timestamps in nanosecond resolution, the timespan that can be represented using a 64-bit integer is limited to approximately 584 years.
+    
+    If a date that does not meet timestamp limitations, passing errors='ignore' will simply return the original input instead of raising any exception.
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
     datetime.datetime(1300, 1, 1, 0, 0)
+    
+    Passing errors='coerce' will force to NaT. Furthermore this will force non-dates to NaT as well.
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
 
