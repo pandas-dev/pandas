@@ -30,11 +30,9 @@ try:
             # The StringIO(str(_)) is for dateutil 2.2 compatibility
             return _timelex.split(compat.StringIO(str(dt_str)))
 
-
         _DATEUTIL_LEXER_SPLIT = _lexer_split_from_str
 except (ImportError, AttributeError):
     pass
-
 
 def _infer_tzinfo(start, end):
     def _infer(a, b):
@@ -51,7 +49,6 @@ def _infer_tzinfo(start, end):
     elif end is not None:
         tz = _infer(end, start)
     return tz
-
 
 def _guess_datetime_format(dt_str, dayfirst=False,
                            dt_str_parse=compat.parse_date,
@@ -269,11 +266,13 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1   2016-03-05
     dtype: datetime64[ns]
 
-    Since pandas represents timestamps in nanosecond resolution, the timespan that can be represented using a 64-bit
-    integer is limited to approximately 584 years.
-    If a date that does not meet timestamp limitations, passing errors='ignore' will simply return the original input
-    instead of raising any exception.
-    Passing errors='coerce' will force to NaT. Furthermore this will force non-dates to NaT as well.
+    Since pandas represents timestamps in nanosecond resolution, the timespan
+    that can be represented using a 64-bit integer is limited to approximately
+    584 years.
+    If a date that does not meet timestamp limitations, passing errors='ignore'
+    will simply return the original input instead of raising any exception.
+    Passing errors='coerce' will force to NaT. Furthermore this will force
+    non-dates to NaT as well.
 
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
     datetime.datetime(1300, 1, 1, 0, 0)
