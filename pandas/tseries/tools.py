@@ -34,7 +34,7 @@ try:
 except (ImportError, AttributeError):
     pass
 
-  
+
 def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
@@ -51,7 +51,7 @@ def _infer_tzinfo(start, end):
         tz = _infer(end, start)
     return tz
 
-  
+
 def _guess_datetime_format(dt_str, dayfirst=False,
                            dt_str_parse=compat.parse_date,
                            dt_str_split=_DATEUTIL_LEXER_SPLIT):
@@ -134,7 +134,7 @@ def _guess_datetime_format(dt_str, dayfirst=False,
             for i, token_format in enumerate(format_guess):
                 token_filled = tokens[i].zfill(padding)
                 if (token_format is None and
-                            token_filled == parsed_datetime.strftime(attr_format)):
+                        token_filled == parsed_datetime.strftime(attr_format)):
                     format_guess[i] = attr_format
                     tokens[i] = token_filled
                     found_attrs.update(attrs)
