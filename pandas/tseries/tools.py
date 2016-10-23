@@ -30,6 +30,7 @@ try:
             # The StringIO(str(_)) is for dateutil 2.2 compatibility
             return _timelex.split(compat.StringIO(str(dt_str)))
 
+
         _DATEUTIL_LEXER_SPLIT = _lexer_split_from_str
 except (ImportError, AttributeError):
     pass
@@ -43,6 +44,7 @@ def _infer_tzinfo(start, end):
                 raise AssertionError('Inputs must both have the same timezone,'
                                      ' {0} != {1}'.format(tz, b.tzinfo))
         return tz
+
     tz = None
     if start is not None:
         tz = _infer(start, end)
@@ -133,7 +135,7 @@ def _guess_datetime_format(dt_str, dayfirst=False,
             for i, token_format in enumerate(format_guess):
                 token_filled = tokens[i].zfill(padding)
                 if (token_format is None and
-                        token_filled == parsed_datetime.strftime(attr_format)):
+                            token_filled == parsed_datetime.strftime(attr_format)):
                     format_guess[i] = attr_format
                     tokens[i] = token_filled
                     found_attrs.update(attrs)
@@ -267,13 +269,14 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1   2016-03-05
     dtype: datetime64[ns]
 
-    Since pandas represents timestamps in nanosecond resolution, the timespan that can be represented using a 64-bit integer is limited to approximately 584 years.
-    
-    If a date that does not meet timestamp limitations, passing errors='ignore' will simply return the original input instead of raising any exception.
+    Since pandas represents timestamps in nanosecond resolution, the timespan that can be represented using a 64-bit
+    integer is limited to approximately 584 years.
+    If a date that does not meet timestamp limitations, passing errors='ignore' will simply return the original input
+    instead of raising any exception.
+    Passing errors='coerce' will force to NaT. Furthermore this will force non-dates to NaT as well.
+
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
     datetime.datetime(1300, 1, 1, 0, 0)
-    
-    Passing errors='coerce' will force to NaT. Furthermore this will force non-dates to NaT as well.
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
 
@@ -425,6 +428,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     return _convert_listlike(np.array([arg]), box, format)[0]
 
+
 # mappings for assembling units
 _unit_map = {'year': 'year',
              'years': 'year',
@@ -557,7 +561,7 @@ def _attempt_YYYYMMDD(arg, errors):
         result = np.empty(carg.shape, dtype='M8[ns]')
         iresult = result.view('i8')
         iresult[~mask] = tslib.iNaT
-        result[mask] = calc(carg[mask].astype(np.float64).astype(np.int64)).\
+        result[mask] = calc(carg[mask].astype(np.float64).astype(np.int64)). \
             astype('M8[ns]')
         return result
 
@@ -641,7 +645,6 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
 DateParseError = tslib.DateParseError
 normalize_date = tslib.normalize_date
-
 
 # Fixed time formats for time parsing
 _time_formats = ["%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
@@ -767,6 +770,7 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
 def format(dt):
     """Returns date in YYYYMMDD format."""
     return dt.strftime('%Y%m%d')
+
 
 OLE_TIME_ZERO = datetime(1899, 12, 30, 0, 0, 0)
 
