@@ -50,7 +50,7 @@ bar2,12,13,14,15
         # Issue 13652:
         # This test validates that both python engine
         # and C engine will raise UnicodeDecodeError instead of
-        # c engine raising CParserError and swallowing exception
+        # c engine raising ParserError and swallowing exception
         # that caused read to fail.
         handle = open(self.csv_shiftjs, "rb")
         codec = codecs.lookup("utf-8")

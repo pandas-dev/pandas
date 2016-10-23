@@ -15,7 +15,7 @@ import pandas.io.parsers as parsers
 import pandas.util.testing as tm
 
 from pandas.compat import StringIO
-from pandas.io.common import CParserError
+from pandas.io.common import ParserError
 from pandas.io.parsers import read_csv, read_table
 
 
@@ -78,10 +78,10 @@ a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         msg = 'Error tokenizing data'
 
-        with tm.assertRaisesRegexp(CParserError, msg):
-            read_table(StringIO(text), sep=r'\s+')
-        with tm.assertRaisesRegexp(CParserError, msg):
-            read_table(StringIO(text), engine='c', sep=r'\s+')
+        with tm.assertRaisesRegexp(ParserError, msg):
+            read_table(StringIO(text), sep='\s+')
+        with tm.assertRaisesRegexp(ParserError, msg):
+            read_table(StringIO(text), engine='c', sep='\s+')
 
         msg = "Only length-1 thousands markers supported"
         data = """A|B|C
