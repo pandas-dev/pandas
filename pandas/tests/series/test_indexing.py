@@ -1947,6 +1947,40 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         self.assertEqual(result.name, s.name)
         self.assertEqual(result2.name, s.name)
 
+    def test_setitem_scalar_into_readonly_backing_data(self):
+        # GH14359: test that you cannot mutate a read only buffer
+
+        array = np.zeros(5)
+        array.flags.writeable = False  # make the array immutable
+        series = Series(array)
+
+        for n in range(len(series)):
+            with self.assertRaises(ValueError):
+                series[n] = 1
+
+            self.assertEqual(
+                array[n],
+                0,
+                msg='even though the ValueError was raised, the underlying'
+                ' array was still mutated!',
+            )
+
+    def test_setitem_slice_into_readonly_backing_data(self):
+        # GH14359: test that you cannot mutate a read only buffer
+
+        array = np.zeros(5)
+        array.flags.writeable = False  # make the array immutable
+        series = Series(array)
+
+        with self.assertRaises(ValueError):
+            series[1:3] = 1
+
+        self.assertTrue(
+            not array.any(),
+            msg='even though the ValueError was raised, the underlying'
+            ' array was still mutated!',
+        )
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
