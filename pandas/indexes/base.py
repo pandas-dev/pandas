@@ -2003,7 +2003,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         except TypeError:
             pass
 
-        return this._shallow_copy(the_diff, name=result_name)
+        return this._shallow_copy(the_diff, name=result_name, freq=None)
 
     def symmetric_difference(self, other, result_name=None):
         """

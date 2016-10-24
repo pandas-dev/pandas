@@ -732,6 +732,31 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
                            dtype=object)
             self.assert_index_equal(idx.fillna('x'), exp)
 
+    def test_difference_of_union(self):
+        # GH14323: Test taking the union of differences of an Index.
+        # Difference of DatetimeIndex does not preserve frequency,
+        # so a differencing operation should not retain the freq field of the
+        # original index.
+        i = pd.date_range("20160920", "20160925", freq="D")
+
+        a = pd.date_range("20160921", "20160924", freq="D")
+        expected = pd.DatetimeIndex(["20160920", "20160925"], freq=None)
+        a_diff = i.difference(a)
+        tm.assert_index_equal(a_diff, expected)
+        tm.assert_attr_equal('freq', a_diff, expected)
+
+        b = pd.date_range("20160922", "20160925", freq="D")
+        b_diff = i.difference(b)
+        expected = pd.DatetimeIndex(["20160920", "20160921"], freq=None)
+        tm.assert_index_equal(b_diff, expected)
+        tm.assert_attr_equal('freq', b_diff, expected)
+
+        union_of_diff = a_diff.union(b_diff)
+        expected = pd.DatetimeIndex(["20160920", "20160921", "20160925"],
+                                    freq=None)
+        tm.assert_index_equal(union_of_diff, expected)
+        tm.assert_attr_equal('freq', union_of_diff, expected)
+
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex
@@ -937,6 +962,30 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         with self.assertRaises(AttributeError):
             DatetimeIndex([]).millisecond
+
+    def test_difference_of_union(self):
+        # GH14323: Test taking the union of differences of an Index.
+        # Difference of Period MUST preserve frequency, but the ability
+        # to union results must be preserved
+        i = pd.period_range("20160920", "20160925", freq="D")
+
+        a = pd.period_range("20160921", "20160924", freq="D")
+        expected = pd.PeriodIndex(["20160920", "20160925"], freq='D')
+        a_diff = i.difference(a)
+        tm.assert_index_equal(a_diff, expected)
+        tm.assert_attr_equal('freq', a_diff, expected)
+
+        b = pd.period_range("20160922", "20160925", freq="D")
+        b_diff = i.difference(b)
+        expected = pd.PeriodIndex(["20160920", "20160921"], freq='D')
+        tm.assert_index_equal(b_diff, expected)
+        tm.assert_attr_equal('freq', b_diff, expected)
+
+        union_of_diff = a_diff.union(b_diff)
+        expected = pd.PeriodIndex(["20160920", "20160921", "20160925"],
+                                  freq='D')
+        tm.assert_index_equal(union_of_diff, expected)
+        tm.assert_attr_equal('freq', union_of_diff, expected)
 
 
 class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
@@ -1149,3 +1198,28 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         exp = pd.Index(
             [pd.Timedelta('1 day'), 'x', pd.Timedelta('3 day')], dtype=object)
         self.assert_index_equal(idx.fillna('x'), exp)
+
+    def test_difference_of_union(self):
+        # GH14323: Test taking the union of differences of an Index.
+        # Difference of TimedeltaIndex does not preserve frequency,
+        # so a differencing operation should not retain the freq field of the
+        # original index.
+        i = pd.timedelta_range("0 days", "5 days", freq="D")
+
+        a = pd.timedelta_range("1 days", "4 days", freq="D")
+        expected = pd.TimedeltaIndex(["0 days", "5 days"], freq=None)
+        a_diff = i.difference(a)
+        tm.assert_index_equal(a_diff, expected)
+        tm.assert_attr_equal('freq', a_diff, expected)
+
+        b = pd.timedelta_range("2 days", "5 days", freq="D")
+        b_diff = i.difference(b)
+        expected = pd.TimedeltaIndex(["0 days", "1 days"], freq=None)
+        tm.assert_index_equal(b_diff, expected)
+        tm.assert_attr_equal('freq', b_diff, expected)
+
+        union_of_difference = a_diff.union(b_diff)
+        expected = pd.TimedeltaIndex(["0 days", "1 days", "5 days"],
+                                     freq=None)
+        tm.assert_index_equal(union_of_difference, expected)
+        tm.assert_attr_equal('freq', union_of_difference, expected)
