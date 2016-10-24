@@ -233,6 +233,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
     """
     first_expr = True
     if isinstance(expr, string_types):
+        _check_expression(expr)
         exprs = [e for e in expr.splitlines() if e != '']
     else:
         exprs = [expr]
