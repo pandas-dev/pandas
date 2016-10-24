@@ -43,7 +43,7 @@ Bug Fixes
 - Bug in string indexing against data with ``object`` ``Index`` may raise ``AttributeError`` (:issue:`14424`)
 - Corrrecly raise ``ValueError`` on empty input to ``pd.eval()`` and ``df.query()`` (:issue:`13139`)
 
-
+- Bug in ``RangeIndex.intersection`` when result is a empty set (:issue:`14364`).
 
 - ``pd.merge()`` will raise ``ValueError`` with non-boolean parameters in passed boolean type arguments (:issue:`14434`)
 
