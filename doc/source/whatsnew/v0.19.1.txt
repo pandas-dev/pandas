@@ -38,7 +38,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``RangeIndex.intersection`` when result is a empty set (:issue:`14364`).
 
 
 
