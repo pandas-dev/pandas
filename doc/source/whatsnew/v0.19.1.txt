@@ -44,6 +44,8 @@ Bug Fixes
 - Corrrecly raise ``ValueError`` on empty input to ``pd.eval()`` and ``df.query()`` (:issue:`13139`)
 
 - Bug in ``RangeIndex.intersection`` when result is a empty set (:issue:`14364`).
+- Bug in union of differences from a ``DatetimeIndex`; this is a regression in 0.19.0 from 0.18.1 (:issue:`14323`)
+
 
 
 - Source installs from PyPI will now work without ``cython`` installed, as in previous versions (:issue:`14204`)
