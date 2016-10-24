@@ -1892,6 +1892,7 @@ def test_bad_resolver_raises():
 
 
 def check_empty_string_raises(engine, parser):
+    # GH 13139
     tm.skip_if_no_ne(engine)
     with tm.assertRaisesRegexp(ValueError, 'expr cannot be an empty string'):
         pd.eval('', engine=engine, parser=parser)

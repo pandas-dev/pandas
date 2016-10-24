@@ -57,4 +57,4 @@ Bug Fixes
 
 - Bug in ``pd.pivot_table`` may raise ``TypeError`` or ``ValueError`` when ``index`` or ``columns``
   is not scalar and ``values`` is not specified (:issue:`14380`)
-- pd.eval('') and df.query('') now show better error message and raise ``ValueError`` (:issue: `13139`)
+- corrrecly raise ``ValueError`` on empty input to pd.eval() and df.query() (:issue: `13139`)
