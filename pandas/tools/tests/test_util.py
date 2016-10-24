@@ -422,8 +422,8 @@ class TestToNumeric(tm.TestCase):
                 # ('uint64', 'unsigned', [np.iinfo(np.uint32).min, np.iinfo(np.uint32).max + 1]),
                 ]
 
-        for dtype, downcast, min_max in dtype_downcast_min_max: 
-            series = pd.to_numeric(pd.Series(min_max), downcast = downcast)
+        for dtype, downcast, min_max in dtype_downcast_min_max:
+            series = pd.to_numeric(pd.Series(min_max), downcast=downcast)
             tm.assert_equal(series.dtype, dtype)
 
 
