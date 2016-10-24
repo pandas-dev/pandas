@@ -587,6 +587,35 @@ class TestRangeIndex(Numeric, tm.TestCase):
                                                 other.values)))
         self.assert_index_equal(result, expected)
 
+        index = RangeIndex(5)
+
+        # intersect of non-overlapping indices
+        other = RangeIndex(5, 10, 1)
+        result = index.intersection(other)
+        expected = RangeIndex(0, 0, 1)
+        self.assert_index_equal(result, expected)
+
+        other = RangeIndex(-1, -5, -1)
+        result = index.intersection(other)
+        expected = RangeIndex(0, 0, 1)
+        self.assert_index_equal(result, expected)
+
+        # intersection of empty indices
+        other = RangeIndex(0, 0, 1)
+        result = index.intersection(other)
+        expected = RangeIndex(0, 0, 1)
+        self.assert_index_equal(result, expected)
+
+        result = other.intersection(index)
+        self.assert_index_equal(result, expected)
+
+        # intersection of non-overlapping values based on start value and gcd
+        index = RangeIndex(1, 10, 2)
+        other = RangeIndex(0, 10, 4)
+        result = index.intersection(other)
+        expected = RangeIndex(0, 0, 1)
+        self.assert_index_equal(result, expected)
+
     def test_intersect_str_dates(self):
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
 

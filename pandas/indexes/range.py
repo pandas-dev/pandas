@@ -315,6 +315,9 @@ class RangeIndex(Int64Index):
         if not isinstance(other, RangeIndex):
             return super(RangeIndex, self).intersection(other)
 
+        if not len(self) or not len(other):
+            return RangeIndex._simple_new(None)
+
         # check whether intervals intersect
         # deals with in- and decreasing ranges
         int_low = max(min(self._start, self._stop + 1),
@@ -322,7 +325,7 @@ class RangeIndex(Int64Index):
         int_high = min(max(self._stop, self._start + 1),
                        max(other._stop, other._start + 1))
         if int_high <= int_low:
-            return RangeIndex()
+            return RangeIndex._simple_new(None)
 
         # Method hint: linear Diophantine equation
         # solve intersection problem
@@ -332,7 +335,7 @@ class RangeIndex(Int64Index):
 
         # check whether element sets intersect
         if (self._start - other._start) % gcd:
-            return RangeIndex()
+            return RangeIndex._simple_new(None)
 
         # calculate parameters for the RangeIndex describing the
         # intersection disregarding the lower bounds
