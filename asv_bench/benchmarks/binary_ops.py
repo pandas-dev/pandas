@@ -27,6 +27,9 @@ class Ops(object):
     def time_frame_multi_and(self, use_numexpr, threads):
         self.df[((self.df > 0) & (self.df2 > 0))]
 
+    def time_frame_comparison(self, use_numexpr, threads):
+        (self.df > self.df2)
+
     def teardown(self, use_numexpr, threads):
         expr.set_use_numexpr(True)
         expr.set_numexpr_threads()
