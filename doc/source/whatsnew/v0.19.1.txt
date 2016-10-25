@@ -61,7 +61,6 @@ Bug Fixes
 
 - Bug in ``Timestamp`` where dates very near the minimum (1677-09) could underflow on creation (:issue:`14415`)
 
-- Bug in ``pd.to_numeric`` where 0 was not included when ``downcast='unsigned'`` is passed (:issue:`14401`)
 - Bug in ``pd.concat`` where names of the ``keys`` were not propagated to the resulting ``MultiIndex`` (:issue:`14252`)
 - Bug in ``pd.concat`` where ``axis`` cannot take string parameters ``'rows'`` or ``'columns'`` (:issue:`14369`)
 - Bug in ``pd.concat`` with dataframes heterogeneous in length and tuple ``keys`` (:issue:`14438`)
