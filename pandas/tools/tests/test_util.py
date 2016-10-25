@@ -401,7 +401,8 @@ class TestToNumeric(tm.TestCase):
             res = pd.to_numeric(data, downcast=downcast)
             tm.assert_numpy_array_equal(res, expected)
 
-        # check that the smallest and largest values in each integer type pass to each type.
+    def test_downcast_limits(self):
+        # Test the limits of each downcast. Bug: #14401. 
         dtype_downcast_min_max = [
                 ('int8', 'integer', [np.iinfo(np.int8).min, np.iinfo(np.int8).max]),
                 ('int16', 'integer', [np.iinfo(np.int16).min, np.iinfo(np.int16).max]),
