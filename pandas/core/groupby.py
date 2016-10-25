@@ -2208,7 +2208,10 @@ class Grouping(object):
                 index._get_grouper_for_level(self.grouper, level)
 
         else:
-            if isinstance(self.grouper, (list, tuple)):
+            if self.grouper is None and self.name is not None:
+                self.grouper = self.obj[self.name]
+
+            elif isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
 
             # a passed Categorical
@@ -2448,7 +2451,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         elif is_in_axis(gpr):  # df.groupby('name')
             in_axis, name, gpr = True, gpr, obj[gpr]
             exclusions.append(name)
-
+        elif isinstance(gpr, Grouper) and gpr.key is not None:
+            # Add key to exclusions
+            exclusions.append(gpr.key)
+            in_axis, name = False, None
         else:
             in_axis, name = False, None
 
