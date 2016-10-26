@@ -29,12 +29,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
     def create_index(self):
         return RangeIndex(5)
 
-    def test_binops(self):
-        ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
-               operator.truediv, pow]
-        scalars = [-1, 1, 2]
-        idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2),
-                RangeIndex(-10, 10, 2), RangeIndex(5, -5, -1)]
+    def check_binop(self, ops, scalars, idxs):
         for op in ops:
             for a, b in combinations(idxs, 2):
                 result = op(a, b)
@@ -45,6 +40,23 @@ class TestRangeIndex(Numeric, tm.TestCase):
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
                     tm.assert_index_equal(result, expected)
+
+    def test_binops(self):
+        ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
+               operator.truediv]
+        scalars = [-1, 1, 2]
+        idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2),
+                RangeIndex(-10, 10, 2), RangeIndex(5, -5, -1)]
+        self.check_binop(ops, scalars, idxs)
+
+    def test_binops_pow(self):
+        # later versions of numpy don't allow powers of negative integers
+        # so test separately
+        # https://github.com/numpy/numpy/pull/8127
+        ops = [pow]
+        scalars = [1, 2]
+        idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)]
+        self.check_binop(ops, scalars, idxs)
 
     def test_too_many_names(self):
         def testit():
