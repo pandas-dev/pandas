@@ -24,6 +24,10 @@ class Algorithms(object):
         self.arrneg = np.arange(-1000000, 0)
         self.arrmixed = np.array([1, -1]).repeat(500000)
 
+        # match
+        self.uniques = tm.makeStringIndex(1000).values
+        self.all = self.uniques.repeat(10)
+
     def time_factorize_int(self):
         self.int.factorize()
 
@@ -38,6 +42,9 @@ class Algorithms(object):
 
     def time_duplicated_float(self):
         self.float.duplicated()
+
+    def time_match_strings(self):
+        pd.match(self.all, self.uniques)
 
     def time_add_overflow_pos_scalar(self):
         self.checked_add(self.arr, 1)
@@ -58,7 +65,7 @@ class Algorithms(object):
         self.checked_add(self.arr, self.arrmixed)
 
 
-class hashing(object):
+class Hashing(object):
     goal_time = 0.2
 
     def setup(self):
