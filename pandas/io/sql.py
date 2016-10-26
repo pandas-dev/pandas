@@ -416,7 +416,8 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
 
 def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
-           index=True, index_label=None, chunksize=None, dtype=None):
+           index=True, index_label=None, indexes=None, chunksize=None,
+           dtype=None):
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -445,6 +446,10 @@ def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
         Column label for index column(s). If None is given (default) and
         `index` is True, then the index names are used.
         A sequence should be given if the DataFrame uses MultiIndex.
+    indexes : list of column name(s). Columns names in this list will have
+        an indexes created for them in the database.
+
+        .. versionadded:: 0.18.2
     chunksize : int, default None
         If not None, then rows will be written in batches of this size at a
         time.  If None, all rows will be written at once.
@@ -467,7 +472,7 @@ def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
 
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index,
                       index_label=index_label, schema=schema,
-                      chunksize=chunksize, dtype=dtype)
+                      chunksize=chunksize, dtype=dtype, indexes=indexes)
 
 
 def has_table(table_name, con, flavor=None, schema=None):
@@ -546,12 +551,13 @@ class SQLTable(PandasObject):
 
     def __init__(self, name, pandas_sql_engine, frame=None, index=True,
                  if_exists='fail', prefix='pandas', index_label=None,
-                 schema=None, keys=None, dtype=None):
+                 schema=None, keys=None, dtype=None, indexes=None):
         self.name = name
         self.pd_sql = pandas_sql_engine
         self.prefix = prefix
         self.frame = frame
         self.index = self._index_name(index, index_label)
+        self.indexes = indexes
         self.schema = schema
         self.if_exists = if_exists
         self.keys = keys
@@ -742,18 +748,37 @@ class SQLTable(PandasObject):
         else:
             return None
 
+    def _is_column_indexed(self, label):
+        # column is explicitly set to be indexed
+        if self.indexes is not None and label in self.indexes:
+            return True
+
+        # if df index is also a column it needs an index unless it's
+        # also a primary key (otherwise there would be two indexes).
+        # multi-index can use primary key if the left hand side matches.
+        if self.index is not None and label in self.index:
+            if self.keys is None:
+                return True
+
+            col_nr = self.index.index(label) + 1
+            if self.keys[:col_nr] != self.index[:col_nr]:
+                return True
+
+        return False
+
     def _get_column_names_and_types(self, dtype_mapper):
         column_names_and_types = []
         if self.index is not None:
             for i, idx_label in enumerate(self.index):
                 idx_type = dtype_mapper(
                     self.frame.index.get_level_values(i))
-                column_names_and_types.append((idx_label, idx_type, True))
+                indexed = self._is_column_indexed(idx_label)
+                column_names_and_types.append((idx_label, idx_type, indexed))
 
         column_names_and_types += [
             (text_type(self.frame.columns[i]),
              dtype_mapper(self.frame.iloc[:, i]),
-             False)
+             self._is_column_indexed(text_type(self.frame.columns[i])))
             for i in range(len(self.frame.columns))
         ]
 
@@ -1098,7 +1123,8 @@ class SQLDatabase(PandasSQL):
     read_sql = read_query
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
-               index_label=None, schema=None, chunksize=None, dtype=None):
+               index_label=None, schema=None, chunksize=None, dtype=None,
+               indexes=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1142,7 +1168,7 @@ class SQLDatabase(PandasSQL):
 
         table = SQLTable(name, self, frame=frame, index=index,
                          if_exists=if_exists, index_label=index_label,
-                         schema=schema, dtype=dtype)
+                         schema=schema, dtype=dtype, indexes=indexes)
         table.create()
         table.insert(chunksize)
         if (not name.isdigit() and not name.islower()):
@@ -1456,7 +1482,8 @@ class SQLiteDatabase(PandasSQL):
         return result
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
-               index_label=None, schema=None, chunksize=None, dtype=None):
+               index_label=None, schema=None, chunksize=None, dtype=None,
+               indexes=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1497,7 +1524,7 @@ class SQLiteDatabase(PandasSQL):
 
         table = SQLiteTable(name, self, frame=frame, index=index,
                             if_exists=if_exists, index_label=index_label,
-                            dtype=dtype)
+                            dtype=dtype, indexes=indexes)
         table.create()
         table.insert(chunksize)
 
