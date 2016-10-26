@@ -91,6 +91,25 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+-  ``map`` on an ``Index`` now returns an ``Index``, not an array (:issue:`12766`)
+.. ipython:: python
+
+   idx = Index([1, 2])
+   idx
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [3]: idx.map(lambda x: x * 2)
+   Out[3]: array([2, 4])
+
+New Behavior:
+
+.. ipython:: python
+
+    idx.map(lambda x: x * 2)
+
 .. _whatsnew_0200.api:
 
 

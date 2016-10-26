@@ -768,20 +768,24 @@ class TestIndex(Base, tm.TestCase):
         self.assertRaises(TypeError, lambda: idx.tolist() - idx)
 
     def test_map_identity_mapping(self):
+        # GH 12766
         for name, cur_index in self.indices.items():
-            if name == 'tuples':
-                expected = Index(cur_index.values, tupleize_cols=False)
-                self.assert_index_equal(expected, cur_index.map(lambda x: x))
-            else:
-                self.assert_index_equal(cur_index, cur_index.map(lambda x: x))
+            self.assert_index_equal(cur_index, cur_index.map(lambda x: x))
 
-    def test_map_that_returns_tuples_creates_index_not_multi_index(self):
+    def test_map_that_returns_tuples_creates_multi_index(self):
+        # GH 12766
         boolean_index = tm.makeIntIndex(3).map(lambda x: (x, x == 1))
-        expected = Index([(0, False), (1, True), (2, False)],
-                         tupleize_cols=False)
+        expected = MultiIndex.from_tuples([(0, False), (1, True), (2, False)])
+        self.assert_index_equal(boolean_index, expected)
+
+    def test_map_that_returns_a_length_one_tuple_creates_an_index(self):
+        # GH 12766
+        boolean_index = tm.makeIntIndex(3).map(lambda x: (x, ))
+        expected = Index([(0, ), (1, ), (2, )])
         self.assert_index_equal(boolean_index, expected)
 
     def test_map_that_reduces_multi_index_to_single_index_returns_index(self):
+        # GH 12766
         first_level = ['foo', 'bar', 'baz']
         multi_index = MultiIndex.from_tuples(lzip(first_level, [1, 2, 3]))
         reduced_index = multi_index.map(lambda x: x[0])

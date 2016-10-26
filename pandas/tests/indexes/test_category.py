@@ -218,6 +218,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                                   ordered=False, name='XXX')
         tm.assert_index_equal(result, exp)
 
+        # GH 12766: Return an index not an array
         tm.assert_index_equal(ci.map(lambda x: 1),
                               Index(np.array([1] * 5, dtype=np.int64), name='XXX'))
 
