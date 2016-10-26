@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from itertools import combinations
+import itertools
 import operator
 
 from pandas.compat import range, u, PY3
@@ -31,12 +31,12 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
     def test_binops(self):
         ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
-               operator.truediv, pow]
+               operator.truediv]
         scalars = [-1, 1, 2]
         idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2),
                 RangeIndex(-10, 10, 2), RangeIndex(5, -5, -1)]
         for op in ops:
-            for a, b in combinations(idxs, 2):
+            for a, b in itertools.combinations(idxs, 2):
                 result = op(a, b)
                 expected = op(Int64Index(a), Int64Index(b))
                 tm.assert_index_equal(result, expected)
@@ -45,6 +45,23 @@ class TestRangeIndex(Numeric, tm.TestCase):
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
                     tm.assert_index_equal(result, expected)
+
+        # pow does not support negative powers
+        # GH14489 int to a negative integer power raise error on np >= 1.12
+        op = pow
+
+        scalars2 = [1, 2]
+        idxs2 = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)]
+
+        for a, b in itertools.product(idxs, idxs2):
+            result = op(a, b)
+            expected = op(Int64Index(a), Int64Index(b))
+            tm.assert_index_equal(result, expected)
+        for idx in idxs:
+            for scalar in scalars2:
+                result = op(idx, scalar)
+                expected = op(Int64Index(idx), scalar)
+                tm.assert_index_equal(result, expected)
 
     def test_too_many_names(self):
         def testit():
