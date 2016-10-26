@@ -33,7 +33,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-
+- Compat with Cython 0.25 for building (:issue:`14496`)
 
 
 - Bug in localizing an ambiguous timezone when a boolean is passed (:issue:`14402`)
