@@ -3911,6 +3911,18 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
                                 lambda: ts.ix[::0])
 
+    def test_slice_bounds_empty(self):
+        # GH 14354
+        empty_idx = DatetimeIndex(freq='1H', periods=0, end='2015')
+
+        right = empty_idx._maybe_cast_slice_bound('2015-01-02', 'right', 'loc')
+        exp = Timestamp('2015-01-02 23:59:59.999999999')
+        self.assertEqual(right, exp)
+
+        left = empty_idx._maybe_cast_slice_bound('2015-01-02', 'left', 'loc')
+        exp = Timestamp('2015-01-02 00:00:00')
+        self.assertEqual(left, exp)
+
 
 class TestDatetime64(tm.TestCase):
     """
