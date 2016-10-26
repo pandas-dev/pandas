@@ -723,7 +723,9 @@ def nested_to_record(ds, prefix="", level=0):
 
 def json_normalize(data, record_path=None, meta=None,
                    meta_prefix=None,
-                   record_prefix=None):
+                   record_prefix=None,
+                   errors='raise'):
+
     """
     "Normalize" semi-structured JSON data into a flat table
 
@@ -740,6 +742,8 @@ def json_normalize(data, record_path=None, meta=None,
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar']
     meta_prefix : string, default None
+    error: {'raise', 'ignore'}, default 'raise'
+        * ignore: will ignore keyErrors if keys listed in meta are not always present
 
     Returns
     -------
@@ -839,7 +843,14 @@ def json_normalize(data, record_path=None, meta=None,
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
-                        meta_val = _pull_field(obj, val[level:])
+                        try:
+                            meta_val = _pull_field(obj, val[level:])
+                        except KeyError as e:
+                            if errors == 'ignore':
+                                meta_val = np.nan
+                            else:
+                                raise KeyError(
+                                    "Try running with errors='ignore' as the following key may not always be present: " + str(e))
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)
