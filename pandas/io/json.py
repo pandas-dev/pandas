@@ -792,7 +792,10 @@ def json_normalize(data, record_path=None, meta=None,
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
-                        meta_val = _pull_field(obj, val[level:])
+                        try:
+                            meta_val = _pull_field(obj, val[level:])
+                        except:
+                            meta_val = np.nan
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)
