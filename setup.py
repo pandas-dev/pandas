@@ -85,7 +85,7 @@ from distutils.command.build_ext import build_ext as _build_ext
 try:
     if not _CYTHON_INSTALLED:
         raise ImportError('No supported version of Cython installed.')
-    from Cython.Distutils import build_ext as _build_ext
+    from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
     cython = True
 except ImportError:
     cython = False
