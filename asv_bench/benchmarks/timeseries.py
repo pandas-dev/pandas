@@ -284,55 +284,76 @@ class timeseries_asof(object):
     goal_time = 0.2
 
     def setup(self):
-        self.N = 100000
-        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
-        if hasattr(Series, 'convert'):
-            Series.resample = Series.convert
-        self.ts = Series(np.random.randn(self.N), index=self.rng)
         self.N = 10000
         self.rng = date_range(start='1/1/1990', periods=self.N, freq='53s')
-        self.ts = Series(np.random.randn(self.N), index=self.rng)
         self.dates = date_range(start='1/1/1990', periods=(self.N * 10), freq='5s')
+        self.ts = Series(np.random.randn(self.N), index=self.rng)
+        self.ts2 = self.ts.copy()
+        self.ts2[250:5000] = np.nan
+        self.ts3 = self.ts.copy()
+        self.ts3[-5000:] = np.nan
 
-    def time_timeseries_asof(self):
+    # test speed of pre-computing NAs.
+    def time_asof_list(self):
         self.ts.asof(self.dates)
 
+    # should be roughly the same as above.
+    def time_asof_nan_list(self):
+        self.ts2.asof(self.dates)
 
-class timeseries_asof_nan(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.N = 100000
-        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
-        if hasattr(Series, 'convert'):
-            Series.resample = Series.convert
-        self.ts = Series(np.random.randn(self.N), index=self.rng)
-        self.N = 10000
-        self.rng = date_range(start='1/1/1990', periods=self.N, freq='53s')
-        self.ts = Series(np.random.randn(self.N), index=self.rng)
-        self.dates = date_range(start='1/1/1990', periods=(self.N * 10), freq='5s')
-        self.ts[250:5000] = np.nan
-
-    def time_timeseries_asof_nan(self):
-        self.ts.asof(self.dates)
-
-
-class timeseries_asof_single(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.N = 100000
-        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
-        if hasattr(Series, 'convert'):
-            Series.resample = Series.convert
-        self.ts = Series(np.random.randn(self.N), index=self.rng)
-        self.N = 10000
-        self.rng = date_range(start='1/1/1990', periods=self.N, freq='53s')
-        self.ts = Series(np.random.randn(self.N), index=self.rng)
-        self.dates = date_range(start='1/1/1990', periods=(self.N * 10), freq='5s')
-
-    def time_timeseries_asof_single(self):
+    # test speed of the code path for a scalar index
+    # without *while* loop
+    def time_asof_single(self):
         self.ts.asof(self.dates[0])
+
+    # test speed of the code path for a scalar index
+    # before the start. should be the same as above.
+    def time_asof_single_early(self):
+        self.ts.asof(self.dates[0] - dt.timedelta(10))
+
+    # test the speed of the code path for a scalar index
+    # with a long *while* loop. should still be much
+    # faster than pre-computing all the NAs.
+    def time_asof_nan_single(self):
+        self.ts3.asof(self.dates[-1])
+
+
+class timeseries_dataframe_asof(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 10000
+        self.M = 100
+        self.rng = date_range(start='1/1/1990', periods=self.N, freq='53s')
+        self.dates = date_range(start='1/1/1990', periods=(self.N * 10), freq='5s')
+        self.ts = DataFrame(np.random.randn(self.N, self.M), index=self.rng)
+        self.ts2 = self.ts.copy()
+        self.ts2.iloc[250:5000] = np.nan
+        self.ts3 = self.ts.copy()
+        self.ts3.iloc[-5000:] = np.nan
+
+    # test speed of pre-computing NAs.
+    def time_asof_list(self):
+        self.ts.asof(self.dates)
+
+    # should be roughly the same as above.
+    def time_asof_nan_list(self):
+        self.ts2.asof(self.dates)
+
+    # test speed of the code path for a scalar index
+    # with pre-computing all NAs.
+    def time_asof_single(self):
+        self.ts.asof(self.dates[0])
+
+    # should be roughly the same as above.
+    def time_asof_nan_single(self):
+        self.ts3.asof(self.dates[-1])
+
+    # test speed of the code path for a scalar index
+    # before the start. should be without the cost of
+    # pre-computing all the NAs.
+    def time_asof_single_early(self):
+        self.ts.asof(self.dates[0] - dt.timedelta(10))
 
 
 class timeseries_custom_bday_apply(object):
