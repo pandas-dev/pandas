@@ -722,7 +722,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     >>> from pandas import read_csv
     >>> from pandas.tools.plotting import parallel_coordinates
     >>> from matplotlib import pyplot as plt
-    >>> df = read_csv('https://raw.github.com/pydata/pandas/master'
+    >>> df = read_csv('https://raw.github.com/pandas-dev/pandas/master'
                       '/pandas/tests/data/iris.csv')
     >>> parallel_coordinates(df, 'Name', color=('#556270',
                              '#4ECDC4', '#C7F464'))
@@ -2773,7 +2773,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     if by is not None:
         # Prefer array return type for 2-D plots to match the subplot layout
-        # https://github.com/pydata/pandas/pull/12216#issuecomment-241175580
+        # https://github.com/pandas-dev/pandas/pull/12216#issuecomment-241175580
         result = _grouped_plot_by_column(plot_group, data, columns=columns,
                                          by=by, grid=grid, figsize=figsize,
                                          ax=ax, layout=layout,

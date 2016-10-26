@@ -13,7 +13,7 @@ DataReader
 
 The sub-package ``pandas.io.data`` is removed in favor of a separately
 installable `pandas-datareader package
-<https://github.com/pydata/pandas-datareader>`_. This will allow the data
+<https://github.com/pandas-dev/pandas-datareader>`_. This will allow the data
 modules to be independently updated to your pandas installation. The API for
 ``pandas-datareader v0.1.1`` is the same as in ``pandas v0.16.1``.
 (:issue:`8961`)

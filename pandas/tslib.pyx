@@ -24,6 +24,7 @@ from cpython cimport (
     PyUnicode_AsUTF8String,
 )
 
+
 # Cython < 0.17 doesn't have this in cpython
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
@@ -37,7 +38,7 @@ from datetime cimport cmp_pandas_datetimestruct
 from libc.stdlib cimport free
 
 from util cimport (is_integer_object, is_float_object, is_datetime64_object,
-                   is_timedelta64_object)
+                   is_timedelta64_object, INT64_MAX)
 cimport util
 
 from datetime cimport *
@@ -904,10 +905,12 @@ cpdef object get_value_box(ndarray arr, object loc):
 
 
 # Add the min and max fields at the class level
-# These are defined as magic numbers due to strange
-# wraparound behavior when using the true int64 lower boundary
-cdef int64_t _NS_LOWER_BOUND = -9223285636854775000LL
-cdef int64_t _NS_UPPER_BOUND = 9223372036854775807LL
+cdef int64_t _NS_UPPER_BOUND = INT64_MAX
+# the smallest value we could actually represent is
+#   INT64_MIN + 1 == -9223372036854775807
+# but to allow overflow free conversion with a microsecond resolution
+# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
+cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
 
 cdef pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 pandas_datetime_to_datetimestruct(_NS_LOWER_BOUND, PANDAS_FR_ns, &_NS_MIN_DTS)
@@ -4155,6 +4158,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     """
     cdef:
         ndarray[int64_t] trans, deltas, idx_shifted
+        ndarray ambiguous_array
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         int64_t *tdata
         int64_t v, left, right
@@ -4190,11 +4194,18 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             infer_dst = True
         elif ambiguous == 'NaT':
             fill = True
+    elif isinstance(ambiguous, bool):
+        is_dst = True
+        if ambiguous:
+            ambiguous_array = np.ones(len(vals), dtype=bool)
+        else:
+            ambiguous_array = np.zeros(len(vals), dtype=bool)
     elif hasattr(ambiguous, '__iter__'):
         is_dst = True
         if len(ambiguous) != len(vals):
             raise ValueError(
                 "Length of ambiguous bool-array must be the same size as vals")
+        ambiguous_array = np.asarray(ambiguous)
 
     trans, deltas, typ = _get_dst_info(tz)
 
@@ -4286,7 +4297,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 if infer_dst and dst_hours[i] != NPY_NAT:
                     result[i] = dst_hours[i]
                 elif is_dst:
-                    if ambiguous[i]:
+                    if ambiguous_array[i]:
                         result[i] = left
                     else:
                         result[i] = right

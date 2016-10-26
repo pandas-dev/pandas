@@ -547,6 +547,31 @@ class packers_write_json(object):
             pass
 
 
+class packers_write_json_lines(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.f = '__test__.msg'
+        self.N = 100000
+        self.C = 5
+        self.index = date_range('20000101', periods=self.N, freq='H')
+        self.df = DataFrame(dict([('float{0}'.format(i), randn(self.N)) for i in range(self.C)]), index=self.index)
+        self.remove(self.f)
+        self.df.index = np.arange(self.N)
+
+    def time_packers_write_json_lines(self):
+        self.df.to_json(self.f, orient="records", lines=True)
+
+    def teardown(self):
+        self.remove(self.f)
+
+    def remove(self, f):
+        try:
+            os.remove(self.f)
+        except:
+            pass
+
+
 class packers_write_json_T(object):
     goal_time = 0.2
 

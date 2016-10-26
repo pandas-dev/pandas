@@ -23,7 +23,7 @@ class TestUrlGz(tm.TestCase):
 
     @tm.network
     def test_url_gz(self):
-        url = ('https://raw.github.com/pydata/pandas/'
+        url = ('https://raw.github.com/pandas-dev/pandas/'
                'master/pandas/io/tests/parser/data/salary.table.gz')
         url_table = read_table(url, compression="gzip", engine="python")
         tm.assert_frame_equal(url_table, self.local_table)

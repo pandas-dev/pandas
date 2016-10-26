@@ -2604,7 +2604,7 @@ class TestStringMethods(tm.TestCase):
         self.assertEqual(str_multiple.loc[1], '2011 2 2')
 
     def test_str_cat_raises_intuitive_error(self):
-        # https://github.com/pydata/pandas/issues/11334
+        # https://github.com/pandas-dev/pandas/issues/11334
         s = Series(['a', 'b', 'c', 'd'])
         message = "Did you mean to supply a `sep` keyword?"
         with tm.assertRaisesRegexp(ValueError, message):
@@ -2661,7 +2661,7 @@ class TestStringMethods(tm.TestCase):
             idx.str
 
     def test_str_accessor_no_new_attributes(self):
-        # https://github.com/pydata/pandas/issues/10673
+        # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(list('aabbcde'))
         with tm.assertRaisesRegexp(AttributeError,
                                    "You cannot add any new attribute"):

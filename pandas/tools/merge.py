@@ -472,6 +472,15 @@ class _MergeOperation(object):
                 'can not merge DataFrame with instance of '
                 'type {0}'.format(type(right)))
 
+        if not is_bool(left_index):
+            raise ValueError(
+                'left_index parameter must be of type bool, not '
+                '{0}'.format(type(left_index)))
+        if not is_bool(right_index):
+            raise ValueError(
+                'right_index parameter must be of type bool, not '
+                '{0}'.format(type(right_index)))
+
         # warn user when merging between different levels
         if left.columns.nlevels != right.columns.nlevels:
             msg = ('merging between different levels can give an unintended '
@@ -1283,7 +1292,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
         they are all None in which case a ValueError will be raised
-    axis : {0, 1, ...}, default 0
+    axis : {0/'index', 1/'columns'}, default 0
         The axis to concatenate along
     join : {'inner', 'outer'}, default 'outer'
         How to handle indexes on other axis(es)
@@ -1410,6 +1419,12 @@ class _Concatenator(object):
         if sample is None:
             sample = objs[0]
         self.objs = objs
+
+        # Standardize axis parameter to int
+        if isinstance(sample, Series):
+            axis = DataFrame()._get_axis_number(axis)
+        else:
+            axis = sample._get_axis_number(axis)
 
         # Need to flip BlockManager axis in the DataFrame special case
         self._is_frame = isinstance(sample, DataFrame)

@@ -1681,7 +1681,7 @@ class Categorical(PandasObject):
         else:
             # There is a bug in numpy, which does not accept a Series as a
             # indexer
-            # https://github.com/pydata/pandas/issues/6168
+            # https://github.com/pandas-dev/pandas/issues/6168
             # https://github.com/numpy/numpy/issues/4240 -> fixed in numpy 1.9
             # FIXME: remove when numpy 1.9 is the lowest numpy version pandas
             # accepts...
@@ -1690,7 +1690,7 @@ class Categorical(PandasObject):
         lindexer = self.categories.get_indexer(rvalue)
 
         # FIXME: the following can be removed after GH7820 is fixed:
-        # https://github.com/pydata/pandas/issues/7820
+        # https://github.com/pandas-dev/pandas/issues/7820
         # float categories do currently return -1 for np.nan, even if np.nan is
         # included in the index -> "repair" this here
         if isnull(rvalue).any() and isnull(self.categories).any():
@@ -2055,14 +2055,14 @@ def _factorize_from_iterables(iterables):
 
     Returns
     -------
-    codes_tuple : tuple of ndarrays
-    categories_tuple : tuple of Indexes
+    codes_list : list of ndarrays
+    categories_list : list of Indexes
 
     Notes
     -----
     See `_factorize_from_iterable` for more info.
     """
     if len(iterables) == 0:
-        # For consistency, it should return a list of 2 tuples.
-        return [(), ()]
-    return lzip(*[_factorize_from_iterable(it) for it in iterables])
+        # For consistency, it should return a list of 2 lists.
+        return [[], []]
+    return map(list, lzip(*[_factorize_from_iterable(it) for it in iterables]))

@@ -767,7 +767,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     @network
     def test_url(self):
-        url = 'https://api.github.com/repos/pydata/pandas/issues?per_page=5'
+        url = 'https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5'  # noqa
         result = read_json(url, convert_dates=True)
         for c in ['created_at', 'closed_at', 'updated_at']:
             self.assertEqual(result[c].dtype, 'datetime64[ns]')
@@ -961,6 +961,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = df.to_json(orient="records", lines=True)
         expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
         self.assertEqual(result, expected)
+
+        df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=['a', 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
+        self.assertEqual(result, expected)
+        assert_frame_equal(pd.read_json(result, lines=True), df)
 
     def test_latin_encoding(self):
         if compat.PY2:

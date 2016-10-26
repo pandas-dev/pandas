@@ -1693,11 +1693,11 @@ class TestMathPythonPython(tm.TestCase):
         self.check_result_type(np.float64, np.float64)
 
     def test_result_types2(self):
-        # xref https://github.com/pydata/pandas/issues/12293
+        # xref https://github.com/pandas-dev/pandas/issues/12293
         raise nose.SkipTest("unreliable tests on complex128")
 
         # Did not test complex64 because DataFrame is converting it to
-        # complex128. Due to https://github.com/pydata/pandas/issues/10952
+        # complex128. Due to https://github.com/pandas-dev/pandas/issues/10952
         self.check_result_type(np.complex128, np.complex128)
 
     def test_undefined_func(self):
@@ -1889,6 +1889,18 @@ def check_bad_resolver_raises(engine, parser):
 def test_bad_resolver_raises():
     for engine, parser in ENGINES_PARSERS:
         yield check_bad_resolver_raises, engine, parser
+
+
+def check_empty_string_raises(engine, parser):
+    # GH 13139
+    tm.skip_if_no_ne(engine)
+    with tm.assertRaisesRegexp(ValueError, 'expr cannot be an empty string'):
+        pd.eval('', engine=engine, parser=parser)
+
+
+def test_empty_string_raises():
+    for engine, parser in ENGINES_PARSERS:
+        yield check_empty_string_raises, engine, parser
 
 
 def check_more_than_one_expression_raises(engine, parser):

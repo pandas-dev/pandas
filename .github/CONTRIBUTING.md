@@ -278,7 +278,7 @@ Please try to maintain backward compatibility. *pandas* has lots of users with l
 
 Adding tests is one of the most common requests after code is pushed to *pandas*. Therefore, it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
-Like many packages, *pandas* uses the [Nose testing system](http://nose.readthedocs.org/en/latest/index.html) and the convenient extensions in [numpy.testing](http://docs.scipy.org/doc/numpy/reference/routines.testing.html).
+Like many packages, *pandas* uses the [Nose testing system](https://nose.readthedocs.io/en/latest/index.html) and the convenient extensions in [numpy.testing](http://docs.scipy.org/doc/numpy/reference/routines.testing.html).
 
 #### Writing tests
 
@@ -323,7 +323,7 @@ Performance matters and it is worth considering whether your code has introduced
 >
 > The asv benchmark suite was translated from the previous framework, vbench, so many stylistic issues are likely a result of automated transformation of the code.
 
-To use asv you will need either `conda` or `virtualenv`. For more details please check the [asv installation webpage](http://asv.readthedocs.org/en/latest/installing.html).
+To use asv you will need either `conda` or `virtualenv`. For more details please check the [asv installation webpage](https://asv.readthedocs.io/en/latest/installing.html).
 
 To install asv:
 
@@ -360,7 +360,7 @@ This command is equivalent to:
 
 This will launch every test only once, display stderr from the benchmarks, and use your local `python` that comes from your `$PATH`.
 
-Information on how to write a benchmark can be found in the [asv documentation](http://asv.readthedocs.org/en/latest/writing_benchmarks.html).
+Information on how to write a benchmark can be found in the [asv documentation](https://asv.readthedocs.io/en/latest/writing_benchmarks.html).
 
 #### Running the vbench performance test suite (phasing out)
 

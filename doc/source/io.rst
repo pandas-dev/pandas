@@ -2035,7 +2035,7 @@ You can even pass in an instance of ``StringIO`` if you so desire
    that having so many network-accessing functions slows down the documentation
    build. If you spot an error or an example that doesn't run, please do not
    hesitate to report it over on `pandas GitHub issues page
-   <http://www.github.com/pydata/pandas/issues>`__.
+   <http://www.github.com/pandas-dev/pandas/issues>`__.
 
 
 Read a URL and match a table that contains specific text
@@ -2639,8 +2639,8 @@ config options <options>` ``io.excel.xlsx.writer`` and
 ``io.excel.xls.writer``. pandas will fall back on `openpyxl`_ for ``.xlsx``
 files if `Xlsxwriter`_ is not available.
 
-.. _XlsxWriter: http://xlsxwriter.readthedocs.org
-.. _openpyxl: http://openpyxl.readthedocs.org/
+.. _XlsxWriter: https://xlsxwriter.readthedocs.io
+.. _openpyxl: https://openpyxl.readthedocs.io/
 .. _xlwt: http://www.python-excel.org
 
 To specify which writer you want to use, you can pass an engine keyword

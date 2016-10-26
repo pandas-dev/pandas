@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/pydata/pandas/blob/master/doc/logo/pandas_logo.png"><br>
+  <img src="https://github.com/pandas-dev/pandas/blob/master/doc/logo/pandas_logo.png"><br>
 </div>
 
 -----------------
@@ -25,8 +25,8 @@
 <tr>
   <td>Build Status</td>
   <td>
-    <a href="https://travis-ci.org/pydata/pandas">
-    <img src="https://travis-ci.org/pydata/pandas.svg?branch=master" alt="travis build status" />
+    <a href="https://travis-ci.org/pandas-dev/pandas">
+    <img src="https://travis-ci.org/pandas-dev/pandas.svg?branch=master" alt="travis build status" />
     </a>
   </td>
 </tr>
@@ -39,7 +39,7 @@
 </tr>
 <tr>
   <td>Coverage</td>
-  <td><img src="https://codecov.io/github/pydata/pandas/coverage.svg?branch=master" alt="coverage" /></td>
+  <td><img src="https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=master" alt="coverage" /></td>
 </tr>
 <tr>
   <td>Conda</td>
@@ -127,7 +127,7 @@ Here are just a few of the things that pandas does well:
 
 ## Where to get it
 The source code is currently hosted on GitHub at:
-http://github.com/pydata/pandas
+http://github.com/pandas-dev/pandas
 
 Binary installers for the latest released version are available at the [Python
 package index](http://pypi.python.org/pypi/pandas/) and on conda.

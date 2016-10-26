@@ -17,7 +17,7 @@
  */
 
 #ifndef USE_CASE_RANGE
-#if !defined(_MSC_VER)
+#ifdef __GNUC__
 #define USE_CASE_RANGE
 #endif
 #endif
