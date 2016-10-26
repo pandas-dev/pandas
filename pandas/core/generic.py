@@ -3735,10 +3735,10 @@ class NDFrame(PandasObject):
         if not self.index.is_monotonic:
             raise ValueError("asof requires a sorted index")
 
-        if isinstance(self, ABCSeries):
+        is_series = isinstance(self, ABCSeries)
+        if is_series:
             if subset is not None:
                 raise ValueError("subset is not valid for Series")
-            nulls = self.isnull()
         elif self.ndim > 2:
             raise NotImplementedError("asof is not implemented "
                                       "for {type}".format(type(self)))
@@ -3747,9 +3747,9 @@ class NDFrame(PandasObject):
                 subset = self.columns
             if not is_list_like(subset):
                 subset = [subset]
-            nulls = self[subset].isnull().any(1)
 
-        if not is_list_like(where):
+        is_list = is_list_like(where)
+        if not is_list:
             start = self.index[0]
             if isinstance(self.index, PeriodIndex):
                 where = Period(where, freq=self.index.freq).ordinal
@@ -3758,16 +3758,26 @@ class NDFrame(PandasObject):
             if where < start:
                 return np.nan
 
-            loc = self.index.searchsorted(where, side='right')
-            if loc > 0:
-                loc -= 1
-            while nulls[loc] and loc > 0:
-                loc -= 1
-            return self.iloc[loc]
+            # It's always much faster to use a *while* loop here for
+            # Series than pre-computing all the NAs. However a
+            # *while* loop is extremely expensive for DataFrame
+            # so we later pre-compute all the NAs and use the same
+            # code path whether *where* is a scalar or list.
+            # See PR: https://github.com/pandas-dev/pandas/pull/14476
+            if is_series:
+                loc = self.index.searchsorted(where, side='right')
+                if loc > 0:
+                    loc -= 1
+
+                values = self._values
+                while loc > 0 and isnull(values[loc]):
+                    loc -= 1
+                return values[loc]
 
         if not isinstance(where, Index):
-            where = Index(where)
+            where = Index(where) if is_list else Index([where])
 
+        nulls = self.isnull() if is_series else self[subset].isnull().any(1)
         locs = self.index.asof_locs(where, ~(nulls.values))
 
         # mask the missing
@@ -3775,7 +3785,7 @@ class NDFrame(PandasObject):
         data = self.take(locs, is_copy=False)
         data.index = where
         data.loc[missing] = np.nan
-        return data
+        return data if is_list else data.iloc[-1]
 
     # ----------------------------------------------------------------------
     # Action Methods
