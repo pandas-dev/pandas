@@ -21,8 +21,9 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Fixed performance regression in factorization of ``Period`` data (:issue:`14338`)
-- Improved Performance in ``.to_json()`` when ``lines=True`` (:issue:`14408`)
-
+- Improved performance in ``.to_json()`` when ``lines=True`` (:issue:`14408`)
+- Improved performance in ``Series.asof(where)`` when ``where`` is a scalar (:issue:`14461)
+- Improved performance in ``DataFrame.asof(where)`` when ``where`` is a scalar (:issue:`14461)
 
 
 
