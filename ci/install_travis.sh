@@ -71,14 +71,15 @@ else
 
     echo "update conda"
     conda config --set ssl_verify false || exit 1
-    conda config --set always_yes true --set changeps1 false || exit 1
+    conda config --set always_yes true --set changeps1 false --set show_channel_urls true || exit 1
     conda update -q conda
 
-    # add the pandas channel *before* defaults to have defaults take priority
+    # add the channels in reverse priority order
     echo "add channels"
-    conda config --add channels pandas || exit 1
-    conda config --remove channels defaults || exit 1
+    conda config --remove-key channels
+    conda config --add channels conda-forge || exit 1
     conda config --add channels defaults || exit 1
+    conda config --add channels pandas || exit 1
 
     conda install anaconda-client
 
@@ -98,7 +99,7 @@ if [ -e ${INSTALL} ]; then
 fi
 
 # install deps
-time conda install -n pandas --file=${REQ} || exit 1
+time conda install -n pandas --no-channel-priority --file=${REQ} || exit 1
 
 source activate pandas
 
