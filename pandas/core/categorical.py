@@ -943,7 +943,7 @@ class Categorical(PandasObject):
 
         Returns
         -------
-        applied : Categorical or np.ndarray.
+        applied : Categorical or Index.
         """
         new_categories = self.categories.map(mapper)
         try:

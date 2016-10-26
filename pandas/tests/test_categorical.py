@@ -1669,7 +1669,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         tm.assert_categorical_equal(result, exp)
 
         result = c.map(lambda x: 1)
-        tm.assert_numpy_array_equal(result, np.array([1] * 5, dtype=np.int64))
+        tm.assert_index_equal(result, Index(np.array([1] * 5, dtype=np.int64)))
 
 
 class TestCategoricalAsBlock(tm.TestCase):

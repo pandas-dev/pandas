@@ -767,6 +767,26 @@ class TestIndex(Base, tm.TestCase):
         self.assertRaises(TypeError, lambda: idx - idx.tolist())
         self.assertRaises(TypeError, lambda: idx.tolist() - idx)
 
+    def test_map_identity_mapping(self):
+        for name, cur_index in self.indices.items():
+            if name == 'tuples':
+                expected = Index(cur_index.values, tupleize_cols=False)
+                self.assert_index_equal(expected, cur_index.map(lambda x: x))
+            else:
+                self.assert_index_equal(cur_index, cur_index.map(lambda x: x))
+
+    def test_map_that_returns_tuples_creates_index_not_multi_index(self):
+        boolean_index = tm.makeIntIndex(3).map(lambda x: (x, x == 1))
+        expected = Index([(0, False), (1, True), (2, False)],
+                         tupleize_cols=False)
+        self.assert_index_equal(boolean_index, expected)
+
+    def test_map_that_reduces_multi_index_to_single_index_returns_index(self):
+        first_level = ['foo', 'bar', 'baz']
+        multi_index = MultiIndex.from_tuples(lzip(first_level, [1, 2, 3]))
+        reduced_index = multi_index.map(lambda x: x[0])
+        self.assert_index_equal(reduced_index, Index(first_level))
+
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
 
@@ -1194,16 +1214,16 @@ class TestIndex(Base, tm.TestCase):
             self.assert_index_equal(result, expected)
 
         for in_slice, expected in [
-                (SLC[::-1], 'yxdcb'), (SLC['b':'y':-1], ''),
-                (SLC['b'::-1], 'b'), (SLC[:'b':-1], 'yxdcb'),
-                (SLC[:'y':-1], 'y'), (SLC['y'::-1], 'yxdcb'),
-                (SLC['y'::-4], 'yb'),
-                # absent labels
-                (SLC[:'a':-1], 'yxdcb'), (SLC[:'a':-2], 'ydb'),
-                (SLC['z'::-1], 'yxdcb'), (SLC['z'::-3], 'yc'),
-                (SLC['m'::-1], 'dcb'), (SLC[:'m':-1], 'yx'),
-                (SLC['a':'a':-1], ''), (SLC['z':'z':-1], ''),
-                (SLC['m':'m':-1], '')
+            (SLC[::-1], 'yxdcb'), (SLC['b':'y':-1], ''),
+            (SLC['b'::-1], 'b'), (SLC[:'b':-1], 'yxdcb'),
+            (SLC[:'y':-1], 'y'), (SLC['y'::-1], 'yxdcb'),
+            (SLC['y'::-4], 'yb'),
+            # absent labels
+            (SLC[:'a':-1], 'yxdcb'), (SLC[:'a':-2], 'ydb'),
+            (SLC['z'::-1], 'yxdcb'), (SLC['z'::-3], 'yc'),
+            (SLC['m'::-1], 'dcb'), (SLC[:'m':-1], 'yx'),
+            (SLC['a':'a':-1], ''), (SLC['z':'z':-1], ''),
+            (SLC['m':'m':-1], '')
         ]:
             check_slice(in_slice, expected)
 
