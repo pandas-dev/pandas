@@ -1112,7 +1112,7 @@ def convert_json_to_lines(object arr):
     for i in range(length):
         v = narr[i]
         if v == quote and i > 1 and (narr[i - 1] != backslash or
-                                             narr[i - 2] != backslash):
+                                             narr[i - 2] == backslash):
                 in_quotes = ~in_quotes
         if v == comma: # commas that should be \n
             if num_open_brackets_seen == 0 and not in_quotes:
