@@ -848,7 +848,6 @@ class TestIndex(Base):
             self.assert_numpy_array_equal(expected.values.get_values(), output.values.get_values())
             self.assert_equal(expected.name, output.name)
 
-
         for name in list(set(self.indices.keys()) - set(special)):
             cur_index = self.indices[name]
             expected = Index(np.arange(len(cur_index), 0, -1))
@@ -868,12 +867,16 @@ class TestIndex(Base):
         exp = Index(["odd", "even", "odd", np.nan])
         self.assert_index_equal(a.map(c), exp)
 
-    def test_map_with_series_missing_values(self):
+    def test_map_with_non_function_missing_values(self):
         # GH 12756
         expected = Index([2., np.nan, 'foo'])
+        input = Index([2, 1, 0])
+
         mapper = Series(['foo', 2., 'baz'], index=[0, 2, -1])
-        output = Index([2, 1, 0]).map(mapper)
-        self.assert_index_equal(output, expected)
+        self.assert_index_equal(expected, input.map(mapper))
+
+        mapper = {0: 'foo', 2: 2.0, -1: 'baz'}
+        self.assert_index_equal(expected, input.map(mapper))
 
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
