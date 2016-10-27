@@ -1602,3 +1602,9 @@ j,-inF"""
         expected = pd.DataFrame([["1\x1a", 2]], columns=['a', 'b'])
         result = self.read_csv(StringIO(data))
         tm.assert_frame_equal(result, expected)
+
+    def test_file_handles(self):
+        # GH 14418 - don't close user provided file handles
+        fh = StringIO('a,b\n1,2')
+        self.read_csv(fh)
+        self.assertFalse(fh.closed)
