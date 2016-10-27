@@ -330,6 +330,11 @@ class DatetimeIndexOpsMixin(object):
     def map(self, f):
         try:
             result = f(self)
+
+            # Try to use this result if we can
+            if isinstance(result, np.ndarray):
+                self._shallow_copy(result)
+
             if not isinstance(result, Index):
                 raise TypeError
             return result
