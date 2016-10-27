@@ -720,12 +720,14 @@ class TestWideToLong(tm.TestCase):
 class TestSparePivot(tm.TestCase):
 
     def setUp(self):
-        self.df = pd.DataFrame({'a':['a', 'b', 'b', 'c'], 'b':['x', 'x', 'y', 'z'], 'c':[1, 2, 3, 4]})
+        self.df = pd.DataFrame({'a': ['a', 'b', 'b', 'c'],\
+                                'b': ['x', 'x', 'y', 'z'],\
+                                'c': [1, 2, 3, 4]})
 
     def test_simile_sparse_pivot(self):
         result = pivot_sparse(self.df['a'], self.df['b'], self.df['c'])
         actual_get = result.to_coo()[0].todense()
-        expected = df.pivot(index='a', columns='b', values='c').fillna(0).values
+        expected = self.df.pivot(index='a', columns='b', values='c').fillna(0).values
         self.assert_numpy_array_equal(actual_get, expected)
 
 if __name__ == '__main__':
