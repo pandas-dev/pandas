@@ -575,7 +575,7 @@ class TestGroupBy(tm.TestCase):
         expected = df_single.groupby(pd.Grouper(level='inner')).mean()
         assert_frame_equal(result, expected)
 
-    def test_grouper_column_takes_precedence_over_level(self):
+    def test_grouper_column_takes_precedence_over_level_with_warning(self):
         # GH 5677, when a string passed as the `by` parameter
         # matches a column and an index level the column takes
         # precedence
@@ -592,74 +592,94 @@ class TestGroupBy(tm.TestCase):
         df_single_both = df_multi_both.reset_index('outer')
 
         # Group MultiIndex by single key
-        result = df_multi_both.groupby('inner').mean()
-        expected = df_multi_both.groupby(pd.Grouper(key='inner')).mean()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df_multi_both.groupby('inner').mean()
+
+        expected = df_multi_both.groupby([pd.Grouper(key='inner')]).mean()
+
         assert_frame_equal(result, expected)
         not_expected = df_multi_both.groupby(pd.Grouper(level='inner')).mean()
-        assert not result.index.equals(not_expected.index)
+        self.assertFalse(result.index.equals(not_expected.index))
 
         # Group single Index by single key
-        result = df_single_both.groupby('inner').mean()
-        expected = df_single_both.groupby(pd.Grouper(key='inner')).mean()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df_single_both.groupby('inner').mean()
+
+        expected = df_single_both.groupby([pd.Grouper(key='inner')]).mean()
+
         assert_frame_equal(result, expected)
         not_expected = df_single_both.groupby(pd.Grouper(level='inner')).mean()
-        assert not result.index.equals(not_expected.index)
+        self.assertFalse(result.index.equals(not_expected.index))
 
         # Group MultiIndex by single key list
-        result = df_multi_both.groupby(['inner']).mean()
-        expected = df_multi_both.groupby(pd.Grouper(key='inner')).mean()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df_multi_both.groupby(['inner']).mean()
+
+        expected = df_multi_both.groupby([pd.Grouper(key='inner')]).mean()
+
         assert_frame_equal(result, expected)
         not_expected = df_multi_both.groupby(pd.Grouper(level='inner')).mean()
-        assert not result.index.equals(not_expected.index)
+        self.assertFalse(result.index.equals(not_expected.index))
 
         # Group single Index by single key list
-        result = df_single_both.groupby(['inner']).mean()
-        expected = df_single_both.groupby(pd.Grouper(key='inner')).mean()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df_single_both.groupby(['inner']).mean()
+
+        expected = df_single_both.groupby([pd.Grouper(key='inner')]).mean()
+
         assert_frame_equal(result, expected)
         not_expected = df_single_both.groupby(pd.Grouper(level='inner')).mean()
-        assert not result.index.equals(not_expected.index)
+        self.assertFalse(result.index.equals(not_expected.index))
 
         # Group MultiIndex by two keys (1)
-        result = df_multi_both.groupby(['B', 'inner']).mean()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df_multi_both.groupby(['B', 'inner']).mean()
+
         expected = df_multi_both.groupby(['B',
-                                          pd.Grouper(key='inner')]).mean()
+                                              pd.Grouper(key='inner')]).mean()
         assert_frame_equal(result, expected)
 
         not_expected = df_multi_both.groupby(['B',
                                               pd.Grouper(level='inner')
                                               ]).mean()
-        assert not result.index.equals(not_expected.index)
+        self.assertFalse(result.index.equals(not_expected.index))
 
         # Group MultiIndex by two keys (2)
-        result = df_multi_both.groupby(['inner', 'B']).mean()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df_multi_both.groupby(['inner', 'B']).mean()
+
         expected = df_multi_both.groupby([pd.Grouper(key='inner'),
                                           'B']).mean()
         assert_frame_equal(result, expected)
 
         not_expected = df_multi_both.groupby([pd.Grouper(level='inner'),
                                               'B']).mean()
-        assert not result.index.equals(not_expected.index)
+        self.assertFalse(result.index.equals(not_expected.index))
 
         # Group single Index by two keys (1)
-        result = df_single_both.groupby(['B', 'inner']).mean()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df_single_both.groupby(['B', 'inner']).mean()
+
         expected = df_single_both.groupby(['B',
-                                          pd.Grouper(key='inner')]).mean()
+                                           pd.Grouper(key='inner')]).mean()
         assert_frame_equal(result, expected)
 
         not_expected = df_single_both.groupby(['B',
                                                pd.Grouper(level='inner')
                                                ]).mean()
-        assert not result.index.equals(not_expected.index)
+        self.assertFalse(result.index.equals(not_expected.index))
 
         # Group single Index by two keys (2)
-        result = df_single_both.groupby(['inner', 'B']).mean()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df_single_both.groupby(['inner', 'B']).mean()
+
         expected = df_single_both.groupby([pd.Grouper(key='inner'),
                                            'B']).mean()
         assert_frame_equal(result, expected)
 
         not_expected = df_single_both.groupby([pd.Grouper(level='inner'),
                                                'B']).mean()
-        assert not result.index.equals(not_expected.index)
+        self.assertFalse(result.index.equals(not_expected.index))
 
     def test_grouper_getting_correct_binner(self):
 
