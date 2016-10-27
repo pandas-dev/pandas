@@ -342,7 +342,7 @@ def pivot_sparse(index, columns, values):
                              ' same')
 
     if len(index) == 0:
-        return DataFrame(index=[])
+        return SparseSeries(index=[])
 
     hindex = MultiIndex.from_arrays([index, columns])
     series = Series(values.values, index=hindex)
