@@ -129,13 +129,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         corresponding orient value.
         The set of possible orients is:
 
-          - ``'split'`` : dict like
-            ``{index -> [index], columns -> [columns], data -> [values]}``
-          - ``'records'`` : list like
-            ``[{column -> value}, ... , {column -> value}]``
-          - ``'index'`` : dict like ``{index -> {column -> value}}``
-          - ``'columns'`` : dict like ``{column -> {index -> value}}``
-          - ``'values'`` : just the values array
+        - ``'split'`` : dict like
+          ``{index -> [index], columns -> [columns], data -> [values]}``
+        - ``'records'`` : list like
+          ``[{column -> value}, ... , {column -> value}]``
+        - ``'index'`` : dict like ``{index -> {column -> value}}``
+        - ``'columns'`` : dict like ``{column -> {index -> value}}``
+        - ``'values'`` : just the values array
 
         The allowed and default values depend on the value
         of the `typ` parameter.
