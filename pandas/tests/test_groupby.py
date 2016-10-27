@@ -636,7 +636,7 @@ class TestGroupBy(tm.TestCase):
             result = df_multi_both.groupby(['B', 'inner']).mean()
 
         expected = df_multi_both.groupby(['B',
-                                              pd.Grouper(key='inner')]).mean()
+                                          pd.Grouper(key='inner')]).mean()
         assert_frame_equal(result, expected)
 
         not_expected = df_multi_both.groupby(['B',
