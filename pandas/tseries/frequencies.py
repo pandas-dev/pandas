@@ -49,9 +49,12 @@ RESO_DAY = 6
 
 class Resolution(object):
 
-    # defined in period.pyx
-    # note that these are different from freq codes
-    RESOS = [RESO_NS, RESO_US, RESO_MS, RESO_SEC, RESO_MIN, RESO_HR, RESO_DAY]
+    RESO_US = RESO_US
+    RESO_MS = RESO_MS
+    RESO_SEC = RESO_SEC
+    RESO_MIN = RESO_MIN
+    RESO_HR = RESO_HR
+    RESO_DAY = RESO_DAY
 
     _reso_str_map = {
         RESO_NS: 'nanosecond',

@@ -30,6 +30,7 @@ New features
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Multiple offset aliases with decimal points no longer regarded as ints (e.g. 0.5s as 5s) (:issue:`8419`)
 
 
 
