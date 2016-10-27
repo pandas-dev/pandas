@@ -205,6 +205,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     -------
     result : Series or DataFrame, depending on the value of `typ`.
 
+    See Also
+    --------
+    DataFrame.to_json
+
     Examples
     --------
 
