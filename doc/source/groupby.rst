@@ -95,12 +95,19 @@ The mapping can be specified many different ways:
     course ``df.groupby('A')`` is just syntactic sugar for
     ``df.groupby(df['A'])``, but it makes life simpler
   - For DataFrame objects, a string indicating an index level to be used to group.
-    If a string matches both an index level name and a column name then the column
-    takes precedence
   - A list of any of the above things
 
 Collectively we refer to the grouping objects as the **keys**. For example,
 consider the following DataFrame:
+
+.. note::
+
+   .. versionadded:: 0.20
+
+   A string passed to ``groupby`` may refer to either a column or an index level.
+   If a string matches both a column and an index level then a warning is issued
+   and the column takes precedence. This will result in an ambiguity error in a
+   future version.
 
 .. ipython:: python
 
