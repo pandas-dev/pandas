@@ -30,10 +30,10 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-
-
-
 - Bug in ``Series.sort_index`` where parameters ``kind`` and ``na_position`` did not exist (:issue:`13589`, :issue:`14444`)
+
+
+
 
 - Bug in localizing an ambiguous timezone when a boolean is passed (:issue:`14402`)
 

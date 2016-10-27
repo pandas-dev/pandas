@@ -1783,14 +1783,14 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         elif isinstance(index, MultiIndex):
             from pandas.core.groupby import _lexsort_indexer
             indexer = _lexsort_indexer(index.labels, orders=ascending)
-            indexer = _ensure_platform_int(indexer)
-            new_index = index.take(indexer)
+
         else:
             from pandas.core.groupby import _nargsort
-
             indexer = _nargsort(index, kind=kind, ascending=ascending,
                                 na_position=na_position)
-            new_index = index.take(indexer)
+
+        indexer = _ensure_platform_int(indexer)
+        new_index = index.take(indexer)
 
         new_values = self._values.take(indexer)
         result = self._constructor(new_values, index=new_index)
