@@ -48,6 +48,7 @@ Bug Fixes
 
 - Bug in ``RangeIndex.intersection`` when result is a empty set (:issue:`14364`).
 - Bug in union of differences from a ``DatetimeIndex`; this is a regression in 0.19.0 from 0.18.1 (:issue:`14323`)
+- Regression in ``DatetimeIndex._maybe_cast_slice_bound`` when index is empty (:issue:`14354`).
 
 - Bug in groupby-transform broadcasting that could cause incorrect dtype coercion (:issue:`14457`)
 
@@ -78,4 +79,5 @@ Bug Fixes
 
 
 
-- Bug in ``pd.pivot_table`` may raise ``TypeError`` or ``ValueError`` when ``index`` or ``columns`` is not scalar and ``values`` is not specified (:issue:`14380`)
+- Bug in ``pd.pivot_table`` may raise ``TypeError`` or ``ValueError`` when ``index`` or ``columns``
+  is not scalar and ``values`` is not specified (:issue:`14380`)
