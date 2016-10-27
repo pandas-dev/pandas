@@ -1453,8 +1453,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
             # because label may be passed to searchsorted
-            # the bounds need swapped if index is reverse sorted
-            if self.is_monotonic_decreasing:
+            # the bounds need swapped if index is reverse sorted and has a
+            # length (is_monotonic_decreasing gives True for empty index)
+            if self.is_monotonic_decreasing and len(self):
                 return upper if side == 'left' else lower
             return lower if side == 'left' else upper
         else:
