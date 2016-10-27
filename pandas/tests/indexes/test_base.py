@@ -772,24 +772,42 @@ class TestIndex(Base, tm.TestCase):
         for name, cur_index in self.indices.items():
             self.assert_index_equal(cur_index, cur_index.map(lambda x: x))
 
-    def test_map_that_returns_tuples_creates_multi_index(self):
+    def test_map_with_tuples(self):
         # GH 12766
+
+        # Test that returning a single tuple from an Index
+        #   returns an Index.
+        boolean_index = tm.makeIntIndex(3).map(lambda x: (x,))
+        expected = Index([(0,), (1,), (2,)])
+        self.assert_index_equal(boolean_index, expected)
+
+        # Test that returning a tuple from a map of a single index
+        #   returns a MultiIndex object.
         boolean_index = tm.makeIntIndex(3).map(lambda x: (x, x == 1))
         expected = MultiIndex.from_tuples([(0, False), (1, True), (2, False)])
         self.assert_index_equal(boolean_index, expected)
 
-    def test_map_that_returns_a_length_one_tuple_creates_an_index(self):
-        # GH 12766
-        boolean_index = tm.makeIntIndex(3).map(lambda x: (x, ))
-        expected = Index([(0, ), (1, ), (2, )])
-        self.assert_index_equal(boolean_index, expected)
-
-    def test_map_that_reduces_multi_index_to_single_index_returns_index(self):
-        # GH 12766
+        # Test that returning a single object from a MultiIndex
+        #   returns an Index.
         first_level = ['foo', 'bar', 'baz']
         multi_index = MultiIndex.from_tuples(lzip(first_level, [1, 2, 3]))
         reduced_index = multi_index.map(lambda x: x[0])
         self.assert_index_equal(reduced_index, Index(first_level))
+
+    def test_map_tseries_indices_return_index(self):
+        date_index = tm.makeDateIndex(10)
+        exp = Index([1] * 10)
+        self.assert_index_equal(exp, date_index.map(lambda x: 1))
+
+        period_index = tm.makePeriodIndex(10)
+        self.assert_index_equal(exp, period_index.map(lambda x: 1))
+
+        tdelta_index = tm.makeTimedeltaIndex(10)
+        self.assert_index_equal(exp, tdelta_index.map(lambda x: 1))
+
+        date_index = tm.makeDateIndex(24, freq='h', name='hourly')
+        exp = Index(range(24), name='hourly')
+        self.assert_index_equal(exp, date_index.map(lambda x: x.hour))
 
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])

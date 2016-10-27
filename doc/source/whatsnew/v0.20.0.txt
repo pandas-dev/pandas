@@ -92,26 +92,26 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  ``map`` on an ``Index`` now returns an ``Index``, not an array (:issue:`12766`)
-.. ipython:: python
 
-   idx = Index([1, 2])
-   idx
+  .. ipython:: python
 
-Previous Behavior:
+     idx = Index([1, 2])
+     idx
 
-.. code-block:: ipython
+  Previous Behavior:
 
-   In [3]: idx.map(lambda x: x * 2)
-   Out[3]: array([2, 4])
+  .. code-block:: ipython
 
-New Behavior:
+     In [3]: idx.map(lambda x: x * 2)
+     Out[3]: array([2, 4])
 
-.. ipython:: python
+  New Behavior:
 
-    idx.map(lambda x: x * 2)
+  .. ipython:: python
 
-.. _whatsnew_0200.api:
+      idx.map(lambda x: x * 2)
 
+  .. _whatsnew_0200.api:
 
 - ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
 - ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)

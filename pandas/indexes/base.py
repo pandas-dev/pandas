@@ -2439,7 +2439,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         -------
         applied : Index
             The output of the mapping function applied to the index.
-            If the function returns a tuple a
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
         """
         from .multi import MultiIndex
         mapped_values = self._arrmap(self.values, mapper)

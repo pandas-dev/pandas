@@ -330,11 +330,11 @@ class DatetimeIndexOpsMixin(object):
     def map(self, f):
         try:
             result = f(self)
-            if not isinstance(result, (np.ndarray, Index)):
+            if not isinstance(result, Index):
                 raise TypeError
             return result
         except Exception:
-            return _algos.arrmap_object(self.asobject.values, f)
+            return self.asobject.map(f)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
