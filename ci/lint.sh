@@ -7,16 +7,10 @@ source activate pandas
 RET=0
 
 if [ "$LINT" ]; then
-    echo "Linting"
-    for path in 'api' 'core' 'indexes' 'types' 'formats' 'io' 'stats' 'compat' 'sparse' 'tools' 'tseries' 'tests' 'computation' 'util'
-    do
-        echo "linting -> pandas/$path"
-        flake8 pandas/$path --filename '*.py'
-        if [ $? -ne "0" ]; then
-            RET=1
-        fi
-
-    done
+    # pandas/rpy is deprecated and will be removed.
+    # pandas/src is C code, so no need to search there.
+    echo "Linting  *.py"
+    flake8 pandas --filename '*.py' --exclude pandas/rpy,pandas/src
     echo "Linting *.py DONE"
 
     echo "Linting *.pyx"
