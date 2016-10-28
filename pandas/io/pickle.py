@@ -6,7 +6,7 @@ from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc, PY3
 from pandas.types.common import is_datetime64_dtype, _NS_DTYPE
 
 
-def to_pickle(obj, path):
+def to_pickle(obj, path, protocol=pkl.HIGHEST_PROTOCOL):
     """
     Pickle (serialize) object to input file path
 
@@ -17,7 +17,7 @@ def to_pickle(obj, path):
         File path
     """
     with open(path, 'wb') as f:
-        pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
+        pkl.dump(obj, f, protocol=protocol)
 
 
 def read_pickle(path):
