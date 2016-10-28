@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, date
 from collections import defaultdict
 
 import numpy as np
-from numpy import percentile as _quantile
 
 from pandas.core.base import PandasObject
 
@@ -1315,16 +1314,31 @@ class Block(PandasObject):
 
         values = self.get_values()
         values, _, _, _ = self._try_coerce_args(values, values)
-        mask = isnull(self.values)
-        if not lib.isscalar(mask) and mask.any():
 
-            # even though this could be a 2-d mask it appears
-            # as a 1-d result
-            mask = mask.reshape(values.shape)
-            result_shape = tuple([values.shape[0]] + [-1] * (self.ndim - 1))
-            values = _block_shape(values[~mask], ndim=self.ndim)
-            if self.ndim > 1:
-                values = values.reshape(result_shape)
+        def _nanpercentile(values, q, axis, **kw):
+
+            mask = isnull(values)
+            if not lib.isscalar(mask) and mask.any():
+                if _np_version_under1p9:
+                    mask = isnull(values)
+                    if self.ndim == 1:
+                        values = values[~mask]
+                        return np.percentile(values, q, axis=axis, **kw)
+                    else:
+                        if axis == 0:
+                            values = values.T
+                            mask = mask.T
+                        result = [np.percentile(val[~m], q, **kw) for (val, m)
+                                  in zip(list(values), list(mask))]
+                        result = np.array(result, copy=False).T
+                        return result
+                else:
+                    result = np.nanpercentile(values, q, axis=axis, **kw)
+                    if result.ndim == 0:
+                        result = result.item()
+                    return result
+            else:
+                return np.percentile(values, q, axis=axis, **kw)
 
         from pandas import Float64Index
         is_empty = values.shape[axis] == 0
@@ -1343,13 +1357,13 @@ class Block(PandasObject):
             else:
 
                 try:
-                    result = _quantile(values, np.array(qs) * 100,
-                                       axis=axis, **kw)
+                    result = _nanpercentile(values, np.array(qs) * 100,
+                                            axis=axis, **kw)
                 except ValueError:
 
                     # older numpies don't handle an array for q
-                    result = [_quantile(values, q * 100,
-                                        axis=axis, **kw) for q in qs]
+                    result = [_nanpercentile(values, q * 100,
+                                             axis=axis, **kw) for q in qs]
 
                 result = np.array(result, copy=False)
                 if self.ndim > 1:
@@ -1368,7 +1382,7 @@ class Block(PandasObject):
                 else:
                     result = np.array([self._na_value] * len(self))
             else:
-                result = _quantile(values, qs * 100, axis=axis, **kw)
+                result = _nanpercentile(values, qs * 100, axis=axis, **kw)
 
         ndim = getattr(result, 'ndim', None) or 0
         result = self._try_coerce_result(result)
