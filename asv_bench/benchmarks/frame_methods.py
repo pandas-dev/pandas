@@ -30,7 +30,7 @@ class Reindex(object):
     goal_time = 0.2
 
     def setup(self):
-        self.df = DataFrame(randn(10000, 10000))
+        self.df = DataFrame(randn(10000, 1000))
         self.idx = np.arange(4000, 7000)
 
         self.df2 = DataFrame(
@@ -208,6 +208,20 @@ class frame_fillna_inplace(object):
 
     def time_frame_fillna_inplace(self):
         self.df.fillna(0, inplace=True)
+
+
+
+class frame_fillna_many_columns_pad(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.values = np.random.randn(1000, 1000)
+        self.values[::2] = np.nan
+        self.df = DataFrame(self.values)
+
+    def time_frame_fillna_many_columns_pad(self):
+        self.df.fillna(method='pad')
+
 
 
 class Dropna(object):
@@ -478,6 +492,19 @@ class frame_sort_index(object):
         self.df.sort_index()
 
 
+class frame_sort_index_by_columns(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 10000
+        self.K = 10
+        self.key1 = tm.makeStringIndex(self.N).values.repeat(self.K)
+        self.key2 = tm.makeStringIndex(self.N).values.repeat(self.K)
+        self.df = DataFrame({'key1': self.key1, 'key2': self.key2, 'value': np.random.randn((self.N * self.K)), })
+        self.col_array_list = list(self.df.values.T)
+
+    def time_frame_sort_index_by_columns(self):
+        self.df.sort_index(by=['key1', 'key2'])
 
 
 class frame_quantile_axis1(object):
