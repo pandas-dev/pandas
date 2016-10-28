@@ -129,6 +129,18 @@ class CategoricalDtype(ExtensionDtype):
 
         return isinstance(other, CategoricalDtype)
 
+    def __gt__(self, other):
+        return not self < other
+
+    def __ge__(self, other):
+        return self > other or self == other
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __lt__(self, other):
+        return self.name < str(other)
+
     @classmethod
     def construct_from_string(cls, string):
         """ attempt to construct this type from a string, raise a TypeError if

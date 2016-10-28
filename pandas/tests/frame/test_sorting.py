@@ -4,17 +4,19 @@ from __future__ import print_function
 
 import numpy as np
 
-from pandas.compat import lrange
-from pandas import (DataFrame, Series, MultiIndex, Timestamp,
+from pandas import (DataFrame, MultiIndex, Series, Timestamp,
                     date_range)
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.compat import lrange
+from pandas.tests.frame.common import TestData
+from pandas.types.dtypes import CategoricalDtype
 
 import pandas.util.testing as tm
 
-from pandas.tests.frame.common import TestData
+from pandas.util.testing import (assertRaisesRegexp,
+                                 assert_frame_equal,
+                                 assert_series_equal
+                                 )
 
 
 class TestDataFrameSorting(tm.TestCase, TestData):
@@ -69,6 +71,16 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         result = df.sort_index(sort_remaining=False)
         expected = df.sort_index()
         assert_frame_equal(result, expected)
+
+    def test_sort_category_index(self):
+        # GH 14368
+        df = DataFrame({'A': Series(list('aabc')).astype('category'),
+                        'B': range(4)})
+
+        actual = df.dtypes.value_counts().sort_index(ascending=False)
+        expected = Series([1, 1], index=[np.dtype('int64'),
+                                         CategoricalDtype()], dtype=np.int64)
+        assert_series_equal(actual, expected)
 
     def test_sort(self):
         frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
