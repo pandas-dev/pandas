@@ -1315,20 +1315,31 @@ class Block(PandasObject):
         values = self.get_values()
         values, _, _, _ = self._try_coerce_args(values, values)
 
+        def _nanpercentile1D(values, mask, q, **kw):
+            values = values[~mask]
+
+            if len(values) == 0:
+                if is_list_like(q):
+                    return np.array([self._na_value] * len(q))
+                else:
+                    return self._na_value
+
+            return np.percentile(values, q, **kw)
+
         def _nanpercentile(values, q, axis, **kw):
 
             mask = isnull(values)
             if not lib.isscalar(mask) and mask.any():
-                if _np_version_under1p9:
+                #if _np_version_under1p9:
+                if True:
                     mask = isnull(values)
                     if self.ndim == 1:
-                        values = values[~mask]
-                        return np.percentile(values, q, axis=axis, **kw)
+                        return _nanpercentile1D(values, mask, q, axis=axis, **kw)
                     else:
                         if axis == 0:
                             values = values.T
                             mask = mask.T
-                        result = [np.percentile(val[~m], q, **kw) for (val, m)
+                        result = [_nanpercentile1D(val, m, q, **kw) for (val, m)
                                   in zip(list(values), list(mask))]
                         result = np.array(result, copy=False).T
                         return result
