@@ -6,7 +6,7 @@ import collections
 import warnings
 import copy
 
-from pandas.compat import(
+from pandas.compat import (
     zip, range, long, lzip,
     callable, map
 )

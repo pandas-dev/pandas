@@ -35,7 +35,7 @@ from pandas.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 
 import pandas.compat as compat
-from pandas.compat import(
+from pandas.compat import (
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
     raise_with_traceback, httplib, is_platform_windows, is_platform_32bit,
     PY3

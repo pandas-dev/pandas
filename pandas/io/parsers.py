@@ -2194,16 +2194,16 @@ class PythonParser(ParserBase):
         usecols_key is used if there are string usecols.
         """
         if self.usecols is not None:
-            if any([isinstance(u, string_types) for u in self.usecols]):
+            if any([isinstance(col, string_types) for col in self.usecols]):
                 if len(columns) > 1:
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
                 col_indices = []
-                for u in self.usecols:
-                    if isinstance(u, string_types):
-                        col_indices.append(usecols_key.index(u))
+                for col in self.usecols:
+                    if isinstance(col, string_types):
+                        col_indices.append(usecols_key.index(col))
                     else:
-                        col_indices.append(u)
+                        col_indices.append(col)
             else:
                 col_indices = self.usecols
 

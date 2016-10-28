@@ -1576,11 +1576,10 @@ class TestIndex(Base, tm.TestCase):
         # py3/py2 repr can differ because of "u" prefix
         # which also affects to displayed element size
 
-        # suppress flake8 warnings
         if PY3:
             coerce = lambda x: x
         else:
-            coerce = unicode
+            coerce = unicode  # noqa
 
         # short
         idx = pd.Index(['a', 'bb', 'ccc'])

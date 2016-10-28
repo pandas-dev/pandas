@@ -17,8 +17,8 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas import DataFrame, Series, Index, MultiIndex
 from pandas import compat
-from pandas.compat import(StringIO, BytesIO, PY3,
-                          range, lrange, u)
+from pandas.compat import (StringIO, BytesIO, PY3,
+                           range, lrange, u)
 from pandas.io.common import DtypeWarning, EmptyDataError, URLError
 from pandas.io.parsers import TextFileReader, TextParser
 
