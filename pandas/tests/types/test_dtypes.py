@@ -71,6 +71,8 @@ class TestCategoricalDtype(Base, tm.TestCase):
         dtype2 = np.dtype('float32')
         self.assertTrue(self.dtype < dtype2)
         self.assertTrue(self.dtype <= dtype2)
+        self.assertFalse(self.dtype > dtype2)
+        self.assertFalse(self.dtype >= dtype2)
 
     def test_construction_from_string(self):
         result = CategoricalDtype.construct_from_string('category')
