@@ -726,8 +726,8 @@ class TestSparePivot(tm.TestCase):
 
     def test_simile_sparse_pivot(self):
         result = pivot_sparse(self.df['a'], self.df['b'], self.df['c'])
-        actual_get = result.to_coo()[0].todense()
-        expected = self.df.pivot(index='a', columns='b', values='c').fillna(0).values
+        actual_get = np.asarray(result.to_coo()[0].todense())
+        expected = self.df.pivot(index='a', columns='b', values='c').fillna(0).values.astype(self.df['c'].dtype)
         self.assert_numpy_array_equal(actual_get, expected)
 
 if __name__ == '__main__':
