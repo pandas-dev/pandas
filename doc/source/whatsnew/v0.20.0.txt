@@ -80,3 +80,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``pd.pivot_table`` where a ``Series`` is return instead of a ``DataFrame`` (:issue:`4386`)
