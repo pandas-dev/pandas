@@ -1319,34 +1319,30 @@ class Block(PandasObject):
             values = values[~mask]
 
             if len(values) == 0:
-                if is_list_like(q):
-                    return np.array([self._na_value] * len(q))
-                else:
+                if lib.isscalar(q):
                     return self._na_value
+                else:
+                    return np.array([self._na_value] * len(q),
+                                    dtype=values.dtype)
 
             return np.percentile(values, q, **kw)
 
         def _nanpercentile(values, q, axis, **kw):
 
-            mask = isnull(values)
+            mask = isnull(self.values)
             if not lib.isscalar(mask) and mask.any():
-                #if _np_version_under1p9:
-                if True:
-                    mask = isnull(values)
-                    if self.ndim == 1:
-                        return _nanpercentile1D(values, mask, q, axis=axis, **kw)
-                    else:
-                        if axis == 0:
-                            values = values.T
-                            mask = mask.T
-                        result = [_nanpercentile1D(val, m, q, **kw) for (val, m)
-                                  in zip(list(values), list(mask))]
-                        result = np.array(result, copy=False).T
-                        return result
+                if self.ndim == 1:
+                    return _nanpercentile1D(values, mask, q, **kw)
                 else:
-                    result = np.nanpercentile(values, q, axis=axis, **kw)
-                    if result.ndim == 0:
-                        result = result.item()
+                    # for nonconsolidatable blocks mask is 1D, but values 2D
+                    if mask.ndim < values.ndim:
+                        mask = mask.reshape(values.shape)
+                    if axis == 0:
+                        values = values.T
+                        mask = mask.T
+                    result = [_nanpercentile1D(val, m, q, **kw) for (val, m)
+                              in zip(list(values), list(mask))]
+                    result = np.array(result, dtype=values.dtype, copy=False).T
                     return result
             else:
                 return np.percentile(values, q, axis=axis, **kw)
