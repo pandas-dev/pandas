@@ -32,6 +32,7 @@ Bug Fixes
 ~~~~~~~~~
 
 
+- Bug in ``pd.DataFrame`` where constructor fails when given dict with ``None`` value (:issue:`14381`)
 
 
 
