@@ -507,10 +507,11 @@ def _engine_builder(con):
     if isinstance(con, string_types):
         try:
             import sqlalchemy
-            con = sqlalchemy.create_engine(con)
-            return con
         except ImportError:
             _SQLALCHEMY_INSTALLED = False
+        else:
+            con = sqlalchemy.create_engine(con)
+            return con
 
     return con
 
