@@ -73,7 +73,7 @@ def is_datetimetz(array):
 
 def is_period(array):
     """ return if we are a period array """
-    return is_period_dtype(array)   # or is_period_arraylike(array)
+    return is_period_dtype(array)
 
 
 def is_datetime64_dtype(arr_or_dtype):

@@ -194,6 +194,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     return result.asobject
                 else:
                     return result
+            elif is_period_dtype(data):
+                from pandas.tseries.period import PeriodIndex
+                result = PeriodIndex(data, copy=copy, name=name, **kwargs)
+                if dtype is not None and _o_dtype == dtype:
+                    return result.asobject
+                else:
+                    return result
 
             if dtype is not None:
                 try:

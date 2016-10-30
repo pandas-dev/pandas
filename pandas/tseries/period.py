@@ -41,7 +41,7 @@ from pandas.indexes.base import _index_shared_docs, _ensure_index
 from pandas import compat
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate_kwarg)
-from pandas.lib import infer_dtype
+import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas.compat import zip, u
 
@@ -278,7 +278,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                                                     base1, base2, 1)
             else:
                 if is_object_dtype(data):
-                    inferred = infer_dtype(data)
+                    inferred = lib.infer_dtype(data)
                     if inferred == 'integer':
                         data = data.astype(np.int64)
 
