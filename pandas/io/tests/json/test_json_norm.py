@@ -225,6 +225,51 @@ class TestNestedToRecord(tm.TestCase):
 
         self.assertEqual(result, expected)
 
+    def test_json_normalise_fix(self):
+        j = {
+            "Trades": [{
+                "general": {
+                    "tradeid": 100,
+                    "trade_version": 1,
+                    "stocks": [{
+
+                        "symbol": "AAPL",
+                        "name": "Apple",
+                        "price": "0"
+
+                    }, {
+
+                        "symbol": "GOOG",
+                        "name": "Google",
+                        "price": "0"
+
+                    }
+                    ]
+                },
+            }, {
+                "general": {
+                    "tradeid": 100,
+                    "stocks": [{
+
+                        "symbol": "AAPL",
+                        "name": "Apple",
+                        "price": "0"
+
+                    }, {
+                        "symbol": "GOOG",
+                        "name": "Google",
+                        "price": "0"
+
+                    }
+                    ]
+                },
+            }
+            ]
+        }
+        j = json_normalize(data=j['Trades'], record_path=[['general', 'stocks']],
+                           meta=[['general', 'tradeid'], ['general', 'trade_version']])
+        self.assertEqual(len(j), 4)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb',
                          '--pdb-failure', '-s'], exit=False)

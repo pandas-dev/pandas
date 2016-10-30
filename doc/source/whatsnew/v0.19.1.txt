@@ -78,3 +78,4 @@ Bug Fixes
 
 
 - Bug in ``pd.pivot_table`` may raise ``TypeError`` or ``ValueError`` when ``index`` or ``columns`` is not scalar and ``values`` is not specified (:issue:`14380`)
+- Bug in ``pandas.io.json.json_normalize``When parsing a nested json and convert it to a dataframe, the meta parameter can be used to use fields as metadata for each record in resulting table. In some cases, not all items may contain all of the specified meta fields. This change will avoid throwing an error and output np.nan instead. (:issue '14505')
