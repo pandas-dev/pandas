@@ -1192,7 +1192,7 @@ class Block(PandasObject):
 
         # technically a broadcast error in numpy can 'work' by returning a
         # boolean False
-        if not isinstance(result, (np.ndarray, PeriodIndex)):
+        if not isinstance(result, np.ndarray):
             # differentiate between an invalid ndarray-ndarray comparison
             # and an invalid type comparison
             if isinstance(values, np.ndarray) and is_list_like(other):
@@ -1860,7 +1860,7 @@ class ObjectBlock(Block):
             raise NotImplementedError
         by_item = True if 'by_item' not in kwargs else kwargs['by_item']
 
-        new_inputs = ['coerce', 'datetime', 'numeric', 'timedelta', 'period']
+        new_inputs = ['coerce', 'datetime', 'numeric', 'timedelta']
         new_style = False
         for kw in new_inputs:
             new_style |= kw in kwargs
@@ -2552,7 +2552,6 @@ class PeriodBlock(IndexHolderMixIn, DatetimeBlock):
         dtype = kwargs.pop('dtype', None)
         if not isinstance(values, self._holder):
             # dtype contains freq info
-            print(values, dtype)
             values = self._holder(values, dtype=dtype)
 
         super(PeriodBlock, self).__init__(values, placement=placement,
@@ -2582,19 +2581,6 @@ class PeriodBlock(IndexHolderMixIn, DatetimeBlock):
         # ToDo: FIXME
         # called from Series.get_values()
         return self.values.asobject
-
-    # def _try_fill(self, value):
-    #     """ if we are a NaT, return the actual fill value """
-    #     if value is tslib.NaT or np.array(isnull(value)).all():
-    #         value = tslib.iNaT
-    #     elif isinstance(value, Period):
-    #         # Period Nat can be handled here
-    #         value = value.ordinal
-    #     elif is_integer(value):
-    #         # regarded as ordinal
-    #         pass
-    #
-    #    return value
 
     def _try_coerce_args(self, values, other):
         """

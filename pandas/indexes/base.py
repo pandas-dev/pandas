@@ -184,7 +184,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 from pandas.tseries.tdi import TimedeltaIndex
                 result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
-                    return result.asobject
+                    return Index(result.to_pytimedelta(), dtype=_o_dtype)
                 else:
                     return result
             elif is_period_dtype(data):
@@ -2327,7 +2327,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             tolerance = self._convert_tolerance(tolerance)
 
         pself, ptarget = self._possibly_promote(target)
-
         if pself is not self or ptarget is not target:
             return pself.get_indexer(ptarget, method=method, limit=limit,
                                      tolerance=tolerance)
@@ -2353,6 +2352,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if limit is not None:
                 raise ValueError('limit argument only valid if doing pad, '
                                  'backfill or nearest reindexing')
+
             indexer = self._engine.get_indexer(target._values)
 
         return _ensure_platform_int(indexer)

@@ -2037,7 +2037,6 @@ class DataCol(IndexCol):
         return _tables().Int64Col(shape=block.shape[0])
 
     def set_atom_period(self, block, info, values=None):
-        print('set_atom_period')
         if values is None:
             values = block.values
         values = values.asi8.reshape(block.shape)
