@@ -214,3 +214,13 @@ one,two
         self.assertRaises(ValueError, self.read_csv, StringIO(data),
                           sep=",", skipinitialspace=True,
                           dtype={'DOY': np.int64})
+
+    def test_dtype_with_converter(self):
+        data = """a,b
+1.1,2.2
+1.2,2.3"""
+        result = self.read_csv(StringIO(data), dtype={'a': 'i8'},
+                               converters={'a': lambda x: str(x)})
+        # dtype spec ignored if converted specified
+        expected = DataFrame({'a': ['1.1', '1.2'], 'b': [2.2, 2.3]})
+        tm.assert_frame_equal(result, expected)

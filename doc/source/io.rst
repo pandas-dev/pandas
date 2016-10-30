@@ -157,6 +157,9 @@ dtype : Type name or dict of column -> type, default ``None``
   Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32}``
   (unsupported with ``engine='python'``). Use `str` or `object` to preserve and
   not interpret dtype.
+
+  .. versionadded:: 0.20.0 support for the Python parser.
+
 engine : {``'c'``, ``'python'``}
   Parser engine to use. The C engine is faster while the python engine is
   currently more feature-complete.
@@ -473,10 +476,8 @@ However, if you wanted for all the data to be coerced, no matter the type, then
 using the ``converters`` argument of :func:`~pandas.read_csv` would certainly be
 worth trying.
 
-.. note::
-    The ``dtype`` option is currently only supported by the C engine.
-    Specifying ``dtype`` with ``engine`` other than 'c' raises a
-    ``ValueError``.
+  .. versionadded:: 0.20.0 support for the Python parser.
+     The ``dtype`` option is supported by the 'python' engine
 
 .. note::
    In some cases, reading in abnormal data with columns containing mixed dtypes

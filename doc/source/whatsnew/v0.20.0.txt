@@ -32,6 +32,15 @@ Other enhancements
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
 
+- The ``dtype`` keyword argument in the :func:`read_csv` function for specifying the types of parsed columns
+ is now supported with the ``'python'`` engine.  See the :ref:`io docs <io.dtypes>` for more information.
+
+.. ipython:: python
+
+   from io import StringIO
+   data = "a,b\n1,2\n3,4"
+   pd.read_csv(StringIO(data), engine='python').dtypes
+   pd.read_csv(StringIO(data), engine='python', dtype={'a':'float64', 'b':'object'}).dtypes
 
 .. _whatsnew_0200.api_breaking:
 
