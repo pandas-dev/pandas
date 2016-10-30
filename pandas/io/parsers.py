@@ -116,8 +116,11 @@ mangle_dupe_cols : boolean, default True
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     Use `str` or `object` to preserve and not interpret dtype.
-    If converters are specified, they will be applied AFTER
-    dtype conversion.
+    If converters are specified, they will be applied INSTEAD
+    of dtype conversion.
+
+  .. versionadded:: 0.20.0 support for the Python parser.
+
 %s
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can either
@@ -1293,20 +1296,6 @@ class ParserBase(object):
 
         return index
 
-    def _apply_converter(self, values, conv_f, na_values, col_na_values,
-                         col_na_fvalues):
-        """ apply converter function to values, respecting NAs """
-        try:
-            values = lib.map_infer(values, conv_f)
-        except ValueError:
-            mask = lib.ismember(values, na_values).view(np.uint8)
-            values = lib.map_infer_mask(values, conv_f, mask)
-
-        cvals, na_count = self._infer_types(
-            values, set(col_na_values) | col_na_fvalues,
-            try_num_bool=False)
-        return cvals, na_count
-
     def _convert_to_ndarrays(self, dct, na_values, na_fvalues, verbose=False,
                              converters=None, dtypes=None):
         result = {}
@@ -1324,38 +1313,35 @@ class ParserBase(object):
             else:
                 col_na_values, col_na_fvalues = set(), set()
 
-            if conv_f is not None and cast_type is None:
-                # if type is not specified, apply the conversion first, without
-                # inference
-                cvals, na_count = self._apply_converter(
-                    values, conv_f, na_values,
-                    col_na_values, col_na_fvalues)
+            if conv_f is not None:
+                # conv_f applied to data before inference
+                # dtype isn't used if a converted specified
+                try:
+                    values = lib.map_infer(values, conv_f)
+                except ValueError:
+                    mask = lib.ismember(values, na_values).view(np.uint8)
+                    values = lib.map_infer_mask(values, conv_f, mask)
+
+                cvals, na_count = self._infer_types(
+                    values, set(col_na_values) | col_na_fvalues,
+                    try_num_bool=False)
             else:
-                try_num_bool = True
-                if cast_type and is_object_dtype(cast_type):
-                    # skip inference if specified dtype is object
-                    try_num_bool = False
+                # skip inference if specified dtype is object
+                try_num_bool = not (cast_type and is_object_dtype(cast_type))
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
                     values, set(col_na_values) | col_na_fvalues,
                     try_num_bool)
 
+                # type specificed in dtype param
+                if cast_type and not is_dtype_equal(cvals, cast_type):
+                    cvals = self._cast_types(cvals, cast_type, c)
+
             if issubclass(cvals.dtype.type, np.integer) and self.compact_ints:
                 cvals = lib.downcast_int64(
                     cvals, _parser.na_values,
                     self.use_unsigned)
-
-            if cast_type and not is_dtype_equal(cvals, cast_type):
-                # type specificed in dtype param
-
-                cvals = self._cast_types(cvals, cast_type, c)
-                # for consistency with c-parser, if a converter and dtype are
-                # specified, apply the converter last
-                if conv_f is not None:
-                    values, na_count = self._apply_converter(
-                        values, conv_f, na_values,
-                        col_na_values, col_na_fvalues)
 
             result[c] = cvals
             if verbose and na_count:
@@ -1363,6 +1349,22 @@ class ParserBase(object):
         return result
 
     def _infer_types(self, values, na_values, try_num_bool=True):
+        """
+        Infer types of values, possibly casting
+
+        Parameters
+        ----------
+        values : ndarray
+        na_values : set
+        try_num_bool : bool, default try
+           try to cast values to numeric (first preference) or boolean
+
+        Returns:
+        --------
+        converted : ndarray
+        na_count : int
+        """
+
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
             mask = lib.ismember(values, na_values)
@@ -1394,7 +1396,22 @@ class ParserBase(object):
         return result, na_count
 
     def _cast_types(self, values, cast_type, column):
-        """ cast column to type specified in dtypes= param """
+        """
+        Cast values to specified type
+
+        Parameters
+        ----------
+        values : ndarray
+        cast_type : string or np.dtype
+           dtype to cast values to
+        column : string
+            column name - used only for error reporting
+
+        Returns
+        -------
+        converted : ndarray
+        """
+
         if is_categorical_dtype(cast_type):
             # XXX this is for consistency with
             # c-parser which parses all categories
