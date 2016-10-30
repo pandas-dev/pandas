@@ -1308,10 +1308,8 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
             self.sheets[sheet_name] = wks
 
         for cell in cells:
-            xcell = wks.cell(
-                row=startrow + cell.row + 1,
-                column=startcol + cell.col + 1
-            )
+            xcell = wks['%s%s' %
+                        (startrow + cell.row + 1, startcol + cell.col + 1)]
             xcell.value = _conv_value(cell.val)
 
             style_kwargs = {}
@@ -1349,7 +1347,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
                             if row == first_row and col == first_col:
                                 # Ignore first cell. It is already handled.
                                 continue
-                            xcell = wks.cell(column=col, row=row)
+                            xcell = wks['%s%s' % (col, row)]
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
 
