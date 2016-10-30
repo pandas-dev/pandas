@@ -109,6 +109,7 @@ class CategoricalDtype(ExtensionDtype):
     str = '|O08'
     base = np.dtype('O')
     _cache = {}
+    dtype = np.object_
 
     def __new__(cls):
 
@@ -138,8 +139,7 @@ class CategoricalDtype(ExtensionDtype):
     def __le__(self, other):
         return self < other or self == other
 
-    def __lt__(self, other):
-        return self.name < str(other)
+    __lt__ = np.object_.__lt__
 
     @classmethod
     def construct_from_string(cls, string):
