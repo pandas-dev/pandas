@@ -100,7 +100,7 @@ class TimelikeOps(object):
     def floor(self, freq):
         return self._round(freq, np.floor)
 
-    @Appender(_round_doc % "floor")
+    @Appender(_round_doc % "ceil")
     def ceil(self, freq):
         return self._round(freq, np.ceil)
 
