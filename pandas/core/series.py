@@ -2915,8 +2915,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         return subarr
 
-    # scalar like
-    if subarr.ndim == 0:
+    # scalar like, GH
+    if getattr(subarr, 'ndim', 0) == 0:
         if isinstance(data, list):  # pragma: no cover
             subarr = np.array(data, dtype=object)
         elif index is not None:
