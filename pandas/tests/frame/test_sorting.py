@@ -78,8 +78,8 @@ class TestDataFrameSorting(tm.TestCase, TestData):
                         'B': range(4)})
 
         actual = df.dtypes.value_counts().sort_index(ascending=False)
-        expected = Series([1, 1], index=[CategoricalDtype(),
-                                         np.dtype('int64'),], dtype=np.int64)
+        expected = Series([1, 1], index=[np.dtype('int64'),
+                                         CategoricalDtype()], dtype=np.int64)
         assert_series_equal(actual, expected)
 
     def test_sort(self):
