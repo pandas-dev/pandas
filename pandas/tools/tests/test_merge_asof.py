@@ -119,6 +119,7 @@ class TestAsOfMerge(tm.TestCase):
 
     def test_basic_left_index(self):
 
+        # GH14253
         expected = self.asof
         trades = self.trades.set_index('time')
         quotes = self.quotes
@@ -174,8 +175,28 @@ class TestAsOfMerge(tm.TestCase):
                        left_index=True,
                        right_index=True)
 
+    def test_on_and_index(self):
+
+        # 'on' parameter and index together is prohibited
+        trades = self.trades.set_index('time')
+        quotes = self.quotes.set_index('time')
+        with self.assertRaises(MergeError):
+            merge_asof(trades, quotes,
+                       left_on='price',
+                       left_index=True,
+                       right_index=True)
+
+        trades = self.trades.set_index('time')
+        quotes = self.quotes.set_index('time')
+        with self.assertRaises(MergeError):
+            merge_asof(trades, quotes,
+                       right_on='bid',
+                       left_index=True,
+                       right_index=True)
+
     def test_basic_left_by_right_by(self):
 
+        # GH14253
         expected = self.asof
         trades = self.trades
         quotes = self.quotes
