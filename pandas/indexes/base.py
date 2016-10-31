@@ -1466,11 +1466,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         typs = _concat.get_dtype_kinds(to_concat)
 
-        if 'category' in typs:
-            # if any of the to_concat is category
-            from pandas.indexes.category import CategoricalIndex
-            return CategoricalIndex._append_same_dtype(self, to_concat, name)
-
         if len(typs) == 1:
             return self._append_same_dtype(to_concat, name=name)
         return _concat._concat_index_asobject(to_concat, name=name)

@@ -272,11 +272,17 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         # with objects
         result = ci.append(Index(['c', 'a']))
-        expected = CategoricalIndex(list('aabbcaca'), categories=categories)
+        #expected = CategoricalIndex(list('aabbcaca'), categories=categories)
+        expected = Index(list('aabbcaca'))
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid objects
-        self.assertRaises(TypeError, lambda: ci.append(Index(['a', 'd'])))
+        #self.assertRaises(TypeError, lambda: ci.append(Index(['a', 'd'])))
+
+        # GH14298 - if base object is not categorical -> coerce to object
+        result = Index(['c', 'a']).append(ci)
+        expected = Index(list('caaabbca'))
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_insert(self):
 
