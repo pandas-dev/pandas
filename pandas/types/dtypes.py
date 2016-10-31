@@ -130,16 +130,16 @@ class CategoricalDtype(ExtensionDtype):
         return isinstance(other, CategoricalDtype)
 
     def __gt__(self, other):
-        return not self < other
+        return str(self) > str(other)
 
     def __ge__(self, other):
-        return self > other or self == other
+        return  str(self) > str(other) or str(self) == str(other)
 
     def __le__(self, other):
-        return self < other or self == other
+        return str(self) < other or str(self) == str(other)
 
     def __lt__(self, other):
-        return self.name < str(other)
+        return str(self) < str(other)
 
     @classmethod
     def construct_from_string(cls, string):
