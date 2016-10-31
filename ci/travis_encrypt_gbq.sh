@@ -1,11 +1,10 @@
 #!/bin/bash
 
 GBQ_JSON_FILE=$1
-GBQ_PROJECT_ID=$2
 
-if [[ $# -ne 2 ]]; then
+if [[ $# -ne 1 ]]; then
     echo -e "Too few arguments.\nUsage: ./travis_encrypt_gbq.sh "\
-    "<gbq-json-credentials-file> <gbq-project-id>"
+    "<gbq-json-credentials-file>"
     exit 1
 fi
 
@@ -23,9 +22,9 @@ echo "Encrypting $GBQ_JSON_FILE..."
 read -d "\n" TRAVIS_KEY TRAVIS_IV <<<$(travis encrypt-file $GBQ_JSON_FILE \
 travis_gbq.json.enc -f | grep -o "\w*_iv\|\w*_key");
 
-echo "Adding your secure key and project id to travis_gbq_config.txt ..."
-echo -e "TRAVIS_IV_ENV=$TRAVIS_IV\nTRAVIS_KEY_ENV=$TRAVIS_KEY\n"\
-"GBQ_PROJECT_ID='$GBQ_PROJECT_ID'" > travis_gbq_config.txt
+echo "Adding your secure key to travis_gbq_config.txt ..."
+echo -e "TRAVIS_IV_ENV=$TRAVIS_IV\nTRAVIS_KEY_ENV=$TRAVIS_KEY"\
+> travis_gbq_config.txt
 
 echo "Done. Removing file $GBQ_JSON_FILE"
 rm $GBQ_JSON_FILE
