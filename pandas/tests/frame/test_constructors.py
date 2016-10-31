@@ -259,6 +259,14 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         frame = DataFrame({'A': [], 'B': []}, columns=['A', 'B'])
         self.assert_index_equal(frame.index, Index([], dtype=np.int64))
 
+        # GH 14381
+        # Dict with None value
+        frame_none = DataFrame(dict(a=None), index=[0])
+        frame_none_list = DataFrame(dict(a=[None]), index=[0])
+        tm.assert_equal(frame_none.get_value(0, 'a'), None)
+        tm.assert_equal(frame_none_list.get_value(0, 'a'), None)
+        tm.assert_frame_equal(frame_none, frame_none_list)
+
         # GH10856
         # dict with scalar values should raise error, even if columns passed
         with tm.assertRaises(ValueError):
