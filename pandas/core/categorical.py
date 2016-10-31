@@ -1085,8 +1085,11 @@ class Categorical(PandasObject):
                              "ordered one")
 
         from pandas.core.series import Series
-        values_as_codes = self.categories.values.searchsorted(
-            Series(v).values, side=side)
+        cvalues = self.categories.values
+        values_as_codes = np.where(cvalues == Series(v).values)[0]
+
+        if side == 'right':
+            values_as_codes = cvalues.size - values_as_codes
 
         return self.codes.searchsorted(values_as_codes, sorter=sorter)
 
