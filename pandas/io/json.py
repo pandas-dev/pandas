@@ -22,10 +22,9 @@ dumps = _json.dumps
 def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
             default_handler=None, lines=False):
-
     if lines and orient != 'records':
-            raise ValueError(
-                "'lines' keyword only valid when 'orient' is records")
+        raise ValueError(
+            "'lines' keyword only valid when 'orient' is records")
 
     if isinstance(obj, Series):
         s = SeriesWriter(
@@ -53,7 +52,6 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
 
 
 class Writer(object):
-
     def __init__(self, obj, orient, date_format, double_precision,
                  ensure_ascii, date_unit, default_handler=None):
         self.obj = obj
@@ -291,7 +289,6 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
 
 class Parser(object):
-
     _STAMP_UNITS = ('s', 'ms', 'us', 'ns')
     _MIN_STAMPS = {
         's': long(31536000),
@@ -492,8 +489,8 @@ class SeriesParser(Parser):
         if orient == "split":
             decoded = dict((str(k), v)
                            for k, v in compat.iteritems(loads(
-                               json,
-                               precise_float=self.precise_float)))
+                json,
+                precise_float=self.precise_float)))
             self.check_keys_split(decoded)
             self.obj = Series(dtype=None, **decoded)
         else:
@@ -567,8 +564,8 @@ class FrameParser(Parser):
         elif orient == "split":
             decoded = dict((str(k), v)
                            for k, v in compat.iteritems(loads(
-                               json,
-                               precise_float=self.precise_float)))
+                json,
+                precise_float=self.precise_float)))
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
@@ -595,7 +592,6 @@ class FrameParser(Parser):
             new_obj[i] = c
 
         if needs_new_obj:
-
             # possibly handle dup columns
             new_obj = DataFrame(new_obj, index=self.obj.index)
             new_obj.columns = self.obj.columns
@@ -628,9 +624,9 @@ class FrameParser(Parser):
             col_lower = col.lower()
             if (col_lower.endswith('_at') or
                     col_lower.endswith('_time') or
-                    col_lower == 'modified' or
-                    col_lower == 'date' or
-                    col_lower == 'datetime' or
+                        col_lower == 'modified' or
+                        col_lower == 'date' or
+                        col_lower == 'datetime' or
                     col_lower.startswith('timestamp')):
                 return True
             return False
@@ -639,6 +635,7 @@ class FrameParser(Parser):
             lambda col, c: self._try_convert_to_date(c),
             lambda col, c: ((self.keep_default_dates and is_ok(col)) or
                             col in convert_dates))
+
 
 # ---------------------------------------------------------------------
 # JSON normalization routines
@@ -723,7 +720,7 @@ def nested_to_record(ds, prefix="", level=0):
 
 def json_normalize(data, record_path=None, meta=None,
                    meta_prefix=None,
-                   record_prefix=None):
+                   record_prefix=None, errors='raise'):
     """
     "Normalize" semi-structured JSON data into a flat table
 
@@ -740,6 +737,8 @@ def json_normalize(data, record_path=None, meta=None,
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar']
     meta_prefix : string, default None
+    error: {'raise', 'ignore'}, default 'raise'
+        * ignore: will ignore keyErrors if keys listed in meta are not always present
 
     Returns
     -------
@@ -775,6 +774,7 @@ def json_normalize(data, record_path=None, meta=None,
     4    Cuyahoga        1337   John Kasich     Ohio        OH
 
     """
+
     def _pull_field(js, spec):
         result = js
         if isinstance(spec, list):
@@ -841,8 +841,11 @@ def json_normalize(data, record_path=None, meta=None,
                     else:
                         try:
                             meta_val = _pull_field(obj, val[level:])
-                        except:
-                            meta_val = np.nan
+                        except KeyError as e:
+                            if errors == 'ignore':
+                                meta_val = np.nan
+                            else:
+                                raise KeyError("Try running with errors='ignore' as the following key may not always be present: "+str(e))
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)
