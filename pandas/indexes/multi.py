@@ -1907,6 +1907,7 @@ class MultiIndex(Index):
                 return np.array(labels == loc, dtype=bool)
             else:
                 # sorted, so can return slice object -> view
+                loc = labels.dtype.type(loc)
                 i = labels.searchsorted(loc, side='left')
                 j = labels.searchsorted(loc, side='right')
                 return slice(i, j)
