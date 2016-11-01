@@ -1319,7 +1319,7 @@ class Block(PandasObject):
             values = values[~mask]
 
             if len(values) == 0:
-                if lib.isscalar(q):
+                if is_scalar(q):
                     return self._na_value
                 else:
                     return np.array([self._na_value] * len(q),
@@ -1330,7 +1330,7 @@ class Block(PandasObject):
         def _nanpercentile(values, q, axis, **kw):
 
             mask = isnull(self.values)
-            if not lib.isscalar(mask) and mask.any():
+            if not is_scalar(mask) and mask.any():
                 if self.ndim == 1:
                     return _nanpercentile1D(values, mask, q, **kw)
                 else:
