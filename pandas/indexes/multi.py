@@ -1907,6 +1907,13 @@ class MultiIndex(Index):
                 return np.array(labels == loc, dtype=bool)
             else:
                 # sorted, so can return slice object -> view
+                try:
+                    loc = labels.dtype.type(loc)
+                except TypeError:
+                    # this occurs when loc is a slice (partial string indexing)
+                    # but the TypeError raised by searchsorted in this case
+                    # is catched in Index._has_valid_type()
+                    pass
                 i = labels.searchsorted(loc, side='left')
                 j = labels.searchsorted(loc, side='right')
                 return slice(i, j)
