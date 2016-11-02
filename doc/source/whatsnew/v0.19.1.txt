@@ -55,6 +55,9 @@ Bug Fixes
 - Bug in groupby-transform broadcasting that could cause incorrect dtype coercion (:issue:`14457`)
 
 
+- Bug in groupby-transform broadcasting that could cause incorrect dtype coercion (:issue:`14457`)
+
+
 - Bug in ``Series.__setitem__`` which allowed mutating read-only arrays (:issue:`14359`).
 
 
