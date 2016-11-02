@@ -607,7 +607,9 @@ class DataFrameFormatter(TableFormatter):
         if not self.index:
             # Remove a single space from the beginning of each line
             # and remove any trailing spaces
-            text = text.replace('\n ', '\n')[1:].rstrip()
+            if len(text) > 0 and text[0] == ' ':
+                text = text[1:]
+            text = text.replace('\n ', '\n').rstrip()
         self.buf.writelines(text)
 
         if self.should_show_dimensions:
