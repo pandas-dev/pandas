@@ -1602,3 +1602,26 @@ j,-inF"""
         expected = pd.DataFrame([["1\x1a", 2]], columns=['a', 'b'])
         result = self.read_csv(StringIO(data))
         tm.assert_frame_equal(result, expected)
+
+    def test_file_handles(self):
+        # GH 14418 - don't close user provided file handles
+
+        fh = StringIO('a,b\n1,2')
+        self.read_csv(fh)
+        self.assertFalse(fh.closed)
+
+        with open(self.csv1, 'r') as f:
+            self.read_csv(f)
+            self.assertFalse(f.closed)
+
+        # mmap not working with python engine
+        if self.engine != 'python':
+
+            import mmap
+            with open(self.csv1, 'r') as f:
+                m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+                self.read_csv(m)
+                # closed attribute new in python 3.2
+                if PY3:
+                    self.assertFalse(m.closed)
+                m.close()

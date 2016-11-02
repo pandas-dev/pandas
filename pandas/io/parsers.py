@@ -1456,6 +1456,8 @@ class CParserWrapper(ParserBase):
     def close(self):
         for f in self.handles:
             f.close()
+
+        # close additional handles opened by C parser (for compression)
         try:
             self._reader.close()
         except:

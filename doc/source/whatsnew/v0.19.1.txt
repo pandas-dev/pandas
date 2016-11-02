@@ -38,6 +38,7 @@ Bug Fixes
 
 - Bug in ``pd.read_csv`` for the C engine in which quotation marks were improperly parsed in skipped rows (:issue:`14459`)
 - Bug in ``pd.read_csv`` for Python 2.x in which Unicode quote characters were no longer being respected (:issue:`14477`)
+- Fixed regression where user-provided file handles were closed in ``read_csv`` (c engine) (:issue:`14418`).
 - Bug in localizing an ambiguous timezone when a boolean is passed (:issue:`14402`)
 - Bug in ``TimedeltaIndex`` addition with a Datetime-like object where addition overflow in the negative direction was not being caught (:issue:`14068`, :issue:`14453`)
 
