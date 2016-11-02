@@ -272,7 +272,7 @@ cdef class TextReader:
         parser_t *parser
         object file_handle, na_fvalues
         object true_values, false_values
-        object dsource
+        object handle
         bint na_filter, verbose, has_usecols, has_mi_columns
         int parser_start
         list clocks
@@ -554,9 +554,9 @@ cdef class TextReader:
     def close(self):
         # we need to properly close an open derived
         # filehandle here, e.g. and UTFRecoder
-        if self.dsource is not None:
+        if self.handle is not None:
             try:
-                self.dsource.close()
+                self.handle.close()
             except:
                 pass
 
@@ -641,6 +641,7 @@ cdef class TextReader:
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)
+            self.handle = source
 
         if isinstance(source, basestring):
             if not isinstance(source, bytes):
@@ -683,8 +684,6 @@ cdef class TextReader:
         else:
             raise IOError('Expected file path name or file-like object,'
                           ' got %s type' % type(source))
-
-        self.dsource = source
 
     cdef _get_header(self):
         # header is now a list of lists, so field_count should use header[0]
