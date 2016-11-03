@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+
 import pandas as pd
 from pandas.core import common as com
 from pandas import api
@@ -183,6 +185,11 @@ class TestTypes(Base, tm.TestCase):
         # the pandas.core.common introspectors
         for t in self.allowed:
             self.check_deprecation(getattr(com, t), getattr(types, t))
+
+    def test_deprecation_core_common_array_equivalent(self):
+
+        with tm.assert_produces_warning(DeprecationWarning):
+            com.array_equivalent(np.array([1, 2]), np.array([1, 2]))
 
     def test_deprecation_core_common_moved(self):
 

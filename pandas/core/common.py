@@ -64,6 +64,15 @@ for t in ['is_datetime_arraylike',
     setattr(m, t, outer(t))
 
 
+# deprecate array_equivalent
+
+def array_equivalent(*args, **kwargs):
+    warnings.warn("'pandas.core.common.array_equivalent' is deprecated and "
+                  "is no longer public API", DeprecationWarning, stacklevel=2)
+    from pandas.types import missing
+    return missing.array_equivalent(*args, **kwargs)
+
+
 class PandasError(Exception):
     pass
 

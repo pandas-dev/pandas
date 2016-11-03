@@ -34,7 +34,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Compat with Cython 0.25 for building (:issue:`14496`)
-
+- Added back ``pandas.core.common.array_equivalent`` with a deprecation warning (:issue:`14555`).
 
 - Bug in ``pd.read_csv`` for the C engine in which quotation marks were improperly parsed in skipped rows (:issue:`14459`)
 - Bug in ``pd.read_csv`` for Python 2.x in which Unicode quote characters were no longer being respected (:issue:`14477`)
