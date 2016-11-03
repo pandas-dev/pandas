@@ -22,8 +22,8 @@ Performance Improvements
 
 - Fixed performance regression in factorization of ``Period`` data (:issue:`14338`)
 - Improved performance in ``.to_json()`` when ``lines=True`` (:issue:`14408`)
-- Improved performance in ``Series.asof(where)`` when ``where`` is a scalar (:issue:`14461)
-- Improved performance in ``DataFrame.asof(where)`` when ``where`` is a scalar (:issue:`14461)
+- Improved performance in ``Series.asof(where)`` when ``where`` is a scalar (:issue:`14461`)
+- Improved performance in ``DataFrame.asof(where)`` when ``where`` is a scalar (:issue:`14461`)
 - Improved performance in certain types of `loc` indexing with a MultiIndex (:issue:`14551`).
 
 
@@ -50,7 +50,7 @@ Bug Fixes
 
 
 - Bug in ``RangeIndex.intersection`` when result is a empty set (:issue:`14364`).
-- Bug in union of differences from a ``DatetimeIndex`; this is a regression in 0.19.0 from 0.18.1 (:issue:`14323`)
+- Bug in union of differences from a ``DatetimeIndex``; this is a regression in 0.19.0 from 0.18.1 (:issue:`14323`)
 - Regression in ``DatetimeIndex._maybe_cast_slice_bound`` when index is empty (:issue:`14354`).
 
 - Bug in groupby-transform broadcasting that could cause incorrect dtype coercion (:issue:`14457`)

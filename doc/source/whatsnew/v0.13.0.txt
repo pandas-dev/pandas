@@ -600,7 +600,7 @@ Enhancements
   .. ipython:: python
 
      t = Timestamp('20130101 09:01:02')
-     t + pd.datetools.Nano(123)
+     t + pd.tseries.offsets.Nano(123)
 
 - A new method, ``isin`` for DataFrames, which plays nicely with boolean indexing. The argument to ``isin``, what we're comparing the DataFrame to, can be a DataFrame, Series, dict, or array of values. See :ref:`the docs<indexing.basics.indexing_isin>` for more.
 
