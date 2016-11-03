@@ -2789,7 +2789,7 @@ both on the writing (serialization), and reading (deserialization).
    | 0.17 / Python 3      | >=0.18 / any Python    |
    +----------------------+------------------------+
    | 0.18                 | >= 0.18                |
-   +======================+========================+
+   +----------------------+------------------------+
 
    Reading (files packed by older versions) is backward-compatibile, except for files packed with 0.17 in Python 2, in which case only they can only be unpacked in Python 2.
 
