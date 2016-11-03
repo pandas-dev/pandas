@@ -1998,6 +1998,24 @@ class TestDataFrameFormatting(tm.TestCase):
                    "300  600"
         self.assertEqual(df_s, expected)
 
+        df = DataFrame({'aaaaa': ['xxx', 'xxx', 'xxx'],
+                        'bbbbb': ['xxx', 'xxx', 'xxx']})
+        df_s = df.to_string(index=False)
+        expected = "aaaaa bbbbb\n" \
+                   "  xxx   xxx\n" \
+                   "  xxx   xxx\n" \
+                   "  xxx   xxx"
+        self.assertEqual(df_s, expected)
+
+        df = DataFrame({'aaaaa': [-1.0, -2.0, -3.0],
+                        'bbbbb': [-4.0, -5.0, -6.0]})
+        df_s = df.to_string(index=False)
+        expected = "aaaaa  bbbbb\n" \
+                   " -1.0   -4.0\n" \
+                   " -2.0   -5.0\n" \
+                   " -3.0   -6.0"
+        self.assertEqual(df_s, expected)
+
     def test_to_string_line_width_no_index(self):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
