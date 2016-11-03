@@ -1375,7 +1375,7 @@ Removal of prior version deprecations/changes
 - The ``SparsePanel`` class has been removed (:issue:`13778`)
 - The ``pd.sandbox`` module has been removed in favor of the external library ``pandas-qt`` (:issue:`13670`)
 - The ``pandas.io.data`` and ``pandas.io.wb`` modules are removed in favor of
-  the `pandas-datareader package <https://github.com/pandas-dev/pandas-datareader>`__ (:issue:`13724`).
+  the `pandas-datareader package <https://github.com/pydata/pandas-datareader>`__ (:issue:`13724`).
 - The ``pandas.tools.rplot`` module has been removed in favor of
   the `seaborn package <https://github.com/mwaskom/seaborn>`__ (:issue:`13855`)
 - ``DataFrame.to_csv()`` has dropped the ``engine`` parameter, as was deprecated in 0.17.1 (:issue:`11274`, :issue:`13419`)
