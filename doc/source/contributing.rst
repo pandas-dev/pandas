@@ -27,7 +27,7 @@ about it!
 
 Feel free to ask questions on the `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter
-<https://gitter.im/pandas-dev/pandas>`_.
+<https://gitter.im/pydata/pandas>`_.
 
 Bug reports and enhancement requests
 ====================================

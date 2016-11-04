@@ -1665,7 +1665,7 @@ cdef inline object _get_zone(object tz):
                     'implicitly by passing a string like "dateutil/Europe'
                     '/London" when you construct your pandas objects instead '
                     'of passing a timezone object. See '
-                    'https://github.com/pydata/pandas/pull/7362')
+                    'https://github.com/pandas-dev/pandas/pull/7362')
             return 'dateutil/' + tz._filename
         else:
             # tz is a pytz timezone or unknown.
@@ -4041,7 +4041,7 @@ cdef inline object _tz_cache_key(object tz):
                              'passing a string like "dateutil/Europe/London" '
                              'when you construct your pandas objects instead '
                              'of passing a timezone object. See '
-                             'https://github.com/pydata/pandas/pull/7362')
+                             'https://github.com/pandas-dev/pandas/pull/7362')
         return 'dateutil' + tz._filename
     else:
         return None

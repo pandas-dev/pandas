@@ -39,5 +39,5 @@ Performance Enhancements
 - VBENCH Significantly sped up conversion of nested dict into DataFrame (:issue:`212`)
 - VBENCH Significantly speed up DataFrame ``__repr__`` and ``count`` on large mixed-type DataFrame objects
 
-.. _ENH61: https://github.com/pydata/pandas/commit/6141961
-.. _ENH5c: https://github.com/pydata/pandas/commit/5ca6ff5d822ee4ddef1ec0d87b6d83d8b4bbd3eb
+.. _ENH61: https://github.com/pandas-dev/pandas/commit/6141961
+.. _ENH5c: https://github.com/pandas-dev/pandas/commit/5ca6ff5d822ee4ddef1ec0d87b6d83d8b4bbd3eb

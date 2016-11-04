@@ -56,8 +56,8 @@ Performance Enhancements
 - Wrote fast time series merging / joining methods in Cython. Will be
   integrated later into DataFrame.join and related functions
 
-.. _ENH1b: https://github.com/pydata/pandas/commit/1ba56251f0013ff7cd8834e9486cef2b10098371
-.. _ENHdc: https://github.com/pydata/pandas/commit/dca3c5c5a6a3769ee01465baca04cfdfa66a4f76
-.. _ENHed: https://github.com/pydata/pandas/commit/edd9f1945fc010a57fa0ae3b3444d1fffe592591
-.. _ENH56: https://github.com/pydata/pandas/commit/56e0c9ffafac79ce262b55a6a13e1b10a88fbe93
+.. _ENH1b: https://github.com/pandas-dev/pandas/commit/1ba56251f0013ff7cd8834e9486cef2b10098371
+.. _ENHdc: https://github.com/pandas-dev/pandas/commit/dca3c5c5a6a3769ee01465baca04cfdfa66a4f76
+.. _ENHed: https://github.com/pandas-dev/pandas/commit/edd9f1945fc010a57fa0ae3b3444d1fffe592591
+.. _ENH56: https://github.com/pandas-dev/pandas/commit/56e0c9ffafac79ce262b55a6a13e1b10a88fbe93
 
