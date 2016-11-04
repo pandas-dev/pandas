@@ -71,6 +71,8 @@ class TestClipboard(tm.TestCase):
     def test_round_trip_frame_sep(self):
         for dt in self.data_types:
             self.check_round_trip_frame(dt, sep=',')
+            self.check_round_trip_frame(dt, sep='\s+')
+            self.check_round_trip_frame(dt, sep='|')
 
     def test_round_trip_frame_string(self):
         for dt in self.data_types:
