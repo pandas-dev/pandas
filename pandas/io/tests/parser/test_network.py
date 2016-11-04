@@ -18,19 +18,19 @@ class TestUrlGz(tm.TestCase):
 
     def setUp(self):
         dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salary.table.csv')
+        localtable = os.path.join(dirpath, 'salaries.tsv')
         self.local_table = read_table(localtable)
 
     @tm.network
     def test_url_gz(self):
         url = ('https://raw.github.com/pandas-dev/pandas/'
-               'master/pandas/io/tests/parser/data/salary.table.gz')
+               'master/pandas/io/tests/parser/data/salaries.tsv.gz')
         url_table = read_table(url, compression="gzip", engine="python")
         tm.assert_frame_equal(url_table, self.local_table)
 
     @tm.network
     def test_url_gz_infer(self):
-        url = 'https://s3.amazonaws.com/pandas-test/salary.table.gz'
+        url = 'https://s3.amazonaws.com/pandas-test/salaries.tsv.gz'
         url_table = read_table(url, compression="infer", engine="python")
         tm.assert_frame_equal(url_table, self.local_table)
 
