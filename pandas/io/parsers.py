@@ -1314,7 +1314,12 @@ class ParserBase(object):
 
             if conv_f is not None:
                 # conv_f applied to data before inference
-                # dtype isn't used if a converted specified
+                if cast_type is not None:
+                    warnings.warn(("Both a converter and dtype were specified "
+                                   "for column {0} - only the converter will "
+                                   "be used").format(c), ParserWarning,
+                                  stacklevel=7)
+
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
