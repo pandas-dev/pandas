@@ -12,6 +12,7 @@ import pandas.util.testing as tm
 from pandas import DataFrame, Series, Index, MultiIndex, Categorical
 from pandas.compat import StringIO
 from pandas.types.dtypes import CategoricalDtype
+from pandas.io.common import ParserWarning
 
 
 class DtypeTests(object):
@@ -219,8 +220,9 @@ one,two
         data = """a,b
 1.1,2.2
 1.2,2.3"""
-        result = self.read_csv(StringIO(data), dtype={'a': 'i8'},
-                               converters={'a': lambda x: str(x)})
         # dtype spec ignored if converted specified
+        with tm.assert_produces_warning(ParserWarning):
+            result = self.read_csv(StringIO(data), dtype={'a': 'i8'},
+                                converters={'a': lambda x: str(x)})
         expected = DataFrame({'a': ['1.1', '1.2'], 'b': [2.2, 2.3]})
         tm.assert_frame_equal(result, expected)
