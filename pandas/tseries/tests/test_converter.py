@@ -3,7 +3,7 @@ from datetime import datetime, date
 import nose
 
 import numpy as np
-from pandas import Timestamp, Period
+from pandas import Timestamp, Period, Index
 from pandas.compat import u
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Second, Milli, Micro
@@ -104,7 +104,7 @@ class TestDateTimeConverter(tm.TestCase):
         for freq in ('B', 'L', 'S'):
             dateindex = tm.makeDateIndex(k=10, freq=freq)
             rs = self.dtc.convert(dateindex, None, None)
-            xp = converter.dates.date2num(dateindex._mpl_repr())
+            xp = Index(converter.dates.date2num(dateindex._mpl_repr()))
             tm.assert_almost_equal(rs, xp, decimals)
 
     def test_resolution(self):

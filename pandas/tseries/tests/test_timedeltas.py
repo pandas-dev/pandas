@@ -1513,8 +1513,8 @@ class TestTimedeltaIndex(tm.TestCase):
 
         f = lambda x: x.days
         result = rng.map(f)
-        exp = np.array([f(x) for x in rng], dtype=np.int64)
-        self.assert_numpy_array_equal(result, exp)
+        exp = Int64Index([f(x) for x in rng])
+        self.assert_index_equal(result, exp)
 
     def test_misc_coverage(self):
 
