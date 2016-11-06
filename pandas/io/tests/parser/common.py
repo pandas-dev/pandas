@@ -611,7 +611,7 @@ bar,two,12,13,14,15
         data = """a,b
 """
         df = self.read_csv(StringIO(data), header=[0])
-        expected = DataFrame(columns=[('a'),('b')])
+        expected = DataFrame(columns=[('a'), ('b')])
         tm.assert_frame_equal(df, expected)
         expected_csv = expected.to_csv()
         round_trip = self.read_csv(StringIO(expected_csv))
@@ -620,7 +620,7 @@ bar,two,12,13,14,15
         data_multiline = """a,b
 c,d
 """
-        df2 = self.read_csv(StringIO(data_multiline), header=[0,1])
+        df2 = self.read_csv(StringIO(data_multiline), header=[0, 1])
         expected2 = DataFrame(columns=[('a', 'c'), ('b', 'd')])
         tm.assert_frame_equal(df2, expected2)
 
