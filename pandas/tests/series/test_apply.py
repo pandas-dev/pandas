@@ -124,7 +124,7 @@ class TestSeriesApply(TestData, tm.TestCase):
 
         # change dtype
         result = s.apply(lambda x: x.hour)
-        exp = pd.Series(list(range(24)) + [0], name='XX', dtype=np.int32)
+        exp = pd.Series(list(range(24)) + [0], name='XX', dtype=np.int64)
         tm.assert_series_equal(result, exp)
 
         # not vectorized
@@ -318,7 +318,7 @@ class TestSeriesMap(TestData, tm.TestCase):
 
         # change dtype
         result = s.map(lambda x: x.hour)
-        exp = pd.Series(list(range(24)) + [0], name='XX', dtype=np.int32)
+        exp = pd.Series(list(range(24)) + [0], name='XX', dtype=np.int64)
         tm.assert_series_equal(result, exp)
 
         with tm.assertRaises(NotImplementedError):
