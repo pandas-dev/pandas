@@ -141,7 +141,7 @@ as well as the ``.sum()`` operation.
 
 Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. QT_), or performing multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
 
-.. _dask: https://dask.readthedocs.org/en/latest/
+.. _dask: https://dask.readthedocs.io/en/latest/
 .. _QT: https://wiki.python.org/moin/PyQt
 
 .. _whatsnew_0170.plot:

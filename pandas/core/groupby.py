@@ -6,7 +6,7 @@ import collections
 import warnings
 import copy
 
-from pandas.compat import(
+from pandas.compat import (
     zip, range, long, lzip,
     callable, map
 )
@@ -2201,38 +2201,17 @@ class Grouping(object):
                     raise AssertionError('Level %s not in index' % str(level))
                 level = index.names.index(level)
 
-            inds = index.labels[level]
-            level_index = index.levels[level]
-
             if self.name is None:
                 self.name = index.names[level]
 
-            # XXX complete hack
+            self.grouper, self._labels, self._group_index = \
+                index._get_grouper_for_level(self.grouper, level)
 
-            if grouper is not None:
-                level_values = index.levels[level].take(inds)
-                self.grouper = level_values.map(self.grouper)
-            else:
-                # all levels may not be observed
-                labels, uniques = algos.factorize(inds, sort=True)
-
-                if len(uniques) > 0 and uniques[0] == -1:
-                    # handle NAs
-                    mask = inds != -1
-                    ok_labels, uniques = algos.factorize(inds[mask], sort=True)
-
-                    labels = np.empty(len(inds), dtype=inds.dtype)
-                    labels[mask] = ok_labels
-                    labels[~mask] = -1
-
-                if len(uniques) < len(level_index):
-                    level_index = level_index.take(uniques)
-
-                self._labels = labels
-                self._group_index = level_index
-                self.grouper = level_index.take(labels)
         else:
-            if isinstance(self.grouper, (list, tuple)):
+            if self.grouper is None and self.name is not None:
+                self.grouper = self.obj[self.name]
+
+            elif isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
 
             # a passed Categorical
@@ -2472,7 +2451,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         elif is_in_axis(gpr):  # df.groupby('name')
             in_axis, name, gpr = True, gpr, obj[gpr]
             exclusions.append(name)
-
+        elif isinstance(gpr, Grouper) and gpr.key is not None:
+            # Add key to exclusions
+            exclusions.append(gpr.key)
+            in_axis, name = False, None
         else:
             in_axis, name = False, None
 
@@ -3478,7 +3460,6 @@ class NDFrameGroupBy(GroupBy):
         from pandas.tools.merge import concat
 
         applied = []
-
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
@@ -3499,14 +3480,24 @@ class NDFrameGroupBy(GroupBy):
             else:
                 res = path(group)
 
-            # broadcasting
             if isinstance(res, Series):
-                if res.index.is_(obj.index):
-                    group.T.values[:] = res
-                else:
-                    group.values[:] = res
 
-                applied.append(group)
+                # we need to broadcast across the
+                # other dimension; this will preserve dtypes
+                # GH14457
+                if not np.prod(group.shape):
+                    continue
+                elif res.index.is_(obj.index):
+                    r = concat([res] * len(group.columns), axis=1)
+                    r.columns = group.columns
+                    r.index = group.index
+                else:
+                    r = DataFrame(
+                        np.concatenate([res.values] * len(group.index)
+                                       ).reshape(group.shape),
+                        columns=group.columns, index=group.index)
+
+                applied.append(r)
             else:
                 applied.append(res)
 

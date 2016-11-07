@@ -20,7 +20,7 @@ Release Notes
 *************
 
 This is the list of changes to pandas between each release. For full details,
-see the commit logs at http://github.com/pydata/pandas
+see the commit logs at http://github.com/pandas-dev/pandas
 
 **What is it**
 
@@ -33,9 +33,53 @@ analysis / manipulation tool available in any language.
 
 **Where to get it**
 
-* Source code: http://github.com/pydata/pandas
+* Source code: http://github.com/pandas-dev/pandas
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
+
+
+pandas 0.19.1
+-------------
+
+**Release date:** November 3, 2016
+
+This is a minor bug-fix release from 0.19.0 and includes some small regression fixes,
+bug fixes and performance improvements.
+
+See the :ref:`v0.19.1 Whatsnew <whatsnew_0191>` page for an overview of all
+bugs that have been fixed in 0.19.1.
+
+Thanks
+~~~~~~
+
+- Adam Chainz
+- Anthonios Partheniou
+- Arash Rouhani
+- Ben Kandel
+- Brandon M. Burroughs
+- Chris
+- chris-b1
+- Chris Warth
+- David Krych
+- dubourg
+- gfyoung
+- Iván Vallés Pérez
+- Jeff Reback
+- Joe Jevnik
+- Jon M. Mease
+- Joris Van den Bossche
+- Josh Owen
+- Keshav Ramaswamy
+- Larry Ren
+- mattrijk
+- Michael Felt
+- paul-mannino
+- Piotr Chromiec
+- Robert Bradshaw
+- Sinhrks
+- Thiago Serafim
+- Tom Bird
+
 
 pandas 0.19.0
 -------------

@@ -9,7 +9,7 @@ import csv
 import pandas.util.testing as tm
 
 from pandas import DataFrame
-from pandas.compat import StringIO
+from pandas.compat import PY3, StringIO, u
 
 
 class QuotingTests(object):
@@ -138,3 +138,16 @@ class QuotingTests(object):
         result = self.read_csv(StringIO(data), quotechar='"',
                                doublequote=False)
         tm.assert_frame_equal(result, expected)
+
+    def test_quotechar_unicode(self):
+        # See gh-14477
+        data = 'a\n1'
+        expected = DataFrame({'a': [1]})
+
+        result = self.read_csv(StringIO(data), quotechar=u('"'))
+        tm.assert_frame_equal(result, expected)
+
+        # Compared to Python 3.x, Python 2.x does not handle unicode well.
+        if PY3:
+            result = self.read_csv(StringIO(data), quotechar=u('\u0394'))
+            tm.assert_frame_equal(result, expected)

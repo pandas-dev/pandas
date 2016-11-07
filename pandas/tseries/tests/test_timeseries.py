@@ -3911,6 +3911,18 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
                                 lambda: ts.ix[::0])
 
+    def test_slice_bounds_empty(self):
+        # GH 14354
+        empty_idx = DatetimeIndex(freq='1H', periods=0, end='2015')
+
+        right = empty_idx._maybe_cast_slice_bound('2015-01-02', 'right', 'loc')
+        exp = Timestamp('2015-01-02 23:59:59.999999999')
+        self.assertEqual(right, exp)
+
+        left = empty_idx._maybe_cast_slice_bound('2015-01-02', 'left', 'loc')
+        exp = Timestamp('2015-01-02 00:00:00')
+        self.assertEqual(left, exp)
+
 
 class TestDatetime64(tm.TestCase):
     """
@@ -4462,6 +4474,15 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(stamp.month, 1)
         self.assertEqual(stamp.microsecond, 0)
         self.assertEqual(stamp.nanosecond, 500)
+
+        # GH 14415
+        val = np.iinfo(np.int64).min + 80000000000000
+        stamp = Timestamp(val)
+        self.assertEqual(stamp.year, 1677)
+        self.assertEqual(stamp.month, 9)
+        self.assertEqual(stamp.day, 21)
+        self.assertEqual(stamp.microsecond, 145224)
+        self.assertEqual(stamp.nanosecond, 192)
 
     def test_unit(self):
 
@@ -5514,22 +5535,6 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
 
 
 class TestDaysInMonth(tm.TestCase):
-    def test_coerce_deprecation(self):
-
-        # deprecation of coerce
-        with tm.assert_produces_warning(FutureWarning):
-            to_datetime('2015-02-29', coerce=True)
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertRaises(ValueError,
-                              lambda: to_datetime('2015-02-29', coerce=False))
-
-        # multiple arguments
-        for e, c in zip(['raise', 'ignore', 'coerce'], [True, False]):
-            with tm.assert_produces_warning(FutureWarning):
-                self.assertRaises(TypeError,
-                                  lambda: to_datetime('2015-02-29', errors=e,
-                                                      coerce=c))
-
     # tests for issue #10154
     def test_day_not_in_month_coerce(self):
         self.assertTrue(isnull(to_datetime('2015-02-29', errors='coerce')))

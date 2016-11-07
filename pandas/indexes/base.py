@@ -432,6 +432,36 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
 
+    _index_shared_docs['_get_grouper_for_level'] = """
+        Get index grouper corresponding to an index level
+
+        Parameters
+        ----------
+        mapper: Group mapping function or None
+            Function mapping index values to groups
+        level : int or None
+            Index level
+
+        Returns
+        -------
+        grouper : Index
+            Index of values to group on
+        labels : ndarray of int or None
+            Array of locations in level_index
+        uniques : Index or None
+            Index of unique values for level
+        """
+
+    @Appender(_index_shared_docs['_get_grouper_for_level'])
+    def _get_grouper_for_level(self, mapper, level=None):
+        assert level is None or level == 0
+        if mapper is None:
+            grouper = self
+        else:
+            grouper = self.map(mapper)
+
+        return grouper, None, None
+
     def is_(self, other):
         """
         More flexible, faster check like ``is`` but that works through views
@@ -1434,12 +1464,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         names = set([obj.name for obj in to_concat])
         name = None if len(names) > 1 else self.name
 
-        typs = _concat.get_dtype_kinds(to_concat)
-
-        if 'category' in typs:
-            # if any of the to_concat is category
+        if self.is_categorical():
+            # if calling index is category, don't check dtype of others
             from pandas.indexes.category import CategoricalIndex
             return CategoricalIndex._append_same_dtype(self, to_concat, name)
+
+        typs = _concat.get_dtype_kinds(to_concat)
 
         if len(typs) == 1:
             return self._append_same_dtype(to_concat, name=name)
@@ -1973,7 +2003,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         except TypeError:
             pass
 
-        return this._shallow_copy(the_diff, name=result_name)
+        return this._shallow_copy(the_diff, name=result_name, freq=None)
 
     def symmetric_difference(self, other, result_name=None):
         """
@@ -2935,6 +2965,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
         return Index(joined, name=name)
+
+    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
+        # this is for partial string indexing,
+        # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
+        raise NotImplementedError
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """

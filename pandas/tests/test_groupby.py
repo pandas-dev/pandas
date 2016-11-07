@@ -442,6 +442,36 @@ class TestGroupBy(tm.TestCase):
         result = g.sum()
         assert_frame_equal(result, expected)
 
+        # GH14334
+        # pd.Grouper(key=...) may be passed in a list
+        df = DataFrame({'A': [0, 0, 0, 1, 1, 1],
+                        'B': [1, 1, 2, 2, 3, 3],
+                        'C': [1, 2, 3, 4, 5, 6]})
+        # Group by single column
+        expected = df.groupby('A').sum()
+        g = df.groupby([pd.Grouper(key='A')])
+        result = g.sum()
+        assert_frame_equal(result, expected)
+
+        # Group by two columns
+        # using a combination of strings and Grouper objects
+        expected = df.groupby(['A', 'B']).sum()
+
+        # Group with two Grouper objects
+        g = df.groupby([pd.Grouper(key='A'), pd.Grouper(key='B')])
+        result = g.sum()
+        assert_frame_equal(result, expected)
+
+        # Group with a string and a Grouper object
+        g = df.groupby(['A', pd.Grouper(key='B')])
+        result = g.sum()
+        assert_frame_equal(result, expected)
+
+        # Group with a Grouper object and a string
+        g = df.groupby([pd.Grouper(key='A'), 'B'])
+        result = g.sum()
+        assert_frame_equal(result, expected)
+
         # GH8866
         s = Series(np.arange(8, dtype='int64'),
                    index=pd.MultiIndex.from_product(
@@ -457,6 +487,39 @@ class TestGroupBy(tm.TestCase):
         result = s.groupby(pd.Grouper(level='one')).sum()
         expected = s.groupby(level='one').sum()
         assert_series_equal(result, expected)
+
+    def test_grouper_column_and_index(self):
+        # GH 14327
+
+        # Grouping a multi-index frame by a column and an index level should
+        # be equivalent to resetting the index and grouping by two columns
+        idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 3),
+                                         ('b', 1), ('b', 2), ('b', 3)])
+        idx.names = ['outer', 'inner']
+        df_multi = pd.DataFrame({"A": np.arange(6),
+                                 'B': ['one', 'one', 'two',
+                                       'two', 'one', 'one']},
+                                index=idx)
+        result = df_multi.groupby(['B', pd.Grouper(level='inner')]).mean()
+        expected = df_multi.reset_index().groupby(['B', 'inner']).mean()
+        assert_frame_equal(result, expected)
+
+        # Test the reverse grouping order
+        result = df_multi.groupby([pd.Grouper(level='inner'), 'B']).mean()
+        expected = df_multi.reset_index().groupby(['inner', 'B']).mean()
+        assert_frame_equal(result, expected)
+
+        # Grouping a single-index frame by a column and the index should
+        # be equivalent to resetting the index and grouping by two columns
+        df_single = df_multi.reset_index('outer')
+        result = df_single.groupby(['B', pd.Grouper(level='inner')]).mean()
+        expected = df_single.reset_index().groupby(['B', 'inner']).mean()
+        assert_frame_equal(result, expected)
+
+        # Test the reverse grouping order
+        result = df_single.groupby([pd.Grouper(level='inner'), 'B']).mean()
+        expected = df_single.reset_index().groupby(['inner', 'B']).mean()
+        assert_frame_equal(result, expected)
 
     def test_grouper_getting_correct_binner(self):
 
@@ -1302,6 +1365,18 @@ class TestGroupBy(tm.TestCase):
                    df.groupby('col1')['col2'].transform(nsum)]
         for result in results:
             assert_series_equal(result, expected, check_names=False)
+
+    def test_transform_coercion(self):
+
+        # 14457
+        # when we are transforming be sure to not coerce
+        # via assignment
+        df = pd.DataFrame(dict(A=['a', 'a'], B=[0, 1]))
+        g = df.groupby('A')
+
+        expected = g.transform(np.mean)
+        result = g.transform(lambda x: np.mean(x))
+        assert_frame_equal(result, expected)
 
     def test_with_na(self):
         index = Index(np.arange(10))
@@ -6443,7 +6518,7 @@ class TestGroupBy(tm.TestCase):
 
     def test_groupby_categorical_two_columns(self):
 
-        # https://github.com/pydata/pandas/issues/8138
+        # https://github.com/pandas-dev/pandas/issues/8138
         d = {'cat':
              pd.Categorical(["a", "b", "a", "b"], categories=["a", "b", "c"],
                             ordered=True),

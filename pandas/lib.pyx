@@ -65,13 +65,8 @@ cdef int64_t NPY_NAT = util.get_nat()
 ctypedef unsigned char UChar
 
 cimport util
-from util cimport is_array, _checknull, _checknan
-
-cdef extern from "headers/stdint.h":
-    enum: UINT8_MAX
-    enum: INT64_MAX
-    enum: INT64_MIN
-
+from util cimport (is_array, _checknull, _checknan, INT64_MAX,
+                   INT64_MIN, UINT8_MAX)
 
 cdef extern from "math.h":
     double sqrt(double x)
@@ -980,7 +975,9 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
         if is_datelike and checknull(v):
             result[i] = NPY_NAT
         else:
-            util.set_value_at(result, i, v)
+            # we can use the unsafe version because we know `result` is mutable
+            # since it was created from `np.empty`
+            util.set_value_at_unsafe(result, i, v)
 
     return result
 
@@ -991,7 +988,9 @@ cpdef ndarray[object] astype_unicode(ndarray arr):
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        util.set_value_at(result, i, unicode(arr[i]))
+        # we can use the unsafe version because we know `result` is mutable
+        # since it was created from `np.empty`
+        util.set_value_at_unsafe(result, i, unicode(arr[i]))
 
     return result
 
@@ -1002,7 +1001,9 @@ cpdef ndarray[object] astype_str(ndarray arr):
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        util.set_value_at(result, i, str(arr[i]))
+        # we can use the unsafe version because we know `result` is mutable
+        # since it was created from `np.empty`
+        util.set_value_at_unsafe(result, i, str(arr[i]))
 
     return result
 
@@ -1085,6 +1086,44 @@ def string_array_replace_from_nan_rep(
             arr[i] = replace
 
     return arr
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def convert_json_to_lines(object arr):
+    """
+    replace comma separated json with line feeds, paying special attention
+    to quotes & brackets
+    """
+    cdef:
+        Py_ssize_t i = 0, num_open_brackets_seen = 0, in_quotes = 0, length
+        ndarray[uint8_t] narr
+        unsigned char v, comma, left_bracket, right_brack, newline
+
+    newline = ord('\n')
+    comma = ord(',')
+    left_bracket = ord('{')
+    right_bracket = ord('}')
+    quote = ord('"')
+    backslash = ord('\\')
+
+    narr = np.frombuffer(arr.encode('utf-8'), dtype='u1').copy()
+    length = narr.shape[0]
+    for i in range(length):
+        v = narr[i]
+        if v == quote and i > 0 and narr[i - 1] != backslash:
+            in_quotes = ~in_quotes
+        if v == comma: # commas that should be \n
+            if num_open_brackets_seen == 0 and not in_quotes:
+                narr[i] = newline
+        elif v == left_bracket:
+            if not in_quotes:
+                num_open_brackets_seen += 1
+        elif v == right_bracket:
+            if not in_quotes:
+                num_open_brackets_seen -= 1
+
+    return narr.tostring().decode('utf-8')
 
 
 @cython.boundscheck(False)

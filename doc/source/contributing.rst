@@ -14,11 +14,11 @@ All contributions, bug reports, bug fixes, documentation improvements,
 enhancements and ideas are welcome.
 
 If you are simply looking to start working with the *pandas* codebase, navigate to the
-`GitHub "issues" tab <https://github.com/pydata/pandas/issues>`_ and start looking through
+`GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_ and start looking through
 interesting issues.  There are a number of issues listed under `Docs
-<https://github.com/pydata/pandas/issues?labels=Docs&sort=updated&state=open>`_
+<https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open>`_
 and `Difficulty Novice
-<https://github.com/pydata/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
+<https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
 where you could start out.
 
 Or maybe through using *pandas* you have an idea of your own or are looking for something
@@ -79,7 +79,7 @@ It can very quickly become overwhelming, but sticking to the guidelines below wi
 straightforward and mostly trouble free.  As always, if you are having difficulties please
 feel free to ask for help.
 
-The code is hosted on `GitHub <https://www.github.com/pydata/pandas>`_. To
+The code is hosted on `GitHub <https://www.github.com/pandas-dev/pandas>`_. To
 contribute you will need to sign up for a `free GitHub account
 <https://github.com/signup/free>`_. We use `Git <http://git-scm.com/>`_ for
 version control to allow many people to work together on the project.
@@ -103,12 +103,12 @@ Forking
 -------
 
 You will need your own fork to work on the code. Go to the `pandas project
-page <https://github.com/pydata/pandas>`_ and hit the ``Fork`` button. You will
+page <https://github.com/pandas-dev/pandas>`_ and hit the ``Fork`` button. You will
 want to clone your fork to your machine::
 
     git clone git@github.com:your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
-    git remote add upstream git://github.com/pydata/pandas.git
+    git remote add upstream git://github.com/pandas-dev/pandas.git
 
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
@@ -360,7 +360,7 @@ follow the Numpy Docstring Standard (see above), but you don't need to install
 this because a local copy of numpydoc is included in the *pandas* source
 code.
 `nbconvert <https://nbconvert.readthedocs.io/en/latest/>`_ and
-`nbformat <http://nbformat.readthedocs.io/en/latest/>`_ are required to build
+`nbformat <https://nbformat.readthedocs.io/en/latest/>`_ are required to build
 the Jupyter notebooks included in the documentation.
 
 If you have a conda environment named ``pandas_dev``, you can install the extra
@@ -467,7 +467,7 @@ and make these changes with::
     pep8radius master --diff --in-place
 
 Additional standards are outlined on the `code style wiki
-page <https://github.com/pydata/pandas/wiki/Code-Style-and-Conventions>`_.
+page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
 
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of
 existing code, so don't break it if at all possible.  If you think breakage is required,
@@ -490,7 +490,7 @@ Adding tests is one of the most common requests after code is pushed to *pandas*
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
 Like many packages, *pandas* uses the `Nose testing system
-<http://nose.readthedocs.org/en/latest/index.html>`_ and the convenient
+<https://nose.readthedocs.io/en/latest/index.html>`_ and the convenient
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
@@ -501,7 +501,7 @@ All tests should go into the ``tests`` subdirectory of the specific package.
 This folder contains many current examples of tests, and we suggest looking to these for
 inspiration.  If your test requires working with files or
 network connectivity, there is more information on the `testing page
-<https://github.com/pydata/pandas/wiki/Testing>`_ of the wiki.
+<https://github.com/pandas-dev/pandas/wiki/Testing>`_ of the wiki.
 
 The ``pandas.util.testing`` module has many special ``assert`` functions that
 make it easier to make statements about whether Series or DataFrame objects are
@@ -569,7 +569,7 @@ supports both python2 and python3.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
-webpage <http://asv.readthedocs.org/en/latest/installing.html>`_.
+webpage <https://asv.readthedocs.io/en/latest/installing.html>`_.
 
 To install asv::
 
@@ -624,7 +624,7 @@ This will display stderr from the benchmarks, and use your local
 ``python`` that comes from your ``$PATH``.
 
 Information on how to write a benchmark and how to use asv can be found in the
-`asv documentation <http://asv.readthedocs.org/en/latest/writing_benchmarks.html>`_.
+`asv documentation <https://asv.readthedocs.io/en/latest/writing_benchmarks.html>`_.
 
 .. _contributing.gbq_integration_tests:
 
@@ -639,24 +639,26 @@ on Travis-CI. The first step is to create a `service account
 Integration tests for ``pandas.io.gbq`` are skipped in pull requests because
 the credentials that are required for running Google BigQuery integration
 tests are `encrypted <https://docs.travis-ci.com/user/encrypting-files/>`__
-on Travis-CI and are only accessible from the pydata/pandas repository. The
+on Travis-CI and are only accessible from the pandas-dev/pandas repository. The
 credentials won't be available on forks of pandas. Here are the steps to run
 gbq integration tests on a forked repository:
 
-#. First, complete all the steps in the `Encrypting Files Prerequisites
-   <https://docs.travis-ci.com/user/encrypting-files/>`__ section.
-#. Sign into `Travis <https://travis-ci.org/>`__ using your GitHub account.
-#. Enable your forked repository of pandas for testing in `Travis
-   <https://travis-ci.org/profile/>`__.
-#. Run the following command from terminal where the current working directory
-   is the ``ci`` folder::
+#. Go to `Travis CI <https://travis-ci.org/>`__ and sign in with your GitHub
+   account.
+#. Click on the ``+`` icon next to the ``My Repositories`` list and enable
+   Travis builds for your fork.
+#. Click on the gear icon to edit your travis build, and add two environment
+   variables:
 
-    ./travis_encrypt_gbq.sh <gbq-json-credentials-file> <gbq-project-id>
+   - ``GBQ_PROJECT_ID`` with the value being the ID of your BigQuery project.
 
-#. Create a new branch from the branch used in your pull request. Commit the
-   encrypted file called ``travis_gbq.json.enc`` as well as the file
-   ``travis_gbq_config.txt``, in an otherwise empty commit. DO NOT commit the
-   ``*.json`` file which contains your unencrypted private key.
+   - ``SERVICE_ACCOUNT_KEY`` with the value being the contents of the JSON key
+     that you downloaded for your service account. Use single quotes around
+     your JSON key to ensure that it is treated as a string.
+
+   For both environment variables, keep the "Display value in build log" option
+   DISABLED. These variables contain sensitive data and you do not want their
+   contents being exposed in build logs.
 #. Your branch should be tested automatically once it is pushed. You can check
    the status by visiting your Travis branches page which exists at the
    following location: https://travis-ci.org/your-user-name/pandas/branches .
@@ -688,7 +690,7 @@ performance regressions.
 
 You can run specific benchmarks using the ``-r`` flag, which takes a regular expression.
 
-See the `performance testing wiki <https://github.com/pydata/pandas/wiki/Performance-Testing>`_ for information
+See the `performance testing wiki <https://github.com/pandas-dev/pandas/wiki/Performance-Testing>`_ for information
 on how to write a benchmark.
 
 Documenting your code
@@ -712,8 +714,8 @@ directive is used. The sphinx syntax for that is:
 
 This will put the text *New in version 0.17.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
-or method (`example <https://github.com/pydata/pandas/blob/v0.16.2/pandas/core/generic.py#L1959>`__)
-or a new keyword argument (`example <https://github.com/pydata/pandas/blob/v0.16.2/pandas/core/frame.py#L1171>`__).
+or method (`example <https://github.com/pandas-dev/pandas/blob/v0.16.2/pandas/core/generic.py#L1959>`__)
+or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.16.2/pandas/core/frame.py#L1171>`__).
 
 Contributing your changes to *pandas*
 =====================================
@@ -806,8 +808,8 @@ like::
 
     origin  git@github.com:yourname/pandas.git (fetch)
     origin  git@github.com:yourname/pandas.git (push)
-    upstream        git://github.com/pydata/pandas.git (fetch)
-    upstream        git://github.com/pydata/pandas.git (push)
+    upstream        git://github.com/pandas-dev/pandas.git (fetch)
+    upstream        git://github.com/pandas-dev/pandas.git (push)
 
 Now your code is on GitHub, but it is not yet a part of the *pandas* project.  For that to
 happen, a pull request needs to be submitted on GitHub.

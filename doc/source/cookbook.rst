@@ -200,7 +200,7 @@ The :ref:`indexing <indexing>` docs.
    df[(df.AAA <= 6) & (df.index.isin([0,2,4]))]
 
 `Use loc for label-oriented slicing and iloc positional slicing
-<https://github.com/pydata/pandas/issues/2904>`__
+<https://github.com/pandas-dev/pandas/issues/2904>`__
 
 .. ipython:: python
 
@@ -410,7 +410,7 @@ Sorting
    df.sort_values(by=('Labs', 'II'), ascending=False)
 
 `Partial Selection, the need for sortedness;
-<https://github.com/pydata/pandas/issues/2995>`__
+<https://github.com/pandas-dev/pandas/issues/2995>`__
 
 Levels
 ******
@@ -787,7 +787,7 @@ The :ref:`Resample <timeseries.resampling>` docs.
 <http://stackoverflow.com/questions/14569223/timegrouper-pandas>`__
 
 `Using TimeGrouper and another grouping to create subgroups, then apply a custom function
-<https://github.com/pydata/pandas/issues/3791>`__
+<https://github.com/pandas-dev/pandas/issues/3791>`__
 
 `Resampling with custom periods
 <http://stackoverflow.com/questions/15408156/resampling-with-custom-periods>`__
@@ -823,7 +823,7 @@ ignore_index is needed in pandas < v0.13, and depending on df construction
    df = df1.append(df2,ignore_index=True); df
 
 `Self Join of a DataFrame
-<https://github.com/pydata/pandas/issues/2996>`__
+<https://github.com/pandas-dev/pandas/issues/2996>`__
 
 .. ipython:: python
 
@@ -877,7 +877,7 @@ The :ref:`Plotting <visualization>` docs.
 <http://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot>`__
 
 `Generate Embedded plots in excel files using Pandas, Vincent and xlsxwriter
-<http://pandas-xlsxwriter-charts.readthedocs.org/en/latest/introduction.html>`__
+<https://pandas-xlsxwriter-charts.readthedocs.io/>`__
 
 `Boxplot for each quartile of a stratifying variable
 <http://stackoverflow.com/questions/23232989/boxplot-stratified-by-column-in-python-pandas>`__
@@ -936,7 +936,7 @@ using that handle to read.
 <http://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
 
 `Dealing with bad lines
-<http://github.com/pydata/pandas/issues/2886>`__
+<http://github.com/pandas-dev/pandas/issues/2886>`__
 
 `Dealing with bad lines II
 <http://nipunbatra.github.io/2013/06/reading-unclean-data-csv-using-pandas/>`__
@@ -1075,7 +1075,7 @@ The :ref:`HDFStores <io.hdf5>` docs
 <http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
 `Managing heterogeneous data using a linked multiple table hierarchy
-<http://github.com/pydata/pandas/issues/3032>`__
+<http://github.com/pandas-dev/pandas/issues/3032>`__
 
 `Merging on-disk tables with millions of rows
 <http://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
@@ -1216,7 +1216,7 @@ Timedeltas
 The :ref:`Timedeltas <timedeltas.timedeltas>` docs.
 
 `Using timedeltas
-<http://github.com/pydata/pandas/pull/2899>`__
+<http://github.com/pandas-dev/pandas/pull/2899>`__
 
 .. ipython:: python
 

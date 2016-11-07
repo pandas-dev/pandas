@@ -392,7 +392,7 @@ class TestCategoricalIndex(tm.TestCase):
 
     def test_indexing_with_category(self):
 
-        # https://github.com/pydata/pandas/issues/12564
+        # https://github.com/pandas-dev/pandas/issues/12564
         # consistent result if comparing as Dataframe
 
         cat = DataFrame({'A': ['foo', 'bar', 'baz']})

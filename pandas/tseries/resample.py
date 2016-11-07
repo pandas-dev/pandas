@@ -1281,7 +1281,7 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     # error cause by resampling across multiple days when a one day period is
     # not a multiple of the frequency.
     #
-    # See https://github.com/pydata/pandas/issues/8683
+    # See https://github.com/pandas-dev/pandas/issues/8683
 
     first_tzinfo = first.tzinfo
     first = first.tz_localize(None)

@@ -944,7 +944,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         self.assertTrue(isinstance(
             table.table.c['time'].type, sqltypes.DateTime))
 
-    def test_to_sql_read_sql_with_database_uri(self):
+    def test_database_uri_string(self):
 
         # Test read_sql and .to_sql method with a database URI (GH10654)
         test_frame1 = self.test_frame1
@@ -962,6 +962,12 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         tm.assert_frame_equal(test_frame1, test_frame2)
         tm.assert_frame_equal(test_frame1, test_frame3)
         tm.assert_frame_equal(test_frame1, test_frame4)
+
+        # using driver that will not be installed on Travis to trigger error
+        # in sqlalchemy.create_engine -> test passing of this error to user
+        db_uri = "postgresql+pg8000://user:pass@host/dbname"
+        with tm.assertRaisesRegexp(ImportError, "pg8000"):
+            sql.read_sql("select * from table", db_uri)
 
     def _make_iris_table_metadata(self):
         sa = sqlalchemy
@@ -1610,7 +1616,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_connectable_issue_example(self):
         # This tests the example raised in issue
-        # https://github.com/pydata/pandas/issues/10104
+        # https://github.com/pandas-dev/pandas/issues/10104
 
         def foo(connection):
             query = 'SELECT test_foo_data FROM test_foo_data'

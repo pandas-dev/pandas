@@ -16,7 +16,6 @@ from pandas.types.generic import (ABCIndexClass, ABCSeries,
 from pandas.types.missing import notnull
 
 import pandas.compat as compat
-from pandas.util.decorators import deprecate_kwarg
 
 _DATEUTIL_LEXER_SPLIT = None
 try:
@@ -43,6 +42,7 @@ def _infer_tzinfo(start, end):
                 raise AssertionError('Inputs must both have the same timezone,'
                                      ' {0} != {1}'.format(tz, b.tzinfo))
         return tz
+
     tz = None
     if start is not None:
         tz = _infer(start, end)
@@ -175,10 +175,8 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
-@deprecate_kwarg(old_arg_name='coerce', new_arg_name='errors',
-                 mapping={True: 'coerce', False: 'raise'})
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
-                utc=None, box=True, format=None, exact=True, coerce=None,
+                utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False):
     """
     Convert argument to datetime.
@@ -267,10 +265,15 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1   2016-03-05
     dtype: datetime64[ns]
 
-    If a date that does not meet timestamp limitations, passing errors='coerce'
-    will force to NaT. Furthermore this will force non-dates to NaT as well.
+    If a date does not meet the `timestamp limitations
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html
+    #timeseries-timestamp-limits>`_, passing errors='ignore'
+    will return the original input instead of raising any exception.
 
-    >>> pd.to_datetime('13000101', format='%Y%m%d')
+    Passing errors='coerce' will force an out-of-bounds date to NaT,
+    in addition to forcing non-dates (or non-parseable dates) to NaT.
+
+    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
     datetime.datetime(1300, 1, 1, 0, 0)
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
@@ -423,6 +426,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     return _convert_listlike(np.array([arg]), box, format)[0]
 
+
 # mappings for assembling units
 _unit_map = {'year': 'year',
              'years': 'year',
@@ -555,7 +559,7 @@ def _attempt_YYYYMMDD(arg, errors):
         result = np.empty(carg.shape, dtype='M8[ns]')
         iresult = result.view('i8')
         iresult[~mask] = tslib.iNaT
-        result[mask] = calc(carg[mask].astype(np.float64).astype(np.int64)).\
+        result[mask] = calc(carg[mask].astype(np.float64).astype(np.int64)). \
             astype('M8[ns]')
         return result
 
@@ -639,7 +643,6 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
 DateParseError = tslib.DateParseError
 normalize_date = tslib.normalize_date
-
 
 # Fixed time formats for time parsing
 _time_formats = ["%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
@@ -765,6 +768,7 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
 def format(dt):
     """Returns date in YYYYMMDD format."""
     return dt.strftime('%Y%m%d')
+
 
 OLE_TIME_ZERO = datetime(1899, 12, 30, 0, 0, 0)
 

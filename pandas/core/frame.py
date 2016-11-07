@@ -2487,7 +2487,7 @@ class DataFrame(NDFrame):
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
-        # value exeption to occur first
+        # value exception to occur first
         if len(self):
             self._check_setitem_copy()
 
@@ -2503,10 +2503,10 @@ class DataFrame(NDFrame):
         loc : int
             Must have 0 <= loc <= len(columns)
         column : object
-        value : int, Series, or array-like
+        value : scalar, Series, or array-like
         """
         self._ensure_valid_index(value)
-        value = self._sanitize_column(column, value)
+        value = self._sanitize_column(column, value, broadcast=False)
         self._data.insert(loc, column, value,
                           allow_duplicates=allow_duplicates)
 
@@ -2590,9 +2590,25 @@ class DataFrame(NDFrame):
 
         return data
 
-    def _sanitize_column(self, key, value):
-        # Need to make sure new columns (which go into the BlockManager as new
-        # blocks) are always copied
+    def _sanitize_column(self, key, value, broadcast=True):
+        """
+        Ensures new columns (which go into the BlockManager as new blocks) are
+        always copied and converted into an array.
+
+        Parameters
+        ----------
+        key : object
+        value : scalar, Series, or array-like
+        broadcast : bool, default True
+            If ``key`` matches multiple duplicate column names in the
+            DataFrame, this parameter indicates whether ``value`` should be
+            tiled so that the returned array contains a (duplicated) column for
+            each occurrence of the key. If False, ``value`` will not be tiled.
+
+        Returns
+        -------
+        sanitized_column : numpy-array
+        """
 
         def reindexer(value):
             # reindex if necessary
@@ -2665,7 +2681,7 @@ class DataFrame(NDFrame):
             return value
 
         # broadcast across multiple columns if necessary
-        if key in self.columns and value.ndim == 1:
+        if broadcast and key in self.columns and value.ndim == 1:
             if (not self.columns.is_unique or
                     isinstance(self.columns, MultiIndex)):
                 existing_piece = self[key]
@@ -3868,9 +3884,8 @@ class DataFrame(NDFrame):
     def pivot(self, index=None, columns=None, values=None):
         """
         Reshape data (produce a "pivot" table) based on column values. Uses
-        unique values from index / columns to form axes and return either
-        DataFrame or Panel, depending on whether you request a single value
-        column (DataFrame) or all columns (Panel)
+        unique values from index / columns to form axes of the resulting
+        DataFrame.
 
         Parameters
         ----------
@@ -3880,7 +3895,20 @@ class DataFrame(NDFrame):
         columns : string or object
             Column name to use to make new frame's columns
         values : string or object, optional
-            Column name to use for populating new frame's values
+            Column name to use for populating new frame's values. If not
+            specified, all remaining columns will be used and the result will
+            have hierarchically indexed columns
+
+        Returns
+        -------
+        pivoted : DataFrame
+
+        See also
+        --------
+        DataFrame.pivot_table : generalization of pivot that can handle
+            duplicate values for one index/column pair
+        DataFrame.unstack : pivot based on the index values instead of a
+            column
 
         Notes
         -----
@@ -3889,30 +3917,30 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+
+        >>> df = pd.DataFrame({'foo': ['one','one','one','two','two','two'],
+                               'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+                               'baz': [1, 2, 3, 4, 5, 6]})
         >>> df
             foo   bar  baz
-        0   one   A    1.
-        1   one   B    2.
-        2   one   C    3.
-        3   two   A    4.
-        4   two   B    5.
-        5   two   C    6.
+        0   one   A    1
+        1   one   B    2
+        2   one   C    3
+        3   two   A    4
+        4   two   B    5
+        5   two   C    6
 
-        >>> df.pivot('foo', 'bar', 'baz')
+        >>> df.pivot(index='foo', columns='bar', values='baz')
              A   B   C
         one  1   2   3
         two  4   5   6
 
-        >>> df.pivot('foo', 'bar')['baz']
+        >>> df.pivot(index='foo', columns='bar')['baz']
              A   B   C
         one  1   2   3
         two  4   5   6
 
-        Returns
-        -------
-        pivoted : DataFrame
-            If no values column specified, will have hierarchically indexed
-            columns
+
         """
         from pandas.core.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)

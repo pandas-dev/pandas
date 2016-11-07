@@ -147,6 +147,14 @@ class TestDataFrameEval(tm.TestCase, TestData):
         with tm.assertRaisesRegexp(ValueError, msg):
             df.query(111)
 
+    def test_query_empty_string(self):
+        # GH 13139
+        df = pd.DataFrame({'A': [1, 2, 3]})
+
+        msg = "expr cannot be an empty string"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            df.query('')
+
     def test_eval_resolvers_as_list(self):
         # GH 14095
         df = DataFrame(randn(10, 2), columns=list('ab'))

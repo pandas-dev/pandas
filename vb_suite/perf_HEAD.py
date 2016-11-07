@@ -192,7 +192,7 @@ def get_build_results(build):
     return convert_json_to_df(r_url)
 
 
-def get_all_results(repo_id=53976):  # travis pydata/pandas id
+def get_all_results(repo_id=53976):  # travis pandas-dev/pandas id
     """Fetches the VBENCH results for all travis builds, and returns a list of result df
 
    unsuccesful individual vbenches are dropped.
