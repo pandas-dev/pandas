@@ -1,6 +1,6 @@
 """ io on the clipboard """
 from pandas import compat, get_option, option_context, DataFrame
-from pandas.compat import StringIO
+from pandas.compat import StringIO, PY2
 
 
 def read_clipboard(**kwargs):  # pragma: no cover
@@ -83,8 +83,12 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
             if sep is None:
                 sep = '\t'
             buf = StringIO()
-            obj.to_csv(buf, sep=sep, **kwargs)
-            clipboard_set(buf.getvalue())
+            # clipboard_set (pyperclip) expects unicode
+            obj.to_csv(buf, sep=sep, encoding='utf-8', **kwargs)
+            text = buf.getvalue()
+            if PY2:
+                text = text.decode('utf-8')
+            clipboard_set(text)
             return
         except:
             pass
