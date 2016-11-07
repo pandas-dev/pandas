@@ -717,7 +717,7 @@ cdef class TextReader:
                     start = self.parser.line_start[0]
 
                 # e.g., if header=3 and file only has 2 lines
-                if (self.parser.lines < hr + 1
+                elif (self.parser.lines < hr + 1
                     and not isinstance(self.orig_header, list)) or (
                             self.parser.lines < hr):
                     msg = self.orig_header
