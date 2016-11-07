@@ -12,7 +12,7 @@ Highlights include:
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
-.. contents:: What's new in v0.19.0
+.. contents:: What's new in v0.20.0
     :local:
     :backlinks: none
 
@@ -30,6 +30,7 @@ New features
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- ``pd.merge_asof()`` can take ``left_index``/``right_index`` and ``left_by``/``right_by`` (:issue:`14253`)
 
 
 

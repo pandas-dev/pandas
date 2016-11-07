@@ -12,17 +12,6 @@ We recommend that all users upgrade to this version.
     :backlinks: none
 
 
-
-.. _whatsnew_0191.api.other:
-
-Other API Changes
-^^^^^^^^^^^^^^^^^
-
-- ``pd.merge_asof()`` can take ``left_index``/``right_index`` and ``left_by``/``right_by`` (:issue:`14253`)
-
-
-
-
 .. _whatsnew_0191.performance:
 
 Performance Improvements

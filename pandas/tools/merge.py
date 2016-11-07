@@ -292,12 +292,12 @@ def merge_asof(left, right, on=None,
     left_index : boolean
         Use the index of the left DataFrame as the join key.
 
-        .. versionadded:: 0.19.1
+        .. versionadded:: 0.20.0
 
     right_index : boolean
         Use the index of the right DataFrame as the join key.
 
-        .. versionadded:: 0.19.1
+        .. versionadded:: 0.20.0
 
     by : column name
         Group both the left and right DataFrames by the group column; perform
@@ -305,12 +305,12 @@ def merge_asof(left, right, on=None,
     left_by : column name
         Field name to group by in the left DataFrame.
 
-        .. versionadded:: 0.19.1
+        .. versionadded:: 0.20.0
 
     right_by : column name
         Field name to group by in the right DataFrame.
 
-        .. versionadded:: 0.19.1
+        .. versionadded:: 0.20.0
 
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
