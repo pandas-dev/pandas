@@ -4,14 +4,15 @@ from pandas.compat import StringIO
 
 
 def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
-    """
+    r"""
     Read text from clipboard and pass to read_table. See read_table for the
     full argument list
 
     Parameters
     ----------
-    sep : str, default '\s+', one whitespace or more
-        A string or regex delimiter.
+    sep : str, default '\s+'.
+        A string or regex delimiter. The default of '\s+' denotes
+        one or more whitespace characters.
 
     Returns
     -------
