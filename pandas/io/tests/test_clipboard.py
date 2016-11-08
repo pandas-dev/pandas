@@ -18,7 +18,7 @@ except OSError:
     raise nose.SkipTest("no clipboard found")
 
 
-@disabled
+
 class TestClipboard(tm.TestCase):
 
     @classmethod
