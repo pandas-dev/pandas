@@ -10,9 +10,6 @@ from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
-cdef extern from "datetime_helper.h":
-    double total_seconds(object)
-
 from libc.stdlib cimport free
 
 from pandas import compat
@@ -568,7 +565,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
                                               &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
-            delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+            delta = int(timedelta.total_seconds(_get_utcoffset(tz, dt))) * 1000000000
             pandas_datetime_to_datetimestruct(stamps[i] + delta,
                                               PANDAS_FR_ns, &dts)
             curr_reso = _reso_stamp(&dts)
@@ -638,7 +635,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                                               &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
-            delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+            delta = int(timedelta.total_seconds(_get_utcoffset(tz, dt))) * 1000000000
             pandas_datetime_to_datetimestruct(stamps[i] + delta,
                                               PANDAS_FR_ns, &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,

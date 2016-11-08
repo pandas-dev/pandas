@@ -24,7 +24,7 @@ from pandas.compat.numpy import *
 try:
     from pandas import hashtable, tslib, lib
 except ImportError as e:  # pragma: no cover
-    module = str(e).lstrip('cannot import name ')  # hack but overkill to use re
+    module = str(e).split('cannot import name ', 1)[-1]
     raise ImportError("C extension: {0} not built. If you want to import "
                       "pandas from the source directory, you may need to run "
                       "'python setup.py build_ext --inplace --force' to build "

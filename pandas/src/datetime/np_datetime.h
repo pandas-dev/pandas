@@ -45,6 +45,8 @@ typedef struct {
 // stuff pandas needs
 // ----------------------------------------------------------------------------
 
+int cmp_pandas_datetimestruct(pandas_datetimestruct *a, pandas_datetimestruct *b);
+
 int convert_pydatetime_to_datetimestruct(PyObject *obj, pandas_datetimestruct *out,
                                          PANDAS_DATETIMEUNIT *out_bestunit,
                                          int apply_tzinfo);
