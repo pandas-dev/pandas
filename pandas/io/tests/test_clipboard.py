@@ -52,6 +52,9 @@ class TestClipboard(tm.TestCase):
         # Test for non-ascii text: GH9263
         cls.data['nonascii'] = pd.DataFrame({'en': 'in English'.split(),
                                              'es': 'en español'.split()})
+        
+        # unicode round trip test for GH 13747 
+        cls.data['utf8'] = pd.DataFrame({'a':['µasd','Ωœ∑´'], 'b':['øπ∆˚¬','œ∑´®']})
         cls.data_types = list(cls.data.keys())
 
     @classmethod
@@ -113,12 +116,4 @@ class TestClipboard(tm.TestCase):
         exp = pd.read_clipboard()
 
         tm.assert_frame_equal(res, exp)
-
-    # unicode round trip test for GH 13747    
-    def test_round_trip_frame_unicode(self):
-        sep = ','
-        df = pd.DataFrame({'a':['µasd','Ωœ∑´'], 'b':['øπ∆˚¬','œ∑´®']})
-        df.to_clipboard(excel=None, sep =sep)
-        result = read_clipboard(sep = sep, index_col = 0)
-        tm.assert_frame_equal(df, result, check_dtype=False)
 
