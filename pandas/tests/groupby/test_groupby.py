@@ -3840,7 +3840,9 @@ class TestGroupBy(MixIn, tm.TestCase):
             gb = obj.groupby(df.letters)
             self.assertEqual(whitelist, gb._apply_whitelist)
             for m in whitelist:
-                getattr(type(gb), m)
+                f = getattr(type(gb), m)
+                # TODO: Fix inconsistencies between attribute and method names
+                # self.assertEqual(f.__name__, m)
 
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var', 'sem']
