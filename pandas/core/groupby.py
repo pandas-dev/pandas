@@ -194,7 +194,7 @@ def _groupby_function(name, alias, npfunc, numeric_only=True,
                 result = result._convert(datetime=True)
             return result
 
-        f.__name__ = name
+    f.__name__ = name
 
     return f
 
