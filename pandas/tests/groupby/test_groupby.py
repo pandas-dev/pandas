@@ -3929,6 +3929,12 @@ class TestGroupBy(MixIn, tm.TestCase):
              'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding'])
         self.assertEqual(results, expected)
 
+    def test_groupby_function_rename(self):
+        grp = self.mframe.groupby(level='second')
+        for name in ['sum', 'prod', 'min', 'max', 'first', 'last']:
+            f = getattr(grp, name)
+            self.assertEqual(f.__name__, name)
+
     def test_lower_int_prec_count(self):
         df = DataFrame({'a': np.array(
             [0, 1, 2, 100], np.int8),
