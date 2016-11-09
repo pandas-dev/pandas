@@ -3836,13 +3836,44 @@ class TestGroupBy(MixIn, tm.TestCase):
             'nsmallest',
         ])
 
+        # TODO: Fix these inconsistencies between attribute and method names
+        inconsistently_named = frozenset([
+            'tshift',
+            'any',
+            'dtypes',
+            'idxmax',
+            'all',
+            'fillna',
+            'rank',
+            'quantile',
+            'cummax',
+            'take',
+            'corr',
+            'cummin',
+            'diff',
+            'plot',
+            'pct_change',
+            'skew',
+            'hist',
+            'bfill',
+            'cov',
+            'boxplot',
+            'describe',
+            'corrwith',
+            'idxmin',
+            'ffill',
+            'mad',
+            'dtype',
+            'unique'
+        ])
+
         for obj, whitelist in zip((df, s), (df_whitelist, s_whitelist)):
             gb = obj.groupby(df.letters)
             self.assertEqual(whitelist, gb._apply_whitelist)
             for m in whitelist:
                 f = getattr(type(gb), m)
-                # TODO: Fix inconsistencies between attribute and method names
-                # self.assertEqual(f.__name__, m)
+                if m not in inconsistently_named:
+                    self.assertEqual(f.__name__, m)
 
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var', 'sem']
