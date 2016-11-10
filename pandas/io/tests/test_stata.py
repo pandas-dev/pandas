@@ -11,8 +11,6 @@ from distutils.version import LooseVersion
 
 import nose
 import numpy as np
-from pandas.tslib import NaT
-
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import compat
@@ -21,6 +19,7 @@ from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)
+from pandas.tslib import NaT
 from pandas.types.common import is_categorical_dtype
 
 
@@ -1233,6 +1232,52 @@ class TestStata(tm.TestCase):
                                        'i', 'j']})
         original = original[['y', 'x', 'w', 'z']]
         tm.assert_frame_equal(original, df)
+
+    def test_out_of_range_double(self):
+        # GH 14618
+        df = DataFrame({'ColumnOk': [0.0,
+                                     np.finfo(np.double).eps,
+                                     4.49423283715579e+307],
+                        'ColumnTooBig': [0.0,
+                                         np.finfo(np.double).eps,
+                                         np.finfo(np.double).max]})
+        with tm.assertRaises(ValueError) as cm:
+            with tm.ensure_clean() as path:
+                df.to_stata(path)
+            tm.assertTrue('ColumnTooBig' in cm.exception)
+
+        df.loc[2, 'ColumnTooBig'] = np.inf
+        with tm.assertRaises(ValueError) as cm:
+            with tm.ensure_clean() as path:
+                df.to_stata(path)
+            tm.assertTrue('ColumnTooBig' in cm.exception)
+            tm.assertTrue('infinity' in cm.exception)
+
+    def test_out_of_range_float(self):
+        original = DataFrame({'ColumnOk': [0.0,
+                                           np.finfo(np.float32).eps,
+                                           np.finfo(np.float32).max / 10.0],
+                              'ColumnTooBig': [0.0,
+                                               np.finfo(np.float32).eps,
+                                               np.finfo(np.float32).max]})
+        original.index.name = 'index'
+        for col in original:
+            original[col] = original[col].astype(np.float32)
+
+        with tm.ensure_clean() as path:
+            original.to_stata(path)
+            reread = read_stata(path)
+            original['ColumnTooBig'] = original['ColumnTooBig'].astype(
+                np.float64)
+            tm.assert_frame_equal(original,
+                                  reread.set_index('index'))
+
+        original.loc[2, 'ColumnTooBig'] = np.inf
+        with tm.assertRaises(ValueError) as cm:
+            with tm.ensure_clean() as path:
+                original.to_stata(path)
+            tm.assertTrue('ColumnTooBig' in cm.exception)
+            tm.assertTrue('infinity' in cm.exception)
 
 
 if __name__ == '__main__':
