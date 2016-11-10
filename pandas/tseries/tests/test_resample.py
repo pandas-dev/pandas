@@ -2039,6 +2039,17 @@ class TestDatetimeIndex(Base, tm.TestCase):
         res = df['timestamp'].resample('2D').first()
         tm.assert_series_equal(res, exp)
 
+    def test_resample_additional_args(self):
+        # Issue 14615
+        
+        rng = date_range('1/1/2011', periods = 72, freq = 'H')
+        rng_exp = date_range('1/1/2011', periods = 3, freq = 'D')
+        vals = np.tile(np.arange(0, 24), 3)
+        ts = Series(vals, index = rng)
+        ts_exp = Series([286, 286, 286], index = rng_exp)
+        res = ts.resample("D").apply(lambda x, y: np.sum(x) + y, 10)
+        tm.assert_series_equal(res, ts_exp)
+
 
 class TestPeriodIndex(Base, tm.TestCase):
     _multiprocess_can_split_ = True
