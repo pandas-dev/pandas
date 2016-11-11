@@ -30,7 +30,7 @@ class TestUrlGz(tm.TestCase):
 
     @tm.network
     def test_url_gz_infer(self):
-        url = 'https://s3.amazonaws.com/pandas-test/salaries.csv.gz'
+        url = 'https://s3.amazonaws.com/pandas-test/salary.table.gz'
         url_table = read_table(url, compression="infer", engine="python")
         tm.assert_frame_equal(url_table, self.local_table)
 
