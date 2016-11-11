@@ -81,3 +81,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``pd.read_csv`` where reading files fails if the number of headers is equal to the number of lines in the file (:issue:`14515`)

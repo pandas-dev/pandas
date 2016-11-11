@@ -57,6 +57,5 @@ Bug Fixes
 - Bug in ``DataFrame.to_json`` where ``lines=True`` and a value contained a ``}`` character (:issue:`14391`)
 - Bug in ``df.groupby`` causing an ``AttributeError`` when grouping a single index frame by a column and the index level (:issue`14327`)
 - Bug in ``df.groupby`` where ``TypeError`` raised when ``pd.Grouper(key=...)`` is passed in a list (:issue:`14334`)
-- Bug in ``pd.read_csv`` where reading files fails if the number of headers is equal to the number of lines in the file (:issue:`14515`)
 - Bug in ``pd.pivot_table`` may raise ``TypeError`` or ``ValueError`` when ``index`` or ``columns``
   is not scalar and ``values`` is not specified (:issue:`14380`)
