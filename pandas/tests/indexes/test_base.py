@@ -913,7 +913,16 @@ class TestIndex(Base, tm.TestCase):
     def test_format(self):
         self._check_method_works(Index.format)
 
-        index = Index([self.datetime_now_without_trailing_zeros()])
+        # GH 14626
+        def datetime_now_without_trailing_zeros():
+            now = datetime.now()
+
+            while str(now).endswith("000"):
+                now = datetime.now()
+
+            return now
+
+        index = Index([datetime_now_without_trailing_zeros()])
 
         # windows has different precision on datetime.datetime.now (it doesn't
         # include us since the default for Timestamp shows these but Index
@@ -936,15 +945,6 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(formatted, expected)
 
         self.strIndex[:0].format()
-
-    # GH 14626
-    def datetime_now_without_trailing_zeros(self):
-        now = datetime.now()
-
-        while str(now).endswith("000"):
-            now = datetime.now()
-
-        return now
 
     def test_format_with_name_time_info(self):
         # bug I fixed 12/20/2011
