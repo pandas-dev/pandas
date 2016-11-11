@@ -816,8 +816,8 @@ class _MergeOperation(object):
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
-                raise MergeError('Can only pass on OR left_on and '
-                                 'right_on')
+                raise MergeError('Can only pass argument "on" OR "left_on" '
+                                 'and "right_on", not a combination of both.')
             self.left_on = self.right_on = self.on
         elif self.left_on is not None:
             n = len(self.left_on)
