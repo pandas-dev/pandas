@@ -30,7 +30,7 @@ New features
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-
+- ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
 
 
 .. _whatsnew_0200.api_breaking:
