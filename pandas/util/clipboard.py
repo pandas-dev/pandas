@@ -138,7 +138,7 @@ def _copyGtk(text):
 
 
 def _pasteQt():
-    return str(cb.text())
+    return unicode(cb.text())
 
 
 def _copyQt(text):
