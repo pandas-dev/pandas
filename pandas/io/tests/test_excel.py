@@ -379,6 +379,7 @@ class ReadingTestsBase(SharedItems):
         # See PR #9450
         basename = 'test_multisheet'
         dfs = self.get_exceldf(basename, sheetname=None)
+        # ensure this is not alphabetical to test order preservation
         expected_keys = ['Charlie', 'Alpha', 'Beta']
         tm.assert_contains_all(expected_keys, dfs.keys())
         # Issue 9930
