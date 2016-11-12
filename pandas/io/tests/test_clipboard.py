@@ -123,7 +123,17 @@ class TestClipboard(tm.TestCase):
         with tm.assertRaises(ValueError):
             data.to_clipboard(encoding='ascii')
         with tm.assertRaises(NotImplementedError):
-            pd.read_clipboard(encoding='ascii')    
+            pd.read_clipboard(encoding='ascii')   
+
+    def test_round_trip_valid_encodings(self):
+        for enc in ['UTF-8','utf-8','utf8']:
+            for dt in self.data_types:
+                data = self.data[dt]
+                data.to_clipboard(encoding=enc)
+                result = read_clipboard()
+                tm.assert_frame_equal(data, result, check_dtype=False)
+                
+
 
     
 
