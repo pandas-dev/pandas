@@ -4,7 +4,7 @@ import nose
 
 import numpy as np
 import pytz
-
+from distutils.version import LooseVersion
 from pandas.types.dtypes import DatetimeTZDtype
 from pandas import (Index, Series, DataFrame, isnull, Timestamp)
 
@@ -518,8 +518,12 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         times = date_range("2013-10-26 23:00", "2013-10-27 01:00", freq="H",
                            tz=tz, ambiguous='infer')
-        self.assertEqual(times[0], Timestamp('2013-10-26 23:00', tz=tz))
-        self.assertEqual(times[-1], Timestamp('2013-10-27 01:00', tz=tz))
+        self.assertEqual(times[0], Timestamp('2013-10-26 23:00', tz=tz,
+                                             freq="H"))
+        if dateutil.__version__ != LooseVersion('2.6.0'):
+            # GH 14621
+            self.assertEqual(times[-1], Timestamp('2013-10-27 01:00', tz=tz,
+                                                  freq="H"))
 
     def test_ambiguous_nat(self):
         tz = self.tz('US/Eastern')
@@ -1162,6 +1166,85 @@ class TestTimeZones(tm.TestCase):
 
     def setUp(self):
         tm._skip_if_no_pytz()
+
+    def test_replace(self):
+        # GH 14621
+        # GH 7825
+        # replacing datetime components with and w/o presence of a timezone
+        dt = Timestamp('2016-01-01 09:00:00')
+        result = dt.replace(hour=0)
+        expected = Timestamp('2016-01-01 00:00:00')
+        self.assertEqual(result, expected)
+
+        for tz in self.timezones:
+            dt = Timestamp('2016-01-01 09:00:00', tz=tz)
+            result = dt.replace(hour=0)
+            expected = Timestamp('2016-01-01 00:00:00', tz=tz)
+            self.assertEqual(result, expected)
+
+        # we preserve nanoseconds
+        dt = Timestamp('2016-01-01 09:00:00.000000123', tz=tz)
+        result = dt.replace(hour=0)
+        expected = Timestamp('2016-01-01 00:00:00.000000123', tz=tz)
+        self.assertEqual(result, expected)
+
+        # test all
+        dt = Timestamp('2016-01-01 09:00:00.000000123', tz=tz)
+        result = dt.replace(year=2015, month=2, day=2, hour=0, minute=5,
+                            second=5, microsecond=5, nanosecond=5)
+        expected = Timestamp('2015-02-02 00:05:05.000005005', tz=tz)
+        self.assertEqual(result, expected)
+
+        # error
+        def f():
+            dt.replace(foo=5)
+        self.assertRaises(ValueError, f)
+
+        def f():
+            dt.replace(hour=0.1)
+        self.assertRaises(ValueError, f)
+
+        # assert conversion to naive is the same as replacing tzinfo with None
+        dt = Timestamp('2013-11-03 01:59:59.999999-0400', tz='US/Eastern')
+        self.assertEqual(dt.tz_localize(None), dt.replace(tzinfo=None))
+
+    def test_ambiguous_compat(self):
+        # validate that pytz and dateutil are compat for dst
+        # when the transition happens
+        tm._skip_if_no_dateutil()
+        tm._skip_if_no_pytz()
+
+        pytz_zone = 'Europe/London'
+        dateutil_zone = 'dateutil/Europe/London'
+        result_pytz = (Timestamp('2013-10-27 01:00:00')
+                       .tz_localize(pytz_zone, ambiguous=0))
+        result_dateutil = (Timestamp('2013-10-27 01:00:00')
+                           .tz_localize(dateutil_zone, ambiguous=0))
+        self.assertEqual(result_pytz.value, result_dateutil.value)
+        self.assertEqual(result_pytz.value, 1382835600000000000)
+
+        # dateutil 2.6 buggy w.r.t. ambiguous=0
+        if dateutil.__version__ != LooseVersion('2.6.0'):
+            # GH 14621
+            # https://github.com/dateutil/dateutil/issues/321
+            self.assertEqual(result_pytz.to_pydatetime().tzname(),
+                             result_dateutil.to_pydatetime().tzname())
+            self.assertEqual(str(result_pytz), str(result_dateutil))
+
+        # 1 hour difference
+        result_pytz = (Timestamp('2013-10-27 01:00:00')
+                       .tz_localize(pytz_zone, ambiguous=1))
+        result_dateutil = (Timestamp('2013-10-27 01:00:00')
+                           .tz_localize(dateutil_zone, ambiguous=1))
+        self.assertEqual(result_pytz.value, result_dateutil.value)
+        self.assertEqual(result_pytz.value, 1382832000000000000)
+
+        # dateutil < 2.6 is buggy w.r.t. ambiguous timezones
+        if dateutil.__version__ > LooseVersion('2.5.3'):
+            # GH 14621
+            self.assertEqual(str(result_pytz), str(result_dateutil))
+            self.assertEqual(result_pytz.to_pydatetime().tzname(),
+                             result_dateutil.to_pydatetime().tzname())
 
     def test_index_equals_with_tz(self):
         left = date_range('1/1/2011', periods=100, freq='H', tz='utc')

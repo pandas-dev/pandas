@@ -22,3 +22,6 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- compat with ``dateutil==2.6.0`` for testing (:issue:`14621`)
+- allow ``nanoseconds`` in ``Timestamp.replace`` kwargs (:issue:`14621`)
