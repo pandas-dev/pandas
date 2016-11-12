@@ -722,7 +722,7 @@ class _GroupBy(PandasObject, SelectionMixin):
             not_indexed_same=mutated or self.mutated)
 
     def _iterate_slices(self):
-        yield self.name, self._selected_obj
+        yield self._selection_name, self._selected_obj
 
     def transform(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
@@ -921,9 +921,9 @@ class _GroupBy(PandasObject, SelectionMixin):
             result = concat(values, axis=self.axis)
 
         if (isinstance(result, Series) and
-                getattr(self, 'name', None) is not None):
+                getattr(self, '_selection_name', None) is not None):
 
-            result.name = self.name
+            result.name = self._selection_name
 
         return result
 
@@ -1123,7 +1123,7 @@ class GroupBy(_GroupBy):
         result = self.grouper.size()
 
         if isinstance(self.obj, Series):
-            result.name = getattr(self, 'name', None)
+            result.name = getattr(self.obj, 'name', None)
         return result
 
     @classmethod
@@ -2736,7 +2736,7 @@ class SeriesGroupBy(GroupBy):
         exec(_def_str)
 
     @property
-    def name(self):
+    def _selection_name(self):
         """
         since we are a series, we by definition only have
         a single name, but may be the result of a selection or
@@ -2834,6 +2834,14 @@ class SeriesGroupBy(GroupBy):
 
     def _aggregate_multiple_funcs(self, arg, _level):
         if isinstance(arg, dict):
+
+            if isinstance(self._selected_obj, Series):
+                warnings.warn(
+                    ("using a dictionary on a Series for aggregation\n"
+                     "is deprecated and will be removed in a future "
+                     "version"),
+                    FutureWarning, stacklevel=7)
+
             columns = list(arg.keys())
             arg = list(arg.items())
         elif any(isinstance(x, (tuple, list)) for x in arg):
@@ -2879,12 +2887,12 @@ class SeriesGroupBy(GroupBy):
 
     def _wrap_output(self, output, index, names=None):
         """ common agg/transform wrapping logic """
-        output = output[self.name]
+        output = output[self._selection_name]
 
         if names is not None:
             return DataFrame(output, index=index, columns=names)
         else:
-            name = self.name
+            name = self._selection_name
             if name is None:
                 name = self._selected_obj.name
             return Series(output, index=index, name=name)
@@ -2902,7 +2910,7 @@ class SeriesGroupBy(GroupBy):
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             # GH #6265
-            return Series([], name=self.name, index=keys)
+            return Series([], name=self._selection_name, index=keys)
 
         def _get_index():
             if self.grouper.nkeys > 1:
@@ -2915,7 +2923,7 @@ class SeriesGroupBy(GroupBy):
             # GH #823
             index = _get_index()
             result = DataFrame(values, index=index).stack()
-            result.name = self.name
+            result.name = self._selection_name
             return result
 
         if isinstance(values[0], (Series, dict)):
@@ -2927,7 +2935,8 @@ class SeriesGroupBy(GroupBy):
                                         not_indexed_same=not_indexed_same)
         else:
             # GH #6265
-            return Series(values, index=_get_index(), name=self.name)
+            return Series(values, index=_get_index(),
+                          name=self._selection_name)
 
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
@@ -3098,7 +3107,7 @@ class SeriesGroupBy(GroupBy):
 
         return Series(res,
                       index=ri,
-                      name=self.name)
+                      name=self._selection_name)
 
     @Appender(Series.describe.__doc__)
     def describe(self, **kwargs):
@@ -3156,7 +3165,7 @@ class SeriesGroupBy(GroupBy):
         # multi-index components
         labels = list(map(rep, self.grouper.recons_labels)) + [lab[inc]]
         levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
-        names = self.grouper.names + [self.name]
+        names = self.grouper.names + [self._selection_name]
 
         if dropna:
             mask = labels[-1] != -1
@@ -3191,7 +3200,7 @@ class SeriesGroupBy(GroupBy):
 
             if is_integer_dtype(out):
                 out = _ensure_int64(out)
-            return Series(out, index=mi, name=self.name)
+            return Series(out, index=mi, name=self._selection_name)
 
         # for compat. with libgroupby.value_counts need to ensure every
         # bin is present at every index level, null filled with zeros
@@ -3222,7 +3231,7 @@ class SeriesGroupBy(GroupBy):
 
         if is_integer_dtype(out):
             out = _ensure_int64(out)
-        return Series(out, index=mi, name=self.name)
+        return Series(out, index=mi, name=self._selection_name)
 
     def count(self):
         """ Compute count of group, excluding missing values """
@@ -3235,7 +3244,7 @@ class SeriesGroupBy(GroupBy):
 
         return Series(out,
                       index=self.grouper.result_index,
-                      name=self.name,
+                      name=self._selection_name,
                       dtype='int64')
 
     def _apply_to_column_groupbys(self, func):
@@ -3391,7 +3400,7 @@ class NDFrameGroupBy(GroupBy):
                 try:
                     assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
-                        [arg], _level=_level)
+                        [arg], _level=_level, _axis=self.axis)
                     result.columns = Index(
                         result.columns.levels[0],
                         name=self._selected_obj.columns.name)
@@ -3623,7 +3632,8 @@ class NDFrameGroupBy(GroupBy):
                 except (ValueError, AttributeError):
                     # GH1738: values is list of arrays of unequal lengths fall
                     # through to the outer else caluse
-                    return Series(values, index=key_index, name=self.name)
+                    return Series(values, index=key_index,
+                                  name=self._selection_name)
 
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
@@ -3647,8 +3657,9 @@ class NDFrameGroupBy(GroupBy):
                 # only coerce dates if we find at least 1 datetime
                 coerce = True if any([isinstance(x, Timestamp)
                                       for x in values]) else False
-                # self.name not passed through to Series as the result
-                # should not take the name of original selection of columns
+                # self._selection_name not passed through to Series as the
+                # result should not take the name of original selection
+                # of columns
                 return (Series(values, index=key_index)
                         ._convert(datetime=True,
                                   coerce=coerce))

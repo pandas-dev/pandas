@@ -429,6 +429,7 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
 
+<<<<<<< c25fbde09272f369f280212e5216441d5975687c
 .. _whatsnew_0200.api_breaking.deprecate_panel:
 
 Deprecate Panel
@@ -455,6 +456,79 @@ Convert to an xarray DataArray
 .. ipython:: python
 
    p.to_xarray()
+
+.. _whatsnew_0200.api_breaking.deprecate_group_agg_dict:
+
+Deprecate groupby.agg() with a dictionary when renaming
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``.groupby(..).agg(..)`` syntax can accept a variable of inputs, including scalars, list, and a dictionary of column names to scalars or lists.
+This provides a useful syntax for constructing multiple (potentially different) aggregations for a groupby.
+
+1) We are deprecating passing a dictionary to a grouped ``Series``. This allowed one to ``rename`` the resulting aggregation, but this had a completely different
+meaning that passing a dictionary to a grouped ``DataFrame``, which accepts column-to-aggregations.
+2) We are deprecating passing a dict-of-dict to a grouped ``DataFrame`` in a similar manner.
+
+Here's an example of 1), passing a dict to a grouped ``Series``:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
+                       'B': range(5),
+                       'C':range(5)})
+    df
+
+Aggregating a DataFrame with column selection.
+
+.. ipython:: python
+
+   df.groupby('A').agg({'B': ['sum', 'max'],
+                        'C': ['count', 'min']})
+
+
+We are deprecating the following
+
+.. code-block:: ipython. Which is a combination aggregation & renaming.
+
+   In [6]: df.groupby('A').B.agg({'foo': 'count'})
+   FutureWarning: using a dictionary on a Series for aggregation
+   is deprecated and will be removed in a future version
+
+   Out[6]:
+      foo
+   A
+   1    3
+   2    2
+
+You can accomplish the same operation, more idiomatically by:
+
+.. ipython:: python
+
+   df.groupby('A').B.agg(['count']).rename({'count': 'foo'})
+
+
+Here's an example of 2), passing a dict-of-dict to a grouped ``DataFrame``:
+
+.. code-block:: python
+
+   In [23]: df.groupby('A').agg({'B': {'foo': ['sum', 'max']}, 'C': {'bar': ['count', 'min']}})
+   FutureWarning: using a dictionary on a Series for aggregation
+   is deprecated and will be removed in a future version
+
+   Out[23]:
+     foo       bar
+     sum max count min
+   A
+   1   3   2     3   0
+   2   7   4     2   3
+
+You can accomplish the same by:
+
+.. ipython:: python
+
+   r = df.groupby('A').agg({'B': ['sum', 'max'], 'C': ['count', 'min']})
+   r.columns = r.columns.set_levels(['foo', 'bar'], level=0)
+   r
 
 .. _whatsnew.api_breaking.io_compat:
 
