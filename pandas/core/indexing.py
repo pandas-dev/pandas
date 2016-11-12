@@ -1616,6 +1616,7 @@ class _iLocIndexer(_LocationIndexer):
 
                 # force an actual list
                 key = list(key)
+                return self.obj.take(key, axis=axis, convert=False)
 
             else:
                 key = self._convert_scalar_indexer(key, axis)
