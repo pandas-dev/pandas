@@ -630,10 +630,10 @@ bar"""
     def test_url(self):
         # HTTP(S)
         url = ('https://raw.github.com/pandas-dev/pandas/master/'
-               'pandas/io/tests/parser/data/salary.table.csv')
+               'pandas/io/tests/parser/data/salaries.csv')
         url_table = self.read_table(url)
         dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salary.table.csv')
+        localtable = os.path.join(dirpath, 'salaries.csv')
         local_table = self.read_table(localtable)
         tm.assert_frame_equal(url_table, local_table)
         # TODO: ftp testing
@@ -641,7 +641,7 @@ bar"""
     @tm.slow
     def test_file(self):
         dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salary.table.csv')
+        localtable = os.path.join(dirpath, 'salaries.csv')
         local_table = self.read_table(localtable)
 
         try:
