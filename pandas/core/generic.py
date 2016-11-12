@@ -33,7 +33,7 @@ from pandas.core.common import (_values_from_object,
                                 SettingWithCopyError, SettingWithCopyWarning,
                                 AbstractMethodError)
 
-from pandas.core.base import PandasObject
+from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                InvalidIndexError)
 import pandas.core.indexing as indexing
@@ -91,7 +91,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
     return result
 
 
-class NDFrame(PandasObject):
+class NDFrame(PandasObject, SelectionMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -427,6 +427,16 @@ class NDFrame(PandasObject):
     def size(self):
         """number of elements in the NDFrame"""
         return np.prod(self.shape)
+
+    @property
+    def _selected_obj(self):
+        """ internal compat with SelectionMixin """
+        return self
+
+    @property
+    def _obj_with_exclusions(self):
+        """ internal compat with SelectionMixin """
+        return self
 
     def _expand_axes(self, key):
         new_axes = []
@@ -2763,6 +2773,66 @@ class NDFrame(PandasObject):
             return func(*args, **kwargs)
         else:
             return func(self, *args, **kwargs)
+
+    _shared_docs['aggregate'] = ("""
+    Aggregate using input function or dict of {column ->
+    function}
+
+    .. versionadded:: 0.20.0
+
+    Parameters
+    ----------
+    func : callable, string, dictionary, or list of string/callables
+        Function to use for aggregating the data. If a function, must either
+        work when passed a DataFrame or when passed to DataFrame.apply. If
+        passed a dict, the keys must be DataFrame column names.
+
+        Accepted Combinations are:
+        - string function name
+        - function
+        - list of functions
+        - dict of column names -> functions (or list of functions)
+
+    Notes
+    -----
+    Numpy functions mean/median/prod/sum/std/var are special cased so the
+    default behavior is applying the function along axis=0
+    (e.g., np.mean(arr_2d, axis=0)) as opposed to
+    mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
+
+    Returns
+    -------
+    aggregated : %(klass)s
+
+    See also
+    --------
+    """)
+
+    _shared_docs['transform'] = ("""
+    Call function producing a like-indexed %(klass)s
+    and return a %(klass)s with the transformed values`
+
+    .. versionadded:: 0.20.0
+
+    Parameters
+    ----------
+    func : callable, string, dictionary, or list of string/callables
+        To apply to column
+
+        Accepted Combinations are:
+        - string function name
+        - function
+        - list of functions
+        - dict of column names -> functions (or list of functions)
+
+    Examples
+    --------
+    >>> df.transform(lambda x: (x - x.mean()) / x.std())
+
+    Returns
+    -------
+    transformed : %(klass)s
+    """)
 
     # ----------------------------------------------------------------------
     # Attribute access
@@ -5595,6 +5665,17 @@ class NDFrame(PandasObject):
                                adjust=adjust, ignore_na=ignore_na, axis=axis)
 
         cls.ewm = ewm
+
+        @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
+        def transform(self, func, *args, **kwargs):
+            result = self.agg(func, *args, **kwargs)
+            if is_scalar(result) or len(result) != len(self):
+                raise ValueError("transforms cannot produce "
+                                 "aggregated results")
+
+            return result
+
+        cls.transform = transform
 
 
 def _doc_parms(cls):
