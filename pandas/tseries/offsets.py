@@ -68,6 +68,7 @@ def apply_wraps(func):
                 other = other.tz_localize(None)
 
             result = func(self, other)
+
             if self._adjust_dst:
                 result = tslib._localize_pydatetime(result, tz)
 
