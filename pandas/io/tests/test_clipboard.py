@@ -122,6 +122,8 @@ class TestClipboard(tm.TestCase):
         data = self.data['string']
         with tm.assertRaises(ValueError):
             data.to_clipboard(encoding='ascii')
+        with tm.assertRaises(NotImplementedError):
+            pd.read_clipboard(encoding='ascii')    
 
     
 
