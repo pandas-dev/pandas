@@ -74,6 +74,12 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
       - Windows:
       - OS X:
     """
+    encoding  = kwargs.get('encoding')
+
+    #testing if an invalid encoding is passed to clipboard
+    if encoding is not None and encoding is not 'utf-8':
+        raise ValueError('clipboard only supports utf-8 encoding')
+
     from pandas.util.clipboard import clipboard_set
     if excel is None:
         excel = True

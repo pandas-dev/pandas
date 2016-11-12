@@ -117,3 +117,11 @@ class TestClipboard(tm.TestCase):
 
         tm.assert_frame_equal(res, exp)
 
+    #test case for testing invalid encoding
+    def test_invalid_encoding(self):
+        data = self.data['string']
+        with tm.assertRaises(ValueError):
+            data.to_clipboard(encoding='ascii')
+
+    
+
