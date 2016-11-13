@@ -2083,10 +2083,10 @@ class PythonParser(ParserBase):
                     # We have an empty file, so check
                     # if columns are provided. That will
                     # serve as the 'line' for parsing
-                    if have_mi_columns:
+                    if have_mi_columns and hr > 0:
                         if clear_buffer:
                             self._clear_buffer()
-                        columns.append([None] * len(this_columns))
+                        columns.append([None] * len(columns[-1]))
                         return columns, num_original_columns
 
                     if not self.names:
