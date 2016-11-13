@@ -37,7 +37,6 @@ Other enhancements
 
 .. ipython:: python
 
-   from io import StringIO
    data = "a,b\n1,2\n3,4"
    pd.read_csv(StringIO(data), engine='python').dtypes
    pd.read_csv(StringIO(data), engine='python', dtype={'a':'float64', 'b':'object'}).dtypes

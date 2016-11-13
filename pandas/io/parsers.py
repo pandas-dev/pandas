@@ -117,9 +117,6 @@ dtype : Type name or dict of column -> type, default None
     Use `str` or `object` to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-
-  .. versionadded:: 0.20.0 support for the Python parser.
-
 %s
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can either
