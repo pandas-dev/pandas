@@ -54,6 +54,10 @@ Other API Changes
 Deprecations
 ^^^^^^^^^^^^
 
+- ``Series.repeat()`` has deprecated the ``reps`` parameter in favor of ``repeats`` (:issue:`12662`)
+- ``Index.repeat()`` and ``MultiIndex.repeat()`` have deprecated the ``n`` parameter in favor of ``repeats`` (:issue:`12662`)
+- ``Categorical.searchsorted()`` and ``Series.searchsorted()`` have deprecated the ``v`` parameter in favor of ``value`` (:issue:`12662`)
+- ``TimedeltaIndex.searchsorted()``, ``DatetimeIndex.searchsorted()``, and ``PeriodIndex.searchsorted()`` have deprecated the ``key`` parameter in favor of ``value`` (:issue:`12662`)
 
 
 
