@@ -51,12 +51,7 @@ from pandas.tools.tile import cut, qcut
 from pandas.tools.util import to_numeric
 from pandas.core.reshape import melt
 from pandas.util.print_versions import show_versions
-
-# define the testing framework
-import pandas.util.testing
-from pandas.util.nosetester import NoseTester
-test = NoseTester().test
-del NoseTester
+from pandas.api.test import test
 
 # use the closest tagged version if possible
 from ._version import get_versions
