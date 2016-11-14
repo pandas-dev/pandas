@@ -688,7 +688,8 @@ class Timestamp(_Timestamp):
         def validate(k, v):
             """ validate integers """
             if not isinstance(v, int):
-                raise ValueError("value must be an integer, received {v} for {k}".format(v=type(v), k=k))
+                raise ValueError("value must be an integer, received "
+                                 "{v} for {k}".format(v=type(v), k=k))
             return v
 
         for k, v in kwds.items():
@@ -5105,7 +5106,8 @@ cpdef normalize_date(object dt):
     normalized : datetime.datetime or Timestamp
     """
     if is_timestamp(dt):
-        return dt.replace(hour=0, minute=0, second=0, microsecond=0, nanosecond=0)
+        return dt.replace(hour=0, minute=0, second=0, microsecond=0,
+                          nanosecond=0)
     elif PyDateTime_Check(dt):
         return dt.replace(hour=0, minute=0, second=0, microsecond=0)
     elif PyDate_Check(dt):
