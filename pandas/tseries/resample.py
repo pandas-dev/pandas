@@ -1224,8 +1224,10 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        start = ax[0]
-        end = ax[-1]
+        # Addresses GH #13223
+        start = ax.min()
+        end = ax.max()
+
         labels = binner = TimedeltaIndex(start=start,
                                          end=end,
                                          freq=self.freq,
@@ -1233,6 +1235,13 @@ class TimeGrouper(Grouper):
 
         end_stamps = labels + 1
         bins = ax.searchsorted(end_stamps, side='left')
+
+        if ax.hasnans:
+            binner = binner.insert(0, tslib.NaT)
+            labels = labels.insert(0, tslib.NaT)
+
+            n_NaT = sum([ax_i is tslib.NaT for ax_i in ax])
+            bins = np.insert(bins, 0, n_NaT)
 
         # Addresses GH #10530
         if self.base > 0:
