@@ -1210,18 +1210,18 @@ class StataReader(StataParser, BaseIterator):
                 if tp in self.OLD_TYPE_MAPPING:
                     typlist.append(self.OLD_TYPE_MAPPING[tp])
                 else:
-                    typlist.append(tp - 127)  # string
+                    typlist.append(tp - 127)  # py2 string, py3 bytes
 
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
         except:
             raise ValueError("cannot convert stata types [{0}]"
-                             .format(','.join(typlist)))
+                             .format(','.join(str(x) for x in typlist)))
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
         except:
             raise ValueError("cannot convert stata dtypes [{0}]"
-                             .format(','.join(typlist)))
+                             .format(','.join(str(x) for x in typlist)))
 
         if self.format_version > 108:
             self.varlist = [self._null_terminate(self.path_or_buf.read(33))
