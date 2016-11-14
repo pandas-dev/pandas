@@ -1035,6 +1035,15 @@ class TestDatetimeIndex(Base, tm.TestCase):
         expected = series
         assert_series_equal(result, expected)
 
+    def test_resample_timedelta_missing_values(self):
+        # GH 13223
+        index = pd.to_timedelta(['0s', pd.NaT, '2s'])
+        series = pd.Series([2, 3, 5], index=index)
+        result = series.resample('1s').mean()
+        expected = pd.Series([2, np.nan, 5], index=pd.timedelta_range(
+            start='0s', end='2s', freq='1s'))
+        assert_series_equal(result, expected)
+
     def test_resample_rounding(self):
         # GH 8371
         # odd results when rounding is needed
