@@ -1216,16 +1216,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                  dtype='int64').__finalize__(self)
 
     def mode(self):
-        """Returns the mode(s) of the dataset.
+        """Return the mode(s) of the dataset.
 
-        Empty if nothing occurs at least 2 times.  Always returns Series even
-        if only one value.
-
-        Parameters
-        ----------
-        sort : bool, default True
-            If True, will lexicographically sort values, if False skips
-            sorting. Result ordering when ``sort=False`` is not defined.
+        Empty if nothing occurs at least 2 times. Always returns Series even
+        if only one value is returned.
 
         Returns
         -------
