@@ -3753,6 +3753,19 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_frame_equal(g.filter(lambda x: len(x) == 3),
                            g_exp.filter(lambda x: len(x) == 3))
 
+    # The methods returned by these attributes don't have a __name__ attribute
+    # that matches that attribute.
+    # TODO: Fix these inconsistencies
+    DF_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE = frozenset([
+        'boxplot',
+        'bfill',
+        'ffill'
+    ])
+    S_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE = frozenset([
+        'bfill',
+        'ffill'
+    ])
+
     def test_groupby_whitelist(self):
         from string import ascii_lowercase
         letters = np.array(list(ascii_lowercase))
@@ -3836,44 +3849,37 @@ class TestGroupBy(MixIn, tm.TestCase):
             'nsmallest',
         ])
 
-        # TODO: Fix these inconsistencies between attribute and method names
-        inconsistently_named = frozenset([
-            'tshift',
-            'any',
-            'dtypes',
-            'idxmax',
-            'all',
-            'fillna',
-            'rank',
-            'quantile',
-            'cummax',
-            'take',
-            'corr',
-            'cummin',
-            'diff',
-            'plot',
-            'pct_change',
-            'skew',
-            'hist',
-            'bfill',
-            'cov',
-            'boxplot',
-            'describe',
-            'corrwith',
-            'idxmin',
-            'ffill',
-            'mad',
-            'dtype',
-            'unique'
-        ])
-
-        for obj, whitelist in zip((df, s), (df_whitelist, s_whitelist)):
+        names_dont_match_pair = (self.DF_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE,
+                                 self.S_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE)
+        for obj, whitelist, names_dont_match in zip((df, s), (df_whitelist, s_whitelist), names_dont_match_pair):
             gb = obj.groupby(df.letters)
             self.assertEqual(whitelist, gb._apply_whitelist)
             for m in whitelist:
                 f = getattr(type(gb), m)
-                if m not in inconsistently_named:
-                    self.assertEqual(f.__name__, m)
+                try:
+                    n = f.__name__
+                except AttributeError:
+                    continue
+                if m not in names_dont_match:
+                    self.assertEqual(n, m)
+
+    def test_groupby_method_names_that_dont_match_attribute(self):
+        from string import ascii_lowercase
+        letters = np.array(list(ascii_lowercase))
+        N = 10
+        random_letters = letters.take(np.random.randint(0, 26, N))
+        df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
+                        'letters': Series(random_letters)})
+        gb = df.groupby(df.letters)
+        s = df.floats
+
+        names_dont_match_pair = (self.DF_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE,
+                                 self.S_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE)
+        for obj, names_dont_match in zip((df, s),  names_dont_match_pair):
+            gb = obj.groupby(df.letters)
+            for m in names_dont_match:
+                f = getattr(gb, m)
+                self.assertNotEqual(f.__name__, m)
 
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var', 'sem']
