@@ -18,6 +18,15 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 
+.. _whatsnew_0192.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- ``pd.merge_asof()`` can take ``left_index``/``right_index`` and ``left_by``/``right_by`` (:issue:`14253`)
+
+
+
 .. _whatsnew_0192.bug_fixes:
 
 Bug Fixes
