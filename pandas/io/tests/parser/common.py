@@ -611,15 +611,23 @@ bar,two,12,13,14,15
         data = """a,b
 """
         df = self.read_csv(StringIO(data), header=[0])
-        expected = DataFrame(columns=[('a',), ('b',)])
+        expected = DataFrame(columns=['a', 'b'])
         tm.assert_frame_equal(df, expected)
+        round_trip = self.read_csv(StringIO(
+            expected.to_csv(index=False)), header=[0])
+        tm.assert_frame_equal(round_trip, expected)
 
         data_multiline = """a,b
 c,d
 """
         df2 = self.read_csv(StringIO(data_multiline), header=[0, 1])
-        expected2 = DataFrame(columns=[('a', 'c'), ('b', 'd')])
+        cols = MultiIndex.from_tuples([('a','c'), ('b', 'd')])
+        expected2 = DataFrame(columns=cols)
         tm.assert_frame_equal(df2, expected2)
+        round_trip = self.read_csv(StringIO(
+            expected2.to_csv(index=False)), header=[0, 1])
+        tm.assert_frame_equal(round_trip, expected2)
+
 
     def test_no_unnamed_index(self):
         data = """ id c0 c1 c2
