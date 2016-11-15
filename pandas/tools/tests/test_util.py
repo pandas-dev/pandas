@@ -2,6 +2,7 @@ import os
 import locale
 import codecs
 import nose
+from distutils.version import LooseVersion
 
 import numpy as np
 from numpy import (iinfo, int8, int16, int32, int64,
@@ -405,6 +406,10 @@ class TestToNumeric(tm.TestCase):
 
     def test_downcast_limits(self):
         # Test the limits of each downcast. Bug: #14401.
+        # Check to make sure numpy is new enough to run this test.
+        if LooseVersion(np.__version__) <= LooseVersion('1.8.2'):
+            return
+
         i = 'integer'
         u = 'unsigned'
         dtype_downcast_min_max = [
