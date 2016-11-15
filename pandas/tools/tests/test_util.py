@@ -2,14 +2,13 @@ import os
 import locale
 import codecs
 import nose
-from distutils.version import LooseVersion
 
 import numpy as np
 from numpy import (iinfo, int8, int16, int32, int64,
                    uint8, uint16, uint32,)
 
 import pandas as pd
-from pandas import date_range, Index
+from pandas import (date_range, Index, _np_version_under1p9)
 import pandas.util.testing as tm
 from pandas.tools.util import cartesian_product, to_numeric
 
@@ -407,8 +406,8 @@ class TestToNumeric(tm.TestCase):
     def test_downcast_limits(self):
         # Test the limits of each downcast. Bug: #14401.
         # Check to make sure numpy is new enough to run this test.
-        if LooseVersion(np.__version__) <= LooseVersion('1.8.2'):
-            return
+        if _np_version_under1p9:
+            raise nose.SkipTest("Numpy version is under 1.9")
 
         i = 'integer'
         u = 'unsigned'
