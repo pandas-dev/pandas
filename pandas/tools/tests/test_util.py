@@ -4,6 +4,8 @@ import codecs
 import nose
 
 import numpy as np
+from numpy import (iinfo, int8, int16, int32, int64,
+                   uint8, uint16, uint32,)
 
 import pandas as pd
 from pandas import date_range, Index
@@ -402,26 +404,28 @@ class TestToNumeric(tm.TestCase):
             tm.assert_numpy_array_equal(res, expected)
 
     def test_downcast_limits(self):
-        # Test the limits of each downcast. Bug: #14401. 
+        # Test the limits of each downcast. Bug: #14401.
+        i = 'integer'
+        u = 'unsigned'
         dtype_downcast_min_max = [
-                ('int8', 'integer', [np.iinfo(np.int8).min, np.iinfo(np.int8).max]),
-                ('int16', 'integer', [np.iinfo(np.int16).min, np.iinfo(np.int16).max]),
-                ('int32', 'integer', [np.iinfo(np.int32).min, np.iinfo(np.int32).max]),
-                ('int64', 'integer', [np.iinfo(np.int64).min, np.iinfo(np.int64).max]),
-                ('uint8', 'unsigned', [np.iinfo(np.uint8).min, np.iinfo(np.uint8).max]),
-                ('uint16', 'unsigned', [np.iinfo(np.uint16).min, np.iinfo(np.uint16).max]),
-                ('uint32', 'unsigned', [np.iinfo(np.uint32).min, np.iinfo(np.uint32).max]),
-                # ('uint64', 'unsigned', [np.iinfo(np.uint64).min, np.iinfo(np.uint64).max]),
-                ('int16', 'integer', [np.iinfo(np.int8).min, np.iinfo(np.int8).max + 1]),
-                ('int32', 'integer', [np.iinfo(np.int16).min, np.iinfo(np.int16).max + 1]),
-                ('int64', 'integer', [np.iinfo(np.int32).min, np.iinfo(np.int32).max + 1]),
-                ('int16', 'integer', [np.iinfo(np.int8).min - 1, np.iinfo(np.int16).max]),
-                ('int32', 'integer', [np.iinfo(np.int16).min - 1, np.iinfo(np.int32).max]),
-                ('int64', 'integer', [np.iinfo(np.int32).min - 1, np.iinfo(np.int64).max]),
-                ('uint16', 'unsigned', [np.iinfo(np.uint8).min, np.iinfo(np.uint8).max + 1]),
-                ('uint32', 'unsigned', [np.iinfo(np.uint16).min, np.iinfo(np.uint16).max + 1]),
-                # ('uint64', 'unsigned', [np.iinfo(np.uint32).min, np.iinfo(np.uint32).max + 1]),
-                ]
+            ('int8', i, [iinfo(int8).min, iinfo(int8).max]),
+            ('int16', i, [iinfo(int16).min, iinfo(int16).max]),
+            ('int32', i, [iinfo(int32).min, iinfo(int32).max]),
+            ('int64', i, [iinfo(int64).min, iinfo(int64).max]),
+            ('uint8', u, [iinfo(uint8).min, iinfo(uint8).max]),
+            ('uint16', u, [iinfo(uint16).min, iinfo(uint16).max]),
+            ('uint32', u, [iinfo(uint32).min, iinfo(uint32).max]),
+            # ('uint64', u, [iinfo(uint64).min, iinfo(uint64).max]),
+            ('int16', i, [iinfo(int8).min, iinfo(int8).max + 1]),
+            ('int32', i, [iinfo(int16).min, iinfo(int16).max + 1]),
+            ('int64', i, [iinfo(int32).min, iinfo(int32).max + 1]),
+            ('int16', i, [iinfo(int8).min - 1, iinfo(int16).max]),
+            ('int32', i, [iinfo(int16).min - 1, iinfo(int32).max]),
+            ('int64', i, [iinfo(int32).min - 1, iinfo(int64).max]),
+            ('uint16', u, [iinfo(uint8).min, iinfo(uint8).max + 1]),
+            ('uint32', u, [iinfo(uint16).min, iinfo(uint16).max + 1]),
+            # ('uint64', u, [iinfo(uint32).min, iinfo(uint32).max + 1]),
+        ]
 
         for dtype, downcast, min_max in dtype_downcast_min_max:
             series = pd.to_numeric(pd.Series(min_max), downcast=downcast)
