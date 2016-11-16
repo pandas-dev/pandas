@@ -323,6 +323,10 @@ Pivot tables
 
 .. _reshaping.pivot:
 
+While ``pivot`` provides general purpose pivoting of DataFrames with various
+data types (strings, numerics, etc.), Pandas also provides the ``pivot_table``
+function for pivoting with aggregation of numeric data.
+
 The function ``pandas.pivot_table`` can be used to create spreadsheet-style pivot
 tables. See the :ref:`cookbook<cookbook.pivot>` for some advanced strategies
 

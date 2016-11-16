@@ -75,6 +75,11 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     Returns
     -------
     table : DataFrame
+
+    See also
+    --------
+    DataFrame.pivot : pivot without aggregation that can handle
+        non-numeric data
     """
     index = _convert_by(index)
     columns = _convert_by(columns)
