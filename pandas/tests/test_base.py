@@ -1095,6 +1095,20 @@ class TestNoNewAttributesMixin(tm.TestCase):
         self.assertRaises(AttributeError, f)
         self.assertFalse(hasattr(t, "b"))
 
+class TestTile(tm.TestCase):
+
+    def test_single_bin(self):
+
+        expected = pd.Series([0, 0])
+
+        s = pd.Series([9., 9.])
+        result = pd.cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        s = pd.Series([-9., -9.])
+        result = pd.cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
 
 if __name__ == '__main__':
     import nose
