@@ -244,7 +244,7 @@ elif os.name == 'posix' or platform.system() == 'Linux':
         copy = _copyGtk
     elif qtBindingInstalled:
         _functions = 'PyQt4 module'  # for debugging
-        app = QtGui.QApplication([])
+        app = QtGui.QApplication.instance() or QtGui.QApplication([])
         cb = QtGui.QApplication.clipboard()
         paste = _pasteQt
         copy = _copyQt
