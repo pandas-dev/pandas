@@ -9,14 +9,13 @@ from pandas import DataFrame
 from pandas import read_clipboard
 from pandas import get_option
 from pandas.util import testing as tm
-from pandas.util.testing import makeCustomDataframe as mkdf, disabled
+from pandas.util.testing import makeCustomDataframe as mkdf
 
 
 try:
     import pandas.util.clipboard  # noqa
 except OSError:
     raise nose.SkipTest("no clipboard found")
-
 
 
 class TestClipboard(tm.TestCase):
@@ -52,9 +51,9 @@ class TestClipboard(tm.TestCase):
         # Test for non-ascii text: GH9263
         cls.data['nonascii'] = pd.DataFrame({'en': 'in English'.split(),
                                              'es': 'en español'.split()})
-        
-        # unicode round trip test for GH 13747 
-        cls.data['utf8'] = pd.DataFrame({'a':['µasd','Ωœ∑´'], 'b':['øπ∆˚¬','œ∑´®']})
+        # unicode round trip test for GH 13747
+        cls.data['utf8'] = pd.DataFrame({'a': ['µasd', 'Ωœ∑´'],
+                                        'b': ['øπ∆˚¬', 'œ∑´®']})
         cls.data_types = list(cls.data.keys())
 
     @classmethod
@@ -62,13 +61,14 @@ class TestClipboard(tm.TestCase):
         super(TestClipboard, cls).tearDownClass()
         del cls.data_types, cls.data
 
-    def check_round_trip_frame(self, data_type, excel=None, sep=None):
+    def check_round_trip_frame(self, data_type, excel=None, sep=None,
+                               encoding=None):
         data = self.data[data_type]
-        data.to_clipboard(excel=excel, sep=sep)
+        data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
         if sep is not None:
-            result = read_clipboard(sep=sep, index_col=0)
+            result = read_clipboard(sep=sep, index_col=0, encoding=encoding)
         else:
-            result = read_clipboard()
+            result = read_clipboard(encoding=encoding)
         tm.assert_frame_equal(data, result, check_dtype=False)
 
     def test_round_trip_frame_sep(self):
@@ -117,23 +117,15 @@ class TestClipboard(tm.TestCase):
 
         tm.assert_frame_equal(res, exp)
 
-    #test case for testing invalid encoding
+    # test case for testing invalid encoding
     def test_invalid_encoding(self):
         data = self.data['string']
         with tm.assertRaises(ValueError):
             data.to_clipboard(encoding='ascii')
         with tm.assertRaises(NotImplementedError):
-            pd.read_clipboard(encoding='ascii')   
+            pd.read_clipboard(encoding='ascii')
 
     def test_round_trip_valid_encodings(self):
-        for enc in ['UTF-8','utf-8','utf8']:
+        for enc in ['UTF-8', 'utf-8', 'utf8']:
             for dt in self.data_types:
-                data = self.data[dt]
-                data.to_clipboard(encoding=enc)
-                result = read_clipboard()
-                tm.assert_frame_equal(data, result, check_dtype=False)
-                
-
-
-    
-
+                self.check_round_trip_frame(dt, encoding=enc)
