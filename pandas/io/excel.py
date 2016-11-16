@@ -21,7 +21,7 @@ from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
 from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
-                           string_types)
+                           string_types, OrderedDict)
 from pandas.core import config
 from pandas.formats.printing import pprint_thing
 import pandas.compat as compat
@@ -418,9 +418,9 @@ class ExcelFile(object):
             sheets = [sheetname]
 
         # handle same-type duplicates.
-        sheets = list(set(sheets))
+        sheets = list(OrderedDict.fromkeys(sheets).keys())
 
-        output = {}
+        output = OrderedDict()
 
         for asheetname in sheets:
             if verbose:
