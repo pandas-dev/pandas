@@ -1095,6 +1095,7 @@ class TestNoNewAttributesMixin(tm.TestCase):
         self.assertRaises(AttributeError, f)
         self.assertFalse(hasattr(t, "b"))
 
+
 class TestTile(tm.TestCase):
 
     def test_single_bin(self):
