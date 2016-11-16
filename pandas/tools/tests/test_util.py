@@ -4,8 +4,7 @@ import codecs
 import nose
 
 import numpy as np
-from numpy import (iinfo, int8, int16, int32, int64,
-                   uint8, uint16, uint32,)
+from numpy import iinfo
 
 import pandas as pd
 from pandas import (date_range, Index, _np_version_under1p9)
@@ -412,23 +411,25 @@ class TestToNumeric(tm.TestCase):
         i = 'integer'
         u = 'unsigned'
         dtype_downcast_min_max = [
-            ('int8', i, [iinfo(int8).min, iinfo(int8).max]),
-            ('int16', i, [iinfo(int16).min, iinfo(int16).max]),
-            ('int32', i, [iinfo(int32).min, iinfo(int32).max]),
-            ('int64', i, [iinfo(int64).min, iinfo(int64).max]),
-            ('uint8', u, [iinfo(uint8).min, iinfo(uint8).max]),
-            ('uint16', u, [iinfo(uint16).min, iinfo(uint16).max]),
-            ('uint32', u, [iinfo(uint32).min, iinfo(uint32).max]),
+            ('int8', i, [iinfo(np.int8).min, iinfo(np.int8).max]),
+            ('int16', i, [iinfo(np.int16).min, iinfo(np.int16).max]),
+            ('int32', i, [iinfo(np.int32).min, iinfo(np.int32).max]),
+            ('int64', i, [iinfo(np.int64).min, iinfo(np.int64).max]),
+            ('uint8', u, [iinfo(np.uint8).min, iinfo(np.uint8).max]),
+            ('uint16', u, [iinfo(np.uint16).min, iinfo(np.uint16).max]),
+            ('uint32', u, [iinfo(np.uint32).min, iinfo(np.uint32).max]),
+            # Test will be skipped until there is more uint64 support.
             # ('uint64', u, [iinfo(uint64).min, iinfo(uint64).max]),
-            ('int16', i, [iinfo(int8).min, iinfo(int8).max + 1]),
-            ('int32', i, [iinfo(int16).min, iinfo(int16).max + 1]),
-            ('int64', i, [iinfo(int32).min, iinfo(int32).max + 1]),
-            ('int16', i, [iinfo(int8).min - 1, iinfo(int16).max]),
-            ('int32', i, [iinfo(int16).min - 1, iinfo(int32).max]),
-            ('int64', i, [iinfo(int32).min - 1, iinfo(int64).max]),
-            ('uint16', u, [iinfo(uint8).min, iinfo(uint8).max + 1]),
-            ('uint32', u, [iinfo(uint16).min, iinfo(uint16).max + 1]),
-            # ('uint64', u, [iinfo(uint32).min, iinfo(uint32).max + 1]),
+            ('int16', i, [iinfo(np.int8).min, iinfo(np.int8).max + 1]),
+            ('int32', i, [iinfo(np.int16).min, iinfo(np.int16).max + 1]),
+            ('int64', i, [iinfo(np.int32).min, iinfo(np.int32).max + 1]),
+            ('int16', i, [iinfo(np.int8).min - 1, iinfo(np.int16).max]),
+            ('int32', i, [iinfo(np.int16).min - 1, iinfo(np.int32).max]),
+            ('int64', i, [iinfo(np.int32).min - 1, iinfo(np.int64).max]),
+            ('uint16', u, [iinfo(np.uint8).min, iinfo(np.uint8).max + 1]),
+            ('uint32', u, [iinfo(np.uint16).min, iinfo(np.uint16).max + 1]),
+            # Test will be skipped until there is more uint64 support.
+            # ('uint64', u, [iinfo(np.uint32).min, iinfo(np.uint32).max + 1]),
         ]
 
         for dtype, downcast, min_max in dtype_downcast_min_max:
