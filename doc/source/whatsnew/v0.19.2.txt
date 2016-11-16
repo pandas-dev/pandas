@@ -1,0 +1,27 @@
+.. _whatsnew_0192:
+
+v0.19.2 (December ??, 2016)
+---------------------------
+
+This is a minor bug-fix release from 0.19.1 and includes some small regression fixes,
+bug fixes and performance improvements.
+We recommend that all users upgrade to this version.
+
+.. contents:: What's new in v0.19.2
+    :local:
+    :backlinks: none
+
+
+.. _whatsnew_0192.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+.. _whatsnew_0192.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+- compat with ``dateutil==2.6.0`` for testing (:issue:`14621`)
+- allow ``nanoseconds`` in ``Timestamp.replace`` kwargs (:issue:`14621`)

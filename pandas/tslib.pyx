@@ -98,6 +98,7 @@ except NameError: # py3
 cdef inline object create_timestamp_from_ts(
         int64_t value, pandas_datetimestruct dts,
         object tz, object freq):
+    """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
                                  dts.day, dts.hour, dts.min,
@@ -112,6 +113,7 @@ cdef inline object create_timestamp_from_ts(
 cdef inline object create_datetime_from_ts(
         int64_t value, pandas_datetimestruct dts,
         object tz, object freq):
+    """ convenience routine to construct a datetime.datetime from its parts """
     return datetime(dts.year, dts.month, dts.day, dts.hour,
                     dts.min, dts.sec, dts.us, tz)
 
@@ -378,7 +380,6 @@ class Timestamp(_Timestamp):
         # Mixing pydatetime positional and keyword arguments is forbidden!
 
         cdef _TSObject ts
-        cdef _Timestamp ts_base
 
         if offset is not None:
             # deprecate offset kwd in 0.19.0, GH13593
@@ -412,17 +413,7 @@ class Timestamp(_Timestamp):
             from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
 
-        # make datetime happy
-        ts_base = _Timestamp.__new__(cls, ts.dts.year, ts.dts.month,
-                                     ts.dts.day, ts.dts.hour, ts.dts.min,
-                                     ts.dts.sec, ts.dts.us, ts.tzinfo)
-
-        # fill out rest of data
-        ts_base.value = ts.value
-        ts_base.freq = freq
-        ts_base.nanosecond = ts.dts.ps / 1000
-
-        return ts_base
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
     def _round(self, freq, rounder):
 
@@ -660,8 +651,81 @@ class Timestamp(_Timestamp):
     astimezone = tz_convert
 
     def replace(self, **kwds):
-        return Timestamp(datetime.replace(self, **kwds),
-                         freq=self.freq)
+        """
+        implements datetime.replace, handles nanoseconds
+
+        Parameters
+        ----------
+        kwargs: key-value dict
+
+        accepted keywords are:
+        year, month, day, hour, minute, second, microsecond, nanosecond, tzinfo
+
+        values must be integer, or for tzinfo, a tz-convertible
+
+        Returns
+        -------
+        Timestamp with fields replaced
+        """
+
+        cdef:
+            pandas_datetimestruct dts
+            int64_t value
+            object tzinfo, result, k, v
+            _TSObject ts
+
+        # set to naive if needed
+        tzinfo = self.tzinfo
+        value = self.value
+        if tzinfo is not None:
+            value = tz_convert_single(value, 'UTC', tzinfo)
+
+        # setup components
+        pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
+        dts.ps = self.nanosecond * 1000
+
+        # replace
+        def validate(k, v):
+            """ validate integers """
+            if not isinstance(v, int):
+                raise ValueError("value must be an integer, received "
+                                 "{v} for {k}".format(v=type(v), k=k))
+            return v
+
+        for k, v in kwds.items():
+            if k == 'year':
+                dts.year = validate(k, v)
+            elif k == 'month':
+                dts.month = validate(k, v)
+            elif k == 'day':
+                dts.day = validate(k, v)
+            elif k == 'hour':
+                dts.hour = validate(k, v)
+            elif k == 'minute':
+                dts.min = validate(k, v)
+            elif k == 'second':
+                dts.sec = validate(k, v)
+            elif k == 'microsecond':
+                dts.us = validate(k, v)
+            elif k == 'nanosecond':
+                dts.ps = validate(k, v) * 1000
+            elif k == 'tzinfo':
+                tzinfo = v
+            else:
+                raise ValueError("invalid name {} passed".format(k))
+
+        # reconstruct & check bounds
+        value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+        if value != NPY_NAT:
+            _check_dts_bounds(&dts)
+
+        # set tz if needed
+        if tzinfo is not None:
+            value = tz_convert_single(value, tzinfo, 'UTC')
+
+        result = create_timestamp_from_ts(value, dts, tzinfo, self.freq)
+
+        return result
 
     def isoformat(self, sep='T'):
         base = super(_Timestamp, self).isoformat(sep=sep)
@@ -5041,7 +5105,10 @@ cpdef normalize_date(object dt):
     -------
     normalized : datetime.datetime or Timestamp
     """
-    if PyDateTime_Check(dt):
+    if is_timestamp(dt):
+        return dt.replace(hour=0, minute=0, second=0, microsecond=0,
+                          nanosecond=0)
+    elif PyDateTime_Check(dt):
         return dt.replace(hour=0, minute=0, second=0, microsecond=0)
     elif PyDate_Check(dt):
         return datetime(dt.year, dt.month, dt.day)
