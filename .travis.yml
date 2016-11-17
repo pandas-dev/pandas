@@ -293,7 +293,7 @@ before_install:
   - echo "before_install"
   - source ci/travis_process_gbq_encryption.sh
   - echo $VIRTUAL_ENV
-  - export PATH="$HOME/miniconda/bin:$PATH"
+  - export PATH="$HOME/miniconda3/bin:$PATH"
   - df -h
   - date
   - pwd
