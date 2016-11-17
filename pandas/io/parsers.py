@@ -1425,12 +1425,14 @@ class CParserWrapper(ParserBase):
         self.orig_names = self.names[:]
 
         if self.usecols:
-            if len(self.names) > len(self.usecols):
-                self.names = [n for i, n in enumerate(self.names)
-                              if (i in self.usecols or n in self.usecols)]
+            if self._reader.file_header is not None:
+                h = self._reader.file_header[0]
+                usecol_len = len(set(self.usecols) - set(h))
+                usecoli_len = len(set(self.usecols) - set(range(0, len(h))))
+                if usecol_len > 0 and usecoli_len > 0:
+                    raise ValueError("Usecols do not match names.")
 
-            if len(self.names) < len(self.usecols):
-                raise ValueError("Usecols do not match names.")
+            self.names = self._filter_usecols(self.names)
 
         self._set_noconvert_columns()
 

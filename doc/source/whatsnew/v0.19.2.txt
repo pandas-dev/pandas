@@ -32,6 +32,7 @@ Bug Fixes
 
 
 
+- Bug in pd.read_csv - catch missing columns if usecols and header lengths match (:issue:`14671`)
 
 
 

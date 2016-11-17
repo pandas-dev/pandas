@@ -54,6 +54,10 @@ a,b,c
         expected.columns = ['foo', 'bar']
         tm.assert_frame_equal(result, expected)
 
+        # same length but usecols column doesn't exist - see gh-14671
+        self.assertRaises(ValueError, self.read_csv, StringIO(data),
+                          usecols=['a', 'b', 'z'])
+
         data = """\
 1,2,3
 4,5,6
