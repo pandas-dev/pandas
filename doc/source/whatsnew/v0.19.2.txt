@@ -59,6 +59,8 @@ Bug Fixes
 
 
 - Bug ``HDFStore`` writing a ``MultiIndex`` when using ``data_columns=True`` (:issue:`14435`)
+- Bug in ``Series.groupby.nunique()`` raising an ``IndexError`` for an empty ``Series`` (:issue:`12553`)
+
 
 
 - Bug in clipboard functions on linux with python2 with unicode and separators (:issue:`13747`)
