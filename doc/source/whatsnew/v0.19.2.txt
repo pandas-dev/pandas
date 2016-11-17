@@ -38,7 +38,7 @@ Bug Fixes
 
 
 
-
+- Bug in not propogating exceptions in parsing invalid datetimes, noted in python 3.6 (:issue:`14561`)
 
 
 
