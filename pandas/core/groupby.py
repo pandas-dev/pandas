@@ -2908,6 +2908,7 @@ class SeriesGroupBy(GroupBy):
     def nunique(self, dropna=True):
         """ Returns number of unique elements in the group """
         ids, _, _ = self.grouper.group_info
+
         val = self.obj.get_values()
 
         try:
@@ -2938,7 +2939,10 @@ class SeriesGroupBy(GroupBy):
             inc[idx] = 1
 
         out = np.add.reduceat(inc, idx).astype('int64', copy=False)
-        res = out if ids[0] != -1 else out[1:]
+        if len(ids):
+            res = out if ids[0] != -1 else out[1:]
+        else:
+            res = out[1:]
         ri = self.grouper.result_index
 
         # we might have duplications among the bins
