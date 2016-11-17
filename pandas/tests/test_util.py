@@ -2,6 +2,9 @@
 import nose
 
 from collections import OrderedDict
+import sys
+import unittest
+from uuid import uuid4
 from pandas.util._move import move_into_mutable_buffer, BadMove
 from pandas.util.decorators import deprecate_kwarg
 from pandas.util.validators import (validate_args, validate_kwargs,
@@ -324,6 +327,46 @@ class TestMove(tm.TestCase):
 
         # materialize as bytearray to show that it is mutable
         self.assertEqual(bytearray(as_stolen_buf), b'test')
+
+    @unittest.skipIf(
+        sys.version_info[0] > 2,
+        'bytes objects cannot be interned in py3',
+    )
+    def test_interned(self):
+        salt = uuid4().hex
+
+        def make_string():
+            # We need to actually create a new string so that it has refcount
+            # one. We use a uuid so that we know the string could not already
+            # be in the intern table.
+            return ''.join(('testing: ', salt))
+
+        # This should work, the string has one reference on the stack.
+        move_into_mutable_buffer(make_string())
+
+        refcount = [None]  # nonlocal
+
+        def ref_capture(ob):
+            # Subtract two because those are the references owned by this
+            # frame:
+            #   1. The local variables of this stack frame.
+            #   2. The python data stack of this stack frame.
+            refcount[0] = sys.getrefcount(ob) - 2
+            return ob
+
+        with tm.assertRaises(BadMove):
+            # If we intern the string it will still have one reference but now
+            # it is in the intern table so if other people intern the same
+            # string while the mutable buffer holds the first string they will
+            # be the same instance.
+            move_into_mutable_buffer(ref_capture(intern(make_string())))  # noqa
+
+        self.assertEqual(
+            refcount[0],
+            1,
+            msg='The BadMove was probably raised for refcount reasons instead'
+            ' of interning reasons',
+        )
 
 
 def test_numpy_errstate_is_default():

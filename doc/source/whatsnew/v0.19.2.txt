@@ -23,6 +23,29 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+<<<<<<< HEAD
 - compat with ``dateutil==2.6.0`` for testing (:issue:`14621`)
 - allow ``nanoseconds`` in ``Timestamp.replace`` kwargs (:issue:`14621`)
 - BUG in clipboard (linux, python2) with unicode and separator (:issue:`13747`)
+=======
+- Compat with ``dateutil==2.6.0``; segfault reported in the testing suite (:issue:`14621`)
+- Allow ``nanoseconds`` in ``Timestamp.replace`` as a kwarg (:issue:`14621`)
+
+
+
+
+
+
+
+- Bug in ``pd.cut`` with negative values and a single bin (:issue:`14652`)
+- Bug in ``pd.to_numeric`` where a 0 was not unsigned on a ``downcast='unsigned'`` argument (:issue:`14401`)
+
+
+
+
+- Bug in not propogating exceptions in parsing invalid datetimes, noted in python 3.6 (:issue:`14561`)
+
+
+
+- Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
+>>>>>>> 45543ec22bb01d5c46eff9384491d218cffddd64

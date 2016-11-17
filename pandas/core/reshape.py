@@ -357,6 +357,11 @@ def pivot_simple(index, columns, values):
     Returns
     -------
     DataFrame
+
+    See also
+    --------
+    DataFrame.pivot_table : generalization of pivot that can handle
+        duplicate values for one index/column pair
     """
     if (len(index) != len(columns)) or (len(columns) != len(values)):
         raise AssertionError('Length of index, columns, and values must be the'
