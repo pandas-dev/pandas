@@ -7,7 +7,7 @@ import pandas as pd
 from pandas.core.base import AbstractMethodError, GroupByMixin
 
 from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
-                                 SeriesGroupBy, groupby, PanelGroupBy)
+                                 SeriesGroupBy, groupby, PanelGroupBy, DataError)
 
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
@@ -1226,6 +1226,9 @@ class TimeGrouper(Grouper):
             raise TypeError('axis must be a TimedeltaIndex, but got '
                             'an instance of %r' % type(ax).__name__)
 
+        if len(ax) > 0 and all(ax._isnan):
+            raise DataError('axis not valid')
+
         if not len(ax):
             binner = labels = TimedeltaIndex(
                 data=[], freq=self.freq, name=ax.name)
@@ -1247,7 +1250,7 @@ class TimeGrouper(Grouper):
             binner = binner.insert(0, tslib.NaT)
             labels = labels.insert(0, tslib.NaT)
 
-            n_NaT = sum([ax_i is tslib.NaT for ax_i in ax])
+            n_NaT = ax._isnan.sum()
             bins = np.insert(bins, 0, n_NaT)
 
         # Addresses GH #10530

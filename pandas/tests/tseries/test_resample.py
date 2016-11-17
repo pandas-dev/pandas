@@ -1044,6 +1044,11 @@ class TestDatetimeIndex(Base, tm.TestCase):
             start='0s', end='2s', freq='1s'))
         assert_series_equal(result, expected)
 
+        # all NaT
+        index = pd.to_timedelta([pd.NaT, pd.NaT, pd.NaT])
+        series = pd.Series([2, 3, 5], index=index)
+        self.assertRaises(DataError, series.resample('1s').mean)
+
     def test_resample_rounding(self):
         # GH 8371
         # odd results when rounding is needed
