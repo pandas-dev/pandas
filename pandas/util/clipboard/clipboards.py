@@ -1,3 +1,5 @@
+# flake8: noqa
+
 import sys
 import subprocess
 from .exceptions import PyperclipException

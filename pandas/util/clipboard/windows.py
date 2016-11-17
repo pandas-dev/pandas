@@ -1,3 +1,4 @@
+# flake8: noqa
 """
 This module implements clipboard handling on Windows using ctypes.
 """

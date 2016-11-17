@@ -25,6 +25,8 @@ and this module does not work with PyGObject yet.
 """
 __version__ = '1.5.27'
 
+# flake8: noqa
+
 import platform
 import os
 import subprocess
