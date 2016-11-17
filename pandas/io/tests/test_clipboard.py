@@ -10,12 +10,13 @@ from pandas import read_clipboard
 from pandas import get_option
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
+from pandas.util.clipboard.exceptions import PyperclipException
 
 
 try:
-    import pandas.util.clipboard  # noqa
-except OSError:
-    raise nose.SkipTest("no clipboard found")
+    DataFrame({'A': [1, 2]}).to_clipboard()
+except PyperclipException:
+    raise nose.SkipTest("clipboard primitives not installed")
 
 
 class TestClipboard(tm.TestCase):
