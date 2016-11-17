@@ -7,7 +7,8 @@ import pandas as pd
 from pandas.core.base import AbstractMethodError, GroupByMixin
 
 from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
-                                 SeriesGroupBy, groupby, PanelGroupBy, DataError)
+                                 SeriesGroupBy, groupby, PanelGroupBy,
+                                 DataError)
 
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
