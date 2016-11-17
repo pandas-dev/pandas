@@ -31,7 +31,7 @@ edit_init
 home_dir=$(pwd)
 echo "home_dir: [$home_dir]"
 
-MINICONDA_DIR="$HOME/miniconda"
+MINICONDA_DIR="$HOME/miniconda3"
 
 if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ] && [ "$USE_CACHE" ]; then
     echo "Miniconda install already present from cache: $MINICONDA_DIR"
