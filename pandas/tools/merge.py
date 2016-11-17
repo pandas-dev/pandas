@@ -369,6 +369,28 @@ def merge_asof(left, right, on=None,
     3   5        b        3.0
     6  10        c        7.0
 
+    We can use indexed DataFrames as well.
+
+    >>> left
+       left_val
+    1         a
+    5         b
+    10        c
+
+    >>> right
+       right_val
+    1          1
+    2          2
+    3          3
+    6          6
+    7          7
+
+    >>> pd.merge_asof(left, right, left_index=True, right_index=True)
+       left_val  right_val
+    1         a          1
+    5         b          3
+    10        c          7
+
     Here is a real-world times-series example
 
     >>> quotes
@@ -768,7 +790,7 @@ class _MergeOperation(object):
                             join_names.append(rk)
                         else:
                             # kludge for merge_asof(right_index=True)
-                            right_keys.append(right.index.values)
+                            right_keys.append(right.index)
                             join_names.append(right.index.name)
                 else:
                     if not is_rkey(rk):
@@ -776,7 +798,7 @@ class _MergeOperation(object):
                             right_keys.append(right[rk]._values)
                         else:
                             # kludge for merge_asof(right_index=True)
-                            right_keys.append(right.index.values)
+                            right_keys.append(right.index)
                         if lk is not None and lk == rk:
                             # avoid key upcast in corner case (length-0)
                             if len(left) > 0:
@@ -790,7 +812,7 @@ class _MergeOperation(object):
                         join_names.append(lk)
                     else:
                         # kludge for merge_asof(left_index=True)
-                        left_keys.append(left.index.values)
+                        left_keys.append(left.index)
                         join_names.append(left.index.name)
         elif _any(self.left_on):
             for k in self.left_on:

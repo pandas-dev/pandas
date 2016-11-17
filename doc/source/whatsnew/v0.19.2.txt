@@ -23,7 +23,7 @@ Performance Improvements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- ``pd.merge_asof()`` can take ``left_index``/``right_index`` and ``left_by``/``right_by`` (:issue:`14253`)
+- ``pd.merge_asof()`` gained ``left_index``/``right_index`` and ``left_by``/``right_by`` arguments (:issue:`14253`)
 
 
 
