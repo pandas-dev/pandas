@@ -43,3 +43,4 @@ Bug Fixes
 
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
+- BUG in clipboard (linux, python2) with unicode and separator (:issue:`13747`)
