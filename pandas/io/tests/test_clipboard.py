@@ -52,7 +52,7 @@ class TestClipboard(tm.TestCase):
         # Test for non-ascii text: GH9263
         cls.data['nonascii'] = pd.DataFrame({'en': 'in English'.split(),
                                              'es': 'en español'.split()})
-        # unicode round trip test for GH 13747
+        # unicode round trip test for GH 13747, GH 12529
         cls.data['utf8'] = pd.DataFrame({'a': ['µasd', 'Ωœ∑´'],
                                         'b': ['øπ∆˚¬', 'œ∑´®']})
         cls.data_types = list(cls.data.keys())
@@ -120,8 +120,8 @@ class TestClipboard(tm.TestCase):
 
         tm.assert_frame_equal(res, exp)
 
-    # test case for testing invalid encoding
     def test_invalid_encoding(self):
+        # test case for testing invalid encoding
         data = self.data['string']
         with tm.assertRaises(ValueError):
             data.to_clipboard(encoding='ascii')
