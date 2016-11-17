@@ -1425,7 +1425,7 @@ class CParserWrapper(ParserBase):
         self.orig_names = self.names[:]
 
         if self.usecols:
-            if len(self.names) > len(self.usecols):
+            if len(self.names) >= len(self.usecols):
                 self.names = [n for i, n in enumerate(self.names)
                               if (i in self.usecols or n in self.usecols)]
 
