@@ -22,8 +22,6 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-
-<<<<<<< HEAD
 - compat with ``dateutil==2.6.0`` for testing (:issue:`14621`)
 - allow ``nanoseconds`` in ``Timestamp.replace`` kwargs (:issue:`14621`)
 - BUG in clipboard (linux, python2) with unicode and separator (:issue:`13747`)
@@ -48,4 +46,3 @@ Bug Fixes
 
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
->>>>>>> 45543ec22bb01d5c46eff9384491d218cffddd64
