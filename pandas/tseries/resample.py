@@ -1284,8 +1284,7 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     # See https://github.com/pandas-dev/pandas/issues/8683
 
     first_tzinfo = first.tzinfo
-    first = first.tz_localize(None)
-    last = last.tz_localize(None)
+    last_tzinfo = last.tzinfo
     start_day_nanos = first.normalize().value
 
     base_nanos = (base % offset.n) * offset.nanos // offset.n
@@ -1320,11 +1319,9 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
         else:
             lresult = last.value + offset.nanos
 
-#     return (Timestamp(fresult, tz=first.tz),
-#             Timestamp(lresult, tz=last.tz))
+    return (Timestamp(fresult, tz=first_tzinfo),
+            Timestamp(lresult, tz=last_tzinfo))
 
-    return (Timestamp(fresult).tz_localize(first_tzinfo),
-            Timestamp(lresult).tz_localize(first_tzinfo))
 
 
 def asfreq(obj, freq, method=None, how=None, normalize=False):
