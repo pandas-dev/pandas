@@ -182,7 +182,7 @@ class TestSparseArray(tm.TestCase):
         self.assertRaises(IndexError, lambda: self.arr.take(-11))
 
     def test_take_invalid_kwargs(self):
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, self.arr.take,
                               [2, 3], foo=2)
 

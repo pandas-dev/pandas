@@ -304,7 +304,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                        'B': ['a', 'b', 'c']})
 
         # wrong size ndarray, GH 3105
-        msg = "Shape of passed values is \(3, 4\), indices imply \(3, 3\)"
+        msg = r"Shape of passed values is \(3, 4\), indices imply \(3, 3\)"
         with tm.assertRaisesRegexp(ValueError, msg):
             DataFrame(np.arange(12).reshape((4, 3)),
                       columns=['foo', 'bar', 'baz'],
@@ -316,11 +316,11 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # wrong size axis labels
         with tm.assertRaisesRegexp(ValueError, "Shape of passed values is "
-                                   "\(3, 2\), indices imply \(3, 1\)"):
+                                   r"\(3, 2\), indices imply \(3, 1\)"):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B', 'C'], index=[1])
 
         with tm.assertRaisesRegexp(ValueError, "Shape of passed values is "
-                                   "\(3, 2\), indices imply \(2, 2\)"):
+                                   r"\(3, 2\), indices imply \(2, 2\)"):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
 
         with tm.assertRaisesRegexp(ValueError, 'If using all scalar values, '
