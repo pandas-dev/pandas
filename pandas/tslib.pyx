@@ -1539,7 +1539,8 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             "Cannot convert Period to Timestamp "
             "unambiguously. Use to_timestamp")
     else:
-        raise TypeError('Cannot convert input to Timestamp')
+        raise TypeError('Cannot convert input [{}] of type {} to '
+                        'Timestamp'.format(ts, type(ts)))
 
     if obj.value != NPY_NAT:
         _check_dts_bounds(&obj.dts)

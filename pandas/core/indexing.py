@@ -11,6 +11,7 @@ from pandas.types.common import (is_integer_dtype,
                                  is_sequence,
                                  is_scalar,
                                  is_sparse,
+                                 _is_unorderable_exception,
                                  _ensure_platform_int)
 from pandas.types.missing import isnull, _infer_fill_value
 
@@ -1411,7 +1412,7 @@ class _LocIndexer(_LocationIndexer):
             except TypeError as e:
 
                 # python 3 type errors should be raised
-                if 'unorderable' in str(e):  # pragma: no cover
+                if _is_unorderable_exception(e):
                     error()
                 raise
             except:

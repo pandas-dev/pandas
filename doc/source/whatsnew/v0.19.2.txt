@@ -41,5 +41,11 @@ Bug Fixes
 - Bug in not propogating exceptions in parsing invalid datetimes, noted in python 3.6 (:issue:`14561`)
 
 
+- Compat with python 3.6 for pickling of some offsets (:issue:`14685`)
+- Compat with python 3.6 for some indexing exception types (:issue:`14684`)
+- Compat with python 3.6 for deprecation warnings in the test suite (:issue:`14681`)
+
+
+
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
