@@ -226,9 +226,9 @@ class TestNestedToRecord(tm.TestCase):
         self.assertEqual(result, expected)
 
 
-    def test_json_normalise_fix(self):
-        # issue 14505
-        j = {
+    def test_json_normalize_errors(self):
+        # If meta keys are not always present a new option to set errors='ignore' has been implemented (:issue:`14583`)
+        i = {
             "Trades": [{
                 "general": {
                     "tradeid": 100,
@@ -268,7 +268,7 @@ class TestNestedToRecord(tm.TestCase):
             }
             ]
         }
-        j = json_normalize(data=j['Trades'], record_path=[['general', 'stocks']],
+        j = json_normalize(data=i['Trades'], record_path=[['general', 'stocks']],
                            meta=[['general', 'tradeid'], ['general', 'trade_version']], errors='ignore')
         expected={'general.trade_version': {0: 1.0, 1: 1.0, 2: '', 3: ''},
          'general.tradeid': {0: 100, 1: 100, 2: 100, 3: 100},
@@ -277,6 +277,12 @@ class TestNestedToRecord(tm.TestCase):
          'symbol': {0: 'AAPL', 1: 'GOOG', 2: 'AAPL', 3: 'GOOG'}}
 
         self.assertEqual(j.fillna('').to_dict(), expected)
+
+        self.assertRaises(KeyError,
+                json_normalize, data=i['Trades'], record_path=[['general', 'stocks']],
+                           meta=[['general', 'tradeid'], ['general', 'trade_version']], errors='raise'
+                          )
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb',

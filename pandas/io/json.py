@@ -849,8 +849,9 @@ def json_normalize(data, record_path=None, meta=None,
                             if errors == 'ignore':
                                 meta_val = np.nan
                             else:
-                                raise KeyError(
-                                    "Try running with errors='ignore' as the following key may not always be present: " + str(e))
+                                raise \
+                                    KeyError(
+                                    "Try running with errors='ignore' as key may not always be present: %s", e)
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)
