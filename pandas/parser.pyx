@@ -15,9 +15,8 @@ from cpython cimport (PyObject, PyBytes_FromString,
 from cpython.ref cimport PyObject, Py_XDECREF
 from io.common import ParserError, DtypeWarning, EmptyDataError
 
-# XXX: Import CParserError as alias of ParserError for
-# backwards compatibility. Ultimately, we want to remove
-# this import.
+# Import CParserError as alias of ParserError for backwards compatibility.
+# Ultimately, we want to remove this import. See gh-12665 and gh-14479.
 from io.common import CParserError
 
 cdef extern from "Python.h":

@@ -11,6 +11,7 @@ from pandas.io import common
 from pandas.compat import is_platform_windows, StringIO
 
 from pandas import read_csv, concat
+import pandas as pd
 
 try:
     from pathlib import Path
@@ -98,6 +99,11 @@ bar2,12,13,14,15
         try:
             raise common.ParserError()
         except common.CParserError:
+            pass
+
+        try:
+            raise common.ParserError()
+        except pd.parser.CParserError:
             pass
 
 
