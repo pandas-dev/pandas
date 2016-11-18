@@ -1912,7 +1912,18 @@ class TestDatetimeIndex(Base, tm.TestCase):
         right = Series(val, index=ix)
         assert_series_equal(left, right)
 
-    def test_resmaple_dst_anchor(self):
+    def test_resample_across_dst(self):
+        #14682
+        df1 = DataFrame([1477786980, 1477790580], columns=['ts'])
+        df2 = DataFrame([1477785600, 1477789200], columns=['ts'])
+        dti1 = DatetimeIndex(pd.to_datetime(df1.ts, unit='s').dt.tz_localize('UTC').dt.tz_convert('Europe/Madrid'))
+        dti2 = DatetimeIndex(pd.to_datetime(df2.ts, unit='s').dt.tz_localize('UTC').dt.tz_convert('Europe/Madrid'))
+        df = DataFrame([5, 5], index=dti1)
+        assert_frame_equal(
+            df.resample(rule='H').sum(),
+            DataFrame([5, 5], index=dti2))
+
+    def test_resample_dst_anchor(self):
         # 5172
         dti = DatetimeIndex([datetime(2012, 11, 4, 23)], tz='US/Eastern')
         df = DataFrame([5], index=dti)

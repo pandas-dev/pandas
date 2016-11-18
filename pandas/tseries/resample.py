@@ -5,6 +5,7 @@ import copy
 
 import pandas as pd
 from pandas.core.base import AbstractMethodError, GroupByMixin
+from pandas.core.config_init import pc_ambiguous_as_wide_doc
 
 from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
                                  SeriesGroupBy, groupby, PanelGroupBy)
@@ -1285,6 +1286,12 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
 
     first_tzinfo = first.tzinfo
     last_tzinfo = last.tzinfo
+    first_dst = bool(first.dst())
+    last_dst = bool(last.dst())
+
+    first = first.tz_localize(None)
+    last = last.tz_localize(None)
+
     start_day_nanos = first.normalize().value
 
     base_nanos = (base % offset.n) * offset.nanos // offset.n
@@ -1319,9 +1326,8 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
         else:
             lresult = last.value + offset.nanos
 
-    return (Timestamp(fresult, tz=first_tzinfo),
-            Timestamp(lresult, tz=last_tzinfo))
-
+    return (Timestamp(fresult).tz_localize(first_tzinfo, ambiguous=first_dst),
+            Timestamp(lresult).tz_localize(last_tzinfo, ambiguous=last_dst))
 
 
 def asfreq(obj, freq, method=None, how=None, normalize=False):
