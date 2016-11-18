@@ -154,7 +154,7 @@ class TestTextReader(tm.TestCase):
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None)
-        self.assertRaises(parser.CParserError, reader.read)
+        self.assertRaises(parser.ParserError, reader.read)
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None,
@@ -197,7 +197,7 @@ class TestTextReader(tm.TestCase):
         assert_array_dicts_equal(expected, recs)
 
         # not enough rows
-        self.assertRaises(parser.CParserError, TextReader, StringIO(data),
+        self.assertRaises(parser.ParserError, TextReader, StringIO(data),
                           delimiter=',', header=5, as_recarray=True)
 
     def test_header_not_enough_lines_as_recarray(self):
@@ -218,7 +218,7 @@ class TestTextReader(tm.TestCase):
         assert_array_dicts_equal(expected, recs)
 
         # not enough rows
-        self.assertRaises(parser.CParserError, TextReader, StringIO(data),
+        self.assertRaises(parser.ParserError, TextReader, StringIO(data),
                           delimiter=',', header=5, as_recarray=True)
 
     def test_escapechar(self):

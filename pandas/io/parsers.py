@@ -26,7 +26,7 @@ from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
                               _get_handle, UnicodeReader, UTF8Recoder,
-                              BaseIterator, CParserError, EmptyDataError,
+                              BaseIterator, ParserError, EmptyDataError,
                               ParserWarning, _NA_VALUES)
 from pandas.tseries import tools
 
@@ -1141,7 +1141,7 @@ class ParserBase(object):
         # long
         for n in range(len(columns[0])):
             if all(['Unnamed' in tostr(c[n]) for c in columns]):
-                raise CParserError(
+                raise ParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"
                     % ','.join([str(x) for x in self.header])

@@ -1165,8 +1165,8 @@ too many will cause an error by default:
 
     In [28]: pd.read_csv(StringIO(data))
     ---------------------------------------------------------------------------
-    CParserError                              Traceback (most recent call last)
-    CParserError: Error tokenizing data. C error: Expected 3 fields in line 3, saw 4
+    ParserError                              Traceback (most recent call last)
+    ParserError: Error tokenizing data. C error: Expected 3 fields in line 3, saw 4
 
 You can elect to skip bad lines:
 

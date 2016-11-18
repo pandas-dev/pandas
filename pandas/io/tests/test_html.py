@@ -23,7 +23,7 @@ from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
                            is_platform_windows)
 from pandas.io.common import URLError, urlopen, file_path_to_url
 from pandas.io.html import read_html
-from pandas.parser import CParserError
+from pandas.parser import ParserError
 
 import pandas.util.testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf, network
@@ -652,7 +652,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
     def test_computer_sales_page(self):
         data = os.path.join(DATA_PATH, 'computer_sales_page.html')
-        with tm.assertRaisesRegexp(CParserError, r"Passed header=\[0,1\] are "
+        with tm.assertRaisesRegexp(ParserError, r"Passed header=\[0,1\] are "
                                    "too many rows for this multi_index "
                                    "of columns"):
             self.read_html(data, header=[0, 1])
