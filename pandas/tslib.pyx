@@ -1105,6 +1105,12 @@ cdef class _Timestamp(datetime):
         self._assert_tzawareness_compat(other)
         return _cmp_scalar(self.value, ots.value, op)
 
+    def __reduce_ex__(self, protocol):
+        # python 3.6 compat
+        # http://bugs.python.org/issue28730
+        # now __reduce_ex__ is defined and higher priority than __reduce__
+        return self.__reduce__()
+
     def __repr__(self):
         stamp = self._repr_base
         zone = None
