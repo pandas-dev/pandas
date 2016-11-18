@@ -776,6 +776,16 @@ class _MergeOperation(object):
         is_rkey = lambda x: isinstance(
             x, (np.ndarray, ABCSeries)) and len(x) == len(right)
 
+        # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
+        # user could, for example, request 'left_index' and 'left_by'. In a
+        # regular pd.merge(), users cannot specify both 'left_index' and
+        #'left_on'. (Instead, users have a MultiIndex). That means the
+        # self.left_on in this function is always empty in a pd.merge(), but
+        # a pd.merge_asof(left_index=True, left_by=...) will result in a
+        # self.left_on array with a None in the middle of it. This requires
+        # a work-around as designated in the code below.
+        # See _validate_specification() for where this happens.
+
         # ugh, spaghetti re #733
         if _any(self.left_on) and _any(self.right_on):
             for lk, rk in zip(self.left_on, self.right_on):
@@ -789,7 +799,7 @@ class _MergeOperation(object):
                             right_keys.append(right[rk]._values)
                             join_names.append(rk)
                         else:
-                            # kludge for merge_asof(right_index=True)
+                            # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index)
                             join_names.append(right.index.name)
                 else:
@@ -797,7 +807,7 @@ class _MergeOperation(object):
                         if rk is not None:
                             right_keys.append(right[rk]._values)
                         else:
-                            # kludge for merge_asof(right_index=True)
+                            # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index)
                         if lk is not None and lk == rk:
                             # avoid key upcast in corner case (length-0)
@@ -811,7 +821,7 @@ class _MergeOperation(object):
                         left_keys.append(left[lk]._values)
                         join_names.append(lk)
                     else:
-                        # kludge for merge_asof(left_index=True)
+                        # work-around for merge_asof(left_index=True)
                         left_keys.append(left.index)
                         join_names.append(left.index.name)
         elif _any(self.left_on):
