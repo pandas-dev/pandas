@@ -53,4 +53,14 @@ Bug Fixes
 
 
 
+
+
+- Bug in clipboard functions on linux with python2 with unicode and separators (:issue:`13747`)
+- Bug in clipboard functions on Windows 10 and python 3 (:issue:`14362`, :issue:`12807`)
+- Bug in ``.to_clipboard()`` and Excel compat (:issue:`12529`)
+
+
+
+
+
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)

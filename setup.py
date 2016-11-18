@@ -644,7 +644,8 @@ setup(name=DISTNAME,
                 'pandas.io.tests.parser',
                 'pandas.io.tests.sas',
                 'pandas.stats.tests',
-                'pandas.msgpack'
+                'pandas.msgpack',
+                'pandas.util.clipboard'
                 ],
       package_data={'pandas.io': ['tests/data/legacy_hdf/*.h5',
                                   'tests/data/legacy_pickle/*/*.pickle',
