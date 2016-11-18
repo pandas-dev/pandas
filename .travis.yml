@@ -34,6 +34,7 @@ matrix:
       compiler: clang
       osx_image: xcode6.4
       env:
+        - PYTHON_VERSION=3.5
         - JOB_NAME: "35_osx"
         - NOSE_ARGS="not slow and not network and not disabled"
         - BUILD_TYPE=conda
@@ -43,6 +44,7 @@ matrix:
         - USE_CACHE=true
     - python: 2.7
       env:
+        - PYTHON_VERSION=2.7
         - JOB_NAME: "27_slow_nnet_LOCALE"
         - NOSE_ARGS="slow and not network and not disabled"
         - LOCALE_OVERRIDE="zh_CN.UTF-8"
@@ -56,6 +58,7 @@ matrix:
           - language-pack-zh-hans
     - python: 2.7
       env:
+        - PYTHON_VERSION=2.7
         - JOB_NAME: "27_nslow"
         - NOSE_ARGS="not slow and not disabled"
         - FULL_DEPS=true
@@ -69,6 +72,7 @@ matrix:
           - python-gtk2
     - python: 3.4
       env:
+        - PYTHON_VERSION=3.4
         - JOB_NAME: "34_nslow"
         - NOSE_ARGS="not slow and not disabled"
         - FULL_DEPS=true
@@ -81,6 +85,7 @@ matrix:
           - xsel
     - python: 3.5
       env:
+        - PYTHON_VERSION=3.5
         - JOB_NAME: "35_nslow"
         - NOSE_ARGS="not slow and not network and not disabled"
         - FULL_DEPS=true
@@ -95,6 +100,7 @@ matrix:
 #    In allow_failures
     - python: 2.7
       env:
+        - PYTHON_VERSION=2.7
         - JOB_NAME: "27_slow"
         - JOB_TAG=_SLOW
         - NOSE_ARGS="slow and not network and not disabled"
@@ -104,6 +110,7 @@ matrix:
 #    In allow_failures
     - python: 3.4
       env:
+        - PYTHON_VERSION=3.4
         - JOB_NAME: "34_slow"
         - JOB_TAG=_SLOW
         - NOSE_ARGS="slow and not network and not disabled"
@@ -118,6 +125,7 @@ matrix:
 #    In allow_failures
     - python: 2.7
       env:
+        - PYTHON_VERSION=2.7
         - JOB_NAME: "27_build_test_conda"
         - JOB_TAG=_BUILD_TEST
         - NOSE_ARGS="not slow and not disabled"
@@ -126,8 +134,22 @@ matrix:
         - CACHE_NAME="27_build_test_conda"
         - USE_CACHE=true
 #    In allow_failures
+    - python: 3.6-dev
+      env:
+        - PYTHON_VERSION=3.6
+        - JOB_NAME: "36_dev"
+        - JOB_TAG=_DEV
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - PANDAS_TESTING_MODE="deprecate"
+      addons:
+        apt:
+          packages:
+          - libatlas-base-dev
+          - gfortran
+#    In allow_failures
     - python: 3.5
       env:
+        - PYTHON_VERSION=3.5
         - JOB_NAME: "35_numpy_dev"
         - JOB_TAG=_NUMPY_DEV
         - NOSE_ARGS="not slow and not network and not disabled"
@@ -142,6 +164,7 @@ matrix:
 #    In allow_failures
     - python: 2.7
       env:
+        - PYTHON_VERSION=2.7
         - JOB_NAME: "27_nslow_nnet_COMPAT"
         - NOSE_ARGS="not slow and not network and not disabled"
         - LOCALE_OVERRIDE="it_IT.UTF-8"
@@ -156,6 +179,7 @@ matrix:
 #    In allow_failures
     - python: 3.5
       env:
+        - PYTHON_VERSION=3.5
         - JOB_NAME: "35_ascii"
         - JOB_TAG=_ASCII
         - NOSE_ARGS="not slow and not network and not disabled"
@@ -165,6 +189,7 @@ matrix:
 #    In allow_failures
     - python: 2.7
       env:
+        - PYTHON_VERSION=2.7
         - JOB_NAME: "doc_build"
         - FULL_DEPS=true
         - DOC_BUILD=true
@@ -174,6 +199,7 @@ matrix:
     allow_failures:
       - python: 2.7
         env:
+        - PYTHON_VERSION=2.7
         - JOB_NAME: "27_slow"
         - JOB_TAG=_SLOW
         - NOSE_ARGS="slow and not network and not disabled"
@@ -182,6 +208,7 @@ matrix:
         - USE_CACHE=true
       - python: 3.4
         env:
+        - PYTHON_VERSION=3.4
         - JOB_NAME: "34_slow"
         - JOB_TAG=_SLOW
         - NOSE_ARGS="slow and not network and not disabled"
@@ -195,6 +222,7 @@ matrix:
             - xsel
       - python: 2.7
         env:
+        - PYTHON_VERSION=2.7
         - JOB_NAME: "27_build_test_conda"
         - JOB_TAG=_BUILD_TEST
         - NOSE_ARGS="not slow and not disabled"
@@ -202,14 +230,27 @@ matrix:
         - BUILD_TEST=true
         - CACHE_NAME="27_build_test_conda"
         - USE_CACHE=true
-      - python: 3.5
+      - python: 3.6-dev
         env:
-        - JOB_NAME: "35_numpy_dev"
-        - JOB_TAG=_NUMPY_DEV
+        - PYTHON_VERSION=3.6
+        - JOB_NAME: "36_dev"
+        - JOB_TAG=_DEV
         - NOSE_ARGS="not slow and not network and not disabled"
         - PANDAS_TESTING_MODE="deprecate"
-        - CACHE_NAME="35_numpy_dev"
-        - USE_CACHE=true
+        addons:
+          apt:
+            packages:
+            - libatlas-base-dev
+            - gfortran
+      - python: 3.5
+        env:
+          - PYTHON_VERSION=3.5
+          - JOB_NAME: "35_numpy_dev"
+          - JOB_TAG=_NUMPY_DEV
+          - NOSE_ARGS="not slow and not network and not disabled"
+          - PANDAS_TESTING_MODE="deprecate"
+          - CACHE_NAME="35_numpy_dev"
+          - USE_CACHE=true
         addons:
           apt:
             packages:
@@ -217,6 +258,7 @@ matrix:
             - gfortran
       - python: 2.7
         env:
+        - PYTHON_VERSION=2.7
         - JOB_NAME: "27_nslow_nnet_COMPAT"
         - NOSE_ARGS="not slow and not network and not disabled"
         - LOCALE_OVERRIDE="it_IT.UTF-8"
@@ -230,6 +272,7 @@ matrix:
             - language-pack-it
       - python: 3.5
         env:
+        - PYTHON_VERSION=3.5
         - JOB_NAME: "35_ascii"
         - JOB_TAG=_ASCII
         - NOSE_ARGS="not slow and not network and not disabled"
@@ -238,6 +281,7 @@ matrix:
         - USE_CACHE=true
       - python: 2.7
         env:
+        - PYTHON_VERSION=2.7
         - JOB_NAME: "doc_build"
         - FULL_DEPS=true
         - DOC_BUILD=true
@@ -249,7 +293,7 @@ before_install:
   - echo "before_install"
   - source ci/travis_process_gbq_encryption.sh
   - echo $VIRTUAL_ENV
-  - export PATH="$HOME/miniconda/bin:$PATH"
+  - export PATH="$HOME/miniconda3/bin:$PATH"
   - df -h
   - date
   - pwd

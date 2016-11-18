@@ -85,7 +85,11 @@ from distutils.command.build_ext import build_ext as _build_ext
 try:
     if not _CYTHON_INSTALLED:
         raise ImportError('No supported version of Cython installed.')
-    from Cython.Distutils import build_ext as _build_ext
+    try:
+        from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
+    except ImportError:
+        # Pre 0.25
+        from Cython.Distutils import build_ext as _build_ext
     cython = True
 except ImportError:
     cython = False
@@ -240,6 +244,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
     'Programming Language :: Cython',
     'Topic :: Scientific/Engineering',
 ]
@@ -450,7 +455,8 @@ lib_depends = lib_depends + ['pandas/src/numpy_helper.h',
 
 tseries_depends = ['pandas/src/datetime/np_datetime.h',
                    'pandas/src/datetime/np_datetime_strings.h',
-                   'pandas/src/period_helper.h']
+                   'pandas/src/period_helper.h',
+                   'pandas/src/datetime.pxd']
 
 
 # some linux distros require it

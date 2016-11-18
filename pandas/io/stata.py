@@ -511,6 +511,9 @@ def _cast_to_stata_types(data):
                        (np.uint16, np.int16, np.int32),
                        (np.uint32, np.int32, np.int64))
 
+    float32_max = struct.unpack('<f', b'\xff\xff\xff\x7e')[0]
+    float64_max = struct.unpack('<d', b'\xff\xff\xff\xff\xff\xff\xdf\x7f')[0]
+
     for col in data:
         dtype = data[col].dtype
         # Cast from unsupported types to supported types
@@ -541,6 +544,19 @@ def _cast_to_stata_types(data):
                 data[col] = data[col].astype(np.float64)
                 if data[col].max() >= 2 ** 53 or data[col].min() <= -2 ** 53:
                     ws = precision_loss_doc % ('int64', 'float64')
+        elif dtype in (np.float32, np.float64):
+            value = data[col].max()
+            if np.isinf(value):
+                msg = 'Column {0} has a maximum value of infinity which is ' \
+                      'outside the range supported by Stata.'
+                raise ValueError(msg.format(col))
+            if dtype == np.float32 and value > float32_max:
+                data[col] = data[col].astype(np.float64)
+            elif dtype == np.float64:
+                if value > float64_max:
+                    msg = 'Column {0} has a maximum value ({1}) outside the ' \
+                          'range supported by Stata ({1})'
+                    raise ValueError(msg.format(col, value, float64_max))
 
     if ws:
         import warnings
@@ -1210,18 +1226,18 @@ class StataReader(StataParser, BaseIterator):
                 if tp in self.OLD_TYPE_MAPPING:
                     typlist.append(self.OLD_TYPE_MAPPING[tp])
                 else:
-                    typlist.append(tp - 127)  # string
+                    typlist.append(tp - 127)  # py2 string, py3 bytes
 
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
         except:
             raise ValueError("cannot convert stata types [{0}]"
-                             .format(','.join(typlist)))
+                             .format(','.join(str(x) for x in typlist)))
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
         except:
             raise ValueError("cannot convert stata dtypes [{0}]"
-                             .format(','.join(typlist)))
+                             .format(','.join(str(x) for x in typlist)))
 
         if self.format_version > 108:
             self.varlist = [self._null_terminate(self.path_or_buf.read(33))
@@ -2048,6 +2064,7 @@ class StataWriter(StataParser):
         data = self._check_column_names(data)
 
         # Check columns for compatibility with stata, upcast if necessary
+        # Raise if outside the supported range
         data = _cast_to_stata_types(data)
 
         # Replace NaNs with Stata missing values

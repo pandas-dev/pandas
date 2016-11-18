@@ -139,7 +139,7 @@ a,b,c
         # see gh-2733
         data = 'a  b  c\n4  apple  bat  5.7\n8  orange  cow  10'
 
-        df = self.read_csv(StringIO(data), sep='\s+', usecols=('a', 'b'))
+        df = self.read_csv(StringIO(data), sep=r'\s+', usecols=('a', 'b'))
 
         expected = DataFrame({'a': ['apple', 'orange'],
                               'b': ['bat', 'cow']}, index=[4, 8])

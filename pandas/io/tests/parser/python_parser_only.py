@@ -162,7 +162,7 @@ a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
 a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
-        df = self.read_table(StringIO(text), sep='\s+')
+        df = self.read_table(StringIO(text), sep=r'\s+')
         self.assertEqual(df.index.names, ('one', 'two', 'three', 'four'))
 
         # see gh-6893
@@ -170,7 +170,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = DataFrame.from_records(
             [(1, 3, 7, 0, 3, 6), (3, 1, 4, 1, 5, 9)],
             columns=list('abcABC'), index=list('abc'))
-        actual = self.read_table(StringIO(data), sep='\s+')
+        actual = self.read_table(StringIO(data), sep=r'\s+')
         tm.assert_frame_equal(actual, expected)
 
     def test_skipfooter_with_decimal(self):

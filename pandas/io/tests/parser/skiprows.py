@@ -190,3 +190,11 @@ line 22",2
                                skiprows=1, delim_whitespace=True,
                                names=['date', 'time', 'var', 'flag', 'oflag'])
             tm.assert_frame_equal(df, expected)
+
+    def test_skiprows_infield_quote(self):
+        # see gh-14459
+        data = 'a"\nb"\na\n1'
+        expected = DataFrame({'a': [1]})
+
+        df = self.read_csv(StringIO(data), skiprows=2)
+        tm.assert_frame_equal(df, expected)

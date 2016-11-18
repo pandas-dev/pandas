@@ -259,6 +259,14 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         frame = DataFrame({'A': [], 'B': []}, columns=['A', 'B'])
         self.assert_index_equal(frame.index, Index([], dtype=np.int64))
 
+        # GH 14381
+        # Dict with None value
+        frame_none = DataFrame(dict(a=None), index=[0])
+        frame_none_list = DataFrame(dict(a=[None]), index=[0])
+        tm.assert_equal(frame_none.get_value(0, 'a'), None)
+        tm.assert_equal(frame_none_list.get_value(0, 'a'), None)
+        tm.assert_frame_equal(frame_none, frame_none_list)
+
         # GH10856
         # dict with scalar values should raise error, even if columns passed
         with tm.assertRaises(ValueError):
@@ -296,7 +304,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                        'B': ['a', 'b', 'c']})
 
         # wrong size ndarray, GH 3105
-        msg = "Shape of passed values is \(3, 4\), indices imply \(3, 3\)"
+        msg = r"Shape of passed values is \(3, 4\), indices imply \(3, 3\)"
         with tm.assertRaisesRegexp(ValueError, msg):
             DataFrame(np.arange(12).reshape((4, 3)),
                       columns=['foo', 'bar', 'baz'],
@@ -308,11 +316,11 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # wrong size axis labels
         with tm.assertRaisesRegexp(ValueError, "Shape of passed values is "
-                                   "\(3, 2\), indices imply \(3, 1\)"):
+                                   r"\(3, 2\), indices imply \(3, 1\)"):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B', 'C'], index=[1])
 
         with tm.assertRaisesRegexp(ValueError, "Shape of passed values is "
-                                   "\(3, 2\), indices imply \(2, 2\)"):
+                                   r"\(3, 2\), indices imply \(2, 2\)"):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
 
         with tm.assertRaisesRegexp(ValueError, 'If using all scalar values, '

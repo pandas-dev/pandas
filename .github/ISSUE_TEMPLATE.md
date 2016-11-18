@@ -10,6 +10,6 @@
 #### Output of ``pd.show_versions()``
 
 <details>
-# Paste the output here
+# Paste the output here pd.show_versions() here
 
 </details>
