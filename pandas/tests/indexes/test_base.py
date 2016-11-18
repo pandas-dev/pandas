@@ -7,7 +7,7 @@ from pandas.indexes.api import Index, MultiIndex
 from .common import Base
 
 from pandas.compat import (is_platform_windows, range, lrange, lzip, u,
-                           zip, PY3)
+                           zip, PY3, PY36)
 import operator
 import os
 
@@ -1774,7 +1774,12 @@ class TestMixedIntIndex(Base, tm.TestCase):
     def test_order(self):
         idx = self.create_index()
         # 9816 deprecated
-        if PY3:
+        if PY36:
+            with tm.assertRaisesRegexp(TypeError, "'>' not supported "
+                                       "between instances of 'str' and 'int'"):
+                with tm.assert_produces_warning(FutureWarning):
+                    idx.order()
+        elif PY3:
             with tm.assertRaisesRegexp(TypeError, "unorderable types"):
                 with tm.assert_produces_warning(FutureWarning):
                     idx.order()
@@ -1784,7 +1789,11 @@ class TestMixedIntIndex(Base, tm.TestCase):
 
     def test_argsort(self):
         idx = self.create_index()
-        if PY3:
+        if PY36:
+            with tm.assertRaisesRegexp(TypeError, "'>' not supported "
+                                       "between instances of 'str' and 'int'"):
+                result = idx.argsort()
+        elif PY3:
             with tm.assertRaisesRegexp(TypeError, "unorderable types"):
                 result = idx.argsort()
         else:
@@ -1794,7 +1803,11 @@ class TestMixedIntIndex(Base, tm.TestCase):
 
     def test_numpy_argsort(self):
         idx = self.create_index()
-        if PY3:
+        if PY36:
+            with tm.assertRaisesRegexp(TypeError, "'>' not supported "
+                                       "between instances of 'str' and 'int'"):
+                result = np.argsort(idx)
+        elif PY3:
             with tm.assertRaisesRegexp(TypeError, "unorderable types"):
                 result = np.argsort(idx)
         else:
