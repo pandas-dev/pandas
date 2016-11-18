@@ -987,7 +987,7 @@ class TestHDFStore(Base, tm.TestCase):
 
         if compat.PY2:
             self.assertRaisesRegexp(
-                TypeError, '\[unicode\] is not implemented as a table column')
+                TypeError, r'\[unicode\] is not implemented as a table column')
             return
 
         values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],

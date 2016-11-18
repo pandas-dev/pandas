@@ -554,7 +554,7 @@ a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
 a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
-        df = read_table(StringIO(text), sep='\s+', engine='python')
+        df = read_table(StringIO(text), sep=r'\s+', engine='python')
 
         result = df.xs(('a', 4), level=['one', 'four'])
         expected = df.xs('a').xs(4, level='four')
@@ -588,7 +588,7 @@ a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
 a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
-        df = read_table(StringIO(text), sep='\s+', engine='python')
+        df = read_table(StringIO(text), sep=r'\s+', engine='python')
 
         result = df.xs('a', level=0)
         expected = df.xs('a')

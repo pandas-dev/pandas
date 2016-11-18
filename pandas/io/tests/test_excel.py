@@ -1805,8 +1805,8 @@ def raise_wrapper(major_ver):
             if openpyxl_compat.is_compat(major_ver=major_ver):
                 orig_method(self, *args, **kwargs)
             else:
-                msg = ('Installed openpyxl is not supported at this '
-                       'time\. Use.+')
+                msg = (r'Installed openpyxl is not supported at this '
+                       r'time\. Use.+')
                 with tm.assertRaisesRegexp(ValueError, msg):
                     orig_method(self, *args, **kwargs)
         return wrapped

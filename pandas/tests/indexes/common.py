@@ -431,7 +431,7 @@ class Base(object):
         idx = self.create_index()
         indices = [1, 2]
 
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, idx.take,
                               indices, foo=2)
 

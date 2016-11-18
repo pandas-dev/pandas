@@ -354,7 +354,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
     def test_negative_skiprows(self):
         with tm.assertRaisesRegexp(ValueError,
-                                   '\(you passed a negative value\)'):
+                                   r'\(you passed a negative value\)'):
             self.read_html(self.spam_data, 'Water', skiprows=-1)
 
     @network

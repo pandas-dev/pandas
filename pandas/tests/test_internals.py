@@ -82,7 +82,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
         values = (mat * 1e9).astype('M8[ns]')
     elif typestr.startswith('M8[ns'):
         # datetime with tz
-        m = re.search('M8\[ns,\s*(\w+\/?\w*)\]', typestr)
+        m = re.search(r'M8\[ns,\s*(\w+\/?\w*)\]', typestr)
         assert m is not None, "incompatible typestr -> {0}".format(typestr)
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"

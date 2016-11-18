@@ -319,10 +319,10 @@ numpy array values are different \\(50\\.0 %\\)
         a = np.array([1, 2, 3])
         b = a.copy()
         c = a.view()
-        expected = 'array\(\[1, 2, 3\]\) is not array\(\[1, 2, 3\]\)'
+        expected = r'array\(\[1, 2, 3\]\) is not array\(\[1, 2, 3\]\)'
         with assertRaisesRegexp(AssertionError, expected):
             assert_numpy_array_equal(a, b, check_same='same')
-        expected = 'array\(\[1, 2, 3\]\) is array\(\[1, 2, 3\]\)'
+        expected = r'array\(\[1, 2, 3\]\) is array\(\[1, 2, 3\]\)'
         with assertRaisesRegexp(AssertionError, expected):
             assert_numpy_array_equal(a, c, check_same='copy')
 

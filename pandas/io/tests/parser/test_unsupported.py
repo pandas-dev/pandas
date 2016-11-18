@@ -50,7 +50,7 @@ class TestUnsupportedFeatures(tm.TestCase):
             read_table(StringIO(data), sep=None,
                        delim_whitespace=False, dtype={'a': float})
         with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), sep='\s', dtype={'a': float})
+            read_table(StringIO(data), sep=r'\s', dtype={'a': float})
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), skipfooter=1, dtype={'a': float})
 
@@ -59,7 +59,7 @@ class TestUnsupportedFeatures(tm.TestCase):
             read_table(StringIO(data), engine='c',
                        sep=None, delim_whitespace=False)
         with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), engine='c', sep='\s')
+            read_table(StringIO(data), engine='c', sep=r'\s')
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), engine='c', skipfooter=1)
 
@@ -67,7 +67,7 @@ class TestUnsupportedFeatures(tm.TestCase):
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_table(StringIO(data), sep=None, delim_whitespace=False)
         with tm.assert_produces_warning(parsers.ParserWarning):
-            read_table(StringIO(data), sep='\s')
+            read_table(StringIO(data), sep=r'\s')
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_table(StringIO(data), skipfooter=1)
 
@@ -79,9 +79,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         msg = 'Error tokenizing data'
 
         with tm.assertRaisesRegexp(CParserError, msg):
-            read_table(StringIO(text), sep='\s+')
+            read_table(StringIO(text), sep=r'\s+')
         with tm.assertRaisesRegexp(CParserError, msg):
-            read_table(StringIO(text), engine='c', sep='\s+')
+            read_table(StringIO(text), engine='c', sep=r'\s+')
 
         msg = "Only length-1 thousands markers supported"
         data = """A|B|C

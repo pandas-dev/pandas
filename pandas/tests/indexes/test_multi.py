@@ -1870,7 +1870,7 @@ class TestMultiIndex(Base, tm.TestCase):
         idx = pd.MultiIndex.from_product(vals, names=['str', 'dt'])
         indices = [1, 2]
 
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, idx.take,
                               indices, foo=2)
 

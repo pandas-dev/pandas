@@ -496,8 +496,8 @@ class CheckIndexing(object):
         # bad shape
         p = Panel(np.random.randn(4, 3, 2))
         with tm.assertRaisesRegexp(ValueError,
-                                   "shape of value must be \(3, 2\), "
-                                   "shape of given object was \(4, 2\)"):
+                                   r"shape of value must be \(3, 2\), "
+                                   r"shape of given object was \(4, 2\)"):
             p[0] = np.random.randn(4, 2)
 
     def test_setitem_ndarray(self):
@@ -1128,24 +1128,24 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             Panel(np.random.randn(3, 4, 5), lrange(4), lrange(5), lrange(5))
 
         assertRaisesRegexp(ValueError,
-                           "Shape of passed values is \(3, 4, 5\), "
-                           "indices imply \(4, 5, 5\)",
+                           r"Shape of passed values is \(3, 4, 5\), "
+                           r"indices imply \(4, 5, 5\)",
                            testit)
 
         def testit():
             Panel(np.random.randn(3, 4, 5), lrange(5), lrange(4), lrange(5))
 
         assertRaisesRegexp(ValueError,
-                           "Shape of passed values is \(3, 4, 5\), "
-                           "indices imply \(5, 4, 5\)",
+                           r"Shape of passed values is \(3, 4, 5\), "
+                           r"indices imply \(5, 4, 5\)",
                            testit)
 
         def testit():
             Panel(np.random.randn(3, 4, 5), lrange(5), lrange(5), lrange(4))
 
         assertRaisesRegexp(ValueError,
-                           "Shape of passed values is \(3, 4, 5\), "
-                           "indices imply \(5, 5, 4\)",
+                           r"Shape of passed values is \(3, 4, 5\), "
+                           r"indices imply \(5, 5, 4\)",
                            testit)
 
     def test_conform(self):

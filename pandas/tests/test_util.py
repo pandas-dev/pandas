@@ -97,8 +97,8 @@ class TestValidateArgs(tm.TestCase):
         min_fname_arg_count = 0
         max_length = len(compat_args) + min_fname_arg_count
         actual_length = len(args) + min_fname_arg_count
-        msg = ("{fname}\(\) takes at most {max_length} "
-               "argument \({actual_length} given\)"
+        msg = (r"{fname}\(\) takes at most {max_length} "
+               r"argument \({actual_length} given\)"
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
@@ -114,8 +114,8 @@ class TestValidateArgs(tm.TestCase):
         min_fname_arg_count = 2
         max_length = len(compat_args) + min_fname_arg_count
         actual_length = len(args) + min_fname_arg_count
-        msg = ("{fname}\(\) takes at most {max_length} "
-               "arguments \({actual_length} given\)"
+        msg = (r"{fname}\(\) takes at most {max_length} "
+               r"arguments \({actual_length} given\)"
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
@@ -127,7 +127,7 @@ class TestValidateArgs(tm.TestCase):
     def test_not_all_defaults(self):
         bad_arg = 'foo'
         msg = ("the '{arg}' parameter is not supported "
-               "in the pandas implementation of {func}\(\)".
+               r"in the pandas implementation of {func}\(\)".
                format(arg=bad_arg, func=self.fname))
 
         compat_args = OrderedDict()
@@ -163,8 +163,8 @@ class TestValidateKwargs(tm.TestCase):
         compat_args[goodarg] = 'foo'
         compat_args[badarg + 'o'] = 'bar'
         kwargs = {goodarg: 'foo', badarg: 'bar'}
-        msg = ("{fname}\(\) got an unexpected "
-               "keyword argument '{arg}'".format(
+        msg = (r"{fname}\(\) got an unexpected "
+               r"keyword argument '{arg}'".format(
                    fname=self.fname, arg=badarg))
 
         with tm.assertRaisesRegexp(TypeError, msg):
@@ -172,8 +172,8 @@ class TestValidateKwargs(tm.TestCase):
 
     def test_not_all_none(self):
         bad_arg = 'foo'
-        msg = ("the '{arg}' parameter is not supported "
-               "in the pandas implementation of {func}\(\)".
+        msg = (r"the '{arg}' parameter is not supported "
+               r"in the pandas implementation of {func}\(\)".
                format(arg=bad_arg, func=self.fname))
 
         compat_args = OrderedDict()
@@ -212,8 +212,8 @@ class TestValidateKwargsAndArgs(tm.TestCase):
         min_fname_arg_count = 0
         max_length = len(compat_args) + min_fname_arg_count
         actual_length = len(kwargs) + len(args) + min_fname_arg_count
-        msg = ("{fname}\(\) takes at most {max_length} "
-               "argument \({actual_length} given\)"
+        msg = (r"{fname}\(\) takes at most {max_length} "
+               r"argument \({actual_length} given\)"
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
@@ -230,8 +230,8 @@ class TestValidateKwargsAndArgs(tm.TestCase):
         min_fname_arg_count = 2
         max_length = len(compat_args) + min_fname_arg_count
         actual_length = len(kwargs) + len(args) + min_fname_arg_count
-        msg = ("{fname}\(\) takes at most {max_length} "
-               "arguments \({actual_length} given\)"
+        msg = (r"{fname}\(\) takes at most {max_length} "
+               r"arguments \({actual_length} given\)"
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
@@ -248,8 +248,8 @@ class TestValidateKwargsAndArgs(tm.TestCase):
         compat_args['foo'] = -5
         compat_args[bad_arg] = 1
 
-        msg = ("the '{arg}' parameter is not supported "
-               "in the pandas implementation of {func}\(\)".
+        msg = (r"the '{arg}' parameter is not supported "
+               r"in the pandas implementation of {func}\(\)".
                format(arg=bad_arg, func=self.fname))
 
         args = ()
@@ -275,8 +275,8 @@ class TestValidateKwargsAndArgs(tm.TestCase):
         kwargs = {'foo': None, 'bar': None}
         args = (None,)  # duplicate value for 'foo'
 
-        msg = ("{fname}\(\) got multiple values for keyword "
-               "argument '{arg}'".format(fname=self.fname, arg='foo'))
+        msg = (r"{fname}\(\) got multiple values for keyword "
+               r"argument '{arg}'".format(fname=self.fname, arg='foo'))
 
         with tm.assertRaisesRegexp(TypeError, msg):
             validate_args_and_kwargs(self.fname, args, kwargs,

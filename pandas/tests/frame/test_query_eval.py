@@ -1124,8 +1124,8 @@ class TestDataFrameEvalNumExprPandas(tm.TestCase):
         ops = '+', '-', '*', '/'
         for op in ops:
             with tm.assertRaisesRegexp(TypeError,
-                                       "unsupported operand type\(s\) for "
-                                       ".+: '.+' and '.+'"):
+                                       r"unsupported operand type\(s\) for "
+                                       r".+: '.+' and '.+'"):
                 df.eval('a {0} b'.format(op), engine=self.engine,
                         parser=self.parser)
 

@@ -1338,7 +1338,7 @@ class TestIndexing(tm.TestCase):
         df.columns = ['x', 'x', 'z']
 
         # Check that we get the correct value in the KeyError
-        self.assertRaisesRegexp(KeyError, "\['y'\] not in index",
+        self.assertRaisesRegexp(KeyError, r"\['y'\] not in index",
                                 lambda: df[['x', 'y', 'z']])
 
     def test_loc_getitem_label_slice(self):
@@ -2232,7 +2232,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         with tm.assertRaisesRegexp(
                 KeyError,
                 'MultiIndex Slicing requires the index to be fully '
-                'lexsorted tuple len \(2\), lexsort depth \(0\)'):
+                r'lexsorted tuple len \(2\), lexsort depth \(0\)'):
             df.loc[(slice(None), df.loc[:, ('a', 'bar')] > 5), :]
 
     def test_multiindex_slicers_non_unique(self):
@@ -3646,7 +3646,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 5  f    B   6  A2   6
 """
 
-        df = pd.read_csv(StringIO(data), sep='\s+', index_col=0)
+        df = pd.read_csv(StringIO(data), sep=r'\s+', index_col=0)
         df2 = df.set_index(['main', 'sub']).T.sort_index(1)
         index = Index(['h1', 'h3', 'h5'])
         columns = MultiIndex.from_tuples([('A', 'A1')], names=['main', 'sub'])

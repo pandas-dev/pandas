@@ -1618,7 +1618,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             tm.assertRaisesRegexp(TypeError, msg, a.reshape, (2, 2), foo=2)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "reshape\(\) got an unexpected keyword argument 'foo'"
+            msg = r"reshape\(\) got an unexpected keyword argument 'foo'"
             tm.assertRaisesRegexp(TypeError, msg, a.reshape, a.shape, foo=2)
 
     def test_numpy_reshape(self):
