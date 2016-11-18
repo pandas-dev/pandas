@@ -196,8 +196,8 @@ def _is_unorderable_exception(e):
     These are different error message for PY>=3<=3.5 and PY>=3.6
     """
     if PY36:
-        return ("'>' not supported between instances "
-                "of 'str' and 'int'" in str(e))
+        return "'>' not supported between instances of" in str(e)
+
     elif PY3:
         return 'unorderable' in str(e)
     return False
