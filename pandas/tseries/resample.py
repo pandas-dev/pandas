@@ -5,7 +5,6 @@ import copy
 
 import pandas as pd
 from pandas.core.base import AbstractMethodError, GroupByMixin
-from pandas.core.config_init import pc_ambiguous_as_wide_doc
 
 from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
                                  SeriesGroupBy, groupby, PanelGroupBy)
@@ -1284,6 +1283,10 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     #
     # See https://github.com/pandas-dev/pandas/issues/8683
 
+    # 14682 - Since we need to drop the TZ information to perform
+    # the adjustment in the presence of a DST change,
+    # save TZ Info and the DST state of the first and last parameters
+    # so that we can accurately rebuild them at the end.
     first_tzinfo = first.tzinfo
     last_tzinfo = last.tzinfo
     first_dst = bool(first.dst())

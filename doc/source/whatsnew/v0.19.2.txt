@@ -43,3 +43,4 @@ Bug Fixes
 
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
+- Fix AmbiguousTimeError exception when resampling a DatetimeIndex in local TZ, covering a DST change (:issue:`14682`)
