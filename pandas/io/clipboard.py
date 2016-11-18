@@ -1,6 +1,6 @@
 """ io on the clipboard """
 from pandas import compat, get_option, option_context, DataFrame
-from pandas.compat import StringIO
+from pandas.compat import StringIO, PY2
 
 
 def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
@@ -18,6 +18,14 @@ def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
     -------
     parsed : DataFrame
     """
+    encoding = kwargs.pop('encoding', 'utf-8')
+
+    # only utf-8 is valid for passed value because that's what clipboard
+    # supports
+    if encoding is not None and encoding.lower().replace('-', '') != 'utf8':
+        raise NotImplementedError(
+            'reading from clipboard only supports utf-8 encoding')
+
     from pandas.util.clipboard import clipboard_get
     from pandas.io.parsers import read_table
     text = clipboard_get()
@@ -78,6 +86,12 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
       - Windows:
       - OS X:
     """
+    encoding = kwargs.pop('encoding', 'utf-8')
+
+    # testing if an invalid encoding is passed to clipboard
+    if encoding is not None and encoding.lower().replace('-', '') != 'utf8':
+        raise ValueError('clipboard only supports utf-8 encoding')
+
     from pandas.util.clipboard import clipboard_set
     if excel is None:
         excel = True
@@ -87,8 +101,12 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
             if sep is None:
                 sep = '\t'
             buf = StringIO()
-            obj.to_csv(buf, sep=sep, **kwargs)
-            clipboard_set(buf.getvalue())
+            # clipboard_set (pyperclip) expects unicode
+            obj.to_csv(buf, sep=sep, encoding='utf-8', **kwargs)
+            text = buf.getvalue()
+            if PY2:
+                text = text.decode('utf-8')
+            clipboard_set(text)
             return
         except:
             pass
