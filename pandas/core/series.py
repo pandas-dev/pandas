@@ -25,6 +25,7 @@ from pandas.types.common import (_coerce_to_dtype, is_categorical_dtype,
                                  is_iterator,
                                  is_dict_like,
                                  is_scalar,
+                                 _is_unorderable_exception,
                                  _ensure_platform_int)
 from pandas.types.generic import ABCSparseArray, ABCDataFrame
 from pandas.types.cast import (_maybe_upcast, _infer_dtype_from_scalar,
@@ -753,7 +754,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                     raise ValueError("Can only tuple-index with a MultiIndex")
 
                 # python 3 type errors should be raised
-                if 'unorderable' in str(e):  # pragma: no cover
+                if _is_unorderable_exception(e):
                     raise IndexError(key)
 
             if com.is_bool_indexer(key):
@@ -1216,16 +1217,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                  dtype='int64').__finalize__(self)
 
     def mode(self):
-        """Returns the mode(s) of the dataset.
+        """Return the mode(s) of the dataset.
 
-        Empty if nothing occurs at least 2 times.  Always returns Series even
-        if only one value.
-
-        Parameters
-        ----------
-        sort : bool, default True
-            If True, will lexicographically sort values, if False skips
-            sorting. Result ordering when ``sort=False`` is not defined.
+        Empty if nothing occurs at least 2 times. Always returns Series even
+        if only one value is returned.
 
         Returns
         -------
@@ -2915,8 +2910,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         return subarr
 
-    # scalar like
-    if subarr.ndim == 0:
+    # scalar like, GH
+    if getattr(subarr, 'ndim', 0) == 0:
         if isinstance(data, list):  # pragma: no cover
             subarr = np.array(data, dtype=object)
         elif index is not None:

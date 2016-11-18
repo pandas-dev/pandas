@@ -15,7 +15,7 @@ from pandas.compat import StringIO, lrange, u
 class HeaderTests(object):
 
     def test_read_with_bad_header(self):
-        errmsg = "but only \d+ lines in file"
+        errmsg = r"but only \d+ lines in file"
 
         with tm.assertRaisesRegexp(ValueError, errmsg):
             s = StringIO(',,')

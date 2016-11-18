@@ -1066,7 +1066,7 @@ class NDFrame(PandasObject):
             Handler to call if object cannot otherwise be converted to a
             suitable format for JSON. Should receive a single argument which is
             the object to convert and return a serialisable object.
-        lines : boolean, defalut False
+        lines : boolean, default False
             If 'orient' is 'records' write out line delimited json format. Will
             throw ValueError if incorrect 'orient' since others are not list
             like.
@@ -4008,6 +4008,8 @@ class NDFrame(PandasObject):
         -------
         converted : type of caller
 
+        Notes
+        -----
         To learn more about the frequency strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
         """

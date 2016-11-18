@@ -807,7 +807,7 @@ Freq: D"""
         idx = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
         indices = [1, 6, 5, 9, 10, 13, 15, 3]
 
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, idx.take,
                               indices, foo=2)
 
@@ -1639,7 +1639,7 @@ Freq: D"""
         idx = pd.timedelta_range('1 day', '31 day', freq='D', name='idx')
         indices = [1, 6, 5, 9, 10, 13, 15, 3]
 
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, idx.take,
                               indices, foo=2)
 

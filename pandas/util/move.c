@@ -7,6 +7,9 @@
 #define PyString_CheckExact PyBytes_CheckExact
 #define PyString_AS_STRING PyBytes_AS_STRING
 #define PyString_GET_SIZE PyBytes_GET_SIZE
+
+/* in python 3, we cannot intern bytes objects so this is always false */
+#define PyString_CHECK_INTERNED(cs) 0
 #endif  /* !COMPILING_IN_PY2 */
 
 #ifndef Py_TPFLAGS_HAVE_GETCHARBUFFER
@@ -113,8 +116,9 @@ stolenbuf_new(PyObject *self, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    if (Py_REFCNT(bytes_rvalue) != 1) {
-        /* there is a reference other than the caller's stack */
+    if (Py_REFCNT(bytes_rvalue) != 1 || PyString_CHECK_INTERNED(bytes_rvalue)) {
+        /* there is a reference other than the caller's stack or the string is
+           interned */
         PyErr_SetObject(badmove, bytes_rvalue);
         return NULL;
     }

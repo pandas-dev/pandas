@@ -379,8 +379,12 @@ class ReadingTestsBase(SharedItems):
         # See PR #9450
         basename = 'test_multisheet'
         dfs = self.get_exceldf(basename, sheetname=None)
-        expected_keys = ['Alpha', 'Beta', 'Charlie']
+        # ensure this is not alphabetical to test order preservation
+        expected_keys = ['Charlie', 'Alpha', 'Beta']
         tm.assert_contains_all(expected_keys, dfs.keys())
+        # Issue 9930
+        # Ensure sheet order is preserved
+        tm.assert_equal(expected_keys, list(dfs.keys()))
 
     def test_reading_multiple_specific_sheets(self):
         # Test reading specific sheetnames by specifying a mixed list
@@ -1801,8 +1805,8 @@ def raise_wrapper(major_ver):
             if openpyxl_compat.is_compat(major_ver=major_ver):
                 orig_method(self, *args, **kwargs)
             else:
-                msg = ('Installed openpyxl is not supported at this '
-                       'time\. Use.+')
+                msg = (r'Installed openpyxl is not supported at this '
+                       r'time\. Use.+')
                 with tm.assertRaisesRegexp(ValueError, msg):
                     orig_method(self, *args, **kwargs)
         return wrapped

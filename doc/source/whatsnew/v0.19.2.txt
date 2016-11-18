@@ -1,0 +1,56 @@
+.. _whatsnew_0192:
+
+v0.19.2 (December ??, 2016)
+---------------------------
+
+This is a minor bug-fix release from 0.19.1 and includes some small regression fixes,
+bug fixes and performance improvements.
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+- Compatibility with Python 3.6
+
+.. contents:: What's new in v0.19.2
+    :local:
+    :backlinks: none
+
+
+.. _whatsnew_0192.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+.. _whatsnew_0192.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+- Compat with ``dateutil==2.6.0``; segfault reported in the testing suite (:issue:`14621`)
+- Allow ``nanoseconds`` in ``Timestamp.replace`` as a kwarg (:issue:`14621`)
+
+
+
+
+
+
+
+- Bug in ``pd.cut`` with negative values and a single bin (:issue:`14652`)
+- Bug in ``pd.to_numeric`` where a 0 was not unsigned on a ``downcast='unsigned'`` argument (:issue:`14401`)
+
+
+
+
+- Bug in not propogating exceptions in parsing invalid datetimes, noted in python 3.6 (:issue:`14561`)
+
+
+- Compat with python 3.6 for pickling of some offsets (:issue:`14685`)
+- Compat with python 3.6 for some indexing exception types (:issue:`14684`, :issue:`14689`)
+- Compat with python 3.6 for deprecation warnings in the test suite (:issue:`14681`)
+- Compat with python 3.6 for Timestamp pickles (:issue:`14689`)
+
+
+
+
+- Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)

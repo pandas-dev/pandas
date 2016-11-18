@@ -1165,8 +1165,8 @@ too many will cause an error by default:
 
     In [28]: pd.read_csv(StringIO(data))
     ---------------------------------------------------------------------------
-    CParserError                              Traceback (most recent call last)
-    CParserError: Error tokenizing data. C error: Expected 3 fields in line 3, saw 4
+    ParserError                              Traceback (most recent call last)
+    ParserError: Error tokenizing data. C error: Expected 3 fields in line 3, saw 4
 
 You can elect to skip bad lines:
 
@@ -2789,7 +2789,7 @@ both on the writing (serialization), and reading (deserialization).
    | 0.17 / Python 3      | >=0.18 / any Python    |
    +----------------------+------------------------+
    | 0.18                 | >= 0.18                |
-   +======================+========================+
+   +----------------------+------------------------+
 
    Reading (files packed by older versions) is backward-compatibile, except for files packed with 0.17 in Python 2, in which case only they can only be unpacked in Python 2.
 

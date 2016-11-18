@@ -71,11 +71,11 @@ class CParserTests(object):
 3.0 3
 """
         # base cases
-        result = self.read_csv(StringIO(data), sep='\s+', header=None)
+        result = self.read_csv(StringIO(data), sep=r'\s+', header=None)
         expected = DataFrame([[1.0, 1], [2.0, 2], [3.0, 3]])
         tm.assert_frame_equal(result, expected)
 
-        result = self.read_csv(StringIO(data), sep='\s+',
+        result = self.read_csv(StringIO(data), sep=r'\s+',
                                header=None, names=['a', 'b'])
         expected = DataFrame(
             [[1.0, 1], [2.0, 2], [3.0, 3]], columns=['a', 'b'])
@@ -83,7 +83,7 @@ class CParserTests(object):
 
         # fallback casting
         result = self.read_csv(StringIO(
-            data), sep='\s+', header=None,
+            data), sep=r'\s+', header=None,
             names=['a', 'b'], dtype={'a': np.int32})
         expected = DataFrame([[1, 1], [2, 2], [3, 3]],
                              columns=['a', 'b'])
@@ -97,7 +97,7 @@ nan 2
 """
         # fallback casting, but not castable
         with tm.assertRaisesRegexp(ValueError, 'cannot safely convert'):
-            self.read_csv(StringIO(data), sep='\s+', header=None,
+            self.read_csv(StringIO(data), sep=r'\s+', header=None,
                           names=['a', 'b'], dtype={'a': np.int32})
 
     def test_passing_dtype(self):

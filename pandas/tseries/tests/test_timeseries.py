@@ -3911,6 +3911,18 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
                                 lambda: ts.ix[::0])
 
+    def test_slice_bounds_empty(self):
+        # GH 14354
+        empty_idx = DatetimeIndex(freq='1H', periods=0, end='2015')
+
+        right = empty_idx._maybe_cast_slice_bound('2015-01-02', 'right', 'loc')
+        exp = Timestamp('2015-01-02 23:59:59.999999999')
+        self.assertEqual(right, exp)
+
+        left = empty_idx._maybe_cast_slice_bound('2015-01-02', 'left', 'loc')
+        exp = Timestamp('2015-01-02 00:00:00')
+        self.assertEqual(left, exp)
+
 
 class TestDatetime64(tm.TestCase):
     """
@@ -5148,11 +5160,13 @@ class TestSlicing(tm.TestCase):
         timestamp = pd.Timestamp('2014-01-10')
 
         assert_series_equal(nonmonotonic['2014-01-10':], expected)
-        self.assertRaisesRegexp(KeyError, "Timestamp\('2014-01-10 00:00:00'\)",
+        self.assertRaisesRegexp(KeyError,
+                                r"Timestamp\('2014-01-10 00:00:00'\)",
                                 lambda: nonmonotonic[timestamp:])
 
         assert_series_equal(nonmonotonic.ix['2014-01-10':], expected)
-        self.assertRaisesRegexp(KeyError, "Timestamp\('2014-01-10 00:00:00'\)",
+        self.assertRaisesRegexp(KeyError,
+                                r"Timestamp\('2014-01-10 00:00:00'\)",
                                 lambda: nonmonotonic.ix[timestamp:])
 
 
@@ -5272,7 +5286,7 @@ class TimeConversionFormats(tm.TestCase):
         s = Series(['19MAY11', 'foobar19MAY11', '19MAY11:00:00:00',
                     '19MAY11 00:00:00Z'])
         result = to_datetime(s, format='%d%b%y', exact=False)
-        expected = to_datetime(s.str.extract('(\d+\w+\d+)', expand=False),
+        expected = to_datetime(s.str.extract(r'(\d+\w+\d+)', expand=False),
                                format='%d%b%y')
         assert_series_equal(result, expected)
 
