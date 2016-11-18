@@ -900,7 +900,7 @@ class TestIndexOps(Ops):
                 tm.assert_index_equal(result, idx[~expected])
 
                 with tm.assertRaisesRegexp(
-                        TypeError, "drop_duplicates\(\) got an unexpected "
+                        TypeError, r"drop_duplicates\(\) got an unexpected "
                         "keyword argument"):
                     idx.drop_duplicates(inplace=True)
 

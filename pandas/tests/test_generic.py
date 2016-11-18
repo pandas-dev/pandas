@@ -1740,8 +1740,8 @@ class TestNDFrame(tm.TestCase):
                               np.squeeze, s, axis=0)
 
     def test_transpose(self):
-        msg = ("transpose\(\) got multiple values for "
-               "keyword argument 'axes'")
+        msg = (r"transpose\(\) got multiple values for "
+               r"keyword argument 'axes'")
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
                   tm.makeObjectSeries()]:
             # calls implementation in pandas/core/base.py
@@ -1831,7 +1831,7 @@ class TestNDFrame(tm.TestCase):
             p4d = tm.makePanel4D()
 
         for obj in (s, df, p, p4d):
-            msg = "take\(\) got an unexpected keyword argument 'foo'"
+            msg = r"take\(\) got an unexpected keyword argument 'foo'"
             tm.assertRaisesRegexp(TypeError, msg, obj.take,
                                   indices, foo=2)
 

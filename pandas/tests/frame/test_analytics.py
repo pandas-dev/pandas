@@ -806,7 +806,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
     def test_sort_invalid_kwargs(self):
         df = DataFrame([1, 2, 3], columns=['a'])
 
-        msg = "sort\(\) got an unexpected keyword argument 'foo'"
+        msg = r"sort\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, df.sort, foo=2)
 
         # Neither of these should raise an error because they
