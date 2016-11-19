@@ -835,15 +835,17 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                 if update_schema:
                     if update_schema == 'merge':
                         schema = connector.load_schema(dataset_id, table_id)
-                        existing_fields = {f['name'] for f in table_schema['fields']}
+                        existing_fields = {f['name'] for f in
+                                           table_schema['fields']}
                         table_schema['fields'].extend(
                             (f for f in schema['fields']
                              if f['name'] not in existing_fields))
                     table.update_schema(table_id, table_schema)
                 else:
-                    raise InvalidSchema("Please verify that the structure and "
-                                        "data types in the DataFrame match the "
-                                        "schema of the destination table.")
+                    raise InvalidSchema("Please verify that the structure "
+                                        "and data types in the DataFrame "
+                                        "match the schema of the destination "
+                                        "table.")
     else:
         table.create(table_id, table_schema)
 
