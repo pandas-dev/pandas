@@ -533,7 +533,8 @@ static int end_line(parser_t *self) {
 
             // might overrun the buffer when closing fields
             if (make_stream_space(self, ex_fields - fields) < 0) {
-                self->error_msg = "out of memory";
+                self->error_msg = (char*) malloc(20);
+                sprintf(self->error_msg, "out of memory");
                 return -1;
             }
 
@@ -737,7 +738,8 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
     start_lines = self->lines;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
-        self->error_msg = "out of memory";
+        self->error_msg = (char*) malloc(20);
+        sprintf(self->error_msg, "out of memory");
         return -1;
     }
 
