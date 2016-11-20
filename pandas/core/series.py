@@ -1782,7 +1782,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                                  sort_remaining=sort_remaining)
         elif isinstance(index, MultiIndex):
             from pandas.core.groupby import _lexsort_indexer
-            indexer = _lexsort_indexer(index.labels, orders=ascending)
+            indexer = _lexsort_indexer(index.labels, orders=ascending,
+                                       na_position=na_position)
 
         else:
             from pandas.core.groupby import _nargsort
