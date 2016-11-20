@@ -1086,10 +1086,15 @@ class Categorical(PandasObject):
                              "ordered one")
 
         from pandas.core.series import Series
-        values_as_codes = self.categories.values.searchsorted(
-            Series(value).values, side=side)
 
-        return self.codes.searchsorted(values_as_codes, sorter=sorter)
+        values_as_codes = _get_codes_for_values(Series(value).values,
+                                                self.categories)
+
+        if -1 in values_as_codes:
+            raise ValueError("Value(s) to be inserted must be in categories.")
+
+        return self.codes.searchsorted(values_as_codes, side=side,
+                                       sorter=sorter)
 
     def isnull(self):
         """
