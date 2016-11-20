@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas.core.algorithms import factorize, match, unique, value_counts
 from pandas.types.missing import isnull, notnull
-from pandas.core.categorical import Categorical
+from pandas.core.categorical import Categorical, CategoricalType
 from pandas.core.groupby import Grouper
 from pandas.formats.format import set_eng_float_format
 from pandas.core.index import (Index, CategoricalIndex, Int64Index,
