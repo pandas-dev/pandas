@@ -8,7 +8,7 @@ import string
 from numpy import nan
 import numpy as np
 
-from pandas import Series, CategoricalType, Categorical
+from pandas import Series, CategoricalDtype, Categorical, Index
 from pandas.tseries.index import Timestamp
 from pandas.tseries.tdi import Timedelta
 
@@ -151,9 +151,20 @@ class TestSeriesDtypes(TestData, tm.TestCase):
 
     def test_astype_categorical(self):
         s = Series(['a', 'b', 'a'])
-        result = s.astype(CategoricalType(['a', 'b'], ordered=True))
+        result = s.astype(CategoricalDtype(['a', 'b'], ordered=True))
         expected = Series(Categorical(['a', 'b', 'a'], ordered=True))
         assert_series_equal(result, expected)
+
+        result = s.astype(CategoricalDtype(['a', 'b'], ordered=False))
+        expected = Series(Categorical(['a', 'b', 'a'], ordered=False))
+        assert_series_equal(result, expected)
+
+        result = s.astype(CategoricalDtype(['a', 'b', 'c'], ordered=False))
+        expected = Series(Categorical(['a', 'b', 'a'],
+                                      categories=['a', 'b', 'c'],
+                                      ordered=False))
+        assert_series_equal(result, expected)
+        tm.assert_index_equal(result.cat.categories, Index(['a', 'b', 'c']))
 
     def test_complexx(self):
         # GH4819
