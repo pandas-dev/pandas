@@ -550,7 +550,7 @@ class GbqConnector(object):
             remote_schema = self.service.tables().get(
                 projectId=self.project_id,
                 datasetId=dataset_id,
-                tableId=table_id).execute()['schema']
+                tableId=table_id).execute().get('schema', {'fields': tuple()})
             return remote_schema
         except HttpError as ex:
             self.process_http_error(ex)
@@ -841,10 +841,10 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                         schema = connector.load_schema(dataset_id, table_id)
                         existing_fields = {f['name'] for f in
                                            table_schema['fields']}
-                        table_schema['fields'].extend(
-                            (f for f in schema['fields']
+                        schema['fields'].extend(
+                            (f for f in table_schema['fields']
                              if f['name'] not in existing_fields))
-                    table.update_schema(table_id, table_schema)
+                    table.update_schema(table_id, schema)
                 else:
                     raise InvalidSchema("Please verify that the structure "
                                         "and data types in the DataFrame "
