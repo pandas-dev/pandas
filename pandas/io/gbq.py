@@ -550,7 +550,7 @@ class GbqConnector(object):
             remote_schema = self.service.tables().get(
                 projectId=self.project_id,
                 datasetId=dataset_id,
-                tableId=table_id).execute().get('schema', {'fields': tuple()})
+                tableId=table_id).execute().get('schema', {'fields': []})
             return remote_schema
         except HttpError as ex:
             self.process_http_error(ex)
@@ -840,7 +840,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                     if update_schema == 'merge':
                         schema = connector.load_schema(dataset_id, table_id)
                         existing_fields = {f['name'] for f in
-                                           table_schema['fields']}
+                                           schema['fields']}
                         schema['fields'].extend(
                             (f for f in table_schema['fields']
                              if f['name'] not in existing_fields))
