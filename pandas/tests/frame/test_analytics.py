@@ -1323,6 +1323,35 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         expected = df.sort_values(['a', 'c']).head(5)
         tm.assert_frame_equal(result, expected)
 
+    def test_nsmallest_nlargest_duplicate_index(self):
+        # GH 13412
+        df = pd.DataFrame({'a': [1, 2, 3, 4],
+                           'b': [4, 3, 2, 1],
+                           'c': [0, 1, 2, 3]},
+                          index=[0, 0, 1, 1])
+        result = df.nsmallest(4, 'a')
+        expected = df.sort_values('a').head(4)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.nlargest(4, 'a')
+        expected = df.sort_values('a', ascending=False).head(4)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.nsmallest(4, ['a', 'c'])
+        expected = df.sort_values(['a', 'c']).head(4)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.nsmallest(4, ['c', 'a'])
+        expected = df.sort_values(['c', 'a']).head(4)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.nlargest(4, ['a', 'c'])
+        expected = df.sort_values(['a', 'c'], ascending=False).head(4)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.nlargest(4, ['c', 'a'])
+        expected = df.sort_values(['c', 'a'], ascending=False).head(4)
+        tm.assert_frame_equal(result, expected)
     # ----------------------------------------------------------------------
     # Isin
 

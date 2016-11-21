@@ -1012,3 +1012,14 @@ class frame_quantile_axis1(object):
 
     def time_frame_quantile_axis1(self):
         self.df.quantile([0.1, 0.5], axis=1)
+
+
+class frame_nlargest(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(1000, 3),
+                            columns=list('ABC'))
+
+    def time_frame_nlargest(self):
+        self.df.nlargest(100, 'A')
