@@ -61,6 +61,7 @@ Bug Fixes
 - Bug in ``HDFStore`` when writing a ``MultiIndex`` when using ``data_columns=True`` (:issue:`14435`)
 - Bug in ``HDFStore.append()`` when writing a ``Series`` and passing a ``min_itemsize`` argument containing a value for the ``index`` (:issue:`11412`)
 - Bug in ``Series.groupby.nunique()`` raising an ``IndexError`` for an empty ``Series`` (:issue:`12553`)
+- Bug in ``DataFrame.nlargest`` and ``DataFrame.nsmallest`` when the index had duplicate values (:issue:`13412`)
 
 
 
