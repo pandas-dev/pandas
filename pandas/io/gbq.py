@@ -557,9 +557,13 @@ class GbqConnector(object):
 
     def verify_schema(self, dataset_id, table_id, schema):
         remote_schema = self.load_schema(dataset_id, table_id)
-        fields_remote = set([json.dumps(field_remote)
+        fields_remote = set([json.dumps({k: v for k, v in
+                                         field_remote.items()
+                                         if k != 'mode'})
                              for field_remote in remote_schema['fields']])
-        fields_local = set(json.dumps(field_local)
+        fields_local = set(json.dumps({k: v for k, v in
+                                       field_local.items()
+                                       if k != 'mode'})
                            for field_local in schema['fields'])
 
         return fields_remote == fields_local
