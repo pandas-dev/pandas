@@ -1896,27 +1896,6 @@ class TestPeriodIndex(tm.TestCase):
         exp = PeriodIndex(['2011-01-01', 'NaT', '2012-01-01'], freq='D')
         tm.assert_index_equal(idx, exp)
 
-    def test_constructor_dtype(self):
-        # passing a dtype with a tz should localize
-        idx = PeriodIndex(['2013-01', '2013-03'], dtype='period[M]')
-        exp = PeriodIndex(['2013-01', '2013-03'], freq='M')
-        tm.assert_index_equal(idx, exp)
-
-        idx = PeriodIndex(['2013-01-05', '2013-03-05'], dtype='period[3D]')
-        exp = PeriodIndex(['2013-01-05', '2013-03-05'], freq='3D')
-        tm.assert_index_equal(idx, exp)
-
-        # if we already have a tz and its not the same, then raise
-        idx = PeriodIndex(['2013-01-01', '2013-01-02'], freq='D')
-
-        res = PeriodIndex(idx, dtype='period[M]')
-        exp = PeriodIndex(['2013-01', '2013-01'], freq='M')
-        tm.assert_index_equal(res, exp)
-
-        msg = 'specified freq and dtype are different'
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
-            PeriodIndex(['2011-01'], freq='M', dtype='period[D]')
-
     def test_constructor_simple_new(self):
         idx = period_range('2007-01', name='p', periods=2, freq='M')
         result = idx._simple_new(idx, 'p', freq=idx.freq)
@@ -4183,8 +4162,6 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
         idx = PeriodIndex(['2011-01', '2011-02', '2011-03',
                            '2011-04'], freq='M', name='idx')
         s = pd.Series(idx)
-
-        msg = r"unsupported operand type\(s\)"
 
         for obj in [idx, s]:
             for ng in ["str", 1.5]:

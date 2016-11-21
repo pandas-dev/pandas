@@ -43,7 +43,6 @@ from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate_kwarg)
 from pandas.lib import infer_dtype
 import pandas.tslib as tslib
-from pandas.tslib import Timedelta
 from pandas.compat import zip, u
 
 
