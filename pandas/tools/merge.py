@@ -779,7 +779,7 @@ class _MergeOperation(object):
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
         # regular pd.merge(), users cannot specify both 'left_index' and
-        #'left_on'. (Instead, users have a MultiIndex). That means the
+        # 'left_on'. (Instead, users have a MultiIndex). That means the
         # self.left_on in this function is always empty in a pd.merge(), but
         # a pd.merge_asof(left_index=True, left_by=...) will result in a
         # self.left_on array with a None in the middle of it. This requires
