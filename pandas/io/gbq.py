@@ -1006,7 +1006,7 @@ class _Table(GbqConnector):
             'schema': schema
         }
         try:
-            self.service.tables().update(
+            self.service.tables().patch(
                 datasetId=self.dataset_id,
                 projectId=self.project_id,
                 tableId=table_id,
