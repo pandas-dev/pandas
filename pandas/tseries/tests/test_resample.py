@@ -1932,9 +1932,11 @@ class TestDatetimeIndex(Base, tm.TestCase):
                              .dt.tz_localize('UTC')
                              .dt.tz_convert('Europe/Madrid'))
         df = DataFrame([5, 5], index=dti1)
-        assert_frame_equal(
-            df.resample(rule='H').sum(),
-            DataFrame([5, 5], index=dti2))
+
+        result = df.resample(rule='H').sum()
+        expected = DataFrame([5, 5], index=dti2)
+
+        assert_frame_equal(result, expected)
 
     def test_resample_dst_anchor(self):
         # 5172
