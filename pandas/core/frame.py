@@ -3390,15 +3390,6 @@ class DataFrame(NDFrame):
         return self.sort_index(level=level, axis=axis, ascending=ascending,
                                inplace=inplace, sort_remaining=sort_remaining)
 
-    def _nsorted(self, columns, n, method, keep):
-        if not is_list_like(columns):
-            columns = [columns]
-        columns = list(columns)
-        ser = getattr(self[columns[0]], method)(n, keep=keep)
-        ascending = dict(nlargest=False, nsmallest=True)[method]
-        return self.loc[ser.index].sort_values(columns, ascending=ascending,
-                                               kind='mergesort')
-
     def nlargest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` largest
         values of `columns`.
@@ -3431,7 +3422,7 @@ class DataFrame(NDFrame):
         1  10  b   2
         2   8  d NaN
         """
-        return self._nsorted(columns, n, 'nlargest', keep)
+        return algos.select_n_frame(self, columns, n, 'nlargest', keep)
 
     def nsmallest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` smallest
@@ -3465,7 +3456,7 @@ class DataFrame(NDFrame):
         0  1  a   1
         2  8  d NaN
         """
-        return self._nsorted(columns, n, 'nsmallest', keep)
+        return algos.select_n_frame(self, columns, n, 'nsmallest', keep)
 
     def swaplevel(self, i=-2, j=-1, axis=0):
         """

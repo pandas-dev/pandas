@@ -1941,7 +1941,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         >>> s = pd.Series(np.random.randn(1e6))
         >>> s.nlargest(10)  # only sorts up to the N requested
         """
-        return algos.select_n(self, n=n, keep=keep, method='nlargest')
+        return algos.select_n_series(self, n=n, keep=keep, method='nlargest')
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})
@@ -1979,7 +1979,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         >>> s = pd.Series(np.random.randn(1e6))
         >>> s.nsmallest(10)  # only sorts up to the N requested
         """
-        return algos.select_n(self, n=n, keep=keep, method='nsmallest')
+        return algos.select_n_series(self, n=n, keep=keep, method='nsmallest')
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
