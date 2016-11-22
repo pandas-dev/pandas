@@ -1509,10 +1509,11 @@ class CParserWrapper(ParserBase):
             if self._first_chunk:
                 self._first_chunk = False
                 names = self._maybe_dedup_names(self.orig_names)
-
                 index, columns, col_dict = _get_empty_meta(
                     names, self.index_col, self.index_names,
                     dtype=self.kwds.get('dtype'))
+                columns = self._maybe_make_multi_index_columns(
+                    columns, self.col_names)
 
                 if self.usecols is not None:
                     columns = self._filter_usecols(columns)
@@ -1979,8 +1980,11 @@ class PythonParser(ParserBase):
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
-            return _get_empty_meta(names, self.index_col,
-                                   self.index_names)
+            index, columns, col_dict = _get_empty_meta(
+                names, self.index_col, self.index_names)
+            columns = self._maybe_make_multi_index_columns(
+                columns, self.col_names)
+            return index, columns, col_dict
 
         # handle new style for names in index
         count_empty_content_vals = count_empty_vals(content[0])
@@ -2083,6 +2087,12 @@ class PythonParser(ParserBase):
                     # We have an empty file, so check
                     # if columns are provided. That will
                     # serve as the 'line' for parsing
+                    if have_mi_columns and hr > 0:
+                        if clear_buffer:
+                            self._clear_buffer()
+                        columns.append([None] * len(columns[-1]))
+                        return columns, num_original_columns
+
                     if not self.names:
                         raise EmptyDataError(
                             "No columns to parse from file")

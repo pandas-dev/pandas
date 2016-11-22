@@ -606,6 +606,28 @@ bar,two,12,13,14,15
         expected = self.read_csv(StringIO(data), index_col=[1, 0])
         tm.assert_frame_equal(df, expected, check_names=False)
 
+    def test_multi_index_blank_df(self):
+        # GH 14545
+        data = """a,b
+"""
+        df = self.read_csv(StringIO(data), header=[0])
+        expected = DataFrame(columns=['a', 'b'])
+        tm.assert_frame_equal(df, expected)
+        round_trip = self.read_csv(StringIO(
+            expected.to_csv(index=False)), header=[0])
+        tm.assert_frame_equal(round_trip, expected)
+
+        data_multiline = """a,b
+c,d
+"""
+        df2 = self.read_csv(StringIO(data_multiline), header=[0, 1])
+        cols = MultiIndex.from_tuples([('a', 'c'), ('b', 'd')])
+        expected2 = DataFrame(columns=cols)
+        tm.assert_frame_equal(df2, expected2)
+        round_trip = self.read_csv(StringIO(
+            expected2.to_csv(index=False)), header=[0, 1])
+        tm.assert_frame_equal(round_trip, expected2)
+
     def test_no_unnamed_index(self):
         data = """ id c0 c1 c2
 0 1 0 a b
