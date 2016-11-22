@@ -587,7 +587,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             df = _make_frame(True)
             df.to_csv(path, tupleize_cols=False)
 
-            for i in [5, 6, 7]:
+            for i in [6, 7]:
                 msg = 'len of {i}, but only 5 lines in file'.format(i=i)
                 with assertRaisesRegexp(ParserError, msg):
                     read_csv(path, tupleize_cols=False,
