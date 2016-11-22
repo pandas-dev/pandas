@@ -261,7 +261,7 @@ class PandasAutoDateLocator(dates.AutoDateLocator):
         'Pick the best locator based on a distance.'
         delta = relativedelta(dmax, dmin)
 
-        num_days = ((delta.years * 12.0) + delta.months * 31.0) + delta.days
+        num_days = (delta.years * 12.0 + delta.months) * 31.0 + delta.days
         num_sec = (delta.hours * 60.0 + delta.minutes) * 60.0 + delta.seconds
         tot_sec = num_days * 86400. + num_sec
 
