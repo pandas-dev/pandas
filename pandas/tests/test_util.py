@@ -5,7 +5,7 @@ from collections import OrderedDict
 import sys
 import unittest
 from uuid import uuid4
-from pandas.util._move import move_into_mutable_buffer, BadMove
+from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
 from pandas.util.decorators import deprecate_kwarg
 from pandas.util.validators import (validate_args, validate_kwargs,
                                     validate_args_and_kwargs)
@@ -299,6 +299,14 @@ class TestValidateKwargsAndArgs(tm.TestCase):
 
 
 class TestMove(tm.TestCase):
+    def test_cannot_create_instance_of_stolenbuffer(self):
+        """Stolen buffers need to be created through the smart constructor
+        ``move_into_mutable_buffer`` which has a bunch of checks in it.
+        """
+        msg = "cannot create 'pandas.util._move.stolenbuf' instances"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            stolenbuf()
+
     def test_more_than_one_ref(self):
         """Test case for when we try to use ``move_into_mutable_buffer`` when
         the object being moved has other references.
