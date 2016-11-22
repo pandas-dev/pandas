@@ -49,6 +49,7 @@ Bug Fixes
 - Compat with python 3.6 for some indexing exception types (:issue:`14684`, :issue:`14689`)
 - Compat with python 3.6 for deprecation warnings in the test suite (:issue:`14681`)
 - Compat with python 3.6 for Timestamp pickles (:issue:`14689`)
+- Bug in resampling a ``DatetimeIndex`` in local TZ, covering a DST change, which would raise ``AmbiguousTimeError`` (:issue:`14682`)
 
 
 
