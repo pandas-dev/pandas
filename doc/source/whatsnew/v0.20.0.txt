@@ -81,3 +81,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``pd.read_csv()`` in which the ``dtype`` parameter was not being respected for empty data (:issue:`14712`)
