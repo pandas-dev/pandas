@@ -3233,7 +3233,7 @@ class DataFrame(NDFrame):
                 # try to be helpful
                 if isinstance(self.columns, MultiIndex):
                     raise ValueError('Cannot sort by column %s in a '
-                                     'multi-index you need to explicity '
+                                     'multi-index you need to explicitly '
                                      'provide all the levels' % str(by))
 
                 raise ValueError('Cannot sort by duplicate column %s' %
