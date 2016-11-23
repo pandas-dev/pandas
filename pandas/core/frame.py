@@ -1346,7 +1346,7 @@ class DataFrame(NDFrame):
             file
         quoting : optional constant from csv module
             defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
-            then floats are comverted to strings and thus csv.QUOTE_NONNUMERIC
+            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
             will treat them as non-numeric
         quotechar : string (length 1), default '\"'
             character used to quote fields
