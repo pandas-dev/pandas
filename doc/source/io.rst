@@ -477,6 +477,7 @@ using the ``converters`` argument of :func:`~pandas.read_csv` would certainly be
 worth trying.
 
   .. versionadded:: 0.20.0 support for the Python parser.
+
      The ``dtype`` option is supported by the 'python' engine
 
 .. note::
