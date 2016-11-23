@@ -371,7 +371,7 @@ def merge_asof(left, right, on=None,
 
     By default we are taking the asof of the quotes
 
-    >>> pd.asof_merge(trades, quotes,
+    >>> pd.merge_asof(trades, quotes,
     ...                       on='time',
     ...                       by='ticker')
                          time ticker   price  quantity     bid     ask
@@ -383,7 +383,7 @@ def merge_asof(left, right, on=None,
 
     We only asof within 2ms betwen the quote time and the trade time
 
-    >>> pd.asof_merge(trades, quotes,
+    >>> pd.merge_asof(trades, quotes,
     ...                       on='time',
     ...                       by='ticker',
     ...                       tolerance=pd.Timedelta('2ms'))
@@ -398,7 +398,7 @@ def merge_asof(left, right, on=None,
     and we exclude exact matches on time. However *prior* data will
     propogate forward
 
-    >>> pd.asof_merge(trades, quotes,
+    >>> pd.merge_asof(trades, quotes,
     ...                       on='time',
     ...                       by='ticker',
     ...                       tolerance=pd.Timedelta('10ms'),
