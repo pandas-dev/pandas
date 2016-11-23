@@ -6813,6 +6813,23 @@ class TestGroupBy(tm.TestCase):
 
         assert_frame_equal(result, expected)
 
+    def test_agg_over_numpy_arrays(self):
+        # GH 3788
+        df = pd.DataFrame([[1, np.array([10, 20, 30])],
+                           [1, np.array([40, 50, 60])],
+                           [2, np.array([20, 30, 40])]],
+                          columns=['category', 'arraydata'])
+        result = df.groupby('category').agg(sum)
+
+        expected_data = [[np.array([50, 70, 90])], [np.array([20, 30, 40])]]
+        expected_index = pd.Index([1, 2], name='category')
+        expected_column = ['arraydata']
+        expected = pd.DataFrame(expected_data,
+                                index=expected_index,
+                                columns=expected_column)
+
+        assert_frame_equal(result, expected)
+
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()

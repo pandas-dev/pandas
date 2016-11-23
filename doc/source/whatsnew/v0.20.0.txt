@@ -12,7 +12,7 @@ Highlights include:
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
-.. contents:: What's new in v0.19.0
+.. contents:: What's new in v0.20.0
     :local:
     :backlinks: none
 
@@ -41,6 +41,7 @@ Backwards incompatible API changes
 .. _whatsnew_0200.api:
 
 
+- ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
 
 
 
@@ -80,4 +81,3 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-

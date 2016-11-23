@@ -50,7 +50,7 @@ bar2,12,13,14,15
         # Issue 13652:
         # This test validates that both python engine
         # and C engine will raise UnicodeDecodeError instead of
-        # c engine raising CParserError and swallowing exception
+        # c engine raising ParserError and swallowing exception
         # that caused read to fail.
         handle = open(self.csv_shiftjs, "rb")
         codec = codecs.lookup("utf-8")
@@ -606,6 +606,28 @@ bar,two,12,13,14,15
         expected = self.read_csv(StringIO(data), index_col=[1, 0])
         tm.assert_frame_equal(df, expected, check_names=False)
 
+    def test_multi_index_blank_df(self):
+        # GH 14545
+        data = """a,b
+"""
+        df = self.read_csv(StringIO(data), header=[0])
+        expected = DataFrame(columns=['a', 'b'])
+        tm.assert_frame_equal(df, expected)
+        round_trip = self.read_csv(StringIO(
+            expected.to_csv(index=False)), header=[0])
+        tm.assert_frame_equal(round_trip, expected)
+
+        data_multiline = """a,b
+c,d
+"""
+        df2 = self.read_csv(StringIO(data_multiline), header=[0, 1])
+        cols = MultiIndex.from_tuples([('a', 'c'), ('b', 'd')])
+        expected2 = DataFrame(columns=cols)
+        tm.assert_frame_equal(df2, expected2)
+        round_trip = self.read_csv(StringIO(
+            expected2.to_csv(index=False)), header=[0, 1])
+        tm.assert_frame_equal(round_trip, expected2)
+
     def test_no_unnamed_index(self):
         data = """ id c0 c1 c2
 0 1 0 a b
@@ -836,7 +858,7 @@ A,B,C
         result = self.read_csv(StringIO(data), header=None, sep=' ')
         self.assertTrue(result[0].dtype == np.float64)
 
-        result = self.read_csv(StringIO(data), header=None, sep='\s+')
+        result = self.read_csv(StringIO(data), header=None, sep=r'\s+')
         self.assertTrue(result[0].dtype == np.float64)
 
     def test_catch_too_many_names(self):
@@ -852,7 +874,7 @@ A,B,C
     def test_ignore_leading_whitespace(self):
         # see gh-3374, gh-6607
         data = ' a b c\n 1 2 3\n 4 5 6\n 7 8 9'
-        result = self.read_table(StringIO(data), sep='\s+')
+        result = self.read_table(StringIO(data), sep=r'\s+')
         expected = DataFrame({'a': [1, 4, 7], 'b': [2, 5, 8], 'c': [3, 6, 9]})
         tm.assert_frame_equal(result, expected)
 
@@ -1052,7 +1074,7 @@ A,B,C
 
         # make sure that an error is still thrown
         # when the 'usecols' parameter is not provided
-        msg = "Expected \d+ fields in line \d+, saw \d+"
+        msg = r"Expected \d+ fields in line \d+, saw \d+"
         with tm.assertRaisesRegexp(ValueError, msg):
             df = self.read_csv(StringIO(csv))
 
@@ -1122,7 +1144,7 @@ A,B,C
         # see gh-6607
         data = 'a b c\n1 2 3'
         with tm.assertRaisesRegexp(ValueError, 'you can only specify one'):
-            self.read_table(StringIO(data), sep='\s', delim_whitespace=True)
+            self.read_table(StringIO(data), sep=r'\s', delim_whitespace=True)
 
     def test_single_char_leading_whitespace(self):
         # see gh-9710
@@ -1157,7 +1179,7 @@ A,B,C
                              [-70., .4, 1.]])
         df = self.read_csv(StringIO(data))
         tm.assert_numpy_array_equal(df.values, expected)
-        df = self.read_csv(StringIO(data.replace(',', '  ')), sep='\s+')
+        df = self.read_csv(StringIO(data.replace(',', '  ')), sep=r'\s+')
         tm.assert_numpy_array_equal(df.values, expected)
         expected = np.array([[1., 2., 4.],
                              [np.nan, np.nan, np.nan],
@@ -1189,14 +1211,14 @@ a   1   2   3   4
 b   1   2   3   4
 c   1   2   3   4
 """
-        df = self.read_table(StringIO(data), sep='\s+')
+        df = self.read_table(StringIO(data), sep=r'\s+')
         expected = self.read_csv(StringIO(re.sub('[ ]+', ',', data)),
                                  index_col=0)
         self.assertIsNone(expected.index.name)
         tm.assert_frame_equal(df, expected)
 
         data = '    a b c\n1 2 3 \n4 5  6\n 7 8 9'
-        result = self.read_table(StringIO(data), sep='\s+')
+        result = self.read_table(StringIO(data), sep=r'\s+')
         expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                              columns=['a', 'b', 'c'])
         tm.assert_frame_equal(result, expected)
@@ -1580,7 +1602,7 @@ j,-inF"""
         new_file.flush()
         new_file.seek(0)
 
-        result = self.read_csv(new_file, sep='\s+', header=None)
+        result = self.read_csv(new_file, sep=r'\s+', header=None)
         new_file.close()
         expected = DataFrame([[0, 0]])
         tm.assert_frame_equal(result, expected)

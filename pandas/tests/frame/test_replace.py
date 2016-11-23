@@ -550,7 +550,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         self.assertEqual(res.a.dtype, np.object_)
 
     def test_replace_regex_metachar(self):
-        metachars = '[]', '()', '\d', '\w', '\s'
+        metachars = '[]', '()', r'\d', r'\w', r'\s'
 
         for metachar in metachars:
             df = DataFrame({'a': [metachar, 'else']})
@@ -889,7 +889,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         2    2     0     0     0
         3    3     0    bt     0"""
         df = pd.read_csv(StringIO(raw), sep=r'\s+')
-        res = df.replace({'\D': 1})
+        res = df.replace({r'\D': 1})
         assert_frame_equal(df, res)
 
     def test_replace_bool_with_string(self):

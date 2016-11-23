@@ -13,8 +13,11 @@ from cpython cimport (PyObject, PyBytes_FromString,
                       PyUnicode_Check, PyUnicode_AsUTF8String,
                       PyErr_Occurred, PyErr_Fetch)
 from cpython.ref cimport PyObject, Py_XDECREF
-from io.common import CParserError, DtypeWarning, EmptyDataError
+from io.common import ParserError, DtypeWarning, EmptyDataError
 
+# Import CParserError as alias of ParserError for backwards compatibility.
+# Ultimately, we want to remove this import. See gh-12665 and gh-14479.
+from io.common import CParserError
 
 cdef extern from "Python.h":
     object PyUnicode_FromString(char *v)
@@ -714,12 +717,14 @@ cdef class TextReader:
                     start = self.parser.line_start[0]
 
                 # e.g., if header=3 and file only has 2 lines
-                elif self.parser.lines < hr + 1:
+                elif (self.parser.lines < hr + 1
+                      and not isinstance(self.orig_header, list)) or (
+                          self.parser.lines < hr):
                     msg = self.orig_header
                     if isinstance(msg, list):
                         msg = "[%s], len of %d," % (
                             ','.join([ str(m) for m in msg ]), len(msg))
-                    raise CParserError(
+                    raise ParserError(
                         'Passed header=%s but only %d lines in file'
                         % (msg, self.parser.lines))
 
@@ -812,7 +817,7 @@ cdef class TextReader:
             passed_count = len(header[0])
 
             # if passed_count > field_count:
-            #     raise CParserError('Column names have %d fields, '
+            #     raise ParserError('Column names have %d fields, '
             #                        'data has %d fields'
             #                        % (passed_count, field_count))
 
@@ -937,7 +942,7 @@ cdef class TextReader:
                 raise_parser_error('Error tokenizing data', self.parser)
             footer = self.skipfooter
 
-        if self.parser_start == self.parser.lines:
+        if self.parser_start >= self.parser.lines:
             raise StopIteration
         self._end_clock('Tokenization')
 
@@ -1004,7 +1009,7 @@ cdef class TextReader:
                 (num_cols >= self.parser.line_fields[i]) * num_cols
 
         if self.table_width - self.leading_cols > num_cols:
-            raise CParserError(
+            raise ParserError(
                 "Too many columns specified: expected %s and found %s" %
                 (self.table_width - self.leading_cols, num_cols))
 
@@ -1059,7 +1064,7 @@ cdef class TextReader:
                                              self.use_unsigned)
 
             if col_res is None:
-                raise CParserError('Unable to parse column %d' % i)
+                raise ParserError('Unable to parse column %d' % i)
 
             results[i] = col_res
 
@@ -1310,7 +1315,7 @@ def _is_file_like(obj):
     if PY3:
         import io
         if isinstance(obj, io.TextIOWrapper):
-            raise CParserError('Cannot handle open unicode files (yet)')
+            raise ParserError('Cannot handle open unicode files (yet)')
 
         # BufferedReader is a byte reader for Python 3
         file = io.BufferedReader
@@ -2015,7 +2020,7 @@ cdef raise_parser_error(object base, parser_t *parser):
     else:
         message += 'no error message set'
 
-    raise CParserError(message)
+    raise ParserError(message)
 
 
 def _concatenate_chunks(list chunks):

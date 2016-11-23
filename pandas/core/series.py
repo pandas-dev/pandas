@@ -25,6 +25,7 @@ from pandas.types.common import (_coerce_to_dtype, is_categorical_dtype,
                                  is_iterator,
                                  is_dict_like,
                                  is_scalar,
+                                 _is_unorderable_exception,
                                  _ensure_platform_int)
 from pandas.types.generic import ABCSparseArray, ABCDataFrame
 from pandas.types.cast import (_maybe_upcast, _infer_dtype_from_scalar,
@@ -753,7 +754,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                     raise ValueError("Can only tuple-index with a MultiIndex")
 
                 # python 3 type errors should be raised
-                if 'unorderable' in str(e):  # pragma: no cover
+                if _is_unorderable_exception(e):
                     raise IndexError(key)
 
             if com.is_bool_indexer(key):

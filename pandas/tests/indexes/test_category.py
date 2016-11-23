@@ -890,7 +890,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         idx = pd.CategoricalIndex([1, 2, 3], name='foo')
         indices = [1, 0, -1]
 
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, idx.take,
                               indices, foo=2)
 
