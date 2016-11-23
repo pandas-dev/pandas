@@ -161,7 +161,10 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         series = self.bseries.to_dense()
         tm.assert_series_equal(series, Series(arr, name='bseries'))
 
-        series = self.bseries.to_dense(sparse_only=True)
+        # see gh-14647
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            series = self.bseries.to_dense(sparse_only=True)
 
         indexer = np.isfinite(arr)
         exp = Series(arr[indexer], index=index[indexer], name='bseries')
