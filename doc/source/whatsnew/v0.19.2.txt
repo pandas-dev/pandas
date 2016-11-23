@@ -60,7 +60,7 @@ Bug Fixes
 - Bug in clipboard functions on Windows 10 and python 3 (:issue:`14362`, :issue:`12807`)
 - Bug in ``.to_clipboard()`` and Excel compat (:issue:`12529`)
 
-
+- Bug in to_json with lines=true containing backslashed quotes (:issue:`14693`)
 
 
 
