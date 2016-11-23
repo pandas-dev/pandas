@@ -223,6 +223,6 @@ one,two
         # dtype spec ignored if converted specified
         with tm.assert_produces_warning(ParserWarning):
             result = self.read_csv(StringIO(data), dtype={'a': 'i8'},
-                                converters={'a': lambda x: str(x)})
+                                   converters={'a': lambda x: str(x)})
         expected = DataFrame({'a': ['1.1', '1.2'], 'b': [2.2, 2.3]})
         tm.assert_frame_equal(result, expected)

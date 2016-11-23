@@ -1069,7 +1069,8 @@ cdef class TextReader:
 
             # Should return as the desired dtype (inferred or specified)
             col_res, na_count = self._convert_tokens(
-                i, start, end, name, na_filter, na_hashset, na_flist, col_dtype)
+                i, start, end, name, na_filter, na_hashset,
+                na_flist, col_dtype)
 
             if na_filter:
                 self._free_na_set(na_hashset)
