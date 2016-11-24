@@ -331,6 +331,7 @@ class CheckSDist(sdist_class):
                  'pandas/src/period.pyx',
                  'pandas/src/sparse.pyx',
                  'pandas/src/testing.pyx',
+                 'pandas/src/hash.pyx',
                  'pandas/io/sas/saslib.pyx']
 
     def initialize_options(self):
@@ -501,10 +502,12 @@ ext_data = dict(
             'sources': ['pandas/src/parser/tokenizer.c',
                         'pandas/src/parser/io.c']},
     _sparse={'pyxfile': 'src/sparse',
-             'depends': ([srcpath('sparse', suffix='.pyx')]
-                         + _pxi_dep['_sparse'])},
+             'depends': ([srcpath('sparse', suffix='.pyx')] +
+                         _pxi_dep['_sparse'])},
     _testing={'pyxfile': 'src/testing',
               'depends': [srcpath('testing', suffix='.pyx')]},
+    _hash={'pyxfile': 'src/hash',
+           'depends': [srcpath('hash', suffix='.pyx')]},
 )
 
 ext_data["io.sas.saslib"] = {'pyxfile': 'io/sas/saslib'}
