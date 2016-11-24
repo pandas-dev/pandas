@@ -61,6 +61,7 @@ Bug Fixes
 - Bug in ``.to_clipboard()`` and Excel compat (:issue:`12529`)
 
 
+- Bug in ``pd.read_csv()`` in which the ``dtype`` parameter was not being respected for empty data (:issue:`14712`)
 
 
 
