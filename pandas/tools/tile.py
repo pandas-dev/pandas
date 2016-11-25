@@ -5,14 +5,15 @@ Quantilization functions and related stuff
 from pandas.types.missing import isnull
 from pandas.types.common import (is_float, is_integer,
                                  is_scalar)
-
+from pandas.tseries.timedeltas import to_timedelta
 from pandas.core.api import Series
 from pandas.core.categorical import Categorical
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 from pandas.compat import zip
-
+from pandas import lib
 import numpy as np
+from pandas.types.common import (needs_i8_conversion)
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
@@ -81,6 +82,13 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     array([1, 1, 1, 1, 1], dtype=int64)
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
+    # for handling the cut for datetime and timedelta objects
+    if needs_i8_conversion(x):
+        x = x.values.view('i8')
+        time_data = True
+    else:
+        time_data = False
+
     if not np.iterable(bins):
         if is_scalar(bins) and bins < 1:
             raise ValueError("`bins` should be a positive integer.")
@@ -116,7 +124,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     return _bins_to_cuts(x, bins, right=right, labels=labels,
                          retbins=retbins, precision=precision,
-                         include_lowest=include_lowest)
+                         include_lowest=include_lowest, time_data=time_data)
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3):
@@ -176,7 +184,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
-                  precision=3, name=None, include_lowest=False):
+                  precision=3, name=None, include_lowest=False,
+                  time_data=False):
     x_is_series = isinstance(x, Series)
     series_index = None
 
@@ -205,7 +214,8 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
             while True:
                 try:
                     levels = _format_levels(bins, precision, right=right,
-                                            include_lowest=include_lowest)
+                                            include_lowest=include_lowest,
+                                            time_data=time_data)
                 except ValueError:
                     increases += 1
                     precision += 1
@@ -239,7 +249,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
 
 def _format_levels(bins, prec, right=True,
-                   include_lowest=False):
+                   include_lowest=False, time_data=False):
     fmt = lambda v: _format_label(v, precision=prec)
     if right:
         levels = []
@@ -248,16 +258,23 @@ def _format_levels(bins, prec, right=True,
 
             if a != b and fa == fb:
                 raise ValueError('precision too low')
-
-            formatted = '(%s, %s]' % (fa, fb)
-
+            if time_data:
+                formatted = '(%s, %s]' % (to_timedelta(float(fa), unit='ns'),
+                                          to_timedelta(float(fb), unit='ns'))
+            else:
+                formatted = '(%s, %s]' % (fa, fb)
             levels.append(formatted)
 
         if include_lowest:
             levels[0] = '[' + levels[0][1:]
     else:
-        levels = ['[%s, %s)' % (fmt(a), fmt(b))
-                  for a, b in zip(bins, bins[1:])]
+        if time_data:
+            levels = ['[%s, %s)' % (to_timedelta(float(fmt(fa)), unit='ns'),
+                      to_timedelta(float(fmt(b)), unit='ns'))
+                      for a, b in zip(bins, bins[1:])]
+        else:
+            levels = ['[%s, %s)' % (fmt(a), fmt(b))
+                      for a, b in zip(bins, bins[1:])]
 
     return levels
 
