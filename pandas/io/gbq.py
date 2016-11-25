@@ -375,7 +375,7 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
-    def run_query(self, query):
+    def run_query(self, query, udf_resource_uri=None):
         try:
             from googleapiclient.errors import HttpError
         except:
@@ -395,6 +395,14 @@ class GbqConnector(object):
                 }
             }
         }
+        
+        if udf_resource_uri is not None:
+            if not isinstance(udf_resource_uri, list):
+                udf_resource_uri = [udf_resource_uri]
+
+            job_data['configuration']['query']['userDefinedFunctionResources'] = \
+                [{'resourceUri': uri} for uri in udf_resource_uri]
+
 
         self._start_timer()
         try:
@@ -622,7 +630,7 @@ def _parse_entry(field_value, field_type):
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None, dialect='legacy'):
+             reauth=False, verbose=True, private_key=None, dialect='legacy', udf_resource_uri=None):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -682,6 +690,12 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
         .. versionadded:: 0.19.0
 
+    udf_resource_uri : list(str) or str (optional)
+        A code resource to load from a Google Cloud Storage URI.
+        Describes user-defined function resources used in the query.
+
+        .. versionadded:: 0.19.0
+
     Returns
     -------
     df: DataFrame
@@ -698,7 +712,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     connector = GbqConnector(project_id, reauth=reauth, verbose=verbose,
                              private_key=private_key,
                              dialect=dialect)
-    schema, pages = connector.run_query(query)
+    schema, pages = connector.run_query(query, udf_resource_uri)
     dataframe_list = []
     while len(pages) > 0:
         page = pages.pop()
