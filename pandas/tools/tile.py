@@ -255,7 +255,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
 def _format_levels(bins, prec, right=True,
                    include_lowest=False, dtype=None):
-    fmt = lambda v: _format_label(v, precision=prec)
+    fmt = lambda v: _format_label(v, precision=prec, dtype=dtype)
     if right:
         levels = []
         for a, b in zip(bins, bins[1:]):
@@ -264,36 +264,25 @@ def _format_levels(bins, prec, right=True,
             if a != b and fa == fb:
                 raise ValueError('precision too low')
 
-            if dtype == np.datetime64:
-                formatted = '(%s, %s]' % (to_datetime(float(fa), unit='ns'),
-                                          to_datetime(float(fb), unit='ns'))
-            elif dtype == np.timedelta64:
-                formatted = '(%s, %s]' % (to_timedelta(float(fa), unit='ns'),
-                                          to_timedelta(float(fb), unit='ns'))
-            else:
-                formatted = '(%s, %s]' % (fa, fb)
+            formatted = '(%s, %s]' % (fa, fb)
 
             levels.append(formatted)
 
         if include_lowest:
             levels[0] = '[' + levels[0][1:]
     else:
-        if dtype == np.datetime64:
-            levels = ['[%s, %s)' % (to_datetime(float(fmt(fa)), unit='ns'),
-                      to_datetime(float(fmt(b)), unit='ns'))
-                      for a, b in zip(bins, bins[1:])]
-        elif dtype == np.timedelta64:
-            levels = ['[%s, %s)' % (to_timedelta(float(fmt(fa)), unit='ns'),
-                      to_timedelta(float(fmt(b)), unit='ns'))
-                      for a, b in zip(bins, bins[1:])]
-        else:
-            levels = ['[%s, %s)' % (fmt(a), fmt(b))
-                      for a, b in zip(bins, bins[1:])]
+        levels = ['[%s, %s)' % (fmt(a), fmt(b))
+                  for a, b in zip(bins, bins[1:])]
     return levels
 
 
-def _format_label(x, precision=3):
+def _format_label(x, precision=3, dtype=None):
     fmt_str = '%%.%dg' % precision
+
+    if dtype == np.datetime64:
+        return to_datetime(x, unit='ns')
+    if dtype == np.timedelta64:
+        return to_timedelta(x, unit='ns')
     if np.isinf(x):
         return str(x)
     elif is_float(x):
