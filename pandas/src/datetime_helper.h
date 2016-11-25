@@ -7,11 +7,6 @@
 #define PyInt_AS_LONG PyLong_AsLong
 #endif
 
-void mangle_nat(PyObject *val) {
-  PyDateTime_GET_MONTH(val) = -1;
-  PyDateTime_GET_DAY(val) = -1;
-}
-
 npy_int64 get_long_attr(PyObject *o, const char *attr) {
   npy_int64 long_val;
   PyObject *value = PyObject_GetAttrString(o, attr);
