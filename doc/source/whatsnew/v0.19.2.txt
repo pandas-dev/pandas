@@ -67,6 +67,7 @@ Bug Fixes
 
 
 - Bug in ``pd.read_csv()`` in which the ``dtype`` parameter was not being respected for empty data (:issue:`14712`)
+- Bug in ``pd.read_csv()`` in which the ``nrows`` parameter was not being respected for large input when using the C engine for parsing (:issue:`7626`)
 
 
 
