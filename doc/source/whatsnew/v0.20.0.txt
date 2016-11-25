@@ -83,7 +83,3 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-
-- Fix bugs (:issue:`14734`, :issue:`13654`) in ``pd.read_sas`` and
-``pandas.io.sas.sas7bdat.SAS7BDATReader`` that caused problems when
-reading a SAS file incrementally.
