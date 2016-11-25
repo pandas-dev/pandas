@@ -125,6 +125,13 @@ class Int64Index(NumericIndex):
 
     _default_dtype = np.int64
 
+    def __contains__(self, key):
+        # This is necessary to make expressions like
+        # `3.0 in Int64Index([1, 2,3])` evaluate to True.
+        return super(Int64Index, self).__contains__(
+            self._maybe_cast_indexer(key)
+        )
+
     @property
     def inferred_type(self):
         return 'integer'
