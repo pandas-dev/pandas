@@ -118,11 +118,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     data : array-like, dict, or scalar value
         Contains data stored in Series
     index : array-like or Index (1d)
-        Values must be unique and hashable, same length as data. Index
-        object (or other iterable of same length as data) Will default to
-        RangeIndex(len(data)) if not provided. If both a dict and index
-        sequence are used, the index will override the keys found in the
-        dict.
+        Values must be hashable, same length as data. Non-unique index values
+        are allowed. Index object (or other iterable of same length as data)
+        Will default to RangeIndex(len(data)) if not provided. If both a dict
+        and index sequence are used, the index will override the keys found
+        in the dict.
     dtype : numpy.dtype or None
         If None, dtype will be inferred
     copy : boolean, default False
