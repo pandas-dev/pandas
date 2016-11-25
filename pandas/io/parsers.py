@@ -23,6 +23,7 @@ from pandas.types.common import (is_integer, _ensure_object,
 from pandas.types.missing import isnull
 from pandas.types.cast import _astype_nansafe
 from pandas.core.index import Index, MultiIndex, RangeIndex
+from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.categorical import Categorical
 from pandas.core.common import AbstractMethodError
@@ -2875,19 +2876,27 @@ def _clean_index_names(columns, index_col):
 def _get_empty_meta(columns, index_col, index_names, dtype=None):
     columns = list(columns)
 
-    if dtype is None:
-        dtype = {}
+    # Convert `dtype` to a defaultdict of some kind.
+    # This will enable us to write `dtype[col_name]`
+    # without worrying about KeyError issues later on.
+    if not isinstance(dtype, dict):
+        # if dtype == None, default will be np.object.
+        default_dtype = dtype or np.object
+        dtype = defaultdict(lambda: default_dtype)
     else:
-        if not isinstance(dtype, dict):
-            dtype = defaultdict(lambda: dtype)
+        # Save a copy of the dictionary.
+        _dtype = dtype.copy()
+        dtype = defaultdict(lambda: np.object)
+
         # Convert column indexes to column names.
-        dtype = dict((columns[k] if is_integer(k) else k, v)
-                     for k, v in compat.iteritems(dtype))
+        for k, v in compat.iteritems(_dtype):
+            col = columns[k] if is_integer(k) else k
+            dtype[col] = v
 
     if index_col is None or index_col is False:
         index = Index([])
     else:
-        index = [np.empty(0, dtype=dtype.get(index_name, np.object))
+        index = [Series([], dtype=dtype[index_name])
                  for index_name in index_names]
         index = MultiIndex.from_arrays(index, names=index_names)
         index_col.sort()
@@ -2895,7 +2904,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
             columns.pop(n - i)
 
     col_dict = dict((col_name,
-                     np.empty(0, dtype=dtype.get(col_name, np.object)))
+                     Series([], dtype=dtype[col_name]))
                     for col_name in columns)
 
     return index, columns, col_dict
