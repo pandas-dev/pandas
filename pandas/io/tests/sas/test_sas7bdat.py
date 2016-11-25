@@ -44,10 +44,7 @@ class TestSAS7BDAT(tm.TestCase):
             df0 = self.data[j]
             for k in self.test_ix[j]:
                 fname = os.path.join(self.dirpath, "test%d.sas7bdat" % k)
-                with open(fname, 'rb') as f:
-                    byts = f.read()
-                buf = io.BytesIO(byts)
-                df = pd.read_sas(buf, format="sas7bdat", encoding='utf-8')
+                df = pd.read_sas(fname, encoding="utf-8")
                 tm.assert_frame_equal(df, df0, check_exact=False)
 
     def test_from_iterator(self):
@@ -55,11 +52,7 @@ class TestSAS7BDAT(tm.TestCase):
             df0 = self.data[j]
             for k in self.test_ix[j]:
                 fname = os.path.join(self.dirpath, "test%d.sas7bdat" % k)
-                with open(fname, 'rb') as f:
-                    byts = f.read()
-                buf = io.BytesIO(byts)
-                rdr = pd.read_sas(buf, format="sas7bdat",
-                                  iterator=True, encoding='utf-8')
+                rdr = pd.read_sas(fname, iterator=True, encoding='utf-8')
                 df = rdr.read(2)
                 tm.assert_frame_equal(df, df0.iloc[0:2, :])
                 df = rdr.read(3)
@@ -71,11 +64,7 @@ class TestSAS7BDAT(tm.TestCase):
             for k in self.test_ix[j]:
                 for chunksize in 3, 5, 10, 11:
                     fname = os.path.join(self.dirpath, "test%d.sas7bdat" % k)
-                    with open(fname, 'rb') as f:
-                        byts = f.read()
-                    buf = io.BytesIO(byts)
-                    rdr = pd.read_sas(buf, format="sas7bdat",
-                                      chunksize=chunksize, encoding='utf-8')
+                    rdr = pd.read_sas(fname, chunksize=10, encoding='utf-8')
                     y = 0
                     for x in rdr:
                         y += x.shape[0]
@@ -90,7 +79,10 @@ class TestSAS7BDAT(tm.TestCase):
         buf = io.BytesIO(byts)
         rdr = pd.read_sas(buf, format="sas7bdat",
                           iterator=True, encoding='utf-8')
-        rdr.read(rdr.row_count + 20)
+        d1 = rdr.read(rdr.row_count + 20)
+        rdr = pd.read_sas(fname, iterator=True, encoding="utf-8")
+        d2 = rdr.read(rdr.row_count + 20)
+        tm.assert_frame_equal(d1, d2)
 
 
 def test_encoding_options():
