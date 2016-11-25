@@ -103,11 +103,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     """
     One-dimensional ndarray with axis labels (including time series).
 
-    Labels need not be unique but must be any hashable type. The object
+    Labels need not be unique but must be a hashable type. The object
     supports both integer- and label-based indexing and provides a host of
     methods for performing operations involving the index. Statistical
     methods from ndarray have been overridden to automatically exclude
-    missing data (currently represented as NaN)
+    missing data (currently represented as NaN).
 
     Operations between Series (+, -, /, *, **) align values based on their
     associated index values-- they need not be the same length. The result
@@ -118,8 +118,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     data : array-like, dict, or scalar value
         Contains data stored in Series
     index : array-like or Index (1d)
-        Values must be unique and hashable, same length as data. Index
-        object (or other iterable of same length as data) Will default to
+        Values must be hashable and have the same length as `data`.
+        Non-unique index values are allowed. Will default to
         RangeIndex(len(data)) if not provided. If both a dict and index
         sequence are used, the index will override the keys found in the
         dict.
