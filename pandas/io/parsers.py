@@ -2515,6 +2515,11 @@ class PythonParser(ParserBase):
 
             msg = ('Expected %d fields in line %d, saw %d' %
                    (col_len, row_num + 1, zip_len))
+            if len(self.delimiter) > 1 and self.quoting != csv.QUOTE_NONE:
+                # see gh-13374
+                reason = ('Error could possibly be due to quotes being '
+                          'ignored when a multi-char delimiter is used.')
+                msg += '. ' + reason
             raise ValueError(msg)
 
         if self.usecols:
