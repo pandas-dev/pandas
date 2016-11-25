@@ -100,7 +100,7 @@ class TestIndexing(tm.TestCase):
     _multiprocess_can_split_ = True
 
     _objs = set(['series', 'frame', 'panel'])
-    _typs = set(['ints', 'labels', 'mixed', 'ts', 'floats', 'empty'])
+    _typs = set(['ints', 'labels', 'mixed', 'ts', 'floats', 'empty', 'ts_rev'])
 
     def setUp(self):
 
@@ -136,6 +136,15 @@ class TestIndexing(tm.TestCase):
                                   index=date_range('20130101', periods=4))
         self.panel_ts = Panel(np.random.randn(4, 4, 4),
                               items=date_range('20130101', periods=4))
+
+        dates_rev = (date_range('20130101', periods=4)
+                     .sort_values(ascending=False))
+        self.series_ts_rev = Series(np.random.randn(4),
+                                    index=dates_rev)
+        self.frame_ts_rev = DataFrame(np.random.randn(4, 4),
+                                      index=dates_rev)
+        self.panel_ts_rev = Panel(np.random.randn(4, 4, 4),
+                                  items=dates_rev)
 
         self.frame_empty = DataFrame({})
         self.series_empty = Series({})
@@ -1329,7 +1338,7 @@ class TestIndexing(tm.TestCase):
         df.columns = ['x', 'x', 'z']
 
         # Check that we get the correct value in the KeyError
-        self.assertRaisesRegexp(KeyError, "\['y'\] not in index",
+        self.assertRaisesRegexp(KeyError, r"\['y'\] not in index",
                                 lambda: df[['x', 'y', 'z']])
 
     def test_loc_getitem_label_slice(self):
@@ -1357,6 +1366,10 @@ class TestIndexing(tm.TestCase):
         self.check_result('ts  slice', 'loc', slice('20130102', '20130104'),
                           'ix', slice('20130102', '20130104'),
                           typs=['ts'], axes=2, fails=TypeError)
+
+        # GH 14316
+        self.check_result('ts slice rev', 'loc', slice('20130104', '20130102'),
+                          'indexer', [0, 1, 2], typs=['ts_rev'], axes=0)
 
         self.check_result('mixed slice', 'loc', slice(2, 8), 'ix', slice(2, 8),
                           typs=['mixed'], axes=0, fails=TypeError)
@@ -2219,7 +2232,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         with tm.assertRaisesRegexp(
                 KeyError,
                 'MultiIndex Slicing requires the index to be fully '
-                'lexsorted tuple len \(2\), lexsort depth \(0\)'):
+                r'lexsorted tuple len \(2\), lexsort depth \(0\)'):
             df.loc[(slice(None), df.loc[:, ('a', 'bar')] > 5), :]
 
     def test_multiindex_slicers_non_unique(self):
@@ -3600,6 +3613,27 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df2.loc[idx]
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
+    def test_string_slice(self):
+        # GH 14424
+        # string indexing against datetimelike with object
+        # dtype should properly raises KeyError
+        df = pd.DataFrame([1], pd.Index([pd.Timestamp('2011-01-01')],
+                                        dtype=object))
+        self.assertTrue(df.index.is_all_dates)
+        with tm.assertRaises(KeyError):
+            df['2011']
+
+        with tm.assertRaises(KeyError):
+            df.loc['2011', 0]
+
+        df = pd.DataFrame()
+        self.assertFalse(df.index.is_all_dates)
+        with tm.assertRaises(KeyError):
+            df['2011']
+
+        with tm.assertRaises(KeyError):
+            df.loc['2011', 0]
+
     def test_mi_access(self):
 
         # GH 4145
@@ -3612,7 +3646,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 5  f    B   6  A2   6
 """
 
-        df = pd.read_csv(StringIO(data), sep='\s+', index_col=0)
+        df = pd.read_csv(StringIO(data), sep=r'\s+', index_col=0)
         df2 = df.set_index(['main', 'sub']).T.sort_index(1)
         index = Index(['h1', 'h3', 'h5'])
         columns = MultiIndex.from_tuples([('A', 'A1')], names=['main', 'sub'])

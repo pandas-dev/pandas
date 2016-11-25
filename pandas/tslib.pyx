@@ -24,6 +24,7 @@ from cpython cimport (
     PyUnicode_AsUTF8String,
 )
 
+
 # Cython < 0.17 doesn't have this in cpython
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
@@ -37,7 +38,7 @@ from datetime cimport cmp_pandas_datetimestruct
 from libc.stdlib cimport free
 
 from util cimport (is_integer_object, is_float_object, is_datetime64_object,
-                   is_timedelta64_object)
+                   is_timedelta64_object, INT64_MAX)
 cimport util
 
 from datetime cimport *
@@ -97,6 +98,7 @@ except NameError: # py3
 cdef inline object create_timestamp_from_ts(
         int64_t value, pandas_datetimestruct dts,
         object tz, object freq):
+    """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
                                  dts.day, dts.hour, dts.min,
@@ -111,6 +113,7 @@ cdef inline object create_timestamp_from_ts(
 cdef inline object create_datetime_from_ts(
         int64_t value, pandas_datetimestruct dts,
         object tz, object freq):
+    """ convenience routine to construct a datetime.datetime from its parts """
     return datetime(dts.year, dts.month, dts.day, dts.hour,
                     dts.min, dts.sec, dts.us, tz)
 
@@ -377,7 +380,6 @@ class Timestamp(_Timestamp):
         # Mixing pydatetime positional and keyword arguments is forbidden!
 
         cdef _TSObject ts
-        cdef _Timestamp ts_base
 
         if offset is not None:
             # deprecate offset kwd in 0.19.0, GH13593
@@ -411,17 +413,7 @@ class Timestamp(_Timestamp):
             from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
 
-        # make datetime happy
-        ts_base = _Timestamp.__new__(cls, ts.dts.year, ts.dts.month,
-                                     ts.dts.day, ts.dts.hour, ts.dts.min,
-                                     ts.dts.sec, ts.dts.us, ts.tzinfo)
-
-        # fill out rest of data
-        ts_base.value = ts.value
-        ts_base.freq = freq
-        ts_base.nanosecond = ts.dts.ps / 1000
-
-        return ts_base
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
     def _round(self, freq, rounder):
 
@@ -659,8 +651,81 @@ class Timestamp(_Timestamp):
     astimezone = tz_convert
 
     def replace(self, **kwds):
-        return Timestamp(datetime.replace(self, **kwds),
-                         freq=self.freq)
+        """
+        implements datetime.replace, handles nanoseconds
+
+        Parameters
+        ----------
+        kwargs: key-value dict
+
+        accepted keywords are:
+        year, month, day, hour, minute, second, microsecond, nanosecond, tzinfo
+
+        values must be integer, or for tzinfo, a tz-convertible
+
+        Returns
+        -------
+        Timestamp with fields replaced
+        """
+
+        cdef:
+            pandas_datetimestruct dts
+            int64_t value
+            object tzinfo, result, k, v
+            _TSObject ts
+
+        # set to naive if needed
+        tzinfo = self.tzinfo
+        value = self.value
+        if tzinfo is not None:
+            value = tz_convert_single(value, 'UTC', tzinfo)
+
+        # setup components
+        pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
+        dts.ps = self.nanosecond * 1000
+
+        # replace
+        def validate(k, v):
+            """ validate integers """
+            if not isinstance(v, int):
+                raise ValueError("value must be an integer, received "
+                                 "{v} for {k}".format(v=type(v), k=k))
+            return v
+
+        for k, v in kwds.items():
+            if k == 'year':
+                dts.year = validate(k, v)
+            elif k == 'month':
+                dts.month = validate(k, v)
+            elif k == 'day':
+                dts.day = validate(k, v)
+            elif k == 'hour':
+                dts.hour = validate(k, v)
+            elif k == 'minute':
+                dts.min = validate(k, v)
+            elif k == 'second':
+                dts.sec = validate(k, v)
+            elif k == 'microsecond':
+                dts.us = validate(k, v)
+            elif k == 'nanosecond':
+                dts.ps = validate(k, v) * 1000
+            elif k == 'tzinfo':
+                tzinfo = v
+            else:
+                raise ValueError("invalid name {} passed".format(k))
+
+        # reconstruct & check bounds
+        value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+        if value != NPY_NAT:
+            _check_dts_bounds(&dts)
+
+        # set tz if needed
+        if tzinfo is not None:
+            value = tz_convert_single(value, tzinfo, 'UTC')
+
+        result = create_timestamp_from_ts(value, dts, tzinfo, self.freq)
+
+        return result
 
     def isoformat(self, sep='T'):
         base = super(_Timestamp, self).isoformat(sep=sep)
@@ -738,7 +803,8 @@ class NaTType(_NaT):
         cdef _NaT base
 
         base = _NaT.__new__(cls, 1, 1, 1)
-        mangle_nat(base)
+        base._day = -1
+        base._month = -1
         base.value = NPY_NAT
 
         return base
@@ -904,10 +970,12 @@ cpdef object get_value_box(ndarray arr, object loc):
 
 
 # Add the min and max fields at the class level
-# These are defined as magic numbers due to strange
-# wraparound behavior when using the true int64 lower boundary
-cdef int64_t _NS_LOWER_BOUND = -9223285636854775000LL
-cdef int64_t _NS_UPPER_BOUND = 9223372036854775807LL
+cdef int64_t _NS_UPPER_BOUND = INT64_MAX
+# the smallest value we could actually represent is
+#   INT64_MIN + 1 == -9223372036854775807
+# but to allow overflow free conversion with a microsecond resolution
+# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
+cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
 
 cdef pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 pandas_datetime_to_datetimestruct(_NS_LOWER_BOUND, PANDAS_FR_ns, &_NS_MIN_DTS)
@@ -1037,6 +1105,12 @@ cdef class _Timestamp(datetime):
 
         self._assert_tzawareness_compat(other)
         return _cmp_scalar(self.value, ots.value, op)
+
+    def __reduce_ex__(self, protocol):
+        # python 3.6 compat
+        # http://bugs.python.org/issue28730
+        # now __reduce_ex__ is defined and higher priority than __reduce__
+        return self.__reduce__()
 
     def __repr__(self):
         stamp = self._repr_base
@@ -1472,7 +1546,8 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             "Cannot convert Period to Timestamp "
             "unambiguously. Use to_timestamp")
     else:
-        raise TypeError('Cannot convert input to Timestamp')
+        raise TypeError('Cannot convert input [{}] of type {} to '
+                        'Timestamp'.format(ts, type(ts)))
 
     if obj.value != NPY_NAT:
         _check_dts_bounds(&obj.dts)
@@ -1662,7 +1737,7 @@ cdef inline object _get_zone(object tz):
                     'implicitly by passing a string like "dateutil/Europe'
                     '/London" when you construct your pandas objects instead '
                     'of passing a timezone object. See '
-                    'https://github.com/pydata/pandas/pull/7362')
+                    'https://github.com/pandas-dev/pandas/pull/7362')
             return 'dateutil/' + tz._filename
         else:
             # tz is a pytz timezone or unknown.
@@ -4038,7 +4113,7 @@ cdef inline object _tz_cache_key(object tz):
                              'passing a string like "dateutil/Europe/London" '
                              'when you construct your pandas objects instead '
                              'of passing a timezone object. See '
-                             'https://github.com/pydata/pandas/pull/7362')
+                             'https://github.com/pandas-dev/pandas/pull/7362')
         return 'dateutil' + tz._filename
     else:
         return None
@@ -4155,6 +4230,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     """
     cdef:
         ndarray[int64_t] trans, deltas, idx_shifted
+        ndarray ambiguous_array
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         int64_t *tdata
         int64_t v, left, right
@@ -4190,11 +4266,18 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             infer_dst = True
         elif ambiguous == 'NaT':
             fill = True
+    elif isinstance(ambiguous, bool):
+        is_dst = True
+        if ambiguous:
+            ambiguous_array = np.ones(len(vals), dtype=bool)
+        else:
+            ambiguous_array = np.zeros(len(vals), dtype=bool)
     elif hasattr(ambiguous, '__iter__'):
         is_dst = True
         if len(ambiguous) != len(vals):
             raise ValueError(
                 "Length of ambiguous bool-array must be the same size as vals")
+        ambiguous_array = np.asarray(ambiguous)
 
     trans, deltas, typ = _get_dst_info(tz)
 
@@ -4286,7 +4369,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 if infer_dst and dst_hours[i] != NPY_NAT:
                     result[i] = dst_hours[i]
                 elif is_dst:
-                    if ambiguous[i]:
+                    if ambiguous_array[i]:
                         result[i] = left
                     else:
                         result[i] = right
@@ -5030,7 +5113,10 @@ cpdef normalize_date(object dt):
     -------
     normalized : datetime.datetime or Timestamp
     """
-    if PyDateTime_Check(dt):
+    if is_timestamp(dt):
+        return dt.replace(hour=0, minute=0, second=0, microsecond=0,
+                          nanosecond=0)
+    elif PyDateTime_Check(dt):
         return dt.replace(hour=0, minute=0, second=0, microsecond=0)
     elif PyDate_Check(dt):
         return datetime(dt.year, dt.month, dt.day)

@@ -17,7 +17,9 @@ from pandas import compat
 
 from pandas.types.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
 from pandas.types.missing import isnull, array_equivalent
-from pandas.types.common import (_ensure_int64, _ensure_object,
+from pandas.types.common import (_ensure_int64,
+                                 _ensure_object,
+                                 _ensure_categorical,
                                  _ensure_platform_int,
                                  is_integer,
                                  is_float,
@@ -111,7 +113,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     _join_precedence = 1
 
     # Cython methods
-    _groupby = _algos.groupby_object
     _arrmap = _algos.arrmap_object
     _left_indexer_unique = _join.left_join_indexer_unique_object
     _left_indexer = _join.left_join_indexer_object
@@ -431,6 +432,36 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
 
+    _index_shared_docs['_get_grouper_for_level'] = """
+        Get index grouper corresponding to an index level
+
+        Parameters
+        ----------
+        mapper: Group mapping function or None
+            Function mapping index values to groups
+        level : int or None
+            Index level
+
+        Returns
+        -------
+        grouper : Index
+            Index of values to group on
+        labels : ndarray of int or None
+            Array of locations in level_index
+        uniques : Index or None
+            Index of unique values for level
+        """
+
+    @Appender(_index_shared_docs['_get_grouper_for_level'])
+    def _get_grouper_for_level(self, mapper, level=None):
+        assert level is None or level == 0
+        if mapper is None:
+            grouper = self
+        else:
+            grouper = self.map(mapper)
+
+        return grouper, None, None
+
     def is_(self, other):
         """
         More flexible, faster check like ``is`` but that works through views
@@ -620,25 +651,39 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     @Appender(_index_shared_docs['copy'])
     def copy(self, name=None, deep=False, dtype=None, **kwargs):
-        names = kwargs.get('names')
-        if names is not None and name is not None:
-            raise TypeError("Can only provide one of `names` and `name`")
         if deep:
-            from copy import deepcopy
             new_index = self._shallow_copy(self._data.copy())
-            name = name or deepcopy(self.name)
         else:
             new_index = self._shallow_copy()
-            name = self.name
-        if name is not None:
-            names = [name]
-        if names:
-            new_index = new_index.set_names(names)
+
+        names = kwargs.get('names')
+        names = self._validate_names(name=name, names=names, deep=deep)
+        new_index = new_index.set_names(names)
+
         if dtype:
             new_index = new_index.astype(dtype)
         return new_index
 
     __copy__ = copy
+
+    def _validate_names(self, name=None, names=None, deep=False):
+        """
+        Handles the quirks of having a singular 'name' parameter for general
+        Index and plural 'names' parameter for MultiIndex.
+        """
+        from copy import deepcopy
+        if names is not None and name is not None:
+            raise TypeError("Can only provide one of `names` and `name`")
+        elif names is None and name is None:
+            return deepcopy(self.names) if deep else self.names
+        elif names is not None:
+            if not is_list_like(names):
+                raise TypeError("Must pass list-like as `names`.")
+            return names
+        else:
+            if not is_list_like(name):
+                return [name]
+            return name
 
     def __unicode__(self):
         """
@@ -1419,12 +1464,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         names = set([obj.name for obj in to_concat])
         name = None if len(names) > 1 else self.name
 
-        typs = _concat.get_dtype_kinds(to_concat)
-
-        if 'category' in typs:
-            # if any of the to_concat is category
+        if self.is_categorical():
+            # if calling index is category, don't check dtype of others
             from pandas.indexes.category import CategoricalIndex
             return CategoricalIndex._append_same_dtype(self, to_concat, name)
+
+        typs = _concat.get_dtype_kinds(to_concat)
 
         if len(typs) == 1:
             return self._append_same_dtype(to_concat, name=name)
@@ -1958,7 +2003,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         except TypeError:
             pass
 
-        return this._shallow_copy(the_diff, name=result_name)
+        return this._shallow_copy(the_diff, name=result_name, freq=None)
 
     def symmetric_difference(self, other, result_name=None):
         """
@@ -1979,7 +2024,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         ``symmetric_difference`` contains elements that appear in either
         ``idx1`` or ``idx2`` but not both. Equivalent to the Index created by
         ``idx1.difference(idx2) | idx2.difference(idx1)`` with duplicates
-         dropped.
+        dropped.
 
         Examples
         --------
@@ -2352,13 +2397,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 return self.astype('object'), other.astype('object')
         return self, other
 
-    def groupby(self, to_groupby):
+    def groupby(self, values):
         """
         Group the index labels by a given array of values.
 
         Parameters
         ----------
-        to_groupby : array
+        values : array
             Values used to determine the groups.
 
         Returns
@@ -2366,7 +2411,19 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         groups : dict
             {group name -> group labels}
         """
-        return self._groupby(self.values, _values_from_object(to_groupby))
+
+        # TODO: if we are a MultiIndex, we can do better
+        # that converting to tuples
+        from .multi import MultiIndex
+        if isinstance(values, MultiIndex):
+            values = values.values
+        values = _ensure_categorical(values)
+        result = values._reverse_indexer()
+
+        # map to the label
+        result = {k: self.take(v) for k, v in compat.iteritems(result)}
+
+        return result
 
     def map(self, mapper):
         """
@@ -2908,6 +2965,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
         return Index(joined, name=name)
+
+    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
+        # this is for partial string indexing,
+        # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
+        raise NotImplementedError
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """

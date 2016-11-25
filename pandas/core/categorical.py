@@ -6,6 +6,7 @@ import types
 
 from pandas import compat, lib
 from pandas.compat import u, lzip
+import pandas.algos as _algos
 
 from pandas.types.generic import ABCSeries, ABCIndexClass, ABCCategoricalIndex
 from pandas.types.missing import isnull, notnull
@@ -1680,7 +1681,7 @@ class Categorical(PandasObject):
         else:
             # There is a bug in numpy, which does not accept a Series as a
             # indexer
-            # https://github.com/pydata/pandas/issues/6168
+            # https://github.com/pandas-dev/pandas/issues/6168
             # https://github.com/numpy/numpy/issues/4240 -> fixed in numpy 1.9
             # FIXME: remove when numpy 1.9 is the lowest numpy version pandas
             # accepts...
@@ -1689,7 +1690,7 @@ class Categorical(PandasObject):
         lindexer = self.categories.get_indexer(rvalue)
 
         # FIXME: the following can be removed after GH7820 is fixed:
-        # https://github.com/pydata/pandas/issues/7820
+        # https://github.com/pandas-dev/pandas/issues/7820
         # float categories do currently return -1 for np.nan, even if np.nan is
         # included in the index -> "repair" this here
         if isnull(rvalue).any() and isnull(self.categories).any():
@@ -1698,6 +1699,45 @@ class Categorical(PandasObject):
 
         lindexer = self._maybe_coerce_indexer(lindexer)
         self._codes[key] = lindexer
+
+    def _reverse_indexer(self):
+        """
+        Compute the inverse of a categorical, returning
+        a dict of categories -> indexers.
+
+        *This is an internal function*
+
+        Returns
+        -------
+        dict of categories -> indexers
+
+        Example
+        -------
+        In [1]: c = pd.Categorical(list('aabca'))
+
+        In [2]: c
+        Out[2]:
+        [a, a, b, c, a]
+        Categories (3, object): [a, b, c]
+
+        In [3]: c.categories
+        Out[3]: Index([u'a', u'b', u'c'], dtype='object')
+
+        In [4]: c.codes
+        Out[4]: array([0, 0, 1, 2, 0], dtype=int8)
+
+        In [5]: c._reverse_indexer()
+        Out[5]: {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
+
+        """
+        categories = self.categories
+        r, counts = _algos.groupsort_indexer(self.codes.astype('int64'),
+                                             categories.size)
+        counts = counts.cumsum()
+        result = [r[counts[indexer]:counts[indexer + 1]]
+                  for indexer in range(len(counts) - 1)]
+        result = dict(zip(categories, result))
+        return result
 
     # reduction ops #
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
@@ -1979,12 +2019,15 @@ def _factorize_from_iterable(values):
 
     Returns
     -------
-    codes : np.array
+    codes : ndarray
     categories : Index
         If `values` has a categorical dtype, then `categories` is
         a CategoricalIndex keeping the categories and order of `values`.
     """
     from pandas.indexes.category import CategoricalIndex
+
+    if not is_list_like(values):
+        raise TypeError("Input must be list-like")
 
     if is_categorical(values):
         if isinstance(values, (ABCCategoricalIndex, ABCSeries)):
@@ -2003,8 +2046,23 @@ def _factorize_from_iterable(values):
 def _factorize_from_iterables(iterables):
     """
     A higher-level wrapper over `_factorize_from_iterable`.
-    See `_factorize_from_iterable` for more info.
 
     *This is an internal function*
+
+    Parameters
+    ----------
+    iterables : list-like of list-likes
+
+    Returns
+    -------
+    codes_list : list of ndarrays
+    categories_list : list of Indexes
+
+    Notes
+    -----
+    See `_factorize_from_iterable` for more info.
     """
-    return lzip(*[_factorize_from_iterable(it) for it in iterables])
+    if len(iterables) == 0:
+        # For consistency, it should return a list of 2 lists.
+        return [[], []]
+    return map(list, lzip(*[_factorize_from_iterable(it) for it in iterables]))

@@ -75,6 +75,11 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     Returns
     -------
     table : DataFrame
+
+    See also
+    --------
+    DataFrame.pivot : pivot without aggregation that can handle
+        non-numeric data
     """
     index = _convert_by(index)
     columns = _convert_by(columns)
@@ -101,10 +106,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         else:
             values_multi = False
             values = [values]
-    else:
-        values = list(data.columns.drop(keys))
 
-    if values_passed:
         to_filter = []
         for x in keys + values:
             if isinstance(x, Grouper):
@@ -116,6 +118,15 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         if len(to_filter) < len(data.columns):
             data = data[to_filter]
+
+    else:
+        values = data.columns
+        for key in keys:
+            try:
+                values = values.drop(key)
+            except (TypeError, ValueError):
+                pass
+        values = list(values)
 
     grouped = data.groupby(keys)
     agged = grouped.agg(aggfunc)

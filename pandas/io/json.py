@@ -123,32 +123,38 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         file. For file URLs, a host is expected. For instance, a local file
         could be ``file://localhost/path/to/table.json``
 
-    orient
+    orient : string,
+        Indication of expected JSON string format.
+        Compatible JSON strings can be produced by ``to_json()`` with a
+        corresponding orient value.
+        The set of possible orients is:
 
-        * `Series`
+        - ``'split'`` : dict like
+          ``{index -> [index], columns -> [columns], data -> [values]}``
+        - ``'records'`` : list like
+          ``[{column -> value}, ... , {column -> value}]``
+        - ``'index'`` : dict like ``{index -> {column -> value}}``
+        - ``'columns'`` : dict like ``{column -> {index -> value}}``
+        - ``'values'`` : just the values array
 
+        The allowed and default values depend on the value
+        of the `typ` parameter.
+
+        * when ``typ == 'series'``,
+
+          - allowed orients are ``{'split','records','index'}``
           - default is ``'index'``
-          - allowed values are: ``{'split','records','index'}``
           - The Series index must be unique for orient ``'index'``.
 
-        * `DataFrame`
+        * when ``typ == 'frame'``,
 
+          - allowed orients are ``{'split','records','index',
+            'columns','values'}``
           - default is ``'columns'``
-          - allowed values are: {'split','records','index','columns','values'}
-          - The DataFrame index must be unique for orients 'index' and
-            'columns'.
-          - The DataFrame columns must be unique for orients 'index',
-            'columns', and 'records'.
-
-        * The format of the JSON string
-
-          - split : dict like
-            ``{index -> [index], columns -> [columns], data -> [values]}``
-          - records : list like
-            ``[{column -> value}, ... , {column -> value}]``
-          - index : dict like ``{index -> {column -> value}}``
-          - columns : dict like ``{column -> {index -> value}}``
-          - values : just the values array
+          - The DataFrame index must be unique for orients ``'index'`` and
+            ``'columns'``.
+          - The DataFrame columns must be unique for orients ``'index'``,
+            ``'columns'``, and ``'records'``.
 
     typ : type of object to recover (series or frame), default 'frame'
     dtype : boolean or dict, default True
@@ -197,7 +203,48 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     Returns
     -------
-    result : Series or DataFrame
+    result : Series or DataFrame, depending on the value of `typ`.
+
+    See Also
+    --------
+    DataFrame.to_json
+
+    Examples
+    --------
+
+    >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
+    ...                   index=['row 1', 'row 2'],
+    ...                   columns=['col 1', 'col 2'])
+
+    Encoding/decoding a Dataframe using ``'split'`` formatted JSON:
+
+    >>> df.to_json(orient='split')
+    '{"columns":["col 1","col 2"],
+      "index":["row 1","row 2"],
+      "data":[["a","b"],["c","d"]]}'
+    >>> pd.read_json(_, orient='split')
+          col 1 col 2
+    row 1     a     b
+    row 2     c     d
+
+    Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
+
+    >>> df.to_json(orient='index')
+    '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
+    >>> pd.read_json(_, orient='index')
+          col 1 col 2
+    row 1     a     b
+    row 2     c     d
+
+    Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
+    Note that index labels are not preserved with this encoding.
+
+    >>> df.to_json(orient='records')
+    '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+    >>> pd.read_json(_, orient='records')
+      col 1 col 2
+    0     a     b
+    1     c     d
     """
 
     filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
@@ -605,20 +652,9 @@ def _convert_to_line_delimits(s):
     if not s[0] == '[' and s[-1] == ']':
         return s
     s = s[1:-1]
-    num_open_brackets_seen = 0
-    commas_to_replace = []
-    for idx, char in enumerate(s):              # iter through to find all
-        if char == ',':                         # commas that should be \n
-            if num_open_brackets_seen == 0:
-                commas_to_replace.append(idx)
-        elif char == '{':
-            num_open_brackets_seen += 1
-        elif char == '}':
-            num_open_brackets_seen -= 1
-    s_arr = np.array(list(s))                  # Turn to an array to set
-    s_arr[commas_to_replace] = '\n'            # all commas at once.
-    s = ''.join(s_arr)
-    return s
+
+    from pandas.lib import convert_json_to_lines
+    return convert_json_to_lines(s)
 
 
 def nested_to_record(ds, prefix="", level=0):

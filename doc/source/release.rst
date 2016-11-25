@@ -20,7 +20,7 @@ Release Notes
 *************
 
 This is the list of changes to pandas between each release. For full details,
-see the commit logs at http://github.com/pydata/pandas
+see the commit logs at http://github.com/pandas-dev/pandas
 
 **What is it**
 
@@ -33,9 +33,199 @@ analysis / manipulation tool available in any language.
 
 **Where to get it**
 
-* Source code: http://github.com/pydata/pandas
+* Source code: http://github.com/pandas-dev/pandas
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
+
+
+pandas 0.19.1
+-------------
+
+**Release date:** November 3, 2016
+
+This is a minor bug-fix release from 0.19.0 and includes some small regression fixes,
+bug fixes and performance improvements.
+
+See the :ref:`v0.19.1 Whatsnew <whatsnew_0191>` page for an overview of all
+bugs that have been fixed in 0.19.1.
+
+Thanks
+~~~~~~
+
+- Adam Chainz
+- Anthonios Partheniou
+- Arash Rouhani
+- Ben Kandel
+- Brandon M. Burroughs
+- Chris
+- chris-b1
+- Chris Warth
+- David Krych
+- dubourg
+- gfyoung
+- Iván Vallés Pérez
+- Jeff Reback
+- Joe Jevnik
+- Jon M. Mease
+- Joris Van den Bossche
+- Josh Owen
+- Keshav Ramaswamy
+- Larry Ren
+- mattrijk
+- Michael Felt
+- paul-mannino
+- Piotr Chromiec
+- Robert Bradshaw
+- Sinhrks
+- Thiago Serafim
+- Tom Bird
+
+
+pandas 0.19.0
+-------------
+
+**Release date:** October 2, 2016
+
+This is a major release from 0.18.1 and includes number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+- :func:`merge_asof` for asof-style time-series joining, see :ref:`here <whatsnew_0190.enhancements.asof_merge>`
+- ``.rolling()`` is now time-series aware, see :ref:`here <whatsnew_0190.enhancements.rolling_ts>`
+- :func:`read_csv` now supports parsing ``Categorical`` data, see :ref:`here <whatsnew_0190.enhancements.read_csv_categorical>`
+- A function :func:`union_categorical` has been added for combining categoricals, see :ref:`here <whatsnew_0190.enhancements.union_categoricals>`
+- ``PeriodIndex`` now has its own ``period`` dtype, and changed to be more consistent with other ``Index`` classes. See :ref:`here <whatsnew_0190.api.period>`
+- Sparse data structures gained enhanced support of ``int`` and ``bool`` dtypes, see :ref:`here <whatsnew_0190.sparse>`
+- Comparison operations with ``Series`` no longer ignores the index, see :ref:`here <whatsnew_0190.api.series_ops>` for an overview of the API changes.
+- Introduction of a pandas development API for utility functions, see :ref:`here <whatsnew_0190.dev_api>`.
+- Deprecation of ``Panel4D`` and ``PanelND``. We recommend to represent these types of n-dimensional data with the `xarray package <http://xarray.pydata.org/en/stable/>`__.
+- Removal of the previously deprecated modules ``pandas.io.data``, ``pandas.io.wb``, ``pandas.tools.rplot``.
+
+See the :ref:`v0.19.0 Whatsnew <whatsnew_0190>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.19.0.
+
+Thanks
+~~~~~~
+
+- adneu
+- Adrien Emery
+- agraboso
+- Alex Alekseyev
+- Alex Vig
+- Allen Riddell
+- Amol
+- Amol Agrawal
+- Andy R. Terrel
+- Anthonios Partheniou
+- babakkeyvani
+- Ben Kandel
+- Bob Baxley
+- Brett Rosen
+- c123w
+- Camilo Cota
+- Chris
+- chris-b1
+- Chris Grinolds
+- Christian Hudon
+- Christopher C. Aycock
+- Chris Warth
+- cmazzullo
+- conquistador1492
+- cr3
+- Daniel Siladji
+- Douglas McNeil
+- Drewrey Lupton
+- dsm054
+- Eduardo Blancas Reyes
+- Elliot Marsden
+- Evan Wright
+- Felix Marczinowski
+- Francis T. O'Donovan
+- Gábor Lipták
+- Geraint Duck
+- gfyoung
+- Giacomo Ferroni
+- Grant Roch
+- Haleemur Ali
+- harshul1610
+- Hassan Shamim
+- iamsimha
+- Iulius Curt
+- Ivan Nazarov
+- jackieleng
+- Jeff Reback
+- Jeffrey Gerard
+- Jenn Olsen
+- Jim Crist
+- Joe Jevnik
+- John Evans
+- John Freeman
+- John Liekezer
+- Johnny Gill
+- John W. O'Brien
+- John Zwinck
+- Jordan Erenrich
+- Joris Van den Bossche
+- Josh Howes
+- Jozef Brandys
+- Kamil Sindi
+- Ka Wo Chen
+- Kerby Shedden
+- Kernc
+- Kevin Sheppard
+- Matthieu Brucher
+- Maximilian Roos
+- Michael Scherer
+- Mike Graham
+- Mortada Mehyar
+- mpuels
+- Muhammad Haseeb Tariq
+- Nate George
+- Neil Parley
+- Nicolas Bonnotte
+- OXPHOS
+- Pan Deng / Zora
+- Paul
+- Pauli Virtanen
+- Paul Mestemaker
+- Pawel Kordek
+- Pietro Battiston
+- pijucha
+- Piotr Jucha
+- priyankjain
+- Ravi Kumar Nimmi
+- Robert Gieseke
+- Robert Kern
+- Roger Thomas
+- Roy Keyes
+- Russell Smith
+- Sahil Dua
+- Sanjiv Lobo
+- Sašo Stanovnik
+- Shawn Heide
+- sinhrks
+- Sinhrks
+- Stephen Kappel
+- Steve Choi
+- Stewart Henderson
+- Sudarshan Konge
+- Thomas A Caswell
+- Tom Augspurger
+- Tom Bird
+- Uwe Hoffmann
+- wcwagner
+- WillAyd
+- Xiang Zhang
+- Yadunandan
+- Yaroslav Halchenko
+- YG-Riku
+- Yuichiro Kaneko
+- yui-knk
+- zhangjinjie
+- znmean
+- 颜发才（Yan Facai）
 
 pandas 0.18.1
 -------------
@@ -149,7 +339,7 @@ Highlights include:
 - ``pd.test()`` top-level nose test runner is available (:issue:`4327`).
 
 See the :ref:`v0.18.0 Whatsnew <whatsnew_0180>` overview for an extensive list
-of all enhancements and bugs that have been fixed in 0.17.1.
+of all enhancements and bugs that have been fixed in 0.18.0.
 
 Thanks
 ~~~~~~

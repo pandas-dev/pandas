@@ -6,7 +6,7 @@ Where to start?
 
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
 
-If you are simply looking to start working with the *pandas* codebase, navigate to the [GitHub "issues" tab](https://github.com/pydata/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pydata/pandas/issues?labels=Docs&sort=updated&state=open) and [Difficulty Novice](https://github.com/pydata/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22) where you could start out.
+If you are simply looking to start working with the *pandas* codebase, navigate to the [GitHub "issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [Difficulty Novice](https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22) where you could start out.
 
 Or maybe through using *pandas* you have an idea of you own or are looking for something in the documentation and thinking 'this can be improved'...you can do something about it!
 
@@ -49,7 +49,7 @@ Now that you have an issue you want to fix, enhancement to add, or documentation
 
 To the new user, working with Git is one of the more daunting aspects of contributing to *pandas*. It can very quickly become overwhelming, but sticking to the guidelines below will help keep the process straightforward and mostly trouble free. As always, if you are having difficulties please feel free to ask for help.
 
-The code is hosted on [GitHub](https://www.github.com/pydata/pandas). To contribute you will need to sign up for a [free GitHub account](https://github.com/signup/free). We use [Git](http://git-scm.com/) for version control to allow many people to work together on the project.
+The code is hosted on [GitHub](https://www.github.com/pandas-dev/pandas). To contribute you will need to sign up for a [free GitHub account](https://github.com/signup/free). We use [Git](http://git-scm.com/) for version control to allow many people to work together on the project.
 
 Some great resources for learning Git:
 
@@ -63,11 +63,11 @@ Some great resources for learning Git:
 
 ### Forking
 
-You will need your own fork to work on the code. Go to the [pandas project page](https://github.com/pydata/pandas) and hit the `Fork` button. You will want to clone your fork to your machine:
+You will need your own fork to work on the code. Go to the [pandas project page](https://github.com/pandas-dev/pandas) and hit the `Fork` button. You will want to clone your fork to your machine:
 
     git clone git@github.com:your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
-    git remote add upstream git://github.com/pydata/pandas.git
+    git remote add upstream git://github.com/pandas-dev/pandas.git
 
 This creates the directory pandas-yourname and connects your repository to the upstream (main project) *pandas* repository.
 
@@ -268,7 +268,7 @@ and make these changes with:
 
     pep8radius master --diff --in-place
 
-Alternatively, use the [flake8](http://pypi.python.org/pypi/flake8) tool for checking the style of your code. Additional standards are outlined on the [code style wiki page](https://github.com/pydata/pandas/wiki/Code-Style-and-Conventions).
+Alternatively, use the [flake8](http://pypi.python.org/pypi/flake8) tool for checking the style of your code. Additional standards are outlined on the [code style wiki page](https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions).
 
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of existing code, so don't break it if at all possible. If you think breakage is required, clearly state why as part of the pull request. Also, be careful when changing method signatures and add deprecation warnings where needed.
 
@@ -278,11 +278,11 @@ Please try to maintain backward compatibility. *pandas* has lots of users with l
 
 Adding tests is one of the most common requests after code is pushed to *pandas*. Therefore, it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
-Like many packages, *pandas* uses the [Nose testing system](http://nose.readthedocs.org/en/latest/index.html) and the convenient extensions in [numpy.testing](http://docs.scipy.org/doc/numpy/reference/routines.testing.html).
+Like many packages, *pandas* uses the [Nose testing system](https://nose.readthedocs.io/en/latest/index.html) and the convenient extensions in [numpy.testing](http://docs.scipy.org/doc/numpy/reference/routines.testing.html).
 
 #### Writing tests
 
-All tests should go into the `tests` subdirectory of the specific package. This folder contains many current examples of tests, and we suggest looking to these for inspiration. If your test requires working with files or network connectivity, there is more information on the [testing page](https://github.com/pydata/pandas/wiki/Testing) of the wiki.
+All tests should go into the `tests` subdirectory of the specific package. This folder contains many current examples of tests, and we suggest looking to these for inspiration. If your test requires working with files or network connectivity, there is more information on the [testing page](https://github.com/pandas-dev/pandas/wiki/Testing) of the wiki.
 
 The `pandas.util.testing` module has many special `assert` functions that make it easier to make statements about whether Series or DataFrame objects are equivalent. The easiest way to verify that your code is correct is to explicitly construct the result you expect, then compare the actual result to the expected correct result:
 
@@ -323,7 +323,7 @@ Performance matters and it is worth considering whether your code has introduced
 >
 > The asv benchmark suite was translated from the previous framework, vbench, so many stylistic issues are likely a result of automated transformation of the code.
 
-To use asv you will need either `conda` or `virtualenv`. For more details please check the [asv installation webpage](http://asv.readthedocs.org/en/latest/installing.html).
+To use asv you will need either `conda` or `virtualenv`. For more details please check the [asv installation webpage](https://asv.readthedocs.io/en/latest/installing.html).
 
 To install asv:
 
@@ -360,7 +360,7 @@ This command is equivalent to:
 
 This will launch every test only once, display stderr from the benchmarks, and use your local `python` that comes from your `$PATH`.
 
-Information on how to write a benchmark can be found in the [asv documentation](http://asv.readthedocs.org/en/latest/writing_benchmarks.html).
+Information on how to write a benchmark can be found in the [asv documentation](https://asv.readthedocs.io/en/latest/writing_benchmarks.html).
 
 #### Running the vbench performance test suite (phasing out)
 
@@ -378,7 +378,7 @@ This will check out the master revision and run the suite on both master and you
 
 You can run specific benchmarks using the `-r` flag, which takes a regular expression.
 
-See the [performance testing wiki](https://github.com/pydata/pandas/wiki/Performance-Testing) for information on how to write a benchmark.
+See the [performance testing wiki](https://github.com/pandas-dev/pandas/wiki/Performance-Testing) for information on how to write a benchmark.
 
 ### Documenting your code
 
@@ -390,7 +390,7 @@ If your code is an enhancement, it is most likely necessary to add usage example
 .. versionadded:: 0.17.0
 ```
 
-This will put the text *New in version 0.17.0* wherever you put the sphinx directive. This should also be put in the docstring when adding a new function or method ([example](https://github.com/pydata/pandas/blob/v0.16.2/pandas/core/generic.py#L1959)) or a new keyword argument ([example](https://github.com/pydata/pandas/blob/v0.16.2/pandas/core/frame.py#L1171)).
+This will put the text *New in version 0.17.0* wherever you put the sphinx directive. This should also be put in the docstring when adding a new function or method ([example](https://github.com/pandas-dev/pandas/blob/v0.16.2/pandas/core/generic.py#L1959)) or a new keyword argument ([example](https://github.com/pandas-dev/pandas/blob/v0.16.2/pandas/core/frame.py#L1171)).
 
 Contributing your changes to *pandas*
 -------------------------------------
@@ -466,8 +466,8 @@ If you added the upstream repository as described above you will see something l
 
     origin  git@github.com:yourname/pandas.git (fetch)
     origin  git@github.com:yourname/pandas.git (push)
-    upstream        git://github.com/pydata/pandas.git (fetch)
-    upstream        git://github.com/pydata/pandas.git (push)
+    upstream        git://github.com/pandas-dev/pandas.git (fetch)
+    upstream        git://github.com/pandas-dev/pandas.git (push)
 
 Now your code is on GitHub, but it is not yet a part of the *pandas* project. For that to happen, a pull request needs to be submitted on GitHub.
 

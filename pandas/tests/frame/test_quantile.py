@@ -262,6 +262,11 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
                              index=[0.5], columns=[0, 1])
         assert_frame_equal(result, expected)
 
+        # empty when numeric_only=True
+        # FIXME (gives empty frame in 0.18.1, broken in 0.19.0)
+        # result = df[['a', 'c']].quantile(.5)
+        # result = df[['a', 'c']].quantile([.5])
+
     def test_quantile_invalid(self):
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
@@ -340,3 +345,95 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
                              pd.Timedelta('2 days')]],
                            index=[0.5], columns=list('AaBbCc'))
         tm.assert_frame_equal(res, exp)
+
+    def test_quantile_nan(self):
+
+        # GH 14357 - float block where some cols have missing values
+        df = DataFrame({'a': np.arange(1, 6.0), 'b': np.arange(1, 6.0)})
+        df.iloc[-1, 1] = np.nan
+
+        res = df.quantile(0.5)
+        exp = Series([3.0, 2.5], index=['a', 'b'], name=0.5)
+        tm.assert_series_equal(res, exp)
+
+        res = df.quantile([0.5, 0.75])
+        exp = DataFrame({'a': [3.0, 4.0], 'b': [2.5, 3.25]}, index=[0.5, 0.75])
+        tm.assert_frame_equal(res, exp)
+
+        res = df.quantile(0.5, axis=1)
+        exp = Series(np.arange(1.0, 6.0), name=0.5)
+        tm.assert_series_equal(res, exp)
+
+        res = df.quantile([0.5, 0.75], axis=1)
+        exp = DataFrame([np.arange(1.0, 6.0)] * 2, index=[0.5, 0.75])
+        tm.assert_frame_equal(res, exp)
+
+        # full-nan column
+        df['b'] = np.nan
+
+        res = df.quantile(0.5)
+        exp = Series([3.0, np.nan], index=['a', 'b'], name=0.5)
+        tm.assert_series_equal(res, exp)
+
+        res = df.quantile([0.5, 0.75])
+        exp = DataFrame({'a': [3.0, 4.0], 'b': [np.nan, np.nan]},
+                        index=[0.5, 0.75])
+        tm.assert_frame_equal(res, exp)
+
+    def test_quantile_nat(self):
+
+        # full NaT column
+        df = DataFrame({'a': [pd.NaT, pd.NaT, pd.NaT]})
+
+        res = df.quantile(0.5, numeric_only=False)
+        exp = Series([pd.NaT], index=['a'], name=0.5)
+        tm.assert_series_equal(res, exp)
+
+        res = df.quantile([0.5], numeric_only=False)
+        exp = DataFrame({'a': [pd.NaT]}, index=[0.5])
+        tm.assert_frame_equal(res, exp)
+
+        # mixed non-null / full null column
+        df = DataFrame({'a': [pd.Timestamp('2012-01-01'),
+                              pd.Timestamp('2012-01-02'),
+                              pd.Timestamp('2012-01-03')],
+                        'b': [pd.NaT, pd.NaT, pd.NaT]})
+
+        res = df.quantile(0.5, numeric_only=False)
+        exp = Series([pd.Timestamp('2012-01-02'), pd.NaT], index=['a', 'b'],
+                     name=0.5)
+        tm.assert_series_equal(res, exp)
+
+        res = df.quantile([0.5], numeric_only=False)
+        exp = DataFrame([[pd.Timestamp('2012-01-02'), pd.NaT]], index=[0.5],
+                        columns=['a', 'b'])
+        tm.assert_frame_equal(res, exp)
+
+    def test_quantile_empty(self):
+
+        # floats
+        df = DataFrame(columns=['a', 'b'], dtype='float64')
+
+        res = df.quantile(0.5)
+        exp = Series([np.nan, np.nan], index=['a', 'b'], name=0.5)
+        tm.assert_series_equal(res, exp)
+
+        res = df.quantile([0.5])
+        exp = DataFrame([[np.nan, np.nan]], columns=['a', 'b'], index=[0.5])
+        tm.assert_frame_equal(res, exp)
+
+        # FIXME (gives empty frame in 0.18.1, broken in 0.19.0)
+        # res = df.quantile(0.5, axis=1)
+        # res = df.quantile([0.5], axis=1)
+
+        # ints
+        df = DataFrame(columns=['a', 'b'], dtype='int64')
+
+        # FIXME (gives empty frame in 0.18.1, broken in 0.19.0)
+        # res = df.quantile(0.5)
+
+        # datetimes
+        df = DataFrame(columns=['a', 'b'], dtype='datetime64')
+
+        # FIXME (gives NaNs instead of NaT in 0.18.1 or 0.19.0)
+        # res = df.quantile(0.5, numeric_only=False)

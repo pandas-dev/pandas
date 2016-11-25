@@ -1678,7 +1678,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         # start date gets used to determine the offset.  Fixes issue where
         # a one day period is not a multiple of the frequency.
         #
-        # See: https://github.com/pydata/pandas/issues/8683
+        # See: https://github.com/pandas-dev/pandas/issues/8683
 
         index = pd.date_range(
             '2014-10-14 23:06:23.206', periods=3, freq='400L'
@@ -1912,7 +1912,33 @@ class TestDatetimeIndex(Base, tm.TestCase):
         right = Series(val, index=ix)
         assert_series_equal(left, right)
 
-    def test_resmaple_dst_anchor(self):
+    def test_resample_across_dst(self):
+        # The test resamples a DatetimeIndex with values before and after a
+        # DST change
+        # Issue: 14682
+
+        # The DatetimeIndex we will start with
+        # (note that DST happens at 03:00+02:00 -> 02:00+01:00)
+        # 2016-10-30 02:23:00+02:00, 2016-10-30 02:23:00+01:00
+        df1 = DataFrame([1477786980, 1477790580], columns=['ts'])
+        dti1 = DatetimeIndex(pd.to_datetime(df1.ts, unit='s')
+                             .dt.tz_localize('UTC')
+                             .dt.tz_convert('Europe/Madrid'))
+
+        # The expected DatetimeIndex after resampling.
+        # 2016-10-30 02:00:00+02:00, 2016-10-30 02:00:00+01:00
+        df2 = DataFrame([1477785600, 1477789200], columns=['ts'])
+        dti2 = DatetimeIndex(pd.to_datetime(df2.ts, unit='s')
+                             .dt.tz_localize('UTC')
+                             .dt.tz_convert('Europe/Madrid'))
+        df = DataFrame([5, 5], index=dti1)
+
+        result = df.resample(rule='H').sum()
+        expected = DataFrame([5, 5], index=dti2)
+
+        assert_frame_equal(result, expected)
+
+    def test_resample_dst_anchor(self):
         # 5172
         dti = DatetimeIndex([datetime(2012, 11, 4, 23)], tz='US/Eastern')
         df = DataFrame([5], index=dti)

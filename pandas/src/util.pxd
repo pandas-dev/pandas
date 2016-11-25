@@ -38,6 +38,20 @@ ctypedef fused numeric:
     cnp.float32_t
     cnp.float64_t
 
+cdef extern from "headers/stdint.h":
+    enum: UINT8_MAX
+    enum: UINT16_MAX
+    enum: UINT32_MAX
+    enum: UINT64_MAX
+    enum: INT8_MIN
+    enum: INT8_MAX
+    enum: INT16_MIN
+    enum: INT16_MAX
+    enum: INT32_MAX
+    enum: INT32_MIN
+    enum: INT64_MAX
+    enum: INT64_MIN
+
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
@@ -56,7 +70,12 @@ cdef inline object get_value_at(ndarray arr, object loc):
 
     return get_value_1d(arr, i)
 
-cdef inline set_value_at(ndarray arr, object loc, object value):
+cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
+    """Sets a value into the array without checking the writeable flag.
+
+    This should be used when setting values in a loop, check the writeable
+    flag above the loop and then eschew the check on each iteration.
+    """
     cdef:
         Py_ssize_t i, sz
     if is_float_object(loc):
@@ -72,6 +91,14 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
         raise IndexError('index out of bounds')
 
     assign_value_1d(arr, i, value)
+
+cdef inline set_value_at(ndarray arr, object loc, object value):
+    """Sets a value into the array after checking that the array is mutable.
+    """
+    if not cnp.PyArray_ISWRITEABLE(arr):
+        raise ValueError('assignment destination is read-only')
+
+    set_value_at_unsafe(arr, loc, value)
 
 cdef inline int is_contiguous(ndarray arr):
     return cnp.PyArray_CHKFLAGS(arr, cnp.NPY_C_CONTIGUOUS)

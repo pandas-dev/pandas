@@ -85,7 +85,11 @@ from distutils.command.build_ext import build_ext as _build_ext
 try:
     if not _CYTHON_INSTALLED:
         raise ImportError('No supported version of Cython installed.')
-    from Cython.Distutils import build_ext as _build_ext
+    try:
+        from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
+    except ImportError:
+        # Pre 0.25
+        from Cython.Distutils import build_ext as _build_ext
     cython = True
 except ImportError:
     cython = False
@@ -125,25 +129,25 @@ for module, files in _pxi_dep_template.items():
 class build_ext(_build_ext):
     def build_extensions(self):
 
-        if not cython:
-            raise ImportError('Building pandas requires cython')
+        # if builing from c files, don't need to
+        # generate template output
+        if cython:
+            for pxifile in _pxifiles:
+                # build pxifiles first, template extention must be .pxi.in
+                assert pxifile.endswith('.pxi.in')
+                outfile = pxifile[:-3]
 
-        for pxifile in _pxifiles:
-            # build pxifiles first, template extention must be .pxi.in
-            assert pxifile.endswith('.pxi.in')
-            outfile = pxifile[:-3]
+                if (os.path.exists(outfile) and
+                    os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
+                    # if .pxi.in is not updated, no need to output .pxi
+                    continue
 
-            if (os.path.exists(outfile) and
-               os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
-                # if .pxi.in is not updated, no need to output .pxi
-                continue
+                with open(pxifile, "r") as f:
+                    tmpl = f.read()
+                pyxcontent = tempita.sub(tmpl)
 
-            with open(pxifile, "r") as f:
-                tmpl = f.read()
-            pyxcontent = tempita.sub(tmpl)
-
-            with open(outfile, "w") as f:
-                f.write(pyxcontent)
+                with open(outfile, "w") as f:
+                    f.write(pyxcontent)
 
         numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
 
@@ -240,6 +244,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
     'Programming Language :: Cython',
     'Topic :: Scientific/Engineering',
 ]
@@ -450,7 +455,8 @@ lib_depends = lib_depends + ['pandas/src/numpy_helper.h',
 
 tseries_depends = ['pandas/src/datetime/np_datetime.h',
                    'pandas/src/datetime/np_datetime_strings.h',
-                   'pandas/src/period_helper.h']
+                   'pandas/src/period_helper.h',
+                   'pandas/src/datetime.pxd']
 
 
 # some linux distros require it
@@ -476,7 +482,8 @@ ext_data = dict(
                          'pandas/src/period_helper.c']},
     index={'pyxfile': 'index',
            'sources': ['pandas/src/datetime/np_datetime.c',
-                       'pandas/src/datetime/np_datetime_strings.c']},
+                       'pandas/src/datetime/np_datetime_strings.c'],
+           'pxdfiles': ['src/util']},
     algos={'pyxfile': 'algos',
            'pxdfiles': ['src/util'],
            'depends': _pxi_dep['algos']},
@@ -637,7 +644,8 @@ setup(name=DISTNAME,
                 'pandas.io.tests.parser',
                 'pandas.io.tests.sas',
                 'pandas.stats.tests',
-                'pandas.msgpack'
+                'pandas.msgpack',
+                'pandas.util.clipboard'
                 ],
       package_data={'pandas.io': ['tests/data/legacy_hdf/*.h5',
                                   'tests/data/legacy_pickle/*/*.pickle',

@@ -46,7 +46,7 @@ def get_issues():
 
 
 def _get_page(page_number):
-    gh_url = ('https://api.github.com/repos/pydata/pandas/issues?'
+    gh_url = ('https://api.github.com/repos/pandas-dev/pandas/issues?'
               'milestone=*&state=closed&assignee=*&page=%d') % page_number
     with urlopen(gh_url) as resp:
         rs = resp.readlines()[0]

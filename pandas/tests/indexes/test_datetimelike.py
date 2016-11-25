@@ -732,6 +732,22 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
                            dtype=object)
             self.assert_index_equal(idx.fillna('x'), exp)
 
+    def test_difference_freq(self):
+        # GH14323: difference of DatetimeIndex should not preserve frequency
+
+        index = date_range("20160920", "20160925", freq="D")
+        other = date_range("20160921", "20160924", freq="D")
+        expected = DatetimeIndex(["20160920", "20160925"], freq=None)
+        idx_diff = index.difference(other)
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal('freq', idx_diff, expected)
+
+        other = date_range("20160922", "20160925", freq="D")
+        idx_diff = index.difference(other)
+        expected = DatetimeIndex(["20160920", "20160921"], freq=None)
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal('freq', idx_diff, expected)
+
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex
@@ -937,6 +953,24 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         with self.assertRaises(AttributeError):
             DatetimeIndex([]).millisecond
+
+    def test_difference_freq(self):
+        # GH14323: difference of Period MUST preserve frequency
+        # but the ability to union results must be preserved
+
+        index = period_range("20160920", "20160925", freq="D")
+
+        other = period_range("20160921", "20160924", freq="D")
+        expected = PeriodIndex(["20160920", "20160925"], freq='D')
+        idx_diff = index.difference(other)
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal('freq', idx_diff, expected)
+
+        other = period_range("20160922", "20160925", freq="D")
+        idx_diff = index.difference(other)
+        expected = PeriodIndex(["20160920", "20160921"], freq='D')
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal('freq', idx_diff, expected)
 
 
 class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
@@ -1149,3 +1183,20 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         exp = pd.Index(
             [pd.Timedelta('1 day'), 'x', pd.Timedelta('3 day')], dtype=object)
         self.assert_index_equal(idx.fillna('x'), exp)
+
+    def test_difference_freq(self):
+        # GH14323: Difference of TimedeltaIndex should not preserve frequency
+
+        index = timedelta_range("0 days", "5 days", freq="D")
+
+        other = timedelta_range("1 days", "4 days", freq="D")
+        expected = TimedeltaIndex(["0 days", "5 days"], freq=None)
+        idx_diff = index.difference(other)
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal('freq', idx_diff, expected)
+
+        other = timedelta_range("2 days", "5 days", freq="D")
+        idx_diff = index.difference(other)
+        expected = TimedeltaIndex(["0 days", "1 days"], freq=None)
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal('freq', idx_diff, expected)

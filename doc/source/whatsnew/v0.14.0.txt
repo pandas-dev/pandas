@@ -401,7 +401,7 @@ through SQLAlchemy (:issue:`2717`, :issue:`4163`, :issue:`5950`, :issue:`6292`).
 All databases supported by SQLAlchemy can be used, such
 as PostgreSQL, MySQL, Oracle, Microsoft SQL server (see documentation of
 SQLAlchemy on `included dialects
-<http://sqlalchemy.readthedocs.org/en/latest/dialects/index.html>`_).
+<https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html>`_).
 
 The functionality of providing DBAPI connection objects will only be supported
 for sqlite3 in the future. The ``'mysql'`` flavor is deprecated.
@@ -630,9 +630,9 @@ There are prior version deprecations that are taking effect as of 0.14.0.
 - Remove ``unique`` keyword from :meth:`HDFStore.select_column` (:issue:`3256`)
 - Remove ``inferTimeRule`` keyword from :func:`Timestamp.offset` (:issue:`391`)
 - Remove ``name`` keyword from :func:`get_data_yahoo` and
-  :func:`get_data_google` ( `commit b921d1a <https://github.com/pydata/pandas/commit/b921d1a2>`__ )
+  :func:`get_data_google` ( `commit b921d1a <https://github.com/pandas-dev/pandas/commit/b921d1a2>`__ )
 - Remove ``offset`` keyword from :class:`DatetimeIndex` constructor
-  ( `commit 3136390 <https://github.com/pydata/pandas/commit/3136390>`__ )
+  ( `commit 3136390 <https://github.com/pandas-dev/pandas/commit/3136390>`__ )
 - Remove ``time_rule`` from several rolling-moment statistical functions, such
   as :func:`rolling_sum` (:issue:`1042`)
 - Removed neg ``-`` boolean operations on numpy arrays in favor of inv ``~``, as this is going to

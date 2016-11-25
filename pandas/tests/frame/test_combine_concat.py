@@ -4,20 +4,20 @@ from __future__ import print_function
 
 from datetime import datetime
 
-from numpy import nan
 import numpy as np
+from numpy import nan
 
-from pandas.compat import lrange
-from pandas import DataFrame, Series, Index, Timestamp
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
-
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, Series, Timestamp
+from pandas.compat import lrange
 
 from pandas.tests.frame.common import TestData
+
+import pandas.util.testing as tm
+from pandas.util.testing import (assertRaisesRegexp,
+                                 assert_frame_equal,
+                                 assert_series_equal)
 
 
 class TestDataFrameConcatCommon(tm.TestCase, TestData):
@@ -55,6 +55,24 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
 
         results = pd.concat([df2, df3]).reset_index(drop=True)
         expected = DataFrame(dict(time=[ts2, ts3]))
+        assert_frame_equal(results, expected)
+
+    def test_concat_tuple_keys(self):
+        # GH 14438
+        df1 = pd.DataFrame(np.ones((2, 2)), columns=list('AB'))
+        df2 = pd.DataFrame(np.ones((3, 2)) * 2, columns=list('AB'))
+        results = pd.concat((df1, df2), keys=[('bee', 'bah'), ('bee', 'boo')])
+        expected = pd.DataFrame(
+            {'A': {('bee', 'bah', 0): 1.0,
+                   ('bee', 'bah', 1): 1.0,
+                   ('bee', 'boo', 0): 2.0,
+                   ('bee', 'boo', 1): 2.0,
+                   ('bee', 'boo', 2): 2.0},
+             'B': {('bee', 'bah', 0): 1.0,
+                   ('bee', 'bah', 1): 1.0,
+                   ('bee', 'boo', 0): 2.0,
+                   ('bee', 'boo', 1): 2.0,
+                   ('bee', 'boo', 2): 2.0}})
         assert_frame_equal(results, expected)
 
     def test_append_series_dict(self):
@@ -323,6 +341,88 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         assert_frame_equal(df1.join(df2, how='right'), exp)
         assert_frame_equal(df2.join(df1, how='left'),
                            exp[['value2', 'value1']])
+
+    def test_concat_named_keys(self):
+        # GH 14252
+        df = pd.DataFrame({'foo': [1, 2], 'bar': [0.1, 0.2]})
+        index = Index(['a', 'b'], name='baz')
+        concatted_named_from_keys = pd.concat([df, df], keys=index)
+        expected_named = pd.DataFrame(
+            {'foo': [1, 2, 1, 2], 'bar': [0.1, 0.2, 0.1, 0.2]},
+            index=pd.MultiIndex.from_product((['a', 'b'], [0, 1]),
+                                             names=['baz', None]))
+        assert_frame_equal(concatted_named_from_keys, expected_named)
+
+        index_no_name = Index(['a', 'b'], name=None)
+        concatted_named_from_names = pd.concat(
+            [df, df], keys=index_no_name, names=['baz'])
+        assert_frame_equal(concatted_named_from_names, expected_named)
+
+        concatted_unnamed = pd.concat([df, df], keys=index_no_name)
+        expected_unnamed = pd.DataFrame(
+            {'foo': [1, 2, 1, 2], 'bar': [0.1, 0.2, 0.1, 0.2]},
+            index=pd.MultiIndex.from_product((['a', 'b'], [0, 1]),
+                                             names=[None, None]))
+        assert_frame_equal(concatted_unnamed, expected_unnamed)
+
+    def test_concat_axis_parameter(self):
+        # GH 14369
+        df1 = pd.DataFrame({'A': [0.1, 0.2]}, index=range(2))
+        df2 = pd.DataFrame({'A': [0.3, 0.4]}, index=range(2))
+
+        # Index/row/0 DataFrame
+        expected_index = pd.DataFrame(
+            {'A': [0.1, 0.2, 0.3, 0.4]}, index=[0, 1, 0, 1])
+
+        concatted_index = pd.concat([df1, df2], axis='index')
+        assert_frame_equal(concatted_index, expected_index)
+
+        concatted_row = pd.concat([df1, df2], axis='rows')
+        assert_frame_equal(concatted_row, expected_index)
+
+        concatted_0 = pd.concat([df1, df2], axis=0)
+        assert_frame_equal(concatted_0, expected_index)
+
+        # Columns/1 DataFrame
+        expected_columns = pd.DataFrame(
+            [[0.1, 0.3], [0.2, 0.4]], index=[0, 1], columns=['A', 'A'])
+
+        concatted_columns = pd.concat([df1, df2], axis='columns')
+        assert_frame_equal(concatted_columns, expected_columns)
+
+        concatted_1 = pd.concat([df1, df2], axis=1)
+        assert_frame_equal(concatted_1, expected_columns)
+
+        series1 = pd.Series([0.1, 0.2])
+        series2 = pd.Series([0.3, 0.4])
+
+        # Index/row/0 Series
+        expected_index_series = pd.Series(
+            [0.1, 0.2, 0.3, 0.4], index=[0, 1, 0, 1])
+
+        concatted_index_series = pd.concat([series1, series2], axis='index')
+        assert_series_equal(concatted_index_series, expected_index_series)
+
+        concatted_row_series = pd.concat([series1, series2], axis='rows')
+        assert_series_equal(concatted_row_series, expected_index_series)
+
+        concatted_0_series = pd.concat([series1, series2], axis=0)
+        assert_series_equal(concatted_0_series, expected_index_series)
+
+        # Columns/1 Series
+        expected_columns_series = pd.DataFrame(
+            [[0.1, 0.3], [0.2, 0.4]], index=[0, 1], columns=[0, 1])
+
+        concatted_columns_series = pd.concat(
+            [series1, series2], axis='columns')
+        assert_frame_equal(concatted_columns_series, expected_columns_series)
+
+        concatted_1_series = pd.concat([series1, series2], axis=1)
+        assert_frame_equal(concatted_1_series, expected_columns_series)
+
+        # Testing ValueError
+        with assertRaisesRegexp(ValueError, 'No axis named'):
+            pd.concat([series1, series2], axis='something')
 
 
 class TestDataFrameCombineFirst(tm.TestCase, TestData):

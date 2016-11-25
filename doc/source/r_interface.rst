@@ -17,7 +17,7 @@ rpy2 / R interface
 
    In v0.16.0, the ``pandas.rpy`` interface has been **deprecated and will be
    removed in a future version**. Similar functionality can be accessed
-   through the `rpy2 <http://rpy2.readthedocs.io/>`__ project.
+   through the `rpy2 <https://rpy2.readthedocs.io/>`__ project.
    See the :ref:`updating <rpy.updating>` section for a guide to port your
    code from the ``pandas.rpy`` to ``rpy2`` functions.
 
@@ -71,7 +71,7 @@ The ``convert_to_r_matrix`` function can be replaced by the normal
     Not all conversion functions in rpy2 are working exactly the same as the
     current methods in pandas. If you experience problems or limitations in
     comparison to the ones in pandas, please report this at the
-    `issue tracker <https://github.com/pydata/pandas/issues>`_.
+    `issue tracker <https://github.com/pandas-dev/pandas/issues>`_.
 
 See also the documentation of the `rpy2 <http://rpy2.bitbucket.org/>`__ project.
 

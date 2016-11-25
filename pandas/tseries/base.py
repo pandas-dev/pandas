@@ -100,7 +100,7 @@ class TimelikeOps(object):
     def floor(self, freq):
         return self._round(freq, np.floor)
 
-    @Appender(_round_doc % "floor")
+    @Appender(_round_doc % "ceil")
     def ceil(self, freq):
         return self._round(freq, np.ceil)
 
@@ -225,10 +225,6 @@ class DatetimeIndexOpsMixin(object):
         apply box func to passed values
         """
         return lib.map_infer(values, self._box_func)
-
-    def groupby(self, f):
-        objs = self.asobject.values
-        return _algos.groupby_object(objs, f)
 
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))

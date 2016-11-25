@@ -1,19 +1,31 @@
 """ io on the clipboard """
 from pandas import compat, get_option, option_context, DataFrame
-from pandas.compat import StringIO
+from pandas.compat import StringIO, PY2
 
 
-def read_clipboard(**kwargs):  # pragma: no cover
-    """
+def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
+    r"""
     Read text from clipboard and pass to read_table. See read_table for the
     full argument list
 
-    If unspecified, `sep` defaults to '\s+'
+    Parameters
+    ----------
+    sep : str, default '\s+'.
+        A string or regex delimiter. The default of '\s+' denotes
+        one or more whitespace characters.
 
     Returns
     -------
     parsed : DataFrame
     """
+    encoding = kwargs.pop('encoding', 'utf-8')
+
+    # only utf-8 is valid for passed value because that's what clipboard
+    # supports
+    if encoding is not None and encoding.lower().replace('-', '') != 'utf8':
+        raise NotImplementedError(
+            'reading from clipboard only supports utf-8 encoding')
+
     from pandas.util.clipboard import clipboard_get
     from pandas.io.parsers import read_table
     text = clipboard_get()
@@ -29,7 +41,7 @@ def read_clipboard(**kwargs):  # pragma: no cover
         except:
             pass
 
-    # Excel copies into clipboard with \t seperation
+    # Excel copies into clipboard with \t separation
     # inspect no more then the 10 first lines, if they
     # all contain an equal number (>0) of tabs, infer
     # that this came from excel and set 'sep' accordingly
@@ -43,12 +55,12 @@ def read_clipboard(**kwargs):  # pragma: no cover
 
     counts = set([x.lstrip().count('\t') for x in lines])
     if len(lines) > 1 and len(counts) == 1 and counts.pop() != 0:
-        kwargs['sep'] = '\t'
+        sep = '\t'
 
-    if kwargs.get('sep') is None and kwargs.get('delim_whitespace') is None:
-        kwargs['sep'] = '\s+'
+    if sep is None and kwargs.get('delim_whitespace') is None:
+        sep = '\s+'
 
-    return read_table(StringIO(text), **kwargs)
+    return read_table(StringIO(text), sep=sep, **kwargs)
 
 
 def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
@@ -74,6 +86,12 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
       - Windows:
       - OS X:
     """
+    encoding = kwargs.pop('encoding', 'utf-8')
+
+    # testing if an invalid encoding is passed to clipboard
+    if encoding is not None and encoding.lower().replace('-', '') != 'utf8':
+        raise ValueError('clipboard only supports utf-8 encoding')
+
     from pandas.util.clipboard import clipboard_set
     if excel is None:
         excel = True
@@ -83,8 +101,12 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
             if sep is None:
                 sep = '\t'
             buf = StringIO()
-            obj.to_csv(buf, sep=sep, **kwargs)
-            clipboard_set(buf.getvalue())
+            # clipboard_set (pyperclip) expects unicode
+            obj.to_csv(buf, sep=sep, encoding='utf-8', **kwargs)
+            text = buf.getvalue()
+            if PY2:
+                text = text.decode('utf-8')
+            clipboard_set(text)
             return
         except:
             pass

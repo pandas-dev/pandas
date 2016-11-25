@@ -278,6 +278,11 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # invalid objects
         self.assertRaises(TypeError, lambda: ci.append(Index(['a', 'd'])))
 
+        # GH14298 - if base object is not categorical -> coerce to object
+        result = Index(['c', 'a']).append(ci)
+        expected = Index(list('caaabbca'))
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_insert(self):
 
         ci = self.create_index()
@@ -885,7 +890,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         idx = pd.CategoricalIndex([1, 2, 3], name='foo')
         indices = [1, 0, -1]
 
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, idx.take,
                               indices, foo=2)
 

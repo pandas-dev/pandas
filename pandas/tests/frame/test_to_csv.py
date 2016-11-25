@@ -8,7 +8,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.compat import (lmap, range, lrange, StringIO, u)
-from pandas.parser import CParserError
+from pandas.parser import ParserError
 from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
                     date_range, read_csv, compat, to_datetime)
 import pandas as pd
@@ -587,9 +587,9 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             df = _make_frame(True)
             df.to_csv(path, tupleize_cols=False)
 
-            for i in [5, 6, 7]:
+            for i in [6, 7]:
                 msg = 'len of {i}, but only 5 lines in file'.format(i=i)
-                with assertRaisesRegexp(CParserError, msg):
+                with assertRaisesRegexp(ParserError, msg):
                     read_csv(path, tupleize_cols=False,
                              header=lrange(i), index_col=0)
 

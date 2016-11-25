@@ -184,3 +184,35 @@ class TestSeriesQuantile(TestData, tm.TestCase):
 
         res = Series([pd.NaT, pd.NaT]).quantile([0.5])
         tm.assert_series_equal(res, pd.Series([pd.NaT], index=[0.5]))
+
+    def test_quantile_empty(self):
+
+        # floats
+        s = Series([], dtype='float64')
+
+        res = s.quantile(0.5)
+        self.assertTrue(np.isnan(res))
+
+        res = s.quantile([0.5])
+        exp = Series([np.nan], index=[0.5])
+        tm.assert_series_equal(res, exp)
+
+        # int
+        s = Series([], dtype='int64')
+
+        res = s.quantile(0.5)
+        self.assertTrue(np.isnan(res))
+
+        res = s.quantile([0.5])
+        exp = Series([np.nan], index=[0.5])
+        tm.assert_series_equal(res, exp)
+
+        # datetime
+        s = Series([], dtype='datetime64[ns]')
+
+        res = s.quantile(0.5)
+        self.assertTrue(res is pd.NaT)
+
+        res = s.quantile([0.5])
+        exp = Series([pd.NaT], index=[0.5])
+        tm.assert_series_equal(res, exp)

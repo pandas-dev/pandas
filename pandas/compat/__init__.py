@@ -41,6 +41,7 @@ from collections import namedtuple
 PY2 = sys.version_info[0] == 2
 PY3 = (sys.version_info[0] >= 3)
 PY35 = (sys.version_info >= (3, 5))
+PY36 = (sys.version_info >= (3, 6))
 
 try:
     import __builtin__ as builtins
@@ -392,7 +393,7 @@ class OrderedDefaultdict(OrderedDict):
         return type(self), args, None, None, list(self.items())
 
 
-# https://github.com/pydata/pandas/pull/9123
+# https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():
     """ am I little endian """
     return sys.byteorder == 'little'

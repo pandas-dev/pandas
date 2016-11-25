@@ -1,4 +1,5 @@
 import os
+from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from pandas.compat import range, iteritems
@@ -4606,7 +4607,7 @@ class TestParseTimeString(tm.TestCase):
         self.assertEqual(reso, reso_lower)
 
     def test_parse_time_quarter_w_dash(self):
-        # https://github.com/pydata/pandas/issue/9688
+        # https://github.com/pandas-dev/pandas/issue/9688
         pairs = [('1988-Q2', '1988Q2'), ('2Q-1988', '2Q1988'), ]
 
         for dashed, normal in pairs:
@@ -4851,6 +4852,7 @@ class TestDST(tm.TestCase):
 
     def _test_offset(self, offset_name, offset_n, tstart, expected_utc_offset):
         offset = DateOffset(**{offset_name: offset_n})
+
         t = tstart + offset
         if expected_utc_offset is not None:
             self.assertTrue(get_utc_offset_hours(t) == expected_utc_offset)
@@ -4890,17 +4892,23 @@ class TestDST(tm.TestCase):
         return Timestamp(string + offset_string).tz_convert(tz)
 
     def test_fallback_plural(self):
-        """test moving from daylight savings to standard time"""
+        # test moving from daylight savings to standard time
+        import dateutil
         for tz, utc_offsets in self.timezone_utc_offsets.items():
             hrs_pre = utc_offsets['utc_offset_daylight']
             hrs_post = utc_offsets['utc_offset_standard']
-            self._test_all_offsets(
-                n=3, tstart=self._make_timestamp(self.ts_pre_fallback,
-                                                 hrs_pre, tz),
-                expected_utc_offset=hrs_post)
+
+            if dateutil.__version__ != LooseVersion('2.6.0'):
+                # buggy ambiguous behavior in 2.6.0
+                # GH 14621
+                # https://github.com/dateutil/dateutil/issues/321
+                self._test_all_offsets(
+                    n=3, tstart=self._make_timestamp(self.ts_pre_fallback,
+                                                     hrs_pre, tz),
+                    expected_utc_offset=hrs_post)
 
     def test_springforward_plural(self):
-        """test moving from standard to daylight savings"""
+        # test moving from standard to daylight savings
         for tz, utc_offsets in self.timezone_utc_offsets.items():
             hrs_pre = utc_offsets['utc_offset_standard']
             hrs_post = utc_offsets['utc_offset_daylight']

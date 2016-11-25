@@ -144,7 +144,7 @@ class TestStyler(TestCase):
         self.assertEqual(result, expected)
 
     def test_empty_index_name_doesnt_display(self):
-        # https://github.com/pydata/pandas/pull/12090#issuecomment-180695902
+        # https://github.com/pandas-dev/pandas/pull/12090#issuecomment-180695902
         df = pd.DataFrame({'A': [1, 2], 'B': [3, 4], 'C': [5, 6]})
         result = df.style._translate()
 
@@ -175,7 +175,7 @@ class TestStyler(TestCase):
         self.assertEqual(result['head'], expected)
 
     def test_index_name(self):
-        # https://github.com/pydata/pandas/issues/11655
+        # https://github.com/pandas-dev/pandas/issues/11655
         df = pd.DataFrame({'A': [1, 2], 'B': [3, 4], 'C': [5, 6]})
         result = df.set_index('A').style._translate()
 
@@ -195,7 +195,7 @@ class TestStyler(TestCase):
         self.assertEqual(result['head'], expected)
 
     def test_multiindex_name(self):
-        # https://github.com/pydata/pandas/issues/11655
+        # https://github.com/pandas-dev/pandas/issues/11655
         df = pd.DataFrame({'A': [1, 2], 'B': [3, 4], 'C': [5, 6]})
         result = df.set_index(['A', 'B']).style._translate()
 
@@ -217,7 +217,7 @@ class TestStyler(TestCase):
         self.assertEqual(result['head'], expected)
 
     def test_numeric_columns(self):
-        # https://github.com/pydata/pandas/issues/12125
+        # https://github.com/pandas-dev/pandas/issues/12125
         # smoke test for _translate
         df = pd.DataFrame({0: [1, 2, 3]})
         df.style._translate()

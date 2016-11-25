@@ -191,7 +191,7 @@ class TestCategorical(tm.TestCase):
         cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
         self.assertTrue(is_integer_dtype(cat.categories))
 
-        # https://github.com/pydata/pandas/issues/3678
+        # https://github.com/pandas-dev/pandas/issues/3678
         cat = pd.Categorical([np.nan, 1, 2, 3])
         self.assertTrue(is_integer_dtype(cat.categories))
 
@@ -618,7 +618,7 @@ class TestCategorical(tm.TestCase):
                              index=exp_index)
         tm.assert_frame_equal(desc, expected)
 
-        # https://github.com/pydata/pandas/issues/3678
+        # https://github.com/pandas-dev/pandas/issues/3678
         # describe should work with NaN
         cat = pd.Categorical([np.nan, 1, 2, 2])
         desc = cat.describe()
@@ -1547,7 +1547,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         self.assertTrue(abs(diff) < 100)
 
     def test_searchsorted(self):
-        # https://github.com/pydata/pandas/issues/8420
+        # https://github.com/pandas-dev/pandas/issues/8420
         s1 = pd.Series(['apple', 'bread', 'bread', 'cheese', 'milk'])
         s2 = pd.Series(['apple', 'bread', 'bread', 'cheese', 'milk', 'donuts'])
         c1 = pd.Categorical(s1, ordered=True)
@@ -1633,7 +1633,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
                                       np.array([False, True, True]))
 
     def test_comparison_with_unknown_scalars(self):
-        # https://github.com/pydata/pandas/issues/9836#issuecomment-92123057
+        # https://github.com/pandas-dev/pandas/issues/9836#issuecomment-92123057
         # and following comparisons with scalars not in categories should raise
         # for unequal comps, but not for equal/not equal
         cat = pd.Categorical([1, 2, 3], ordered=True)
@@ -3829,7 +3829,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         self.assertRaises(TypeError, f)
 
-        # https://github.com/pydata/pandas/issues/9836#issuecomment-92123057
+        # https://github.com/pandas-dev/pandas/issues/9836#issuecomment-92123057
         # and following comparisons with scalars not in categories should raise
         # for unequal comps, but not for equal/not equal
         cat = Series(Categorical(list("abc"), ordered=True))
@@ -4303,14 +4303,14 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         self.assertFalse(hasattr(invalid, 'cat'))
 
     def test_cat_accessor_no_new_attributes(self):
-        # https://github.com/pydata/pandas/issues/10673
+        # https://github.com/pandas-dev/pandas/issues/10673
         c = Series(list('aabbcde')).astype('category')
         with tm.assertRaisesRegexp(AttributeError,
                                    "You cannot add any new attribute"):
             c.cat.xlabel = "a"
 
     def test_str_accessor_api_for_categorical(self):
-        # https://github.com/pydata/pandas/issues/10661
+        # https://github.com/pandas-dev/pandas/issues/10661
         from pandas.core.strings import StringMethods
         s = Series(list('aabb'))
         s = s + " " + s
@@ -4385,7 +4385,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         self.assertFalse(hasattr(invalid, 'str'))
 
     def test_dt_accessor_api_for_categorical(self):
-        # https://github.com/pydata/pandas/issues/10661
+        # https://github.com/pandas-dev/pandas/issues/10661
         from pandas.tseries.common import Properties
         from pandas.tseries.index import date_range, DatetimeIndex
         from pandas.tseries.period import period_range, PeriodIndex

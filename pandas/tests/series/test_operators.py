@@ -1412,7 +1412,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # NotImplemented
 
         # this is an alignment issue; these are equivalent
-        # https://github.com/pydata/pandas/issues/5284
+        # https://github.com/pandas-dev/pandas/issues/5284
 
         self.assertRaises(ValueError, lambda: d.__and__(s, axis='columns'))
         self.assertRaises(ValueError, tester, s, d)
@@ -1810,3 +1810,11 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
         res = Series([1, 2], index=idx1) + Series([1, 1], index=idx2)
         assert_series_equal(res, Series([np.nan, 3, np.nan], index=base))
+
+    def test_op_duplicate_index(self):
+        # GH14227
+        s1 = Series([1, 2], index=[1, 1])
+        s2 = Series([10, 10], index=[1, 2])
+        result = s1 + s2
+        expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
+        assert_series_equal(result, expected)

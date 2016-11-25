@@ -807,7 +807,7 @@ Freq: D"""
         idx = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
         indices = [1, 6, 5, 9, 10, 13, 15, 3]
 
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, idx.take,
                               indices, foo=2)
 
@@ -867,7 +867,7 @@ Freq: D"""
             tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
             self.assertFalse(idx.hasnans)
             tm.assert_numpy_array_equal(idx._nan_idxs,
-                                        np.array([], dtype=np.int64))
+                                        np.array([], dtype=np.intp))
 
             idx = pd.DatetimeIndex(['2011-01-01', 'NaT'], tz=tz)
             self.assertTrue(idx._can_hold_na)
@@ -875,7 +875,7 @@ Freq: D"""
             tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
             self.assertTrue(idx.hasnans)
             tm.assert_numpy_array_equal(idx._nan_idxs,
-                                        np.array([1], dtype=np.int64))
+                                        np.array([1], dtype=np.intp))
 
     def test_equals(self):
         # GH 13107
@@ -1639,7 +1639,7 @@ Freq: D"""
         idx = pd.timedelta_range('1 day', '31 day', freq='D', name='idx')
         indices = [1, 6, 5, 9, 10, 13, 15, 3]
 
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, idx.take,
                               indices, foo=2)
 
@@ -1717,7 +1717,7 @@ Freq: D"""
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
         self.assertFalse(idx.hasnans)
         tm.assert_numpy_array_equal(idx._nan_idxs,
-                                    np.array([], dtype=np.int64))
+                                    np.array([], dtype=np.intp))
 
         idx = pd.TimedeltaIndex(['1 days', 'NaT'])
         self.assertTrue(idx._can_hold_na)
@@ -1725,7 +1725,7 @@ Freq: D"""
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
         self.assertTrue(idx.hasnans)
         tm.assert_numpy_array_equal(idx._nan_idxs,
-                                    np.array([1], dtype=np.int64))
+                                    np.array([1], dtype=np.intp))
 
     def test_equals(self):
         # GH 13107
@@ -2714,7 +2714,7 @@ Freq: Q-DEC"""
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
         self.assertFalse(idx.hasnans)
         tm.assert_numpy_array_equal(idx._nan_idxs,
-                                    np.array([], dtype=np.int64))
+                                    np.array([], dtype=np.intp))
 
         idx = pd.PeriodIndex(['2011-01-01', 'NaT'], freq='D')
         self.assertTrue(idx._can_hold_na)
@@ -2722,7 +2722,7 @@ Freq: Q-DEC"""
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
         self.assertTrue(idx.hasnans)
         tm.assert_numpy_array_equal(idx._nan_idxs,
-                                    np.array([1], dtype=np.int64))
+                                    np.array([1], dtype=np.intp))
 
     def test_equals(self):
         # GH 13107

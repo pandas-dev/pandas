@@ -371,7 +371,7 @@ def merge_asof(left, right, on=None,
 
     By default we are taking the asof of the quotes
 
-    >>> pd.asof_merge(trades, quotes,
+    >>> pd.merge_asof(trades, quotes,
     ...                       on='time',
     ...                       by='ticker')
                          time ticker   price  quantity     bid     ask
@@ -383,7 +383,7 @@ def merge_asof(left, right, on=None,
 
     We only asof within 2ms betwen the quote time and the trade time
 
-    >>> pd.asof_merge(trades, quotes,
+    >>> pd.merge_asof(trades, quotes,
     ...                       on='time',
     ...                       by='ticker',
     ...                       tolerance=pd.Timedelta('2ms'))
@@ -398,7 +398,7 @@ def merge_asof(left, right, on=None,
     and we exclude exact matches on time. However *prior* data will
     propogate forward
 
-    >>> pd.asof_merge(trades, quotes,
+    >>> pd.merge_asof(trades, quotes,
     ...                       on='time',
     ...                       by='ticker',
     ...                       tolerance=pd.Timedelta('10ms'),
@@ -471,6 +471,15 @@ class _MergeOperation(object):
             raise ValueError(
                 'can not merge DataFrame with instance of '
                 'type {0}'.format(type(right)))
+
+        if not is_bool(left_index):
+            raise ValueError(
+                'left_index parameter must be of type bool, not '
+                '{0}'.format(type(left_index)))
+        if not is_bool(right_index):
+            raise ValueError(
+                'right_index parameter must be of type bool, not '
+                '{0}'.format(type(right_index)))
 
         # warn user when merging between different levels
         if left.columns.nlevels != right.columns.nlevels:
@@ -807,8 +816,8 @@ class _MergeOperation(object):
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
-                raise MergeError('Can only pass on OR left_on and '
-                                 'right_on')
+                raise MergeError('Can only pass argument "on" OR "left_on" '
+                                 'and "right_on", not a combination of both.')
             self.left_on = self.right_on = self.on
         elif self.left_on is not None:
             n = len(self.left_on)
@@ -1283,7 +1292,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
         they are all None in which case a ValueError will be raised
-    axis : {0, 1, ...}, default 0
+    axis : {0/'index', 1/'columns'}, default 0
         The axis to concatenate along
     join : {'inner', 'outer'}, default 'outer'
         How to handle indexes on other axis(es)
@@ -1369,7 +1378,8 @@ class _Concatenator(object):
                 clean_keys.append(k)
                 clean_objs.append(v)
             objs = clean_objs
-            keys = clean_keys
+            name = getattr(keys, 'name', None)
+            keys = Index(clean_keys, name=name)
 
         if len(objs) == 0:
             raise ValueError('All objects passed were None')
@@ -1409,6 +1419,12 @@ class _Concatenator(object):
         if sample is None:
             sample = objs[0]
         self.objs = objs
+
+        # Standardize axis parameter to int
+        if isinstance(sample, Series):
+            axis = DataFrame()._get_axis_number(axis)
+        else:
+            axis = sample._get_axis_number(axis)
 
         # Need to flip BlockManager axis in the DataFrame special case
         self._is_frame = isinstance(sample, DataFrame)
@@ -1454,7 +1470,7 @@ class _Concatenator(object):
         self.axis = axis
         self.join_axes = join_axes
         self.keys = keys
-        self.names = names
+        self.names = names or getattr(keys, 'names', None)
         self.levels = levels
 
         self.ignore_index = ignore_index

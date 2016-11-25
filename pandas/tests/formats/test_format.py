@@ -89,7 +89,7 @@ def has_vertically_truncated_repr(df):
     r = repr(df)
     only_dot_row = False
     for row in r.splitlines():
-        if re.match('^[\.\ ]+$', row):
+        if re.match(r'^[\.\ ]+$', row):
             only_dot_row = True
     return only_dot_row
 
@@ -834,7 +834,7 @@ class TestDataFrameFormatting(tm.TestCase):
             # check that col_space affects HTML generation
             # and be very brittle about it.
             html = df.to_html(col_space=col_space)
-            hdrs = [x for x in html.split("\n") if re.search("<th[>\s]", x)]
+            hdrs = [x for x in html.split(r"\n") if re.search(r"<th[>\s]", x)]
             self.assertTrue(len(hdrs) > 0)
             for h in hdrs:
                 self.assertTrue("min-width" in h)
@@ -1940,7 +1940,7 @@ class TestDataFrameFormatting(tm.TestCase):
                                   float_format='%.5f'.__mod__)
         lines = result.split('\n')
         header = lines[0].strip().split()
-        joined = '\n'.join([re.sub('\s+', ' ', x).strip() for x in lines[1:]])
+        joined = '\n'.join([re.sub(r'\s+', ' ', x).strip() for x in lines[1:]])
         recons = read_table(StringIO(joined), names=header,
                             header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
@@ -2823,7 +2823,7 @@ c  10  11  12  13  14\
         if compat.PY3:  # python3: pandas default encoding is utf-8
             with tm.ensure_clean('test.tex') as path:
                 df.to_latex(path)
-                with codecs.open(path, 'r') as f:
+                with codecs.open(path, 'r', encoding='utf-8') as f:
                     self.assertEqual(df.to_latex(), f.read())
         else:
             # python2 default encoding is ascii, so an error should be raised
@@ -3782,7 +3782,7 @@ class TestSeriesFormatting(tm.TestCase):
             res = repr(s)
         lines = res.split('\n')
         lines = [line for line in repr(s).split('\n')
-                 if not re.match('[^\.]*\.+', line)][:-1]
+                 if not re.match(r'[^\.]*\.+', line)][:-1]
         ncolsizes = len(set(len(line.strip()) for line in lines))
         self.assertEqual(ncolsizes, 1)
 
@@ -3823,7 +3823,7 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_truncate_ndots(self):
         def getndots(s):
-            return len(re.match('[^\.]*(\.*)', s).groups()[0])
+            return len(re.match(r'[^\.]*(\.*)', s).groups()[0])
 
         s = Series([0, 2, 3, 6])
         with option_context("display.max_rows", 2):

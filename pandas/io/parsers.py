@@ -20,13 +20,14 @@ from pandas.types.common import (is_integer, _ensure_object,
                                  is_float,
                                  is_scalar)
 from pandas.core.index import Index, MultiIndex, RangeIndex
+from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
                               _get_handle, UnicodeReader, UTF8Recoder,
-                              BaseIterator, CParserError, EmptyDataError,
+                              BaseIterator, ParserError, EmptyDataError,
                               ParserWarning, _NA_VALUES)
 from pandas.tseries import tools
 
@@ -1141,7 +1142,7 @@ class ParserBase(object):
         # long
         for n in range(len(columns[0])):
             if all(['Unnamed' in tostr(c[n]) for c in columns]):
-                raise CParserError(
+                raise ParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"
                     % ','.join([str(x) for x in self.header])
@@ -1456,6 +1457,8 @@ class CParserWrapper(ParserBase):
     def close(self):
         for f in self.handles:
             f.close()
+
+        # close additional handles opened by C parser (for compression)
         try:
             self._reader.close()
         except:
@@ -1507,10 +1510,11 @@ class CParserWrapper(ParserBase):
             if self._first_chunk:
                 self._first_chunk = False
                 names = self._maybe_dedup_names(self.orig_names)
-
                 index, columns, col_dict = _get_empty_meta(
                     names, self.index_col, self.index_names,
                     dtype=self.kwds.get('dtype'))
+                columns = self._maybe_make_multi_index_columns(
+                    columns, self.col_names)
 
                 if self.usecols is not None:
                     columns = self._filter_usecols(columns)
@@ -1759,6 +1763,9 @@ class PythonParser(ParserBase):
         self.delimiter = kwds['delimiter']
 
         self.quotechar = kwds['quotechar']
+        if isinstance(self.quotechar, compat.text_type):
+            self.quotechar = str(self.quotechar)
+
         self.escapechar = kwds['escapechar']
         self.doublequote = kwds['doublequote']
         self.skipinitialspace = kwds['skipinitialspace']
@@ -1974,8 +1981,11 @@ class PythonParser(ParserBase):
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
-            return _get_empty_meta(names, self.index_col,
-                                   self.index_names)
+            index, columns, col_dict = _get_empty_meta(
+                names, self.index_col, self.index_names)
+            columns = self._maybe_make_multi_index_columns(
+                columns, self.col_names)
+            return index, columns, col_dict
 
         # handle new style for names in index
         count_empty_content_vals = count_empty_vals(content[0])
@@ -2078,6 +2088,12 @@ class PythonParser(ParserBase):
                     # We have an empty file, so check
                     # if columns are provided. That will
                     # serve as the 'line' for parsing
+                    if have_mi_columns and hr > 0:
+                        if clear_buffer:
+                            self._clear_buffer()
+                        columns.append([None] * len(columns[-1]))
+                        return columns, num_original_columns
+
                     if not self.names:
                         raise EmptyDataError(
                             "No columns to parse from file")
@@ -2191,16 +2207,16 @@ class PythonParser(ParserBase):
         usecols_key is used if there are string usecols.
         """
         if self.usecols is not None:
-            if any([isinstance(u, string_types) for u in self.usecols]):
+            if any([isinstance(col, string_types) for col in self.usecols]):
                 if len(columns) > 1:
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
                 col_indices = []
-                for u in self.usecols:
-                    if isinstance(u, string_types):
-                        col_indices.append(usecols_key.index(u))
+                for col in self.usecols:
+                    if isinstance(col, string_types):
+                        col_indices.append(usecols_key.index(col))
                     else:
-                        col_indices.append(u)
+                        col_indices.append(col)
             else:
                 col_indices = self.usecols
 
@@ -2776,19 +2792,27 @@ def _clean_index_names(columns, index_col):
 def _get_empty_meta(columns, index_col, index_names, dtype=None):
     columns = list(columns)
 
-    if dtype is None:
-        dtype = {}
+    # Convert `dtype` to a defaultdict of some kind.
+    # This will enable us to write `dtype[col_name]`
+    # without worrying about KeyError issues later on.
+    if not isinstance(dtype, dict):
+        # if dtype == None, default will be np.object.
+        default_dtype = dtype or np.object
+        dtype = defaultdict(lambda: default_dtype)
     else:
-        if not isinstance(dtype, dict):
-            dtype = defaultdict(lambda: dtype)
+        # Save a copy of the dictionary.
+        _dtype = dtype.copy()
+        dtype = defaultdict(lambda: np.object)
+
         # Convert column indexes to column names.
-        dtype = dict((columns[k] if is_integer(k) else k, v)
-                     for k, v in compat.iteritems(dtype))
+        for k, v in compat.iteritems(_dtype):
+            col = columns[k] if is_integer(k) else k
+            dtype[col] = v
 
     if index_col is None or index_col is False:
         index = Index([])
     else:
-        index = [np.empty(0, dtype=dtype.get(index_name, np.object))
+        index = [Series([], dtype=dtype[index_name])
                  for index_name in index_names]
         index = MultiIndex.from_arrays(index, names=index_names)
         index_col.sort()
@@ -2796,7 +2820,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
             columns.pop(n - i)
 
     col_dict = dict((col_name,
-                     np.empty(0, dtype=dtype.get(col_name, np.object)))
+                     Series([], dtype=dtype[col_name]))
                     for col_name in columns)
 
     return index, columns, col_dict

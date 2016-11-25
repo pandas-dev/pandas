@@ -1,7 +1,8 @@
 """ common type operations """
 
 import numpy as np
-from pandas.compat import string_types, text_type, binary_type
+from pandas.compat import (string_types, text_type, binary_type,
+                           PY3, PY36)
 from pandas import lib, algos
 from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      DatetimeTZDtype, DatetimeTZDtypeType,
@@ -40,6 +41,13 @@ _ensure_int16 = algos.ensure_int16
 _ensure_int8 = algos.ensure_int8
 _ensure_platform_int = algos.ensure_platform_int
 _ensure_object = algos.ensure_object
+
+
+def _ensure_categorical(arr):
+    if not is_categorical(arr):
+        from pandas import Categorical
+        arr = Categorical(arr)
+    return arr
 
 
 def is_object_dtype(arr_or_dtype):
@@ -179,6 +187,20 @@ def is_timedelta64_ns_dtype(arr_or_dtype):
 def is_datetime_or_timedelta_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, (np.datetime64, np.timedelta64))
+
+
+def _is_unorderable_exception(e):
+    """
+    return a boolean if we an unorderable exception error message
+
+    These are different error message for PY>=3<=3.5 and PY>=3.6
+    """
+    if PY36:
+        return "'>' not supported between instances of" in str(e)
+
+    elif PY3:
+        return 'unorderable' in str(e)
+    return False
 
 
 def is_numeric_v_string_like(a, b):

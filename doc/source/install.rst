@@ -13,12 +13,12 @@ This is the recommended installation method for most users.
 
 Instructions for installing from source,
 `PyPI <http://pypi.python.org/pypi/pandas>`__, various Linux distributions, or a
-`development version <http://github.com/pydata/pandas>`__ are also provided.
+`development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
 Python version support
 ----------------------
 
-Officially Python 2.7, 3.4, and 3.5
+Officially Python 2.7, 3.4, 3.5, and 3.6
 
 Installing pandas
 -----------------
@@ -189,7 +189,7 @@ pandas is equipped with an exhaustive set of unit tests covering about 97% of
 the codebase as of this writing. To run it on your machine to verify that
 everything is working (and you have all of the dependencies, soft and hard,
 installed), make sure you have `nose
-<http://readthedocs.org/docs/nose/en/latest/>`__ and run:
+<https://nose.readthedocs.io/en/latest/>`__ and run:
 
 ::
 

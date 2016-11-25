@@ -7,7 +7,7 @@ from pandas.indexes.api import Index, MultiIndex
 from .common import Base
 
 from pandas.compat import (is_platform_windows, range, lrange, lzip, u,
-                           zip, PY3)
+                           zip, PY3, PY36)
 import operator
 import os
 
@@ -913,7 +913,19 @@ class TestIndex(Base, tm.TestCase):
     def test_format(self):
         self._check_method_works(Index.format)
 
-        index = Index([datetime.now()])
+        # GH 14626
+        # our formatting is different by definition when we have
+        # ms vs us precision (e.g. trailing zeros);
+        # so don't compare this case
+        def datetime_now_without_trailing_zeros():
+            now = datetime.now()
+
+            while str(now).endswith("000"):
+                now = datetime.now()
+
+            return now
+
+        index = Index([datetime_now_without_trailing_zeros()])
 
         # windows has different precision on datetime.datetime.now (it doesn't
         # include us since the default for Timestamp shows these but Index
@@ -1541,7 +1553,7 @@ class TestIndex(Base, tm.TestCase):
     def test_groupby(self):
         idx = Index(range(5))
         groups = idx.groupby(np.array([1, 1, 2, 2, 2]))
-        exp = {1: [0, 1], 2: [2, 3, 4]}
+        exp = {1: pd.Index([0, 1]), 2: pd.Index([2, 3, 4])}
         tm.assert_dict_equal(groups, exp)
 
     def test_equals_op_multiindex(self):
@@ -1576,11 +1588,10 @@ class TestIndex(Base, tm.TestCase):
         # py3/py2 repr can differ because of "u" prefix
         # which also affects to displayed element size
 
-        # suppress flake8 warnings
         if PY3:
             coerce = lambda x: x
         else:
-            coerce = unicode
+            coerce = unicode  # noqa
 
         # short
         idx = pd.Index(['a', 'bb', 'ccc'])
@@ -1763,7 +1774,12 @@ class TestMixedIntIndex(Base, tm.TestCase):
     def test_order(self):
         idx = self.create_index()
         # 9816 deprecated
-        if PY3:
+        if PY36:
+            with tm.assertRaisesRegexp(TypeError, "'>' not supported "
+                                       "between instances of 'str' and 'int'"):
+                with tm.assert_produces_warning(FutureWarning):
+                    idx.order()
+        elif PY3:
             with tm.assertRaisesRegexp(TypeError, "unorderable types"):
                 with tm.assert_produces_warning(FutureWarning):
                     idx.order()
@@ -1773,7 +1789,11 @@ class TestMixedIntIndex(Base, tm.TestCase):
 
     def test_argsort(self):
         idx = self.create_index()
-        if PY3:
+        if PY36:
+            with tm.assertRaisesRegexp(TypeError, "'>' not supported "
+                                       "between instances of 'str' and 'int'"):
+                result = idx.argsort()
+        elif PY3:
             with tm.assertRaisesRegexp(TypeError, "unorderable types"):
                 result = idx.argsort()
         else:
@@ -1783,7 +1803,11 @@ class TestMixedIntIndex(Base, tm.TestCase):
 
     def test_numpy_argsort(self):
         idx = self.create_index()
-        if PY3:
+        if PY36:
+            with tm.assertRaisesRegexp(TypeError, "'>' not supported "
+                                       "between instances of 'str' and 'int'"):
+                result = np.argsort(idx)
+        elif PY3:
             with tm.assertRaisesRegexp(TypeError, "unorderable types"):
                 result = np.argsort(idx)
         else:
@@ -1816,6 +1840,30 @@ class TestMixedIntIndex(Base, tm.TestCase):
         else:
             s3 = s1 * s2
         self.assertEqual(s3.index.name, 'mario')
+
+    def test_copy_name2(self):
+        # Check that adding a "name" parameter to the copy is honored
+        # GH14302
+        idx = pd.Index([1, 2], name='MyName')
+        idx1 = idx.copy()
+
+        self.assertTrue(idx.equals(idx1))
+        self.assertEqual(idx.name, 'MyName')
+        self.assertEqual(idx1.name, 'MyName')
+
+        idx2 = idx.copy(name='NewName')
+
+        self.assertTrue(idx.equals(idx2))
+        self.assertEqual(idx.name, 'MyName')
+        self.assertEqual(idx2.name, 'NewName')
+
+        idx3 = idx.copy(names=['NewName'])
+
+        self.assertTrue(idx.equals(idx3))
+        self.assertEqual(idx.name, 'MyName')
+        self.assertEqual(idx.names, ['MyName'])
+        self.assertEqual(idx3.name, 'NewName')
+        self.assertEqual(idx3.names, ['NewName'])
 
     def test_union_base(self):
         idx = self.create_index()

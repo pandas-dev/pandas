@@ -426,7 +426,7 @@ class TestStringMethods(tm.TestCase):
         # flags + unicode
         values = Series([b"abcd,\xc3\xa0".decode("utf-8")])
         exp = Series([b"abcd, \xc3\xa0".decode("utf-8")])
-        result = values.str.replace("(?<=\w),(?=\w)", ", ", flags=re.UNICODE)
+        result = values.str.replace(r"(?<=\w),(?=\w)", ", ", flags=re.UNICODE)
         tm.assert_series_equal(result, exp)
 
         # GH 13438
@@ -670,12 +670,12 @@ class TestStringMethods(tm.TestCase):
             data = ['A1', 'B2', 'C']
             index = index[:len(data)]
             s = Series(data, index=index)
-            result = s.str.extract('(\d)', expand=False)
+            result = s.str.extract(r'(\d)', expand=False)
             exp = Series(['1', '2', NA], index=index)
             tm.assert_series_equal(result, exp)
 
             result = Series(data, index=index).str.extract(
-                '(?P<letter>\D)(?P<number>\d)?', expand=False)
+                r'(?P<letter>\D)(?P<number>\d)?', expand=False)
             e_list = [
                 ['A', '1'],
                 ['B', '2'],
@@ -828,12 +828,13 @@ class TestStringMethods(tm.TestCase):
         def check_index(index):
             data = ['A1', 'B2', 'C']
             index = index[:len(data)]
-            result = Series(data, index=index).str.extract('(\d)', expand=True)
+            result = Series(data, index=index).str.extract(
+                r'(\d)', expand=True)
             exp = DataFrame(['1', '2', NA], index=index)
             tm.assert_frame_equal(result, exp)
 
             result = Series(data, index=index).str.extract(
-                '(?P<letter>\D)(?P<number>\d)?', expand=True)
+                r'(?P<letter>\D)(?P<number>\d)?', expand=True)
             e_list = [
                 ['A', '1'],
                 ['B', '2'],
@@ -1023,7 +1024,7 @@ class TestStringMethods(tm.TestCase):
 
     def test_extractall_stringindex(self):
         s = Series(["a1a2", "b1", "c1"], name='xxx')
-        res = s.str.extractall("[ab](?P<digit>\d)")
+        res = s.str.extractall(r"[ab](?P<digit>\d)")
         exp_idx = MultiIndex.from_tuples([(0, 0), (0, 1), (1, 0)],
                                          names=[None, 'match'])
         exp = DataFrame({'digit': ["1", "2", "1"]}, index=exp_idx)
@@ -1034,12 +1035,12 @@ class TestStringMethods(tm.TestCase):
         for idx in [Index(["a1a2", "b1", "c1"]),
                     Index(["a1a2", "b1", "c1"], name='xxx')]:
 
-            res = idx.str.extractall("[ab](?P<digit>\d)")
+            res = idx.str.extractall(r"[ab](?P<digit>\d)")
             tm.assert_frame_equal(res, exp)
 
         s = Series(["a1a2", "b1", "c1"], name='s_name',
                    index=Index(["XX", "yy", "zz"], name='idx_name'))
-        res = s.str.extractall("[ab](?P<digit>\d)")
+        res = s.str.extractall(r"[ab](?P<digit>\d)")
         exp_idx = MultiIndex.from_tuples([("XX", 0), ("XX", 1), ("yy", 0)],
                                          names=["idx_name", 'match'])
         exp = DataFrame({'digit': ["1", "2", "1"]}, index=exp_idx)
@@ -2604,7 +2605,7 @@ class TestStringMethods(tm.TestCase):
         self.assertEqual(str_multiple.loc[1], '2011 2 2')
 
     def test_str_cat_raises_intuitive_error(self):
-        # https://github.com/pydata/pandas/issues/11334
+        # https://github.com/pandas-dev/pandas/issues/11334
         s = Series(['a', 'b', 'c', 'd'])
         message = "Did you mean to supply a `sep` keyword?"
         with tm.assertRaisesRegexp(ValueError, message):
@@ -2661,7 +2662,7 @@ class TestStringMethods(tm.TestCase):
             idx.str
 
     def test_str_accessor_no_new_attributes(self):
-        # https://github.com/pydata/pandas/issues/10673
+        # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(list('aabbcde'))
         with tm.assertRaisesRegexp(AttributeError,
                                    "You cannot add any new attribute"):
