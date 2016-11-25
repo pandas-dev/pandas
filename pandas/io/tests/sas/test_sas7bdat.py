@@ -65,6 +65,32 @@ class TestSAS7BDAT(tm.TestCase):
                 df = rdr.read(3)
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
 
+    def test_iterator_loop(self):
+        for j in 0, 1:
+            for k in self.test_ix[j]:
+                for chunksize in 3, 5, 10, 11:
+                    fname = os.path.join(self.dirpath, "test%d.sas7bdat" % k)
+                    with open(fname, 'rb') as f:
+                        byts = f.read()
+                    buf = io.BytesIO(byts)
+                    rdr = pd.read_sas(buf, format="sas7bdat",
+                                      chunksize=chunksize, encoding='utf-8')
+                    y = 0
+                    for x in rdr:
+                        y += x.shape[0]
+                    assert(y == rdr.row_count)
+
+    def test_iterator_read_too_much(self):
+        # github #14734
+        k = self.test_ix[0][0]
+        fname = os.path.join(self.dirpath, "test%d.sas7bdat" % k)
+        with open(fname, 'rb') as f:
+            byts = f.read()
+        buf = io.BytesIO(byts)
+        rdr = pd.read_sas(buf, format="sas7bdat",
+                          iterator=True, encoding='utf-8')
+        rdr.read(rdr.row_count + 20)
+
 
 def test_encoding_options():
     dirpath = tm.get_data_path()
