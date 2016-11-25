@@ -66,6 +66,7 @@ class TestSAS7BDAT(tm.TestCase):
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
 
     def test_iterator_loop(self):
+        # github #13654
         for j in 0, 1:
             for k in self.test_ix[j]:
                 for chunksize in 3, 5, 10, 11:
@@ -78,7 +79,7 @@ class TestSAS7BDAT(tm.TestCase):
                     y = 0
                     for x in rdr:
                         y += x.shape[0]
-                    assert(y == rdr.row_count)
+                    self.assertTrue(y == rdr.row_count)
 
     def test_iterator_read_too_much(self):
         # github #14734
