@@ -561,3 +561,49 @@ No,No,No"""
 
         result = self.read_csv(StringIO(data), names=names)
         tm.assert_frame_equal(result, expected)
+
+    def test_empty_dtype(self):
+        # see gh-14712
+        data = 'a,b'
+
+        expected = pd.DataFrame(columns=['a', 'b'], dtype=np.float64)
+        result = self.read_csv(StringIO(data), header=0, dtype=np.float64)
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame({'a': pd.Categorical([]),
+                                 'b': pd.Categorical([])},
+                                index=[])
+        result = self.read_csv(StringIO(data), header=0,
+                               dtype='category')
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame(columns=['a', 'b'], dtype='datetime64[ns]')
+        result = self.read_csv(StringIO(data), header=0,
+                               dtype='datetime64[ns]')
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame({'a': pd.Series([], dtype='timedelta64[ns]'),
+                                 'b': pd.Series([], dtype='timedelta64[ns]')},
+                                index=[])
+        result = self.read_csv(StringIO(data), header=0,
+                               dtype='timedelta64[ns]')
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame(columns=['a', 'b'])
+        expected['a'] = expected['a'].astype(np.float64)
+        result = self.read_csv(StringIO(data), header=0,
+                               dtype={'a': np.float64})
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame(columns=['a', 'b'])
+        expected['a'] = expected['a'].astype(np.float64)
+        result = self.read_csv(StringIO(data), header=0,
+                               dtype={0: np.float64})
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame(columns=['a', 'b'])
+        expected['a'] = expected['a'].astype(np.int32)
+        expected['b'] = expected['b'].astype(np.float64)
+        result = self.read_csv(StringIO(data), header=0,
+                               dtype={'a': np.int32, 1: np.float64})
+        tm.assert_frame_equal(result, expected)
