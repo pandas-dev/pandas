@@ -272,4 +272,3 @@ one,two
         result = self.read_csv(StringIO(data), header=0,
                                dtype={'a': np.int32, 1: np.float64})
         tm.assert_frame_equal(result, expected)
->>>>>>> 47669d3c8c379640a82c7f65341c80ecf540e743
