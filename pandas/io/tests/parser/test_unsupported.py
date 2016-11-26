@@ -44,16 +44,6 @@ class TestUnsupportedFeatures(tm.TestCase):
         data = 'a b c\n1 2 3'
         msg = 'does not support'
 
-        # specify C-unsupported options with python-unsupported option
-        # (options will be ignored on fallback, raise)
-        with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), sep=None,
-                       delim_whitespace=False, dtype={'a': float})
-        with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), sep=r'\s', dtype={'a': float})
-        with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), skipfooter=1, dtype={'a': float})
-
         # specify C engine with unsupported options (raise)
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), engine='c',

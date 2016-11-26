@@ -17,11 +17,15 @@ from pandas.compat import (range, lrange, StringIO, lzip,
                            zip, string_types, map, u)
 from pandas.types.common import (is_integer, _ensure_object,
                                  is_list_like, is_integer_dtype,
-                                 is_float,
-                                 is_scalar)
+                                 is_float, is_dtype_equal,
+                                 is_object_dtype,
+                                 is_scalar, is_categorical_dtype)
+from pandas.types.missing import isnull
+from pandas.types.cast import _astype_nansafe
 from pandas.core.index import Index, MultiIndex, RangeIndex
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
+from pandas.core.categorical import Categorical
 from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
@@ -111,8 +115,9 @@ mangle_dupe_cols : boolean, default True
     are duplicate names in the columns.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
-    (Unsupported with engine='python'). Use `str` or `object` to preserve and
-    not interpret dtype.
+    Use `str` or `object` to preserve and not interpret dtype.
+    If converters are specified, they will be applied INSTEAD
+    of dtype conversion.
 %s
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can either
@@ -421,6 +426,7 @@ _parser_defaults = {
     'true_values': None,
     'false_values': None,
     'converters': None,
+    'dtype': None,
     'skipfooter': 0,
 
     'keep_default_na': True,
@@ -461,7 +467,6 @@ _c_parser_defaults = {
     'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
-    'dtype': None,
     'float_precision': None
 }
 
@@ -476,7 +481,6 @@ _python_unsupported = set([
     'buffer_lines',
     'error_bad_lines',
     'warn_bad_lines',
-    'dtype',
     'float_precision',
 ])
 _deprecated_args = set([
@@ -834,9 +838,6 @@ class TextFileReader(BaseIterator):
                            " ignored as it is not supported by the 'python'"
                            " engine.").format(reason=fallback_reason,
                                               option=arg)
-                    if arg == 'dtype':
-                        msg += " (Note the 'converters' option provides"\
-                               " similar functionality.)"
                     raise ValueError(msg)
                 del result[arg]
 
@@ -1285,7 +1286,7 @@ class ParserBase(object):
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues)
 
-            arr, _ = self._convert_types(arr, col_na_values | col_na_fvalues)
+            arr, _ = self._infer_types(arr, col_na_values | col_na_fvalues)
             arrays.append(arr)
 
         index = MultiIndex.from_arrays(arrays, names=self.index_names)
@@ -1293,10 +1294,15 @@ class ParserBase(object):
         return index
 
     def _convert_to_ndarrays(self, dct, na_values, na_fvalues, verbose=False,
-                             converters=None):
+                             converters=None, dtypes=None):
         result = {}
         for c, values in compat.iteritems(dct):
             conv_f = None if converters is None else converters.get(c, None)
+            if isinstance(dtypes, dict):
+                cast_type = dtypes.get(c, None)
+            else:
+                # single dtype or None
+                cast_type = dtypes
 
             if self.na_filter:
                 col_na_values, col_na_fvalues = _get_na_values(
@@ -1304,17 +1310,35 @@ class ParserBase(object):
             else:
                 col_na_values, col_na_fvalues = set(), set()
 
-            coerce_type = True
             if conv_f is not None:
+                # conv_f applied to data before inference
+                if cast_type is not None:
+                    warnings.warn(("Both a converter and dtype were specified "
+                                   "for column {0} - only the converter will "
+                                   "be used").format(c), ParserWarning,
+                                  stacklevel=7)
+
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
                     mask = lib.ismember(values, na_values).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
-                coerce_type = False
 
-            cvals, na_count = self._convert_types(
-                values, set(col_na_values) | col_na_fvalues, coerce_type)
+                cvals, na_count = self._infer_types(
+                    values, set(col_na_values) | col_na_fvalues,
+                    try_num_bool=False)
+            else:
+                # skip inference if specified dtype is object
+                try_num_bool = not (cast_type and is_object_dtype(cast_type))
+
+                # general type inference and conversion
+                cvals, na_count = self._infer_types(
+                    values, set(col_na_values) | col_na_fvalues,
+                    try_num_bool)
+
+                # type specificed in dtype param
+                if cast_type and not is_dtype_equal(cvals, cast_type):
+                    cvals = self._cast_types(cvals, cast_type, c)
 
             if issubclass(cvals.dtype.type, np.integer) and self.compact_ints:
                 cvals = lib.downcast_int64(
@@ -1326,7 +1350,23 @@ class ParserBase(object):
                 print('Filled %d NA values in column %s' % (na_count, str(c)))
         return result
 
-    def _convert_types(self, values, na_values, try_num_bool=True):
+    def _infer_types(self, values, na_values, try_num_bool=True):
+        """
+        Infer types of values, possibly casting
+
+        Parameters
+        ----------
+        values : ndarray
+        na_values : set
+        try_num_bool : bool, default try
+           try to cast values to numeric (first preference) or boolean
+
+        Returns:
+        --------
+        converted : ndarray
+        na_count : int
+        """
+
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
             mask = lib.ismember(values, na_values)
@@ -1340,6 +1380,7 @@ class ParserBase(object):
         if try_num_bool:
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
+                na_count = isnull(result).sum()
             except Exception:
                 result = values
                 if values.dtype == np.object_:
@@ -1355,6 +1396,38 @@ class ParserBase(object):
                                             false_values=self.false_values)
 
         return result, na_count
+
+    def _cast_types(self, values, cast_type, column):
+        """
+        Cast values to specified type
+
+        Parameters
+        ----------
+        values : ndarray
+        cast_type : string or np.dtype
+           dtype to cast values to
+        column : string
+            column name - used only for error reporting
+
+        Returns
+        -------
+        converted : ndarray
+        """
+
+        if is_categorical_dtype(cast_type):
+            # XXX this is for consistency with
+            # c-parser which parses all categories
+            # as strings
+            if not is_object_dtype(values):
+                values = _astype_nansafe(values, str)
+            values = Categorical(values)
+        else:
+            try:
+                values = _astype_nansafe(values, cast_type, copy=True)
+            except ValueError:
+                raise ValueError("Unable to convert column %s to "
+                                 "type %s" % (column, cast_type))
+        return values
 
     def _do_date_conversions(self, names, data):
         # returns data, columns
@@ -1784,6 +1857,7 @@ class PythonParser(ParserBase):
 
         self.verbose = kwds['verbose']
         self.converters = kwds['converters']
+        self.dtype = kwds['dtype']
 
         self.compact_ints = kwds['compact_ints']
         self.use_unsigned = kwds['use_unsigned']
@@ -1982,7 +2056,7 @@ class PythonParser(ParserBase):
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
             index, columns, col_dict = _get_empty_meta(
-                names, self.index_col, self.index_names)
+                names, self.index_col, self.index_names, self.dtype)
             columns = self._maybe_make_multi_index_columns(
                 columns, self.col_names)
             return index, columns, col_dict
@@ -2033,15 +2107,25 @@ class PythonParser(ParserBase):
 
     def _convert_data(self, data):
         # apply converters
-        clean_conv = {}
+        def _clean_mapping(mapping):
+            "converts col numbers to names"
+            clean = {}
+            for col, v in compat.iteritems(mapping):
+                if isinstance(col, int) and col not in self.orig_names:
+                    col = self.orig_names[col]
+                clean[col] = v
+            return clean
 
-        for col, f in compat.iteritems(self.converters):
-            if isinstance(col, int) and col not in self.orig_names:
-                col = self.orig_names[col]
-            clean_conv[col] = f
+        clean_conv = _clean_mapping(self.converters)
+        if not isinstance(self.dtype, dict):
+            # handles single dtype applied to all columns
+            clean_dtypes = self.dtype
+        else:
+            clean_dtypes = _clean_mapping(self.dtype)
 
         return self._convert_to_ndarrays(data, self.na_values, self.na_fvalues,
-                                         self.verbose, clean_conv)
+                                         self.verbose, clean_conv,
+                                         clean_dtypes)
 
     def _to_recarray(self, data, columns):
         dtypes = []

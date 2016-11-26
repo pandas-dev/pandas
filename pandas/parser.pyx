@@ -13,7 +13,7 @@ from cpython cimport (PyObject, PyBytes_FromString,
                       PyUnicode_Check, PyUnicode_AsUTF8String,
                       PyErr_Occurred, PyErr_Fetch)
 from cpython.ref cimport PyObject, Py_XDECREF
-from io.common import ParserError, DtypeWarning, EmptyDataError
+from io.common import ParserError, DtypeWarning, EmptyDataError, ParserWarning
 
 # Import CParserError as alias of ParserError for backwards compatibility.
 # Ultimately, we want to remove this import. See gh-12665 and gh-14479.
@@ -987,7 +987,7 @@ cdef class TextReader:
             Py_ssize_t i, nused
             kh_str_t *na_hashset = NULL
             int start, end
-            object name, na_flist
+            object name, na_flist, col_dtype = None
             bint na_filter = 0
             Py_ssize_t num_cols
 
@@ -1043,14 +1043,34 @@ cdef class TextReader:
             else:
                 na_filter = 0
 
+            col_dtype = None
+            if self.dtype is not None:
+                if isinstance(self.dtype, dict):
+                    if name in self.dtype:
+                        col_dtype = self.dtype[name]
+                    elif i in self.dtype:
+                        col_dtype = self.dtype[i]
+                else:
+                    if self.dtype.names:
+                        # structured array
+                        col_dtype = np.dtype(self.dtype.descr[i][1])
+                    else:
+                        col_dtype = self.dtype
+
             if conv:
+                if col_dtype is not None:
+                    warnings.warn(("Both a converter and dtype were specified "
+                                   "for column {0} - only the converter will "
+                                   "be used").format(name), ParserWarning,
+                                  stacklevel=5)
                 results[i] = _apply_converter(conv, self.parser, i, start, end,
                                               self.c_encoding)
                 continue
 
             # Should return as the desired dtype (inferred or specified)
             col_res, na_count = self._convert_tokens(
-                i, start, end, name, na_filter, na_hashset, na_flist)
+                i, start, end, name, na_filter, na_hashset,
+                na_flist, col_dtype)
 
             if na_filter:
                 self._free_na_set(na_hashset)
@@ -1075,32 +1095,17 @@ cdef class TextReader:
     cdef inline _convert_tokens(self, Py_ssize_t i, int start, int end,
                                 object name, bint na_filter,
                                 kh_str_t *na_hashset,
-                                object na_flist):
-        cdef:
-            object col_dtype = None
+                                object na_flist, object col_dtype):
 
-        if self.dtype is not None:
-            if isinstance(self.dtype, dict):
-                if name in self.dtype:
-                    col_dtype = self.dtype[name]
-                elif i in self.dtype:
-                    col_dtype = self.dtype[i]
-            else:
-                if self.dtype.names:
-                    # structured array
-                    col_dtype = np.dtype(self.dtype.descr[i][1])
-                else:
-                    col_dtype = self.dtype
+        if col_dtype is not None:
+            col_res, na_count = self._convert_with_dtype(
+                col_dtype, i, start, end, na_filter,
+                1, na_hashset, na_flist)
 
-            if col_dtype is not None:
-                col_res, na_count = self._convert_with_dtype(
-                    col_dtype, i, start, end, na_filter,
-                    1, na_hashset, na_flist)
-
-                # Fallback on the parse (e.g. we requested int dtype,
-                # but its actually a float).
-                if col_res is not None:
-                    return col_res, na_count
+            # Fallback on the parse (e.g. we requested int dtype,
+            # but its actually a float).
+            if col_res is not None:
+                return col_res, na_count
 
         if i in self.noconvert:
             return self._string_convert(i, start, end, na_filter, na_hashset)
