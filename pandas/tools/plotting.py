@@ -2559,8 +2559,12 @@ _shared_docs['plot'] = """
     figsize : a tuple (width, height) in inches
     use_index : boolean, default True
         Use index as ticks for x axis
-    title : string
-        Title to use for the plot
+    title : string or list
+        If a string is passed, print the string at the top of the figure. If a
+        list of strings is passed and subplots is True, print the the first
+        string above the first subplot, the second string above the second
+        subplot, and so forth until the end of the list is reached or there are
+        no more subplots.
     grid : boolean, default None (matlab style default)
         Axis grid lines
     legend : False/True/'reverse'
