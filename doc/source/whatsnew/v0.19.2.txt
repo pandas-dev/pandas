@@ -30,6 +30,7 @@ Bug Fixes
 - Compat with ``dateutil==2.6.0``; segfault reported in the testing suite (:issue:`14621`)
 - Allow ``nanoseconds`` in ``Timestamp.replace`` as a kwarg (:issue:`14621`)
 - Bug in ``pd.read_csv`` where reading files fails, if the number of headers is equal to the number of lines in the file (:issue:`14515`)
+- Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when multi-char delimiters were not being respected with quotes (:issue:`14582`)
 
 
 
@@ -38,7 +39,8 @@ Bug Fixes
 
 - Bug in ``pd.cut`` with negative values and a single bin (:issue:`14652`)
 - Bug in ``pd.to_numeric`` where a 0 was not unsigned on a ``downcast='unsigned'`` argument (:issue:`14401`)
-
+- Bug in plotting regular and irregular timeseries using shared axes
+  (``sharex=True`` or ``ax.twinx()``) (:issue:`13341`, :issue:`14322`).
 
 
 
@@ -61,6 +63,7 @@ Bug Fixes
 - Bug in ``.to_clipboard()`` and Excel compat (:issue:`12529`)
 
 
+- Bug in ``pd.read_csv()`` in which the ``dtype`` parameter was not being respected for empty data (:issue:`14712`)
 
 
 

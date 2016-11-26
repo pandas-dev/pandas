@@ -3698,6 +3698,9 @@ class TestPeriodIndex(tm.TestCase):
             with self.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
+            with tm.assert_produces_warning(FutureWarning):
+                pidx.searchsorted(key=p2)
+
     def test_round_trip(self):
 
         p = Period('2000Q1')

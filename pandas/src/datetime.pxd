@@ -42,9 +42,6 @@ cdef extern from "datetime.h":
     object PyDateTime_FromDateAndTime(int year, int month, int day, int hour,
                                       int minute, int second, int us)
 
-cdef extern from "datetime_helper.h":
-    void mangle_nat(object o)
-
 cdef extern from "numpy/ndarrayobject.h":
 
     ctypedef int64_t npy_timedelta

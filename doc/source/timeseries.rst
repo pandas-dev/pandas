@@ -1286,12 +1286,11 @@ secondly data into 5-minutely data). This is extremely common in, but not
 limited to, financial applications.
 
 ``.resample()`` is a time-based groupby, followed by a reduction method on each of its groups.
+See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
 
 .. note::
 
-   ``.resample()`` is similar to using a ``.rolling()`` operation with a time-based offset, see a discussion `here <stats.moments.ts-versus-resampling>`
-
-See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
+   ``.resample()`` is similar to using a ``.rolling()`` operation with a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`
 
 .. ipython:: python
 

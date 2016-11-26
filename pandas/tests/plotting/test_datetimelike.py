@@ -778,6 +778,41 @@ class TestTSPlot(TestPlotBase):
         irreg.plot()
         ps.plot()
 
+    def test_mixed_freq_shared_ax(self):
+
+        # GH13341, using sharex=True
+        idx1 = date_range('2015-01-01', periods=3, freq='M')
+        idx2 = idx1[:1].union(idx1[2:])
+        s1 = Series(range(len(idx1)), idx1)
+        s2 = Series(range(len(idx2)), idx2)
+
+        fig, (ax1, ax2) = self.plt.subplots(nrows=2, sharex=True)
+        s1.plot(ax=ax1)
+        s2.plot(ax=ax2)
+
+        self.assertEqual(ax1.freq, 'M')
+        self.assertEqual(ax2.freq, 'M')
+        self.assertEqual(ax1.lines[0].get_xydata()[0, 0],
+                         ax2.lines[0].get_xydata()[0, 0])
+
+        # using twinx
+        fig, ax1 = self.plt.subplots()
+        ax2 = ax1.twinx()
+        s1.plot(ax=ax1)
+        s2.plot(ax=ax2)
+
+        self.assertEqual(ax1.lines[0].get_xydata()[0, 0],
+                         ax2.lines[0].get_xydata()[0, 0])
+
+        # TODO (GH14330, GH14322)
+        # plotting the irregular first does not yet work
+        # fig, ax1 = plt.subplots()
+        # ax2 = ax1.twinx()
+        # s2.plot(ax=ax1)
+        # s1.plot(ax=ax2)
+        # self.assertEqual(ax1.lines[0].get_xydata()[0, 0],
+        #                  ax2.lines[0].get_xydata()[0, 0])
+
     @slow
     def test_to_weekly_resampling(self):
         idxh = date_range('1/1/1999', periods=52, freq='W')
