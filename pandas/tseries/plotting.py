@@ -162,18 +162,37 @@ def _decorate_axes(ax, freq, kwargs):
     ax.date_axis_info = None
 
 
+def _get_ax_freq(ax):
+    """
+    Get the freq attribute of the ax object if set.
+    Also checks shared axes (eg when using secondary yaxis, sharex=True
+    or twinx)
+    """
+    ax_freq = getattr(ax, 'freq', None)
+    if ax_freq is None:
+        # check for left/right ax in case of secondary yaxis
+        if hasattr(ax, 'left_ax'):
+            ax_freq = getattr(ax.left_ax, 'freq', None)
+        elif hasattr(ax, 'right_ax'):
+            ax_freq = getattr(ax.right_ax, 'freq', None)
+    if ax_freq is None:
+        # check if a shared ax (sharex/twinx) has already freq set
+        shared_axes = ax.get_shared_x_axes().get_siblings(ax)
+        if len(shared_axes) > 1:
+            for shared_ax in shared_axes:
+                ax_freq = getattr(shared_ax, 'freq', None)
+                if ax_freq is not None:
+                    break
+    return ax_freq
+
+
 def _get_freq(ax, series):
     # get frequency from data
     freq = getattr(series.index, 'freq', None)
     if freq is None:
         freq = getattr(series.index, 'inferred_freq', None)
 
-    ax_freq = getattr(ax, 'freq', None)
-    if ax_freq is None:
-        if hasattr(ax, 'left_ax'):
-            ax_freq = getattr(ax.left_ax, 'freq', None)
-        elif hasattr(ax, 'right_ax'):
-            ax_freq = getattr(ax.right_ax, 'freq', None)
+    ax_freq = _get_ax_freq(ax)
 
     # use axes freq if no data freq
     if freq is None:
@@ -191,7 +210,7 @@ def _get_freq(ax, series):
 
 def _use_dynamic_x(ax, data):
     freq = _get_index_freq(data)
-    ax_freq = getattr(ax, 'freq', None)
+    ax_freq = _get_ax_freq(ax)
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
@@ -244,7 +263,7 @@ def _maybe_convert_index(ax, data):
             freq = freq.rule_code
 
         if freq is None:
-            freq = getattr(ax, 'freq', None)
+            freq = _get_ax_freq(ax)
 
         if freq is None:
             raise ValueError('Could not get frequency alias for plotting')
