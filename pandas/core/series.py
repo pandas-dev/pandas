@@ -832,18 +832,19 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def repeat(self, reps, *args, **kwargs):
+    @deprecate_kwarg(old_arg_name='reps', new_arg_name='repeats')
+    def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
-        for more information about the `reps` argument.
+        for more information about the `repeats` argument.
 
         See also
         --------
         numpy.ndarray.repeat
         """
         nv.validate_repeat(args, kwargs)
-        new_index = self.index.repeat(reps)
-        new_values = self._values.repeat(reps)
+        new_index = self.index.repeat(repeats)
+        new_values = self._values.repeat(repeats)
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
 
@@ -1509,12 +1510,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
 
-    @Substitution(klass='Series', value='v')
+    @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
-    def searchsorted(self, v, side='left', sorter=None):
+    @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
+    def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
             sorter = _ensure_platform_int(sorter)
-        return self._values.searchsorted(Series(v)._values,
+        return self._values.searchsorted(Series(value)._values,
                                          side=side, sorter=sorter)
 
     # -------------------------------------------------------------------
