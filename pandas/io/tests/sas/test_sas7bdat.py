@@ -44,7 +44,12 @@ class TestSAS7BDAT(tm.TestCase):
             df0 = self.data[j]
             for k in self.test_ix[j]:
                 fname = os.path.join(self.dirpath, "test%d.sas7bdat" % k)
-                df = pd.read_sas(fname, encoding="utf-8")
+                with open(fname, 'rb') as f:
+                    byts = f.read()
+                buf = io.BytesIO(byts)
+                rdr = pd.read_sas(buf, format="sas7bdat",
+                                  iterator=True, encoding='utf-8')
+                df = rdr.read()
                 tm.assert_frame_equal(df, df0, check_exact=False)
 
     def test_from_iterator(self):
@@ -74,10 +79,7 @@ class TestSAS7BDAT(tm.TestCase):
         # github #14734
         k = self.test_ix[0][0]
         fname = os.path.join(self.dirpath, "test%d.sas7bdat" % k)
-        with open(fname, 'rb') as f:
-            byts = f.read()
-        buf = io.BytesIO(byts)
-        rdr = pd.read_sas(buf, format="sas7bdat",
+        rdr = pd.read_sas(fname, format="sas7bdat",
                           iterator=True, encoding='utf-8')
         d1 = rdr.read(rdr.row_count + 20)
         rdr = pd.read_sas(fname, iterator=True, encoding="utf-8")
