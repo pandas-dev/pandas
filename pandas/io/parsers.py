@@ -2411,14 +2411,23 @@ class PythonParser(ParserBase):
                 try:
                     orig_line = next(self.data)
                 except csv.Error as e:
+                    msg = str(e)
+
                     if 'NULL byte' in str(e):
-                        raise csv.Error(
-                            'NULL byte detected. This byte '
-                            'cannot be processed in Python\'s '
-                            'native csv library at the moment, '
-                            'so please pass in engine=\'c\' instead.')
-                    else:
-                        raise
+                        msg = ('NULL byte detected. This byte '
+                               'cannot be processed in Python\'s '
+                               'native csv library at the moment, '
+                               'so please pass in engine=\'c\' instead')
+
+                    if self.skipfooter > 0:
+                        reason = ('Error could possibly be due to '
+                                  'parsing errors in the skipped footer rows '
+                                  '(the skipfooter keyword is only applied '
+                                  'after Python\'s csv library has parsed '
+                                  'all rows).')
+                        msg += '. ' + reason
+
+                    raise csv.Error(msg)
                 line = self._check_comments([orig_line])[0]
                 self.pos += 1
                 if (not self.skip_blank_lines and
