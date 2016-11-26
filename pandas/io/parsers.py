@@ -2767,6 +2767,7 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = []
         na_fvalues = set()
     elif isinstance(na_values, dict):
+        na_values = na_values.copy()  # Prevent aliasing.
         if keep_default_na:
             for k, v in compat.iteritems(na_values):
                 if not is_list_like(v):

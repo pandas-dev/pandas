@@ -39,6 +39,7 @@ Bug Fixes
 
 - Compat with ``dateutil==2.6.0``; segfault reported in the testing suite (:issue:`14621`)
 - Allow ``nanoseconds`` in ``Timestamp.replace`` as a kwarg (:issue:`14621`)
+- Bug in ``pd.read_csv`` in which aliasing was being done for ``na_values`` when passed in as a dictionary (:issue:`14203`)
 - Bug in ``pd.read_csv`` where reading files fails, if the number of headers is equal to the number of lines in the file (:issue:`14515`)
 - Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when multi-char delimiters were not being respected with quotes (:issue:`14582`)
 - Fix bugs (:issue:`14734`, :issue:`13654`) in ``pd.read_sas`` and ``pandas.io.sas.sas7bdat.SAS7BDATReader`` that caused problems when reading a SAS file incrementally.
