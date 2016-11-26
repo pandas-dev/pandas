@@ -1091,12 +1091,12 @@ class IndexOpsMixin(object):
         """Find indices where elements should be inserted to maintain order.
 
         Find the indices into a sorted %(klass)s `self` such that, if the
-        corresponding elements in `v` were inserted before the indices, the
-        order of `self` would be preserved.
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
 
         Parameters
         ----------
-        %(value)s : array_like
+        value : array_like
             Values to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
@@ -1109,7 +1109,7 @@ class IndexOpsMixin(object):
         Returns
         -------
         indices : array of ints
-            Array of insertion points with the same shape as `v`.
+            Array of insertion points with the same shape as `value`.
 
         See Also
         --------
@@ -1149,11 +1149,12 @@ class IndexOpsMixin(object):
         array([3, 4])    # eggs before milk
         """)
 
-    @Substitution(klass='IndexOpsMixin', value='key')
+    @Substitution(klass='IndexOpsMixin')
     @Appender(_shared_docs['searchsorted'])
-    def searchsorted(self, key, side='left', sorter=None):
+    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
+    def searchsorted(self, value, side='left', sorter=None):
         # needs coercion on the key (DatetimeIndex does already)
-        return self.values.searchsorted(key, side=side, sorter=sorter)
+        return self.values.searchsorted(value, side=side, sorter=sorter)
 
     _shared_docs['drop_duplicates'] = (
         """Return %(klass)s with duplicate values removed
