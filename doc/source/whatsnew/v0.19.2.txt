@@ -39,7 +39,8 @@ Bug Fixes
 
 - Bug in ``pd.cut`` with negative values and a single bin (:issue:`14652`)
 - Bug in ``pd.to_numeric`` where a 0 was not unsigned on a ``downcast='unsigned'`` argument (:issue:`14401`)
-
+- Bug in plotting regular and irregular timeseries using shared axes
+  (``sharex=True`` or ``ax.twinx()``) (:issue:`13341`, :issue:`14322`).
 
 
 
