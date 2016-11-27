@@ -12,6 +12,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import quantile
 from pandas.tools.tile import cut, qcut
 import pandas.tools.tile as tmod
+from pandas import to_datetime
 
 
 class TestCut(tm.TestCase):
@@ -282,6 +283,16 @@ class TestCut(tm.TestCase):
         s = Series([-9., -9.])
         result = cut(s, 1, labels=False)
         tm.assert_series_equal(result, expected)
+
+    def test_datetime_cut(self):
+        data = to_datetime(Series(['2013-01-01', '2013-01-02', '2013-01-03']))
+        result = cut(data, 3)
+        self.assertEqual(result[0],
+                         '(2012-12-31 23:57:07.200000, 2013-01-01 16:00:00]')
+        self.assertEqual(result[1],
+                         '(2013-01-01 16:00:00, 2013-01-02 08:00:00]')
+        self.assertEqual(result[2],
+                         '(2013-01-02 08:00:00, 2013-01-03 00:00:00]')
 
 
 def curpath():
