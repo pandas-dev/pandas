@@ -279,3 +279,13 @@ nan,B
 
         tm.assert_frame_equal(out, expected)
         tm.assert_dict_equal(na_values, na_values_copy)
+
+    def test_na_values_dict_col_index(self):
+        # see gh-14203
+
+        data = 'a\nfoo\n1'
+        na_values = {0: 'foo'}
+
+        out = self.read_csv(StringIO(data), na_values=na_values)
+        expected = DataFrame({'a': [np.nan, 1]})
+        tm.assert_frame_equal(out, expected)
