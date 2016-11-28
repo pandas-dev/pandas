@@ -179,13 +179,23 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3], dtype=int64)
     """
+    dtype = None
+    if is_timedelta64_dtype(x):
+        x = x.astype(np.int64)
+        dtype = np.timedelta64
+
+    if is_datetime64_dtype(x):
+        x = x.astype(np.int64)
+        dtype = np.datetime64
+
     if is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
     return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
-                         precision=precision, include_lowest=True)
+                         precision=precision, include_lowest=True,
+                         dtype=dtype)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
