@@ -711,6 +711,53 @@ class TestReadGBQIntegration(tm.TestCase):
         gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                      dialect='standard', private_key=_get_private_key_path())
 
+    def test_query_with_parameters(self):
+        sql_statement = "SELECT @param1 + @param2 as VALID_RESULT"  
+        query_config = {
+            "useLegacySql":False,
+            "parameterMode":"named",
+            "queryParameters": [
+                {
+                    "name": "param1",
+                    "parameterType": {
+                        "type": "INTEGER"
+                    },
+                    "parameterValue": {
+                        "value": 1
+                    }
+                },
+                {
+                    "name": "param2",
+                    "parameterType": {
+                        "type": "INTEGER"
+                    },
+                    "parameterValue": {
+                        "value": 2
+                    }
+                }
+            ]
+        }
+        # Test that an invalid query without query_config
+        with tm.assertRaises(ValueError):
+            gbq.read_gbq(sql_statement, project_id=_get_project_id(),
+                         private_key=_get_private_key_path())
+
+        # Test that a correct query with query config
+        df = gbq.read_gbq(sql_statement, project_id=_get_project_id(),
+                     private_key=_get_private_key_path(),
+                     query_config=query_config)
+        tm.assert_frame_equal(df, DataFrame({'VALID_RESULT': [3]}))
+
+    def test_query_no_cache(self):
+        query = 'SELECT "PI" as VALID_STRING'
+        query_config = {
+            "useQueryCache":False,
+        }
+        df = gbq.read_gbq(query, project_id=_get_project_id(),
+                          private_key=_get_private_key_path(),
+                          query_config=query_config)
+        tm.assert_frame_equal(df, DataFrame({'VALID_STRING': ['PI']}))
+
 
 class TestToGBQIntegration(tm.TestCase):
     # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
