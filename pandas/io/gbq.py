@@ -375,7 +375,7 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
-    def run_query(self, query, udf_resource_uri=None):
+    def run_query(self, query, **kwargs):
         try:
             from googleapiclient.errors import HttpError
         except:
@@ -395,13 +395,9 @@ class GbqConnector(object):
                 }
             }
         }
-        
-        if udf_resource_uri is not None:
-            if not isinstance(udf_resource_uri, list):
-                udf_resource_uri = [udf_resource_uri]
-
-            job_data['configuration']['query']['userDefinedFunctionResources'] = \
-                [{'resourceUri': uri} for uri in udf_resource_uri]
+        query_config = kwargs.get('query_config')
+        if query_config is not None:
+            job_data['configuration']['query'].update(query_config)
 
 
         self._start_timer()
@@ -629,8 +625,9 @@ def _parse_entry(field_value, field_type):
     return field_value
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None, dialect='legacy', udf_resource_uri=None):
+def read_gbq(query, project_id=None, index_col=None, col_order=None, 
+             reauth=False, verbose=True, private_key=None, dialect='legacy', 
+             **kwargs):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -690,9 +687,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
         .. versionadded:: 0.19.0
 
-    udf_resource_uri : list(str) or str (optional)
-        A code resource to load from a Google Cloud Storage URI.
-        Describes user-defined function resources used in the query.
+    **kwargs: Arbitrary keyword arguments
+        query_config (dict): query configuration parameters for job processing.
+            For more information see `BigQuery SQL Reference
+            <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`
 
         .. versionadded:: 0.19.0
 
@@ -712,7 +710,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     connector = GbqConnector(project_id, reauth=reauth, verbose=verbose,
                              private_key=private_key,
                              dialect=dialect)
-    schema, pages = connector.run_query(query, udf_resource_uri)
+    schema, pages = connector.run_query(query, **kwargs)
     dataframe_list = []
     while len(pages) > 0:
         page = pages.pop()
