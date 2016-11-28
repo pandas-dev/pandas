@@ -1217,7 +1217,7 @@ class MPLPlot(object):
 
         if self.title:
             if self.subplots:
-                if type(self.title) == list:
+                if is_list_like(self.title):
                     for (ax, title) in zip(self.axes, self.title):
                         ax.set_title(title)
                 else:
