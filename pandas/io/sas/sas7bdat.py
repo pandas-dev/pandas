@@ -225,6 +225,12 @@ class SAS7BDATReader(BaseIterator):
                 self.os_name = self.os_name.decode(
                     self.encoding or self.default_encoding)
 
+    def __next__(self):
+        da = self.read(nrows=self.chunksize or 1)
+        if da is None:
+            raise StopIteration
+        return da
+
     # Read a single float of the given width (4 or 8).
     def _read_float(self, offset, width):
         if width not in (4, 8):
@@ -590,6 +596,10 @@ class SAS7BDATReader(BaseIterator):
 
         if self._current_row_in_file_index >= self.row_count:
             return None
+
+        m = self.row_count - self._current_row_in_file_index
+        if nrows > m:
+            nrows = m
 
         nd = (self.column_types == b'd').sum()
         ns = (self.column_types == b's').sum()
