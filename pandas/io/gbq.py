@@ -399,7 +399,6 @@ class GbqConnector(object):
         if query_config is not None:
             job_data['configuration']['query'].update(query_config)
 
-
         self._start_timer()
         try:
             self._print('Requesting query... ', end="")
@@ -625,8 +624,8 @@ def _parse_entry(field_value, field_type):
     return field_value
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None, 
-             reauth=False, verbose=True, private_key=None, dialect='legacy', 
+def read_gbq(query, project_id=None, index_col=None, col_order=None,
+             reauth=False, verbose=True, private_key=None, dialect='legacy',
              **kwargs):
     """Load data from Google BigQuery.
 
