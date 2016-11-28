@@ -16,13 +16,11 @@ import pandas.tools.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _ok_for_gaussian_kde)
 
-
 """ Test cases for misc plot functions """
 
 
 @tm.mplskip
 class TestSeriesPlots(TestPlotBase):
-
     def setUp(self):
         TestPlotBase.setUp(self)
         import matplotlib as mpl
@@ -54,7 +52,6 @@ class TestSeriesPlots(TestPlotBase):
 
 @tm.mplskip
 class TestDataFramePlots(TestPlotBase):
-
     @slow
     def test_scatter_plot_legacy(self):
         tm._skip_if_no_scipy()
@@ -276,6 +273,24 @@ class TestDataFramePlots(TestPlotBase):
         ax = radviz(df, 'Name', color=colors)
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, facecolors=colors)
+
+    @slow
+    def test_subplot_titles(self):
+        df = self.iris.drop('Name', axis=1).head()
+        # Use the column names as the subplot titles
+        title = list(df.columns)
+
+        # Case len(title) == len(df)
+        plot = df.plot(subplots=True, title=title)
+        self.assertEqual([p.title._text for p in plot], title)
+
+        # Case len(title) > len(df)
+        plot = df.plot(subplots=True, title=title + ['Ignore me!'])
+        self.assertEqual([p.title._text for p in plot], title)
+
+        # Case len(title) < len(df)
+        plot = df.plot(subplots=True, title=title[:2])
+        self.assertEqual([p.title._text for p in plot], title[:2] + ['', ''])
 
 
 if __name__ == '__main__':
