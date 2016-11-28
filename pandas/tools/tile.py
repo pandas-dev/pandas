@@ -87,11 +87,11 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     dtype = None
     if is_timedelta64_dtype(x):
-        x = x.astype(np.int64)
+        x = x.view(np.int64)
         dtype = np.timedelta64
 
     if is_datetime64_dtype(x):
-        x = x.astype(np.int64)
+        x = x.view(np.int64)
         dtype = np.datetime64
 
     if not np.iterable(bins):
@@ -181,11 +181,11 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     """
     dtype = None
     if is_timedelta64_dtype(x):
-        x = x.astype(np.int64)
+        x = x.view(np.int64)
         dtype = np.timedelta64
 
     if is_datetime64_dtype(x):
-        x = x.astype(np.int64)
+        x = x.view(np.int64)
         dtype = np.datetime64
 
     if is_integer(q):
@@ -289,9 +289,9 @@ def _format_levels(bins, prec, right=True,
 def _format_label(x, precision=3, dtype=None):
     fmt_str = '%%.%dg' % precision
 
-    if dtype == np.datetime64:
+    if is_datetime64_dtype(dtype):
         return to_datetime(x, unit='ns')
-    if dtype == np.timedelta64:
+    if is_timedelta64_dtype(dtype):
         return to_timedelta(x, unit='ns')
     if np.isinf(x):
         return str(x)
