@@ -91,6 +91,10 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
+Map on Index types now return other Index types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 -  ``map`` on an ``Index`` now returns an ``Index``, not an array (:issue:`12766`)
 
   .. ipython:: python
@@ -110,6 +114,102 @@ Backwards incompatible API changes
   .. ipython:: python
 
       idx.map(lambda x: x * 2)
+
+-  ``map`` on an ``Index`` or ``MultiIndex`` returns the appropriate type depending on output dimensionality
+
+  .. ipython:: python
+
+     mi = MultiIndex.from_tuples([(1, 2), (2, 4)])
+     mi
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+     In [5]: idx.map(lambda x: (x, x * 2))
+     Out[5]: array([(1, 2), (2, 4)], dtype=object)
+
+
+     In [6]: mi.map(lambda x: x[0])
+     Out[6]: array([1, 2])
+
+  New Behavior:
+
+  .. ipython:: python
+
+      idx.map(lambda x: (x, x * 2))
+
+      mi.map(lambda x: x[0])
+
+
+-  ``map`` on an ``CategoricalIndex`` now returns a ``CategoricalIndex``, not a Categorical
+
+  .. ipython:: python
+
+     ci = CategoricalIndex(list('ABABC'), categories=list('CBA'), ordered=True)
+     ci
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+    In [7]: ci.map(lambda x: x.lower())
+    Out[7]:
+    [a, b, a, b, c]
+    Categories (3, object): [c < b < a]
+
+  New Behavior:
+
+  .. ipython:: python
+
+      ci.map(lambda x: x.lower())
+
+-  ``map`` on an ``DatetimeIndex`` or ``TimedeltaIndex`` now returns an ``Index`` instance
+
+  .. ipython:: python
+
+     dtidx = date_range(start='2016-01-01', end='2016-01-02')
+     dtidx
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+    In [8]: dtidx.map(lambda x: x.day)
+    Out[8]: array([1, 2])
+
+  New Behavior:
+
+  .. ipython:: python
+
+      dtidx.map(lambda x: x.day)
+
+
+-  ``map`` on a Series withe datetime64 values may return int64 dtypes rather than int32
+
+  .. ipython:: python
+
+    s = Series(date_range('2011-01-02T00:00', '2011-01-02T02:00', freq='H').tz_localize('Asia/Tokyo'))
+    s
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+    In [9]: s.map(lambda x: x.hour)
+    Out[9]:
+    0    0
+    1    1
+    2    2
+    dtype: int32
+
+
+  New Behavior:
+
+  .. ipython:: python
+
+    s.map(lambda x: x.hour)
+
 
   .. _whatsnew_0200.api:
 
