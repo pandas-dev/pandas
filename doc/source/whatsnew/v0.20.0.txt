@@ -40,7 +40,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
-
+- ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings
 
 .. _whatsnew_0200.api_breaking:
 
