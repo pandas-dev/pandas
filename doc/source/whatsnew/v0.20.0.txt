@@ -41,6 +41,10 @@ Other enhancements
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
 
+- New ``UnsortedIndexError`` (subclass of ``KeyError``) raised when indexing/slicing into an
+  unsorted MultiIndex (:issue:`11897`). This allows differentiation between errors due to lack
+  of sorting or an incorrect key. See :ref:`here <advanced.unsorted>`
+ 
 
 .. _whatsnew_0200.api_breaking:
 
@@ -57,6 +61,9 @@ Backwards incompatible API changes
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
+
+- Change error message text when indexing via a
+  boolean ``Series`` that has an incompatible index (:issue:`14491`)
 
 .. _whatsnew_0200.deprecations:
 
