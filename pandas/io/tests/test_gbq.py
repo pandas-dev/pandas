@@ -707,7 +707,7 @@ class TestReadGBQIntegration(tm.TestCase):
                          private_key=_get_private_key_path())
 
         # Test that a correct option for dialect succeeds
-        # to make sure ValueError was due to invalid dialect
+        # to make sure ValueError was due to invalid  dialect
         gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                      dialect='standard', private_key=_get_private_key_path())
 
