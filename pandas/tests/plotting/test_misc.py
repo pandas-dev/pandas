@@ -285,12 +285,14 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual([p.title._text for p in plot], title)
 
         # Case len(title) > len(df)
-        plot = df.plot(subplots=True, title=title + ['Ignore me!'])
-        self.assertEqual([p.title._text for p in plot], title)
+        self.assertRaises(ValueError, df.plot, subplots=True,
+                          title=title + ["kittens > puppies"])
 
         # Case len(title) < len(df)
-        plot = df.plot(subplots=True, title=title[:2])
-        self.assertEqual([p.title._text for p in plot], title[:2] + ['', ''])
+        self.assertRaises(ValueError, df.plot, subplots=True, title=title[:2])
+
+        # Case subplots=False and title is of type list
+        self.assertRaises(ValueError, df.plot, subplots=False, title=title)
 
 
 if __name__ == '__main__':

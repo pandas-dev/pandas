@@ -1218,11 +1218,21 @@ class MPLPlot(object):
         if self.title:
             if self.subplots:
                 if is_list_like(self.title):
+                    if len(self.title) != len(self.axes):
+                        msg = 'The length of `title` must equal the number ' \
+                              'of columns if using `title` of type `list` ' \
+                              'and `subplots=True`'
+                        raise ValueError(msg)
+
                     for (ax, title) in zip(self.axes, self.title):
                         ax.set_title(title)
                 else:
                     self.fig.suptitle(self.title)
             else:
+                if is_list_like(self.title):
+                    msg = 'Using `title` of type `list` is not supported ' \
+                          'unless `subplots=True` is passed'
+                    raise ValueError(msg)
                 self.axes[0].set_title(self.title)
 
     def _apply_axis_properties(self, axis, rot=None, fontsize=None):
@@ -2561,10 +2571,8 @@ _shared_docs['plot'] = """
         Use index as ticks for x axis
     title : string or list
         If a string is passed, print the string at the top of the figure. If a
-        list of strings is passed and subplots is True, print the the first
-        string above the first subplot, the second string above the second
-        subplot, and so forth until the end of the list is reached or there are
-        no more subplots.
+        list is passed and subplots is True, print each item in the
+        list above the corresponding subplot.
     grid : boolean, default None (matlab style default)
         Axis grid lines
     legend : False/True/'reverse'
