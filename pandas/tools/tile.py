@@ -11,7 +11,7 @@ from pandas.core.categorical import Categorical
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 from pandas.compat import zip
-from pandas.tseries.timedeltas import to_timedelta
+from pandas import to_timedelta
 from pandas import to_datetime
 import numpy as np
 from pandas.types.common import (is_datetime64_dtype, is_timedelta64_dtype)
@@ -90,7 +90,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         x = x.view(np.int64)
         dtype = np.timedelta64
 
-    if is_datetime64_dtype(x):
+    elif is_datetime64_dtype(x):
         x = x.view(np.int64)
         dtype = np.datetime64
 
@@ -184,7 +184,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
         x = x.view(np.int64)
         dtype = np.timedelta64
 
-    if is_datetime64_dtype(x):
+    elif is_datetime64_dtype(x):
         x = x.view(np.int64)
         dtype = np.datetime64
 

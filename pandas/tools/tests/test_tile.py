@@ -285,14 +285,14 @@ class TestCut(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
     def test_datetime_cut(self):
+        # GH 14714
         data = to_datetime(Series(['2013-01-01', '2013-01-02', '2013-01-03']))
-        result = cut(data, 3)
-        self.assertEqual(result[0],
-                         '(2012-12-31 23:57:07.200000, 2013-01-01 16:00:00]')
-        self.assertEqual(result[1],
-                         '(2013-01-01 16:00:00, 2013-01-02 08:00:00]')
-        self.assertEqual(result[2],
-                         '(2013-01-02 08:00:00, 2013-01-03 00:00:00]')
+        result, bins = cut(data, 3, retbins=True)
+        expected = Series(['(2012-12-31 23:57:07.200000, 2013-01-01 16:00:00]',
+                          '(2013-01-01 16:00:00, 2013-01-02 08:00:00]',
+                           '(2013-01-02 08:00:00, 2013-01-03 00:00:00]'],
+                          ).astype("category", ordered=True)
+        tm.assert_series_equal(result, expected)
 
 
 def curpath():
