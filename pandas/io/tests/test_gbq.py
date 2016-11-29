@@ -707,15 +707,15 @@ class TestReadGBQIntegration(tm.TestCase):
                          private_key=_get_private_key_path())
 
         # Test that a correct option for dialect succeeds
-        # to make sure ValueError was due to invalid dialect
+        # to make sure ValueError was due to invalid  dialect
         gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                      dialect='standard', private_key=_get_private_key_path())
 
     def test_query_with_parameters(self):
-        sql_statement = "SELECT @param1 + @param2 as VALID_RESULT"  
+        sql_statement = "SELECT @param1 + @param2 as VALID_RESULT"
         query_config = {
-            "useLegacySql":False,
-            "parameterMode":"named",
+            "useLegacySql": False,
+            "parameterMode": "named",
             "queryParameters": [
                 {
                     "name": "param1",
@@ -744,14 +744,14 @@ class TestReadGBQIntegration(tm.TestCase):
 
         # Test that a correct query with query config
         df = gbq.read_gbq(sql_statement, project_id=_get_project_id(),
-                     private_key=_get_private_key_path(),
-                     query_config=query_config)
+                          private_key=_get_private_key_path(),
+                          query_config=query_config)
         tm.assert_frame_equal(df, DataFrame({'VALID_RESULT': [3]}))
 
     def test_query_no_cache(self):
         query = 'SELECT "PI" as VALID_STRING'
         query_config = {
-            "useQueryCache":False,
+            "useQueryCache": False,
         }
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path(),
