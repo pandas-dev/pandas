@@ -27,6 +27,7 @@ Flat File
    read_table
    read_csv
    read_fwf
+   read_msgpack
 
 Clipboard
 ~~~~~~~~~
