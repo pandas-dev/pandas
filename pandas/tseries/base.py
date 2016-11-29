@@ -27,7 +27,6 @@ from pandas.indexes.base import _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.types.concat as _concat
 import pandas.tseries.frequencies as frequencies
-import pandas.algos as _algos
 
 
 class DatelikeOps(object):

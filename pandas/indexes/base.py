@@ -2427,8 +2427,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return result
 
     def map(self, mapper):
-        """
-        Apply mapper function to an index.
+        """Apply mapper function to an index.
 
         Parameters
         ----------
@@ -2441,6 +2440,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
+
         """
         from .multi import MultiIndex
         mapped_values = self._arrmap(self.values, mapper)

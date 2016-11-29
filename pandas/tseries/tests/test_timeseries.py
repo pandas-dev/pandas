@@ -3701,7 +3701,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         result = index.map(f)
         expected = Index([f(index[0])])
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_groupby_function_tuple_1677(self):
         df = DataFrame(np.random.rand(100),

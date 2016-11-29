@@ -517,8 +517,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         return self._create_from_codes(taken)
 
     def map(self, mapper):
-        """
-        Apply mapper function to its categories (not codes).
+        """Apply mapper function to its categories (not codes).
 
         Parameters
         ----------
@@ -531,6 +530,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         Returns
         -------
         applied : CategoricalIndex or Index
+
         """
         return self._shallow_copy_with_infer(self.values.map(mapper))
 
