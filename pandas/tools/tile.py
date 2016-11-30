@@ -11,10 +11,9 @@ from pandas.core.categorical import Categorical
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 from pandas.compat import zip
-from pandas import to_timedelta
-from pandas import to_datetime
+from pandas import to_timedelta, to_datetime
 import numpy as np
-from pandas.types.common import (is_datetime64_dtype, is_timedelta64_dtype)
+from pandas.types.common import is_datetime64_dtype, is_timedelta64_dtype
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
@@ -85,14 +84,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
     # for handling the cut for datetime and timedelta objects
 
-    dtype = None
-    if is_timedelta64_dtype(x):
-        x = x.view(np.int64)
-        dtype = np.timedelta64
-
-    elif is_datetime64_dtype(x):
-        x = x.view(np.int64)
-        dtype = np.datetime64
+    original, x, dtype = _coerce_to_type(x)
 
     if not np.iterable(bins):
         if is_scalar(bins) and bins < 1:
@@ -179,14 +171,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3], dtype=int64)
     """
-    dtype = None
-    if is_timedelta64_dtype(x):
-        x = x.view(np.int64)
-        dtype = np.timedelta64
-
-    elif is_datetime64_dtype(x):
-        x = x.view(np.int64)
-        dtype = np.datetime64
+    original, x, dtype = _coerce_to_type(x)
 
     if is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
@@ -329,3 +314,16 @@ def _trim_zeros(x):
     if len(x) > 1 and x[-1] == '.':
         x = x[:-1]
     return x
+
+
+def _coerce_to_type(x):
+    dtype = None
+    original = x
+    if is_timedelta64_dtype(x):
+        x = x.view(np.int64)
+        dtype = np.timedelta64
+
+    elif is_datetime64_dtype(x):
+        x = x.view(np.int64)
+        dtype = np.datetime64
+    return original, x, dtype
