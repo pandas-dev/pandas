@@ -63,6 +63,7 @@ class TestHashing(tm.TestCase):
                     Series([1.0, 1.5, 3.2], index=[1.5, 1.1, 3.3]),
                     Series(['a', 'b', 'c']),
                     Series(['a', np.nan, 'c']),
+                    Series(['a', None, 'c']),
                     Series([True, False, True]),
                     Index([1, 2, 3]),
                     Index([True, False, True]),
@@ -71,9 +72,7 @@ class TestHashing(tm.TestCase):
                     tm.makeMixedDataFrame(),
                     tm.makeTimeDataFrame(),
                     tm.makeTimeSeries(),
-                    tm.makeTimedeltaIndex(),
-                    Series([1, 2, 3], index=pd.MultiIndex.from_tuples(
-                        [('a', 1), ('a', 2), ('b', 1)]))]:
+                    tm.makeTimedeltaIndex()]:
             self.check_equal(obj)
             self.check_not_equal_with_index(obj)
 
@@ -115,16 +114,22 @@ class TestHashing(tm.TestCase):
             hash_pandas_object(Series(list('abc')), hash_key='foo')
         self.assertRaises(ValueError, f)
 
-    def test_mixed(self):
-        # mixed objects
-        obj = Series(['1', 2, 3])
-        self.check_equal(obj)
-        self.check_not_equal_with_index(obj)
+    def test_unsupported_objects(self):
 
-        # mixed are actually equal when stringified
-        a = hash_pandas_object(obj)
-        b = hash_pandas_object(Series(list('123')))
-        self.assert_series_equal(a, b)
+        # mixed objects are not supported
+        obj = Series(['1', 2, 3])
+
+        def f():
+            hash_pandas_object(obj)
+        self.assertRaises(TypeError, f)
+
+        # MultiIndex are represented as tuples
+        obj = Series([1, 2, 3], index=pd.MultiIndex.from_tuples(
+            [('a', 1), ('a', 2), ('b', 1)]))
+
+        def f():
+            hash_pandas_object(obj)
+        self.assertRaises(TypeError, f)
 
     def test_alread_encoded(self):
         # if already encoded then ok
