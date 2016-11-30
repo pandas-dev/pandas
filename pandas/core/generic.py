@@ -3477,20 +3477,27 @@ class NDFrame(PandasObject):
                     res = self if inplace else self.copy()
                     for c, src in compat.iteritems(to_replace):
                         if c in value and c in self:
+                            # object conversion is handled in
+                            # series.replace which is called recursivelly
                             res[c] = res[c].replace(to_replace=src,
                                                     value=value[c],
-                                                    inplace=False, regex=regex)
+                                                    inplace=False,
+                                                    regex=regex)
                     return None if inplace else res
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
-                    for k, src in compat.iteritems(to_replace):
-                        if k in self:
-                            new_data = new_data.replace(to_replace=src,
-                                                        value=value,
-                                                        filter=[k],
-                                                        inplace=inplace,
-                                                        regex=regex)
+                    keys = [(k, src) for k, src in compat.iteritems(to_replace)
+                            if k in self]
+                    keys_len = len(keys) - 1
+                    for i, (k, src) in enumerate(keys):
+                        convert = i == keys_len
+                        new_data = new_data.replace(to_replace=src,
+                                                    value=value,
+                                                    filter=[k],
+                                                    inplace=inplace,
+                                                    regex=regex,
+                                                    convert=convert)
                 else:
                     raise TypeError('value argument must be scalar, dict, or '
                                     'Series')

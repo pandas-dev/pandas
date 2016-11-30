@@ -21,6 +21,7 @@ Highlights include:
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Improved performance of ``.replace()`` (:issue:`12745`)
 
 .. _whatsnew_0192.bug_fixes:
 

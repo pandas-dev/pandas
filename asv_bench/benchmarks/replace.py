@@ -32,6 +32,30 @@ class replace_large_dict(object):
         self.s.replace(self.to_rep, inplace=True)
 
 
+class replace_convert(object):
+    goal_time = 0.5
+
+    def setup(self):
+        self.n = (10 ** 3)
+        self.to_ts = dict(((i, pd.Timestamp(i)) for i in range(self.n)))
+        self.to_td = dict(((i, pd.Timedelta(i)) for i in range(self.n)))
+        self.s = Series(np.random.randint(self.n, size=(10 ** 3)))
+        self.df = DataFrame({'A': np.random.randint(self.n, size=(10 ** 3)),
+                             'B': np.random.randint(self.n, size=(10 ** 3))})
+
+    def time_replace_series_timestamp(self):
+        self.s.replace(self.to_ts)
+
+    def time_replace_series_timedelta(self):
+        self.s.replace(self.to_td)
+
+    def time_replace_frame_timestamp(self):
+        self.df.replace(self.to_ts)
+
+    def time_replace_frame_timedelta(self):
+        self.df.replace(self.to_td)
+
+
 class replace_replacena(object):
     goal_time = 0.2
 
