@@ -12,7 +12,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import quantile
 from pandas.tools.tile import cut, qcut
 import pandas.tools.tile as tmod
-from pandas import to_datetime
+from pandas import to_datetime, DatetimeIndex
 
 
 class TestCut(tm.TestCase):
@@ -303,7 +303,7 @@ class TestCut(tm.TestCase):
                           '(2013-01-01 16:00:00, 2013-01-02 08:00:00]',
                            '(2013-01-02 08:00:00, 2013-01-03 00:00:00]'],
                           ).astype("category", ordered=True)
-        tm.assert_almost_equal(Series(result), expected)
+        tm.assert_series_equal(Series(result), expected)
 
     def test_datetime_ndarray_cut(self):
         # GH 14714
@@ -315,7 +315,17 @@ class TestCut(tm.TestCase):
                           '(2013-01-01 16:00:00, 2013-01-02 08:00:00]',
                            '(2013-01-02 08:00:00, 2013-01-03 00:00:00]'],
                           ).astype("category", ordered=True)
-        tm.assert_almost_equal(Series(result), expected)
+        tm.assert_series_equal(Series(result), expected)
+
+    def test_datetime_index_cut(self):
+        # GH 14714
+        data = DatetimeIndex(['2013-01-01', '2013-01-02', '2013-01-03'])
+        result, bins = cut(data, 3, retbins=True)
+        expected = Series(['(2012-12-31 23:57:07.200000, 2013-01-01 16:00:00]',
+                          '(2013-01-01 16:00:00, 2013-01-02 08:00:00]',
+                           '(2013-01-02 08:00:00, 2013-01-03 00:00:00]'],
+                          ).astype("category", ordered=True)
+        tm.assert_series_equal(Series(result), expected)
 
 
 def curpath():
