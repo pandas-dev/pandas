@@ -314,11 +314,11 @@ def _coerce_to_type(x):
     dtype = None
     original = x
     if is_timedelta64_dtype(x):
-        x = x.view(np.int64)
+        x = to_timedelta(x).view(np.int64)
         dtype = np.timedelta64
 
     elif is_datetime64_dtype(x):
-        x = x.view(np.int64)
+        x = to_datetime(x).view(np.int64)
         dtype = np.datetime64
     return original, x, dtype
 

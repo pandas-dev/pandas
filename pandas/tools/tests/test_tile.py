@@ -294,6 +294,29 @@ class TestCut(tm.TestCase):
                           ).astype("category", ordered=True)
         tm.assert_series_equal(result, expected)
 
+    def test_datetime_list_cut(self):
+        # GH 14714
+        data = [np.datetime64('2013-01-01'), np.datetime64('2013-01-02'),
+                np.datetime64('2013-01-03')]
+        result, bins = cut(data, 3, retbins=True)
+        expected = Series(['(2012-12-31 23:57:07.200000, 2013-01-01 16:00:00]',
+                          '(2013-01-01 16:00:00, 2013-01-02 08:00:00]',
+                           '(2013-01-02 08:00:00, 2013-01-03 00:00:00]'],
+                          ).astype("category", ordered=True)
+        tm.assert_almost_equal(Series(result), expected)
+
+    def test_datetime_ndarray_cut(self):
+        # GH 14714
+        data = np.array([np.datetime64('2013-01-01'), 
+                        np.datetime64('2013-01-02'),
+                        np.datetime64('2013-01-03')])
+        result, bins = cut(data, 3, retbins=True)
+        expected = Series(['(2012-12-31 23:57:07.200000, 2013-01-01 16:00:00]',
+                          '(2013-01-01 16:00:00, 2013-01-02 08:00:00]',
+                           '(2013-01-02 08:00:00, 2013-01-03 00:00:00]'],
+                          ).astype("category", ordered=True)
+        tm.assert_almost_equal(Series(result), expected)
+
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
