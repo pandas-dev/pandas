@@ -50,7 +50,7 @@ Other enhancements
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
 
-ENH: support cut/qcut for datetime/timedelta (GH14714)
+- pd.cut and qcut now support datetime64 and timedelta64 dtypes (issue:`14714`)
 
 .. _whatsnew_0200.api_breaking:
 
