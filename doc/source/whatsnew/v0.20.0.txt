@@ -83,3 +83,10 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+.. _whatsnew_0200.gbq:
+
+Google BigQuery Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- The :func:`read_gbq` method now allows query configuration preferences
