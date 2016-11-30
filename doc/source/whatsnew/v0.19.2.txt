@@ -65,3 +65,10 @@ Bug Fixes
 
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
+
+.. _whatsnew_0192.gbq:
+
+Google BigQuery Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- The :func:`read_gbq` method now allows query configuration preferences

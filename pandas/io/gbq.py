@@ -691,7 +691,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             For more information see `BigQuery SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`
 
-        .. versionadded:: 0.19.0
+        .. versionadded:: 0.19.2
 
     Returns
     -------
