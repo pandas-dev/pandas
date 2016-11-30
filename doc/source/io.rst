@@ -1268,10 +1268,21 @@ is whitespace).
    df = pd.read_fwf('bar.csv', header=None, index_col=0)
    df
 
+.. versionadded:: 0.20.0
+
+``read_fwf`` supports the ``dtype`` parameter for specifying the types of
+parsed columns to be different from the inferred type.
+
+.. ipython:: python
+
+   pd.read_fwf('bar.csv', header=None, index_col=0).dtypes
+   pd.read_fwf('bar.csv', header=None, dtype={2: 'object'}).dtypes
+
 .. ipython:: python
    :suppress:
 
    os.remove('bar.csv')
+
 
 Indexes
 '''''''
