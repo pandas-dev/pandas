@@ -7,6 +7,7 @@ cimport numpy as cnp
 import numpy as np
 from numpy cimport ndarray, uint8_t, uint32_t, uint64_t
 
+from util cimport _checknull
 from cpython cimport (PyString_Check,
                       PyBytes_Check,
                       PyUnicode_Check)
@@ -28,6 +29,11 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
     Returns
     -------
     1-d uint64 ndarray of hashes
+
+    Notes
+    -----
+    allowed values must be strings, or nulls
+    mixed array types will raise TypeError
 
     """
     cdef:
@@ -60,9 +66,13 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
             data = <bytes>val
         elif PyUnicode_Check(val):
             data = <bytes>val.encode(encoding)
-        else:
-            # non-strings
+        elif _checknull(val):
+            # null, stringify and encode
             data = <bytes>str(val).encode(encoding)
+
+        else:
+            raise TypeError("{} of type {} is not a valid type for "
+                            "hashing, must be string or null".format(val, type(val)))
 
         l = len(data)
         lens[i] = l
