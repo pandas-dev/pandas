@@ -119,9 +119,14 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
-    return _bins_to_cuts(x, bins, right=right, labels=labels,
-                         retbins=retbins, precision=precision,
-                         include_lowest=include_lowest, dtype=dtype)
+    x_is_series, series_index, name, x = _preprocess_for_cut(x)
+
+    fac, bins = _bins_to_cuts(x, bins, right=right, labels=labels,
+                              retbins=retbins, precision=precision,
+                              include_lowest=include_lowest, dtype=dtype)
+
+    return _postprocess_for_cut(fac, bins, retbins, x_is_series,
+                                series_index, name)
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3):
@@ -173,28 +178,24 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     """
     original, x, dtype = _coerce_to_type(x)
 
+    x_is_series, series_index, name, x = _preprocess_for_cut(x)
+
     if is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
-    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
-                         precision=precision, include_lowest=True,
-                         dtype=dtype)
+    fac, bins = _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
+                              precision=precision, include_lowest=True,
+                              dtype=dtype)
+
+    return _postprocess_for_cut(fac, bins, retbins, x_is_series,
+                                series_index, name)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
                   precision=3, name=None, include_lowest=False,
                   dtype=None):
-    x_is_series = isinstance(x, Series)
-    series_index = None
-
-    if x_is_series:
-        series_index = x.index
-        if name is None:
-            name = x.name
-
-    x = np.asarray(x)
 
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
@@ -238,12 +239,6 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
         if has_nas:
             fac = fac.astype(np.float64)
             np.putmask(fac, na_mask, np.nan)
-
-    if x_is_series:
-        fac = Series(fac, index=series_index, name=name)
-
-    if not retbins:
-        return fac
 
     return fac, bins
 
@@ -327,3 +322,25 @@ def _coerce_to_type(x):
         x = x.view(np.int64)
         dtype = np.datetime64
     return original, x, dtype
+
+
+def _preprocess_for_cut(x):
+    x_is_series = isinstance(x, Series)
+    series_index = None
+
+    name = None
+    if x_is_series:
+        series_index = x.index
+        if name is None:
+            name = x.name
+    return x_is_series, series_index, name, x
+
+
+def _postprocess_for_cut(fac, bins, retbins, x_is_series, series_index, name):
+    if x_is_series:
+        fac = Series(fac, index=series_index, name=name)
+
+    if not retbins:
+        return fac
+
+    return fac, bins
