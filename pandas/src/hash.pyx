@@ -71,8 +71,8 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
             data = <bytes>str(val).encode(encoding)
 
         else:
-            raise TypeError("{} of type {} is not a valid type for "
-                            "hashing, must be string or null".format(val, type(val)))
+            raise TypeError("{} of type {} is not a valid type for hashing, "
+                            "must be string or null".format(val, type(val)))
 
         l = len(data)
         lens[i] = l
