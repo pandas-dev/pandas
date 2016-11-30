@@ -83,6 +83,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
     # for handling the cut for datetime and timedelta objects
+    x_is_series, series_index, name, x = _preprocess_for_cut(x)
 
     original, x, dtype = _coerce_to_type(x)
 
@@ -118,8 +119,6 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         bins = np.asarray(bins)
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
-
-    x_is_series, series_index, name, x = _preprocess_for_cut(x)
 
     fac, bins = _bins_to_cuts(x, bins, right=right, labels=labels,
                               retbins=retbins, precision=precision,
@@ -176,9 +175,9 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3], dtype=int64)
     """
-    original, x, dtype = _coerce_to_type(x)
-
     x_is_series, series_index, name, x = _preprocess_for_cut(x)
+
+    original, x, dtype = _coerce_to_type(x)
 
     if is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
