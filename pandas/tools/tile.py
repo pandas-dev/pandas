@@ -332,6 +332,9 @@ def _preprocess_for_cut(x):
         series_index = x.index
         if name is None:
             name = x.name
+
+    x = np.asarray(x)
+
     return x_is_series, series_index, name, x
 
 
