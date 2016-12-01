@@ -311,11 +311,11 @@ def _trim_zeros(x):
 
 
 def _coerce_to_type(x):
-    '''
+    """
     if the passed data is of datetime/timedelta type,
     this method converts it to integer so that cut method can
     handle it
-    '''
+    """
     dtype = None
     original = x
     if is_timedelta64_dtype(x):
@@ -329,11 +329,11 @@ def _coerce_to_type(x):
 
 
 def _preprocess_for_cut(x):
-    '''
+    """
     handles preprocessing for cut where we convert passed
     input to array, strip the index information and store it
     seperately
-    '''
+    """
     x_is_series = isinstance(x, Series)
     series_index = None
 
@@ -349,11 +349,11 @@ def _preprocess_for_cut(x):
 
 
 def _postprocess_for_cut(fac, bins, retbins, x_is_series, series_index, name):
-    '''
+    """
     handles post processing for the cut method where
     we combine the index information if the originally passed
     datatype was a series
-    '''
+    """
     if x_is_series:
         fac = Series(fac, index=series_index, name=name)
 
