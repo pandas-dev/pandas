@@ -688,7 +688,8 @@ class Timestamp(_Timestamp):
         def validate(k, v):
             """ validate integers """
             if not isinstance(v, int):
-                raise ValueError("value must be an integer, received {v} for {k}".format(v=type(v), k=k))
+                raise ValueError("value must be an integer, received "
+                                 "{v} for {k}".format(v=type(v), k=k))
             return v
 
         for k, v in kwds.items():
@@ -802,7 +803,8 @@ class NaTType(_NaT):
         cdef _NaT base
 
         base = _NaT.__new__(cls, 1, 1, 1)
-        mangle_nat(base)
+        base._day = -1
+        base._month = -1
         base.value = NPY_NAT
 
         return base
@@ -1103,6 +1105,12 @@ cdef class _Timestamp(datetime):
 
         self._assert_tzawareness_compat(other)
         return _cmp_scalar(self.value, ots.value, op)
+
+    def __reduce_ex__(self, protocol):
+        # python 3.6 compat
+        # http://bugs.python.org/issue28730
+        # now __reduce_ex__ is defined and higher priority than __reduce__
+        return self.__reduce__()
 
     def __repr__(self):
         stamp = self._repr_base
@@ -1538,7 +1546,8 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             "Cannot convert Period to Timestamp "
             "unambiguously. Use to_timestamp")
     else:
-        raise TypeError('Cannot convert input to Timestamp')
+        raise TypeError('Cannot convert input [{}] of type {} to '
+                        'Timestamp'.format(ts, type(ts)))
 
     if obj.value != NPY_NAT:
         _check_dts_bounds(&obj.dts)
@@ -5105,7 +5114,8 @@ cpdef normalize_date(object dt):
     normalized : datetime.datetime or Timestamp
     """
     if is_timestamp(dt):
-        return dt.replace(hour=0, minute=0, second=0, microsecond=0, nanosecond=0)
+        return dt.replace(hour=0, minute=0, second=0, microsecond=0,
+                          nanosecond=0)
     elif PyDateTime_Check(dt):
         return dt.replace(hour=0, minute=0, second=0, microsecond=0)
     elif PyDate_Check(dt):

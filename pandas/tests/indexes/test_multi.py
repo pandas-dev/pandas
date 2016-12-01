@@ -97,6 +97,10 @@ class TestMultiIndex(Base, tm.TestCase):
             numbers, names.repeat(reps)], names=names)
         tm.assert_index_equal(m.repeat(reps), expected)
 
+        with tm.assert_produces_warning(FutureWarning):
+            result = m.repeat(n=reps)
+            tm.assert_index_equal(result, expected)
+
     def test_numpy_repeat(self):
         reps = 2
         numbers = [1, 2, 3]
@@ -1870,7 +1874,7 @@ class TestMultiIndex(Base, tm.TestCase):
         idx = pd.MultiIndex.from_product(vals, names=['str', 'dt'])
         indices = [1, 2]
 
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, idx.take,
                               indices, foo=2)
 

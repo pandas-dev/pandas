@@ -244,6 +244,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
     'Programming Language :: Cython',
     'Topic :: Scientific/Engineering',
 ]
@@ -292,6 +293,11 @@ class CleanCommand(Command):
                 if d == '__pycache__':
                     self._clean_trees.append(pjoin(root, d))
 
+        # clean the generated pxi files
+        for pxifile in _pxifiles:
+            pxifile = pxifile.replace(".pxi.in", ".pxi")
+            self._clean_me.append(pxifile)
+
         for d in ('build', 'dist'):
             if os.path.exists(d):
                 self._clean_trees.append(d)
@@ -330,6 +336,7 @@ class CheckSDist(sdist_class):
                  'pandas/src/period.pyx',
                  'pandas/src/sparse.pyx',
                  'pandas/src/testing.pyx',
+                 'pandas/src/hash.pyx',
                  'pandas/io/sas/saslib.pyx']
 
     def initialize_options(self):
@@ -454,7 +461,8 @@ lib_depends = lib_depends + ['pandas/src/numpy_helper.h',
 
 tseries_depends = ['pandas/src/datetime/np_datetime.h',
                    'pandas/src/datetime/np_datetime_strings.h',
-                   'pandas/src/period_helper.h']
+                   'pandas/src/period_helper.h',
+                   'pandas/src/datetime.pxd']
 
 
 # some linux distros require it
@@ -499,10 +507,12 @@ ext_data = dict(
             'sources': ['pandas/src/parser/tokenizer.c',
                         'pandas/src/parser/io.c']},
     _sparse={'pyxfile': 'src/sparse',
-             'depends': ([srcpath('sparse', suffix='.pyx')]
-                         + _pxi_dep['_sparse'])},
+             'depends': ([srcpath('sparse', suffix='.pyx')] +
+                         _pxi_dep['_sparse'])},
     _testing={'pyxfile': 'src/testing',
               'depends': [srcpath('testing', suffix='.pyx')]},
+    _hash={'pyxfile': 'src/hash',
+           'depends': [srcpath('hash', suffix='.pyx')]},
 )
 
 ext_data["io.sas.saslib"] = {'pyxfile': 'io/sas/saslib'}
@@ -642,7 +652,8 @@ setup(name=DISTNAME,
                 'pandas.io.tests.parser',
                 'pandas.io.tests.sas',
                 'pandas.stats.tests',
-                'pandas.msgpack'
+                'pandas.msgpack',
+                'pandas.util.clipboard'
                 ],
       package_data={'pandas.io': ['tests/data/legacy_hdf/*.h5',
                                   'tests/data/legacy_pickle/*/*.pickle',

@@ -25,6 +25,7 @@ from pandas.types.common import (_coerce_to_dtype, is_categorical_dtype,
                                  is_iterator,
                                  is_dict_like,
                                  is_scalar,
+                                 _is_unorderable_exception,
                                  _ensure_platform_int)
 from pandas.types.generic import ABCSparseArray, ABCDataFrame
 from pandas.types.cast import (_maybe_upcast, _infer_dtype_from_scalar,
@@ -102,11 +103,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     """
     One-dimensional ndarray with axis labels (including time series).
 
-    Labels need not be unique but must be any hashable type. The object
+    Labels need not be unique but must be a hashable type. The object
     supports both integer- and label-based indexing and provides a host of
     methods for performing operations involving the index. Statistical
     methods from ndarray have been overridden to automatically exclude
-    missing data (currently represented as NaN)
+    missing data (currently represented as NaN).
 
     Operations between Series (+, -, /, *, **) align values based on their
     associated index values-- they need not be the same length. The result
@@ -117,8 +118,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     data : array-like, dict, or scalar value
         Contains data stored in Series
     index : array-like or Index (1d)
-        Values must be unique and hashable, same length as data. Index
-        object (or other iterable of same length as data) Will default to
+        Values must be hashable and have the same length as `data`.
+        Non-unique index values are allowed. Will default to
         RangeIndex(len(data)) if not provided. If both a dict and index
         sequence are used, the index will override the keys found in the
         dict.
@@ -753,7 +754,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                     raise ValueError("Can only tuple-index with a MultiIndex")
 
                 # python 3 type errors should be raised
-                if 'unorderable' in str(e):  # pragma: no cover
+                if _is_unorderable_exception(e):
                     raise IndexError(key)
 
             if com.is_bool_indexer(key):
@@ -831,18 +832,19 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def repeat(self, reps, *args, **kwargs):
+    @deprecate_kwarg(old_arg_name='reps', new_arg_name='repeats')
+    def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
-        for more information about the `reps` argument.
+        for more information about the `repeats` argument.
 
         See also
         --------
         numpy.ndarray.repeat
         """
         nv.validate_repeat(args, kwargs)
-        new_index = self.index.repeat(reps)
-        new_values = self._values.repeat(reps)
+        new_index = self.index.repeat(repeats)
+        new_values = self._values.repeat(repeats)
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
 
@@ -1216,16 +1218,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                  dtype='int64').__finalize__(self)
 
     def mode(self):
-        """Returns the mode(s) of the dataset.
+        """Return the mode(s) of the dataset.
 
-        Empty if nothing occurs at least 2 times.  Always returns Series even
-        if only one value.
-
-        Parameters
-        ----------
-        sort : bool, default True
-            If True, will lexicographically sort values, if False skips
-            sorting. Result ordering when ``sort=False`` is not defined.
+        Empty if nothing occurs at least 2 times. Always returns Series even
+        if only one value is returned.
 
         Returns
         -------
@@ -1514,12 +1510,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
 
-    @Substitution(klass='Series', value='v')
+    @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
-    def searchsorted(self, v, side='left', sorter=None):
+    @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
+    def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
             sorter = _ensure_platform_int(sorter)
-        return self._values.searchsorted(Series(v)._values,
+        return self._values.searchsorted(Series(value)._values,
                                          side=side, sorter=sorter)
 
     # -------------------------------------------------------------------

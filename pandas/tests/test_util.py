@@ -2,7 +2,10 @@
 import nose
 
 from collections import OrderedDict
-from pandas.util._move import move_into_mutable_buffer, BadMove
+import sys
+import unittest
+from uuid import uuid4
+from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
 from pandas.util.decorators import deprecate_kwarg
 from pandas.util.validators import (validate_args, validate_kwargs,
                                     validate_args_and_kwargs)
@@ -94,8 +97,8 @@ class TestValidateArgs(tm.TestCase):
         min_fname_arg_count = 0
         max_length = len(compat_args) + min_fname_arg_count
         actual_length = len(args) + min_fname_arg_count
-        msg = ("{fname}\(\) takes at most {max_length} "
-               "argument \({actual_length} given\)"
+        msg = (r"{fname}\(\) takes at most {max_length} "
+               r"argument \({actual_length} given\)"
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
@@ -111,8 +114,8 @@ class TestValidateArgs(tm.TestCase):
         min_fname_arg_count = 2
         max_length = len(compat_args) + min_fname_arg_count
         actual_length = len(args) + min_fname_arg_count
-        msg = ("{fname}\(\) takes at most {max_length} "
-               "arguments \({actual_length} given\)"
+        msg = (r"{fname}\(\) takes at most {max_length} "
+               r"arguments \({actual_length} given\)"
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
@@ -124,7 +127,7 @@ class TestValidateArgs(tm.TestCase):
     def test_not_all_defaults(self):
         bad_arg = 'foo'
         msg = ("the '{arg}' parameter is not supported "
-               "in the pandas implementation of {func}\(\)".
+               r"in the pandas implementation of {func}\(\)".
                format(arg=bad_arg, func=self.fname))
 
         compat_args = OrderedDict()
@@ -160,8 +163,8 @@ class TestValidateKwargs(tm.TestCase):
         compat_args[goodarg] = 'foo'
         compat_args[badarg + 'o'] = 'bar'
         kwargs = {goodarg: 'foo', badarg: 'bar'}
-        msg = ("{fname}\(\) got an unexpected "
-               "keyword argument '{arg}'".format(
+        msg = (r"{fname}\(\) got an unexpected "
+               r"keyword argument '{arg}'".format(
                    fname=self.fname, arg=badarg))
 
         with tm.assertRaisesRegexp(TypeError, msg):
@@ -169,8 +172,8 @@ class TestValidateKwargs(tm.TestCase):
 
     def test_not_all_none(self):
         bad_arg = 'foo'
-        msg = ("the '{arg}' parameter is not supported "
-               "in the pandas implementation of {func}\(\)".
+        msg = (r"the '{arg}' parameter is not supported "
+               r"in the pandas implementation of {func}\(\)".
                format(arg=bad_arg, func=self.fname))
 
         compat_args = OrderedDict()
@@ -209,8 +212,8 @@ class TestValidateKwargsAndArgs(tm.TestCase):
         min_fname_arg_count = 0
         max_length = len(compat_args) + min_fname_arg_count
         actual_length = len(kwargs) + len(args) + min_fname_arg_count
-        msg = ("{fname}\(\) takes at most {max_length} "
-               "argument \({actual_length} given\)"
+        msg = (r"{fname}\(\) takes at most {max_length} "
+               r"argument \({actual_length} given\)"
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
@@ -227,8 +230,8 @@ class TestValidateKwargsAndArgs(tm.TestCase):
         min_fname_arg_count = 2
         max_length = len(compat_args) + min_fname_arg_count
         actual_length = len(kwargs) + len(args) + min_fname_arg_count
-        msg = ("{fname}\(\) takes at most {max_length} "
-               "arguments \({actual_length} given\)"
+        msg = (r"{fname}\(\) takes at most {max_length} "
+               r"arguments \({actual_length} given\)"
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
@@ -245,8 +248,8 @@ class TestValidateKwargsAndArgs(tm.TestCase):
         compat_args['foo'] = -5
         compat_args[bad_arg] = 1
 
-        msg = ("the '{arg}' parameter is not supported "
-               "in the pandas implementation of {func}\(\)".
+        msg = (r"the '{arg}' parameter is not supported "
+               r"in the pandas implementation of {func}\(\)".
                format(arg=bad_arg, func=self.fname))
 
         args = ()
@@ -272,8 +275,8 @@ class TestValidateKwargsAndArgs(tm.TestCase):
         kwargs = {'foo': None, 'bar': None}
         args = (None,)  # duplicate value for 'foo'
 
-        msg = ("{fname}\(\) got multiple values for keyword "
-               "argument '{arg}'".format(fname=self.fname, arg='foo'))
+        msg = (r"{fname}\(\) got multiple values for keyword "
+               r"argument '{arg}'".format(fname=self.fname, arg='foo'))
 
         with tm.assertRaisesRegexp(TypeError, msg):
             validate_args_and_kwargs(self.fname, args, kwargs,
@@ -296,6 +299,14 @@ class TestValidateKwargsAndArgs(tm.TestCase):
 
 
 class TestMove(tm.TestCase):
+    def test_cannot_create_instance_of_stolenbuffer(self):
+        """Stolen buffers need to be created through the smart constructor
+        ``move_into_mutable_buffer`` which has a bunch of checks in it.
+        """
+        msg = "cannot create 'pandas.util._move.stolenbuf' instances"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            stolenbuf()
+
     def test_more_than_one_ref(self):
         """Test case for when we try to use ``move_into_mutable_buffer`` when
         the object being moved has other references.
@@ -324,6 +335,46 @@ class TestMove(tm.TestCase):
 
         # materialize as bytearray to show that it is mutable
         self.assertEqual(bytearray(as_stolen_buf), b'test')
+
+    @unittest.skipIf(
+        sys.version_info[0] > 2,
+        'bytes objects cannot be interned in py3',
+    )
+    def test_interned(self):
+        salt = uuid4().hex
+
+        def make_string():
+            # We need to actually create a new string so that it has refcount
+            # one. We use a uuid so that we know the string could not already
+            # be in the intern table.
+            return ''.join(('testing: ', salt))
+
+        # This should work, the string has one reference on the stack.
+        move_into_mutable_buffer(make_string())
+
+        refcount = [None]  # nonlocal
+
+        def ref_capture(ob):
+            # Subtract two because those are the references owned by this
+            # frame:
+            #   1. The local variables of this stack frame.
+            #   2. The python data stack of this stack frame.
+            refcount[0] = sys.getrefcount(ob) - 2
+            return ob
+
+        with tm.assertRaises(BadMove):
+            # If we intern the string it will still have one reference but now
+            # it is in the intern table so if other people intern the same
+            # string while the mutable buffer holds the first string they will
+            # be the same instance.
+            move_into_mutable_buffer(ref_capture(intern(make_string())))  # noqa
+
+        self.assertEqual(
+            refcount[0],
+            1,
+            msg='The BadMove was probably raised for refcount reasons instead'
+            ' of interning reasons',
+        )
 
 
 def test_numpy_errstate_is_default():

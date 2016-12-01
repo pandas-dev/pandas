@@ -7,6 +7,10 @@ This is a minor bug-fix release from 0.19.1 and includes some small regression f
 bug fixes and performance improvements.
 We recommend that all users upgrade to this version.
 
+Highlights include:
+
+- Compatibility with Python 3.6
+
 .. contents:: What's new in v0.19.2
     :local:
     :backlinks: none
@@ -17,11 +21,53 @@ We recommend that all users upgrade to this version.
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Improved performance of ``.replace()`` (:issue:`12745`)
 
 .. _whatsnew_0192.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
 
-- compat with ``dateutil==2.6.0`` for testing (:issue:`14621`)
-- allow ``nanoseconds`` in ``Timestamp.replace`` kwargs (:issue:`14621`)
+- Compat with ``dateutil==2.6.0``; segfault reported in the testing suite (:issue:`14621`)
+- Allow ``nanoseconds`` in ``Timestamp.replace`` as a kwarg (:issue:`14621`)
+- Bug in ``pd.read_csv`` where reading files fails, if the number of headers is equal to the number of lines in the file (:issue:`14515`)
+- Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when multi-char delimiters were not being respected with quotes (:issue:`14582`)
+- Fix bugs (:issue:`14734`, :issue:`13654`) in ``pd.read_sas`` and ``pandas.io.sas.sas7bdat.SAS7BDATReader`` that caused problems when reading a SAS file incrementally.
+- Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when ``skipfooter`` was not being respected by Python's CSV library (:issue:`13879`)
+
+
+
+
+
+
+- Bug in ``pd.cut`` with negative values and a single bin (:issue:`14652`)
+- Bug in ``pd.to_numeric`` where a 0 was not unsigned on a ``downcast='unsigned'`` argument (:issue:`14401`)
+- Bug in plotting regular and irregular timeseries using shared axes
+  (``sharex=True`` or ``ax.twinx()``) (:issue:`13341`, :issue:`14322`).
+
+
+
+- Bug in not propogating exceptions in parsing invalid datetimes, noted in python 3.6 (:issue:`14561`)
+
+
+- Compat with python 3.6 for pickling of some offsets (:issue:`14685`)
+- Compat with python 3.6 for some indexing exception types (:issue:`14684`, :issue:`14689`)
+- Compat with python 3.6 for deprecation warnings in the test suite (:issue:`14681`)
+- Compat with python 3.6 for Timestamp pickles (:issue:`14689`)
+- Bug in resampling a ``DatetimeIndex`` in local TZ, covering a DST change, which would raise ``AmbiguousTimeError`` (:issue:`14682`)
+
+
+
+
+
+
+- Bug in clipboard functions on linux with python2 with unicode and separators (:issue:`13747`)
+- Bug in clipboard functions on Windows 10 and python 3 (:issue:`14362`, :issue:`12807`)
+- Bug in ``.to_clipboard()`` and Excel compat (:issue:`12529`)
+
+
+- Bug in ``pd.read_csv()`` in which the ``dtype`` parameter was not being respected for empty data (:issue:`14712`)
+
+
+
+- Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)

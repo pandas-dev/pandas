@@ -12,7 +12,7 @@ Highlights include:
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
-.. contents:: What's new in v0.19.0
+.. contents:: What's new in v0.20.0
     :local:
     :backlinks: none
 
@@ -22,8 +22,26 @@ New features
 ~~~~~~~~~~~~
 
 
+``read_csv`` supports ``dtype`` keyword for python engine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+The ``dtype`` keyword argument in the :func:`read_csv` function for specifying the types of parsed columns
+ is now supported with the ``'python'`` engine (:issue:`14295`). See the :ref:`io docs <io.dtypes>` for more information.
 
+.. ipython:: python
+
+   data = "a,b\n1,2\n3,4"
+   pd.read_csv(StringIO(data), engine='python').dtypes
+   pd.read_csv(StringIO(data), engine='python', dtype={'a':'float64', 'b':'object'}).dtypes
+
+The ``dtype`` keyword argument is also now supported in the :func:`read_fwf` function for parsing
+fixed-width text files.
+
+.. ipython:: python
+
+   data = "a  b\n1  2\n3  4"
+   pd.read_fwf(StringIO(data)).dtypes
+   pd.read_fwf(StringIO(data), dtype={'a':'float64', 'b':'object'}).dtypes
 
 .. _whatsnew_0200.enhancements.other:
 
@@ -41,6 +59,7 @@ Backwards incompatible API changes
 .. _whatsnew_0200.api:
 
 
+- ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
 
 
 
@@ -53,6 +72,10 @@ Other API Changes
 Deprecations
 ^^^^^^^^^^^^
 
+- ``Series.repeat()`` has deprecated the ``reps`` parameter in favor of ``repeats`` (:issue:`12662`)
+- ``Index.repeat()`` and ``MultiIndex.repeat()`` have deprecated the ``n`` parameter in favor of ``repeats`` (:issue:`12662`)
+- ``Categorical.searchsorted()`` and ``Series.searchsorted()`` have deprecated the ``v`` parameter in favor of ``value`` (:issue:`12662`)
+- ``TimedeltaIndex.searchsorted()``, ``DatetimeIndex.searchsorted()``, and ``PeriodIndex.searchsorted()`` have deprecated the ``key`` parameter in favor of ``value`` (:issue:`12662`)
 
 
 
@@ -63,6 +86,8 @@ Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
+- ``SparseArray.to_dense()`` has deprecated the ``fill`` parameter, as that parameter was not being respected (:issue:`14647`)
+- ``SparseSeries.to_dense()`` has deprecated the ``sparse_only`` parameter (:issue:`14647`)
 
 
 

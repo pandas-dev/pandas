@@ -167,7 +167,7 @@ class TestPandasContainer(tm.TestCase):
                 if raise_ok is not None:
                     if isinstance(detail, raise_ok):
                         return
-                    raise
+                raise
 
             if sort is not None and sort in unser.columns:
                 unser = unser.sort_values(sort)
@@ -971,7 +971,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_latin_encoding(self):
         if compat.PY2:
             self.assertRaisesRegexp(
-                TypeError, '\[unicode\] is not implemented as a table column')
+                TypeError, r'\[unicode\] is not implemented as a table column')
             return
 
         # GH 13774
