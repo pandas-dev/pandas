@@ -593,6 +593,27 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         return wrapper
 
+    def iter_groups(self, obj=None):
+        """
+        Constructs NDFrame from group for all groups.
+
+        Returns
+        -------
+        Generator yielding (name,NDFrame) for each group.
+        """
+        return ((name, self.get_group(name, obj=obj)) for name in self.groups.keys())
+
+    def get_groups(self, obj=None):
+        """
+        Constructs NDFrame from group for all groups.
+
+        Returns
+        -------
+        Generator yielding a NDFrame for each group.
+        """
+        return (self.get_group(name, obj=obj) for name in self.groups.keys())
+
+
     def get_group(self, name, obj=None):
         """
         Constructs NDFrame from group with provided name

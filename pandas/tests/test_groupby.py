@@ -840,6 +840,11 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result1, result2)
         assert_frame_equal(result1, result3)
 
+        assert_frame_equal(df, pd.concat(g.get_groups()))
+        assert_frame_equal(df, pd.concat(g for name, g in g.iter_groups()))
+        self.assertEqual(list(g.groups.keys()), [
+                         name for name, g in g.iter_groups()])
+
         g = df.groupby(['DATE', 'label'])
 
         key = list(g.groups)[0]
@@ -6090,7 +6095,8 @@ class TestGroupBy(tm.TestCase):
              'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill', 'take',
              'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith', 'cov',
              'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
-             'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding'])
+             'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding',
+             'iter_groups', 'get_groups'])
         self.assertEqual(results, expected)
 
     def test_lexsort_indexer(self):
