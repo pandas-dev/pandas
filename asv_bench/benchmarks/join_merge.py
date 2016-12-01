@@ -310,6 +310,25 @@ class merge_asof_noby(object):
         merge_asof(self.df1, self.df2, on='time')
 
 
+class merge_asof_int32_noby(object):
+
+    def setup(self):
+        np.random.seed(0)
+        one_count = 200000
+        two_count = 1000000
+        self.df1 = pd.DataFrame({'time': np.random.randint(0, one_count/20, one_count),
+                                 'value1': np.random.randn(one_count)})
+        self.df1.time = np.int32(self.df1.time)
+        self.df2 = pd.DataFrame({'time': np.random.randint(0, two_count/20, two_count),
+                                 'value2': np.random.randn(two_count)})
+        self.df2.time = np.int32(self.df2.time)
+        self.df1 = self.df1.sort_values('time')
+        self.df2 = self.df2.sort_values('time')
+
+    def time_merge_asof_int32_noby(self):
+        merge_asof(self.df1, self.df2, on='time')
+
+
 class merge_asof_by_object(object):
 
     def setup(self):
@@ -318,10 +337,10 @@ class merge_asof_by_object(object):
         one_count = 200000
         two_count = 1000000
         self.df1 = pd.DataFrame({'time': np.random.randint(0, one_count/20, one_count),
-                                 'key': np.random.choice(list(string.uppercase), one_count),
+                                 'key': np.random.choice(list(string.ascii_uppercase), one_count),
                                  'value1': np.random.randn(one_count)})
         self.df2 = pd.DataFrame({'time': np.random.randint(0, two_count/20, two_count),
-                                 'key': np.random.choice(list(string.uppercase), two_count),
+                                 'key': np.random.choice(list(string.ascii_uppercase), two_count),
                                  'value2': np.random.randn(two_count)})
         self.df1 = self.df1.sort_values('time')
         self.df2 = self.df2.sort_values('time')
@@ -347,6 +366,28 @@ class merge_asof_by_int(object):
 
     def time_merge_asof_by_int(self):
         merge_asof(self.df1, self.df2, on='time', by='key')
+
+
+class merge_asof_multiby(object):
+
+    def setup(self):
+        import string
+        np.random.seed(0)
+        one_count = 200000
+        two_count = 1000000
+        self.df1 = pd.DataFrame({'time': np.random.randint(0, one_count/20, one_count),
+                                 'key1': np.random.choice(list(string.ascii_uppercase), one_count),
+                                 'key2': np.random.choice(list(string.ascii_uppercase), one_count),
+                                 'value1': np.random.randn(one_count)})
+        self.df2 = pd.DataFrame({'time': np.random.randint(0, two_count/20, two_count),
+                                 'key1': np.random.choice(list(string.ascii_uppercase), two_count),
+                                 'key2': np.random.choice(list(string.ascii_uppercase), two_count),
+                                 'value2': np.random.randn(two_count)})
+        self.df1 = self.df1.sort_values('time')
+        self.df2 = self.df2.sort_values('time')
+
+    def time_merge_asof_multiby(self):
+        merge_asof(self.df1, self.df2, on='time', by=['key1', 'key2'])
 
 
 class join_non_unique_equal(object):

@@ -28,7 +28,8 @@ from pandas.types.common import (is_datetime64tz_dtype,
                                  is_list_like,
                                  _ensure_int64,
                                  _ensure_float64,
-                                 _ensure_object)
+                                 _ensure_object,
+                                 _get_dtype)
 from pandas.types.missing import na_value_for_dtype
 
 from pandas.core.generic import NDFrame
@@ -926,17 +927,13 @@ class _OrderedMerge(_MergeOperation):
         return result
 
 
-_asof_functions = {
-    'int64_t': _join.asof_join_int64_t,
-    'double': _join.asof_join_double,
-}
+def _asof_function(on_type):
+    return getattr(_join, 'asof_join_%s' % on_type, None)
 
-_asof_by_functions = {
-    ('int64_t', 'int64_t'): _join.asof_join_int64_t_by_int64_t,
-    ('double', 'int64_t'): _join.asof_join_double_by_int64_t,
-    ('int64_t', 'object'): _join.asof_join_int64_t_by_object,
-    ('double', 'object'): _join.asof_join_double_by_object,
-}
+
+def _asof_by_function(on_type, by_type):
+    return getattr(_join, 'asof_join_%s_by_%s' % (on_type, by_type), None)
+
 
 _type_casters = {
     'int64_t': _ensure_int64,
@@ -944,9 +941,30 @@ _type_casters = {
     'object': _ensure_object,
 }
 
+_cyton_types = {
+    'uint8': 'uint8_t',
+    'uint32': 'uint32_t',
+    'uint16': 'uint16_t',
+    'uint64': 'uint64_t',
+    'int8': 'int8_t',
+    'int32': 'int32_t',
+    'int16': 'int16_t',
+    'int64': 'int64_t',
+    'float16': 'float',
+    'float32': 'float',
+    'float64': 'double',
+}
+
 
 def _get_cython_type(dtype):
-    """ Given a dtype, return 'int64_t', 'double', or 'object' """
+    """ Given a dtype, return a C name like 'int64_t' or 'double' """
+    type_name = _get_dtype(dtype).name
+    ctype = _cyton_types.get(type_name, 'object')
+    return ctype
+
+
+def _get_cython_type_upcast(dtype):
+    """ Upcast a dtype to 'int64_t', 'double', or 'object' """
     if is_integer_dtype(dtype):
         return 'int64_t'
     elif is_float_dtype(dtype):
@@ -989,9 +1007,6 @@ class _AsOfMerge(_OrderedMerge):
         if self.by is not None:
             if not is_list_like(self.by):
                 self.by = [self.by]
-
-            if len(self.by) != 1:
-                raise MergeError("can only asof by a single key")
 
             self.left_on = self.by + list(self.left_on)
             self.right_on = self.by + list(self.right_on)
@@ -1046,6 +1061,11 @@ class _AsOfMerge(_OrderedMerge):
     def _get_join_indexers(self):
         """ return the join indexers """
 
+        def flip_stringify(xs):
+            """ flip an array of arrays and string-ify contents """
+            xt = np.transpose(xs)
+            return _join.stringify(_ensure_object(xt))
+
         # values to compare
         left_values = self.left_join_keys[-1]
         right_values = self.right_join_keys[-1]
@@ -1067,22 +1087,23 @@ class _AsOfMerge(_OrderedMerge):
 
         # a "by" parameter requires special handling
         if self.by is not None:
-            left_by_values = self.left_join_keys[0]
-            right_by_values = self.right_join_keys[0]
+            if len(self.left_join_keys) > 2:
+                # get string representation of values if more than one
+                left_by_values = flip_stringify(self.left_join_keys[0:-1])
+                right_by_values = flip_stringify(self.right_join_keys[0:-1])
+            else:
+                left_by_values = self.left_join_keys[0]
+                right_by_values = self.right_join_keys[0]
 
-            # choose appropriate function by type
-            on_type = _get_cython_type(left_values.dtype)
-            by_type = _get_cython_type(left_by_values.dtype)
-
-            on_type_caster = _type_casters[on_type]
+            # upcast 'by' parameter because HashTable is limited
+            by_type = _get_cython_type_upcast(left_by_values.dtype)
             by_type_caster = _type_casters[by_type]
-            func = _asof_by_functions[(on_type, by_type)]
-
-            left_values = on_type_caster(left_values)
-            right_values = on_type_caster(right_values)
             left_by_values = by_type_caster(left_by_values)
             right_by_values = by_type_caster(right_by_values)
 
+            # choose appropriate function by type
+            on_type = _get_cython_type(left_values.dtype)
+            func = _asof_by_function(on_type, by_type)
             return func(left_values,
                         right_values,
                         left_by_values,
@@ -1092,12 +1113,7 @@ class _AsOfMerge(_OrderedMerge):
         else:
             # choose appropriate function by type
             on_type = _get_cython_type(left_values.dtype)
-            type_caster = _type_casters[on_type]
-            func = _asof_functions[on_type]
-
-            left_values = type_caster(left_values)
-            right_values = type_caster(right_values)
-
+            func = _asof_function(on_type)
             return func(left_values,
                         right_values,
                         self.allow_exact_matches,
