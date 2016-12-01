@@ -71,3 +71,15 @@ Bug Fixes
 
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
+
+
+
+
+.. _whatsnew_0192.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- ``pd.merge_asof()`` can take multiple columns in ``by`` parameter and has specialized types (:issue:`13936`)
+
+

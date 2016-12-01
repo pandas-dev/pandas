@@ -271,8 +271,8 @@ def merge_asof(left, right, on=None,
     DataFrame whose 'on' key is less than or equal to the left's key. Both
     DataFrames must be sorted by the key.
 
-    Optionally perform group-wise merge. This searches for the nearest match
-    on the 'on' key within the same group according to 'by'.
+    Optionally match on equivalent keys with 'by' before searching for nearest
+    match with 'on'.
 
     .. versionadded:: 0.19.0
 
@@ -289,9 +289,8 @@ def merge_asof(left, right, on=None,
         Field name to join on in left DataFrame.
     right_on : label
         Field name to join on in right DataFrame.
-    by : column name
-        Group both the left and right DataFrames by the group column; perform
-        the merge operation on these pieces and recombine.
+    by : column name or list of column names
+        Match on these columns before performing merge operation.
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
         side, respectively
