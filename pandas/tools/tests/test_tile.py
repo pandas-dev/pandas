@@ -303,7 +303,7 @@ class TestCut(tm.TestCase):
 
         # testing for time data to be present as ndarray
 
-        data = np.array([np.datetime64('2013-01-01'), 
+        data = np.array([np.datetime64('2013-01-01'),
                         np.datetime64('2013-01-02'),
                         np.datetime64('2013-01-03')])
         result, bins = cut(data, 3, retbins=True)
