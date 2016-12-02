@@ -12,8 +12,9 @@ import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 from pandas.compat import zip
 from pandas import to_timedelta, to_datetime
-import numpy as np
 from pandas.types.common import is_datetime64_dtype, is_timedelta64_dtype
+
+import numpy as np
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
@@ -85,16 +86,14 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     # for handling the cut for datetime and timedelta objects
     x_is_series, series_index, name, x = _preprocess_for_cut(x)
 
-    original, x, dtype = _coerce_to_type(x)
+    x, dtype = _coerce_to_type(x)
 
     if not np.iterable(bins):
         if is_scalar(bins) and bins < 1:
             raise ValueError("`bins` should be a positive integer.")
-        try:  # for array-like
-            sz = x.size
-        except AttributeError:
-            x = np.asarray(x)
-            sz = x.size
+
+        sz = x.size
+
         if sz == 0:
             raise ValueError('Cannot cut empty array')
             # handle empty arrays. Can't determine range, so use 0-1.
@@ -121,7 +120,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
             raise ValueError('bins must increase monotonically.')
 
     fac, bins = _bins_to_cuts(x, bins, right=right, labels=labels,
-                              retbins=retbins, precision=precision,
+                              precision=precision,
                               include_lowest=include_lowest, dtype=dtype)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
@@ -177,14 +176,14 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     """
     x_is_series, series_index, name, x = _preprocess_for_cut(x)
 
-    original, x, dtype = _coerce_to_type(x)
+    x, dtype = _coerce_to_type(x)
 
     if is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
-    fac, bins = _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
+    fac, bins = _bins_to_cuts(x, bins, labels=labels,
                               precision=precision, include_lowest=True,
                               dtype=dtype)
 
@@ -192,8 +191,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
                                 series_index, name)
 
 
-def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
-                  precision=3, name=None, include_lowest=False,
+def _bins_to_cuts(x, bins, right=True, labels=None,
+                  precision=3, include_lowest=False,
                   dtype=None):
 
     side = 'left' if right else 'right'
@@ -317,7 +316,6 @@ def _coerce_to_type(x):
     handle it
     """
     dtype = None
-    original = x
     if is_timedelta64_dtype(x):
         x = to_timedelta(x).view(np.int64)
         dtype = np.timedelta64
@@ -325,7 +323,7 @@ def _coerce_to_type(x):
     elif is_datetime64_dtype(x):
         x = to_datetime(x).view(np.int64)
         dtype = np.datetime64
-    return original, x, dtype
+    return x, dtype
 
 
 def _preprocess_for_cut(x):
@@ -340,8 +338,7 @@ def _preprocess_for_cut(x):
     name = None
     if x_is_series:
         series_index = x.index
-        if name is None:
-            name = x.name
+        name = x.name
 
     x = np.asarray(x)
 
