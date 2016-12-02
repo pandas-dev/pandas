@@ -548,6 +548,7 @@ standard database join operations between DataFrame objects:
   only appears in ``'left'`` DataFrame, ``right_only`` for observations whose
   merge key only appears in ``'right'`` DataFrame, and ``both`` if the
   observation's merge key is found in both.
+  
 
   .. versionadded:: 0.17.0
 
@@ -817,6 +818,10 @@ equivalent:
     left.join(right, on=key_or_keys)
     pd.merge(left, right, left_on=key_or_keys, right_index=True,
           how='left', sort=False)
+          
+.. warning::
+
+ * Joining on index with duplicate keys when joining large dataframes would cause severe memory overflow, sometimes freezes the            computer and user has to hard reboot, which can be dangerous for unsaved work. Please make sure no duplicate keys in index              before joining.
 
 Obviously you can choose whichever form you find more convenient. For
 many-to-one joins (where one of the DataFrame's is already indexed by the join
