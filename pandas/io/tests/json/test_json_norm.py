@@ -227,7 +227,7 @@ class TestNestedToRecord(tm.TestCase):
 
 
     def test_json_normalize_errors(self):
-        # If meta keys are not always present a new option to set errors='ignore' has been implemented (:issue:`14583`)
+        # GH14583: If meta keys are not always present a new option to set errors='ignore' has been implemented
         i = {
             "Trades": [{
                 "general": {

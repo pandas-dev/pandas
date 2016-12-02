@@ -62,6 +62,7 @@ Other enhancements
 - ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
 - ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
 - ``pandas.io.json.json_normalize`` If meta keys are not always present a new option to set errors="ignore" (:issue:`14583`)
+- ``pandas.io.json.json_normalize`` gained the option ``errors='ignore'|raise``; the default is raise and is backward compatible. (:issue:`14583`)
 
 
 .. _whatsnew_0200.api_breaking:
