@@ -548,7 +548,6 @@ standard database join operations between DataFrame objects:
   only appears in ``'left'`` DataFrame, ``right_only`` for observations whose
   merge key only appears in ``'right'`` DataFrame, and ``both`` if the
   observation's merge key is found in both.
-  
 
   .. versionadded:: 0.17.0
 
