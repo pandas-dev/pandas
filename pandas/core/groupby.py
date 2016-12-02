@@ -2898,6 +2898,10 @@ class SeriesGroupBy(GroupBy):
     def nunique(self, dropna=True):
         """ Returns number of unique elements in the group """
         ids, _, _ = self.grouper.group_info
+
+        if len(ids) == 0:  # bugfix for 12553
+            return Series(name=self.name)
+
         val = self.obj.get_values()
 
         try:
