@@ -421,7 +421,7 @@ class _TimeOp(_Op):
 
             # if tz's must be equal (same or None)
             if getattr(lvalues, 'tz', None) != getattr(rvalues, 'tz', None):
-                raise ValueError("Incompatbile tz's on datetime subtraction "
+                raise ValueError("Incompatible tz's on datetime subtraction "
                                  "ops")
 
         elif ((self.is_timedelta_lhs or self.is_offset_lhs) and
