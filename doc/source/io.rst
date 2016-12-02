@@ -2538,6 +2538,20 @@ missing data to recover integer dtype:
    cfun = lambda x: int(x) if x else -1
    read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
 
+dtype Specifications
+++++++++++++++++++++
+
+.. versionadded:: 0.20
+
+As an alternative to converters, the type for an entire column can
+be specified using the `dtype` keyword, which takes a dictionary
+mapping column names to types.  To interpret data with
+no type inference, use the type `str` or `object`.
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', dtype={'MyInts': 'int64', 'MyText': str})
+
 .. _io.excel_writer:
 
 Writing Excel Files
