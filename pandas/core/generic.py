@@ -1095,7 +1095,7 @@ class NDFrame(PandasObject):
         ----------
         path_or_buf : the path (string) or HDFStore object
         key : string
-            indentifier for the group in the store
+            identifier for the group in the store
         mode : optional, {'a', 'w', 'r+'}, default 'a'
 
           ``'w'``
