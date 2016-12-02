@@ -1947,7 +1947,7 @@ class TestHDFStore(Base, tm.TestCase):
             self.assertRaises(TypeError, store.append,
                               'df', Series(np.arange(10)))
 
-            # appending an incompatbile table
+            # appending an incompatible table
             df = tm.makeDataFrame()
             store.append('df', df)
 
