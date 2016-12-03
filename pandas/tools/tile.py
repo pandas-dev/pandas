@@ -83,9 +83,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     array([1, 1, 1, 1, 1], dtype=int64)
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
+
     # for handling the cut for datetime and timedelta objects
     x_is_series, series_index, name, x = _preprocess_for_cut(x)
-
     x, dtype = _coerce_to_type(x)
 
     if not np.iterable(bins):
@@ -316,13 +316,14 @@ def _coerce_to_type(x):
     handle it
     """
     dtype = None
+
     if is_timedelta64_dtype(x):
         x = to_timedelta(x).view(np.int64)
         dtype = np.timedelta64
-
     elif is_datetime64_dtype(x):
         x = to_datetime(x).view(np.int64)
         dtype = np.datetime64
+
     return x, dtype
 
 
@@ -334,8 +335,8 @@ def _preprocess_for_cut(x):
     """
     x_is_series = isinstance(x, Series)
     series_index = None
-
     name = None
+
     if x_is_series:
         series_index = x.index
         name = x.name
