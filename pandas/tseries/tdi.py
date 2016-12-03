@@ -811,54 +811,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def is_all_dates(self):
         return True
 
-    def insert(self, loc, item):
-        """
-        Make new Index inserting new item at location
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-            if not either a Python datetime or a numpy integer-like, returned
-            Index dtype will be object rather than datetime.
-
-        Returns
-        -------
-        new_index : Index
-        """
-
-        # try to convert if possible
-        if _is_convertible_to_td(item):
-            try:
-                item = Timedelta(item)
-            except:
-                pass
-
-        freq = None
-        if isinstance(item, (Timedelta, tslib.NaTType)):
-
-            # check freq can be preserved on edge cases
-            if self.freq is not None:
-                if ((loc == 0 or loc == -len(self)) and
-                        item + self.freq == self[0]):
-                    freq = self.freq
-                elif (loc == len(self)) and item - self.freq == self[-1]:
-                    freq = self.freq
-            item = _to_m8(item)
-
-        try:
-            new_tds = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
-                                      self[loc:].asi8))
-            return TimedeltaIndex(new_tds, name=self.name, freq=freq)
-
-        except (AttributeError, TypeError):
-
-            # fall back to object index
-            if isinstance(item, compat.string_types):
-                return self.asobject.insert(loc, item)
-            raise TypeError(
-                "cannot insert TimedeltaIndex with incompatible label")
-
     def delete(self, loc):
         """
         Make a new DatetimeIndex with passed location(s) deleted.

@@ -3399,8 +3399,8 @@ class TestDatetimeIndex(tm.TestCase):
             self.assertRaises(ValueError, lambda: dti.round(freq))
 
     def test_insert(self):
-        idx = DatetimeIndex(
-            ['2000-01-04', '2000-01-01', '2000-01-02'], name='idx')
+        idx = DatetimeIndex(['2000-01-04', '2000-01-01',
+                             '2000-01-02'], name='idx')
 
         result = idx.insert(2, datetime(2000, 1, 5))
         exp = DatetimeIndex(['2000-01-04', '2000-01-01', '2000-01-05',
@@ -3458,18 +3458,31 @@ class TestDatetimeIndex(tm.TestCase):
         tm._skip_if_no_pytz()
         import pytz
 
-        idx = date_range('1/1/2000', periods=3, freq='D', tz='Asia/Tokyo',
-                         name='idx')
-        with tm.assertRaises(ValueError):
-            result = idx.insert(3, pd.Timestamp('2000-01-04'))
-        with tm.assertRaises(ValueError):
-            result = idx.insert(3, datetime(2000, 1, 4))
-        with tm.assertRaises(ValueError):
-            result = idx.insert(3, pd.Timestamp('2000-01-04', tz='US/Eastern'))
-        with tm.assertRaises(ValueError):
-            result = idx.insert(3,
-                                datetime(2000, 1, 4,
-                                         tzinfo=pytz.timezone('US/Eastern')))
+        tz = 'Asia/Tokyo'
+        idx = date_range('1/1/2000', periods=3, freq='D', tz=tz, name='idx')
+
+        result = idx.insert(3, pd.Timestamp('2000-01-04'))
+        exp = pd.Index([pd.Timestamp('2000-01-01', tz=tz),
+                        pd.Timestamp('2000-01-02', tz=tz),
+                        pd.Timestamp('2000-01-03', tz=tz),
+                        pd.Timestamp('2000-01-04')], name='idx')
+        tm.assert_index_equal(result, exp)
+
+        result = idx.insert(3, datetime(2000, 1, 4))
+        tm.assert_index_equal(result, exp)
+
+        result = idx.insert(3, pd.Timestamp('2000-01-04', tz='US/Eastern'))
+        exp = pd.Index([pd.Timestamp('2000-01-01', tz=tz),
+                        pd.Timestamp('2000-01-02', tz=tz),
+                        pd.Timestamp('2000-01-03', tz=tz),
+                        pd.Timestamp('2000-01-04', tz='US/Eastern')],
+                       name='idx')
+        tm.assert_index_equal(result, exp)
+
+        # must call localize to let datetime has correct tz
+        val = pytz.timezone('US/Eastern').localize(datetime(2000, 1, 4))
+        result = idx.insert(3, val)
+        tm.assert_index_equal(result, exp)
 
         for tz in ['US/Pacific', 'Asia/Singapore']:
             idx = date_range('1/1/2000 09:00', periods=6, freq='H', tz=tz,

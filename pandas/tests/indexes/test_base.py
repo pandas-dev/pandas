@@ -435,6 +435,31 @@ class TestIndex(Base, tm.TestCase):
         null_index = Index([])
         self.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
 
+    def test_insert_empty(self):
+        # empty object index must coerce to value's dtype
+        idx = pd.Index([], dtype=object, name='x')
+
+        tm.assert_index_equal(idx.insert(0, 1), Index([1], name='x'))
+        tm.assert_index_equal(idx.insert(0, 'a'), Index(['a'], name='x'))
+
+        tm.assert_index_equal(idx.insert(0, pd.Timestamp('2011-01-01')),
+                              pd.DatetimeIndex(['2011-01-01'], name='x'))
+
+        # keep dtype if possible
+        for klass in [pd.DatetimeIndex, pd.TimedeltaIndex]:
+            idx = klass([], name='x')
+            tm.assert_index_equal(idx.insert(0, pd.NaT),
+                                  klass([pd.NaT], name='x'))
+
+        # tuple must be inserted as it is to handle MI
+        res = idx.insert(0, ('a', 'b'))
+        exp = Index(np.array([('a', 'b')], dtype=object), name='x')
+        tm.assert_index_equal(res, exp)
+
+        res = res.insert(1, ('c', 'd'))
+        exp = Index(np.array([('a', 'b'), ('c', 'd')], dtype=object), name='x')
+        tm.assert_index_equal(res, exp)
+
     def test_delete(self):
         idx = Index(['a', 'b', 'c', 'd'], name='idx')
 

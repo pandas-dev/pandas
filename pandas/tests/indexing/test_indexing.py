@@ -4197,28 +4197,36 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # allow only setting of 'valid' values
 
         orig = tm.makeTimeDataFrame()
+
         df = orig.copy()
+        df.loc[100.0, :] = df.ix[0]
+        exp = orig.append(pd.Series(df.ix[0], name=100.0))
+        tm.assert_frame_equal(df, exp)
+        tm.assert_index_equal(df.index,
+                              pd.Index(orig.index.tolist() + [100.0]))
+        self.assertEqual(df.index.dtype, 'object')
 
-        # don't allow not string inserts
-        def f():
-            df.loc[100.0, :] = df.ix[0]
+        df = orig.copy()
+        df.loc[100, :] = df.ix[0]
+        exp = orig.append(pd.Series(df.ix[0], name=100))
+        tm.assert_frame_equal(df, exp)
+        tm.assert_index_equal(df.index,
+                              pd.Index(orig.index.tolist() + [100]))
+        self.assertEqual(df.index.dtype, 'object')
 
-        self.assertRaises(TypeError, f)
+        df = orig.copy()
+        df.ix[100.0, :] = df.ix[0]
+        exp = orig.append(pd.Series(df.ix[0], name=100.0))
+        tm.assert_frame_equal(df, exp)
+        tm.assert_index_equal(df.index,
+                              pd.Index(orig.index.tolist() + [100.0]))
+        self.assertEqual(df.index.dtype, 'object')
 
-        def f():
-            df.loc[100, :] = df.ix[0]
-
-        self.assertRaises(TypeError, f)
-
-        def f():
-            df.ix[100.0, :] = df.ix[0]
-
-        self.assertRaises(TypeError, f)
-
-        def f():
+        # integer is regared as position
+        df = orig.copy()
+        msg = 'cannot set by positional indexing with enlargement'
+        with tm.assertRaisesRegexp(ValueError, msg):
             df.ix[100, :] = df.ix[0]
-
-        self.assertRaises(ValueError, f)
 
         # allow object conversion here
         df = orig.copy()
@@ -4234,13 +4242,38 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # GH5226
 
         # partially set with an empty object series
+        # empty series have different index dtype depending on its init
         s = Series()
+        tm.assert_index_equal(s.index, pd.Index([], dtype=object))
+
+        s.loc[1] = 1
+        exp = Series([1], index=[1])
+        tm.assert_series_equal(s, exp)
+
+        s.loc[3] = 3
+        exp = Series([1, 3], index=[1, 3])
+        tm.assert_series_equal(s, exp)
+
+        s = Series([])
+        tm.assert_index_equal(s.index, pd.Int64Index([]))
         s.loc[1] = 1
         tm.assert_series_equal(s, Series([1], index=[1]))
         s.loc[3] = 3
         tm.assert_series_equal(s, Series([1, 3], index=[1, 3]))
 
         s = Series()
+        tm.assert_index_equal(s.index, pd.Index([], dtype=object))
+
+        s.loc[1] = 1.
+        exp = Series([1.], index=[1])
+        tm.assert_series_equal(s, exp)
+
+        s.loc[3] = 3.
+        exp = Series([1., 3.], index=[1, 3])
+        tm.assert_series_equal(s, exp)
+
+        s = Series([])
+        tm.assert_index_equal(s.index, pd.Int64Index([]))
         s.loc[1] = 1.
         tm.assert_series_equal(s, Series([1.], index=[1]))
         s.loc[3] = 3.
@@ -4336,7 +4369,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df2 = DataFrame()
         df2[1] = Series([1], index=['foo'])
         df.loc[:, 1] = Series([1], index=['foo'])
-        tm.assert_frame_equal(df, DataFrame([[1]], index=['foo'], columns=[1]))
+
+        exp = DataFrame([[1]], index=['foo'], columns=[1])
+        tm.assert_frame_equal(df, exp)
         tm.assert_frame_equal(df, df2)
 
         # no index to start
@@ -4421,9 +4456,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame(columns=['x', 'y'])
+        self.assertEqual(df.index.dtype, object)
         df.loc[0, 'x'] = 1
         expected = DataFrame(dict(x=[1], y=[np.nan]))
-        tm.assert_frame_equal(df, expected, check_dtype=False)
+        self.assertEqual(expected.index.dtype, np.int64)
+        tm.assert_frame_equal(df, expected, check_dtype=False,
+                              check_index_type=False)
 
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem

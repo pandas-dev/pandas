@@ -378,9 +378,9 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
         exp = pd.Index([1, 1.1, 2, 3, 4])
         self._assert_insert_conversion(obj, 1.1, exp, np.float64)
 
-        # int + bool -> int
-        exp = pd.Index([1, 0, 2, 3, 4])
-        self._assert_insert_conversion(obj, False, exp, np.int64)
+        # int + bool -> object
+        exp = pd.Index([1, False, 2, 3, 4], dtype=object)
+        self._assert_insert_conversion(obj, False, exp, np.object)
 
         # int + object -> object
         exp = pd.Index([1, 'x', 2, 3, 4])
@@ -398,9 +398,9 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
         exp = pd.Index([1., 1.1, 2., 3., 4.])
         self._assert_insert_conversion(obj, 1.1, exp, np.float64)
 
-        # float + bool -> float
-        exp = pd.Index([1., 0., 2., 3., 4.])
-        self._assert_insert_conversion(obj, False, exp, np.float64)
+        # float + bool -> object
+        exp = pd.Index([1., False, 2., 3., 4.], dtype=object)
+        self._assert_insert_conversion(obj, False, exp, np.object)
 
         # float + object -> object
         exp = pd.Index([1., 'x', 2., 3., 4.])
@@ -423,42 +423,113 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
         self._assert_insert_conversion(obj, pd.Timestamp('2012-01-01'),
                                        exp, 'datetime64[ns]')
 
-        # ToDo: must coerce to object
-        msg = "Passed item and index have different timezone"
-        with tm.assertRaisesRegexp(ValueError, msg):
-            obj.insert(1, pd.Timestamp('2012-01-01', tz='US/Eastern'))
+        # datetime64 + datetime64tz => object
+        exp = pd.Index([pd.Timestamp('2011-01-01'),
+                        pd.Timestamp('2012-01-01', tz='US/Eastern'),
+                        pd.Timestamp('2011-01-02'),
+                        pd.Timestamp('2011-01-03'),
+                        pd.Timestamp('2011-01-04')])
+        val = pd.Timestamp('2012-01-01', tz='US/Eastern')
+        self._assert_insert_conversion(obj, val, exp, np.object)
 
-        # ToDo: must coerce to object
-        msg = "cannot insert DatetimeIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
-            obj.insert(1, 1)
+        # datetime64 + timedelta64 => object
+        exp = pd.Index([pd.Timestamp('2011-01-01'),
+                        pd.Timedelta('3 days'),
+                        pd.Timestamp('2011-01-02'),
+                        pd.Timestamp('2011-01-03'),
+                        pd.Timestamp('2011-01-04')])
+        val = pd.Timedelta('3 days')
+        self._assert_insert_conversion(obj, val, exp, np.object)
+
+        # datetime64 + period => object
+        exp = pd.Index([pd.Timestamp('2011-01-01'),
+                        pd.Period('2012-01', freq='M'),
+                        pd.Timestamp('2011-01-02'),
+                        pd.Timestamp('2011-01-03'),
+                        pd.Timestamp('2011-01-04')])
+        val = pd.Period('2012-01', freq='M')
+        self._assert_insert_conversion(obj, val, exp, np.object)
+
+        # datetime64 + int => object
+        exp = pd.Index([pd.Timestamp('2011-01-01'),
+                        1,
+                        pd.Timestamp('2011-01-02'),
+                        pd.Timestamp('2011-01-03'),
+                        pd.Timestamp('2011-01-04')])
+        self._assert_insert_conversion(obj, 1, exp, np.object)
+
+        # datetime64 + object => object
+        exp = pd.Index([pd.Timestamp('2011-01-01'),
+                        'x',
+                        pd.Timestamp('2011-01-02'),
+                        pd.Timestamp('2011-01-03'),
+                        pd.Timestamp('2011-01-04')])
+        self._assert_insert_conversion(obj, 'x', exp, np.object)
 
     def test_insert_index_datetime64tz(self):
+        tz = 'US/Eastern'
         obj = pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03',
-                                '2011-01-04'], tz='US/Eastern')
+                                '2011-01-04'], tz=tz)
         self.assertEqual(obj.dtype, 'datetime64[ns, US/Eastern]')
 
         # datetime64tz + datetime64tz => datetime64
         exp = pd.DatetimeIndex(['2011-01-01', '2012-01-01', '2011-01-02',
-                                '2011-01-03', '2011-01-04'], tz='US/Eastern')
+                                '2011-01-03', '2011-01-04'], tz=tz)
         val = pd.Timestamp('2012-01-01', tz='US/Eastern')
         self._assert_insert_conversion(obj, val, exp,
                                        'datetime64[ns, US/Eastern]')
 
-        # ToDo: must coerce to object
-        msg = "Passed item and index have different timezone"
-        with tm.assertRaisesRegexp(ValueError, msg):
-            obj.insert(1, pd.Timestamp('2012-01-01'))
+        # datetime64tz + datetime64tz(different tz) => object
+        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
+                        pd.Timestamp('2012-01-01', tz='US/Pacific'),
+                        pd.Timestamp('2011-01-02', tz=tz),
+                        pd.Timestamp('2011-01-03', tz=tz),
+                        pd.Timestamp('2011-01-04', tz=tz)])
+        val = pd.Timestamp('2012-01-01', tz='US/Pacific')
+        self._assert_insert_conversion(obj, val, exp, np.object)
 
-        # ToDo: must coerce to object
-        msg = "Passed item and index have different timezone"
-        with tm.assertRaisesRegexp(ValueError, msg):
-            obj.insert(1, pd.Timestamp('2012-01-01', tz='Asia/Tokyo'))
+        # datetime64tz + datetime64 => object
+        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
+                        pd.Timestamp('2012-01-01'),
+                        pd.Timestamp('2011-01-02', tz=tz),
+                        pd.Timestamp('2011-01-03', tz=tz),
+                        pd.Timestamp('2011-01-04', tz=tz)])
+        val = pd.Timestamp('2012-01-01')
+        self._assert_insert_conversion(obj, val, exp, np.object)
 
-        # ToDo: must coerce to object
-        msg = "cannot insert DatetimeIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
-            obj.insert(1, 1)
+        # datetime64tz + timedelta64 => object
+        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
+                        pd.Timedelta('3 days'),
+                        pd.Timestamp('2011-01-02', tz=tz),
+                        pd.Timestamp('2011-01-03', tz=tz),
+                        pd.Timestamp('2011-01-04', tz=tz)])
+        val = pd.Timedelta('3 days')
+        self._assert_insert_conversion(obj, val, exp, np.object)
+
+        # datetime64tz + period => object
+        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
+                        pd.Period('2012-01', freq='M'),
+                        pd.Timestamp('2011-01-02', tz=tz),
+                        pd.Timestamp('2011-01-03', tz=tz),
+                        pd.Timestamp('2011-01-04', tz=tz)])
+        val = pd.Period('2012-01', freq='M')
+        self._assert_insert_conversion(obj, val, exp, np.object)
+
+        # datetime64tz + int => object
+        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
+                        1,
+                        pd.Timestamp('2011-01-02', tz=tz),
+                        pd.Timestamp('2011-01-03', tz=tz),
+                        pd.Timestamp('2011-01-04', tz=tz)])
+        self._assert_insert_conversion(obj, 1, exp, np.object)
+
+        # datetime64tz + object => object
+        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
+                        'x',
+                        pd.Timestamp('2011-01-02', tz=tz),
+                        pd.Timestamp('2011-01-03', tz=tz),
+                        pd.Timestamp('2011-01-04', tz=tz)])
+        self._assert_insert_conversion(obj, 'x', exp, np.object)
 
     def test_insert_index_timedelta64(self):
         obj = pd.TimedeltaIndex(['1 day', '2 day', '3 day', '4 day'])
@@ -469,15 +540,36 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
         self._assert_insert_conversion(obj, pd.Timedelta('10 day'),
                                        exp, 'timedelta64[ns]')
 
-        # ToDo: must coerce to object
-        msg = "cannot insert TimedeltaIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
-            obj.insert(1, pd.Timestamp('2012-01-01'))
+        # timedelta64 + timestamp => timedelta64
+        exp = pd.TimedeltaIndex(['1 day', '10 day', '2 day', '3 day', '4 day'])
+        self._assert_insert_conversion(obj, pd.Timedelta('10 day'),
+                                       exp, 'timedelta64[ns]')
 
-        # ToDo: must coerce to object
-        msg = "cannot insert TimedeltaIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
-            obj.insert(1, 1)
+        # timedelta64 + datetime64 => object
+        exp = pd.Index([pd.Timedelta('1 day'),
+                        pd.Timestamp('2012-01-01'),
+                        pd.Timedelta('2 day'),
+                        pd.Timedelta('3 day'),
+                        pd.Timedelta('4 day')])
+        self._assert_insert_conversion(obj, pd.Timestamp('2012-01-01'),
+                                       exp, np.object)
+
+        # timedelta64 + period => object
+        exp = pd.Index([pd.Timedelta('1 day'),
+                        pd.Period('2012-01', freq='D'),
+                        pd.Timedelta('2 day'),
+                        pd.Timedelta('3 day'),
+                        pd.Timedelta('4 day')])
+        self._assert_insert_conversion(obj, pd.Period('2012-01', freq='D'),
+                                       exp, np.object)
+
+        # timedelta64 + int => timedelta64
+        exp = pd.Index([pd.Timedelta('1 day'),
+                        1,
+                        pd.Timedelta('2 day'),
+                        pd.Timedelta('3 day'),
+                        pd.Timedelta('4 day')])
+        self._assert_insert_conversion(obj, 1, exp, np.object)
 
     def test_insert_index_period(self):
         obj = pd.PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
@@ -490,12 +582,21 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
         self._assert_insert_conversion(obj, pd.Period('2012-01', freq='M'),
                                        exp, 'period[M]')
 
+        # period + period(different freq) => object
+        exp = pd.Index([pd.Period('2011-01', freq='M'),
+                        pd.Period('2012-01-01', freq='D'),
+                        pd.Period('2011-02', freq='M'),
+                        pd.Period('2011-03', freq='M'),
+                        pd.Period('2011-04', freq='M')])
+        self._assert_insert_conversion(obj, pd.Period('2012-01-01', freq='D'),
+                                       exp, np.object)
+
         # period + datetime64 => object
         exp = pd.Index([pd.Period('2011-01', freq='M'),
                         pd.Timestamp('2012-01-01'),
                         pd.Period('2011-02', freq='M'),
                         pd.Period('2011-03', freq='M'),
-                        pd.Period('2011-04', freq='M')], freq='M')
+                        pd.Period('2011-04', freq='M')])
         self._assert_insert_conversion(obj, pd.Timestamp('2012-01-01'),
                                        exp, np.object)
 
@@ -512,7 +613,7 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
                         'x',
                         pd.Period('2011-02', freq='M'),
                         pd.Period('2011-03', freq='M'),
-                        pd.Period('2011-04', freq='M')], freq='M')
+                        pd.Period('2011-04', freq='M')])
         self._assert_insert_conversion(obj, 'x', exp, np.object)
 
 

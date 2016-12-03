@@ -33,7 +33,8 @@ from pandas.types.common import (_ensure_int64,
                                  needs_i8_conversion,
                                  is_iterator, is_list_like,
                                  is_scalar)
-from pandas.types.cast import _coerce_indexer_dtype
+from pandas.types.cast import (_coerce_indexer_dtype, _find_common_type,
+                               _infer_dtype_from_scalar)
 from pandas.core.common import (is_bool_indexer,
                                 _values_from_object,
                                 _asarray_tuplesafe)
@@ -619,16 +620,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if isinstance(result, Index):
             result._id = self._id
         return result
-
-    def _coerce_scalar_to_index(self, item):
-        """
-        we need to coerce a scalar to a compat for our index type
-
-        Parameters
-        ----------
-        item : scalar item to coerce
-        """
-        return Index([item], dtype=self.dtype, **self._get_attributes_dict())
 
     _index_shared_docs['copy'] = """
         Make a copy of this object.  Name and dtype sets those attributes on
@@ -3235,10 +3226,56 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         -------
         new_index : Index
         """
-        _self = np.asarray(self)
-        item = self._coerce_scalar_to_index(item)._values
-        idx = np.concatenate((_self[:loc], item, _self[loc:]))
-        return self._shallow_copy_with_infer(idx)
+
+        if not is_integer(loc):
+            msg = 'loc must be int, {0} given'
+            raise ValueError(msg.format(type(loc).__name__))
+
+        if isnull(item) and self._can_hold_na:
+            # if myself can hold NaN, regard NaN as the same type
+            # as myself (for NaT handling)
+            dtype = self.dtype
+            val = self._na_value
+        else:
+            dtype, val = _infer_dtype_from_scalar(item, pandas_dtype=True)
+            if is_bool_dtype(dtype):
+                # index can't store bool
+                dtype = np.object_
+
+        if is_dtype_equal(self.dtype, dtype):
+            return self._insert_same_dtype(loc, val)
+        else:
+            # When index is object dtype and its length is 0, use dtype
+            # as it is. Otherwise, find common dtype
+            if not (is_object_dtype(self) and len(self) == 0):
+                dtype = _find_common_type([self.dtype, dtype])
+
+            self = self.astype(dtype)
+            # we cannnot use np.insert to handle tuple as it is
+            # idx = np.insert(self._values, loc, item)
+            idx = np.concatenate([self._values[:loc],
+                                 Index([item], dtype=dtype)._values,
+                                 self._values[loc:]])
+            return self._shallow_copy_with_infer(idx, dtype=dtype)
+
+    def _insert_same_dtype(self, loc, item):
+        """
+        Make new Index which has the same dtype as the original
+        inserting new item at location.
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+            item's internal representation which can be directly
+            inserted to myself
+
+        """
+
+        idx = np.concatenate([self._values[:loc],
+                             Index([item])._values,
+                             self._values[loc:]])
+        return self._shallow_copy(idx)
 
     def drop(self, labels, errors='raise'):
         """

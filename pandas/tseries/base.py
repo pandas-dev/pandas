@@ -777,6 +777,27 @@ class DatetimeIndexOpsMixin(object):
         return self._shallow_copy(self.asi8.repeat(repeats),
                                   freq=freq)
 
+    def _insert_same_dtype(self, loc, item):
+
+        freq = None
+        if isinstance(self, ABCPeriodIndex):
+            freq = self.freq
+        else:
+            # check whether freq can be preserved
+            if self.size and self.freq is not None:
+                if ((loc == 0 or loc == -len(self)) and
+                        (self[0] - self.freq).value == item):
+                    freq = self.freq
+                elif ((loc == len(self)) and
+                      (self[-1] + self.freq).value == item):
+                    freq = self.freq
+
+        if isnull(item):
+            item = tslib.iNaT
+
+        new_dates = np.insert(self.asi8, loc, item)
+        return self._shallow_copy(new_dates, freq=freq)
+
     def where(self, cond, other=None):
         """
         .. versionadded:: 0.19.0

@@ -2220,6 +2220,7 @@ class MultiIndex(Index):
         -------
         new_index : Index
         """
+
         # Pad the key with empty strings if lower levels of the key
         # aren't specified:
         if not isinstance(item, tuple):

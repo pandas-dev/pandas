@@ -10,7 +10,7 @@ import nose
 from datetime import datetime
 import numpy as np
 
-from pandas import Timedelta, Timestamp
+from pandas import Timedelta, Timestamp, Period
 from pandas.types.cast import (_possibly_downcast_to_dtype,
                                _possibly_convert_objects,
                                _infer_dtype_from_scalar,
@@ -120,10 +120,30 @@ class TestInferDtype(tm.TestCase):
             dtype, val = _infer_dtype_from_scalar(data)
             self.assertEqual(dtype, 'm8[ns]')
 
-        for data in [datetime.date(2000, 1, 1),
-                     Timestamp(1, tz='US/Eastern'), 'foo']:
-            dtype, val = _infer_dtype_from_scalar(data)
+        for tz in ['UTC', 'US/Eastern', 'Asia/Tokyo']:
+            dt = Timestamp(1, tz=tz)
+            dtype, val = _infer_dtype_from_scalar(dt, pandas_dtype=True)
+            self.assertEqual(dtype, 'datetime64[ns, {0}]'.format(tz))
+            self.assertEqual(val, dt.value)
+
+            dtype, val = _infer_dtype_from_scalar(dt)
             self.assertEqual(dtype, np.object_)
+            self.assertEqual(val, dt)
+
+        for freq in ['M', 'D']:
+            p = Period('2011-01-01', freq=freq)
+            dtype, val = _infer_dtype_from_scalar(p, pandas_dtype=True)
+            self.assertEqual(dtype, 'period[{0}]'.format(freq))
+            self.assertEqual(val, p.ordinal)
+
+            dtype, val = _infer_dtype_from_scalar(p)
+            self.assertEqual(dtype, np.object_)
+            self.assertEqual(val, p)
+
+        for data in [datetime.date(2000, 1, 1), 'foo']:
+             dtype, val = _infer_dtype_from_scalar(data)
+             self.assertEqual(dtype, np.object_)
+             self.assertEqual(val, data)
 
 
 class TestMaybe(tm.TestCase):
