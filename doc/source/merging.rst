@@ -820,7 +820,7 @@ equivalent:
           
 .. warning::
 
- * Joining on index with duplicate keys when joining large dataframes would cause severe memory overflow, sometimes freezes the            computer and user has to hard reboot, which can be dangerous for unsaved work. Please make sure no duplicate keys in index              before joining.
+   Joining on keys with duplicate values when joining large dataframes would cause severe memory overflow, sometimes freezes the computer and user has to hard reboot, which can be dangerous for unsaved work. Please make sure no duplicate values in keys before joining.
 
 Obviously you can choose whichever form you find more convenient. For
 many-to-one joins (where one of the DataFrame's is already indexed by the join
