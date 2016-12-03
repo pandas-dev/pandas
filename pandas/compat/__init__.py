@@ -259,6 +259,8 @@ if PY3:
         return f
 
     ResourceWarning = ResourceWarning
+    
+    zip_longest = itertools.zip_longest
 
 else:
     string_types = basestring,
@@ -308,6 +310,8 @@ else:
         return f
 
     class ResourceWarning(Warning): pass
+
+    zip_longest = itertools.izip_longest
 
 string_and_binary_types = string_types + (binary_type,)
 

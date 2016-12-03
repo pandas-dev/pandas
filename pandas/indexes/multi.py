@@ -10,7 +10,7 @@ import pandas.lib as lib
 import pandas.index as _index
 from pandas.lib import Timestamp
 
-from pandas.compat import range, zip, lrange, lzip, map
+from pandas.compat import range, zip, lrange, lzip, map, zip_longest
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
@@ -980,7 +980,7 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrays = lzip(*tuples)
+            arrays = zip_longest(*tuples)
 
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
