@@ -18,7 +18,7 @@ from pandas.compat import (range, lrange, StringIO, lzip,
 from pandas.types.common import (is_integer, _ensure_object,
                                  is_list_like, is_integer_dtype,
                                  is_float, is_dtype_equal,
-                                 is_object_dtype,
+                                 is_object_dtype, is_string_dtype,
                                  is_scalar, is_categorical_dtype)
 from pandas.types.missing import isnull
 from pandas.types.cast import _astype_nansafe
@@ -1329,7 +1329,7 @@ class ParserBase(object):
                     try_num_bool=False)
             else:
                 # skip inference if specified dtype is object
-                try_num_bool = not (cast_type and is_object_dtype(cast_type))
+                try_num_bool = not (cast_type and is_string_dtype(cast_type))
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
