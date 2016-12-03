@@ -6754,6 +6754,13 @@ class TestGroupBy(tm.TestCase):
         expected = pd.Series([1] * 5, name='name', index=index)
         tm.assert_series_equal(result, expected)
 
+    def test_nunique_with_empty_series(self):
+        # GH 12553
+        data = pd.Series(name='name')
+        result = data.groupby(level=0).nunique()
+        expected = pd.Series(name='name', dtype='int64')
+        tm.assert_series_equal(result, expected)
+
     def test_transform_with_non_scalar_group(self):
         # GH 10165
         cols = pd.MultiIndex.from_tuples([
