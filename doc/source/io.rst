@@ -2546,7 +2546,7 @@ dtype Specifications
 As an alternative to converters, the type for an entire column can
 be specified using the `dtype` keyword, which takes a dictionary
 mapping column names to types.  To interpret data with
-no type inference, use the type `str` or `object`.
+no type inference, use the type ``str`` or ``object``.
 
 .. code-block:: python
 
