@@ -18,8 +18,6 @@
    from pandas.tseries.api import *
    from pandas.tseries.offsets import *
 
-   # TODO: date_range etc?
-
 .. _timedeltas.timedeltas:
 
 ***********
