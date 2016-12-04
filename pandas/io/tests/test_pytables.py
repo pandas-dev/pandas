@@ -1818,6 +1818,19 @@ class TestHDFStore(Base, tm.TestCase):
             store.put('s', s, format='table')
             tm.assert_series_equal(store.select('s', where="columns=['A']"), s)
 
+    def test_mi_data_columns(self):
+        # GH 14435
+        idx = pd.MultiIndex.from_arrays([date_range('2000-01-01', periods=5),
+                                         range(5)], names=['date', 'id'])
+        df = pd.DataFrame({'a': [1.1, 1.2, 1.3, 1.4, 1.5]}, index=idx)
+
+        with ensure_clean_store(self.path) as store:
+            store.append('df', df, data_columns=True)
+
+            actual = store.select('df', where='id == 1')
+            expected = df.iloc[[1], :]
+            tm.assert_frame_equal(actual, expected)
+
     def test_pass_spec_to_storer(self):
 
         df = tm.makeDataFrame()
