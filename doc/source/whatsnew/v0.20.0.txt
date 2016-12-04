@@ -49,8 +49,8 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
-
 - ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (issue:`14714`)
+- ``Series`` provides a ``to_excel`` method to output Excel files (:issue:`8825`)
 
 .. _whatsnew_0200.api_breaking:
 
