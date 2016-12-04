@@ -116,6 +116,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     else:
         bins = np.asarray(bins)
+        bins, bin_dtype = _coerce_to_type(bins)
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
