@@ -2029,7 +2029,8 @@ class NDFrame(PandasObject):
              DataFrames, this option is only applied when sorting on a single
              column or label.
         na_position : {'first', 'last'}, default 'last'
-             `first` puts NaNs at the beginning, `last` puts NaNs at the end
+             `first` puts NaNs at the beginning, `last` puts NaNs at the end.
+             Not implemented for MultiIndex.
         sort_remaining : bool, default True
             if true and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level
