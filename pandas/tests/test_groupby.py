@@ -4736,6 +4736,25 @@ class TestGroupBy(tm.TestCase):
             result = not_lexsorted_df.groupby('a').mean()
         tm.assert_frame_equal(expected, result)
 
+        # a transforming function should work regardless of sort
+        # GH 14776
+        df = DataFrame({'x': ['a', 'a', 'b', 'a'],
+                        'y': [1, 1, 2, 2],
+                        'z': [1, 2, 3, 4]}).set_index(['x', 'y'])
+        self.assertFalse(df.index.is_lexsorted())
+
+        for level in [0, 1, [0, 1]]:
+            for sort in [False, True]:
+                result = df.groupby(level=level, sort=sort).apply(
+                    DataFrame.drop_duplicates)
+                expected = df
+                tm.assert_frame_equal(expected, result)
+
+                result = df.sort_index().groupby(level=level, sort=sort).apply(
+                    DataFrame.drop_duplicates)
+                expected = df.sort_index()
+                tm.assert_frame_equal(expected, result)
+
     def test_groupby_levels_and_columns(self):
         # GH9344, GH9049
         idx_names = ['x', 'y']
