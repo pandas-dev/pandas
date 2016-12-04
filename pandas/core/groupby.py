@@ -861,7 +861,17 @@ class _GroupBy(PandasObject, SelectionMixin):
             if isinstance(result, Series):
                 result = result.reindex(ax)
             else:
-                result = result.reindex_axis(ax, axis=self.axis)
+
+                # this is a very unfortunate situation
+                # we have a multi-index that is NOT lexsorted
+                # and we have a result which is duplicated
+                # we can't reindex, so we resort to this
+                # GH 14776
+                if isinstance(ax, MultiIndex) and not ax.is_unique:
+                    result = result.take(result.index.get_indexer_for(
+                        ax.values).unique(), axis=self.axis)
+                else:
+                    result = result.reindex_axis(ax, axis=self.axis)
 
         elif self.group_keys:
 
