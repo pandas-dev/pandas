@@ -36,6 +36,7 @@ Bug Fixes
 - Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when ``skipfooter`` was not being respected by Python's CSV library (:issue:`13879`)
 
 
+- Bug in pd.read_csv - catch missing columns if usecols and header lengths match (:issue:`14671`)
 
 
 

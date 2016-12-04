@@ -290,7 +290,7 @@ cdef class TextReader:
         object na_values
         object memory_map
         object as_recarray
-        object header, orig_header, names, header_start, header_end
+        object header, orig_header, names, header_start, header_end, file_header
         object index_col
         object low_memory
         object skiprows
@@ -776,6 +776,12 @@ cdef class TextReader:
 
                 data_line = hr + 1
                 header.append(this_header)
+
+            self.file_header = header[:]
+
+            #if self.usecols is not None:
+            #    if len(set(self.usecols) - set(header[0])) > 0 and len(set(self.usecols) - set(range(0,field_count))) > 0:
+            #        raise ValueError("Usecols do not match names.")
 
             if self.names is not None:
                 header = [ self.names ]
