@@ -187,7 +187,8 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         if method in ('values', 'index'):
             inds = np.asarray(xvalues)
             # hack for DatetimeIndex, #1646
-            if issubclass(inds.dtype.type, np.datetime64):
+            if (issubclass(inds.dtype.type, np.datetime64) or
+                    issubclass(inds.dtype.type, np.timedelta64)):
                 inds = inds.view(np.int64)
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
