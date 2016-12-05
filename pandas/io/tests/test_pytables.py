@@ -1362,6 +1362,16 @@ class TestHDFStore(Base, tm.TestCase):
                 [[124, 'abcdefqhij'], [346, 'abcdefghijklmnopqrtsuvwxyz']])
             self.assertRaises(ValueError, store.append, 'df_new', df_new)
 
+            # min_itemsize on Series index (GH 11412)
+            df = tm.makeMixedDataFrame().set_index('C')
+            store.append('ss', df['B'], min_itemsize={'index': 4})
+            tm.assert_series_equal(store.select('ss'), df['B'])
+
+            # same as above, with data_columns=True
+            store.append('ss2', df['B'], data_columns=True,
+                         min_itemsize={'index': 4})
+            tm.assert_series_equal(store.select('ss2'), df['B'])
+
             # with nans
             _maybe_remove(store, 'df')
             df = tm.makeTimeDataFrame()
