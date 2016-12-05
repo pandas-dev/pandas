@@ -1078,6 +1078,12 @@ class ExcelWriterBase(SharedItems):
             recons = read_excel(path, index_col=0)
             tm.assert_frame_equal(self.frame, recons)
 
+            # GH 8825 Pandas Series should provide to_excel method
+            s = self.frame["A"]
+            s.to_excel(path)
+            recons = read_excel(path, index_col=0)
+            tm.assert_frame_equal(s.to_frame(), recons)
+
     def test_mixed(self):
         _skip_if_no_xlrd()
 
