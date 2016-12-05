@@ -1018,9 +1018,7 @@ class NDFrame(PandasObject):
 
     _shared_docs['to_excel'] = """
     Write %(klass)s to a excel sheet
-
     %(versionadded_to_excel)s
-
     Parameters
     ----------
     excel_writer : string or ExcelWriter object
