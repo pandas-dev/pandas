@@ -313,6 +313,18 @@ class TestCut(tm.TestCase):
         result, bins = cut(data, 3, retbins=True)
         tm.assert_series_equal(Series(result), expected)
 
+    def test_datetime_bin(self):
+        data = [np.datetime64('2012-12-13'), np.datetime64('2012-12-15')]
+        bins = [np.datetime64('2012-12-12'), np.datetime64('2012-12-14'),
+                np.datetime64('2012-12-16')]
+        result = cut(data, bins=bins)
+
+        expected = Series(['(2012-12-12 00:00:00, 2012-12-14 00:00:00]',
+                           '(2012-12-14 00:00:00, 2012-12-16 00:00:00]'],
+                          ).astype("category", ordered=True)
+
+        tm.assert_series_equal(Series(result), expected)
+
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
