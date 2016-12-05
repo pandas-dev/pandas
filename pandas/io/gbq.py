@@ -398,7 +398,8 @@ class GbqConnector(object):
         configuration = kwargs.get('configuration')
         if configuration is not None:
             if 'query' in configuration:
-                job_data['configuration']['query'].update(configuration['query'])
+                job_data['configuration']['query']\
+                	.update(configuration['query'])
             else:
                 job_data['configuration'] = configuration
 
@@ -690,7 +691,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         .. versionadded:: 0.19.0
 
     **kwargs: Arbitrary keyword arguments
-        configuration (dict): query configuration parameters for job processing.
+        configuration (dict): query config parameters for job processing.
             For more information see `BigQuery SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`
 
