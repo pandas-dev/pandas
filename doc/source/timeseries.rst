@@ -1288,6 +1288,9 @@ limited to, financial applications.
 ``.resample()`` is a time-based groupby, followed by a reduction method on each of its groups.
 See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
 
+Now the ``resample()`` function can be used directly from
+DataFrameGroupBy objects, see :ref:`whatsnew docs <whatsnew_0181.deferred_ops>` and :ref:`groupby transformation <groupby.transform.window_resample>`
+
 .. note::
 
    ``.resample()`` is similar to using a ``.rolling()`` operation with a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`
@@ -1351,6 +1354,8 @@ retains the input representation.
 ``convention`` can be set to 'start' or 'end' when resampling period data
 (detail below). It specifies how low frequency periods are converted to higher
 frequency periods.
+
+
 
 
 Up Sampling

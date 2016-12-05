@@ -214,6 +214,10 @@ computing common *window* or *rolling* statistics. Among these are count, sum,
 mean, median, correlation, variance, covariance, standard deviation, skewness,
 and kurtosis.
 
+Now the ``rolling()`` and ``expanding()`` functions can be used directly from
+DataFrameGroupBy objects, see :ref:`whatsnew docs <whatsnew_0181.deferred_ops>` and :ref:`groupby transformation <groupby.transform.window_resample>`
+
+
 .. note::
 
    The API for window statistics is quite similar to the way one works with ``GroupBy`` objects, see the documentation :ref:`here <groupby>`
