@@ -713,31 +713,33 @@ class TestReadGBQIntegration(tm.TestCase):
 
     def test_query_with_parameters(self):
         sql_statement = "SELECT @param1 + @param2 as VALID_RESULT"
-        query_config = {
-            "useLegacySql": False,
-            "parameterMode": "named",
-            "queryParameters": [
-                {
-                    "name": "param1",
-                    "parameterType": {
-                        "type": "INTEGER"
+        config = {
+            'query': {
+                "useLegacySql": False,
+                "parameterMode": "named",
+                "queryParameters": [
+                    {
+                        "name": "param1",
+                        "parameterType": {
+                            "type": "INTEGER"
+                        },
+                        "parameterValue": {
+                            "value": 1
+                        }
                     },
-                    "parameterValue": {
-                        "value": 1
+                    {
+                        "name": "param2",
+                        "parameterType": {
+                            "type": "INTEGER"
+                        },
+                        "parameterValue": {
+                            "value": 2
+                        }
                     }
-                },
-                {
-                    "name": "param2",
-                    "parameterType": {
-                        "type": "INTEGER"
-                    },
-                    "parameterValue": {
-                        "value": 2
-                    }
-                }
-            ]
+                ]
+            }
         }
-        # Test that an invalid query without query_config
+        # Test that an invalid query without query config
         with tm.assertRaises(ValueError):
             gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                          private_key=_get_private_key_path())
@@ -745,17 +747,21 @@ class TestReadGBQIntegration(tm.TestCase):
         # Test that a correct query with query config
         df = gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                           private_key=_get_private_key_path(),
-                          query_config=query_config)
+                          configuration=config)
         tm.assert_frame_equal(df, DataFrame({'VALID_RESULT': [3]}))
 
-    def test_query_no_cache(self):
+    def test_query_inside_configuration(self):
+        query_no_use = 'SELECT "PI_WRONG" as VALID_STRING'
         query = 'SELECT "PI" as VALID_STRING'
-        query_config = {
-            "useQueryCache": False,
+        config = {
+            'query': {
+                "query": query,
+                "useQueryCache": False,
+            }
         }
-        df = gbq.read_gbq(query, project_id=_get_project_id(),
+        df = gbq.read_gbq(query_no_use, project_id=_get_project_id(),
                           private_key=_get_private_key_path(),
-                          query_config=query_config)
+                          configuration=config)
         tm.assert_frame_equal(df, DataFrame({'VALID_STRING': ['PI']}))
 
 

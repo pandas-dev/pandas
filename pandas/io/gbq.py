@@ -395,9 +395,13 @@ class GbqConnector(object):
                 }
             }
         }
-        query_config = kwargs.get('query_config')
-        if query_config is not None:
-            job_data['configuration']['query'].update(query_config)
+        configuration = kwargs.get('configuration')
+        if configuration is not None:
+            if 'query' in configuration:
+                job_data['configuration']['query']\
+                	.update(configuration['query'])
+            else:
+                job_data['configuration'] = configuration
 
         self._start_timer()
         try:
@@ -687,11 +691,11 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         .. versionadded:: 0.19.0
 
     **kwargs: Arbitrary keyword arguments
-        query_config (dict): query configuration parameters for job processing.
+        configuration (dict): query config parameters for job processing.
             For more information see `BigQuery SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`
 
-        .. versionadded:: 0.19.0
+        .. versionadded:: 0.20.0
 
     Returns
     -------

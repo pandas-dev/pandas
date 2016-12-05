@@ -31,6 +31,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
+- ``pd.io.gbq.read_gbq`` method now allows query configuration preferences
 
 
 .. _whatsnew_0200.api_breaking:
