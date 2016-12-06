@@ -1,7 +1,19 @@
+/*
+Copyright (c) 2016, PyData Development Team
+All rights reserved.
+
+Distributed under the terms of the BSD Simplified License.
+
+The full license is in the LICENSE file, distributed with this software.
+*/
+
+#ifndef PANDAS_SRC_DATETIME_HELPER_H_
+#define PANDAS_SRC_DATETIME_HELPER_H_
+
+#include <stdio.h>
 #include "datetime.h"
 #include "numpy/arrayobject.h"
 #include "numpy/arrayscalars.h"
-#include <stdio.h>
 
 #if PY_MAJOR_VERSION >= 3
 #define PyInt_AS_LONG PyLong_AsLong
@@ -10,7 +22,8 @@
 npy_int64 get_long_attr(PyObject *o, const char *attr) {
   npy_int64 long_val;
   PyObject *value = PyObject_GetAttrString(o, attr);
-  long_val = (PyLong_Check(value) ? PyLong_AsLongLong(value) : PyInt_AS_LONG(value));
+  long_val = (PyLong_Check(value) ?
+              PyLong_AsLongLong(value) : PyInt_AS_LONG(value));
   Py_DECREF(value);
   return long_val;
 }
@@ -23,3 +36,5 @@ npy_float64 total_seconds(PyObject *td) {
   npy_int64 days_in_seconds = days * 24LL * 3600LL;
   return (microseconds + (seconds + days_in_seconds) * 1000000.0) / 1000000.0;
 }
+
+#endif  // PANDAS_SRC_DATETIME_HELPER_H_
