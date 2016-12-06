@@ -1016,6 +1016,62 @@ class NDFrame(PandasObject):
     # ----------------------------------------------------------------------
     # I/O Methods
 
+    _shared_docs['to_excel'] = """
+    Write %(klass)s to a excel sheet
+    %(versionadded_to_excel)s
+    Parameters
+    ----------
+    excel_writer : string or ExcelWriter object
+        File path or existing ExcelWriter
+    sheet_name : string, default 'Sheet1'
+        Name of sheet which will contain DataFrame
+    na_rep : string, default ''
+        Missing data representation
+    float_format : string, default None
+        Format string for floating point numbers
+    columns : sequence, optional
+        Columns to write
+    header : boolean or list of string, default True
+        Write out column names. If a list of string is given it is
+        assumed to be aliases for the column names
+    index : boolean, default True
+        Write row names (index)
+    index_label : string or sequence, default None
+        Column label for index column(s) if desired. If None is given, and
+        `header` and `index` are True, then the index names are used. A
+        sequence should be given if the DataFrame uses MultiIndex.
+    startrow :
+        upper left cell row to dump data frame
+    startcol :
+        upper left cell column to dump data frame
+    engine : string, default None
+        write engine to use - you can also set this via the options
+        ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
+        ``io.excel.xlsm.writer``.
+    merge_cells : boolean, default True
+        Write MultiIndex and Hierarchical Rows as merged cells.
+    encoding: string, default None
+        encoding of the resulting excel file. Only necessary for xlwt,
+        other writers support unicode natively.
+    inf_rep : string, default 'inf'
+        Representation for infinity (there is no native representation for
+        infinity in Excel)
+
+    Notes
+    -----
+    If passing an existing ExcelWriter object, then the sheet will be added
+    to the existing workbook.  This can be used to save different
+    DataFrames to one workbook:
+
+    >>> writer = ExcelWriter('output.xlsx')
+    >>> df1.to_excel(writer,'Sheet1')
+    >>> df2.to_excel(writer,'Sheet2')
+    >>> writer.save()
+
+    For compatibility with to_csv, to_excel serializes lists and dicts to
+    strings before writing.
+    """
+
     def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
                 double_precision=10, force_ascii=True, date_unit='ms',
                 default_handler=None, lines=False):
@@ -1095,7 +1151,7 @@ class NDFrame(PandasObject):
         ----------
         path_or_buf : the path (string) or HDFStore object
         key : string
-            indentifier for the group in the store
+            identifier for the group in the store
         mode : optional, {'a', 'w', 'r+'}, default 'a'
 
           ``'w'``
@@ -2029,7 +2085,8 @@ class NDFrame(PandasObject):
              DataFrames, this option is only applied when sorting on a single
              column or label.
         na_position : {'first', 'last'}, default 'last'
-             `first` puts NaNs at the beginning, `last` puts NaNs at the end
+             `first` puts NaNs at the beginning, `last` puts NaNs at the end.
+             Not implemented for MultiIndex.
         sort_remaining : bool, default True
             if true and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level
@@ -3477,20 +3534,27 @@ class NDFrame(PandasObject):
                     res = self if inplace else self.copy()
                     for c, src in compat.iteritems(to_replace):
                         if c in value and c in self:
+                            # object conversion is handled in
+                            # series.replace which is called recursivelly
                             res[c] = res[c].replace(to_replace=src,
                                                     value=value[c],
-                                                    inplace=False, regex=regex)
+                                                    inplace=False,
+                                                    regex=regex)
                     return None if inplace else res
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
-                    for k, src in compat.iteritems(to_replace):
-                        if k in self:
-                            new_data = new_data.replace(to_replace=src,
-                                                        value=value,
-                                                        filter=[k],
-                                                        inplace=inplace,
-                                                        regex=regex)
+                    keys = [(k, src) for k, src in compat.iteritems(to_replace)
+                            if k in self]
+                    keys_len = len(keys) - 1
+                    for i, (k, src) in enumerate(keys):
+                        convert = i == keys_len
+                        new_data = new_data.replace(to_replace=src,
+                                                    value=value,
+                                                    filter=[k],
+                                                    inplace=inplace,
+                                                    regex=regex,
+                                                    convert=convert)
                 else:
                     raise TypeError('value argument must be scalar, dict, or '
                                     'Series')

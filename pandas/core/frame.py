@@ -105,7 +105,8 @@ _shared_doc_kwargs = dict(
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
     optional_by="""
         by : str or list of str
-            Name or list of names which refer to the axis items.""")
+            Name or list of names which refer to the axis items.""",
+    versionadded_to_excel='')
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -1385,65 +1386,11 @@ class DataFrame(NDFrame):
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
 
+    @Appender(_shared_docs['to_excel'] % _shared_doc_kwargs)
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
                  merge_cells=True, encoding=None, inf_rep='inf', verbose=True):
-        """
-        Write DataFrame to a excel sheet
-
-        Parameters
-        ----------
-        excel_writer : string or ExcelWriter object
-            File path or existing ExcelWriter
-        sheet_name : string, default 'Sheet1'
-            Name of sheet which will contain DataFrame
-        na_rep : string, default ''
-            Missing data representation
-        float_format : string, default None
-            Format string for floating point numbers
-        columns : sequence, optional
-            Columns to write
-        header : boolean or list of string, default True
-            Write out column names. If a list of string is given it is
-            assumed to be aliases for the column names
-        index : boolean, default True
-            Write row names (index)
-        index_label : string or sequence, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the DataFrame uses MultiIndex.
-        startrow :
-            upper left cell row to dump data frame
-        startcol :
-            upper left cell column to dump data frame
-        engine : string, default None
-            write engine to use - you can also set this via the options
-            ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
-            ``io.excel.xlsm.writer``.
-        merge_cells : boolean, default True
-            Write MultiIndex and Hierarchical Rows as merged cells.
-        encoding: string, default None
-            encoding of the resulting excel file. Only necessary for xlwt,
-            other writers support unicode natively.
-        inf_rep : string, default 'inf'
-            Representation for infinity (there is no native representation for
-            infinity in Excel)
-
-        Notes
-        -----
-        If passing an existing ExcelWriter object, then the sheet will be added
-        to the existing workbook.  This can be used to save different
-        DataFrames to one workbook:
-
-        >>> writer = ExcelWriter('output.xlsx')
-        >>> df1.to_excel(writer,'Sheet1')
-        >>> df2.to_excel(writer,'Sheet2')
-        >>> writer.save()
-
-        For compatibility with to_csv, to_excel serializes lists and dicts to
-        strings before writing.
-        """
         from pandas.io.excel import ExcelWriter
         need_save = False
         if encoding is None:
@@ -3390,15 +3337,6 @@ class DataFrame(NDFrame):
         return self.sort_index(level=level, axis=axis, ascending=ascending,
                                inplace=inplace, sort_remaining=sort_remaining)
 
-    def _nsorted(self, columns, n, method, keep):
-        if not is_list_like(columns):
-            columns = [columns]
-        columns = list(columns)
-        ser = getattr(self[columns[0]], method)(n, keep=keep)
-        ascending = dict(nlargest=False, nsmallest=True)[method]
-        return self.loc[ser.index].sort_values(columns, ascending=ascending,
-                                               kind='mergesort')
-
     def nlargest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` largest
         values of `columns`.
@@ -3431,7 +3369,7 @@ class DataFrame(NDFrame):
         1  10  b   2
         2   8  d NaN
         """
-        return self._nsorted(columns, n, 'nlargest', keep)
+        return algos.select_n_frame(self, columns, n, 'nlargest', keep)
 
     def nsmallest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` smallest
@@ -3465,7 +3403,7 @@ class DataFrame(NDFrame):
         0  1  a   1
         2  8  d NaN
         """
-        return self._nsorted(columns, n, 'nsmallest', keep)
+        return algos.select_n_frame(self, columns, n, 'nsmallest', keep)
 
     def swaplevel(self, i=-2, j=-1, axis=0):
         """

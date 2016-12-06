@@ -39,7 +39,8 @@ from pandas.core.base import _shared_docs
 from pandas.indexes.base import _index_shared_docs, _ensure_index
 
 from pandas import compat
-from pandas.util.decorators import Appender, cache_readonly, Substitution
+from pandas.util.decorators import (Appender, Substitution, cache_readonly,
+                                    deprecate_kwarg)
 from pandas.lib import infer_dtype
 import pandas.tslib as tslib
 from pandas.compat import zip, u
@@ -460,18 +461,19 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return self.asfreq(freq=dtype.freq)
         raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
-    @Substitution(klass='PeriodIndex', value='key')
+    @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])
-    def searchsorted(self, key, side='left', sorter=None):
-        if isinstance(key, Period):
-            if key.freq != self.freq:
-                msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, key.freqstr)
+    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
+    def searchsorted(self, value, side='left', sorter=None):
+        if isinstance(value, Period):
+            if value.freq != self.freq:
+                msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, value.freqstr)
                 raise IncompatibleFrequency(msg)
-            key = key.ordinal
-        elif isinstance(key, compat.string_types):
-            key = Period(key, freq=self.freq).ordinal
+            value = value.ordinal
+        elif isinstance(value, compat.string_types):
+            value = Period(value, freq=self.freq).ordinal
 
-        return self._values.searchsorted(key, side=side, sorter=sorter)
+        return self._values.searchsorted(value, side=side, sorter=sorter)
 
     @property
     def is_all_dates(self):

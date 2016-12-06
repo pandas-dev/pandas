@@ -17,6 +17,7 @@ from pandas import (period_range, date_range, Series,
                     Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex)
+from pandas.core.index import _get_combined_index
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -1976,8 +1977,18 @@ class TestMixedIntIndex(Base, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             pd.Index([1, 2, 3]).dropna(how='xxx')
 
+    def test_get_combined_index(self):
+        result = _get_combined_index([])
+        tm.assert_index_equal(result, Index([]))
 
-def test_get_combined_index():
-    from pandas.core.index import _get_combined_index
-    result = _get_combined_index([])
-    tm.assert_index_equal(result, Index([]))
+    def test_repeat(self):
+        repeats = 2
+        idx = pd.Index([1, 2, 3])
+        expected = pd.Index([1, 1, 2, 2, 3, 3])
+
+        result = idx.repeat(repeats)
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = idx.repeat(n=repeats)
+            tm.assert_index_equal(result, expected)

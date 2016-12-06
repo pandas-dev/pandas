@@ -622,7 +622,6 @@ class Block(PandasObject):
 
         original_to_replace = to_replace
         mask = isnull(self.values)
-
         # try to replace, if we raise an error, convert to ObjectBlock and
         # retry
         try:
@@ -1795,13 +1794,14 @@ class BoolBlock(NumericBlock):
         return issubclass(value.dtype.type, np.bool_)
 
     def replace(self, to_replace, value, inplace=False, filter=None,
-                regex=False, mgr=None):
+                regex=False, convert=True, mgr=None):
         to_replace_values = np.atleast_1d(to_replace)
         if not np.can_cast(to_replace_values, bool):
             return self
         return super(BoolBlock, self).replace(to_replace, value,
                                               inplace=inplace, filter=filter,
-                                              regex=regex, mgr=mgr)
+                                              regex=regex, convert=convert,
+                                              mgr=mgr)
 
 
 class ObjectBlock(Block):
@@ -3214,6 +3214,7 @@ class BlockManager(PandasObject):
         masks = [comp(s) for i, s in enumerate(src_list)]
 
         result_blocks = []
+        src_len = len(src_list) - 1
         for blk in self.blocks:
 
             # its possible to get multiple result blocks here
@@ -3223,8 +3224,9 @@ class BlockManager(PandasObject):
                 new_rb = []
                 for b in rb:
                     if b.dtype == np.object_:
+                        convert = i == src_len
                         result = b.replace(s, d, inplace=inplace, regex=regex,
-                                           mgr=mgr)
+                                           mgr=mgr, convert=convert)
                         new_rb = _extend_blocks(result, new_rb)
                     else:
                         # get our mask for this element, sized to this
@@ -4788,7 +4790,12 @@ def _putmask_smart(v, m, n):
 
     # change the dtype
     dtype, _ = _maybe_promote(n.dtype)
-    nv = v.astype(dtype)
+
+    if is_extension_type(v.dtype) and is_object_dtype(dtype):
+        nv = v.get_values(dtype)
+    else:
+        nv = v.astype(dtype)
+
     try:
         nv[m] = n[m]
     except ValueError:

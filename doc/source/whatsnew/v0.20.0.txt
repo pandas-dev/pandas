@@ -22,16 +22,37 @@ New features
 ~~~~~~~~~~~~
 
 
+``dtype`` keyword for data io
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+The ``dtype`` keyword argument in the :func:`read_csv` function for specifying the types of parsed columns
+ is now supported with the ``'python'`` engine (:issue:`14295`). See the :ref:`io docs <io.dtypes>` for more information.
 
+.. ipython:: python
+
+   data = "a,b\n1,2\n3,4"
+   pd.read_csv(StringIO(data), engine='python').dtypes
+   pd.read_csv(StringIO(data), engine='python', dtype={'a':'float64', 'b':'object'}).dtypes
+
+The ``dtype`` keyword argument is also now supported in the :func:`read_fwf` function for parsing
+fixed-width text files, and :func:`read_excel` for parsing Excel files.
+
+.. ipython:: python
+
+   data = "a  b\n1  2\n3  4"
+   pd.read_fwf(StringIO(data)).dtypes
+   pd.read_fwf(StringIO(data), dtype={'a':'float64', 'b':'object'}).dtypes
 
 .. _whatsnew_0200.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- ``Series.sort_index`` accepts parameters ``kind`` and ``na_position`` (:issue:`13589`, :issue:`14444`)
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
-
+- ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (issue:`14714`)
+- ``Series`` provides a ``to_excel`` method to output Excel files (:issue:`8825`)
+- The ``usecols`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`14154`)
 
 .. _whatsnew_0200.api_breaking:
 
@@ -54,6 +75,10 @@ Other API Changes
 Deprecations
 ^^^^^^^^^^^^
 
+- ``Series.repeat()`` has deprecated the ``reps`` parameter in favor of ``repeats`` (:issue:`12662`)
+- ``Index.repeat()`` and ``MultiIndex.repeat()`` have deprecated the ``n`` parameter in favor of ``repeats`` (:issue:`12662`)
+- ``Categorical.searchsorted()`` and ``Series.searchsorted()`` have deprecated the ``v`` parameter in favor of ``value`` (:issue:`12662`)
+- ``TimedeltaIndex.searchsorted()``, ``DatetimeIndex.searchsorted()``, and ``PeriodIndex.searchsorted()`` have deprecated the ``key`` parameter in favor of ``value`` (:issue:`12662`)
 
 
 
@@ -83,4 +108,3 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-

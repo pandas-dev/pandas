@@ -3315,7 +3315,7 @@ class Table(Fixed):
         # evaluate the passed data_columns, True == use all columns
         # take only valide axis labels
         if data_columns is True:
-            data_columns = axis_labels
+            data_columns = list(axis_labels)
         elif data_columns is None:
             data_columns = []
 
@@ -4153,7 +4153,7 @@ class AppendableSeriesTable(AppendableFrameTable):
             obj = DataFrame({name: obj}, index=obj.index)
             obj.columns = [name]
         return super(AppendableSeriesTable, self).write(
-            obj=obj, data_columns=obj.columns, **kwargs)
+            obj=obj, data_columns=obj.columns.tolist(), **kwargs)
 
     def read(self, columns=None, **kwargs):
 
@@ -4254,7 +4254,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         if data_columns is None:
             data_columns = []
         elif data_columns is True:
-            data_columns = obj.columns[:]
+            data_columns = obj.columns.tolist()
         obj, self.levels = self.validate_multiindex(obj)
         for n in self.levels:
             if n not in data_columns:
