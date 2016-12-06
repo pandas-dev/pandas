@@ -105,7 +105,7 @@ class TestDateTimeConverter(tm.TestCase):
             dateindex = tm.makeDateIndex(k=10, freq=freq)
             rs = self.dtc.convert(dateindex, None, None)
             xp = Index(converter.dates.date2num(dateindex._mpl_repr()))
-            tm.assert_almost_equal(rs, xp, decimals)
+            tm.assert_index_equal(rs, xp, decimals)
 
     def test_resolution(self):
         def _assert_less(ts1, ts2):
