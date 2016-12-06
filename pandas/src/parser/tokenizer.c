@@ -726,15 +726,13 @@ int skip_this_line(parser_t *self, int64_t rownum) {
     }
 }
 
-int tokenize_bytes(parser_t *self, size_t line_limit)
+int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines)
 {
-    int i, slen, start_lines;
+    int i, slen;
     long maxstreamsize;
     char c;
     char *stream;
     char *buf = self->data + self->datapos;
-
-    start_lines = self->lines;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
         self->error_msg = "out of memory";
@@ -1384,7 +1382,7 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         TRACE(("_tokenize_helper: Trying to process %d bytes, datalen=%d, datapos= %d\n",
                self->datalen - self->datapos, self->datalen, self->datapos));
 
-        status = tokenize_bytes(self, nrows);
+        status = tokenize_bytes(self, nrows, start_lines);
 
         if (status < 0) {
             // XXX
