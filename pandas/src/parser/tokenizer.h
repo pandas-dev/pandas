@@ -211,6 +211,7 @@ typedef struct parser_t {
 
     // error handling
     char *warn_msg;
+    int error;
     char *error_msg;
 
     int skip_empty_lines;

@@ -184,6 +184,7 @@ cdef extern from "parser/tokenizer.h":
 
         #  error handling
         char *warn_msg
+        int error;
         char *error_msg
 
         int skip_empty_lines
@@ -2028,7 +2029,7 @@ cdef raise_parser_error(object base, parser_t *parser):
             Py_XDECREF(value)
             raise old_exc
     message = '%s. C error: ' % base
-    if parser.error_msg != NULL:
+    if parser.error != 0:
         if PY3:
             message += parser.error_msg.decode('utf-8')
         else:

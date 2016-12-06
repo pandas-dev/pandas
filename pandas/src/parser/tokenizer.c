@@ -221,8 +221,6 @@ int parser_init(parser_t *self) {
     self->word_starts = NULL;
     self->line_start = NULL;
     self->line_fields = NULL;
-    self->error_msg = NULL;
-    self->warn_msg = NULL;
 
     // token stream
     self->stream = (char*) malloc(STREAM_INIT_SIZE * sizeof(char));
@@ -271,7 +269,8 @@ int parser_init(parser_t *self) {
 
     self->state = START_RECORD;
 
-    self->error_msg = NULL;
+    self->error = 0;
+    self->error_msg = (char*) malloc(200);
     self->warn_msg = NULL;
 
     self->commentchar = '\0';
@@ -400,7 +399,7 @@ static int push_char(parser_t *self, char c) {
     if (self->stream_len >= self->stream_cap) {
         TRACE(("push_char: ERROR!!! self->stream_len(%d) >= self->stream_cap(%d)\n",
                self->stream_len, self->stream_cap))
-        self->error_msg = (char*) malloc(64);
+        self->error = 1;
         sprintf(self->error_msg, "Buffer overflow caught - possible malformed input file.\n");
         return PARSER_OUT_OF_MEMORY;
     }
@@ -413,7 +412,7 @@ int P_INLINE end_field(parser_t *self) {
 //    self->numeric_field = 0;
     if (self->words_len >= self->words_cap) {
         TRACE(("end_field: ERROR!!! self->words_len(%zu) >= self->words_cap(%zu)\n", self->words_len, self->words_cap))
-        self->error_msg = (char*) malloc(64);
+        self->error = 1;
         sprintf(self->error_msg, "Buffer overflow caught - possible malformed input file.\n");
         return PARSER_OUT_OF_MEMORY;
     }
@@ -509,7 +508,7 @@ static int end_line(parser_t *self) {
 
         // file_lines is now the actual file line number (starting at 1)
         if (self->error_bad_lines) {
-            self->error_msg = (char*) malloc(100);
+            self->error = 1;
             sprintf(self->error_msg, "Expected %d fields in line %d, saw %d\n",
                     ex_fields, self->file_lines, fields);
 
@@ -533,7 +532,8 @@ static int end_line(parser_t *self) {
 
             // might overrun the buffer when closing fields
             if (make_stream_space(self, ex_fields - fields) < 0) {
-                self->error_msg = "out of memory";
+                self->error = 1;
+                sprintf(self->error_msg, "out of memory");
                 return -1;
             }
 
@@ -549,10 +549,10 @@ static int end_line(parser_t *self) {
 
         // good line, set new start point
         if (self->lines >= self->lines_cap) {
-            TRACE(("end_line: ERROR!!! self->lines(%zu) >= self->lines_cap(%zu)\n", self->lines, self->lines_cap))  \
-            self->error_msg = (char*) malloc(100);      \
-            sprintf(self->error_msg, "Buffer overflow caught - possible malformed input file.\n"); \
-            return PARSER_OUT_OF_MEMORY;                \
+            TRACE(("end_line: ERROR!!! self->lines(%zu) >= self->lines_cap(%zu)\n", self->lines, self->lines_cap));
+            self->error = 1;
+            sprintf(self->error_msg, "Buffer overflow caught - possible malformed input file.\n");
+            return PARSER_OUT_OF_MEMORY;
         }
         self->line_start[self->lines] = (self->line_start[self->lines - 1] +
                                          fields);
@@ -606,12 +606,13 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     self->datalen = bytes_read;
 
     if (status != REACHED_EOF && self->data == NULL) {
-        self->error_msg = (char*) malloc(200);
 
         if (status == CALLING_READ_FAILED) {
+            self->error = 1;
             sprintf(self->error_msg, ("Calling read(nbytes) on source failed. "
                                       "Try engine='python'."));
         } else {
+            self->error = 1;
             sprintf(self->error_msg, "Unknown error in IO callback");
         }
         return -1;
@@ -635,7 +636,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     TRACE(("PUSH_CHAR: Pushing %c, slen= %d, stream_cap=%zu, stream_len=%zu\n", c, slen, self->stream_cap, self->stream_len)) \
     if (slen >= maxstreamsize) {                    \
         TRACE(("PUSH_CHAR: ERROR!!! slen(%d) >= maxstreamsize(%d)\n", slen, maxstreamsize))            \
-        self->error_msg = (char*) malloc(100);      \
+        self->error = 1; \
         sprintf(self->error_msg, "Buffer overflow caught - possible malformed input file.\n"); \
         return PARSER_OUT_OF_MEMORY;                \
     }                                               \
@@ -735,7 +736,8 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines)
     char *buf = self->data + self->datapos;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
-        self->error_msg = "out of memory";
+        self->error = 1;
+        sprintf(self->error_msg, "out of memory");
         return -1;
     }
 
@@ -1041,7 +1043,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines)
                 PUSH_CHAR(c);
                 self->state = IN_FIELD;
             } else {
-                self->error_msg = (char*) malloc(50);
+                self->error = 1;
                 sprintf(self->error_msg,
                         "delimiter expected after "
                         "quote in quote");
@@ -1148,13 +1150,13 @@ static int parser_handle_eof(parser_t *self) {
 
     case ESCAPE_IN_QUOTED_FIELD:
     case IN_QUOTED_FIELD:
-        self->error_msg = (char*)malloc(100);
+        self->error = 1;
         sprintf(self->error_msg, "EOF inside string starting at line %d",
                 self->file_lines);
         return -1;
 
     case ESCAPED_CHAR:
-        self->error_msg = (char*)malloc(100);
+        self->error = 1;
         sprintf(self->error_msg, "EOF following escape character");
         return -1;
 
