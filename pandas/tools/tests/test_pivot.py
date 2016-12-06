@@ -854,6 +854,53 @@ class TestPivotTable(tm.TestCase):
         table = data.pivot_table('x', 'y', 'z', margins=True)
         tm.assert_frame_equal(table, expected)
 
+    def test_categorical_aggfunc(self):
+        # GH 9534
+        df = pd.DataFrame({"C1": ["A", "B", "C", "C"],
+                           "C2": ["a", "a", "b", "b"],
+                           "V": [1, 2, 3, 4]})
+        df["C1"] = df["C1"].astype("category")
+        result = df.pivot_table("V", index="C1", columns="C2", aggfunc="count")
+
+        expected_index = pd.CategoricalIndex(['A', 'B', 'C'],
+                                             categories=['A', 'B', 'C'],
+                                             ordered=False,
+                                             name='C1')
+        expected_columns = pd.Index(['a', 'b'], name='C2')
+        expected_data = np.array([[1., np.nan],
+                                  [1., np.nan],
+                                  [np.nan, 2.]])
+        expected = pd.DataFrame(expected_data,
+                                index=expected_index,
+                                columns=expected_columns)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categorical_pivot_index_ordering(self):
+        # GH 8731
+        df = pd.DataFrame({'Sales': [100, 120, 220],
+                           'Month': ['January', 'January', 'January'],
+                           'Year': [2013, 2014, 2013]})
+        months = ['January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November',
+                  'December']
+        df['Month'] = df['Month'].astype('category').cat.set_categories(months)
+        result = df.pivot_table(values='Sales',
+                                index='Month',
+                                columns='Year',
+                                aggfunc='sum')
+        expected_columns = pd.Int64Index([2013, 2014], name='Year')
+        expected_index = pd.CategoricalIndex(months,
+                                             categories=months,
+                                             ordered=False,
+                                             name='Month')
+        expected_data = np.empty((12, 2))
+        expected_data.fill(np.nan)
+        expected_data[0, :] = [320., 120.]
+        expected = pd.DataFrame(expected_data,
+                                index=expected_index,
+                                columns=expected_columns)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestCrosstab(tm.TestCase):
 
@@ -1211,6 +1258,28 @@ class TestCrosstab(tm.TestCase):
         error = 'Not a valid margins argument'
         with tm.assertRaisesRegexp(ValueError, error):
             pd.crosstab(df.a, df.b, normalize='all', margins=42)
+
+    def test_crosstab_with_categorial_columns(self):
+        # GH 8860
+        df = pd.DataFrame({'MAKE': ['Honda', 'Acura', 'Tesla',
+                                    'Honda', 'Honda', 'Acura'],
+                           'MODEL': ['Sedan', 'Sedan', 'Electric',
+                                     'Pickup', 'Sedan', 'Sedan']})
+        categories = ['Sedan', 'Electric', 'Pickup']
+        df['MODEL'] = (df['MODEL'].astype('category')
+                                  .cat.set_categories(categories))
+        result = pd.crosstab(df['MAKE'], df['MODEL'])
+
+        expected_index = pd.Index(['Acura', 'Honda', 'Tesla'], name='MAKE')
+        expected_columns = pd.CategoricalIndex(categories,
+                                               categories=categories,
+                                               ordered=False,
+                                               name='MODEL')
+        expected_data = [[2, 0, 0], [2, 0, 1], [0, 1, 0]]
+        expected = pd.DataFrame(expected_data,
+                                index=expected_index,
+                                columns=expected_columns)
+        tm.assert_frame_equal(result, expected)
 
 
 if __name__ == '__main__':
