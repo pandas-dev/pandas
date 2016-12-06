@@ -1176,6 +1176,13 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
                 xrav = xrav[mask]
+
+                # we may need to manually
+                # broadcast a 1 element array
+                if yrav.shape != mask.shape:
+                    yrav = np.empty(mask.shape, dtype=yrav.dtype)
+                    yrav.fill(yrav.item())
+
                 yrav = yrav[mask]
                 if np.prod(xrav.shape) and np.prod(yrav.shape):
                     with np.errstate(all='ignore'):
