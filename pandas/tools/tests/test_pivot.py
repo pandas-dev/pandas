@@ -350,13 +350,13 @@ class TestPivotTable(tm.TestCase):
         # no rows
         rtable = self.data.pivot_table(columns=['AA', 'BB'], margins=True,
                                        aggfunc=np.mean)
-        tm.assertIsInstance(rtable, Series)
-
-        table = self.data.pivot_table(index=['AA', 'BB'], margins=True,
-                                      aggfunc='mean')
-        for item in ['DD', 'EE', 'FF']:
-            totals = table.loc[('All', ''), item]
-            self.assertEqual(totals, self.data[item].mean())
+        expected = self.data.groupby(['AA', 'BB']).mean()
+        expected.loc[('All', ''), :] = self.data[['DD', 'EE', 'FF']].mean()
+        expected = (expected.stack()
+                            .unstack(['BB', 'AA'])
+                            .stack(['AA', 'BB'])
+                            .to_frame())
+        tm.assert_frame_equal(expected, rtable)
 
         # issue number #8349: pivot_table with margins and dictionary aggfunc
         data = [
@@ -485,8 +485,11 @@ class TestPivotTable(tm.TestCase):
         # Regression test on pivot table: no values or cols passed.
         result = self.data[['A', 'B']].pivot_table(
             index=['A', 'B'], aggfunc=len, margins=True)
-        result_list = result.tolist()
-        self.assertEqual(sum(result_list[:-1]), result_list[-1])
+        expected = self.data[['A', 'B']].groupby(['A', 'B']).apply(len)
+        expected.loc[('All', '')] = expected.sum()
+        expected = expected.to_frame()
+
+        tm.assert_frame_equal(result, expected)
 
     def test_margins_no_values_two_rows(self):
         # Regression test on pivot table: no values passed but rows are a
@@ -853,6 +856,39 @@ class TestPivotTable(tm.TestCase):
         data.z = data.z.astype('category')
         table = data.pivot_table('x', 'y', 'z', margins=True)
         tm.assert_frame_equal(table, expected)
+
+    def test_always_return_dataframe(self):
+        # GH 4386
+        df = DataFrame({'col1': [3, 4, 5],
+                        'col2': ['C', 'D', 'E'],
+                        'col3': [1, 3, 9]})
+        result = df.pivot_table('col1', index=['col3', 'col2'], aggfunc=np.sum)
+        m = MultiIndex.from_arrays([[1, 3, 9],
+                                    ['C', 'D', 'E']],
+                                   names=['col3', 'col2'])
+        expected = DataFrame([3, 4, 5],
+                             index=m, columns=['col1'])
+
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot_table(
+            'col1', index='col3', columns='col2', aggfunc=np.sum
+        )
+        expected = DataFrame([[3, np.NaN, np.NaN],
+                              [np.NaN, 4, np.NaN],
+                              [np.NaN, np.NaN, 5]],
+                             index=Index([1, 3, 9], name='col3'),
+                             columns=Index(['C', 'D', 'E'], name='col2'))
+
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot_table('col1', index='col3', aggfunc=[np.sum])
+        m = MultiIndex.from_arrays([['sum'],
+                                    ['col1']])
+        expected = DataFrame([3, 4, 5],
+                             index=Index([1, 3, 9], name='col3'),
+                             columns=m)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestCrosstab(tm.TestCase):
