@@ -607,3 +607,20 @@ No,No,No"""
         result = self.read_csv(StringIO(data), header=0,
                                dtype={'a': np.int32, 1: np.float64})
         tm.assert_frame_equal(result, expected)
+
+    def test_read_nrows_large(self):
+        # gh-7626 - Read only nrows of data in for large inputs (>262144b)
+        header_narrow = '\t'.join(['COL_HEADER_' + str(i)
+                                  for i in range(10)]) + '\n'
+        data_narrow = '\t'.join(['somedatasomedatasomedata1'
+                                for i in range(10)]) + '\n'
+        header_wide = '\t'.join(['COL_HEADER_' + str(i)
+                                for i in range(15)]) + '\n'
+        data_wide = '\t'.join(['somedatasomedatasomedata2'
+                              for i in range(15)]) + '\n'
+        test_input = (header_narrow + data_narrow * 1050 +
+                      header_wide + data_wide * 2)
+
+        df = self.read_csv(StringIO(test_input), sep='\t', nrows=1010)
+
+        self.assertTrue(df.size == 1010 * 10)
