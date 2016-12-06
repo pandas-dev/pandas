@@ -300,8 +300,9 @@ cdef class TextReader:
         object compression
         object mangle_dupe_cols
         object tupleize_cols
+        object usecols
         list dtype_cast_order
-        set noconvert, usecols
+        set noconvert
 
     def __cinit__(self, source,
                   delimiter=b',',
@@ -437,7 +438,10 @@ cdef class TextReader:
         # suboptimal
         if usecols is not None:
             self.has_usecols = 1
-            self.usecols = set(usecols)
+            if callable(usecols):
+                self.usecols = usecols
+            else:
+                self.usecols = set(usecols)
 
         # XXX
         if skipfooter > 0:
@@ -701,7 +705,6 @@ cdef class TextReader:
             cdef StringPath path = _string_path(self.c_encoding)
 
         header = []
-
         if self.parser.header_start >= 0:
 
             # Header is in the file
@@ -821,7 +824,8 @@ cdef class TextReader:
             #                        'data has %d fields'
             #                        % (passed_count, field_count))
 
-            if self.has_usecols and self.allow_leading_cols:
+            if self.has_usecols and self.allow_leading_cols and \
+                    not callable(self.usecols):
                 nuse = len(self.usecols)
                 if nuse == passed_count:
                     self.leading_cols = 0
@@ -1019,13 +1023,20 @@ cdef class TextReader:
             if i < self.leading_cols:
                 # Pass through leading columns always
                 name = i
-            elif self.usecols and nused == len(self.usecols):
+            elif self.usecols and not callable(self.usecols) and \
+                    nused == len(self.usecols):
                 # Once we've gathered all requested columns, stop. GH5766
                 break
             else:
                 name = self._get_column_name(i, nused)
-                if self.has_usecols and not (i in self.usecols or
-                                             name in self.usecols):
+                usecols = set()
+                if callable(self.usecols):
+                    if self.usecols(name):
+                        usecols = set([i])
+                else:
+                    usecols = self.usecols
+                if self.has_usecols and not (i in usecols or
+                                             name in usecols):
                     continue
                 nused += 1
 
