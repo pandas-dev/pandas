@@ -40,7 +40,8 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
         Py_ssize_t i, l, n
         ndarray[uint64_t] result
         bytes data, k
-        uint8_t *kb, *lens
+        uint8_t *kb
+        uint64_t *lens
         char **vecs, *cdata
         object val
 
@@ -55,7 +56,7 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
 
     # create an array of bytes
     vecs = <char **> malloc(n * sizeof(char *))
-    lens = <uint8_t*> malloc(n * sizeof(uint8_t))
+    lens = <uint64_t*> malloc(n * sizeof(uint64_t))
 
     cdef list datas = []
     for i in range(n):
