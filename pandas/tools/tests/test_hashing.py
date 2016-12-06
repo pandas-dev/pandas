@@ -165,12 +165,13 @@ class TestHashing(tm.TestCase):
 
         # these should be different!
         result1 = hash_array(np.asarray(L[0:1], dtype=object), 'utf8')
-        expected1 = np.array([1760245841805064774], dtype=np.uint64)
+        expected1 = np.array([14963968704024874985], dtype=np.uint64)
         self.assert_numpy_array_equal(result1, expected1)
 
         result2 = hash_array(np.asarray(L[1:2], dtype=object), 'utf8')
-        expected2 = np.array([1760245841805064774], dtype=np.uint64)
+        expected2 = np.array([16428432627716348016], dtype=np.uint64)
         self.assert_numpy_array_equal(result2, expected2)
 
         result = hash_array(np.asarray(L, dtype=object), 'utf8')
-        self.assertTrue(len(result)) == 2
+        self.assert_numpy_array_equal(
+            result, np.concatenate([expected1, expected2], axis=0))
