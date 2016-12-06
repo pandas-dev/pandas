@@ -891,6 +891,15 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         with tm.assertRaises(ValueError):
             s.interpolate(method='spline', order=0)
 
+    def test_interp_timedelta64(self):
+        # GH 14799
+        tm._skip_if_no_scipy()
+        df = Series([1, np.nan, 3], index=pd.to_datetime([1, 2, 3], unit="d"))
+        result = df.interpolate(method='time')
+        expected = Series([1., 2., 3.],
+                          index=pd.to_datetime([1, 2, 3], unit="d"))
+        assert_series_equal(result, expected)
+
 
 if __name__ == '__main__':
     import nose
