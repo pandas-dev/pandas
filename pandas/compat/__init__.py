@@ -316,6 +316,25 @@ else:
 string_and_binary_types = string_types + (binary_type,)
 
 
+class ABC(object):
+    if PY3:
+        from collections import abc
+        Container = abc.Container
+        Iterable = abc.Iterable
+        Iterator = abc.Iterator
+        Sequence = abc.Sequence
+        MutableSequence = abc.MutableSequence
+        Mapping = abc.Mapping
+    else:
+        import collections
+        Container = collections.Container
+        Iterable = collections.Iterable
+        Iterator = collections.Iterator
+        Sequence = collections.Sequence
+        MutableSequence = collections.MutableSequence
+        Mapping = collections.Mapping
+
+
 try:
     # callable reintroduced in later versions of Python
     callable = callable
