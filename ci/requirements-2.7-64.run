@@ -11,7 +11,7 @@ sqlalchemy
 lxml=3.2.1
 scipy
 xlsxwriter
-boto
+s3fs
 bottleneck
 html5lib
 beautiful-soup

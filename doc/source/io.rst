@@ -1487,6 +1487,23 @@ options include:
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
 
+Reading remote files
+''''''''''''''''''''
+
+You can pass in a URL to a CSV file:
+
+.. code-block:: python
+
+   df = pd.read_csv('https://download.bls.gov/pub/time.series/cu/cu.item',
+                    sep='\t')
+
+S3 URLs are handled as well:
+
+.. code-block:: python
+
+   df = pd.read_csv('s3://pandas-test/tips.csv')
+
+
 Writing out Data
 ''''''''''''''''
 
