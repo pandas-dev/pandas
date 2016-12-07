@@ -1218,10 +1218,13 @@ class MPLPlot(object):
         if self.title:
             if self.subplots:
                 if is_list_like(self.title):
-                    if len(self.title) != len(self.axes):
+                    if len(self.title) != self.nseries:
                         msg = 'The length of `title` must equal the number ' \
                               'of columns if using `title` of type `list` ' \
-                              'and `subplots=True`'
+                              'and `subplots=True`.\n' \
+                              'length of title = {}\n' \
+                              'number of columns = {}'.format(len(self.title),
+                                                              self.nseries)
                         raise ValueError(msg)
 
                     for (ax, title) in zip(self.axes, self.title):
