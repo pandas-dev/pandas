@@ -14,13 +14,9 @@ cache:
 
 env:
   global:
-  # scatterci API key
-  #- secure: "Bx5umgo6WjuGY+5XFa004xjCiX/vq0CyMZ/ETzcs7EIBI1BE/0fIDXOoWhoxbY9HPfdPGlDnDgB9nGqr5wArO2s+BavyKBWg6osZ3dmkfuJPMOWeyCa92EeP+sfKw8e5HSU5MizW9e319wHWOF/xkzdHR7T67Qd5erhv91x4DnQ="
-  # ironcache API key
-  #- secure: "e4eEFn9nDQc3Xa5BWYkzfX37jaWVq89XidVX+rcCNEr5OlOImvveeXnF1IzbRXznH4Sv0YsLwUd8RGUWOmyCvkONq/VJeqCHWtTMyfaCIdqSyhIP9Odz8r9ahch+Y0XFepBey92AJHmlnTh+2GjCDgIiqq4fzglojnp56Vg1ojA="
-  #- secure: "CjmYmY5qEu3KrvMtel6zWFEtMq8ORBeS1S1odJHnjQpbwT1KY2YFZRVlLphfyDQXSz6svKUdeRrCNp65baBzs3DQNA8lIuXGIBYFeJxqVGtYAZZs6+TzBPfJJK798sGOj5RshrOJkFG2rdlWNuTq/XphI0JOrN3nPUkRrdQRpAw="
-  # pandas-docs-bot GH
-  - secure: "PCzUFR8CHmw9lH84p4ygnojdF7Z8U5h7YfY0RyT+5K/aiQ1ZTU3ZkDTPI0/rR5FVMxsEEKEQKMcc5fvqW0PeD7Q2wRmluloKgT9w4EVEJ1ppKf7lITPcvZR2QgVOvjv4AfDtibLHFNiaSjzoqyJVjM4igjOu8WTlF3JfZcmOQjQ="
+
+  # pandas-docs-travis GH
+  - secure: "UJK7kUtkcnV9PFP4IBXAvgmRQKdwARlfqF4UZQ5tBwrpnD1a3n7FLBijcuXQ3jkvwpEc/FZB9RJDXmsqYXJPvq3BC++2Cv2tFDvKr/c+y8KffszAyVk47jKEHMNmGgauwaNMggsE/rH8YHe4so9LsJHTRbzmLo8lXPNTldoIu5s="
 
 git:
     # for cloning

@@ -345,3 +345,23 @@ col1~~~~~col2  col3++++++++++++++++++col4
                             header=None, encoding='utf8')
         tm.assert_frame_equal(expected, read_fwf(
             BytesIO(test.encode('utf8')), header=None, encoding='utf8'))
+
+    def test_dtype(self):
+        data = ''' a    b    c
+1    2    3.2
+3    4    5.2
+'''
+        colspecs = [(0, 5), (5, 10), (10, None)]
+        result = pd.read_fwf(StringIO(data), colspecs=colspecs)
+        expected = pd.DataFrame({
+            'a': [1, 3],
+            'b': [2, 4],
+            'c': [3.2, 5.2]}, columns=['a', 'b', 'c'])
+        tm.assert_frame_equal(result, expected)
+
+        expected['a'] = expected['a'].astype('float64')
+        expected['b'] = expected['b'].astype(str)
+        expected['c'] = expected['c'].astype('int32')
+        result = pd.read_fwf(StringIO(data), colspecs=colspecs,
+                             dtype={'a': 'float64', 'b': str, 'c': 'int32'})
+        tm.assert_frame_equal(result, expected)

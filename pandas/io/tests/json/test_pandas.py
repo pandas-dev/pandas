@@ -167,7 +167,7 @@ class TestPandasContainer(tm.TestCase):
                 if raise_ok is not None:
                     if isinstance(detail, raise_ok):
                         return
-                    raise
+                raise
 
             if sort is not None and sort in unser.columns:
                 unser = unser.sort_values(sort)
