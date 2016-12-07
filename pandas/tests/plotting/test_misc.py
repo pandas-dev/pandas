@@ -294,6 +294,12 @@ class TestDataFramePlots(TestPlotBase):
         # Case subplots=False and title is of type list
         self.assertRaises(ValueError, df.plot, subplots=False, title=title)
 
+        # Case df with 3 numeric columns but layout of (2,2)
+        plot = df.drop('SepalWidth', axis=1).plot(subplots=True, layout=(2, 2),
+                                                  title=title[:-1])
+        title_list = [ax.title._text for sublist in plot for ax in sublist]
+        self.assertEqual(title_list, title[:3] + [''])
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
