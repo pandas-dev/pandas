@@ -624,30 +624,32 @@ New syntax to window and resample operations
 Working with the resample, expanding or rolling operations on the groupby
 level used to require the application of helper functions. However,
 now it is possible to use ``resample()``, ``expanding()`` and
-``rolling()`` as methods on groupbys. We will find below simple
-examples of the application of each of the refered methods:
+``rolling()`` as methods on groupbys.
 
-
-Example of the ``rolling()`` method applied to groupbys:
+The example below will apply the ``rolling()`` method on the samples of
+the column B based on the groups of column A.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': [1] * 20 + [2] * 12,
-	              'B': np.arange(32)})
-
+   df = pd.DataFrame({'A': [1] * 10 + [5] * 10,
+	              'B': np.arange(20)})
    df
    
    df.groupby('A').rolling(4).B.mean()
-   df
-
-.. note::
-
-   The example above is grouping the values of the column A, creating
-   a rolling window of size 4 on the samples of columns B and applying
-   the average.
 
 
-Example of the ``resample()``:
+The ``expanding()`` method will accumulate a given operation
+(``sum()`` in the example) for all the members of each particular
+group.
+
+.. ipython:: python
+
+   df.groupby('A').expanding().sum()
+
+
+Suppose you want to use the ``resample()`` method to get a daily
+frequency in each group of your dataframe and wish to complete the
+missing values with the ``ffill()`` method.
 
 .. ipython:: python
 
@@ -656,33 +658,9 @@ Example of the ``resample()``:
 					    freq='W'),
 		      'group': [1, 1, 2, 2],
 		      'val': [5, 6, 7, 8]}).set_index('date')
+   df
 
    df.groupby('group').resample('1D').ffill()
-
-.. note::
-
-   The example above is grouping the values of column ``group``,
-   applying a resample operation to a daily frequency and completing
-   the missing values with the ``ffill()`` method.
-
-
-
-Example of the ``expanding()``:
-
-.. ipython:: python
-
-   df = pd.DataFrame({'group': [1] * 5 + [2] * 5,
-	              'val': [5] * 5 + [1] * 5 })
-
-   df.groupby('group').expanding().sum()
-
-.. note::
-
-   The example above of the ``expanding`` method is grouping the
-   dataframe into the groups available at the columns groups. The
-   expanding operation will accumulate the defined operations (sum()
-   in this example) for all the members of the a particular group.
-
 
 .. _groupby.filter:
 

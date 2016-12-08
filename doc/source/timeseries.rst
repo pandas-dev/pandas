@@ -1288,7 +1288,7 @@ limited to, financial applications.
 ``.resample()`` is a time-based groupby, followed by a reduction method on each of its groups.
 See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
 
-Now the ``resample()`` function can be used directly from
+Starting in version 0.18.1 ``resample()`` function can be used directly from
 DataFrameGroupBy objects, see :ref:`whatsnew docs <whatsnew_0181.deferred_ops>` and :ref:`groupby transformation <groupby.transform.window_resample>`
 
 .. note::
