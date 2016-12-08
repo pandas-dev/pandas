@@ -76,3 +76,5 @@ Bug Fixes
 
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
+
+- Bug in ``.plot(kind='kde')`` which did not drop missing values to generate the KDE Plot, instead generating an empty plot. (:issue:`14821`)
