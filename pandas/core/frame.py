@@ -2483,7 +2483,7 @@ class DataFrame(NDFrame):
         Notes
         -----
         Since ``kwargs`` is a dictionary, the order of your
-        arguments may not be preserved. The make things predicatable,
+        arguments may not be preserved. To make things predicatable,
         the columns are inserted in alphabetical order, at the end of
         your DataFrame. Assigning multiple columns within the same
         ``assign`` is possible, but you cannot reference other columns

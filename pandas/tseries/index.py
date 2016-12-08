@@ -2000,7 +2000,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Frequency strings can have multiples, e.g. '5H'
     tz : string or None
         Time zone name for returning localized DatetimeIndex, for example
-    Asia/Hong_Kong
+        Asia/Hong_Kong
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     name : str, default None

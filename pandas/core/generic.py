@@ -3635,14 +3635,17 @@ class NDFrame(PandasObject):
               require that you also specify an `order` (int),
               e.g. df.interpolate(method='polynomial', order=4).
               These use the actual numerical values of the index.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima' are all
-              wrappers around the scipy interpolation methods of similar
-              names. These use the actual numerical values of the index. See
-              the scipy documentation for more on their behavior
-              `here <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__  # noqa
-              `and here <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__  # noqa
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
+              are all wrappers around the scipy interpolation methods of
+              similar names. These use the actual numerical values of the
+              index. For more information on their behavior, see the
+              `scipy documentation
+              <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
+              and `tutorial documentation
+              <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__
             * 'from_derivatives' refers to BPoly.from_derivatives which
-              replaces 'piecewise_polynomial' interpolation method in scipy 0.18
+              replaces 'piecewise_polynomial' interpolation method in
+              scipy 0.18
 
             .. versionadded:: 0.18.1
 
@@ -3656,7 +3659,7 @@ class NDFrame(PandasObject):
             * 1: fill row-by-row
         limit : int, default None.
             Maximum number of consecutive NaNs to fill.
-        limit_direction : {'forward', 'backward', 'both'}, defaults to 'forward'
+        limit_direction : {'forward', 'backward', 'both'}, default 'forward'
             If limit is specified, consecutive NaNs will be filled in this
             direction.
 
@@ -4159,6 +4162,9 @@ class NDFrame(PandasObject):
 
             .. versionadded:: 0.19.0
 
+        Notes
+        -----
+
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
@@ -4346,7 +4352,7 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        axis: {0 or 'index', 1 or 'columns'}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             index to direct ranking
         method : {'average', 'min', 'max', 'first', 'dense'}
             * average: average rank of group

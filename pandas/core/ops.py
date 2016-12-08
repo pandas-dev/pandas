@@ -1006,7 +1006,7 @@ missing data in one of the inputs.
 
 Parameters
 ----------
-other: Series or scalar value
+other : Series or scalar value
 fill_value : None or float value, default None (NaN)
     Fill missing (NaN) values with this value. If both Series are
     missing, the result will be missing
