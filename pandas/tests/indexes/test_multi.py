@@ -1640,6 +1640,19 @@ class TestMultiIndex(Base, tm.TestCase):
         idx = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
         self.assertEqual(len(idx), 2)
 
+    def test_from_tuples_variable_length(self):
+        # check that len(MultiIndex) == max(len(iterables))
+        T = ((1,), (2, 3), (4, 5, 6))
+
+        idx = MultiIndex.from_tuples(T)
+        self.assertEqual(len(idx), 3)
+
+        idx = MultiIndex.from_tuples(set(T))
+        self.assertEqual(len(idx), 3)
+
+        idx = MultiIndex.from_tuples(list(T))
+        self.assertEqual(len(idx), 3)
+
     def test_argsort(self):
         result = self.index.argsort()
         expected = self.index._tuple_index.argsort()
