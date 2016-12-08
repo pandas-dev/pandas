@@ -1234,7 +1234,7 @@ class MPLPlot(object):
             else:
                 if is_list_like(self.title):
                     msg = ('Using `title` of type `list` is not supported '
-                          'unless `subplots=True` is passed')
+                           'unless `subplots=True` is passed')
                     raise ValueError(msg)
                 self.axes[0].set_title(self.title)
 
