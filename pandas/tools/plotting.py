@@ -2136,6 +2136,7 @@ class KdePlot(HistPlot):
 
     def _get_ind(self, y):
         if self.ind is None:
+            # np.nanmax() and np.nanmin() ignores the missing values
             sample_range = np.nanmax(y) - np.nanmin(y)
             ind = np.linspace(np.nanmin(y) - 0.5 * sample_range,
                               np.nanmax(y) + 0.5 * sample_range, 1000)
