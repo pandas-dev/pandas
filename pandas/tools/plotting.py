@@ -1219,12 +1219,12 @@ class MPLPlot(object):
             if self.subplots:
                 if is_list_like(self.title):
                     if len(self.title) != self.nseries:
-                        msg = 'The length of `title` must equal the number ' \
-                              'of columns if using `title` of type `list` ' \
-                              'and `subplots=True`.\n' \
-                              'length of title = {}\n' \
-                              'number of columns = {}'.format(len(self.title),
-                                                              self.nseries)
+                        msg = ('The length of `title` must equal the number '
+                               'of columns if using `title` of type `list` '
+                               'and `subplots=True`.\n'
+                               'length of title = {}\n'
+                               'number of columns = {}').format(
+                            len(self.title), self.nseries)
                         raise ValueError(msg)
 
                     for (ax, title) in zip(self.axes, self.title):
@@ -1233,8 +1233,8 @@ class MPLPlot(object):
                     self.fig.suptitle(self.title)
             else:
                 if is_list_like(self.title):
-                    msg = 'Using `title` of type `list` is not supported ' \
-                          'unless `subplots=True` is passed'
+                    msg = ('Using `title` of type `list` is not supported '
+                          'unless `subplots=True` is passed')
                     raise ValueError(msg)
                 self.axes[0].set_title(self.title)
 
@@ -2573,9 +2573,9 @@ _shared_docs['plot'] = """
     use_index : boolean, default True
         Use index as ticks for x axis
     title : string or list
-        If a string is passed, print the string at the top of the figure. If a
-        list is passed and subplots is True, print each item in the
-        list above the corresponding subplot.
+        Title to use for the plot. If a string is passed, print the string at
+        the top of the figure. If a list is passed and `subplots` is True,
+        print each item in the list above the corresponding subplot.
     grid : boolean, default None (matlab style default)
         Axis grid lines
     legend : False/True/'reverse'
