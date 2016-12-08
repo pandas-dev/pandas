@@ -9,6 +9,7 @@ users upgrade to this version.
 
 Highlights include:
 
+- Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
@@ -54,7 +55,7 @@ Other enhancements
 - New ``UnsortedIndexError`` (subclass of ``KeyError``) raised when indexing/slicing into an
   unsorted MultiIndex (:issue:`11897`). This allows differentiation between errors due to lack
   of sorting or an incorrect key. See :ref:`here <advanced.unsorted>`
- 
+
 - ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (issue:`14714`)
 - ``Series`` provides a ``to_excel`` method to output Excel files (:issue:`8825`)
 - The ``usecols`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`14154`)
@@ -120,3 +121,18 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
