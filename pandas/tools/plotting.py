@@ -2912,8 +2912,9 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         invisible
     figsize : tuple
         The size of the figure to create in inches by default
-    layout: (optional) a tuple (rows, columns) for the layout of the histograms
-    bins: integer, default 10
+    layout : tuple, optional
+        Tuple of (rows, columns) for the layout of the histograms
+    bins : integer, default 10
         Number of histogram bins to be used
     kwds : other plotting keyword arguments
         To be passed to hist function
