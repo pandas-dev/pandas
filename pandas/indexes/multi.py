@@ -5,6 +5,11 @@ import warnings
 from functools import partial
 from sys import getsizeof
 
+try:
+    from itertools import zip_longest
+except ImportError:
+    from itertools import izip_longest as zip_longest
+
 import numpy as np
 import pandas.lib as lib
 import pandas.index as _index
@@ -1015,7 +1020,7 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrays = lzip(*tuples)
+            arrays = list(zip_longest(*tuples))
 
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
