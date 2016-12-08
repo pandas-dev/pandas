@@ -227,7 +227,8 @@ class TestNestedToRecord(tm.TestCase):
 
 
     def test_json_normalize_errors(self):
-        # GH14583: If meta keys are not always present a new option to set errors='ignore' has been implemented
+        # GH14583: If meta keys are not always present
+        # a new option to set errors='ignore' has been implemented
         i = {
             "Trades": [{
                 "general": {
@@ -238,13 +239,10 @@ class TestNestedToRecord(tm.TestCase):
                         "symbol": "AAPL",
                         "name": "Apple",
                         "price": "0"
-
                     }, {
-
                         "symbol": "GOOG",
                         "name": "Google",
                         "price": "0"
-
                     }
                     ]
                 }
@@ -252,16 +250,13 @@ class TestNestedToRecord(tm.TestCase):
                 "general": {
                     "tradeid": 100,
                     "stocks": [{
-
                         "symbol": "AAPL",
                         "name": "Apple",
                         "price": "0"
-
                     }, {
                         "symbol": "GOOG",
                         "name": "Google",
                         "price": "0"
-
                     }
                     ]
                 }
@@ -269,7 +264,8 @@ class TestNestedToRecord(tm.TestCase):
             ]
         }
         j = json_normalize(data=i['Trades'], record_path=[['general', 'stocks']],
-                           meta=[['general', 'tradeid'], ['general', 'trade_version']], errors='ignore')
+                           meta=[['general', 'tradeid'], ['general', 'trade_version']],
+                           errors='ignore')
         expected={'general.trade_version': {0: 1.0, 1: 1.0, 2: '', 3: ''},
          'general.tradeid': {0: 100, 1: 100, 2: 100, 3: 100},
          'name': {0: 'Apple', 1: 'Google', 2: 'Apple', 3: 'Google'},
@@ -280,7 +276,8 @@ class TestNestedToRecord(tm.TestCase):
 
         self.assertRaises(KeyError,
                 json_normalize, data=i['Trades'], record_path=[['general', 'stocks']],
-                           meta=[['general', 'tradeid'], ['general', 'trade_version']], errors='raise'
+                           meta=[['general', 'tradeid'], ['general', 'trade_version']],
+                          errors='raise'
                           )
 
 
