@@ -108,3 +108,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
