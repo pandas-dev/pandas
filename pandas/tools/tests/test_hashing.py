@@ -63,6 +63,7 @@ class TestHashing(tm.TestCase):
                     Series([1.0, 1.5, 3.2], index=[1.5, 1.1, 3.3]),
                     Series(['a', 'b', 'c']),
                     Series(['a', np.nan, 'c']),
+                    Series(['a', None, 'c']),
                     Series([True, False, True]),
                     Index([1, 2, 3]),
                     Index([True, False, True]),
@@ -71,9 +72,7 @@ class TestHashing(tm.TestCase):
                     tm.makeMixedDataFrame(),
                     tm.makeTimeDataFrame(),
                     tm.makeTimeSeries(),
-                    tm.makeTimedeltaIndex(),
-                    Series([1, 2, 3], index=pd.MultiIndex.from_tuples(
-                        [('a', 1), ('a', 2), ('b', 1)]))]:
+                    tm.makeTimedeltaIndex()]:
             self.check_equal(obj)
             self.check_not_equal_with_index(obj)
 
@@ -115,16 +114,22 @@ class TestHashing(tm.TestCase):
             hash_pandas_object(Series(list('abc')), hash_key='foo')
         self.assertRaises(ValueError, f)
 
-    def test_mixed(self):
-        # mixed objects
-        obj = Series(['1', 2, 3])
-        self.check_equal(obj)
-        self.check_not_equal_with_index(obj)
+    def test_unsupported_objects(self):
 
-        # mixed are actually equal when stringified
-        a = hash_pandas_object(obj)
-        b = hash_pandas_object(Series(list('123')))
-        self.assert_series_equal(a, b)
+        # mixed objects are not supported
+        obj = Series(['1', 2, 3])
+
+        def f():
+            hash_pandas_object(obj)
+        self.assertRaises(TypeError, f)
+
+        # MultiIndex are represented as tuples
+        obj = Series([1, 2, 3], index=pd.MultiIndex.from_tuples(
+            [('a', 1), ('a', 2), ('b', 1)]))
+
+        def f():
+            hash_pandas_object(obj)
+        self.assertRaises(TypeError, f)
 
     def test_alread_encoded(self):
         # if already encoded then ok
@@ -137,7 +142,36 @@ class TestHashing(tm.TestCase):
         obj = Series(list('abc'))
         self.check_equal(obj, encoding='ascii')
 
-    def test_long_strings(self):
+    def test_same_len_hash_collisions(self):
 
-        obj = Index(tm.rands_array(nchars=10000, size=100))
-        self.check_equal(obj)
+        for l in range(8):
+            length = 2**(l + 8) + 1
+            s = tm.rands_array(length, 2)
+            result = hash_array(s, 'utf8')
+            self.assertFalse(result[0] == result[1])
+
+        for l in range(8):
+            length = 2**(l + 8)
+            s = tm.rands_array(length, 2)
+            result = hash_array(s, 'utf8')
+            self.assertFalse(result[0] == result[1])
+
+    def test_hash_collisions(self):
+
+        # hash collisions are bad
+        # https://github.com/pandas-dev/pandas/issues/14711#issuecomment-264885726
+        L = ['Ingrid-9Z9fKIZmkO7i7Cn51Li34pJm44fgX6DYGBNj3VPlOH50m7HnBlPxfIwFMrcNJNMP6PSgLmwWnInciMWrCSAlLEvt7JkJl4IxiMrVbXSa8ZQoVaq5xoQPjltuJEfwdNlO6jo8qRRHvD8sBEBMQASrRa6TsdaPTPCBo3nwIBpE7YzzmyH0vMBhjQZLx1aCT7faSEx7PgFxQhHdKFWROcysamgy9iVj8DO2Fmwg1NNl93rIAqC3mdqfrCxrzfvIY8aJdzin2cHVzy3QUJxZgHvtUtOLxoqnUHsYbNTeq0xcLXpTZEZCxD4PGubIuCNf32c33M7HFsnjWSEjE2yVdWKhmSVodyF8hFYVmhYnMCztQnJrt3O8ZvVRXd5IKwlLexiSp4h888w7SzAIcKgc3g5XQJf6MlSMftDXm9lIsE1mJNiJEv6uY6pgvC3fUPhatlR5JPpVAHNSbSEE73MBzJrhCAbOLXQumyOXigZuPoME7QgJcBalliQol7YZ9',  # noqa
+             'Tim-b9MddTxOWW2AT1Py6vtVbZwGAmYCjbp89p8mxsiFoVX4FyDOF3wFiAkyQTUgwg9sVqVYOZo09Dh1AzhFHbgij52ylF0SEwgzjzHH8TGY8Lypart4p4onnDoDvVMBa0kdthVGKl6K0BDVGzyOXPXKpmnMF1H6rJzqHJ0HywfwS4XYpVwlAkoeNsiicHkJUFdUAhG229INzvIAiJuAHeJDUoyO4DCBqtoZ5TDend6TK7Y914yHlfH3g1WZu5LksKv68VQHJriWFYusW5e6ZZ6dKaMjTwEGuRgdT66iU5nqWTHRH8WSzpXoCFwGcTOwyuqPSe0fTe21DVtJn1FKj9F9nEnR9xOvJUO7E0piCIF4Ad9yAIDY4DBimpsTfKXCu1vdHpKYerzbndfuFe5AhfMduLYZJi5iAw8qKSwR5h86ttXV0Mc0QmXz8dsRvDgxjXSmupPxBggdlqUlC828hXiTPD7am0yETBV0F3bEtvPiNJfremszcV8NcqAoARMe']  # noqa
+
+        # these should be different!
+        result1 = hash_array(np.asarray(L[0:1], dtype=object), 'utf8')
+        expected1 = np.array([14963968704024874985], dtype=np.uint64)
+        self.assert_numpy_array_equal(result1, expected1)
+
+        result2 = hash_array(np.asarray(L[1:2], dtype=object), 'utf8')
+        expected2 = np.array([16428432627716348016], dtype=np.uint64)
+        self.assert_numpy_array_equal(result2, expected2)
+
+        result = hash_array(np.asarray(L, dtype=object), 'utf8')
+        self.assert_numpy_array_equal(
+            result, np.concatenate([expected1, expected2], axis=0))

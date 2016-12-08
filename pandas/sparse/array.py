@@ -547,8 +547,8 @@ class SparseArray(PandasObject, np.ndarray):
 
     def copy(self, deep=True):
         """
-        Make a copy of the SparseSeries. Only the actual sparse values need to
-        be copied
+        Make a copy of the SparseArray. Only the actual sparse values need to
+        be copied.
         """
         if deep:
             values = self.sp_values.copy()
@@ -559,9 +559,9 @@ class SparseArray(PandasObject, np.ndarray):
 
     def count(self):
         """
-        Compute sum of non-NA/null observations in SparseSeries. If the
+        Compute sum of non-NA/null observations in SparseArray. If the
         fill_value is not NaN, the "sparse" locations will be included in the
-        observation count
+        observation count.
 
         Returns
         -------

@@ -27,6 +27,7 @@ Flat File
    read_table
    read_csv
    read_fwf
+   read_msgpack
 
 Clipboard
 ~~~~~~~~~
@@ -691,6 +692,7 @@ Serialization / IO / Conversion
    Series.to_pickle
    Series.to_csv
    Series.to_dict
+   Series.to_excel
    Series.to_frame
    Series.to_xarray
    Series.to_hdf

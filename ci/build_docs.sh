@@ -43,7 +43,9 @@ if [ x"$DOC_BUILD" != x"" ]; then
     cd /tmp/doc/build/html
     git config --global user.email "pandas-docs-bot@localhost.foo"
     git config --global user.name "pandas-docs-bot"
+    git config --global credential.helper cache
 
+    # create the repo
     git init
     touch README
     git add README
@@ -53,7 +55,7 @@ if [ x"$DOC_BUILD" != x"" ]; then
     touch .nojekyll
     git add --all .
     git commit -m "Version" --allow-empty
-    git remote add origin https://$GH_TOKEN@github.com/pandas-docs/pandas-docs-travis
+    git remote add origin "https://$GH_TOKEN@github.com/pandas-docs/pandas-docs-travis"
     git push origin gh-pages -f
 fi
 
