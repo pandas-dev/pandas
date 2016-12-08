@@ -635,7 +635,10 @@ Example of the ``rolling()`` method applied to groupbys:
    df = pd.DataFrame({'A': [1] * 20 + [2] * 12,
 	              'B': np.arange(32)})
 
+   df
+   
    df.groupby('A').rolling(4).B.mean()
+   df
 
 .. note::
 
