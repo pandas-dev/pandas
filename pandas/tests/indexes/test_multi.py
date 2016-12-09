@@ -8,7 +8,7 @@ import warnings
 
 from pandas import (DataFrame, date_range, period_range, MultiIndex, Index,
                     CategoricalIndex, compat)
-from pandas.core.common import PerformanceWarning
+from pandas.core.common import PerformanceWarning, UnsortedIndexError
 from pandas.indexes.base import InvalidIndexError
 from pandas.compat import range, lrange, u, PY3, long, lzip
 
@@ -2535,3 +2535,19 @@ class TestMultiIndex(Base, tm.TestCase):
         msg = "invalid how option: xxx"
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.dropna(how='xxx')
+
+    def test_unsortedindex(self):
+        # GH 11897
+        mi = pd.MultiIndex.from_tuples([('z', 'a'), ('x', 'a'), ('y', 'b'),
+                                        ('x', 'b'), ('y', 'a'), ('z', 'b')],
+                                       names=['one', 'two'])
+        df = pd.DataFrame([[i, 10 * i] for i in lrange(6)], index=mi,
+                          columns=['one', 'two'])
+
+        with assertRaises(UnsortedIndexError):
+            df.loc(axis=0)['z', :]
+        df.sort_index(inplace=True)
+        self.assertEqual(len(df.loc(axis=0)['z', :]), 2)
+
+        with assertRaises(KeyError):
+            df.loc(axis=0)['q', :]
