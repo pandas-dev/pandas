@@ -2991,7 +2991,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         f = lambda x: x.strftime('%Y%m%d')
         result = rng.map(f)
-        exp = np.array([f(x) for x in rng], dtype='<U8')
+        exp = np.array([f(x) for x in rng], dtype='=U8')
         tm.assert_almost_equal(result, exp)
 
     def test_iteration_preserves_tz(self):
