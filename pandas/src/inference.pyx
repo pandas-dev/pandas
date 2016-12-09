@@ -1,3 +1,4 @@
+from decimal import Decimal
 import sys
 cimport util
 from tslib import NaT, get_timezone
@@ -673,6 +674,9 @@ def maybe_convert_numeric(object[:] values, set na_values,
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = True
+        elif isinstance(val, Decimal):
+            floats[i] = complexes[i] = val
+            seen_float = True
         else:
             try:
                 status = floatify(val, &fval, &maybe_int)
