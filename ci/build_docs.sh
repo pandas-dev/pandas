@@ -55,7 +55,7 @@ if [ x"$DOC_BUILD" != x"" ]; then
     touch .nojekyll
     git add --all .
     git commit -m "Version" --allow-empty
-    git remote add origin "https://$GH_TOKEN@github.com/pandas-docs/pandas-docs-travis"
+    git remote add origin "https://pandas-docs:$GH_TOKEN@github.com/pandas-docs/pandas-docs-travis"
     git push origin gh-pages -f
 fi
 
