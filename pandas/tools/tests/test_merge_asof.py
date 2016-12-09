@@ -293,6 +293,30 @@ class TestAsOfMerge(tm.TestCase):
         expected = self.tolerance
         assert_frame_equal(result, expected)
 
+    def test_tolerance_tz(self):
+        # GH 14844
+        import pytz
+        left = pd.DataFrame(
+            {'date': pd.DatetimeIndex(start=pd.to_datetime('2016-01-02'),
+                                      freq='D', periods=5,
+                                      tz=pytz.timezone('UTC')),
+             'value1': np.arange(5)})
+        right = pd.DataFrame(
+            {'date': pd.DatetimeIndex(start=pd.to_datetime('2016-01-01'),
+                                      freq='D', periods=5,
+                                      tz=pytz.timezone('UTC')),
+             'value2': list("ABCDE")})
+        result = pd.merge_asof(left, right, on='date',
+                               tolerance=pd.Timedelta('1 day'))
+
+        expected = pd.DataFrame(
+            {'date': pd.DatetimeIndex(start=pd.to_datetime('2016-01-02'),
+                                      freq='D', periods=5,
+                                      tz=pytz.timezone('UTC')),
+             'value1': np.arange(5),
+             'value2': list("BCDEE")})
+        assert_frame_equal(result, expected)
+
     def test_allow_exact_matches(self):
 
         result = merge_asof(self.trades, self.quotes,

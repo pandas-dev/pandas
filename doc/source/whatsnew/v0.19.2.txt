@@ -74,5 +74,6 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` in which the ``nrows`` parameter was not being respected for large input when using the C engine for parsing (:issue:`7626`)
 
 
+- Bug in ``pd.merge_asof()`` could not handle timezone-aware DatetimeIndex when a tolerance was specified (:issue:`14844`)
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
