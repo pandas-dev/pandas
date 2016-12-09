@@ -105,7 +105,6 @@ class UnsortedIndexError(KeyError):
 
     """
     pass
-    
 
 
 class AbstractMethodError(NotImplementedError):

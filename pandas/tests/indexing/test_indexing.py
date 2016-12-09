@@ -3484,8 +3484,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                           '(index of the boolean Series and of the indexed '
                           'object do not match',
             ('locs', '.loc'): 'Unalignable boolean Series provided as indexer '
-                              '(index of the boolean Series and of the indexed '
-                              'object do not match',
+                              '(index of the boolean Series and of the '
+                              'indexed object do not match',
             ('locs', '.iloc'): ('iLocation based boolean indexing on an '
                                 'integer type is not available'),
         }
