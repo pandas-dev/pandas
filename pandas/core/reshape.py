@@ -876,7 +876,7 @@ def lreshape(data, groups, dropna=True, label=None):
     return DataFrame(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df, stubnames, i, j, sep="", numeric_suffix=True):
+def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     """
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
@@ -907,8 +907,10 @@ def wide_to_long(df, stubnames, i, j, sep="", numeric_suffix=True):
         in the wide format, to be stripped from the names in the long format.
         For example, if your column names are A-suffix1, A-suffix2, you
         can strip the hypen by specifying `sep`='-'
-    numeric_suffix : bool, default True
-        Whether the stub suffix is assumed to be numeric or not.
+    suffix : str default '\d+'
+        A regular expression capturing the wanted suffixes. '\d+' captures
+        numeric suffixes. Suffixes with no numbers could be specified with the
+        negated character class '\D+'.
 
     Returns
     -------
@@ -1045,15 +1047,24 @@ def wide_to_long(df, stubnames, i, j, sep="", numeric_suffix=True):
     `pandas.melt` under the hood, but is hard-coded to "do the right thing"
     in a typicaly case.
     """
+    def get_var_names(df, stub, sep, suffix):
+        # The first part of this regex is needed to avoid multiple "greedy"
+        # matches with stubs that have overlapping substrings. For example
+        # A2011, A2012 are separate from AA2011, AA2012. And BBone, BBtwo is
+        # different from Bone, Btwo, and BBBrating
+        # The last part lets us disambiguate suffixes. For example, with
+        # stubname A: (A2011, A2012) would be captured while Arating would
+        # be ignored by the numeric class \d+
+        regex = "^{0}(?!{1}){2}{3}".format(
+            re.escape(stub), re.escape(stub[-1]), re.escape(sep), suffix)
 
-    def get_var_names(df, regex):
         return df.filter(regex=regex).columns.tolist()
 
     def melt_stub(df, stub, i, j, value_vars, sep):
         newdf = melt(df, id_vars=i, value_vars=value_vars,
                      value_name=stub.rstrip(sep), var_name=j)
         newdf[j] = Categorical(newdf[j])
-        newdf[j] = newdf[j].str.replace(re.escape(stub), "")
+        newdf[j] = newdf[j].str.replace(re.escape(stub + sep), "")
 
         return newdf.set_index(i + [j])
 
@@ -1066,33 +1077,14 @@ def wide_to_long(df, stubnames, i, j, sep="", numeric_suffix=True):
     if not isinstance(i, list):
         i = [i]
 
-    stubs = list(map(lambda x: x + sep, stubnames))
-
-    # This regex is needed to avoid multiple "greedy" matches with stubs
-    # that have overlapping substrings
-    # For example A2011, A2012 are separate from AA2011, AA2012
-    # And BBone, BBtwo is different from Bone, Btwo, and BBBrating
-    value_vars = list(map(lambda x: get_var_names(
-        df, "^{0}(?!{1})".format(re.escape(x), re.escape(x[-1]))), stubs))
+    value_vars = list(map(lambda stub:
+                          get_var_names(df, stub, sep, suffix), stubnames))
 
     value_vars_flattened = [e for sublist in value_vars for e in sublist]
     id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
 
-    # If we know the stub end type is a number we can disambiguate potential
-    # misclassified value_vars, for ex, with stubname A: A2011, A2012 and
-    # Arating would all be found as value_vars. If the suffix is numeric we
-    # know the last one should be an id_var. (Note the converse disambiguation
-    # is not possible)
-    if numeric_suffix:
-        for s, v in zip(stubs, value_vars):
-            for vname in v[:]:
-                end = vname.replace(s, "")
-                if not end.isdigit():
-                    v.remove(vname)
-                    id_vars.append(vname)
-
     melted = []
-    for s, v in zip(stubs, value_vars):
+    for s, v in zip(stubnames, value_vars):
         melted.append(melt_stub(df, s, i, j, v, sep))
     melted = melted[0].join(melted[1:], how='outer')
 
