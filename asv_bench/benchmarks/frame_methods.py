@@ -299,7 +299,7 @@ class Apply(object):
         self.df.apply((lambda x: (x + 1)), axis=1)
 
     def time_apply_lambda_mean(self):
-        self.df.apply((lambda x: x.sum()))
+        self.df.apply((lambda x: x.mean()))
 
     def time_apply_np_mean(self):
         self.df.apply(np.mean)
