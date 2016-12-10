@@ -2033,9 +2033,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Parameters
         ----------
-        order: list of int representing new level order.
+        order : list of int representing new level order.
                (reference level by number or key)
-        axis: where to reorder levels
+        axis : where to reorder levels
 
         Returns
         -------
