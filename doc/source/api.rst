@@ -156,6 +156,7 @@ Data manipulations
    concat
    get_dummies
    factorize
+   wide_to_long
 
 Top-level missing data
 ~~~~~~~~~~~~~~~~~~~~~~
