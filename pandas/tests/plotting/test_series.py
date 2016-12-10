@@ -805,7 +805,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_non_standard_intervals(self):
         idx = pd.period_range('2000-01-01', '2000-01-05', freq='6H')
         s = Series(np.random.randn(len(idx)), index=idx)
-        ax = _check_plot_works(s.plot)
+        _check_plot_works(s.plot)
 
 
 if __name__ == '__main__':
