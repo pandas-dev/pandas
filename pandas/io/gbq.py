@@ -540,7 +540,7 @@ class GbqConnector(object):
 
         self._print("\n")
 
-    def verify_schema(self, dataset_id, table_id, schema):
+    def load_schema(self, dataset_id, table_id):
         try:
             from googleapiclient.errors import HttpError
         except:
@@ -550,16 +550,23 @@ class GbqConnector(object):
             remote_schema = self.service.tables().get(
                 projectId=self.project_id,
                 datasetId=dataset_id,
-                tableId=table_id).execute()['schema']
-
-            fields_remote = set([json.dumps(field_remote)
-                                 for field_remote in remote_schema['fields']])
-            fields_local = set(json.dumps(field_local)
-                               for field_local in schema['fields'])
-
-            return fields_remote == fields_local
+                tableId=table_id).execute().get('schema', {'fields': []})
+            return remote_schema
         except HttpError as ex:
             self.process_http_error(ex)
+
+    def verify_schema(self, dataset_id, table_id, schema):
+        remote_schema = self.load_schema(dataset_id, table_id)
+        fields_remote = set([json.dumps({k: v for k, v in
+                                         field_remote.items()
+                                         if k != 'mode'})
+                             for field_remote in remote_schema['fields']])
+        fields_local = set(json.dumps({k: v for k, v in
+                                       field_local.items()
+                                       if k != 'mode'})
+                           for field_local in schema['fields'])
+
+        return fields_remote == fields_local
 
     def delete_and_recreate_table(self, dataset_id, table_id, table_schema):
         delay = 0
@@ -743,7 +750,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
-           verbose=True, reauth=False, if_exists='fail', private_key=None):
+           verbose=True, reauth=False, if_exists='fail',
+           update_schema=False, private_key=None):
     """Write a DataFrame to a Google BigQuery table.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -790,6 +798,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
         'fail': If table exists, do nothing.
         'replace': If table exists, drop it, recreate it, and insert data.
         'append': If table exists, insert data. Create if does not exist.
+    update_schema : {None, 'replace', 'merge'}, default None
     private_key : str (optional)
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
@@ -802,6 +811,9 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     if '.' not in destination_table:
         raise NotFoundException(
             "Invalid Table Name. Should be of the form 'datasetId.tableId' ")
+
+    if update_schema not in (None, 'replace', 'merge'):
+        raise ValueError("%s is not valid for update_schema" % update_schema)
 
     connector = GbqConnector(project_id, reauth=reauth, verbose=verbose,
                              private_key=private_key)
@@ -824,9 +836,23 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                 dataset_id, table_id, table_schema)
         elif if_exists == 'append':
             if not connector.verify_schema(dataset_id, table_id, table_schema):
-                raise InvalidSchema("Please verify that the structure and "
-                                    "data types in the DataFrame match the "
-                                    "schema of the destination table.")
+                if update_schema:
+                    schema = connector.load_schema(dataset_id, table_id)
+                    if update_schema == 'merge':
+                        existing_fields = {f['name'] for f in
+                                           schema['fields']}
+                        new_fields = [f for f in table_schema['fields']
+                                      if f['name'] not in existing_fields]
+                        if new_fields:
+                            schema['fields'].extend(new_fields)
+                            table.update_schema(table_id, schema)
+                    else:
+                        table.update_schema(table_id, schema)
+                else:
+                    raise InvalidSchema("Please verify that the structure "
+                                        "and data types in the DataFrame "
+                                        "match the schema of the destination "
+                                        "table.")
     else:
         table.create(table_id, table_schema)
 
@@ -969,6 +995,30 @@ class _Table(GbqConnector):
                 datasetId=self.dataset_id,
                 projectId=self.project_id,
                 tableId=table_id).execute()
+        except self.http_error as ex:
+            self.process_http_error(ex)
+
+    def update_schema(self, table_id, schema):
+        """ Updates the schema in BigQuery
+
+        Parameters
+        ----------
+        table : str
+            Name of table to be updated
+        schema : str
+            Use the generate_bq_schema to generate your table schema from a
+            dataframe.
+        """
+        body = {
+            'schema': schema
+        }
+        try:
+            self.service.tables().patch(
+                datasetId=self.dataset_id,
+                projectId=self.project_id,
+                tableId=table_id,
+                body=body
+            ).execute()
         except self.http_error as ex:
             self.process_http_error(ex)
 

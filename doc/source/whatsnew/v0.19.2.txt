@@ -76,3 +76,6 @@ Bug Fixes
 
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
+
+
+- Allow updating table schemas in Google Big Query tables (:issue:`14694`)
