@@ -277,7 +277,8 @@ def _unstack_multiple(data, clocs):
                              verify_integrity=False)
 
     if isinstance(data, Series):
-        dummy = Series(data.values, index=dummy_index)
+        dummy = data.copy()
+        dummy.index = dummy_index
         unstacked = dummy.unstack('__placeholder__')
         new_levels = clevels
         new_names = cnames
@@ -292,7 +293,8 @@ def _unstack_multiple(data, clocs):
 
             return result
 
-        dummy = DataFrame(data.values, index=dummy_index, columns=data.columns)
+        dummy = data.copy()
+        dummy.index = dummy_index
 
         unstacked = dummy.unstack('__placeholder__')
         if isinstance(unstacked, Series):
