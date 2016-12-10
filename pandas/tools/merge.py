@@ -1021,7 +1021,7 @@ class _AsOfMerge(_OrderedMerge):
             msg = "incompatible tolerance, must be compat " \
                   "with type {0}".format(type(lt))
 
-            if is_datetime64_dtype(lt):
+            if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
                 if not isinstance(self.tolerance, Timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
@@ -1034,7 +1034,7 @@ class _AsOfMerge(_OrderedMerge):
                     raise MergeError("tolerance must be positive")
 
             else:
-                raise MergeError(msg)
+                raise MergeError("key must be integer or timestamp")
 
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):
