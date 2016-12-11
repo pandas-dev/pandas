@@ -527,8 +527,10 @@ def _astype_nansafe(arr, dtype, copy=True):
     elif (np.issubdtype(arr.dtype, np.floating) and
           np.issubdtype(dtype, np.integer)):
 
-        if np.isnan(arr).any():
-            raise ValueError('Cannot convert NA to integer')
+        if not np.isfinite(arr).all():
+            raise ValueError('Cannot convert non-finite values (NA or inf) to '
+                             'integer')
+
     elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
         # work around NumPy brokenness, #1987
         return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)

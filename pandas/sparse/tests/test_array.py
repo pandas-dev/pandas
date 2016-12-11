@@ -361,7 +361,7 @@ class TestSparseArray(tm.TestCase):
             arr.astype('i8')
 
         arr = SparseArray([0, np.nan, 0, 1], fill_value=0)
-        msg = "Cannot convert NA to integer"
+        msg = 'Cannot convert non-finite values \(NA or inf\) to integer'
         with tm.assertRaisesRegexp(ValueError, msg):
             arr.astype('i8')
 
