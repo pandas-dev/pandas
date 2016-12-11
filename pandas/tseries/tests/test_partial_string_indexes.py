@@ -1,18 +1,14 @@
-import nose
 import numpy as np
 
 import pandas.util.testing as tm
-from pandas import (
-    Index, Series, DataFrame, isnull, date_range, Timestamp, Period,
-    DatetimeIndex, Int64Index, to_datetime, bdate_range, Float64Index,
-    NaT, timedelta_range, Timedelta, _np_version_under1p8, concat)
+from pandas import DataFrame, DatetimeIndex
 
-from pandas.util.testing import (
-    assert_frame_equal, assert_series_equal, assert_almost_equal,
-    _skip_if_has_locale, slow)
+from pandas.util.testing import assert_frame_equal, assert_series_equal
+
 
 class TestTimeSeriesPartialSlices(tm.TestCase):
     _multiprocess_can_split_ = True
+
     def assert_exact(self, df, ts, value):
         element = df['a'][ts]
 
@@ -23,15 +19,15 @@ class TestTimeSeriesPartialSlices(tm.TestCase):
         # Frame should raise (exact match)
         self.assertRaises(KeyError, df.__getitem__, ts)
 
-        #TODO: test falling to column selection
+        # TODO: test falling to column selection
 
-    def assert_slice(self, df, ts, slice):
+    def assert_slice(self, df, ts, the_slice):
         # Series should return slice
-        expected = df['a'][slice]
+        expected = df['a'][the_slice]
         assert_series_equal(df['a'][ts], expected)
 
         # Frame should return slice as well
-        expected = df[slice]
+        expected = df[the_slice]
         assert_frame_equal(df[ts], expected)
 
     def assert_key_error(self, df, ts):
@@ -70,7 +66,6 @@ class TestTimeSeriesPartialSlices(tm.TestCase):
         for ts in ['2012-01-01 01', '2012-01-01 00:01',
                    '2012-01-01 00:00:01']:
             self.assert_key_error(df, ts)
-
 
     def test_partial_slice_hour(self):
         df = DataFrame({'a': [1, 2, 3]}, DatetimeIndex(['2011-12-31 23',
