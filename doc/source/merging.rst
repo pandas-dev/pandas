@@ -840,7 +840,6 @@ equivalent:
     left.join(right, on=key_or_keys)
     pd.merge(left, right, left_on=key_or_keys, right_index=True,
           how='left', sort=False)
-          
 
 Obviously you can choose whichever form you find more convenient. For
 many-to-one joins (where one of the DataFrame's is already indexed by the join
