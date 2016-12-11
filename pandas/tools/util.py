@@ -1,3 +1,4 @@
+from decimal import Decimal
 import numpy as np
 import pandas.lib as lib
 
@@ -173,6 +174,8 @@ def to_numeric(arg, errors='raise', downcast=None):
             values = arg.values
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype='O')
+    elif isinstance(arg, Decimal):
+        return float(arg)
     elif np.isscalar(arg):
         if is_number(arg):
             return arg

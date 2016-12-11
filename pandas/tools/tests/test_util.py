@@ -2,6 +2,7 @@ import os
 import locale
 import codecs
 import nose
+import decimal
 
 import numpy as np
 from numpy import iinfo
@@ -207,6 +208,16 @@ class TestToNumeric(tm.TestCase):
         s = pd.Series([1, -3.14, 7])
         res = to_numeric(s)
         tm.assert_series_equal(res, expected)
+
+        # GH 14827
+        df = pd.DataFrame(dict(
+            a=[1.2, decimal.Decimal(3.14), decimal.Decimal("infinity"), '0.1']
+        ))
+        df['a'] = df['a'].apply(to_numeric)
+        expected = pd.DataFrame(dict(
+            a=[1.2, 3.14, np.inf, 0.1]
+        ))
+        tm.assert_frame_equal(df, expected)
 
     def test_all_nan(self):
         s = pd.Series(['a', 'b', 'c'])
