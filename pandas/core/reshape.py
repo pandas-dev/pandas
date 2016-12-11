@@ -907,10 +907,13 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
         in the wide format, to be stripped from the names in the long format.
         For example, if your column names are A-suffix1, A-suffix2, you
         can strip the hypen by specifying `sep`='-'
-    suffix : str default '\d+'
+    suffix : str, default '\d+'
         A regular expression capturing the wanted suffixes. '\d+' captures
         numeric suffixes. Suffixes with no numbers could be specified with the
-        negated character class '\D+'.
+        negated character class '\D+'. You can also further disambiguate
+        suffixes, for example, if your wide variables are of the form
+        Aone, Btwo,.., and you have an unrelated column Arating, you can
+        ignore the last one by specyfing `suffix`='(!?one|two)'
 
     Returns
     -------
@@ -1048,16 +1051,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     in a typicaly case.
     """
     def get_var_names(df, stub, sep, suffix):
-        # The first part of this regex is needed to avoid multiple "greedy"
-        # matches with stubs that have overlapping substrings. For example
-        # A2011, A2012 are separate from AA2011, AA2012. And BBone, BBtwo is
-        # different from Bone, Btwo, and BBBrating
-        # The last part lets us disambiguate suffixes. For example, with
-        # stubname A: (A2011, A2012) would be captured while Arating would
-        # be ignored by the numeric class \d+
-        regex = "^{0}(?!{1}){2}{3}".format(
-            re.escape(stub), re.escape(stub[-1]), re.escape(sep), suffix)
-
+        regex = "^{0}{1}{2}".format(re.escape(stub), re.escape(sep), suffix)
         return df.filter(regex=regex).columns.tolist()
 
     def melt_stub(df, stub, i, j, value_vars, sep):
