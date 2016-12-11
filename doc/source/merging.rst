@@ -713,7 +713,9 @@ Here is another example with duplicate join keys in DataFrames:
    
 .. warning::
 
-  Joining / merging on duplicate keys can cause a returned frame that is the multiplication of the row dimensions, may result in memory overflow, which can be dangerous for unsaved work. Please make sure no duplicate values in keys before joining large DataFrames.
+  Joining / merging on duplicate keys can cause a returned frame that is the multiplication of the row dimensions, 
+  may result in memory overflow, which can be dangerous for unsaved work. 
+  Please make sure no duplicate values in keys before joining large DataFrames.
 
 .. _merging.indicator:
 
