@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import nose
+import math
 import itertools
 
 from datetime import datetime
@@ -569,7 +570,9 @@ class TestSeriesPlots(TestPlotBase):
         _skip_if_no_scipy_gaussian_kde()
         s = Series(np.random.uniform(size=50))
         s[0] = np.nan
-        _check_plot_works(s.plot.kde)
+        axes = _check_plot_works(s.plot.kde)
+        #check if the values have any missing values
+        self.assertTrue(any(~np.isnan(axes.lines[0]._xorig)), msg='Missing Values not dropped')
 
     @slow
     def test_hist_kwargs(self):
