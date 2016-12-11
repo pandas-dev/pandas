@@ -80,21 +80,18 @@ class wide_to_long_big(object):
     goal_time = 0.2
 
     def setup(self):
-            vars = 'ABCD'
-            nyrs = 20
-            nidvars = 20
-            N = 5000
-            yrvars = []
-            for var in vars:
-                for yr in range(1, nyrs + 1):
-                    yrvars.append(var + str(yr))
+        vars = 'ABCD'
+        nyrs = 20
+        nidvars = 20
+        N = 5000
+        yrvars = []
+        for var in vars:
+            for yr in range(1, nyrs + 1):
+                yrvars.append(var + str(yr))
 
-            yearobs = dict(zip(yrvars, np.random.randn(len(yrvars), N)))
-            idobs = dict(zip(range(nidvars), np.random.rand(nidvars, N)))
-
-            self.df = pd.concat([pd.DataFrame(idobs), pd.DataFrame(yearobs)],
-                                axis=1)
-            self.vars = vars
+        self.df = pd.DataFrame(np.random.randn(N, nidvars + len(yrvars)),
+                               columns=list(range(nidvars)) + yrvars)
+        self.vars = vars
 
     def time_wide_to_long_big(self):
         self.df['id'] = self.df.index
