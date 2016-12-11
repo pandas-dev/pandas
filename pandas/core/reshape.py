@@ -877,13 +877,13 @@ def lreshape(data, groups, dropna=True, label=None):
 
 
 def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
-    """
+    r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
     With stubnames ['A', 'B'], this function expects to find one or more
     group of columns with format Asuffix1, Asuffix2,..., Bsuffix1, Bsuffix2,...
     You specify what you want to call this suffix in the resulting long format
-    with `j` (for example `j`='year')
+    with `j` (for example `j='year'`)
 
     Each row of these wide variables are assumed to be uniquely identified by
     `i` (can be a single column name or a list of column names)
@@ -906,14 +906,14 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
         A character indicating the separation of the variable names
         in the wide format, to be stripped from the names in the long format.
         For example, if your column names are A-suffix1, A-suffix2, you
-        can strip the hypen by specifying `sep`='-'
-    suffix : str, default '\d+'
-        A regular expression capturing the wanted suffixes. '\d+' captures
+        can strip the hypen by specifying `sep='-'`
+    suffix : str, default '\\d+'
+        A regular expression capturing the wanted suffixes. '\\d+' captures
         numeric suffixes. Suffixes with no numbers could be specified with the
-        negated character class '\D+'. You can also further disambiguate
+        negated character class '\\D+'. You can also further disambiguate
         suffixes, for example, if your wide variables are of the form
         Aone, Btwo,.., and you have an unrelated column Arating, you can
-        ignore the last one by specyfing `suffix`='(!?one|two)'
+        ignore the last one by specifying `suffix='(!?one|two)'`
 
     Returns
     -------
