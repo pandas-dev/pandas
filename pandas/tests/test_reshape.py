@@ -717,6 +717,7 @@ class TestWideToLong(tm.TestCase):
         self.assertEqual(stubs, ['inc', 'edu'])
 
     def test_separating_character(self):
+        # GH14779
         np.random.seed(123)
         x = np.random.randn(3)
         df = pd.DataFrame({"A.1970": {0: "a",

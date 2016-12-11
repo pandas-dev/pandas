@@ -894,10 +894,10 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     ----------
     df : DataFrame
         The wide-format DataFrame
-    stubnames : list or string
+    stubnames : str or list-like
         The stub name(s). The wide format variables are assumed to
         start with the stub names.
-    i : list or string
+    i : str or list-like
         Column(s) to use as id variable(s)
     j : str
         The name of the subobservation variable. What you wish to name your
@@ -993,7 +993,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     Going from long back to wide just takes some creative use of `unstack`
 
     >>> w = l.reset_index().set_index(['famid', 'birth', 'age']).unstack()
-    >>> w.columns = [name + suffix for name, suffix in wide.columns.tolist()]
+    >>> w.columns = pd.Index(w.columns).str.join('')
     >>> w.reset_index()
        famid  birth  ht1  ht2
     0      1      1  2.8  3.4
@@ -1065,11 +1065,15 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     if any(map(lambda s: s in df.columns.tolist(), stubnames)):
         raise ValueError("stubname can't be identical to a column name")
 
-    if not isinstance(stubnames, list):
+    if not is_list_like(stubnames):
         stubnames = [stubnames]
+    else:
+        stubnames = list(stubnames)
 
-    if not isinstance(i, list):
+    if not is_list_like(i):
         i = [i]
+    else:
+        i = list(i)
 
     value_vars = list(map(lambda stub:
                           get_var_names(df, stub, sep, suffix), stubnames))
