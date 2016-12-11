@@ -1372,6 +1372,22 @@ class TestHDFStore(Base, tm.TestCase):
                          min_itemsize={'index': 4})
             tm.assert_series_equal(store.select('ss2'), df['B'])
 
+            # min_itemsize in index without appending (GH 10381)
+            store.put('ss3', df, format='table',
+                      min_itemsize={'index': 6})
+            # just make sure there is a longer string:
+            df2 = df.copy().reset_index().assign(C='longer').set_index('C')
+            store.append('ss3', df2)
+            tm.assert_frame_equal(store.select('ss3'),
+                                  pd.concat([df, df2]))
+
+            # same as above, with a Series
+            store.put('ss4', df['B'], format='table',
+                      min_itemsize={'index': 6})
+            store.append('ss4', df2['B'])
+            tm.assert_series_equal(store.select('ss4'),
+                                   pd.concat([df['B'], df2['B']]))
+
             # with nans
             _maybe_remove(store, 'df')
             df = tm.makeTimeDataFrame()
@@ -1425,6 +1441,26 @@ class TestHDFStore(Base, tm.TestCase):
             _maybe_remove(store, 'df')
             self.assertRaises(ValueError, store.append, 'df',
                               df, min_itemsize={'foo': 20, 'foobar': 20})
+
+    def test_to_hdf_with_min_itemsize(self):
+
+        with ensure_clean_path(self.path) as path:
+
+            # min_itemsize in index with to_hdf (GH 10381)
+            df = tm.makeMixedDataFrame().set_index('C')
+            df.to_hdf(path, 'ss3', format='table', min_itemsize={'index': 6})
+            # just make sure there is a longer string:
+            df2 = df.copy().reset_index().assign(C='longer').set_index('C')
+            df2.to_hdf(path, 'ss3', append=True, format='table')
+            tm.assert_frame_equal(pd.read_hdf(path, 'ss3'),
+                                  pd.concat([df, df2]))
+
+            # same as above, with a Series
+            df['B'].to_hdf(path, 'ss4', format='table',
+                           min_itemsize={'index': 6})
+            df2['B'].to_hdf(path, 'ss4', append=True, format='table')
+            tm.assert_series_equal(pd.read_hdf(path, 'ss4'),
+                                   pd.concat([df['B'], df2['B']]))
 
     def test_append_with_data_columns(self):
 
