@@ -56,8 +56,7 @@ if [ x"$DOC_BUILD" != x"" ]; then
     git add --all .
     git commit -m "Version" --allow-empty
     git remote remove origin
-    echo "https://${GH_TOKEN}@github.com/pandas-docs/pandas-docs-travis.git"
-    git remote add origin "https://${GH_TOKEN}@github.com/pandas-docs/pandas-docs-travis.git"
+    git remote add origin "https://${PANDAS_GH_TOKEN}@github.com/pandas-docs/pandas-docs-travis.git"
     git push origin gh-pages -f
 fi
 
