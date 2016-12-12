@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 from pandas.indexes.api import Index, MultiIndex
 from .common import Base
 
-from pandas.compat import (is_platform_windows, range, lrange, lzip, u,
+from pandas.compat import (range, lrange, lzip, u,
                            zip, PY3, PY36)
 import operator
 import os
@@ -17,6 +17,7 @@ from pandas import (period_range, date_range, Series,
                     Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex)
+from pandas.core.index import _get_combined_index
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -914,23 +915,12 @@ class TestIndex(Base, tm.TestCase):
         self._check_method_works(Index.format)
 
         # GH 14626
-        # our formatting is different by definition when we have
-        # ms vs us precision (e.g. trailing zeros);
-        # so don't compare this case
-        def datetime_now_without_trailing_zeros():
-            now = datetime.now()
-
-            while str(now).endswith("000"):
-                now = datetime.now()
-
-            return now
-
-        index = Index([datetime_now_without_trailing_zeros()])
-
         # windows has different precision on datetime.datetime.now (it doesn't
         # include us since the default for Timestamp shows these but Index
-        # formating does not we are skipping
-        if not is_platform_windows():
+        # formating does not we are skipping)
+        now = datetime.now()
+        if not str(now).endswith("000"):
+            index = Index([now])
             formatted = index.format()
             expected = [str(index[0])]
             self.assertEqual(formatted, expected)
@@ -1976,8 +1966,18 @@ class TestMixedIntIndex(Base, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             pd.Index([1, 2, 3]).dropna(how='xxx')
 
+    def test_get_combined_index(self):
+        result = _get_combined_index([])
+        tm.assert_index_equal(result, Index([]))
 
-def test_get_combined_index():
-    from pandas.core.index import _get_combined_index
-    result = _get_combined_index([])
-    tm.assert_index_equal(result, Index([]))
+    def test_repeat(self):
+        repeats = 2
+        idx = pd.Index([1, 2, 3])
+        expected = pd.Index([1, 1, 2, 2, 3, 3])
+
+        result = idx.repeat(repeats)
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = idx.repeat(n=repeats)
+            tm.assert_index_equal(result, expected)

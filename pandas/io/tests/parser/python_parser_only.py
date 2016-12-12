@@ -7,6 +7,7 @@ these tests out of this module as soon as the C parser can accept further
 arguments when parsing.
 """
 
+import csv
 import sys
 import nose
 
@@ -204,3 +205,34 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                                        sep=sep, names=['a', 'b'],
                                        encoding=encoding)
                 tm.assert_frame_equal(result, expected)
+
+    def test_multi_char_sep_quotes(self):
+        # see gh-13374
+
+        data = 'a,,b\n1,,a\n2,,"2,,b"'
+        msg = 'ignored when a multi-char delimiter is used'
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(data), sep=',,')
+
+        # We expect no match, so there should be an assertion
+        # error out of the inner context manager.
+        with tm.assertRaises(AssertionError):
+            with tm.assertRaisesRegexp(ValueError, msg):
+                self.read_csv(StringIO(data), sep=',,',
+                              quoting=csv.QUOTE_NONE)
+
+    def test_skipfooter_bad_row(self):
+        # see gh-13879
+
+        data = 'a,b,c\ncat,foo,bar\ndog,foo,"baz'
+        msg = 'parsing errors in the skipped footer rows'
+
+        with tm.assertRaisesRegexp(csv.Error, msg):
+            self.read_csv(StringIO(data), skipfooter=1)
+
+        # We expect no match, so there should be an assertion
+        # error out of the inner context manager.
+        with tm.assertRaises(AssertionError):
+            with tm.assertRaisesRegexp(csv.Error, msg):
+                self.read_csv(StringIO(data))

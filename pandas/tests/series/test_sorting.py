@@ -144,3 +144,28 @@ class TestSeriesSorting(TestData, tm.TestCase):
         # rows share same level='A': sort has no effect without remaining lvls
         res = s.sort_index(level='A', sort_remaining=False)
         assert_series_equal(s, res)
+
+    def test_sort_index_kind(self):
+        # GH #14444 & #13589:  Add support for sort algo choosing
+        series = Series(index=[3, 2, 1, 4, 3])
+        expected_series = Series(index=[1, 2, 3, 3, 4])
+
+        index_sorted_series = series.sort_index(kind='mergesort')
+        assert_series_equal(expected_series, index_sorted_series)
+
+        index_sorted_series = series.sort_index(kind='quicksort')
+        assert_series_equal(expected_series, index_sorted_series)
+
+        index_sorted_series = series.sort_index(kind='heapsort')
+        assert_series_equal(expected_series, index_sorted_series)
+
+    def test_sort_index_na_position(self):
+        series = Series(index=[3, 2, 1, 4, 3, np.nan])
+
+        expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4])
+        index_sorted_series = series.sort_index(na_position='first')
+        assert_series_equal(expected_series_first, index_sorted_series)
+
+        expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan])
+        index_sorted_series = series.sort_index(na_position='last')
+        assert_series_equal(expected_series_last, index_sorted_series)
