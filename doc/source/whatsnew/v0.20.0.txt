@@ -120,3 +120,4 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
+- Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)

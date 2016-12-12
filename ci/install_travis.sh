@@ -107,7 +107,7 @@ if [ "$BUILD_TEST" ]; then
 
     # build testing
     pip uninstall --yes cython
-    pip install cython==0.19.1
+    pip install cython==0.23
     ( python setup.py build_ext --inplace && python setup.py develop ) || true
 
 else
