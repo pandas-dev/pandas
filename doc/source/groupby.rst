@@ -631,11 +631,11 @@ the column B based on the groups of column A.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': [1] * 10 + [5] * 10,
-	              'B': np.arange(20)})
-   df
-   
-   df.groupby('A').rolling(4).B.mean()
+   df_re = pd.DataFrame({'A': [1] * 10 + [5] * 10,
+                         'B': np.arange(20)})
+   df_re
+
+   df_re.groupby('A').rolling(4).B.mean()
 
 
 The ``expanding()`` method will accumulate a given operation
@@ -644,7 +644,7 @@ group.
 
 .. ipython:: python
 
-   df.groupby('A').expanding().sum()
+   df_re.groupby('A').expanding().sum()
 
 
 Suppose you want to use the ``resample()`` method to get a daily
@@ -653,14 +653,14 @@ missing values with the ``ffill()`` method.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'date': pd.date_range(start='2016-01-01',
-	                                    periods=4,
-					    freq='W'),
-		      'group': [1, 1, 2, 2],
-		      'val': [5, 6, 7, 8]}).set_index('date')
-   df
+   df_re = pd.DataFrame({'date': pd.date_range(start='2016-01-01',
+                                 periods=4,
+                         freq='W'),
+                        'group': [1, 1, 2, 2],
+                        'val': [5, 6, 7, 8]}).set_index('date')
+   df_re
 
-   df.groupby('group').resample('1D').ffill()
+   df_re.groupby('group').resample('1D').ffill()
 
 .. _groupby.filter:
 
