@@ -385,23 +385,25 @@ class GbqConnector(object):
         _check_google_client_version()
 
         job_collection = self.service.jobs()
-        job_data = {
-            'configuration': {
-                'query': {
-                    'query': query,
-                    'useLegacySql': self.dialect == 'legacy'
-                    # 'allowLargeResults', 'createDisposition',
-                    # 'preserveNulls', destinationTable, useQueryCache
-                }
+
+        job_config = {
+            'query': {
+                'query': query,
+                'useLegacySql': self.dialect == 'legacy'
+                # 'allowLargeResults', 'createDisposition',
+                # 'preserveNulls', destinationTable, useQueryCache
             }
         }
         configuration = kwargs.get('configuration')
         if configuration is not None:
             if 'query' in configuration:
-                job_data['configuration']['query']\
-                    .update(configuration['query'])
+                job_config['query'].update(configuration['query'])
             else:
-                job_data['configuration'] = configuration
+                job_config = configuration
+
+        job_data = {
+            'configuration': job_config
+        }
 
         self._start_timer()
         try:
@@ -692,6 +694,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     **kwargs: Arbitrary keyword arguments
         configuration (dict): query config parameters for job processing.
+            For example: 
+                configuration = {'query': {'useQueryCache': False}}
             For more information see `BigQuery SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`
 
