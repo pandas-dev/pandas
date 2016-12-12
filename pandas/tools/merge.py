@@ -949,7 +949,7 @@ _cyton_types = {
     'int32': 'int32_t',
     'int16': 'int16_t',
     'int64': 'int64_t',
-    'float16': 'float',
+    'float16': 'error',
     'float32': 'float',
     'float64': 'double',
 }
@@ -959,6 +959,8 @@ def _get_cython_type(dtype):
     """ Given a dtype, return a C name like 'int64_t' or 'double' """
     type_name = _get_dtype(dtype).name
     ctype = _cyton_types.get(type_name, 'object')
+    if ctype == 'error':
+        raise MergeError('unsupported type: ' + type_name)
     return ctype
 
 
@@ -1063,6 +1065,7 @@ class _AsOfMerge(_OrderedMerge):
         def flip_stringify(xs):
             """ flip an array of arrays and string-ify contents """
             xt = np.transpose(xs)
+            # numpy arrays aren't hashable, so we convert to a string
             return _join.stringify(_ensure_object(xt))
 
         # values to compare
