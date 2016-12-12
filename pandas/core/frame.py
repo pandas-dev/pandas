@@ -231,6 +231,23 @@ class DataFrame(NDFrame):
     >>> df3 = DataFrame(np.random.randn(10, 5),
     ...                 columns=['a', 'b', 'c', 'd', 'e'])
 
+    Exceptional Behaviour
+    ---------------------
+    a) Leaving dtype=None in constructor will infer a wider type than necessary
+    >>> df_cols = {'year':np.int32, 'month':np.int8}
+    >>> df = pd.DataFrame(columns=df_cols.keys(), dtype=None, index=range(10), data=-1)
+    >>> df.dtypes
+    month	int64
+    year	int64
+
+    b)  A list/dict/Series/array-like is not allowed. Also behaves differently to read_csv(dtype)
+    >>> df = pd.DataFrame(columns=df_cols.keys(), dtype=np.int32, index=range(10), data=-1)
+    
+    df.dtypes shows they're all np.int32
+    Fix up dtypes after declaration
+    >>> for col,coltype in df_cols.items():
+    ...		df[col] = df[col].astype(coltype)
+
     See also
     --------
     DataFrame.from_records : constructor from tuples, also record arrays
