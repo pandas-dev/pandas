@@ -60,6 +60,7 @@ Bug Fixes
 
 - Bug in ``HDFStore`` when writing a ``MultiIndex`` when using ``data_columns=True`` (:issue:`14435`)
 - Bug in ``HDFStore.append()`` when writing a ``Series`` and passing a ``min_itemsize`` argument containing a value for the ``index`` (:issue:`11412`)
+- Bug when writing to a ``HDFStore`` in ``table`` format with a ``min_itemsize`` value for the ``index`` and without asking to append (:issue:`10381`)
 - Bug in ``Series.groupby.nunique()`` raising an ``IndexError`` for an empty ``Series`` (:issue:`12553`)
 - Bug in ``DataFrame.nlargest`` and ``DataFrame.nsmallest`` when the index had duplicate values (:issue:`13412`)
 
@@ -74,5 +75,8 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` in which the ``nrows`` parameter was not being respected for large input when using the C engine for parsing (:issue:`7626`)
 
 
+- Bug in ``pd.merge_asof()`` could not handle timezone-aware DatetimeIndex when a tolerance was specified (:issue:`14844`)
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
+
+- Bug in ``unstack()`` if called with a list of column(s) as an argument, regardless of the dtypes of all columns, they get coerced to ``object`` (:issue:`11847`)

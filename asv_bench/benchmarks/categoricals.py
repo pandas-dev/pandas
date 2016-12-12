@@ -3,32 +3,49 @@ try:
     from pandas.types.concat import union_categoricals
 except ImportError:
     pass
-import string
 
 
-class concat_categorical(object):
+class Categoricals(object):
     goal_time = 0.2
 
     def setup(self):
-        self.s = pd.Series((list('aabbcd') * 1000000)).astype('category')
+        N = 100000
+        self.s = pd.Series((list('aabbcd') * N)).astype('category')
 
-    def time_concat_categorical(self):
+        self.a = pd.Categorical((list('aabbcd') * N))
+        self.b = pd.Categorical((list('bbcdjk') * N))
+
+        self.categories = list('abcde')
+        self.cat_idx = Index(self.categories)
+        self.values = np.tile(self.categories, N)
+        self.codes = np.tile(range(len(self.categories)), N)
+
+        self.datetimes = pd.Series(pd.date_range(
+            '1995-01-01 00:00:00', periods=10000, freq='s'))
+
+    def time_concat(self):
         concat([self.s, self.s])
 
-
-class union_categorical(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.a = pd.Categorical((list('aabbcd') * 1000000))
-        self.b = pd.Categorical((list('bbcdjk') * 1000000))
-
-    def time_union_categorical(self):
+    def time_union(self):
         union_categoricals([self.a, self.b])
 
+    def time_constructor_regular(self):
+        Categorical(self.values, self.categories)
 
-class categorical_value_counts(object):
-    goal_time = 1
+    def time_constructor_fastpath(self):
+        Categorical(self.codes, self.cat_idx, fastpath=True)
+
+    def time_constructor_datetimes(self):
+        Categorical(self.datetimes)
+
+    def time_constructor_datetimes_with_nat(self):
+        t = self.datetimes
+        t.iloc[-1] = pd.NaT
+        Categorical(t)
+
+
+class Categoricals2(object):
+    goal_time = 0.2
 
     def setup(self):
         n = 500000
@@ -36,56 +53,13 @@ class categorical_value_counts(object):
         arr = ['s%04d' % i for i in np.random.randint(0, n // 10, size=n)]
         self.ts = Series(arr).astype('category')
 
+        self.sel = self.ts.loc[[0]]
+
     def time_value_counts(self):
         self.ts.value_counts(dropna=False)
 
     def time_value_counts_dropna(self):
         self.ts.value_counts(dropna=True)
 
-
-class categorical_constructor(object):
-    goal_time = 0.2
-
-    def setup(self):
-        n = 5
-        N = 1e6
-        self.categories = list(string.ascii_letters[:n])
-        self.cat_idx = Index(self.categories)
-        self.values = np.tile(self.categories, N)
-        self.codes = np.tile(range(n), N)
-
-    def time_regular_constructor(self):
-        Categorical(self.values, self.categories)
-
-    def time_fastpath(self):
-        Categorical(self.codes, self.cat_idx, fastpath=True)
-
-
-class categorical_constructor_with_datetimes(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.datetimes = pd.Series(pd.date_range(
-            '1995-01-01 00:00:00', periods=10000, freq='s'))
-
-    def time_datetimes(self):
-        Categorical(self.datetimes)
-
-    def time_datetimes_with_nat(self):
-        t = self.datetimes
-        t.iloc[-1] = pd.NaT
-        Categorical(t)
-
-
-class categorical_rendering(object):
-    goal_time = 3e-3
-
-    def setup(self):
-        n = 1000
-        items = [str(i) for i in range(n)]
-        s = pd.Series(items, dtype='category')
-        df = pd.DataFrame({'C': s, 'data': np.random.randn(n)})
-        self.data = df[df.C == '20']
-
     def time_rendering(self):
-        str(self.data.C)
+        str(self.sel)

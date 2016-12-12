@@ -50,9 +50,16 @@ Other enhancements
 - ``Series.sort_index`` accepts parameters ``kind`` and ``na_position`` (:issue:`13589`, :issue:`14444`)
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
+
+- New ``UnsortedIndexError`` (subclass of ``KeyError``) raised when indexing/slicing into an
+  unsorted MultiIndex (:issue:`11897`). This allows differentiation between errors due to lack
+  of sorting or an incorrect key. See :ref:`here <advanced.unsorted>`
+ 
 - ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (issue:`14714`)
 - ``Series`` provides a ``to_excel`` method to output Excel files (:issue:`8825`)
 - The ``usecols`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`14154`)
+- ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
+- ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
 
 .. _whatsnew_0200.api_breaking:
 
@@ -69,6 +76,9 @@ Backwards incompatible API changes
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
+
+- Change error message text when indexing via a
+  boolean ``Series`` that has an incompatible index (:issue:`14491`)
 
 .. _whatsnew_0200.deprecations:
 
@@ -109,4 +119,5 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
