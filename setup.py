@@ -27,7 +27,7 @@ def is_platform_mac():
 import versioneer
 cmdclass = versioneer.get_cmdclass()
 
-min_cython_ver = '0.19.1'
+min_cython_ver = '0.23'
 try:
     import Cython
     ver = Cython.__version__

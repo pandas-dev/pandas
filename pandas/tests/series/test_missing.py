@@ -891,6 +891,23 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         with tm.assertRaises(ValueError):
             s.interpolate(method='spline', order=0)
 
+    def test_interp_timedelta64(self):
+        # GH 6424
+        df = Series([1, np.nan, 3],
+                    index=pd.to_timedelta([1, 2, 3]))
+        result = df.interpolate(method='time')
+        expected = Series([1., 2., 3.],
+                          index=pd.to_timedelta([1, 2, 3]))
+        assert_series_equal(result, expected)
+
+        # test for non uniform spacing
+        df = Series([1, np.nan, 3],
+                    index=pd.to_timedelta([1, 2, 4]))
+        result = df.interpolate(method='time')
+        expected = Series([1., 1.666667, 3.],
+                          index=pd.to_timedelta([1, 2, 4]))
+        assert_series_equal(result, expected)
+
 
 if __name__ == '__main__':
     import nose

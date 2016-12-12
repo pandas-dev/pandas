@@ -97,6 +97,16 @@ class UnsupportedFunctionCall(ValueError):
     pass
 
 
+class UnsortedIndexError(KeyError):
+    """ Error raised when attempting to get a slice of a MultiIndex
+    and the index has not been lexsorted. Subclass of `KeyError`.
+
+    .. versionadded:: 0.20.0
+
+    """
+    pass
+
+
 class AbstractMethodError(NotImplementedError):
     """Raise this error instead of NotImplementedError for abstract methods
     while keeping compatibility with Python 2 and Python 3.

@@ -614,6 +614,54 @@ and that the transformed data contains no NAs.
 
       grouped.ffill()
 
+
+.. _groupby.transform.window_resample:
+
+New syntax to window and resample operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. versionadded:: 0.18.1
+
+Working with the resample, expanding or rolling operations on the groupby
+level used to require the application of helper functions. However,
+now it is possible to use ``resample()``, ``expanding()`` and
+``rolling()`` as methods on groupbys.
+
+The example below will apply the ``rolling()`` method on the samples of
+the column B based on the groups of column A.
+
+.. ipython:: python
+
+   df_re = pd.DataFrame({'A': [1] * 10 + [5] * 10,
+                         'B': np.arange(20)})
+   df_re
+
+   df_re.groupby('A').rolling(4).B.mean()
+
+
+The ``expanding()`` method will accumulate a given operation
+(``sum()`` in the example) for all the members of each particular
+group.
+
+.. ipython:: python
+
+   df_re.groupby('A').expanding().sum()
+
+
+Suppose you want to use the ``resample()`` method to get a daily
+frequency in each group of your dataframe and wish to complete the
+missing values with the ``ffill()`` method.
+
+.. ipython:: python
+
+   df_re = pd.DataFrame({'date': pd.date_range(start='2016-01-01',
+                                 periods=4,
+                         freq='W'),
+                        'group': [1, 1, 2, 2],
+                        'val': [5, 6, 7, 8]}).set_index('date')
+   df_re
+
+   df_re.groupby('group').resample('1D').ffill()
+
 .. _groupby.filter:
 
 Filtration
