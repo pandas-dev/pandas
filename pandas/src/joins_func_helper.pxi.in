@@ -11,13 +11,8 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# by_dtype, table_type, init_table, s1, s2, s3, g1, g2
-by_dtypes = [('int64_t', 'Int64HashTable', 'Int64HashTable(right_size)',
-              '.set_item(', ', ', ')',
-              '.get_item(', ')'),
-             ('object', 'dict', '{}',
-              '[', '] = ', '',
-              '[', ']')]
+# table_type, by_dtype
+by_dtypes = [('PyObjectHashTable', 'object'), ('Int64HashTable', 'int64_t')]
 
 # on_dtype
 on_dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
@@ -29,7 +24,7 @@ on_dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
 
 from hashtable cimport *
 
-{{for by_dtype, table_type, init_table, s1, s2, s3, g1, g2 in by_dtypes}}
+{{for table_type, by_dtype in by_dtypes}}
 {{for on_dtype in on_dtypes}}
 
 
@@ -59,7 +54,7 @@ def asof_join_{{on_dtype}}_by_{{by_dtype}}(ndarray[{{on_dtype}}] left_values,
     left_indexer = np.empty(left_size, dtype=np.int64)
     right_indexer = np.empty(left_size, dtype=np.int64)
 
-    hash_table = {{init_table}}
+    hash_table = {{table_type}}(right_size)
 
     right_pos = 0
     for left_pos in range(left_size):
@@ -71,18 +66,18 @@ def asof_join_{{on_dtype}}_by_{{by_dtype}}(ndarray[{{on_dtype}}] left_values,
         if allow_exact_matches:
             while right_pos < right_size and\
                 right_values[right_pos] <= left_values[left_pos]:
-                hash_table{{s1}}right_by_values[right_pos]{{s2}}right_pos{{s3}}
+                hash_table.set_item(right_by_values[right_pos], right_pos)
                 right_pos += 1
         else:
             while right_pos < right_size and\
                 right_values[right_pos] < left_values[left_pos]:
-                hash_table{{s1}}right_by_values[right_pos]{{s2}}right_pos{{s3}}
+                hash_table.set_item(right_by_values[right_pos], right_pos)
                 right_pos += 1
         right_pos -= 1
 
         # save positions as the desired index
         by_value = left_by_values[left_pos]
-        found_right_pos = hash_table{{g1}}by_value{{g2}}\
+        found_right_pos = hash_table.get_item(by_value)\
                           if by_value in hash_table else -1
         left_indexer[left_pos] = left_pos
         right_indexer[left_pos] = found_right_pos
