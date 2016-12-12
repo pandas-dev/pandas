@@ -87,6 +87,6 @@ Bug Fixes
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- ``pd.merge_asof()`` can take multiple columns in ``by`` parameter and has specialized types (:issue:`13936`)
+- ``pd.merge_asof()`` can take multiple columns in ``by`` parameter and has specialized dtypes for better performace (:issue:`13936`)
 
 
