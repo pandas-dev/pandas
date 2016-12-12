@@ -18,7 +18,7 @@ from pandas.compat import (range, lrange, StringIO, lzip,
 from pandas.types.common import (is_integer, _ensure_object,
                                  is_list_like, is_integer_dtype,
                                  is_float, is_dtype_equal,
-                                 is_object_dtype,
+                                 is_object_dtype, is_string_dtype,
                                  is_scalar, is_categorical_dtype)
 from pandas.types.missing import isnull
 from pandas.types.cast import _astype_nansafe
@@ -90,13 +90,18 @@ index_col : int or sequence or False, default None
     MultiIndex is used. If you have a malformed file with delimiters at the end
     of each line, you might consider index_col=False to force pandas to _not_
     use the first column as the index (row names)
-usecols : array-like, default None
-    Return a subset of the columns. All elements in this array must either
+usecols : array-like or callable, default None
+    Return a subset of the columns. If array-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
-    inferred from the document header row(s). For example, a valid `usecols`
-    parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Using this parameter
-    results in much faster parsing time and lower memory usage.
+    inferred from the document header row(s). For example, a valid array-like
+    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz'].
+
+    If callable, the callable function will be evaluated against the column
+    names, returning names where the callable function evaluates to True. An
+    example of a valid callable argument would be ``lambda x: x.upper() in
+    ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
+    parsing time and lower memory usage.
 as_recarray : boolean, default False
     DEPRECATED: this argument will be removed in a future version. Please call
     `pd.read_csv(...).to_records()` instead.
@@ -977,17 +982,33 @@ def _is_index_col(col):
     return col is not None and col is not False
 
 
+def _evaluate_usecols(usecols, names):
+    """
+    Check whether or not the 'usecols' parameter
+    is a callable.  If so, enumerates the 'names'
+    parameter and returns a set of indices for
+    each entry in 'names' that evaluates to True.
+    If not a callable, returns 'usecols'.
+    """
+    if callable(usecols):
+        return set([i for i, name in enumerate(names)
+                    if usecols(name)])
+    return usecols
+
+
 def _validate_usecols_arg(usecols):
     """
     Check whether or not the 'usecols' parameter
-    contains all integers (column selection by index)
-    or strings (column by name). Raises a ValueError
-    if that is not the case.
+    contains all integers (column selection by index),
+    strings (column by name) or is a callable. Raises
+    a ValueError if that is not the case.
     """
-    msg = ("The elements of 'usecols' must "
-           "either be all strings, all unicode, or all integers")
+    msg = ("'usecols' must either be all strings, all unicode, "
+           "all integers or a callable")
 
     if usecols is not None:
+        if callable(usecols):
+            return usecols
         usecols_dtype = lib.infer_dtype(usecols)
         if usecols_dtype not in ('empty', 'integer',
                                  'string', 'unicode'):
@@ -1329,7 +1350,7 @@ class ParserBase(object):
                     try_num_bool=False)
             else:
                 # skip inference if specified dtype is object
-                try_num_bool = not (cast_type and is_object_dtype(cast_type))
+                try_num_bool = not (cast_type and is_string_dtype(cast_type))
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
@@ -1499,11 +1520,12 @@ class CParserWrapper(ParserBase):
         self.orig_names = self.names[:]
 
         if self.usecols:
-            if len(self.names) > len(self.usecols):
+            usecols = _evaluate_usecols(self.usecols, self.orig_names)
+            if len(self.names) > len(usecols):
                 self.names = [n for i, n in enumerate(self.names)
-                              if (i in self.usecols or n in self.usecols)]
+                              if (i in usecols or n in usecols)]
 
-            if len(self.names) < len(self.usecols):
+            if len(self.names) < len(usecols):
                 raise ValueError("Usecols do not match names.")
 
         self._set_noconvert_columns()
@@ -1665,9 +1687,10 @@ class CParserWrapper(ParserBase):
 
     def _filter_usecols(self, names):
         # hackish
-        if self.usecols is not None and len(names) != len(self.usecols):
+        usecols = _evaluate_usecols(self.usecols, names)
+        if usecols is not None and len(names) != len(usecols):
             names = [name for i, name in enumerate(names)
-                     if i in self.usecols or name in self.usecols]
+                     if i in usecols or name in usecols]
         return names
 
     def _get_index_names(self):
@@ -2291,7 +2314,9 @@ class PythonParser(ParserBase):
         usecols_key is used if there are string usecols.
         """
         if self.usecols is not None:
-            if any([isinstance(col, string_types) for col in self.usecols]):
+            if callable(self.usecols):
+                col_indices = _evaluate_usecols(self.usecols, usecols_key)
+            elif any([isinstance(u, string_types) for u in self.usecols]):
                 if len(columns) > 1:
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")

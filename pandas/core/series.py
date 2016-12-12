@@ -80,7 +80,8 @@ _shared_doc_kwargs = dict(
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
-    optional_by='')
+    optional_by='',
+    versionadded_to_excel='\n.. versionadded:: 0.20.0\n')
 
 
 def _coerce_method(converter):
@@ -1770,7 +1771,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     @Appender(generic._shared_docs['sort_index'] % _shared_doc_kwargs)
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
-                   sort_remaining=True):
+                   kind='quicksort', na_position='last', sort_remaining=True):
 
         axis = self._get_axis_number(axis)
         index = self.index
@@ -1780,11 +1781,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         elif isinstance(index, MultiIndex):
             from pandas.core.groupby import _lexsort_indexer
             indexer = _lexsort_indexer(index.labels, orders=ascending)
-            indexer = _ensure_platform_int(indexer)
-            new_index = index.take(indexer)
         else:
-            new_index, indexer = index.sort_values(return_indexer=True,
-                                                   ascending=ascending)
+            from pandas.core.groupby import _nargsort
+            indexer = _nargsort(index, kind=kind, ascending=ascending,
+                                na_position=na_position)
+
+        indexer = _ensure_platform_int(indexer)
+        new_index = index.take(indexer)
 
         new_values = self._values.take(indexer)
         result = self._constructor(new_values, index=new_index)
@@ -1937,7 +1940,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         >>> s = pd.Series(np.random.randn(1e6))
         >>> s.nlargest(10)  # only sorts up to the N requested
         """
-        return algos.select_n(self, n=n, keep=keep, method='nlargest')
+        return algos.select_n_series(self, n=n, keep=keep, method='nlargest')
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})
@@ -1975,7 +1978,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         >>> s = pd.Series(np.random.randn(1e6))
         >>> s.nsmallest(10)  # only sorts up to the N requested
         """
-        return algos.select_n(self, n=n, keep=keep, method='nsmallest')
+        return algos.select_n_series(self, n=n, keep=keep, method='nsmallest')
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
@@ -2030,9 +2033,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Parameters
         ----------
-        order: list of int representing new level order.
+        order : list of int representing new level order.
                (reference level by number or key)
-        axis: where to reorder levels
+        axis : where to reorder levels
 
         Returns
         -------
@@ -2618,6 +2621,19 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                            decimal=decimal)
         if path is None:
             return result
+
+    @Appender(generic._shared_docs['to_excel'] % _shared_doc_kwargs)
+    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
+                 float_format=None, columns=None, header=True, index=True,
+                 index_label=None, startrow=0, startcol=0, engine=None,
+                 merge_cells=True, encoding=None, inf_rep='inf', verbose=True):
+        df = self.to_frame()
+        df.to_excel(excel_writer=excel_writer, sheet_name=sheet_name,
+                    na_rep=na_rep, float_format=float_format, columns=columns,
+                    header=header, index=index, index_label=index_label,
+                    startrow=startrow, startcol=startcol, engine=engine,
+                    merge_cells=merge_cells, encoding=encoding,
+                    inf_rep=inf_rep, verbose=verbose)
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """

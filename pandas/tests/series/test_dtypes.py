@@ -42,9 +42,17 @@ class TestSeriesDtypes(TestData, tm.TestCase):
         assert_series_equal(self.ts.get_ftype_counts(), Series(
             1, ['float64:dense']))
 
-    def test_astype_cast_nan_int(self):
-        df = Series([1.0, 2.0, 3.0, np.nan])
-        self.assertRaises(ValueError, df.astype, np.int64)
+    def test_astype_cast_nan_inf_int(self):
+        # GH14265, check nan and inf raise error when converting to int
+        types = [np.int32, np.int64]
+        values = [np.nan, np.inf]
+        msg = 'Cannot convert non-finite values \(NA or inf\) to integer'
+
+        for this_type in types:
+            for this_val in values:
+                s = Series([this_val])
+                with self.assertRaisesRegexp(ValueError, msg):
+                    s.astype(this_type)
 
     def test_astype_cast_object_int(self):
         arr = Series(["car", "house", "tree", "1"])

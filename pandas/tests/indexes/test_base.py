@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 from pandas.indexes.api import Index, MultiIndex
 from .common import Base
 
-from pandas.compat import (is_platform_windows, range, lrange, lzip, u,
+from pandas.compat import (range, lrange, lzip, u,
                            zip, PY3, PY36)
 import operator
 import os
@@ -915,23 +915,12 @@ class TestIndex(Base, tm.TestCase):
         self._check_method_works(Index.format)
 
         # GH 14626
-        # our formatting is different by definition when we have
-        # ms vs us precision (e.g. trailing zeros);
-        # so don't compare this case
-        def datetime_now_without_trailing_zeros():
-            now = datetime.now()
-
-            while str(now).endswith("000"):
-                now = datetime.now()
-
-            return now
-
-        index = Index([datetime_now_without_trailing_zeros()])
-
         # windows has different precision on datetime.datetime.now (it doesn't
         # include us since the default for Timestamp shows these but Index
-        # formating does not we are skipping
-        if not is_platform_windows():
+        # formating does not we are skipping)
+        now = datetime.now()
+        if not str(now).endswith("000"):
+            index = Index([now])
             formatted = index.format()
             expected = [str(index[0])]
             self.assertEqual(formatted, expected)

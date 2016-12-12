@@ -1217,8 +1217,25 @@ class MPLPlot(object):
 
         if self.title:
             if self.subplots:
-                self.fig.suptitle(self.title)
+                if is_list_like(self.title):
+                    if len(self.title) != self.nseries:
+                        msg = ('The length of `title` must equal the number '
+                               'of columns if using `title` of type `list` '
+                               'and `subplots=True`.\n'
+                               'length of title = {}\n'
+                               'number of columns = {}').format(
+                            len(self.title), self.nseries)
+                        raise ValueError(msg)
+
+                    for (ax, title) in zip(self.axes, self.title):
+                        ax.set_title(title)
+                else:
+                    self.fig.suptitle(self.title)
             else:
+                if is_list_like(self.title):
+                    msg = ('Using `title` of type `list` is not supported '
+                           'unless `subplots=True` is passed')
+                    raise ValueError(msg)
                 self.axes[0].set_title(self.title)
 
     def _apply_axis_properties(self, axis, rot=None, fontsize=None):
@@ -2555,8 +2572,10 @@ _shared_docs['plot'] = """
     figsize : a tuple (width, height) in inches
     use_index : boolean, default True
         Use index as ticks for x axis
-    title : string
-        Title to use for the plot
+    title : string or list
+        Title to use for the plot. If a string is passed, print the string at
+        the top of the figure. If a list is passed and `subplots` is True,
+        print each item in the list above the corresponding subplot.
     grid : boolean, default None (matlab style default)
         Axis grid lines
     legend : False/True/'reverse'
@@ -2893,8 +2912,9 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         invisible
     figsize : tuple
         The size of the figure to create in inches by default
-    layout: (optional) a tuple (rows, columns) for the layout of the histograms
-    bins: integer, default 10
+    layout : tuple, optional
+        Tuple of (rows, columns) for the layout of the histograms
+    bins : integer, default 10
         Number of histogram bins to be used
     kwds : other plotting keyword arguments
         To be passed to hist function
