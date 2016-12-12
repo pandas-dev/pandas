@@ -399,7 +399,7 @@ class GbqConnector(object):
         if configuration is not None:
             if 'query' in configuration:
                 job_data['configuration']['query']\
-                	.update(configuration['query'])
+                    .update(configuration['query'])
             else:
                 job_data['configuration'] = configuration
 
