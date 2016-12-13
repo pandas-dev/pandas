@@ -7,6 +7,8 @@ and hence require a network connection to be read.
 
 import os
 import nose
+import functools
+from itertools import product
 
 import pandas.util.testing as tm
 from pandas import DataFrame
@@ -14,24 +16,40 @@ from pandas import compat
 from pandas.io.parsers import read_csv, read_table
 
 
-class TestUrlGz(tm.TestCase):
+class TestCompressedUrl(object):
 
-    def setUp(self):
-        dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salaries.csv')
-        self.local_table = read_table(localtable)
+    compression_to_extension = {
+        'gzip': '.gz',
+        'bz2': '.bz2',
+        'zip': '.zip',
+        'xz': '.xz',
+    }
 
-    @tm.network
-    def test_url_gz(self):
-        url = ('https://raw.github.com/pandas-dev/pandas/'
-               'master/pandas/io/tests/parser/data/salaries.csv.gz')
-        url_table = read_table(url, compression="gzip", engine="python")
-        tm.assert_frame_equal(url_table, self.local_table)
+    def __init__(self):
+        path = os.path.join(tm.get_data_path(), 'salaries.csv')
+        self.local_table = read_table(path)
+        self.base_url = ('https://github.com/pandas-dev/pandas/raw/master/'
+                         'pandas/io/tests/parser/data/salaries.csv')
 
-    @tm.network
-    def test_url_gz_infer(self):
-        url = 'https://s3.amazonaws.com/pandas-test/salary.table.gz'
-        url_table = read_table(url, compression="infer", engine="python")
+    def test_compressed_urls(self):
+        """Test reading compressed tables from URL."""
+        msg = ('Test reading {}-compressed tables from URL: '
+               'compression="{}", engine="{}"')
+
+        for compression, extension in self.compression_to_extension.items():
+            url = self.base_url + extension
+            # args is a (compression, engine) tuple
+            for args in product([compression, 'infer'], ['python']):
+                # test_fxn is a workaround for more descriptive nose reporting.
+                # See http://stackoverflow.com/a/37393684/4651668.
+                test_fxn = functools.partial(self.check_table)
+                test_fxn.description = msg.format(compression, *args)
+                yield (test_fxn, url) + args
+
+    def check_table(self, url, compression, engine):
+        if url.endswith('.xz'):
+            tm._skip_if_no_lzma()
+        url_table = read_table(url, compression=compression, engine=engine)
         tm.assert_frame_equal(url_table, self.local_table)
 
 

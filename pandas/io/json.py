@@ -259,8 +259,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             exists = False
 
         if exists:
-            with _get_handle(filepath_or_buffer, 'r', encoding=encoding) as fh:
-                json = fh.read()
+            fh, handles = _get_handle(filepath_or_buffer, 'r',
+                                      encoding=encoding)
+            json = fh.read()
+            fh.close()
         else:
             json = filepath_or_buffer
     elif hasattr(filepath_or_buffer, 'read'):
