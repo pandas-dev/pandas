@@ -694,7 +694,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     **kwargs: Arbitrary keyword arguments
         configuration (dict): query config parameters for job processing.
-            For example: 
+            For example:
                 configuration = {'query': {'useQueryCache': False}}
             For more information see `BigQuery SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`
