@@ -113,6 +113,7 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Improved performance of ``pd.wide_to_long()`` (:issue:`14779`)
 
 
 
