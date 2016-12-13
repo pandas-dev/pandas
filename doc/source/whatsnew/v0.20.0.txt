@@ -9,7 +9,6 @@ users upgrade to this version.
 
 Highlights include:
 
-- Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
@@ -61,6 +60,8 @@ Other enhancements
 - The ``usecols`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`14154`)
 - ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
 - ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
+- ``pandas.io.json.json_normalize`` gained the option ``errors='ignore'|raise``; the default is raise and is backward compatible. (:issue:`14583`)
+
 
 .. _whatsnew_0200.api_breaking:
 
