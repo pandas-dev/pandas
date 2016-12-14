@@ -39,7 +39,7 @@ class TestCompressedUrl(object):
         for compression, extension in self.compression_to_extension.items():
             url = self.base_url + extension
             # args is a (compression, engine) tuple
-            for args in product([compression, 'infer'], ['python']):
+            for args in product([compression, 'infer'], ['python', 'c']):
                 # test_fxn is a workaround for more descriptive nose reporting.
                 # See http://stackoverflow.com/a/37393684/4651668.
                 test_fxn = functools.partial(self.check_table)
