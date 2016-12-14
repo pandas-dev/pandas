@@ -707,22 +707,25 @@ all accept are:
 
    The output of the ``.rolling`` and ``.expanding`` methods do not return a
    ``NaN`` if there are at least ``min_periods`` non-null values in the current
-   window. This differs from :meth:`~DataFrame.cumsum`,
-   :meth:`~DataFrame.cumprod`, :meth:`~DataFrame.cummax`,
-   and :meth:`~DataFrame.cummin`, which return ``NaN`` in the output wherever
-   a ``NaN`` is encountered in the input.
-
-   Please see the example below. In order to match the output of ``cumsum``
-   with ``expanding``, use :meth:`~DataFrame.fillna`.
+   window. For example,
 
    .. ipython:: python
 
-        sn = pd.Series([1,2,np.nan,3,np.nan,4])
+        sn = pd.Series([1, 2, np.nan, 3, np.nan, 4])
+        sn
+        sn.rolling(2).max()
+        sn.rolling(2, min_periods=1).max()
+
+   In case of expanding functions, this differs from :meth:`~DataFrame.cumsum`,
+   :meth:`~DataFrame.cumprod`, :meth:`~DataFrame.cummax`,
+   and :meth:`~DataFrame.cummin`, which return ``NaN`` in the output wherever
+   a ``NaN`` is encountered in the input. In order to match the output of ``cumsum``
+   with ``expanding``, use :meth:`~DataFrame.fillna`:
+
+   .. ipython:: python
 
         sn.expanding().sum()
-
         sn.cumsum()
-
         sn.cumsum().fillna(method='ffill')
 
 
