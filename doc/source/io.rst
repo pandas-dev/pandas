@@ -870,7 +870,7 @@ data columns:
 .. note::
    If a column or index contains an unparseable date, the entire column or
    index will be returned unaltered as an object data type. For non-standard
-   datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv`` 
+   datetime parsing, use :func:`to_datetime` after ``pd.read_csv``.
 
 
 .. note::
