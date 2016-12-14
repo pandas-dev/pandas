@@ -51,6 +51,20 @@ Other enhancements
 - ``Series.sort_index`` accepts parameters ``kind`` and ``na_position`` (:issue:`13589`, :issue:`14444`)
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
+- Strings passed to ``DataFrame.groupby()`` as the ``by`` parameter may now reference either column names or index level names (:issue:`5677`)
+
+.. ipython:: python
+
+   arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+             ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+
+   index = pd.MultiIndex.from_arrays(arrays, names=['first', 'second'])
+
+   df = pd.DataFrame({'A': [1, 1, 1, 1, 2, 2, 3, 3],
+                      'B': np.arange(8)},
+                     index=index)
+
+   df.groupby(['second', 'A']).sum()
 
 
 - Multiple offset aliases with decimal points are now supported (e.g. '0.5min' is parsed as '30s') (:issue:`8419`)
