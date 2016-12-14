@@ -247,23 +247,26 @@ _compression_to_extension = {
 
 def _infer_compression(filepath_or_buffer, compression):
     """
-    Get file handle for given path/buffer and mode.
+    Get the compression method for filepath_or_buffer. If compression='infer',
+    the inferred compression method is returned. Otherwise, the input
+    compression method is returned unchanged, unless it's invalid, in which case
+    an error is raised.
 
     Parameters
     ----------
     filepath_or_buf :
         a path (str) or buffer
-    compression : str, or None
+    compression : str or None
+        the compression method including None for no compression and 'infer'
 
     Returns
     -------
-    string compression method, None
+    string or None :
+        compression method
 
     Raises
     ------
     ValueError on invalid compression specified
-
-    If compression='infer', infer compression. If compression
     """
 
     # No compression has been explicitly specified
