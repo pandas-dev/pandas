@@ -94,10 +94,20 @@ The mapping can be specified many different ways:
   - For DataFrame objects, a string indicating a column to be used to group. Of
     course ``df.groupby('A')`` is just syntactic sugar for
     ``df.groupby(df['A'])``, but it makes life simpler
+  - For DataFrame objects, a string indicating an index level to be used to group.
   - A list of any of the above things
 
 Collectively we refer to the grouping objects as the **keys**. For example,
 consider the following DataFrame:
+
+.. note::
+
+   .. versionadded:: 0.20
+
+   A string passed to ``groupby`` may refer to either a column or an index level.
+   If a string matches both a column name and an index level name then a warning is
+   issued and the column takes precedence. This will result in an ambiguity error
+   in a future version.
 
 .. ipython:: python
 
@@ -237,17 +247,6 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    gb.aggregate  gb.count      gb.cumprod    gb.dtype      gb.first      gb.groups     gb.hist       gb.max        gb.min        gb.nth        gb.prod       gb.resample   gb.sum        gb.var
    gb.apply      gb.cummax     gb.cumsum     gb.fillna     gb.gender     gb.head       gb.indices    gb.mean       gb.name       gb.ohlc       gb.quantile   gb.size       gb.tail       gb.weight
 
-
-.. ipython:: python
-   :suppress:
-
-   df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-                             'foo', 'bar', 'foo', 'foo'],
-                      'B' : ['one', 'one', 'two', 'three',
-                             'two', 'two', 'one', 'three'],
-                      'C' : np.random.randn(8),
-                      'D' : np.random.randn(8)})
-
 .. _groupby.multiindex:
 
 GroupBy with MultiIndex
@@ -289,7 +288,9 @@ chosen level:
 
    s.sum(level='second')
 
-Also as of v0.6, grouping with multiple levels is supported.
+.. versionadded:: 0.6
+
+Grouping with multiple levels is supported.
 
 .. ipython:: python
    :suppress:
@@ -306,7 +307,55 @@ Also as of v0.6, grouping with multiple levels is supported.
    s
    s.groupby(level=['first', 'second']).sum()
 
+.. versionadded:: 0.20
+
+Index level names may be supplied as keys.
+
+.. ipython:: python
+
+   s.groupby(['first', 'second']).sum()
+
 More on the ``sum`` function and aggregation later.
+
+Grouping DataFrame with Index Levels and Columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+A DataFrame may be grouped by a combination of columns and index levels by
+specifying the column names as strings and the index levels as ``pd.Grouper``
+objects.
+
+.. ipython:: python
+
+   arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+             ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+
+   index = pd.MultiIndex.from_arrays(arrays, names=['first', 'second'])
+
+   df = pd.DataFrame({'A': [1, 1, 1, 1, 2, 2, 3, 3],
+                      'B': np.arange(8)},
+                     index=index)
+
+   df
+
+The following example groups ``df`` by the ``second`` index level and
+the ``A`` column.
+
+.. ipython:: python
+
+   df.groupby([pd.Grouper(level=1), 'A']).sum()
+
+Index levels may also be specified by name.
+
+.. ipython:: python
+
+   df.groupby([pd.Grouper(level='second'), 'A']).sum()
+
+.. versionadded:: 0.20
+
+Index level names may be specified as keys directly to ``groupby``.
+
+.. ipython:: python
+
+   df.groupby(['second', 'A']).sum()
 
 DataFrame column selection in GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -314,6 +363,16 @@ DataFrame column selection in GroupBy
 Once you have created the GroupBy object from a DataFrame, for example, you
 might want to do something different for each of the columns. Thus, using
 ``[]`` similar to getting a column from a DataFrame, you can do:
+
+.. ipython:: python
+   :suppress:
+
+   df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                             'foo', 'bar', 'foo', 'foo'],
+                      'B' : ['one', 'one', 'two', 'three',
+                             'two', 'two', 'one', 'three'],
+                      'C' : np.random.randn(8),
+                      'D' : np.random.randn(8)})
 
 .. ipython:: python
 
