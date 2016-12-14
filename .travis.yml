@@ -16,7 +16,7 @@ env:
   global:
 
   # pandas-docs-travis GH
-  - secure: Oz6cwVu3NetKZ5nKLJ4RQQBbRJE4KF3J5fkVwICJ2SQaE00ng8os4zJRGSkf0g+K1AVJpQ9A1XKG/IOKMBSkGiXBaVR/Qk/5b+QOTjEhgQBd7tdYjBrFfzpn0AIWn+70nAh24pvuGmq5MU9ILUXwNVVM87FF7cJ7efNseveh7Ss=
+  - secure: "YvvTc+FrSYHgdxqoxn9s8VOaCWjvZzlkaf6k55kkmQqCYR9dPiLMsot1F96/N7o3YlD1s0znPQCak93Du8HHi/8809zAXloTaMSZrWz4R4qn96xlZFRE88O/w/Z1t3VVYpKX3MHlCggBc8MtXrqmvWKJMAqXyysZ4TTzoiJDPvE="
 
 git:
     # for cloning

@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 from pandas.indexes.api import Index, MultiIndex
 from .common import Base
 
-from pandas.compat import (is_platform_windows, range, lrange, lzip, u,
+from pandas.compat import (range, lrange, lzip, u,
                            zip, PY3, PY36)
 import operator
 import os

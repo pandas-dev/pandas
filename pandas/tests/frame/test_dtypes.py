@@ -353,9 +353,17 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         tf = self.frame.astype(np.float64)
         casted = tf.astype(np.int64, copy=False)  # noqa
 
-    def test_astype_cast_nan_int(self):
-        df = DataFrame(data={"Values": [1.0, 2.0, 3.0, np.nan]})
-        self.assertRaises(ValueError, df.astype, np.int64)
+    def test_astype_cast_nan_inf_int(self):
+        # GH14265, check nan and inf raise error when converting to int
+        types = [np.int32, np.int64]
+        values = [np.nan, np.inf]
+        msg = 'Cannot convert non-finite values \(NA or inf\) to integer'
+
+        for this_type in types:
+            for this_val in values:
+                df = DataFrame([this_val])
+                with tm.assertRaisesRegexp(ValueError, msg):
+                    df.astype(this_type)
 
     def test_astype_str(self):
         # GH9757

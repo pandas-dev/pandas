@@ -225,6 +225,65 @@ class TestNestedToRecord(tm.TestCase):
 
         self.assertEqual(result, expected)
 
+    def test_json_normalize_errors(self):
+        # GH14583: If meta keys are not always present
+        # a new option to set errors='ignore' has been implemented
+        i = {
+            "Trades": [{
+                "general": {
+                    "tradeid": 100,
+                    "trade_version": 1,
+                    "stocks": [{
+
+                        "symbol": "AAPL",
+                        "name": "Apple",
+                        "price": "0"
+                    }, {
+                        "symbol": "GOOG",
+                        "name": "Google",
+                        "price": "0"
+                    }
+                    ]
+                }
+            }, {
+                "general": {
+                    "tradeid": 100,
+                    "stocks": [{
+                        "symbol": "AAPL",
+                        "name": "Apple",
+                        "price": "0"
+                    }, {
+                        "symbol": "GOOG",
+                        "name": "Google",
+                        "price": "0"
+                    }
+                    ]
+                }
+            }
+            ]
+        }
+        j = json_normalize(data=i['Trades'],
+                           record_path=[['general', 'stocks']],
+                           meta=[['general', 'tradeid'],
+                                 ['general', 'trade_version']],
+                           errors='ignore')
+        expected = {'general.trade_version': {0: 1.0, 1: 1.0, 2: '', 3: ''},
+                    'general.tradeid': {0: 100, 1: 100, 2: 100, 3: 100},
+                    'name': {0: 'Apple', 1: 'Google', 2: 'Apple', 3: 'Google'},
+                    'price': {0: '0', 1: '0', 2: '0', 3: '0'},
+                    'symbol': {0: 'AAPL', 1: 'GOOG', 2: 'AAPL', 3: 'GOOG'}}
+
+        self.assertEqual(j.fillna('').to_dict(), expected)
+
+        self.assertRaises(KeyError,
+                          json_normalize, data=i['Trades'],
+                          record_path=[['general', 'stocks']],
+                          meta=[['general', 'tradeid'],
+                                ['general', 'trade_version']],
+                          errors='raise'
+                          )
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb',
                          '--pdb-failure', '-s'], exit=False)

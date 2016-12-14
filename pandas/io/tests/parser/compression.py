@@ -168,3 +168,8 @@ class CompressionTests(object):
             tm.assert_frame_equal(expected, df)
 
         inputs[3].close()
+
+    def test_invalid_compression(self):
+        msg = 'Unrecognized compression type: sfark'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv('test_file.zip', compression='sfark')

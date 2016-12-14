@@ -1,11 +1,9 @@
 """Common IO api utilities"""
 
-import sys
 import os
 import csv
 import codecs
 import mmap
-import zipfile
 from contextlib import contextmanager, closing
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
@@ -141,39 +139,6 @@ def _is_s3_url(url):
         return False
 
 
-def maybe_read_encoded_stream(reader, encoding=None, compression=None):
-    """read an encoded stream from the reader and transform the bytes to
-    unicode if required based on the encoding
-
-        Parameters
-        ----------
-        reader : a streamable file-like object
-        encoding : optional, the encoding to attempt to read
-
-        Returns
-        -------
-        a tuple of (a stream of decoded bytes, the encoding which was used)
-
-    """
-
-    if compat.PY3 or encoding is not None:  # pragma: no cover
-        if encoding:
-            errors = 'strict'
-        else:
-            errors = 'replace'
-            encoding = 'utf-8'
-
-        if compression == 'gzip':
-            reader = BytesIO(reader.read())
-        else:
-            reader = StringIO(reader.read().decode(encoding, errors))
-    else:
-        if compression == 'gzip':
-            reader = BytesIO(reader.read())
-        encoding = None
-    return reader, encoding
-
-
 def _expand_user(filepath_or_buffer):
     """Return the argument with an initial component of ~ or ~user
        replaced by that user's home directory.
@@ -237,18 +202,14 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     """
 
     if _is_url(filepath_or_buffer):
-        req = _urlopen(str(filepath_or_buffer))
-        if compression == 'infer':
-            content_encoding = req.headers.get('Content-Encoding', None)
-            if content_encoding == 'gzip':
-                compression = 'gzip'
-            else:
-                compression = None
-        # cat on the compression to the tuple returned by the function
-        to_return = (list(maybe_read_encoded_stream(req, encoding,
-                                                    compression)) +
-                     [compression])
-        return tuple(to_return)
+        url = str(filepath_or_buffer)
+        req = _urlopen(url)
+        content_encoding = req.headers.get('Content-Encoding', None)
+        if content_encoding == 'gzip':
+            # Override compression based on Content-Encoding header
+            compression = 'gzip'
+        reader = BytesIO(req.read())
+        return reader, encoding, compression
 
     if _is_s3_url(filepath_or_buffer):
         from pandas.io.s3 import get_filepath_or_buffer
@@ -276,64 +237,161 @@ def file_path_to_url(path):
     return urljoin('file:', pathname2url(path))
 
 
-# ZipFile is not a context manager for <= 2.6
-# must be tuple index here since 2.6 doesn't use namedtuple for version_info
-if sys.version_info[1] <= 6:
-    @contextmanager
-    def ZipFile(*args, **kwargs):
-        with closing(zipfile.ZipFile(*args, **kwargs)) as zf:
-            yield zf
-else:
-    ZipFile = zipfile.ZipFile
+_compression_to_extension = {
+    'gzip': '.gz',
+    'bz2': '.bz2',
+    'zip': '.zip',
+    'xz': '.xz',
+}
 
 
-def _get_handle(path, mode, encoding=None, compression=None, memory_map=False):
-    """Gets file handle for given path and mode.
+def _infer_compression(filepath_or_buffer, compression):
     """
-    if compression is not None:
-        if encoding is not None and not compat.PY3:
-            msg = 'encoding + compression not yet supported in Python 2'
+    Get file handle for given path/buffer and mode.
+
+    Parameters
+    ----------
+    filepath_or_buf :
+        a path (str) or buffer
+    compression : str, or None
+
+    Returns
+    -------
+    string compression method, None
+
+    Raises
+    ------
+    ValueError on invalid compression specified
+
+    If compression='infer', infer compression. If compression
+    """
+
+    # No compression has been explicitly specified
+    if compression is None:
+        return None
+
+    # Cannot infer compression of a buffer. Hence assume no compression.
+    is_path = isinstance(filepath_or_buffer, compat.string_types)
+    if compression == 'infer' and not is_path:
+        return None
+
+    # Infer compression from the filename/URL extension
+    if compression == 'infer':
+        for compression, extension in _compression_to_extension.items():
+            if filepath_or_buffer.endswith(extension):
+                return compression
+        return None
+
+    # Compression has been specified. Check that it's valid
+    if compression in _compression_to_extension:
+        return compression
+
+    msg = 'Unrecognized compression type: {}'.format(compression)
+    valid = ['infer', None] + sorted(_compression_to_extension)
+    msg += '\nValid compression types are {}'.format(valid)
+    raise ValueError(msg)
+
+
+def _get_handle(path_or_buf, mode, encoding=None, compression=None,
+                memory_map=False):
+    """
+    Get file handle for given path/buffer and mode.
+
+    Parameters
+    ----------
+    path_or_buf :
+        a path (str) or buffer
+    mode : str
+        mode to open path_or_buf with
+    encoding : str or None
+    compression : str or None
+        Supported compression protocols are gzip, bz2, zip, and xz
+    memory_map : boolean, default False
+        See parsers._parser_params for more information.
+
+    Returns
+    -------
+    f : file-like
+        A file-like object
+    handles : list of file-like objects
+        A list of file-like object that were openned in this function.
+    """
+
+    handles = list()
+    f = path_or_buf
+    is_path = isinstance(path_or_buf, compat.string_types)
+
+    if compression:
+
+        if compat.PY2 and not is_path and encoding:
+            msg = 'compression with encoding is not yet supported in Python 2'
             raise ValueError(msg)
 
+        # GZ Compression
         if compression == 'gzip':
             import gzip
-            f = gzip.GzipFile(path, mode)
+            if is_path:
+                f = gzip.open(path_or_buf, mode)
+            else:
+                f = gzip.GzipFile(fileobj=path_or_buf)
+
+        # BZ Compression
         elif compression == 'bz2':
             import bz2
-            f = bz2.BZ2File(path, mode)
+            if is_path:
+                f = bz2.BZ2File(path_or_buf, mode)
+            elif compat.PY2:
+                # Python 2's bz2 module can't take file objects, so have to
+                # run through decompress manually
+                f = StringIO(bz2.decompress(path_or_buf.read()))
+                path_or_buf.close()
+            else:
+                f = bz2.BZ2File(path_or_buf)
+
+        # ZIP Compression
         elif compression == 'zip':
             import zipfile
-            zip_file = zipfile.ZipFile(path)
+            zip_file = zipfile.ZipFile(path_or_buf)
             zip_names = zip_file.namelist()
-
             if len(zip_names) == 1:
-                file_name = zip_names.pop()
-                f = zip_file.open(file_name)
+                f = zip_file.open(zip_names.pop())
             elif len(zip_names) == 0:
                 raise ValueError('Zero files found in ZIP file {}'
-                                 .format(path))
+                                 .format(path_or_buf))
             else:
                 raise ValueError('Multiple files found in ZIP file.'
-                                 ' Only one file per ZIP :{}'
+                                 ' Only one file per ZIP: {}'
                                  .format(zip_names))
+
+        # XZ Compression
         elif compression == 'xz':
             lzma = compat.import_lzma()
-            f = lzma.LZMAFile(path, mode)
+            f = lzma.LZMAFile(path_or_buf, mode)
+
+        # Unrecognized Compression
         else:
-            raise ValueError('Unrecognized compression type: %s' %
-                             compression)
-        if compat.PY3:
-            from io import TextIOWrapper
-            f = TextIOWrapper(f, encoding=encoding)
-        return f
-    else:
-        if compat.PY3:
-            if encoding:
-                f = open(path, mode, encoding=encoding)
-            else:
-                f = open(path, mode, errors='replace')
+            msg = 'Unrecognized compression type: {}'.format(compression)
+            raise ValueError(msg)
+
+        handles.append(f)
+
+    elif is_path:
+        if compat.PY2:
+            # Python 2
+            f = open(path_or_buf, mode)
+        elif encoding:
+            # Python 3 and encoding
+            f = open(path_or_buf, mode, encoding=encoding)
         else:
-            f = open(path, mode)
+            # Python 3 and no explicit encoding
+            f = open(path_or_buf, mode, errors='replace')
+        handles.append(f)
+
+    # in Python 3, convert BytesIO or fileobjects passed with an encoding
+    if compat.PY3 and (compression or isinstance(f, compat.BytesIO)):
+        from io import TextIOWrapper
+        f = TextIOWrapper(f, encoding=encoding)
+        handles.append(f)
 
     if memory_map and hasattr(f, 'fileno'):
         try:
@@ -347,7 +405,7 @@ def _get_handle(path, mode, encoding=None, compression=None, memory_map=False):
             # leave the file handler as is then
             pass
 
-    return f
+    return f, handles
 
 
 class MMapWrapper(BaseIterator):
