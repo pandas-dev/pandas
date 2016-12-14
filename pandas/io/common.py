@@ -187,8 +187,8 @@ def _stringify_path(filepath_or_buffer):
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                            compression=None):
     """
-    If the filepath_or_buffer is a url, translate and return the buffer
-    passthru otherwise.
+    If the filepath_or_buffer is a url, translate and return the buffer.
+    Otherwise passthrough.
 
     Parameters
     ----------
