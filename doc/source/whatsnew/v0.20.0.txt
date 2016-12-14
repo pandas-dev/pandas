@@ -64,6 +64,18 @@ Strings passed to ``DataFrame.groupby()`` as the ``by`` parameter may now refere
 
    df.groupby(['second', 'A']).sum()
 
+Reading dataframes from URLs, in :func:`read_csv` or :func:`read_table`, now
+supports additional compression methods (`xz`, `bz2`, `zip`). Previously, only
+`gzip` compression was supported. By default, compression of URLs and paths are
+now both inferred using their file extensions.
+
+.. ipython:: python
+
+   url = ('https://github.com/pandas-dev/pandas/raw/master/' +
+          'pandas/io/tests/parser/data/salaries.csv.bz2')
+   df = pd.read_table(url, compression='infer')  # default, infer compression
+   df = pd.read_table(url, compression='bz2')  # explicitly specify compression
+   df.head(2)
 
 .. _whatsnew_0200.enhancements.other:
 
