@@ -947,6 +947,18 @@ class TestTimeSeries(tm.TestCase):
         result = to_datetime(s)
         self.assertEqual(result[0], s[0])
 
+    def test_to_datetime_with_space_in_series(self):
+        # GH 6428
+        s = Series(['10/18/2006', '10/18/2008', ' '])
+        tm.assertRaises(ValueError, lambda: to_datetime(s, errors='raise'))
+        result_coerce = to_datetime(s, errors='coerce')
+        expected_coerce = Series([datetime(2006, 10, 18),
+                                  datetime(2008, 10, 18),
+                                  pd.NaT])
+        tm.assert_series_equal(result_coerce, expected_coerce)
+        result_ignore = to_datetime(s, errors='ignore')
+        tm.assert_series_equal(result_ignore, s)
+
     def test_to_datetime_with_apply(self):
         # this is only locale tested with US/None locales
         _skip_if_has_locale()

@@ -23,6 +23,16 @@ Performance Improvements
 
 - Improved performance of ``.replace()`` (:issue:`12745`)
 
+.. _whatsnew_0192.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- ``pd.merge_asof()`` gained ``left_index``/``right_index`` and ``left_by``/``right_by`` arguments (:issue:`14253`)
+- ``pd.merge_asof()`` can take multiple columns in ``by`` parameter and has specialized dtypes for better performace (:issue:`13936`)
+
+
+
 .. _whatsnew_0192.bug_fixes:
 
 Bug Fixes
@@ -80,13 +90,5 @@ Bug Fixes
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
 
 - Bug in ``unstack()`` if called with a list of column(s) as an argument, regardless of the dtypes of all columns, they get coerced to ``object`` (:issue:`11847`)
-
-
-.. _whatsnew_0192.enhancements.other:
-
-Other enhancements
-^^^^^^^^^^^^^^^^^^
-
-- ``pd.merge_asof()`` can take multiple columns in ``by`` parameter and has specialized dtypes for better performace (:issue:`13936`)
 
 

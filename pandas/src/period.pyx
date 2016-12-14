@@ -45,12 +45,12 @@ cdef bint PY2 = version_info[0] == 2
 
 cdef int64_t NPY_NAT = util.get_nat()
 
-cdef int US_RESO = frequencies.US_RESO
-cdef int MS_RESO = frequencies.MS_RESO
-cdef int S_RESO = frequencies.S_RESO
-cdef int T_RESO = frequencies.T_RESO
-cdef int H_RESO = frequencies.H_RESO
-cdef int D_RESO = frequencies.D_RESO
+cdef int RESO_US = frequencies.RESO_US
+cdef int RESO_MS = frequencies.RESO_MS
+cdef int RESO_SEC = frequencies.RESO_SEC
+cdef int RESO_MIN = frequencies.RESO_MIN
+cdef int RESO_HR = frequencies.RESO_HR
+cdef int RESO_DAY = frequencies.RESO_DAY
 
 cdef extern from "period_helper.h":
     ctypedef struct date_info:
@@ -516,7 +516,7 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         pandas_datetimestruct dts
-        int reso = D_RESO, curr_reso
+        int reso = RESO_DAY, curr_reso
 
     if tz is not None:
         tz = maybe_get_tz(tz)
@@ -535,20 +535,20 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
 cdef inline int _reso_stamp(pandas_datetimestruct *dts):
     if dts.us != 0:
         if dts.us % 1000 == 0:
-            return MS_RESO
-        return US_RESO
+            return RESO_MS
+        return RESO_US
     elif dts.sec != 0:
-        return S_RESO
+        return RESO_SEC
     elif dts.min != 0:
-        return T_RESO
+        return RESO_MIN
     elif dts.hour != 0:
-        return H_RESO
-    return D_RESO
+        return RESO_HR
+    return RESO_DAY
 
 cdef _reso_local(ndarray[int64_t] stamps, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
-        int reso = D_RESO, curr_reso
+        int reso = RESO_DAY, curr_reso
         ndarray[int64_t] trans, deltas, pos
         pandas_datetimestruct dts
 

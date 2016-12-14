@@ -691,6 +691,8 @@ Method Summary
     :meth:`~Expanding.cov`, Unbiased covariance (binary)
     :meth:`~Expanding.corr`, Correlation (binary)
 
+.. currentmodule:: pandas
+
 Aside from not having a ``window`` parameter, these functions have the same
 interfaces as their ``.rolling`` counterparts. Like above, the parameters they
 all accept are:
@@ -700,18 +702,37 @@ all accept are:
   ``min_periods`` non-null data points have been seen.
 - ``center``: boolean, whether to set the labels at the center (default is False)
 
+.. _stats.moments.expanding.note:
 .. note::
 
    The output of the ``.rolling`` and ``.expanding`` methods do not return a
    ``NaN`` if there are at least ``min_periods`` non-null values in the current
-   window. This differs from ``cumsum``, ``cumprod``, ``cummax``, and
-   ``cummin``, which return ``NaN`` in the output wherever a ``NaN`` is
-   encountered in the input.
+   window. For example,
+
+   .. ipython:: python
+
+        sn = pd.Series([1, 2, np.nan, 3, np.nan, 4])
+        sn
+        sn.rolling(2).max()
+        sn.rolling(2, min_periods=1).max()
+
+   In case of expanding functions, this differs from :meth:`~DataFrame.cumsum`,
+   :meth:`~DataFrame.cumprod`, :meth:`~DataFrame.cummax`,
+   and :meth:`~DataFrame.cummin`, which return ``NaN`` in the output wherever
+   a ``NaN`` is encountered in the input. In order to match the output of ``cumsum``
+   with ``expanding``, use :meth:`~DataFrame.fillna`:
+
+   .. ipython:: python
+
+        sn.expanding().sum()
+        sn.cumsum()
+        sn.cumsum().fillna(method='ffill')
+
 
 An expanding window statistic will be more stable (and less responsive) than
 its rolling window counterpart as the increasing window size decreases the
 relative impact of an individual data point. As an example, here is the
-:meth:`~Expanding.mean` output for the previous time series dataset:
+:meth:`~core.window.Expanding.mean` output for the previous time series dataset:
 
 .. ipython:: python
    :suppress:
@@ -731,13 +752,14 @@ relative impact of an individual data point. As an example, here is the
 Exponentially Weighted Windows
 ------------------------------
 
+.. currentmodule:: pandas.core.window
+
 A related set of functions are exponentially weighted versions of several of
 the above statistics. A similar interface to ``.rolling`` and ``.expanding`` is accessed
-thru the ``.ewm`` method to receive an :class:`~pandas.core.window.EWM` object.
+through the ``.ewm`` method to receive an :class:`~EWM` object.
 A number of expanding EW (exponentially weighted)
 methods are provided:
 
-.. currentmodule:: pandas.core.window
 
 .. csv-table::
     :header: "Function", "Description"
