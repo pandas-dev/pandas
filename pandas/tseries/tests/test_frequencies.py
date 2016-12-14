@@ -403,6 +403,7 @@ class TestFrequencyCode(tm.TestCase):
             self.assertEqual(freq, result)
 
     def test_resolution_bumping(self):
+        # GH 14378
         Reso = frequencies.Resolution
 
         self.assertEqual(Reso.get_stride_from_decimal(1.5, 'T'), (90, 'S'))

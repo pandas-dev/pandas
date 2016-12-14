@@ -188,6 +188,17 @@ class Resolution(object):
         """
         Convert freq with decimal stride into a higher freq with integer stride
 
+        Parameters
+        ----------
+        value : integer or float
+        freq : string
+            Frequency string
+
+        Raises
+        ------
+        ValueError
+            If the float cannot be converted to an integer at any resolution.
+
         Example
         -------
         >>> Resolution.get_stride_from_decimal(1.5, 'T')
