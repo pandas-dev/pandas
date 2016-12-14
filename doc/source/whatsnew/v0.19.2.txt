@@ -23,6 +23,15 @@ Performance Improvements
 
 - Improved performance of ``.replace()`` (:issue:`12745`)
 
+.. _whatsnew_0192.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- ``pd.merge_asof()`` gained ``left_index``/``right_index`` and ``left_by``/``right_by`` arguments (:issue:`14253`)
+
+
+
 .. _whatsnew_0192.bug_fixes:
 
 Bug Fixes
