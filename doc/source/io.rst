@@ -868,6 +868,12 @@ data columns:
    df
 
 .. note::
+   If a column or index contains an unparseable date, the entire column or
+   index will be returned unaltered as an object data type. For non-standard
+   datetime parsing, use :func:`to_datetime` after ``pd.read_csv``.
+
+
+.. note::
    read_csv has a fast_path for parsing datetime strings in iso8601 format,
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be

@@ -167,6 +167,10 @@ default False
     * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result
       'foo'
 
+    If a column or index contains an unparseable date, the entire column or
+    index will be returned unaltered as an object data type. For non-standard
+    datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
+
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : boolean, default False
     If True and parse_dates is enabled, pandas will attempt to infer the format
