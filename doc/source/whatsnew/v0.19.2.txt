@@ -32,8 +32,6 @@ Other Enhancements
 - ``pd.merge_asof()`` gained ``left_index``/``right_index`` and ``left_by``/``right_by`` arguments (:issue:`14253`)
 
 
-
->>>>>>> 49e3137... DOC: whatsnew 0.19.2
 .. _whatsnew_0192.bug_fixes:
 
 Bug Fixes
