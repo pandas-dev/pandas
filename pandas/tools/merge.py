@@ -5,6 +5,8 @@ SQL-style merge routines
 import copy
 import warnings
 
+import string
+
 import numpy as np
 from pandas.compat import range, lrange, lzip, zip, map, filter
 import pandas.compat as compat
@@ -303,12 +305,12 @@ def merge_asof(left, right, on=None,
     by : column name or list of column names
         Match on these columns before performing merge operation.
     left_by : column name
-        Field name to match on in the left DataFrame.
+        Field names to match on in the left DataFrame.
 
         .. versionadded:: 0.19.2
 
     right_by : column name
-        Field name to match on in the right DataFrame.
+        Field names to match on in the right DataFrame.
 
         .. versionadded:: 0.19.2
 
@@ -1156,11 +1158,12 @@ class _AsOfMerge(_OrderedMerge):
     def _get_join_indexers(self):
         """ return the join indexers """
 
-        def flip_stringify(xs):
-            """ flip an array of arrays and string-ify contents """
-            xt = np.transpose(xs)
-            # numpy arrays aren't hashable, so we convert to a string
-            return _join.stringify(_ensure_object(xt))
+        def flip(xs):
+            """ unlike np.transpose, this returns an array of tuples """
+            labels = list(string.ascii_lowercase[:len(xs)])
+            dtypes = [x.dtype for x in xs]
+            labeled_dtypes = list(zip(labels, dtypes))
+            return np.array(lzip(*xs), labeled_dtypes)
 
         # values to compare
         left_values = (self.left.index.values if self.left_index else
@@ -1186,9 +1189,9 @@ class _AsOfMerge(_OrderedMerge):
         # a "by" parameter requires special handling
         if self.left_by is not None:
             if len(self.left_join_keys) > 2:
-                # get string representation of values if more than one
-                left_by_values = flip_stringify(self.left_join_keys[0:-1])
-                right_by_values = flip_stringify(self.right_join_keys[0:-1])
+                # get tuple representation of values if more than one
+                left_by_values = flip(self.left_join_keys[0:-1])
+                right_by_values = flip(self.right_join_keys[0:-1])
             else:
                 left_by_values = self.left_join_keys[0]
                 right_by_values = self.right_join_keys[0]

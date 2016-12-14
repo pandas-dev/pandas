@@ -163,22 +163,3 @@ def asof_join_{{on_dtype}}(ndarray[{{on_dtype}}] left_values,
 
 {{endfor}}
 
-
-#----------------------------------------------------------------------
-# stringify
-#----------------------------------------------------------------------
-
-def stringify(ndarray[object, ndim=2] xt):
-    """ Invokes .tostring() on each array entry within a 2D array. """
-    cdef:
-        Py_ssize_t n
-        ndarray[object] result
-
-    n = len(xt)
-    result = np.empty(n, dtype=np.object)
-
-    for i in range(n):
-        result[i] = xt[i].tostring()
-
-    return result
-
