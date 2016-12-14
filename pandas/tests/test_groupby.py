@@ -521,7 +521,7 @@ class TestGroupBy(tm.TestCase):
         expected = df_single.reset_index().groupby(['inner', 'B']).mean()
         assert_frame_equal(result, expected)
 
-    def test_grouper_column_and_index_sugar(self):
+    def test_grouper_index_level_as_string(self):
         # GH 5677, allow strings passed as the `by` parameter to reference
         # columns or index levels
 
@@ -575,7 +575,7 @@ class TestGroupBy(tm.TestCase):
         expected = df_single.groupby(pd.Grouper(level='inner')).mean()
         assert_frame_equal(result, expected)
 
-    def test_grouper_column_takes_precedence_over_level_with_warning(self):
+    def test_grouper_column_index_level_precedence(self):
         # GH 5677, when a string passed as the `by` parameter
         # matches a column and an index level the column takes
         # precedence
@@ -596,7 +596,6 @@ class TestGroupBy(tm.TestCase):
             result = df_multi_both.groupby('inner').mean()
 
         expected = df_multi_both.groupby([pd.Grouper(key='inner')]).mean()
-
         assert_frame_equal(result, expected)
         not_expected = df_multi_both.groupby(pd.Grouper(level='inner')).mean()
         self.assertFalse(result.index.equals(not_expected.index))
@@ -606,7 +605,6 @@ class TestGroupBy(tm.TestCase):
             result = df_single_both.groupby('inner').mean()
 
         expected = df_single_both.groupby([pd.Grouper(key='inner')]).mean()
-
         assert_frame_equal(result, expected)
         not_expected = df_single_both.groupby(pd.Grouper(level='inner')).mean()
         self.assertFalse(result.index.equals(not_expected.index))
@@ -616,7 +614,6 @@ class TestGroupBy(tm.TestCase):
             result = df_multi_both.groupby(['inner']).mean()
 
         expected = df_multi_both.groupby([pd.Grouper(key='inner')]).mean()
-
         assert_frame_equal(result, expected)
         not_expected = df_multi_both.groupby(pd.Grouper(level='inner')).mean()
         self.assertFalse(result.index.equals(not_expected.index))
@@ -626,7 +623,6 @@ class TestGroupBy(tm.TestCase):
             result = df_single_both.groupby(['inner']).mean()
 
         expected = df_single_both.groupby([pd.Grouper(key='inner')]).mean()
-
         assert_frame_equal(result, expected)
         not_expected = df_single_both.groupby(pd.Grouper(level='inner')).mean()
         self.assertFalse(result.index.equals(not_expected.index))
@@ -638,7 +634,6 @@ class TestGroupBy(tm.TestCase):
         expected = df_multi_both.groupby(['B',
                                           pd.Grouper(key='inner')]).mean()
         assert_frame_equal(result, expected)
-
         not_expected = df_multi_both.groupby(['B',
                                               pd.Grouper(level='inner')
                                               ]).mean()
@@ -651,7 +646,6 @@ class TestGroupBy(tm.TestCase):
         expected = df_multi_both.groupby([pd.Grouper(key='inner'),
                                           'B']).mean()
         assert_frame_equal(result, expected)
-
         not_expected = df_multi_both.groupby([pd.Grouper(level='inner'),
                                               'B']).mean()
         self.assertFalse(result.index.equals(not_expected.index))
@@ -663,7 +657,6 @@ class TestGroupBy(tm.TestCase):
         expected = df_single_both.groupby(['B',
                                            pd.Grouper(key='inner')]).mean()
         assert_frame_equal(result, expected)
-
         not_expected = df_single_both.groupby(['B',
                                                pd.Grouper(level='inner')
                                                ]).mean()
@@ -676,7 +669,6 @@ class TestGroupBy(tm.TestCase):
         expected = df_single_both.groupby([pd.Grouper(key='inner'),
                                            'B']).mean()
         assert_frame_equal(result, expected)
-
         not_expected = df_single_both.groupby([pd.Grouper(level='inner'),
                                                'B']).mean()
         self.assertFalse(result.index.equals(not_expected.index))
