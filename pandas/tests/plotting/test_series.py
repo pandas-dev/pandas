@@ -572,7 +572,7 @@ class TestSeriesPlots(TestPlotBase):
         axes = _check_plot_works(s.plot.kde)
         # check if the values have any missing values
         # GH14821
-        self.assertTrue(any(~np.isnan(axes.lines[0]._xorig)),
+        self.assertTrue(any(~np.isnan(axes.lines[0].get_xdata())),
                         msg='Missing Values not dropped')
 
     @slow
