@@ -42,9 +42,6 @@ cdef extern from "datetime.h":
     object PyDateTime_FromDateAndTime(int year, int month, int day, int hour,
                                       int minute, int second, int us)
 
-cdef extern from "datetime_helper.h":
-    void mangle_nat(object o)
-
 cdef extern from "numpy/ndarrayobject.h":
 
     ctypedef int64_t npy_timedelta
@@ -126,8 +123,8 @@ cdef extern from "datetime/np_datetime_strings.h":
 
 
 
-cdef inline _string_to_dts(object val, pandas_datetimestruct* dts,
-                           int* out_local, int* out_tzoffset):
+cdef inline int _string_to_dts(object val, pandas_datetimestruct* dts,
+                           int* out_local, int* out_tzoffset) except? -1:
     cdef int result
     cdef char *tmp
 
@@ -139,10 +136,11 @@ cdef inline _string_to_dts(object val, pandas_datetimestruct* dts,
 
     if result == -1:
         raise ValueError('Unable to parse %s' % str(val))
+    return result
 
 cdef inline int _cstring_to_dts(char *val, int length,
                                 pandas_datetimestruct* dts,
-                                int* out_local, int* out_tzoffset):
+                                int* out_local, int* out_tzoffset) except? -1:
     cdef:
         npy_bool special
         PANDAS_DATETIMEUNIT out_bestunit
@@ -195,4 +193,3 @@ cdef inline int64_t _date_to_datetime64(object val,
     dts.hour = dts.min = dts.sec = dts.us = 0
     dts.ps = dts.as = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
-

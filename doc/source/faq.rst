@@ -111,5 +111,4 @@ Visualizing Data in Qt applications
 -----------------------------------
 
 There is no support for such visualization in pandas. However, the external
-package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_ does
-provide this functionality.
+package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_ provides this functionality for Python 2.x.

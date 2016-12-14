@@ -11,6 +11,7 @@ from pandas.types.common import (is_integer_dtype,
                                  is_sequence,
                                  is_scalar,
                                  is_sparse,
+                                 _is_unorderable_exception,
                                  _ensure_platform_int)
 from pandas.types.missing import isnull, _infer_fill_value
 
@@ -1411,7 +1412,7 @@ class _LocIndexer(_LocationIndexer):
             except TypeError as e:
 
                 # python 3 type errors should be raised
-                if 'unorderable' in str(e):  # pragma: no cover
+                if _is_unorderable_exception(e):
                     error()
                 raise
             except:
@@ -1813,7 +1814,9 @@ def check_bool_indexer(ax, key):
         result = result.reindex(ax)
         mask = isnull(result._values)
         if mask.any():
-            raise IndexingError('Unalignable boolean Series key provided')
+            raise IndexingError('Unalignable boolean Series provided as '
+                                'indexer (index of the boolean Series and of '
+                                'the indexed object do not match')
         result = result.astype(bool)._values
     elif is_sparse(result):
         result = result.to_dense()

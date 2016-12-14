@@ -405,3 +405,11 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
         # high upper bound
         self.assertTrue(memory_usage(unstacked) - memory_usage(df) < 2000)
+
+    def test_info_categorical(self):
+        # GH14298
+        idx = pd.CategoricalIndex(['a', 'b'])
+        df = pd.DataFrame(np.zeros((2, 2)), index=idx, columns=idx)
+
+        buf = StringIO()
+        df.info(buf=buf)

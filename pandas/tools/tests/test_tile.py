@@ -12,6 +12,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import quantile
 from pandas.tools.tile import cut, qcut
 import pandas.tools.tile as tmod
+from pandas import to_datetime, DatetimeIndex
 
 
 class TestCut(tm.TestCase):
@@ -270,6 +271,47 @@ class TestCut(tm.TestCase):
         tm.assert_numpy_array_equal(result.cat.codes.values,
                                     np.array([0, 0, 1, 1], dtype=np.int8))
         tm.assert_numpy_array_equal(bins, np.array([0, 1.5, 3]))
+
+    def test_single_bin(self):
+        # issue 14652
+        expected = Series([0, 0])
+
+        s = Series([9., 9.])
+        result = cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        s = Series([-9., -9.])
+        result = cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+    def test_datetime_cut(self):
+        # GH 14714
+        # testing for time data to be present as series
+        data = to_datetime(Series(['2013-01-01', '2013-01-02', '2013-01-03']))
+        result, bins = cut(data, 3, retbins=True)
+        expected = Series(['(2012-12-31 23:57:07.200000, 2013-01-01 16:00:00]',
+                          '(2013-01-01 16:00:00, 2013-01-02 08:00:00]',
+                           '(2013-01-02 08:00:00, 2013-01-03 00:00:00]'],
+                          ).astype("category", ordered=True)
+        tm.assert_series_equal(result, expected)
+
+        # testing for time data to be present as list
+        data = [np.datetime64('2013-01-01'), np.datetime64('2013-01-02'),
+                np.datetime64('2013-01-03')]
+        result, bins = cut(data, 3, retbins=True)
+        tm.assert_series_equal(Series(result), expected)
+
+        # testing for time data to be present as ndarray
+        data = np.array([np.datetime64('2013-01-01'),
+                        np.datetime64('2013-01-02'),
+                        np.datetime64('2013-01-03')])
+        result, bins = cut(data, 3, retbins=True)
+        tm.assert_series_equal(Series(result), expected)
+
+        # testing for time data to be present as datetime index
+        data = DatetimeIndex(['2013-01-01', '2013-01-02', '2013-01-03'])
+        result, bins = cut(data, 3, retbins=True)
+        tm.assert_series_equal(Series(result), expected)
 
 
 def curpath():

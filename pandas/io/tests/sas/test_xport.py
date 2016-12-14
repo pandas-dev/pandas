@@ -35,6 +35,13 @@ class TestXport(tm.TestCase):
         # Read full file
         data = read_sas(self.file01, format="xport")
         tm.assert_frame_equal(data, data_csv)
+        num_rows = data.shape[0]
+
+        # Test reading beyond end of file
+        reader = read_sas(self.file01, format="xport", iterator=True)
+        data = reader.read(num_rows + 100)
+        self.assertTrue(data.shape[0] == num_rows)
+        reader.close()
 
         # Test incremental read with `read` method.
         reader = read_sas(self.file01, format="xport", iterator=True)
@@ -47,6 +54,14 @@ class TestXport(tm.TestCase):
         data = reader.get_chunk()
         reader.close()
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :])
+
+        # Test read in loop
+        m = 0
+        reader = read_sas(self.file01, format="xport", chunksize=100)
+        for x in reader:
+            m += x.shape[0]
+        reader.close()
+        self.assertTrue(m == num_rows)
 
         # Read full file with `read_sas` method
         data = read_sas(self.file01)

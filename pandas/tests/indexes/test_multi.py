@@ -8,7 +8,7 @@ import warnings
 
 from pandas import (DataFrame, date_range, period_range, MultiIndex, Index,
                     CategoricalIndex, compat)
-from pandas.core.common import PerformanceWarning
+from pandas.core.common import PerformanceWarning, UnsortedIndexError
 from pandas.indexes.base import InvalidIndexError
 from pandas.compat import range, lrange, u, PY3, long, lzip
 
@@ -96,6 +96,10 @@ class TestMultiIndex(Base, tm.TestCase):
         expected = MultiIndex.from_product([
             numbers, names.repeat(reps)], names=names)
         tm.assert_index_equal(m.repeat(reps), expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = m.repeat(n=reps)
+            tm.assert_index_equal(result, expected)
 
     def test_numpy_repeat(self):
         reps = 2
@@ -1870,7 +1874,7 @@ class TestMultiIndex(Base, tm.TestCase):
         idx = pd.MultiIndex.from_product(vals, names=['str', 'dt'])
         indices = [1, 2]
 
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, idx.take,
                               indices, foo=2)
 
@@ -2531,3 +2535,19 @@ class TestMultiIndex(Base, tm.TestCase):
         msg = "invalid how option: xxx"
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.dropna(how='xxx')
+
+    def test_unsortedindex(self):
+        # GH 11897
+        mi = pd.MultiIndex.from_tuples([('z', 'a'), ('x', 'a'), ('y', 'b'),
+                                        ('x', 'b'), ('y', 'a'), ('z', 'b')],
+                                       names=['one', 'two'])
+        df = pd.DataFrame([[i, 10 * i] for i in lrange(6)], index=mi,
+                          columns=['one', 'two'])
+
+        with assertRaises(UnsortedIndexError):
+            df.loc(axis=0)['z', :]
+        df.sort_index(inplace=True)
+        self.assertEqual(len(df.loc(axis=0)['z', :]), 2)
+
+        with assertRaises(KeyError):
+            df.loc(axis=0)['q', :]

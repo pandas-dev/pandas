@@ -684,11 +684,12 @@ def select_n_slow(dropped, n, keep, method):
 _select_methods = {'nsmallest': nsmallest, 'nlargest': nlargest}
 
 
-def select_n(series, n, keep, method):
-    """Implement n largest/smallest.
+def select_n_series(series, n, keep, method):
+    """Implement n largest/smallest for pandas Series
 
     Parameters
     ----------
+    series : pandas.Series object
     n : int
     keep : {'first', 'last'}, default 'first'
     method : str, {'nlargest', 'nsmallest'}
@@ -715,6 +716,31 @@ def select_n(series, n, keep, method):
 
     inds = _select_methods[method](dropped.values, n, keep)
     return dropped.iloc[inds]
+
+
+def select_n_frame(frame, columns, n, method, keep):
+    """Implement n largest/smallest for pandas DataFrame
+
+    Parameters
+    ----------
+    frame : pandas.DataFrame object
+    columns : list or str
+    n : int
+    keep : {'first', 'last'}, default 'first'
+    method : str, {'nlargest', 'nsmallest'}
+
+    Returns
+    -------
+    nordered : DataFrame
+    """
+    from pandas.core.series import Series
+    if not is_list_like(columns):
+        columns = [columns]
+    columns = list(columns)
+    ser = getattr(frame[columns[0]], method)(n, keep=keep)
+    if isinstance(ser, Series):
+        ser = ser.to_frame()
+    return ser.merge(frame, on=columns[0], left_index=True)[frame.columns]
 
 
 def _finalize_nsmallest(arr, kth_val, n, keep, narr):

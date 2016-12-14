@@ -987,7 +987,7 @@ class TestHDFStore(Base, tm.TestCase):
 
         if compat.PY2:
             self.assertRaisesRegexp(
-                TypeError, '\[unicode\] is not implemented as a table column')
+                TypeError, r'\[unicode\] is not implemented as a table column')
             return
 
         values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
@@ -1362,6 +1362,32 @@ class TestHDFStore(Base, tm.TestCase):
                 [[124, 'abcdefqhij'], [346, 'abcdefghijklmnopqrtsuvwxyz']])
             self.assertRaises(ValueError, store.append, 'df_new', df_new)
 
+            # min_itemsize on Series index (GH 11412)
+            df = tm.makeMixedDataFrame().set_index('C')
+            store.append('ss', df['B'], min_itemsize={'index': 4})
+            tm.assert_series_equal(store.select('ss'), df['B'])
+
+            # same as above, with data_columns=True
+            store.append('ss2', df['B'], data_columns=True,
+                         min_itemsize={'index': 4})
+            tm.assert_series_equal(store.select('ss2'), df['B'])
+
+            # min_itemsize in index without appending (GH 10381)
+            store.put('ss3', df, format='table',
+                      min_itemsize={'index': 6})
+            # just make sure there is a longer string:
+            df2 = df.copy().reset_index().assign(C='longer').set_index('C')
+            store.append('ss3', df2)
+            tm.assert_frame_equal(store.select('ss3'),
+                                  pd.concat([df, df2]))
+
+            # same as above, with a Series
+            store.put('ss4', df['B'], format='table',
+                      min_itemsize={'index': 6})
+            store.append('ss4', df2['B'])
+            tm.assert_series_equal(store.select('ss4'),
+                                   pd.concat([df['B'], df2['B']]))
+
             # with nans
             _maybe_remove(store, 'df')
             df = tm.makeTimeDataFrame()
@@ -1415,6 +1441,26 @@ class TestHDFStore(Base, tm.TestCase):
             _maybe_remove(store, 'df')
             self.assertRaises(ValueError, store.append, 'df',
                               df, min_itemsize={'foo': 20, 'foobar': 20})
+
+    def test_to_hdf_with_min_itemsize(self):
+
+        with ensure_clean_path(self.path) as path:
+
+            # min_itemsize in index with to_hdf (GH 10381)
+            df = tm.makeMixedDataFrame().set_index('C')
+            df.to_hdf(path, 'ss3', format='table', min_itemsize={'index': 6})
+            # just make sure there is a longer string:
+            df2 = df.copy().reset_index().assign(C='longer').set_index('C')
+            df2.to_hdf(path, 'ss3', append=True, format='table')
+            tm.assert_frame_equal(pd.read_hdf(path, 'ss3'),
+                                  pd.concat([df, df2]))
+
+            # same as above, with a Series
+            df['B'].to_hdf(path, 'ss4', format='table',
+                           min_itemsize={'index': 6})
+            df2['B'].to_hdf(path, 'ss4', append=True, format='table')
+            tm.assert_series_equal(pd.read_hdf(path, 'ss4'),
+                                   pd.concat([df['B'], df2['B']]))
 
     def test_append_with_data_columns(self):
 
@@ -1818,6 +1864,19 @@ class TestHDFStore(Base, tm.TestCase):
             store.put('s', s, format='table')
             tm.assert_series_equal(store.select('s', where="columns=['A']"), s)
 
+    def test_mi_data_columns(self):
+        # GH 14435
+        idx = pd.MultiIndex.from_arrays([date_range('2000-01-01', periods=5),
+                                         range(5)], names=['date', 'id'])
+        df = pd.DataFrame({'a': [1.1, 1.2, 1.3, 1.4, 1.5]}, index=idx)
+
+        with ensure_clean_store(self.path) as store:
+            store.append('df', df, data_columns=True)
+
+            actual = store.select('df', where='id == 1')
+            expected = df.iloc[[1], :]
+            tm.assert_frame_equal(actual, expected)
+
     def test_pass_spec_to_storer(self):
 
         df = tm.makeDataFrame()
@@ -1947,7 +2006,7 @@ class TestHDFStore(Base, tm.TestCase):
             self.assertRaises(TypeError, store.append,
                               'df', Series(np.arange(10)))
 
-            # appending an incompatbile table
+            # appending an incompatible table
             df = tm.makeDataFrame()
             store.append('df', df)
 

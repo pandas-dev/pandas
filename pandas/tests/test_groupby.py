@@ -4736,6 +4736,25 @@ class TestGroupBy(tm.TestCase):
             result = not_lexsorted_df.groupby('a').mean()
         tm.assert_frame_equal(expected, result)
 
+        # a transforming function should work regardless of sort
+        # GH 14776
+        df = DataFrame({'x': ['a', 'a', 'b', 'a'],
+                        'y': [1, 1, 2, 2],
+                        'z': [1, 2, 3, 4]}).set_index(['x', 'y'])
+        self.assertFalse(df.index.is_lexsorted())
+
+        for level in [0, 1, [0, 1]]:
+            for sort in [False, True]:
+                result = df.groupby(level=level, sort=sort).apply(
+                    DataFrame.drop_duplicates)
+                expected = df
+                tm.assert_frame_equal(expected, result)
+
+                result = df.sort_index().groupby(level=level, sort=sort).apply(
+                    DataFrame.drop_duplicates)
+                expected = df.sort_index()
+                tm.assert_frame_equal(expected, result)
+
     def test_groupby_levels_and_columns(self):
         # GH9344, GH9049
         idx_names = ['x', 'y']
@@ -6754,6 +6773,13 @@ class TestGroupBy(tm.TestCase):
         expected = pd.Series([1] * 5, name='name', index=index)
         tm.assert_series_equal(result, expected)
 
+    def test_nunique_with_empty_series(self):
+        # GH 12553
+        data = pd.Series(name='name')
+        result = data.groupby(level=0).nunique()
+        expected = pd.Series(name='name', dtype='int64')
+        tm.assert_series_equal(result, expected)
+
     def test_transform_with_non_scalar_group(self):
         # GH 10165
         cols = pd.MultiIndex.from_tuples([
@@ -6810,6 +6836,23 @@ class TestGroupBy(tm.TestCase):
                              for i in range(n_rows)], dtype=float,
                              columns=["Z"], index=None)
         result = g.shift(-1)
+
+        assert_frame_equal(result, expected)
+
+    def test_agg_over_numpy_arrays(self):
+        # GH 3788
+        df = pd.DataFrame([[1, np.array([10, 20, 30])],
+                           [1, np.array([40, 50, 60])],
+                           [2, np.array([20, 30, 40])]],
+                          columns=['category', 'arraydata'])
+        result = df.groupby('category').agg(sum)
+
+        expected_data = [[np.array([50, 70, 90])], [np.array([20, 30, 40])]]
+        expected_index = pd.Index([1, 2], name='category')
+        expected_column = ['arraydata']
+        expected = pd.DataFrame(expected_data,
+                                index=expected_index,
+                                columns=expected_column)
 
         assert_frame_equal(result, expected)
 

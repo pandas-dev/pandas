@@ -27,7 +27,7 @@ about it!
 
 Feel free to ask questions on the `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter
-<https://gitter.im/pandas-dev/pandas>`_.
+<https://gitter.im/pydata/pandas>`_.
 
 Bug reports and enhancement requests
 ====================================
@@ -643,20 +643,22 @@ on Travis-CI and are only accessible from the pandas-dev/pandas repository. The
 credentials won't be available on forks of pandas. Here are the steps to run
 gbq integration tests on a forked repository:
 
-#. First, complete all the steps in the `Encrypting Files Prerequisites
-   <https://docs.travis-ci.com/user/encrypting-files/>`__ section.
-#. Sign into `Travis <https://travis-ci.org/>`__ using your GitHub account.
-#. Enable your forked repository of pandas for testing in `Travis
-   <https://travis-ci.org/profile/>`__.
-#. Run the following command from terminal where the current working directory
-   is the ``ci`` folder::
+#. Go to `Travis CI <https://travis-ci.org/>`__ and sign in with your GitHub
+   account.
+#. Click on the ``+`` icon next to the ``My Repositories`` list and enable
+   Travis builds for your fork.
+#. Click on the gear icon to edit your travis build, and add two environment
+   variables:
 
-    ./travis_encrypt_gbq.sh <gbq-json-credentials-file> <gbq-project-id>
+   - ``GBQ_PROJECT_ID`` with the value being the ID of your BigQuery project.
 
-#. Create a new branch from the branch used in your pull request. Commit the
-   encrypted file called ``travis_gbq.json.enc`` as well as the file
-   ``travis_gbq_config.txt``, in an otherwise empty commit. DO NOT commit the
-   ``*.json`` file which contains your unencrypted private key.
+   - ``SERVICE_ACCOUNT_KEY`` with the value being the contents of the JSON key
+     that you downloaded for your service account. Use single quotes around
+     your JSON key to ensure that it is treated as a string.
+
+   For both environment variables, keep the "Display value in build log" option
+   DISABLED. These variables contain sensitive data and you do not want their
+   contents being exposed in build logs.
 #. Your branch should be tested automatically once it is pushed. You can check
    the status by visiting your Travis branches page which exists at the
    following location: https://travis-ci.org/your-user-name/pandas/branches .

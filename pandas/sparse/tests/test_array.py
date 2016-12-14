@@ -182,7 +182,7 @@ class TestSparseArray(tm.TestCase):
         self.assertRaises(IndexError, lambda: self.arr.take(-11))
 
     def test_take_invalid_kwargs(self):
-        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assertRaisesRegexp(TypeError, msg, self.arr.take,
                               [2, 3], foo=2)
 
@@ -361,7 +361,7 @@ class TestSparseArray(tm.TestCase):
             arr.astype('i8')
 
         arr = SparseArray([0, np.nan, 0, 1], fill_value=0)
-        msg = "Cannot convert NA to integer"
+        msg = 'Cannot convert non-finite values \(NA or inf\) to integer'
         with tm.assertRaisesRegexp(ValueError, msg):
             arr.astype('i8')
 
@@ -452,6 +452,11 @@ class TestSparseArray(tm.TestCase):
 
         res = SparseArray(vals, fill_value=0).to_dense()
         tm.assert_numpy_array_equal(res, vals)
+
+        # see gh-14647
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            SparseArray(vals).to_dense(fill=2)
 
     def test_getitem(self):
         def _checkit(i):

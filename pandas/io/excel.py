@@ -21,7 +21,7 @@ from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
 from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
-                           string_types)
+                           string_types, OrderedDict)
 from pandas.core import config
 from pandas.formats.printing import pprint_thing
 import pandas.compat as compat
@@ -87,6 +87,14 @@ converters : dict, default None
     either be integers or column labels, values are functions that take one
     input argument, the Excel cell content, and return the transformed
     content.
+dtype : Type name or dict of column -> type, default None
+    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
+    Use `str` or `object` to preserve and not interpret dtype.
+    If converters are specified, they will be applied INSTEAD
+    of dtype conversion.
+
+    .. versionadded:: 0.20.0
+
 true_values : list, default None
     Values to consider as True
 
@@ -184,8 +192,8 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, parse_cols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
                convert_float=True, has_index_names=None, converters=None,
-               true_values=None, false_values=None, engine=None, squeeze=False,
-               **kwds):
+               dtype=None, true_values=None, false_values=None, engine=None,
+               squeeze=False, **kwds):
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
@@ -195,7 +203,7 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
         index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
         convert_float=convert_float, has_index_names=has_index_names,
-        skip_footer=skip_footer, converters=converters,
+        skip_footer=skip_footer, converters=converters, dtype=dtype,
         true_values=true_values, false_values=false_values, squeeze=squeeze,
         **kwds)
 
@@ -318,7 +326,7 @@ class ExcelFile(object):
                      parse_cols=None, parse_dates=False, date_parser=None,
                      na_values=None, thousands=None, convert_float=True,
                      true_values=None, false_values=None, verbose=False,
-                     squeeze=False, **kwds):
+                     dtype=None, squeeze=False, **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
@@ -418,9 +426,9 @@ class ExcelFile(object):
             sheets = [sheetname]
 
         # handle same-type duplicates.
-        sheets = list(set(sheets))
+        sheets = list(OrderedDict.fromkeys(sheets).keys())
 
-        output = {}
+        output = OrderedDict()
 
         for asheetname in sheets:
             if verbose:
@@ -501,6 +509,7 @@ class ExcelFile(object):
                                     skiprows=skiprows,
                                     skipfooter=skip_footer,
                                     squeeze=squeeze,
+                                    dtype=dtype,
                                     **kwds)
 
                 output[asheetname] = parser.read()

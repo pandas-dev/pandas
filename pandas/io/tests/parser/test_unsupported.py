@@ -15,7 +15,7 @@ import pandas.io.parsers as parsers
 import pandas.util.testing as tm
 
 from pandas.compat import StringIO
-from pandas.io.common import CParserError
+from pandas.io.common import ParserError
 from pandas.io.parsers import read_csv, read_table
 
 
@@ -44,22 +44,12 @@ class TestUnsupportedFeatures(tm.TestCase):
         data = 'a b c\n1 2 3'
         msg = 'does not support'
 
-        # specify C-unsupported options with python-unsupported option
-        # (options will be ignored on fallback, raise)
-        with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), sep=None,
-                       delim_whitespace=False, dtype={'a': float})
-        with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), sep='\s', dtype={'a': float})
-        with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), skipfooter=1, dtype={'a': float})
-
         # specify C engine with unsupported options (raise)
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), engine='c',
                        sep=None, delim_whitespace=False)
         with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), engine='c', sep='\s')
+            read_table(StringIO(data), engine='c', sep=r'\s')
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), engine='c', skipfooter=1)
 
@@ -67,7 +57,7 @@ class TestUnsupportedFeatures(tm.TestCase):
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_table(StringIO(data), sep=None, delim_whitespace=False)
         with tm.assert_produces_warning(parsers.ParserWarning):
-            read_table(StringIO(data), sep='\s')
+            read_table(StringIO(data), sep=r'\s')
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_table(StringIO(data), skipfooter=1)
 
@@ -78,9 +68,9 @@ a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         msg = 'Error tokenizing data'
 
-        with tm.assertRaisesRegexp(CParserError, msg):
+        with tm.assertRaisesRegexp(ParserError, msg):
             read_table(StringIO(text), sep='\s+')
-        with tm.assertRaisesRegexp(CParserError, msg):
+        with tm.assertRaisesRegexp(ParserError, msg):
             read_table(StringIO(text), engine='c', sep='\s+')
 
         msg = "Only length-1 thousands markers supported"

@@ -68,6 +68,7 @@ def apply_wraps(func):
                 other = other.tz_localize(None)
 
             result = func(self, other)
+
             if self._adjust_dst:
                 result = tslib._localize_pydatetime(result, tz)
 
@@ -154,14 +155,14 @@ class DateOffset(object):
     DateOffsets can be created to move dates forward a given number of
     valid dates.  For example, Bday(2) can be added to a date to move
     it two business days forward.  If the date does not start on a
-    valid date, first it is moved to a valid date.  Thus psedo code
+    valid date, first it is moved to a valid date.  Thus pseudo code
     is:
 
     def __add__(date):
       date = rollback(date) # does nothing if date is valid
       return date + <n number of periods>
 
-    When a date offset is created for a negitive number of periods,
+    When a date offset is created for a negative number of periods,
     the date is first rolled forward.  The pseudo code is:
 
     def __add__(date):
@@ -551,6 +552,32 @@ class BusinessMixin(object):
         if attrs:
             out += ': ' + ', '.join(attrs)
         return out
+
+    def __getstate__(self):
+        """Return a pickleable state"""
+        state = self.__dict__.copy()
+
+        # we don't want to actually pickle the calendar object
+        # as its a np.busyday; we recreate on deserilization
+        if 'calendar' in state:
+            del state['calendar']
+        try:
+            state['kwds'].pop('calendar')
+        except KeyError:
+            pass
+
+        return state
+
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+        self.__dict__ = state
+        if 'weekmask' in state and 'holidays' in state:
+            calendar, holidays = self.get_calendar(weekmask=self.weekmask,
+                                                   holidays=self.holidays,
+                                                   calendar=None)
+            self.kwds['calendar'] = self.calendar = calendar
+            self.kwds['holidays'] = self.holidays = holidays
+            self.kwds['weekmask'] = state['weekmask']
 
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
@@ -990,30 +1017,6 @@ class CustomBusinessDay(BusinessDay):
 
         busdaycalendar = np.busdaycalendar(**kwargs)
         return busdaycalendar, holidays
-
-    def __getstate__(self):
-        """Return a pickleable state"""
-        state = self.__dict__.copy()
-        del state['calendar']
-
-        # we don't want to actually pickle the calendar object
-        # as its a np.busyday; we recreate on deserilization
-        try:
-            state['kwds'].pop('calendar')
-        except:
-            pass
-
-        return state
-
-    def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
-        self.__dict__ = state
-        calendar, holidays = self.get_calendar(weekmask=self.weekmask,
-                                               holidays=self.holidays,
-                                               calendar=None)
-        self.kwds['calendar'] = self.calendar = calendar
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['weekmask'] = state['weekmask']
 
     @apply_wraps
     def apply(self, other):

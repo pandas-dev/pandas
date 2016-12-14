@@ -1,7 +1,7 @@
 from .pandas_vb_common import *
 
 
-class panel_from_dict_all_different_indexes(object):
+class Constructors1(object):
     goal_time = 0.2
 
     def setup(self):
@@ -18,7 +18,7 @@ class panel_from_dict_all_different_indexes(object):
         Panel.from_dict(self.data_frames)
 
 
-class panel_from_dict_equiv_indexes(object):
+class Constructors2(object):
     goal_time = 0.2
 
     def setup(self):
@@ -32,7 +32,7 @@ class panel_from_dict_equiv_indexes(object):
         Panel.from_dict(self.data_frames)
 
 
-class panel_from_dict_same_index(object):
+class Constructors3(object):
     goal_time = 0.2
 
     def setup(self):
@@ -46,7 +46,7 @@ class panel_from_dict_same_index(object):
         Panel.from_dict(self.data_frames)
 
 
-class panel_from_dict_two_different_indexes(object):
+class Constructors4(object):
     goal_time = 0.2
 
     def setup(self):

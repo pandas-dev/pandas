@@ -282,6 +282,46 @@ class TestDataFrameReshape(tm.TestCase, TestData):
                              index=list('xyz'))
         assert_frame_equal(result, expected)
 
+    def test_unstack_preserve_dtypes(self):
+        # Checks fix for #11847
+        df = pd.DataFrame(dict(state=['IL', 'MI', 'NC'],
+                               index=['a', 'b', 'c'],
+                               some_categories=pd.Series(['a', 'b', 'c']
+                                                         ).astype('category'),
+                               A=np.random.rand(3),
+                               B=1,
+                               C='foo',
+                               D=pd.Timestamp('20010102'),
+                               E=pd.Series([1.0, 50.0, 100.0]
+                                           ).astype('float32'),
+                               F=pd.Series([3.0, 4.0, 5.0]).astype('float64'),
+                               G=False,
+                               H=pd.Series([1, 200, 923442], dtype='int8')))
+
+        def unstack_and_compare(df, column_name):
+            unstacked1 = df.unstack([column_name])
+            unstacked2 = df.unstack(column_name)
+            assert_frame_equal(unstacked1, unstacked2)
+
+        df1 = df.set_index(['state', 'index'])
+        unstack_and_compare(df1, 'index')
+
+        df1 = df.set_index(['state', 'some_categories'])
+        unstack_and_compare(df1, 'some_categories')
+
+        df1 = df.set_index(['F', 'C'])
+        unstack_and_compare(df1, 'F')
+
+        df1 = df.set_index(['G', 'B', 'state'])
+        unstack_and_compare(df1, 'B')
+
+        df1 = df.set_index(['E', 'A'])
+        unstack_and_compare(df1, 'E')
+
+        df1 = df.set_index(['state', 'index'])
+        s = df1['A']
+        unstack_and_compare(s, 'index')
+
     def test_stack_ints(self):
         columns = MultiIndex.from_tuples(list(itertools.product(range(3),
                                                                 repeat=3)))

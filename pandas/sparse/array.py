@@ -5,6 +5,7 @@ from __future__ import division
 # pylint: disable=E1101,E1103,W0231
 
 import numpy as np
+import warnings
 
 import pandas as pd
 from pandas.core.base import PandasObject
@@ -381,8 +382,22 @@ class SparseArray(PandasObject, np.ndarray):
 
     def to_dense(self, fill=None):
         """
-        Convert SparseSeries to (dense) Series
+        Convert SparseArray to a NumPy array.
+
+        Parameters
+        ----------
+        fill: float, default None
+            DEPRECATED: this argument will be removed in a future version
+            because it is not respected by this function.
+
+        Returns
+        -------
+        arr : NumPy array
         """
+        if fill is not None:
+            warnings.warn(("The 'fill' parameter has been deprecated and "
+                           "will be removed in a future version."),
+                          FutureWarning, stacklevel=2)
         return self.values
 
     def __iter__(self):
@@ -532,8 +547,8 @@ class SparseArray(PandasObject, np.ndarray):
 
     def copy(self, deep=True):
         """
-        Make a copy of the SparseSeries. Only the actual sparse values need to
-        be copied
+        Make a copy of the SparseArray. Only the actual sparse values need to
+        be copied.
         """
         if deep:
             values = self.sp_values.copy()
@@ -544,9 +559,9 @@ class SparseArray(PandasObject, np.ndarray):
 
     def count(self):
         """
-        Compute sum of non-NA/null observations in SparseSeries. If the
+        Compute sum of non-NA/null observations in SparseArray. If the
         fill_value is not NaN, the "sparse" locations will be included in the
-        observation count
+        observation count.
 
         Returns
         -------

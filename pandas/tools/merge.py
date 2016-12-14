@@ -371,7 +371,7 @@ def merge_asof(left, right, on=None,
 
     By default we are taking the asof of the quotes
 
-    >>> pd.asof_merge(trades, quotes,
+    >>> pd.merge_asof(trades, quotes,
     ...                       on='time',
     ...                       by='ticker')
                          time ticker   price  quantity     bid     ask
@@ -383,7 +383,7 @@ def merge_asof(left, right, on=None,
 
     We only asof within 2ms betwen the quote time and the trade time
 
-    >>> pd.asof_merge(trades, quotes,
+    >>> pd.merge_asof(trades, quotes,
     ...                       on='time',
     ...                       by='ticker',
     ...                       tolerance=pd.Timedelta('2ms'))
@@ -398,7 +398,7 @@ def merge_asof(left, right, on=None,
     and we exclude exact matches on time. However *prior* data will
     propogate forward
 
-    >>> pd.asof_merge(trades, quotes,
+    >>> pd.merge_asof(trades, quotes,
     ...                       on='time',
     ...                       by='ticker',
     ...                       tolerance=pd.Timedelta('10ms'),
@@ -816,8 +816,8 @@ class _MergeOperation(object):
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
-                raise MergeError('Can only pass on OR left_on and '
-                                 'right_on')
+                raise MergeError('Can only pass argument "on" OR "left_on" '
+                                 'and "right_on", not a combination of both.')
             self.left_on = self.right_on = self.on
         elif self.left_on is not None:
             n = len(self.left_on)
@@ -1021,7 +1021,7 @@ class _AsOfMerge(_OrderedMerge):
             msg = "incompatible tolerance, must be compat " \
                   "with type {0}".format(type(lt))
 
-            if is_datetime64_dtype(lt):
+            if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
                 if not isinstance(self.tolerance, Timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
@@ -1034,7 +1034,7 @@ class _AsOfMerge(_OrderedMerge):
                     raise MergeError("tolerance must be positive")
 
             else:
-                raise MergeError(msg)
+                raise MergeError("key must be integer or timestamp")
 
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):

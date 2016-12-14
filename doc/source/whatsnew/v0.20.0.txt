@@ -9,10 +9,11 @@ users upgrade to this version.
 
 Highlights include:
 
+- Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
-.. contents:: What's new in v0.19.0
+.. contents:: What's new in v0.20.0
     :local:
     :backlinks: none
 
@@ -22,16 +23,48 @@ New features
 ~~~~~~~~~~~~
 
 
+``dtype`` keyword for data io
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+The ``dtype`` keyword argument in the :func:`read_csv` function for specifying the types of parsed columns
+ is now supported with the ``'python'`` engine (:issue:`14295`). See the :ref:`io docs <io.dtypes>` for more information.
 
+.. ipython:: python
+
+   data = "a,b\n1,2\n3,4"
+   pd.read_csv(StringIO(data), engine='python').dtypes
+   pd.read_csv(StringIO(data), engine='python', dtype={'a':'float64', 'b':'object'}).dtypes
+
+The ``dtype`` keyword argument is also now supported in the :func:`read_fwf` function for parsing
+fixed-width text files, and :func:`read_excel` for parsing Excel files.
+
+.. ipython:: python
+
+   data = "a  b\n1  2\n3  4"
+   pd.read_fwf(StringIO(data)).dtypes
+   pd.read_fwf(StringIO(data), dtype={'a':'float64', 'b':'object'}).dtypes
 
 .. _whatsnew_0200.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- ``Series.sort_index`` accepts parameters ``kind`` and ``na_position`` (:issue:`13589`, :issue:`14444`)
+
+- ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
+
 
 - Multiple offset aliases with decimal points no longer regarded as ints (e.g. 0.5s as 5s) (:issue:`8419`)
 
+- New ``UnsortedIndexError`` (subclass of ``KeyError``) raised when indexing/slicing into an
+  unsorted MultiIndex (:issue:`11897`). This allows differentiation between errors due to lack
+  of sorting or an incorrect key. See :ref:`here <advanced.unsorted>`
+
+- ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (issue:`14714`)
+- ``Series`` provides a ``to_excel`` method to output Excel files (:issue:`8825`)
+- The ``usecols`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`14154`)
+- ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
+- ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
+- ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 
 
 .. _whatsnew_0200.api_breaking:
@@ -42,6 +75,7 @@ Backwards incompatible API changes
 .. _whatsnew_0200.api:
 
 
+- ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
 
 
 
@@ -49,11 +83,18 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- Change error message text when indexing via a
+  boolean ``Series`` that has an incompatible index (:issue:`14491`)
+
 .. _whatsnew_0200.deprecations:
 
 Deprecations
 ^^^^^^^^^^^^
 
+- ``Series.repeat()`` has deprecated the ``reps`` parameter in favor of ``repeats`` (:issue:`12662`)
+- ``Index.repeat()`` and ``MultiIndex.repeat()`` have deprecated the ``n`` parameter in favor of ``repeats`` (:issue:`12662`)
+- ``Categorical.searchsorted()`` and ``Series.searchsorted()`` have deprecated the ``v`` parameter in favor of ``value`` (:issue:`12662`)
+- ``TimedeltaIndex.searchsorted()``, ``DatetimeIndex.searchsorted()``, and ``PeriodIndex.searchsorted()`` have deprecated the ``key`` parameter in favor of ``value`` (:issue:`12662`)
 
 
 
@@ -64,6 +105,8 @@ Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
+- ``SparseArray.to_dense()`` has deprecated the ``fill`` parameter, as that parameter was not being respected (:issue:`14647`)
+- ``SparseSeries.to_dense()`` has deprecated the ``sparse_only`` parameter (:issue:`14647`)
 
 
 
@@ -73,6 +116,7 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Improved performance of ``pd.wide_to_long()`` (:issue:`14779`)
 
 
 
@@ -81,3 +125,20 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)

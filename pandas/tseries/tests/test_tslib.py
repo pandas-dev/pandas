@@ -327,8 +327,9 @@ class TestTimestamp(tm.TestCase):
 
         # dateutil zone change (only matters for repr)
         import dateutil
-        if dateutil.__version__ >= LooseVersion(
-                '2.3') and dateutil.__version__ <= LooseVersion('2.4.0'):
+        if (dateutil.__version__ >= LooseVersion('2.3') and
+            (dateutil.__version__ <= LooseVersion('2.4.0') or
+             dateutil.__version__ >= LooseVersion('2.6.0'))):
             timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern',
                          'dateutil/US/Pacific']
         else:

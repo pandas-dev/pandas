@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, date
 from collections import defaultdict
 
 import numpy as np
-from numpy import percentile as _quantile
 
 from pandas.core.base import PandasObject
 
@@ -623,7 +622,6 @@ class Block(PandasObject):
 
         original_to_replace = to_replace
         mask = isnull(self.values)
-
         # try to replace, if we raise an error, convert to ObjectBlock and
         # retry
         try:
@@ -1147,8 +1145,9 @@ class Block(PandasObject):
         def handle_error():
 
             if raise_on_error:
+                # The 'detail' variable is defined in outer scope.
                 raise TypeError('Could not operate %s with block values %s' %
-                                (repr(other), str(detail)))
+                                (repr(other), str(detail)))  # noqa
             else:
                 # return the values
                 result = np.empty(values.shape, dtype='O')
@@ -1315,16 +1314,38 @@ class Block(PandasObject):
 
         values = self.get_values()
         values, _, _, _ = self._try_coerce_args(values, values)
-        mask = isnull(self.values)
-        if not lib.isscalar(mask) and mask.any():
 
-            # even though this could be a 2-d mask it appears
-            # as a 1-d result
-            mask = mask.reshape(values.shape)
-            result_shape = tuple([values.shape[0]] + [-1] * (self.ndim - 1))
-            values = _block_shape(values[~mask], ndim=self.ndim)
-            if self.ndim > 1:
-                values = values.reshape(result_shape)
+        def _nanpercentile1D(values, mask, q, **kw):
+            values = values[~mask]
+
+            if len(values) == 0:
+                if is_scalar(q):
+                    return self._na_value
+                else:
+                    return np.array([self._na_value] * len(q),
+                                    dtype=values.dtype)
+
+            return np.percentile(values, q, **kw)
+
+        def _nanpercentile(values, q, axis, **kw):
+
+            mask = isnull(self.values)
+            if not is_scalar(mask) and mask.any():
+                if self.ndim == 1:
+                    return _nanpercentile1D(values, mask, q, **kw)
+                else:
+                    # for nonconsolidatable blocks mask is 1D, but values 2D
+                    if mask.ndim < values.ndim:
+                        mask = mask.reshape(values.shape)
+                    if axis == 0:
+                        values = values.T
+                        mask = mask.T
+                    result = [_nanpercentile1D(val, m, q, **kw) for (val, m)
+                              in zip(list(values), list(mask))]
+                    result = np.array(result, dtype=values.dtype, copy=False).T
+                    return result
+            else:
+                return np.percentile(values, q, axis=axis, **kw)
 
         from pandas import Float64Index
         is_empty = values.shape[axis] == 0
@@ -1343,13 +1364,13 @@ class Block(PandasObject):
             else:
 
                 try:
-                    result = _quantile(values, np.array(qs) * 100,
-                                       axis=axis, **kw)
+                    result = _nanpercentile(values, np.array(qs) * 100,
+                                            axis=axis, **kw)
                 except ValueError:
 
                     # older numpies don't handle an array for q
-                    result = [_quantile(values, q * 100,
-                                        axis=axis, **kw) for q in qs]
+                    result = [_nanpercentile(values, q * 100,
+                                             axis=axis, **kw) for q in qs]
 
                 result = np.array(result, copy=False)
                 if self.ndim > 1:
@@ -1368,7 +1389,7 @@ class Block(PandasObject):
                 else:
                     result = np.array([self._na_value] * len(self))
             else:
-                result = _quantile(values, qs * 100, axis=axis, **kw)
+                result = _nanpercentile(values, qs * 100, axis=axis, **kw)
 
         ndim = getattr(result, 'ndim', None) or 0
         result = self._try_coerce_result(result)
@@ -1773,13 +1794,14 @@ class BoolBlock(NumericBlock):
         return issubclass(value.dtype.type, np.bool_)
 
     def replace(self, to_replace, value, inplace=False, filter=None,
-                regex=False, mgr=None):
+                regex=False, convert=True, mgr=None):
         to_replace_values = np.atleast_1d(to_replace)
         if not np.can_cast(to_replace_values, bool):
             return self
         return super(BoolBlock, self).replace(to_replace, value,
                                               inplace=inplace, filter=filter,
-                                              regex=regex, mgr=mgr)
+                                              regex=regex, convert=convert,
+                                              mgr=mgr)
 
 
 class ObjectBlock(Block):
@@ -3192,6 +3214,7 @@ class BlockManager(PandasObject):
         masks = [comp(s) for i, s in enumerate(src_list)]
 
         result_blocks = []
+        src_len = len(src_list) - 1
         for blk in self.blocks:
 
             # its possible to get multiple result blocks here
@@ -3201,8 +3224,9 @@ class BlockManager(PandasObject):
                 new_rb = []
                 for b in rb:
                     if b.dtype == np.object_:
+                        convert = i == src_len
                         result = b.replace(s, d, inplace=inplace, regex=regex,
-                                           mgr=mgr)
+                                           mgr=mgr, convert=convert)
                         new_rb = _extend_blocks(result, new_rb)
                     else:
                         # get our mask for this element, sized to this
@@ -4766,7 +4790,12 @@ def _putmask_smart(v, m, n):
 
     # change the dtype
     dtype, _ = _maybe_promote(n.dtype)
-    nv = v.astype(dtype)
+
+    if is_extension_type(v.dtype) and is_object_dtype(dtype):
+        nv = v.get_values(dtype)
+    else:
+        nv = v.astype(dtype)
+
     try:
         nv[m] = n[m]
     except ValueError:
