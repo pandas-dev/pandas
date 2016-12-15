@@ -8,7 +8,6 @@ of the parsers defined in parsers.py
 import nose
 
 import pandas.util.testing as tm
-from pandas import compat
 
 
 class CompressionTests(object):

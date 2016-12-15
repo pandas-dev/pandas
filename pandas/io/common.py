@@ -249,8 +249,8 @@ def _infer_compression(filepath_or_buffer, compression):
     """
     Get the compression method for filepath_or_buffer. If compression='infer',
     the inferred compression method is returned. Otherwise, the input
-    compression method is returned unchanged, unless it's invalid, in which case
-    an error is raised.
+    compression method is returned unchanged, unless it's invalid, in which
+    case an error is raised.
 
     Parameters
     ----------
