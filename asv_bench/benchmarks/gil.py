@@ -379,3 +379,38 @@ class nogil_read_csv(object):
 
     def time_read_csv_datetime(self):
         self.pg_read_csv_datetime()
+
+
+class nogil_factorize(object):
+    number = 1
+    repeat = 5
+
+    def setup(self):
+        if (not have_real_test_parallel):
+            raise NotImplementedError
+
+        np.random.seed(1234)
+        self.strings = tm.makeStringIndex(100000)
+
+    def factorize_strings(self):
+        pd.factorize(self.strings)
+
+    @test_parallel(num_threads=4)
+    def _pg_factorize_strings_4(self):
+        self.factorize_strings()
+
+    def time_factorize_strings_4(self):
+        for i in range(2):
+            self._pg_factorize_strings_4()
+
+    @test_parallel(num_threads=2)
+    def _pg_factorize_strings_2(self):
+        self.factorize_strings()
+
+    def time_factorize_strings_2(self):
+        for i in range(4):
+            self._pg_factorize_strings_2()
+
+    def time_factorize_strings(self):
+        for i in range(8):
+            self.factorize_strings()
