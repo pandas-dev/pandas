@@ -688,46 +688,57 @@ class TestSparseArrayAnalytics(tm.TestCase):
                               SparseArray(data), out=out)
 
     def test_cumsum(self):
-        data = np.arange(10).astype(float)
-        out = SparseArray(data).cumsum()
-        expected = SparseArray(data.cumsum())
-        tm.assert_sp_array_equal(out, expected)
+        non_null_data = np.array([1, 2, 3, 4, 5], dtype=float)
+        non_null_expected = SparseArray(non_null_data.cumsum())
 
-        # TODO: gh-12855 - return a SparseArray here
-        data[5] = np.nan
-        out = SparseArray(data, fill_value=2).cumsum()
-        self.assertNotIsInstance(out, SparseArray)
-        tm.assert_numpy_array_equal(out, data.cumsum())
+        null_data = np.array([1, 2, np.nan, 4, 5], dtype=float)
+        null_expected = SparseArray(np.array([1.0, 3.0, np.nan, 7.0, 12.0]))
 
-        out = SparseArray(data, fill_value=np.nan).cumsum()
-        expected = SparseArray(np.array([
-            0, 1, 3, 6, 10, np.nan, 16, 23, 31, 40]))
-        tm.assert_sp_array_equal(out, expected)
+        for data, expected in [
+            (null_data, null_expected),
+            (non_null_data, non_null_expected)
+        ]:
+            out = SparseArray(data).cumsum()
+            tm.assert_sp_array_equal(out, expected)
+
+            out = SparseArray(data, fill_value=np.nan).cumsum()
+            tm.assert_sp_array_equal(out, expected)
+
+            out = SparseArray(data, fill_value=2).cumsum()
+            tm.assert_sp_array_equal(out, expected)
+
+            axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
+            msg = "axis\(={axis}\) out of bounds".format(axis=axis)
+            with tm.assertRaisesRegexp(ValueError, msg):
+                SparseArray(data).cumsum(axis=axis)
 
     def test_numpy_cumsum(self):
-        data = np.arange(10).astype(float)
-        out = np.cumsum(SparseArray(data))
-        expected = SparseArray(data.cumsum())
-        tm.assert_sp_array_equal(out, expected)
+        non_null_data = np.array([1, 2, 3, 4, 5], dtype=float)
+        non_null_expected = SparseArray(non_null_data.cumsum())
 
-        # TODO: gh-12855 - return a SparseArray here
-        data[5] = np.nan
-        out = np.cumsum(SparseArray(data, fill_value=2))
-        self.assertNotIsInstance(out, SparseArray)
-        tm.assert_numpy_array_equal(out, data.cumsum())
+        null_data = np.array([1, 2, np.nan, 4, 5], dtype=float)
+        null_expected = SparseArray(np.array([1.0, 3.0, np.nan, 7.0, 12.0]))
 
-        out = np.cumsum(SparseArray(data, fill_value=np.nan))
-        expected = SparseArray(np.array([
-            0, 1, 3, 6, 10, np.nan, 16, 23, 31, 40]))
-        tm.assert_sp_array_equal(out, expected)
+        for data, expected in [
+            (null_data, null_expected),
+            (non_null_data, non_null_expected)
+        ]:
+            out = np.cumsum(SparseArray(data))
+            tm.assert_sp_array_equal(out, expected)
 
-        msg = "the 'dtype' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
-                              SparseArray(data), dtype=np.int64)
+            out = np.cumsum(SparseArray(data, fill_value=np.nan))
+            tm.assert_sp_array_equal(out, expected)
 
-        msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
-                              SparseArray(data), out=out)
+            out = np.cumsum(SparseArray(data, fill_value=2))
+            tm.assert_sp_array_equal(out, expected)
+
+            msg = "the 'dtype' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
+                                  SparseArray(data), dtype=np.int64)
+
+            msg = "the 'out' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
+                                  SparseArray(data), out=out)
 
     def test_mean(self):
         data = np.arange(10).astype(float)

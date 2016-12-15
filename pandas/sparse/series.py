@@ -630,21 +630,29 @@ class SparseSeries(Series):
 
     def cumsum(self, axis=0, *args, **kwargs):
         """
-        Cumulative sum of values. Preserves locations of NaN values
+        Cumulative sum of non-NA/null values.
+
+        When performing the cumulative summation, any non-NA/null values will
+        be skipped. The resulting SparseSeries will preserve the locations of
+        NaN values, but the fill value will be `np.nan` regardless.
+
+        Parameters
+        ----------
+        axis : {0}
 
         Returns
         -------
-        cumsum : SparseSeries if `self` has a null `fill_value` and a
-                 generic Series otherwise
+        cumsum : SparseSeries
         """
         nv.validate_cumsum(args, kwargs)
-        new_array = SparseArray.cumsum(self.values)
-        if isinstance(new_array, SparseArray):
-            return self._constructor(
-                new_array, index=self.index,
-                sparse_index=new_array.sp_index).__finalize__(self)
-        # TODO: gh-12855 - return a SparseSeries here
-        return Series(new_array, index=self.index).__finalize__(self)
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
+        new_array = self.values.cumsum()
+
+        return self._constructor(
+            new_array, index=self.index,
+            sparse_index=new_array.sp_index).__finalize__(self)
 
     @Appender(generic._shared_docs['isnull'])
     def isnull(self):
