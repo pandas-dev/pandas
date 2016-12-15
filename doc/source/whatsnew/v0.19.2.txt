@@ -25,8 +25,8 @@ Performance Improvements
 
 .. _whatsnew_0192.enhancements.other:
 
-Other enhancements
-^^^^^^^^^^^^^^^^^^
+Other Enhancements
+~~~~~~~~~~~~~~~~~~
 
 - ``pd.merge_asof()`` gained ``left_index``/``right_index`` and ``left_by``/``right_by`` arguments (:issue:`14253`)
 
