@@ -78,7 +78,7 @@ Bug Fixes
 - Bug in clipboard functions on linux with python2 with unicode and separators (:issue:`13747`)
 - Bug in clipboard functions on Windows 10 and python 3 (:issue:`14362`, :issue:`12807`)
 - Bug in ``.to_clipboard()`` and Excel compat (:issue:`12529`)
-
+- Bug in ``DataFrame.combine_first()`` for integer columns (:issue:`14687`).
 
 - Bug in ``pd.read_csv()`` in which the ``dtype`` parameter was not being respected for empty data (:issue:`14712`)
 - Bug in ``pd.read_csv()`` in which the ``nrows`` parameter was not being respected for large input when using the C engine for parsing (:issue:`7626`)
