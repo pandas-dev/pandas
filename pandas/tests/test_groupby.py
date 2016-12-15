@@ -3954,6 +3954,92 @@ class TestGroupBy(tm.TestCase):
         expected = self.df.groupby('A').agg(np.mean)
         assert_frame_equal(result, expected)
 
+    def test_rank(self):
+        # normal behavior
+        df = DataFrame({'a': ['A1', 'A1', 'A1'],
+                        'b': [2, 1, 1],
+                        'c': 1.})
+        df = df.set_index('a')
+        dg = df.groupby('c')
+        expected = DataFrame({'a': ['A1', 'A1', 'A1'],
+                              'b': [3., 1., 2.]})
+        expected = expected.set_index('a')
+
+        result = dg.rank(method='first')
+        assert_frame_equal(result, expected)
+
+        result = dg.rank(method='first', numeric_only=True)
+        assert_frame_equal(result, expected)
+
+        result = dg.rank(method='first', numeric_only=False)
+        assert_frame_equal(result, expected)
+
+        # GH 11759: non numeric data
+        df = DataFrame({'a': ['A1', 'A1', 'A1'],
+                        'b': ['B2', 'B1', 'B1'],
+                        'c': 1.})
+        df = df.set_index('a')
+        dg = df.groupby('c')
+        self.assertRaises(DataError, dg.rank,
+                          method='first')
+        self.assertRaises(DataError, dg.rank,
+                          method='first', numeric_only=True)
+        self.assertRaises(ValueError, dg.rank,
+                          method='first', numeric_only=False)
+        # such a ValueError is raised by pandas.algos.rank_2d_generic
+        # for regular (non-grouped) dataframes
+
+        # with categorical data
+        df = DataFrame({'a': ['A1', 'A1', 'A1'],
+                        'b': Categorical(['big', 'small', 'small'],
+                                         categories=['small', 'big'],
+                                         ordered=True),
+                        'c': 1.})
+        df = df.set_index('a')
+        dg = df.groupby('c')
+        self.assertRaises(DataError, dg.rank,
+                          method='first')
+        self.assertRaises(DataError, dg.rank,
+                          method='first', numeric_only=True)
+        self.assertRaises(ValueError, dg.rank,
+                          method='first', numeric_only=False)
+
+        # with datetime data
+        df = DataFrame({'a': ['A1', 'A1', 'A1'],
+                        'b': [datetime(2002, 2, 2), datetime(2001, 1, 1),
+                              datetime(2001, 1, 1)],
+                        'c': 1.})
+        df = df.set_index('a')
+        dg = df.groupby('c')
+
+        result = dg.rank(method='first')
+        assert_frame_equal(result, expected)
+
+        result = dg.rank(method='first', numeric_only=True)
+        assert_frame_equal(result, expected)
+
+        result = dg.rank(method='first', numeric_only=False)
+        assert_frame_equal(result, expected)
+
+        # with another numeric column
+        df = DataFrame({'a': ['A1', 'A1', 'A1'],
+                        'b': ['B2', 'B1', 'B1'],
+                        'c': 1.,
+                        'd': 1.})
+        df = df.set_index('a')
+        dg = df.groupby('c')
+        expected = df.drop('b', axis=1).groupby('c').rank(method='first')
+
+        result = dg.rank(method='first')
+        assert_frame_equal(result, expected)
+
+        result = dg.rank(method='first', numeric_only=True)
+        assert_frame_equal(result, expected)
+
+        self.assertRaises(ValueError, dg.rank,
+                          method='first', numeric_only=False)
+        # same remark as above
+
     def test_rank_apply(self):
         lev1 = tm.rands_array(10, 100)
         lev2 = tm.rands_array(10, 130)
@@ -6090,7 +6176,6 @@ class TestGroupBy(tm.TestCase):
             'cumcount',
             'resample',
             'describe',
-            'rank',
             'quantile',
             'fillna',
             'mad',
@@ -6131,7 +6216,6 @@ class TestGroupBy(tm.TestCase):
             'cumcount',
             'resample',
             'describe',
-            'rank',
             'quantile',
             'fillna',
             'mad',
