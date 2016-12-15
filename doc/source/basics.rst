@@ -1757,12 +1757,14 @@ then the more *general* one will be used as the result of the operation.
    # conversion of dtypes
    df3.astype('float32').dtypes
 
+.. versionadded:: 0.20.0
+
 Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`
 
 .. ipython:: python
 
    dft = pd.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7, 8, 9]})
-   dft[['a','b']] = dft[['a','b']].astype(np.uint8)
+   dft = dft.astype({'a': np.float64, 'c': np.uint8})
    dft
    dft.dtypes
 
