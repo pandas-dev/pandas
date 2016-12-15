@@ -1779,6 +1779,18 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`
        dft.loc[:, ['a', 'b']] = dft.loc[:, ['a', 'b']].astype(np.uint8)
        dft.dtypes
 
+
+.. versionadded:: 0.19
+
+Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFrame.astype`
+
+.. ipython:: python
+
+   dft1 = pd.DataFrame({'a': [1,0,1], 'b': [4,5,6], 'c': [7, 8, 9]})
+   dft1 = dft1.astype({'a': np.bool, 'c': np.float64})
+   dft1
+   dft1.dtypes
+
 .. _basics.object_conversion:
 
 object conversion
