@@ -35,6 +35,9 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
  * Copyright (c) 1994 Sun Microsystems, Inc.
 */
 
+#ifndef PANDAS_SRC_UJSON_PYTHON_PY_DEFINES_H_
+#define PANDAS_SRC_UJSON_PYTHON_PY_DEFINES_H_
+
 #include <Python.h>
 
 #if PY_MAJOR_VERSION >= 3
@@ -51,3 +54,5 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #define PyString_FromString     PyUnicode_FromString
 
 #endif
+
+#endif  // PANDAS_SRC_UJSON_PYTHON_PY_DEFINES_H_
