@@ -3666,7 +3666,7 @@ class DataFrame(NDFrame):
 
             # if we have different dtypes, possibily promote
             new_dtype = this_dtype
-            if this_dtype != other_dtype:
+            if not is_dtype_equal(this_dtype, other_dtype):
                 new_dtype = _find_common_type([this_dtype, other_dtype])
                 if not is_dtype_equal(this_dtype, new_dtype):
                     series = series.astype(new_dtype)
