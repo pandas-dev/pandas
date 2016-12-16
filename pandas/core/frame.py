@@ -3718,10 +3718,8 @@ class DataFrame(NDFrame):
                 otherSeries[other_mask] = fill_value
 
             # if we have different dtypes, possibily promote
-            if notnull(series).all():
-                new_dtype = this_dtype
-                otherSeries = otherSeries.astype(new_dtype)
-            else:
+            new_dtype = this_dtype
+            if not is_dtype_equal(this_dtype, other_dtype):
                 new_dtype = _find_common_type([this_dtype, other_dtype])
                 if not is_dtype_equal(this_dtype, new_dtype):
                     series = series.astype(new_dtype)
