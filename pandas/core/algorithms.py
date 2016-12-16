@@ -65,7 +65,7 @@ def match(to_match, values, na_sentinel=-1):
         values = np.array(values, dtype='O')
 
     f = lambda htype, caster: _match_generic(to_match, values, htype, caster)
-    result = _hashtable_algo(f, values.dtype, np.int64)
+    result = _hashtable_algo(f, values, np.int64)
 
     if na_sentinel != -1:
 
@@ -102,7 +102,7 @@ def unique(values):
     values = com._asarray_tuplesafe(values)
 
     f = lambda htype, caster: _unique_generic(values, htype, caster)
-    return _hashtable_algo(f, values.dtype)
+    return _hashtable_algo(f, values)
 
 
 def _unique_generic(values, table_type, type_caster):
@@ -759,10 +759,12 @@ _dtype_map = {'datetime64[ns]': 'int64', 'timedelta64[ns]': 'int64'}
 # helpers #
 # ------- #
 
-def _hashtable_algo(f, dtype, return_dtype=None):
+def _hashtable_algo(f, values, return_dtype=None):
     """
     f(HashTable, type_caster) -> result
     """
+
+    dtype = values.dtype
     if is_float_dtype(dtype):
         return f(htable.Float64HashTable, _ensure_float64)
     elif is_integer_dtype(dtype):
@@ -773,17 +775,25 @@ def _hashtable_algo(f, dtype, return_dtype=None):
     elif is_timedelta64_dtype(dtype):
         return_dtype = return_dtype or 'm8[ns]'
         return f(htable.Int64HashTable, _ensure_int64).view(return_dtype)
-    else:
-        return f(htable.PyObjectHashTable, _ensure_object)
+
+    # its cheaper to use a String Hash Table than Object
+    if lib.infer_dtype(values) in ['string']:
+        return f(htable.StringHashTable, _ensure_object)
+
+    # use Object
+    return f(htable.PyObjectHashTable, _ensure_object)
 
 _hashtables = {
     'float64': (htable.Float64HashTable, htable.Float64Vector),
     'int64': (htable.Int64HashTable, htable.Int64Vector),
+    'string': (htable.StringHashTable, htable.ObjectVector),
     'generic': (htable.PyObjectHashTable, htable.ObjectVector)
 }
 
 
 def _get_data_algo(values, func_map):
+
+    f = None
     if is_float_dtype(values):
         f = func_map['float64']
         values = _ensure_float64(values)
@@ -796,8 +806,19 @@ def _get_data_algo(values, func_map):
         f = func_map['int64']
         values = _ensure_int64(values)
     else:
-        f = func_map['generic']
+
         values = _ensure_object(values)
+
+        # its cheaper to use a String Hash Table than Object
+        if lib.infer_dtype(values) in ['string']:
+            try:
+                f = func_map['string']
+            except KeyError:
+                pass
+
+    if f is None:
+        f = func_map['generic']
+
     return f, values
 
 
