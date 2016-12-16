@@ -335,7 +335,7 @@ class DatetimeIndexOpsMixin(object):
                 self._shallow_copy(result)
 
             if not isinstance(result, Index):
-                raise TypeError
+                raise TypeError('The map function must return an Index object')
             return result
         except Exception:
             return self.asobject.map(f)
