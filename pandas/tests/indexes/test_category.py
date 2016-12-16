@@ -207,19 +207,20 @@ class TestCategoricalIndex(Base, tm.TestCase):
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('CBA'),
                                  ordered=True)
         result = ci.map(lambda x: x.lower())
-        exp = pd.Categorical(list('ababc'), categories=list('cba'),
-                             ordered=True)
-        tm.assert_categorical_equal(result, exp)
+        exp = pd.CategoricalIndex(list('ababc'), categories=list('cba'),
+                                  ordered=True)
+        tm.assert_index_equal(result, exp)
 
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('BAC'),
                                  ordered=False, name='XXX')
         result = ci.map(lambda x: x.lower())
-        exp = pd.Categorical(list('ababc'), categories=list('bac'),
-                             ordered=False)
-        tm.assert_categorical_equal(result, exp)
+        exp = pd.CategoricalIndex(list('ababc'), categories=list('bac'),
+                                  ordered=False, name='XXX')
+        tm.assert_index_equal(result, exp)
 
-        tm.assert_numpy_array_equal(ci.map(lambda x: 1),
-                                    np.array([1] * 5, dtype=np.int64))
+        # GH 12766: Return an index not an array
+        tm.assert_index_equal(ci.map(lambda x: 1),
+                              Index(np.array([1] * 5, dtype=np.int64), name='XXX'))
 
         # change categories dtype
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('BAC'),
@@ -228,9 +229,9 @@ class TestCategoricalIndex(Base, tm.TestCase):
             return {'A': 10, 'B': 20, 'C': 30}.get(x)
 
         result = ci.map(f)
-        exp = pd.Categorical([10, 20, 10, 20, 30], categories=[20, 10, 30],
-                             ordered=False)
-        tm.assert_categorical_equal(result, exp)
+        exp = pd.CategoricalIndex([10, 20, 10, 20, 30], categories=[20, 10, 30],
+                                  ordered=False)
+        tm.assert_index_equal(result, exp)
 
     def test_where(self):
         i = self.create_index()

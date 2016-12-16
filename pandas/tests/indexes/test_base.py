@@ -767,6 +767,48 @@ class TestIndex(Base, tm.TestCase):
         self.assertRaises(TypeError, lambda: idx - idx.tolist())
         self.assertRaises(TypeError, lambda: idx.tolist() - idx)
 
+    def test_map_identity_mapping(self):
+        # GH 12766
+        for name, cur_index in self.indices.items():
+            tm.assert_index_equal(cur_index, cur_index.map(lambda x: x))
+
+    def test_map_with_tuples(self):
+        # GH 12766
+
+        # Test that returning a single tuple from an Index
+        #   returns an Index.
+        boolean_index = tm.makeIntIndex(3).map(lambda x: (x,))
+        expected = Index([(0,), (1,), (2,)])
+        tm.assert_index_equal(boolean_index, expected)
+
+        # Test that returning a tuple from a map of a single index
+        #   returns a MultiIndex object.
+        boolean_index = tm.makeIntIndex(3).map(lambda x: (x, x == 1))
+        expected = MultiIndex.from_tuples([(0, False), (1, True), (2, False)])
+        tm.assert_index_equal(boolean_index, expected)
+
+        # Test that returning a single object from a MultiIndex
+        #   returns an Index.
+        first_level = ['foo', 'bar', 'baz']
+        multi_index = MultiIndex.from_tuples(lzip(first_level, [1, 2, 3]))
+        reduced_index = multi_index.map(lambda x: x[0])
+        tm.assert_index_equal(reduced_index, Index(first_level))
+
+    def test_map_tseries_indices_return_index(self):
+        date_index = tm.makeDateIndex(10)
+        exp = Index([1] * 10)
+        tm.assert_index_equal(exp, date_index.map(lambda x: 1))
+
+        period_index = tm.makePeriodIndex(10)
+        tm.assert_index_equal(exp, period_index.map(lambda x: 1))
+
+        tdelta_index = tm.makeTimedeltaIndex(10)
+        tm.assert_index_equal(exp, tdelta_index.map(lambda x: 1))
+
+        date_index = tm.makeDateIndex(24, freq='h', name='hourly')
+        exp = Index(range(24), name='hourly')
+        tm.assert_index_equal(exp, date_index.map(lambda x: x.hour))
+
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
 
@@ -1194,16 +1236,16 @@ class TestIndex(Base, tm.TestCase):
             self.assert_index_equal(result, expected)
 
         for in_slice, expected in [
-                (SLC[::-1], 'yxdcb'), (SLC['b':'y':-1], ''),
-                (SLC['b'::-1], 'b'), (SLC[:'b':-1], 'yxdcb'),
-                (SLC[:'y':-1], 'y'), (SLC['y'::-1], 'yxdcb'),
-                (SLC['y'::-4], 'yb'),
-                # absent labels
-                (SLC[:'a':-1], 'yxdcb'), (SLC[:'a':-2], 'ydb'),
-                (SLC['z'::-1], 'yxdcb'), (SLC['z'::-3], 'yc'),
-                (SLC['m'::-1], 'dcb'), (SLC[:'m':-1], 'yx'),
-                (SLC['a':'a':-1], ''), (SLC['z':'z':-1], ''),
-                (SLC['m':'m':-1], '')
+            (SLC[::-1], 'yxdcb'), (SLC['b':'y':-1], ''),
+            (SLC['b'::-1], 'b'), (SLC[:'b':-1], 'yxdcb'),
+            (SLC[:'y':-1], 'y'), (SLC['y'::-1], 'yxdcb'),
+            (SLC['y'::-4], 'yb'),
+            # absent labels
+            (SLC[:'a':-1], 'yxdcb'), (SLC[:'a':-2], 'ydb'),
+            (SLC['z'::-1], 'yxdcb'), (SLC['z'::-3], 'yc'),
+            (SLC['m'::-1], 'dcb'), (SLC[:'m':-1], 'yx'),
+            (SLC['a':'a':-1], ''), (SLC['z':'z':-1], ''),
+            (SLC['m':'m':-1], '')
         ]:
             check_slice(in_slice, expected)
 
