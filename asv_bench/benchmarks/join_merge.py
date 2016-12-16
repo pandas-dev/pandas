@@ -302,12 +302,19 @@ class MergeAsof(object):
         self.df1 = self.df1.sort_values('time')
         self.df2 = self.df2.sort_values('time')
 
+        self.df1['time32'] = np.int32(self.df1.time)
+        self.df2['time32'] = np.int32(self.df2.time)
+
         self.df1a = self.df1[['time', 'value1']]
         self.df2a = self.df2[['time', 'value2']]
         self.df1b = self.df1[['time', 'key', 'value1']]
         self.df2b = self.df2[['time', 'key', 'value2']]
         self.df1c = self.df1[['time', 'key2', 'value1']]
         self.df2c = self.df2[['time', 'key2', 'value2']]
+        self.df1d = self.df1[['time32', 'value1']]
+        self.df2d = self.df2[['time32', 'value2']]
+        self.df1e = self.df1[['time', 'key', 'key2', 'value1']]
+        self.df2e = self.df2[['time', 'key', 'key2', 'value2']]
 
     def time_noby(self):
         merge_asof(self.df1a, self.df2a, on='time')
@@ -317,6 +324,12 @@ class MergeAsof(object):
 
     def time_by_int(self):
         merge_asof(self.df1c, self.df2c, on='time', by='key2')
+
+    def time_on_int32(self):
+        merge_asof(self.df1d, self.df2d, on='time32')
+
+    def time_multiby(self):
+        merge_asof(self.df1e, self.df2e, on='time', by=['key', 'key2'])
 
 
 #----------------------------------------------------------------------

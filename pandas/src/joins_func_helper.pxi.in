@@ -1,3 +1,4 @@
+# cython: boundscheck=False, wraparound=False
 """
 Template for each `dtype` helper function for hashtable
 
@@ -14,7 +15,9 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 by_dtypes = [('PyObjectHashTable', 'object'), ('Int64HashTable', 'int64_t')]
 
 # on_dtype
-on_dtypes = ['int64_t', 'double']
+on_dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
+             'int8_t', 'int16_t', 'int32_t', 'int64_t',
+             'float', 'double']
 
 }}
 
@@ -98,7 +101,9 @@ def asof_join_{{on_dtype}}_by_{{by_dtype}}(ndarray[{{on_dtype}}] left_values,
 {{py:
 
 # on_dtype
-dtypes = ['int64_t', 'double']
+dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
+          'int8_t', 'int16_t', 'int32_t', 'int64_t',
+          'float', 'double']
 
 }}
 
