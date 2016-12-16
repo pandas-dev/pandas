@@ -726,8 +726,8 @@ def nested_to_record(ds, prefix="", level=0):
 def json_normalize(data, record_path=None, meta=None,
                    meta_prefix=None,
                    record_prefix=None,
-                   separator='.',
-                   errors='raise'):
+                   errors='raise',
+                   sep='.'):
     """
     "Normalize" semi-structured JSON data into a flat table
 
@@ -744,14 +744,17 @@ def json_normalize(data, record_path=None, meta=None,
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar']
     meta_prefix : string, default None
-    separator : string, default '.'
-        Nested records will generate names separated by separator,
-        e.g., for separator='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
     errors : {'raise', 'ignore'}, default 'raise'
         * ignore : will ignore KeyError if keys listed in meta are not
         always present
         * raise : will raise KeyError if keys listed in meta are not
         always present
+
+        .. versionadded:: 0.20.0
+
+    sep : string, default '.'
+        Nested records will generate names separated by sep (separator),
+        e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
 
         .. versionadded:: 0.20.0
 
