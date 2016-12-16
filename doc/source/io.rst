@@ -4004,7 +4004,7 @@ and data values from the values and assembles them into a ``data.frame``:
    name_paths = paste(listing$group[name_nodes], listing$name[name_nodes], sep = "/")
    columns = list()
    for (idx in seq(data_paths)) {
-     # NOTE: matrices returned by h5read have to be transposed to to obtain
+     # NOTE: matrices returned by h5read have to be transposed to obtain
      # required Fortran order!
      data <- data.frame(t(h5read(h5File, data_paths[idx])))
      names <- t(h5read(h5File, name_paths[idx]))
