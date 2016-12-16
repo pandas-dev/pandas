@@ -30,6 +30,7 @@ Other Enhancements
 ~~~~~~~~~~~~~~~~~~
 
 - ``pd.merge_asof()`` gained ``left_index``/``right_index`` and ``left_by``/``right_by`` arguments (:issue:`14253`)
+- ``pd.merge_asof()`` can take multiple columns in ``by`` parameter and has specialized dtypes for better performace (:issue:`13936`)
 
 
 .. _whatsnew_0192.bug_fixes:
