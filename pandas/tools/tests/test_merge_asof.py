@@ -657,7 +657,7 @@ class TestAsOfMerge(tm.TestCase):
         # GH13936
         for dtype in [np.uint8, np.uint16, np.uint32, np.uint64,
                       np.int8, np.int16, np.int32, np.int64,
-                      np.float32, np.float64]:
+                      np.float16, np.float32, np.float64]:
             df1 = pd.DataFrame({
                 'value': [5, 2, 25, 100, 78, 120, 79],
                 'symbol': list("ABCDEFG")},
@@ -672,22 +672,26 @@ class TestAsOfMerge(tm.TestCase):
 
             df1 = df1.sort_values('value').reset_index(drop=True)
 
-            result = pd.merge_asof(df1, df2, on='value')
+            if dtype == np.float16:
+                with self.assertRaises(MergeError):
+                    pd.merge_asof(df1, df2, on='value')
+            else:
+                result = pd.merge_asof(df1, df2, on='value')
 
-            expected = pd.DataFrame({
-                'symbol': list("BACEGDF"),
-                'value': [2, 5, 25, 78, 79, 100, 120],
-                'result': list('xxxxxyz')},
-                columns=['symbol', 'value', 'result'])
-            expected.value = dtype(expected.value)
+                expected = pd.DataFrame({
+                    'symbol': list("BACEGDF"),
+                    'value': [2, 5, 25, 78, 79, 100, 120],
+                    'result': list('xxxxxyz')},
+                    columns=['symbol', 'value', 'result'])
+                expected.value = dtype(expected.value)
 
-            assert_frame_equal(result, expected)
+                assert_frame_equal(result, expected)
 
     def test_on_specialized_type_by_int(self):
         # GH13936
         for dtype in [np.uint8, np.uint16, np.uint32, np.uint64,
                       np.int8, np.int16, np.int32, np.int64,
-                      np.float32, np.float64]:
+                      np.float16, np.float32, np.float64]:
             df1 = pd.DataFrame({
                 'value': [5, 2, 25, 100, 78, 120, 79],
                 'key': [1, 2, 3, 2, 3, 1, 2],
@@ -704,17 +708,21 @@ class TestAsOfMerge(tm.TestCase):
 
             df1 = df1.sort_values('value').reset_index(drop=True)
 
-            result = pd.merge_asof(df1, df2, on='value', by='key')
+            if dtype == np.float16:
+                with self.assertRaises(MergeError):
+                    pd.merge_asof(df1, df2, on='value', by='key')
+            else:
+                result = pd.merge_asof(df1, df2, on='value', by='key')
 
-            expected = pd.DataFrame({
-                'symbol': list("BACEGDF"),
-                'key': [2, 1, 3, 3, 2, 2, 1],
-                'value': [2, 5, 25, 78, 79, 100, 120],
-                'result': [np.nan, 'x', np.nan, np.nan, np.nan, 'y', 'x']},
-                columns=['symbol', 'key', 'value', 'result'])
-            expected.value = dtype(expected.value)
+                expected = pd.DataFrame({
+                    'symbol': list("BACEGDF"),
+                    'key': [2, 1, 3, 3, 2, 2, 1],
+                    'value': [2, 5, 25, 78, 79, 100, 120],
+                    'result': [np.nan, 'x', np.nan, np.nan, np.nan, 'y', 'x']},
+                    columns=['symbol', 'key', 'value', 'result'])
+                expected.value = dtype(expected.value)
 
-            assert_frame_equal(result, expected)
+                assert_frame_equal(result, expected)
 
     def test_on_float_by_int(self):
         # type specialize both "by" and "on" parameters

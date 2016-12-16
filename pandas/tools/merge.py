@@ -1013,7 +1013,7 @@ _type_casters = {
     'object': _ensure_object,
 }
 
-_cyton_types = {
+_cython_types = {
     'uint8': 'uint8_t',
     'uint32': 'uint32_t',
     'uint16': 'uint16_t',
@@ -1031,7 +1031,7 @@ _cyton_types = {
 def _get_cython_type(dtype):
     """ Given a dtype, return a C name like 'int64_t' or 'double' """
     type_name = _get_dtype(dtype).name
-    ctype = _cyton_types.get(type_name, 'object')
+    ctype = _cython_types.get(type_name, 'object')
     if ctype == 'error':
         raise MergeError('unsupported type: ' + type_name)
     return ctype
