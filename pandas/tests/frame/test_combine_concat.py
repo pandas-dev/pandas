@@ -725,3 +725,13 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
         exp = pd.DataFrame({'P': exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
         self.assertEqual(res['P'].dtype, 'object')
+
+    def test_combine_first_int(self):
+        # GH14687 - integer series that do no align exactly
+
+        df1 = pd.DataFrame({'a': [0, 1, 3, 5]}, dtype='int64')
+        df2 = pd.DataFrame({'a': [1, 4]}, dtype='int64')
+
+        res = df1.combine_first(df2)
+        tm.assert_frame_equal(res, df1)
+        self.assertEqual(res['a'].dtype, 'int64')
