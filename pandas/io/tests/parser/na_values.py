@@ -266,3 +266,26 @@ nan,B
         out = self.read_csv(StringIO(data), names=names,
                             na_values={'a': 2, 'b': 1})
         tm.assert_frame_equal(out, expected)
+
+    def test_na_values_dict_aliasing(self):
+        na_values = {'a': 2, 'b': 1}
+        na_values_copy = na_values.copy()
+
+        names = ['a', 'b']
+        data = '1,2\n2,1'
+
+        expected = DataFrame([[1.0, 2.0], [np.nan, np.nan]], columns=names)
+        out = self.read_csv(StringIO(data), names=names, na_values=na_values)
+
+        tm.assert_frame_equal(out, expected)
+        tm.assert_dict_equal(na_values, na_values_copy)
+
+    def test_na_values_dict_col_index(self):
+        # see gh-14203
+
+        data = 'a\nfoo\n1'
+        na_values = {0: 'foo'}
+
+        out = self.read_csv(StringIO(data), na_values=na_values)
+        expected = DataFrame({'a': [np.nan, 1]})
+        tm.assert_frame_equal(out, expected)
