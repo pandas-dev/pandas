@@ -133,34 +133,16 @@ class TestJSONNormalize(tm.TestCase):
         expected = DataFrame(ex_data, columns=result.columns)
         tm.assert_frame_equal(result, expected)
 
-    def test_shallow_nested_with_separator(self):
-        data = [{'state': 'Florida',
-                 'shortname': 'FL',
-                 'info': {
-                     'governor': 'Rick Scott'
-                 },
-                 'counties': [{'name': 'Dade', 'population': 12345},
-                              {'name': 'Broward', 'population': 40000},
-                              {'name': 'Palm Beach', 'population': 60000}]},
-                {'state': 'Ohio',
-                 'shortname': 'OH',
-                 'info': {
-                     'governor': 'John Kasich'
-                 },
-                 'counties': [{'name': 'Summit', 'population': 1234},
-                              {'name': 'Cuyahoga', 'population': 1337}]}]
+    def test_simple_normalize_with_default_separator(self):
+        result = json_normalize({"A": {"A": 1, "B": 2}})
+        expected = pd.DataFrame([[1, 2]], columns={"A.A", "A.B"})
+        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
-        result = json_normalize(data, 'counties',
-                                ['state', 'shortname',
-                                 ['info', 'governor']],
-                                separator='_')
-        ex_data = {'name': ['Dade', 'Broward', 'Palm Beach', 'Summit',
-                            'Cuyahoga'],
-                   'state': ['Florida'] * 3 + ['Ohio'] * 2,
-                   'shortname': ['FL', 'FL', 'FL', 'OH', 'OH'],
-                   'info_governor': ['Rick Scott'] * 3 + ['John Kasich'] * 2,
-                   'population': [12345, 40000, 60000, 1234, 1337]}
-        expected = DataFrame(ex_data, columns=result.columns)
+    def test_simple_normalize_with_user_specified_separator(self):
+        result = json_normalize({"A": {"A": 1, "B": 2}}, sep='_')
+        expected = pd.DataFrame([[1, 2]], columns={"A_A", "A_B"})
+        assert_frame_equal(result, expected)
         tm.assert_frame_equal(result, expected)
 
     def test_meta_name_conflict(self):
