@@ -40,6 +40,9 @@ Bug Fixes
 
 - Compat with ``dateutil==2.6.0``; segfault reported in the testing suite (:issue:`14621`)
 - Allow ``nanoseconds`` in ``Timestamp.replace`` as a kwarg (:issue:`14621`)
+<<<<<<< HEAD
+-Bug in indexing that transformed ``RecursionError`` into ``KeyError`` or ``IndexingError`` (:issue:`14554`) 
+=======
 - Bug in ``pd.read_csv`` in which aliasing was being done for ``na_values`` when passed in as a dictionary (:issue:`14203`)
 - Bug in ``pd.read_csv`` in which column indices for a dict-like ``na_values`` were not being respected (:issue:`14203`)
 - Bug in ``pd.read_csv`` where reading files fails, if the number of headers is equal to the number of lines in the file (:issue:`14515`)
@@ -47,16 +50,9 @@ Bug Fixes
 - Fix bugs (:issue:`14734`, :issue:`13654`) in ``pd.read_sas`` and ``pandas.io.sas.sas7bdat.SAS7BDATReader`` that caused problems when reading a SAS file incrementally.
 - Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when ``skipfooter`` was not being respected by Python's CSV library (:issue:`13879`)
 
+>>>>>>> upstream/master
 
 - Bug in ``.groupby(..., sort=True)`` of a non-lexsorted MultiIndex when grouping with multiple levels (:issue:`14776`)
-
-
-
-- Bug in ``pd.cut`` with negative values and a single bin (:issue:`14652`)
-- Bug in ``pd.to_numeric`` where a 0 was not unsigned on a ``downcast='unsigned'`` argument (:issue:`14401`)
-- Bug in plotting regular and irregular timeseries using shared axes
-  (``sharex=True`` or ``ax.twinx()``) (:issue:`13341`, :issue:`14322`).
-
 
 
 
@@ -102,4 +98,3 @@ Bug Fixes
 - Bug in ``.plot(kind='kde')`` which did not drop missing values to generate the KDE Plot, instead generating an empty plot. (:issue:`14821`)
 
 - Bug in ``unstack()`` if called with a list of column(s) as an argument, regardless of the dtypes of all columns, they get coerced to ``object`` (:issue:`11847`)
-- Bug in indexing that transformed ``RecursionError`` into ``KeyError`` or ``IndexingError`` (:issue:`14554`) 
