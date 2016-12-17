@@ -69,12 +69,12 @@ Strings passed to ``DataFrame.groupby()`` as the ``by`` parameter may now refere
 Better support for compressed URLs in ``read_csv``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Compression code was refactored (:issue:`12688`). As a result, reading
+The compression code was refactored (:issue:`12688`). As a result, reading
 dataframes from URLs in :func:`read_csv` or :func:`read_table` now supports
 additional compression methods: ``xz``, ``bz2``, and ``zip`` (:issue:`14570`).
 Previously, only ``gzip`` compression was supported. By default, compression of
 URLs and paths are now both inferred using their file extensions. Additionally,
-bz2 support for the python 2 c-engine improved (:issue:`14874`).
+support for bz2 compression in the python 2 c-engine improved (:issue:`14874`).
 
 .. ipython:: python
    url = 'https://github.com/{repo}/raw/{branch}/{path}'.format(
