@@ -26,7 +26,8 @@ _NS_DTYPE_UTC = DatetimeTZDtype.__new__(DatetimeTZDtype, unit='ns', tz='UTC')
 
 _DATELIKE_DTYPES = set([np.dtype(t)
                         for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
-                                  'm8[ns]', '<m8[ns]', '>m8[ns]']] + [_NS_DTYPE_UTC])
+                                  'm8[ns]', '<m8[ns]', '>m8[ns]']] +
+                       [_NS_DTYPE_UTC])
 
 _ensure_float64 = algos.ensure_float64
 _ensure_float32 = algos.ensure_float32
