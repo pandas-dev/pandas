@@ -1593,6 +1593,11 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
+        with tm.assert_produces_warning(FutureWarning):
+            res = c1.searchsorted(v=['bread'])
+            exp = np.array([1], dtype=np.intp)
+            tm.assert_numpy_array_equal(res, exp)
+
     def test_deprecated_labels(self):
         # TODO: labels is deprecated and should be removed in 0.18 or 2017,
         # whatever is earlier
@@ -1664,7 +1669,8 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         tm.assert_categorical_equal(result, exp)
 
         result = c.map(lambda x: 1)
-        tm.assert_numpy_array_equal(result, np.array([1] * 5, dtype=np.int64))
+        # GH 12766: Return an index not an array
+        tm.assert_index_equal(result, Index(np.array([1] * 5, dtype=np.int64)))
 
 
 class TestCategoricalAsBlock(tm.TestCase):

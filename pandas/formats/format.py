@@ -1455,9 +1455,9 @@ class CSVFormatter(object):
             f = self.path_or_buf
             close = False
         else:
-            f = _get_handle(self.path_or_buf, self.mode,
-                            encoding=self.encoding,
-                            compression=self.compression)
+            f, handles = _get_handle(self.path_or_buf, self.mode,
+                                     encoding=self.encoding,
+                                     compression=self.compression)
             close = True
 
         try:

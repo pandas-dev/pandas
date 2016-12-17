@@ -535,17 +535,18 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         return list(self.values)
 
-    def repeat(self, n, *args, **kwargs):
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
+    def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of an Index. Refer to `numpy.ndarray.repeat`
-        for more information about the `n` argument.
+        for more information about the `repeats` argument.
 
         See also
         --------
         numpy.ndarray.repeat
         """
         nv.validate_repeat(args, kwargs)
-        return self._shallow_copy(self._values.repeat(n))
+        return self._shallow_copy(self._values.repeat(repeats))
 
     def where(self, cond, other=None):
         """
@@ -2426,8 +2427,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return result
 
     def map(self, mapper):
-        """
-        Apply mapper function to its values.
+        """Apply mapper function to an index.
 
         Parameters
         ----------
@@ -2436,9 +2436,21 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Returns
         -------
-        applied : array
+        applied : Union[Index, MultiIndex], inferred
+            The output of the mapping function applied to the index.
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
+
         """
-        return self._arrmap(self.values, mapper)
+        from .multi import MultiIndex
+        mapped_values = self._arrmap(self.values, mapper)
+        attributes = self._get_attributes_dict()
+        if mapped_values.size and isinstance(mapped_values[0], tuple):
+            return MultiIndex.from_tuples(mapped_values,
+                                          names=attributes.get('name'))
+
+        attributes['copy'] = False
+        return Index(mapped_values, **attributes)
 
     def isin(self, values, level=None):
         """

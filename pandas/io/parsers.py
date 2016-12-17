@@ -17,17 +17,21 @@ from pandas.compat import (range, lrange, StringIO, lzip,
                            zip, string_types, map, u)
 from pandas.types.common import (is_integer, _ensure_object,
                                  is_list_like, is_integer_dtype,
-                                 is_float,
-                                 is_scalar)
+                                 is_float, is_dtype_equal,
+                                 is_object_dtype, is_string_dtype,
+                                 is_scalar, is_categorical_dtype)
+from pandas.types.missing import isnull
+from pandas.types.cast import _astype_nansafe
 from pandas.core.index import Index, MultiIndex, RangeIndex
+from pandas.core.series import Series
 from pandas.core.frame import DataFrame
+from pandas.core.categorical import Categorical
 from pandas.core.common import AbstractMethodError
-from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
                               _get_handle, UnicodeReader, UTF8Recoder,
                               BaseIterator, ParserError, EmptyDataError,
-                              ParserWarning, _NA_VALUES)
+                              ParserWarning, _NA_VALUES, _infer_compression)
 from pandas.tseries import tools
 
 from pandas.util.decorators import Appender
@@ -85,13 +89,18 @@ index_col : int or sequence or False, default None
     MultiIndex is used. If you have a malformed file with delimiters at the end
     of each line, you might consider index_col=False to force pandas to _not_
     use the first column as the index (row names)
-usecols : array-like, default None
-    Return a subset of the columns. All elements in this array must either
+usecols : array-like or callable, default None
+    Return a subset of the columns. If array-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
-    inferred from the document header row(s). For example, a valid `usecols`
-    parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Using this parameter
-    results in much faster parsing time and lower memory usage.
+    inferred from the document header row(s). For example, a valid array-like
+    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz'].
+
+    If callable, the callable function will be evaluated against the column
+    names, returning names where the callable function evaluates to True. An
+    example of a valid callable argument would be ``lambda x: x.upper() in
+    ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
+    parsing time and lower memory usage.
 as_recarray : boolean, default False
     DEPRECATED: this argument will be removed in a future version. Please call
     `pd.read_csv(...).to_records()` instead.
@@ -110,8 +119,9 @@ mangle_dupe_cols : boolean, default True
     are duplicate names in the columns.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
-    (Unsupported with engine='python'). Use `str` or `object` to preserve and
-    not interpret dtype.
+    Use `str` or `object` to preserve and not interpret dtype.
+    If converters are specified, they will be applied INSTEAD
+    of dtype conversion.
 %s
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can either
@@ -156,6 +166,10 @@ default False
         a single date column.
     * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result
       'foo'
+
+    If a column or index contains an unparseable date, the entire column or
+    index will be returned unaltered as an object data type. For non-standard
+    datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
 
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : boolean, default False
@@ -343,37 +357,17 @@ def _validate_nrows(nrows):
 
 
 def _read(filepath_or_buffer, kwds):
-    "Generic reader of line files."
+    """Generic reader of line files."""
     encoding = kwds.get('encoding', None)
     if encoding is not None:
         encoding = re.sub('_', '-', encoding).lower()
         kwds['encoding'] = encoding
 
-    # If the input could be a filename, check for a recognizable compression
-    # extension.  If we're reading from a URL, the `get_filepath_or_buffer`
-    # will use header info to determine compression, so use what it finds in
-    # that case.
-    inferred_compression = kwds.get('compression')
-    if inferred_compression == 'infer':
-        if isinstance(filepath_or_buffer, compat.string_types):
-            if filepath_or_buffer.endswith('.gz'):
-                inferred_compression = 'gzip'
-            elif filepath_or_buffer.endswith('.bz2'):
-                inferred_compression = 'bz2'
-            elif filepath_or_buffer.endswith('.zip'):
-                inferred_compression = 'zip'
-            elif filepath_or_buffer.endswith('.xz'):
-                inferred_compression = 'xz'
-            else:
-                inferred_compression = None
-        else:
-            inferred_compression = None
-
+    compression = kwds.get('compression')
+    compression = _infer_compression(filepath_or_buffer, compression)
     filepath_or_buffer, _, compression = get_filepath_or_buffer(
-        filepath_or_buffer, encoding,
-        compression=kwds.get('compression', None))
-    kwds['compression'] = (inferred_compression if compression == 'infer'
-                           else compression)
+        filepath_or_buffer, encoding, compression)
+    kwds['compression'] = compression
 
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):
@@ -420,6 +414,7 @@ _parser_defaults = {
     'true_values': None,
     'false_values': None,
     'converters': None,
+    'dtype': None,
     'skipfooter': 0,
 
     'keep_default_na': True,
@@ -460,7 +455,6 @@ _c_parser_defaults = {
     'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
-    'dtype': None,
     'float_precision': None
 }
 
@@ -475,7 +469,6 @@ _python_unsupported = set([
     'buffer_lines',
     'error_bad_lines',
     'warn_bad_lines',
-    'dtype',
     'float_precision',
 ])
 _deprecated_args = set([
@@ -833,9 +826,6 @@ class TextFileReader(BaseIterator):
                            " ignored as it is not supported by the 'python'"
                            " engine.").format(reason=fallback_reason,
                                               option=arg)
-                    if arg == 'dtype':
-                        msg += " (Note the 'converters' option provides"\
-                               " similar functionality.)"
                     raise ValueError(msg)
                 del result[arg]
 
@@ -975,17 +965,33 @@ def _is_index_col(col):
     return col is not None and col is not False
 
 
+def _evaluate_usecols(usecols, names):
+    """
+    Check whether or not the 'usecols' parameter
+    is a callable.  If so, enumerates the 'names'
+    parameter and returns a set of indices for
+    each entry in 'names' that evaluates to True.
+    If not a callable, returns 'usecols'.
+    """
+    if callable(usecols):
+        return set([i for i, name in enumerate(names)
+                    if usecols(name)])
+    return usecols
+
+
 def _validate_usecols_arg(usecols):
     """
     Check whether or not the 'usecols' parameter
-    contains all integers (column selection by index)
-    or strings (column by name). Raises a ValueError
-    if that is not the case.
+    contains all integers (column selection by index),
+    strings (column by name) or is a callable. Raises
+    a ValueError if that is not the case.
     """
-    msg = ("The elements of 'usecols' must "
-           "either be all strings, all unicode, or all integers")
+    msg = ("'usecols' must either be all strings, all unicode, "
+           "all integers or a callable")
 
     if usecols is not None:
+        if callable(usecols):
+            return usecols
         usecols_dtype = lib.infer_dtype(usecols)
         if usecols_dtype not in ('empty', 'integer',
                                  'string', 'unicode'):
@@ -1284,7 +1290,7 @@ class ParserBase(object):
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues)
 
-            arr, _ = self._convert_types(arr, col_na_values | col_na_fvalues)
+            arr, _ = self._infer_types(arr, col_na_values | col_na_fvalues)
             arrays.append(arr)
 
         index = MultiIndex.from_arrays(arrays, names=self.index_names)
@@ -1292,10 +1298,15 @@ class ParserBase(object):
         return index
 
     def _convert_to_ndarrays(self, dct, na_values, na_fvalues, verbose=False,
-                             converters=None):
+                             converters=None, dtypes=None):
         result = {}
         for c, values in compat.iteritems(dct):
             conv_f = None if converters is None else converters.get(c, None)
+            if isinstance(dtypes, dict):
+                cast_type = dtypes.get(c, None)
+            else:
+                # single dtype or None
+                cast_type = dtypes
 
             if self.na_filter:
                 col_na_values, col_na_fvalues = _get_na_values(
@@ -1303,17 +1314,35 @@ class ParserBase(object):
             else:
                 col_na_values, col_na_fvalues = set(), set()
 
-            coerce_type = True
             if conv_f is not None:
+                # conv_f applied to data before inference
+                if cast_type is not None:
+                    warnings.warn(("Both a converter and dtype were specified "
+                                   "for column {0} - only the converter will "
+                                   "be used").format(c), ParserWarning,
+                                  stacklevel=7)
+
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
                     mask = lib.ismember(values, na_values).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
-                coerce_type = False
 
-            cvals, na_count = self._convert_types(
-                values, set(col_na_values) | col_na_fvalues, coerce_type)
+                cvals, na_count = self._infer_types(
+                    values, set(col_na_values) | col_na_fvalues,
+                    try_num_bool=False)
+            else:
+                # skip inference if specified dtype is object
+                try_num_bool = not (cast_type and is_string_dtype(cast_type))
+
+                # general type inference and conversion
+                cvals, na_count = self._infer_types(
+                    values, set(col_na_values) | col_na_fvalues,
+                    try_num_bool)
+
+                # type specificed in dtype param
+                if cast_type and not is_dtype_equal(cvals, cast_type):
+                    cvals = self._cast_types(cvals, cast_type, c)
 
             if issubclass(cvals.dtype.type, np.integer) and self.compact_ints:
                 cvals = lib.downcast_int64(
@@ -1325,7 +1354,23 @@ class ParserBase(object):
                 print('Filled %d NA values in column %s' % (na_count, str(c)))
         return result
 
-    def _convert_types(self, values, na_values, try_num_bool=True):
+    def _infer_types(self, values, na_values, try_num_bool=True):
+        """
+        Infer types of values, possibly casting
+
+        Parameters
+        ----------
+        values : ndarray
+        na_values : set
+        try_num_bool : bool, default try
+           try to cast values to numeric (first preference) or boolean
+
+        Returns:
+        --------
+        converted : ndarray
+        na_count : int
+        """
+
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
             mask = lib.ismember(values, na_values)
@@ -1339,6 +1384,7 @@ class ParserBase(object):
         if try_num_bool:
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
+                na_count = isnull(result).sum()
             except Exception:
                 result = values
                 if values.dtype == np.object_:
@@ -1354,6 +1400,38 @@ class ParserBase(object):
                                             false_values=self.false_values)
 
         return result, na_count
+
+    def _cast_types(self, values, cast_type, column):
+        """
+        Cast values to specified type
+
+        Parameters
+        ----------
+        values : ndarray
+        cast_type : string or np.dtype
+           dtype to cast values to
+        column : string
+            column name - used only for error reporting
+
+        Returns
+        -------
+        converted : ndarray
+        """
+
+        if is_categorical_dtype(cast_type):
+            # XXX this is for consistency with
+            # c-parser which parses all categories
+            # as strings
+            if not is_object_dtype(values):
+                values = _astype_nansafe(values, str)
+            values = Categorical(values)
+        else:
+            try:
+                values = _astype_nansafe(values, cast_type, copy=True)
+            except ValueError:
+                raise ValueError("Unable to convert column %s to "
+                                 "type %s" % (column, cast_type))
+        return values
 
     def _do_date_conversions(self, names, data):
         # returns data, columns
@@ -1425,11 +1503,12 @@ class CParserWrapper(ParserBase):
         self.orig_names = self.names[:]
 
         if self.usecols:
-            if len(self.names) > len(self.usecols):
+            usecols = _evaluate_usecols(self.usecols, self.orig_names)
+            if len(self.names) > len(usecols):
                 self.names = [n for i, n in enumerate(self.names)
-                              if (i in self.usecols or n in self.usecols)]
+                              if (i in usecols or n in usecols)]
 
-            if len(self.names) < len(self.usecols):
+            if len(self.names) < len(usecols):
                 raise ValueError("Usecols do not match names.")
 
         self._set_noconvert_columns()
@@ -1509,10 +1588,11 @@ class CParserWrapper(ParserBase):
             if self._first_chunk:
                 self._first_chunk = False
                 names = self._maybe_dedup_names(self.orig_names)
-
                 index, columns, col_dict = _get_empty_meta(
                     names, self.index_col, self.index_names,
                     dtype=self.kwds.get('dtype'))
+                columns = self._maybe_make_multi_index_columns(
+                    columns, self.col_names)
 
                 if self.usecols is not None:
                     columns = self._filter_usecols(columns)
@@ -1590,9 +1670,10 @@ class CParserWrapper(ParserBase):
 
     def _filter_usecols(self, names):
         # hackish
-        if self.usecols is not None and len(names) != len(self.usecols):
+        usecols = _evaluate_usecols(self.usecols, names)
+        if usecols is not None and len(names) != len(usecols):
             names = [name for i, name in enumerate(names)
-                     if i in self.usecols or name in self.usecols]
+                     if i in usecols or name in usecols]
         return names
 
     def _get_index_names(self):
@@ -1673,70 +1754,6 @@ def count_empty_vals(vals):
     return sum([1 for v in vals if v == '' or v is None])
 
 
-def _wrap_compressed(f, compression, encoding=None):
-    """wraps compressed fileobject in a decompressing fileobject
-    NOTE: For all files in Python 3.2 and for bzip'd files under all Python
-    versions, this means reading in the entire file and then re-wrapping it in
-    StringIO.
-    """
-    compression = compression.lower()
-    encoding = encoding or get_option('display.encoding')
-
-    if compression == 'gzip':
-        import gzip
-
-        f = gzip.GzipFile(fileobj=f)
-        if compat.PY3:
-            from io import TextIOWrapper
-
-            f = TextIOWrapper(f)
-        return f
-    elif compression == 'bz2':
-        import bz2
-
-        if compat.PY3:
-            f = bz2.open(f, 'rt', encoding=encoding)
-        else:
-            # Python 2's bz2 module can't take file objects, so have to
-            # run through decompress manually
-            data = bz2.decompress(f.read())
-            f = StringIO(data)
-        return f
-    elif compression == 'zip':
-        import zipfile
-        zip_file = zipfile.ZipFile(f)
-        zip_names = zip_file.namelist()
-
-        if len(zip_names) == 1:
-            file_name = zip_names.pop()
-            f = zip_file.open(file_name)
-            return f
-
-        elif len(zip_names) == 0:
-            raise ValueError('Corrupted or zero files found in compressed '
-                             'zip file %s', zip_file.filename)
-
-        else:
-            raise ValueError('Multiple files found in compressed '
-                             'zip file %s', str(zip_names))
-
-    elif compression == 'xz':
-
-        lzma = compat.import_lzma()
-        f = lzma.LZMAFile(f)
-
-        if compat.PY3:
-            from io import TextIOWrapper
-
-            f = TextIOWrapper(f)
-
-        return f
-
-    else:
-        raise ValueError('do not recognize compression method %s'
-                         % compression)
-
-
 class PythonParser(ParserBase):
 
     def __init__(self, f, **kwds):
@@ -1782,6 +1799,7 @@ class PythonParser(ParserBase):
 
         self.verbose = kwds['verbose']
         self.converters = kwds['converters']
+        self.dtype = kwds['dtype']
 
         self.compact_ints = kwds['compact_ints']
         self.use_unsigned = kwds['use_unsigned']
@@ -1791,20 +1809,10 @@ class PythonParser(ParserBase):
         self.comment = kwds['comment']
         self._comment_lines = []
 
-        if isinstance(f, compat.string_types):
-            f = _get_handle(f, 'r', encoding=self.encoding,
-                            compression=self.compression,
-                            memory_map=self.memory_map)
-            self.handles.append(f)
-        elif self.compression:
-            f = _wrap_compressed(f, self.compression, self.encoding)
-            self.handles.append(f)
-        # in Python 3, convert BytesIO or fileobjects passed with an encoding
-        elif compat.PY3 and isinstance(f, compat.BytesIO):
-            from io import TextIOWrapper
-
-            f = TextIOWrapper(f, encoding=self.encoding)
-            self.handles.append(f)
+        f, handles = _get_handle(f, 'r', encoding=self.encoding,
+                                 compression=self.compression,
+                                 memory_map=self.memory_map)
+        self.handles.extend(handles)
 
         # Set self.data to something that can read lines.
         if hasattr(f, 'readline'):
@@ -1979,8 +1987,11 @@ class PythonParser(ParserBase):
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
-            return _get_empty_meta(names, self.index_col,
-                                   self.index_names)
+            index, columns, col_dict = _get_empty_meta(
+                names, self.index_col, self.index_names, self.dtype)
+            columns = self._maybe_make_multi_index_columns(
+                columns, self.col_names)
+            return index, columns, col_dict
 
         # handle new style for names in index
         count_empty_content_vals = count_empty_vals(content[0])
@@ -2028,15 +2039,43 @@ class PythonParser(ParserBase):
 
     def _convert_data(self, data):
         # apply converters
-        clean_conv = {}
+        def _clean_mapping(mapping):
+            "converts col numbers to names"
+            clean = {}
+            for col, v in compat.iteritems(mapping):
+                if isinstance(col, int) and col not in self.orig_names:
+                    col = self.orig_names[col]
+                clean[col] = v
+            return clean
 
-        for col, f in compat.iteritems(self.converters):
-            if isinstance(col, int) and col not in self.orig_names:
-                col = self.orig_names[col]
-            clean_conv[col] = f
+        clean_conv = _clean_mapping(self.converters)
+        if not isinstance(self.dtype, dict):
+            # handles single dtype applied to all columns
+            clean_dtypes = self.dtype
+        else:
+            clean_dtypes = _clean_mapping(self.dtype)
 
-        return self._convert_to_ndarrays(data, self.na_values, self.na_fvalues,
-                                         self.verbose, clean_conv)
+        # Apply NA values.
+        clean_na_values = {}
+        clean_na_fvalues = {}
+
+        if isinstance(self.na_values, dict):
+            for col in self.na_values:
+                na_value = self.na_values[col]
+                na_fvalue = self.na_fvalues[col]
+
+                if isinstance(col, int) and col not in self.orig_names:
+                    col = self.orig_names[col]
+
+                clean_na_values[col] = na_value
+                clean_na_fvalues[col] = na_fvalue
+        else:
+            clean_na_values = self.na_values
+            clean_na_fvalues = self.na_fvalues
+
+        return self._convert_to_ndarrays(data, clean_na_values,
+                                         clean_na_fvalues, self.verbose,
+                                         clean_conv, clean_dtypes)
 
     def _to_recarray(self, data, columns):
         dtypes = []
@@ -2083,6 +2122,12 @@ class PythonParser(ParserBase):
                     # We have an empty file, so check
                     # if columns are provided. That will
                     # serve as the 'line' for parsing
+                    if have_mi_columns and hr > 0:
+                        if clear_buffer:
+                            self._clear_buffer()
+                        columns.append([None] * len(columns[-1]))
+                        return columns, num_original_columns
+
                     if not self.names:
                         raise EmptyDataError(
                             "No columns to parse from file")
@@ -2196,7 +2241,9 @@ class PythonParser(ParserBase):
         usecols_key is used if there are string usecols.
         """
         if self.usecols is not None:
-            if any([isinstance(col, string_types) for col in self.usecols]):
+            if callable(self.usecols):
+                col_indices = _evaluate_usecols(self.usecols, usecols_key)
+            elif any([isinstance(u, string_types) for u in self.usecols]):
                 if len(columns) > 1:
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
@@ -2316,14 +2363,23 @@ class PythonParser(ParserBase):
                 try:
                     orig_line = next(self.data)
                 except csv.Error as e:
+                    msg = str(e)
+
                     if 'NULL byte' in str(e):
-                        raise csv.Error(
-                            'NULL byte detected. This byte '
-                            'cannot be processed in Python\'s '
-                            'native csv library at the moment, '
-                            'so please pass in engine=\'c\' instead.')
-                    else:
-                        raise
+                        msg = ('NULL byte detected. This byte '
+                               'cannot be processed in Python\'s '
+                               'native csv library at the moment, '
+                               'so please pass in engine=\'c\' instead')
+
+                    if self.skipfooter > 0:
+                        reason = ('Error could possibly be due to '
+                                  'parsing errors in the skipped footer rows '
+                                  '(the skipfooter keyword is only applied '
+                                  'after Python\'s csv library has parsed '
+                                  'all rows).')
+                        msg += '. ' + reason
+
+                    raise csv.Error(msg)
                 line = self._check_comments([orig_line])[0]
                 self.pos += 1
                 if (not self.skip_blank_lines and
@@ -2504,6 +2560,11 @@ class PythonParser(ParserBase):
 
             msg = ('Expected %d fields in line %d, saw %d' %
                    (col_len, row_num + 1, zip_len))
+            if len(self.delimiter) > 1 and self.quoting != csv.QUOTE_NONE:
+                # see gh-13374
+                reason = ('Error could possibly be due to quotes being '
+                          'ignored when a multi-char delimiter is used.')
+                msg += '. ' + reason
             raise ValueError(msg)
 
         if self.usecols:
@@ -2724,6 +2785,7 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = []
         na_fvalues = set()
     elif isinstance(na_values, dict):
+        na_values = na_values.copy()  # Prevent aliasing.
         if keep_default_na:
             for k, v in compat.iteritems(na_values):
                 if not is_list_like(v):
@@ -2781,19 +2843,27 @@ def _clean_index_names(columns, index_col):
 def _get_empty_meta(columns, index_col, index_names, dtype=None):
     columns = list(columns)
 
-    if dtype is None:
-        dtype = {}
+    # Convert `dtype` to a defaultdict of some kind.
+    # This will enable us to write `dtype[col_name]`
+    # without worrying about KeyError issues later on.
+    if not isinstance(dtype, dict):
+        # if dtype == None, default will be np.object.
+        default_dtype = dtype or np.object
+        dtype = defaultdict(lambda: default_dtype)
     else:
-        if not isinstance(dtype, dict):
-            dtype = defaultdict(lambda: dtype)
+        # Save a copy of the dictionary.
+        _dtype = dtype.copy()
+        dtype = defaultdict(lambda: np.object)
+
         # Convert column indexes to column names.
-        dtype = dict((columns[k] if is_integer(k) else k, v)
-                     for k, v in compat.iteritems(dtype))
+        for k, v in compat.iteritems(_dtype):
+            col = columns[k] if is_integer(k) else k
+            dtype[col] = v
 
     if index_col is None or index_col is False:
         index = Index([])
     else:
-        index = [np.empty(0, dtype=dtype.get(index_name, np.object))
+        index = [Series([], dtype=dtype[index_name])
                  for index_name in index_names]
         index = MultiIndex.from_arrays(index, names=index_names)
         index_col.sort()
@@ -2801,7 +2871,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
             columns.pop(n - i)
 
     col_dict = dict((col_name,
-                     np.empty(0, dtype=dtype.get(col_name, np.object)))
+                     Series([], dtype=dtype[col_name]))
                     for col_name in columns)
 
     return index, columns, col_dict

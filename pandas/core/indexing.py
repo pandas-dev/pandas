@@ -1814,7 +1814,9 @@ def check_bool_indexer(ax, key):
         result = result.reindex(ax)
         mask = isnull(result._values)
         if mask.any():
-            raise IndexingError('Unalignable boolean Series key provided')
+            raise IndexingError('Unalignable boolean Series provided as '
+                                'indexer (index of the boolean Series and of '
+                                'the indexed object do not match')
         result = result.astype(bool)._values
     elif is_sparse(result):
         result = result.to_dense()

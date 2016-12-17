@@ -1363,6 +1363,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         exp = Series(s.values.repeat(5), index=s.index.values.repeat(5))
         assert_series_equal(reps, exp)
 
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.repeat(reps=5)
+            assert_series_equal(result, exp)
+
         to_rep = [2, 3, 4]
         reps = s.repeat(to_rep)
         exp = Series(s.values.repeat(to_rep),
@@ -1377,6 +1381,19 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         msg = "the 'axis' parameter is not supported"
         tm.assertRaisesRegexp(ValueError, msg, np.repeat, s, 2, axis=0)
+
+    def test_searchsorted(self):
+        s = Series([1, 2, 3])
+
+        idx = s.searchsorted(1, side='left')
+        tm.assert_numpy_array_equal(idx, np.array([0], dtype=np.intp))
+
+        idx = s.searchsorted(1, side='right')
+        tm.assert_numpy_array_equal(idx, np.array([1], dtype=np.intp))
+
+        with tm.assert_produces_warning(FutureWarning):
+            idx = s.searchsorted(v=1, side='left')
+            tm.assert_numpy_array_equal(idx, np.array([0], dtype=np.intp))
 
     def test_searchsorted_numeric_dtypes_scalar(self):
         s = Series([1, 2, 90, 1000, 3e9])
@@ -1514,6 +1531,15 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             s.nsmallest(keep='invalid')
         with tm.assertRaisesRegexp(ValueError, msg):
             s.nlargest(keep='invalid')
+
+        # GH 13412
+        s = Series([1, 4, 3, 2], index=[0, 0, 1, 1])
+        result = s.nlargest(3)
+        expected = s.sort_values(ascending=False).head(3)
+        assert_series_equal(result, expected)
+        result = s.nsmallest(3)
+        expected = s.sort_values().head(3)
+        assert_series_equal(result, expected)
 
     def test_sortlevel(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))

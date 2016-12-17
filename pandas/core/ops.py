@@ -421,7 +421,7 @@ class _TimeOp(_Op):
 
             # if tz's must be equal (same or None)
             if getattr(lvalues, 'tz', None) != getattr(rvalues, 'tz', None):
-                raise ValueError("Incompatbile tz's on datetime subtraction "
+                raise ValueError("Incompatible tz's on datetime subtraction "
                                  "ops")
 
         elif ((self.is_timedelta_lhs or self.is_offset_lhs) and
@@ -1006,7 +1006,7 @@ missing data in one of the inputs.
 
 Parameters
 ----------
-other: Series or scalar value
+other : Series or scalar value
 fill_value : None or float value, default None (NaN)
     Fill missing (NaN) values with this value. If both Series are
     missing, the result will be missing
@@ -1176,6 +1176,13 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
                 xrav = xrav[mask]
+
+                # we may need to manually
+                # broadcast a 1 element array
+                if yrav.shape != mask.shape:
+                    yrav = np.empty(mask.shape, dtype=yrav.dtype)
+                    yrav.fill(yrav.item())
+
                 yrav = yrav[mask]
                 if np.prod(xrav.shape) and np.prod(yrav.shape):
                     with np.errstate(all='ignore'):

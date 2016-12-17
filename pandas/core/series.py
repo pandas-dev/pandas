@@ -80,7 +80,8 @@ _shared_doc_kwargs = dict(
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
-    optional_by='')
+    optional_by='',
+    versionadded_to_excel='\n.. versionadded:: 0.20.0\n')
 
 
 def _coerce_method(converter):
@@ -103,11 +104,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     """
     One-dimensional ndarray with axis labels (including time series).
 
-    Labels need not be unique but must be any hashable type. The object
+    Labels need not be unique but must be a hashable type. The object
     supports both integer- and label-based indexing and provides a host of
     methods for performing operations involving the index. Statistical
     methods from ndarray have been overridden to automatically exclude
-    missing data (currently represented as NaN)
+    missing data (currently represented as NaN).
 
     Operations between Series (+, -, /, *, **) align values based on their
     associated index values-- they need not be the same length. The result
@@ -118,8 +119,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     data : array-like, dict, or scalar value
         Contains data stored in Series
     index : array-like or Index (1d)
-        Values must be unique and hashable, same length as data. Index
-        object (or other iterable of same length as data) Will default to
+        Values must be hashable and have the same length as `data`.
+        Non-unique index values are allowed. Will default to
         RangeIndex(len(data)) if not provided. If both a dict and index
         sequence are used, the index will override the keys found in the
         dict.
@@ -832,18 +833,19 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def repeat(self, reps, *args, **kwargs):
+    @deprecate_kwarg(old_arg_name='reps', new_arg_name='repeats')
+    def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
-        for more information about the `reps` argument.
+        for more information about the `repeats` argument.
 
         See also
         --------
         numpy.ndarray.repeat
         """
         nv.validate_repeat(args, kwargs)
-        new_index = self.index.repeat(reps)
-        new_values = self._values.repeat(reps)
+        new_index = self.index.repeat(repeats)
+        new_values = self._values.repeat(repeats)
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
 
@@ -1509,12 +1511,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
 
-    @Substitution(klass='Series', value='v')
+    @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
-    def searchsorted(self, v, side='left', sorter=None):
+    @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
+    def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
             sorter = _ensure_platform_int(sorter)
-        return self._values.searchsorted(Series(v)._values,
+        return self._values.searchsorted(Series(value)._values,
                                          side=side, sorter=sorter)
 
     # -------------------------------------------------------------------
@@ -1768,7 +1771,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     @Appender(generic._shared_docs['sort_index'] % _shared_doc_kwargs)
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
-                   sort_remaining=True):
+                   kind='quicksort', na_position='last', sort_remaining=True):
 
         axis = self._get_axis_number(axis)
         index = self.index
@@ -1778,11 +1781,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         elif isinstance(index, MultiIndex):
             from pandas.core.groupby import _lexsort_indexer
             indexer = _lexsort_indexer(index.labels, orders=ascending)
-            indexer = _ensure_platform_int(indexer)
-            new_index = index.take(indexer)
         else:
-            new_index, indexer = index.sort_values(return_indexer=True,
-                                                   ascending=ascending)
+            from pandas.core.groupby import _nargsort
+            indexer = _nargsort(index, kind=kind, ascending=ascending,
+                                na_position=na_position)
+
+        indexer = _ensure_platform_int(indexer)
+        new_index = index.take(indexer)
 
         new_values = self._values.take(indexer)
         result = self._constructor(new_values, index=new_index)
@@ -1935,7 +1940,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         >>> s = pd.Series(np.random.randn(1e6))
         >>> s.nlargest(10)  # only sorts up to the N requested
         """
-        return algos.select_n(self, n=n, keep=keep, method='nlargest')
+        return algos.select_n_series(self, n=n, keep=keep, method='nlargest')
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})
@@ -1973,7 +1978,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         >>> s = pd.Series(np.random.randn(1e6))
         >>> s.nsmallest(10)  # only sorts up to the N requested
         """
-        return algos.select_n(self, n=n, keep=keep, method='nsmallest')
+        return algos.select_n_series(self, n=n, keep=keep, method='nsmallest')
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
@@ -2028,9 +2033,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Parameters
         ----------
-        order: list of int representing new level order.
+        order : list of int representing new level order.
                (reference level by number or key)
-        axis: where to reorder levels
+        axis : where to reorder levels
 
         Returns
         -------
@@ -2616,6 +2621,19 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                            decimal=decimal)
         if path is None:
             return result
+
+    @Appender(generic._shared_docs['to_excel'] % _shared_doc_kwargs)
+    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
+                 float_format=None, columns=None, header=True, index=True,
+                 index_label=None, startrow=0, startcol=0, engine=None,
+                 merge_cells=True, encoding=None, inf_rep='inf', verbose=True):
+        df = self.to_frame()
+        df.to_excel(excel_writer=excel_writer, sheet_name=sheet_name,
+                    na_rep=na_rep, float_format=float_format, columns=columns,
+                    header=header, index=index, index_label=index_label,
+                    startrow=startrow, startcol=startcol, engine=engine,
+                    merge_cells=merge_cells, encoding=encoding,
+                    inf_rep=inf_rep, verbose=verbose)
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """

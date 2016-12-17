@@ -1,29 +1,41 @@
 /*
- * This is derived from numpy 1.7
- * See NP_LICENSE.TXT
- */
 
-#ifndef _PANDAS_DATETIME_H_
-#define _PANDAS_DATETIME_H_
+Copyright (c) 2016, PyData Development Team
+All rights reserved.
+
+Distributed under the terms of the BSD Simplified License.
+
+The full license is in the LICENSE file, distributed with this software.
+
+Copyright (c) 2005-2011, NumPy Developers
+All rights reserved.
+
+This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
+
+*/
+
+#ifndef PANDAS_SRC_DATETIME_NP_DATETIME_H_
+#define PANDAS_SRC_DATETIME_NP_DATETIME_H_
 
 #include <numpy/ndarraytypes.h>
 
 typedef enum {
-        PANDAS_FR_Y = 0, /* Years */
-        PANDAS_FR_M = 1, /* Months */
-        PANDAS_FR_W = 2, /* Weeks */
-        /* Gap where NPY_FR_B was */
-        PANDAS_FR_D = 4, /* Days */
-        PANDAS_FR_h = 5, /* hours */
-        PANDAS_FR_m = 6, /* minutes */
-        PANDAS_FR_s = 7, /* seconds */
-        PANDAS_FR_ms = 8,/* milliseconds */
-        PANDAS_FR_us = 9,/* microseconds */
-        PANDAS_FR_ns = 10,/* nanoseconds */
-        PANDAS_FR_ps = 11,/* picoseconds */
-        PANDAS_FR_fs = 12,/* femtoseconds */
-        PANDAS_FR_as = 13,/* attoseconds */
-        PANDAS_FR_GENERIC = 14 /* Generic, unbound units, can convert to anything */
+        PANDAS_FR_Y = 0,  // Years
+        PANDAS_FR_M = 1,  // Months
+        PANDAS_FR_W = 2,  // Weeks
+        // Gap where NPY_FR_B was
+        PANDAS_FR_D = 4,  // Days
+        PANDAS_FR_h = 5,  // hours
+        PANDAS_FR_m = 6,  // minutes
+        PANDAS_FR_s = 7,  // seconds
+        PANDAS_FR_ms = 8,  // milliseconds
+        PANDAS_FR_us = 9,  // microseconds
+        PANDAS_FR_ns = 10,  // nanoseconds
+        PANDAS_FR_ps = 11,  // picoseconds
+        PANDAS_FR_fs = 12,  // femtoseconds
+        PANDAS_FR_as = 13,  // attoseconds
+        PANDAS_FR_GENERIC = 14  // Generic, unbound units, can
+                                // convert to anything
 } PANDAS_DATETIMEUNIT;
 
 #define PANDAS_DATETIME_NUMUNITS 13
@@ -45,7 +57,8 @@ typedef struct {
 // stuff pandas needs
 // ----------------------------------------------------------------------------
 
-int convert_pydatetime_to_datetimestruct(PyObject *obj, pandas_datetimestruct *out,
+int convert_pydatetime_to_datetimestruct(PyObject *obj,
+                                         pandas_datetimestruct *out,
                                          PANDAS_DATETIMEUNIT *out_bestunit,
                                          int apply_tzinfo);
 
@@ -96,11 +109,6 @@ add_minutes_to_datetimestruct(pandas_datetimestruct *dts, int minutes);
  * Notably, there is a barrier between the nonlinear years and
  * months units, and all the other units.
  */
-//npy_bool
-//can_cast_timedelta64_units(PANDAS_DATETIMEUNIT src_unit,
-//                          PANDAS_DATETIMEUNIT dst_unit,
-//                          NPY_CASTING casting);
-
 npy_bool
 can_cast_datetime64_units(PANDAS_DATETIMEUNIT src_unit,
                           PANDAS_DATETIMEUNIT dst_unit,
@@ -116,4 +124,4 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
 PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj);
 
 
-#endif
+#endif  // PANDAS_SRC_DATETIME_NP_DATETIME_H_

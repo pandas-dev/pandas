@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 from pandas.indexes.api import Index, MultiIndex
 from .common import Base
 
-from pandas.compat import (is_platform_windows, range, lrange, lzip, u,
+from pandas.compat import (range, lrange, lzip, u,
                            zip, PY3, PY36)
 import operator
 import os
@@ -17,6 +17,7 @@ from pandas import (period_range, date_range, Series,
                     Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex)
+from pandas.core.index import _get_combined_index
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -766,6 +767,48 @@ class TestIndex(Base, tm.TestCase):
         self.assertRaises(TypeError, lambda: idx - idx.tolist())
         self.assertRaises(TypeError, lambda: idx.tolist() - idx)
 
+    def test_map_identity_mapping(self):
+        # GH 12766
+        for name, cur_index in self.indices.items():
+            tm.assert_index_equal(cur_index, cur_index.map(lambda x: x))
+
+    def test_map_with_tuples(self):
+        # GH 12766
+
+        # Test that returning a single tuple from an Index
+        #   returns an Index.
+        boolean_index = tm.makeIntIndex(3).map(lambda x: (x,))
+        expected = Index([(0,), (1,), (2,)])
+        tm.assert_index_equal(boolean_index, expected)
+
+        # Test that returning a tuple from a map of a single index
+        #   returns a MultiIndex object.
+        boolean_index = tm.makeIntIndex(3).map(lambda x: (x, x == 1))
+        expected = MultiIndex.from_tuples([(0, False), (1, True), (2, False)])
+        tm.assert_index_equal(boolean_index, expected)
+
+        # Test that returning a single object from a MultiIndex
+        #   returns an Index.
+        first_level = ['foo', 'bar', 'baz']
+        multi_index = MultiIndex.from_tuples(lzip(first_level, [1, 2, 3]))
+        reduced_index = multi_index.map(lambda x: x[0])
+        tm.assert_index_equal(reduced_index, Index(first_level))
+
+    def test_map_tseries_indices_return_index(self):
+        date_index = tm.makeDateIndex(10)
+        exp = Index([1] * 10)
+        tm.assert_index_equal(exp, date_index.map(lambda x: 1))
+
+        period_index = tm.makePeriodIndex(10)
+        tm.assert_index_equal(exp, period_index.map(lambda x: 1))
+
+        tdelta_index = tm.makeTimedeltaIndex(10)
+        tm.assert_index_equal(exp, tdelta_index.map(lambda x: 1))
+
+        date_index = tm.makeDateIndex(24, freq='h', name='hourly')
+        exp = Index(range(24), name='hourly')
+        tm.assert_index_equal(exp, date_index.map(lambda x: x.hour))
+
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
 
@@ -914,23 +957,12 @@ class TestIndex(Base, tm.TestCase):
         self._check_method_works(Index.format)
 
         # GH 14626
-        # our formatting is different by definition when we have
-        # ms vs us precision (e.g. trailing zeros);
-        # so don't compare this case
-        def datetime_now_without_trailing_zeros():
-            now = datetime.now()
-
-            while str(now).endswith("000"):
-                now = datetime.now()
-
-            return now
-
-        index = Index([datetime_now_without_trailing_zeros()])
-
         # windows has different precision on datetime.datetime.now (it doesn't
         # include us since the default for Timestamp shows these but Index
-        # formating does not we are skipping
-        if not is_platform_windows():
+        # formating does not we are skipping)
+        now = datetime.now()
+        if not str(now).endswith("000"):
+            index = Index([now])
             formatted = index.format()
             expected = [str(index[0])]
             self.assertEqual(formatted, expected)
@@ -1204,16 +1236,16 @@ class TestIndex(Base, tm.TestCase):
             self.assert_index_equal(result, expected)
 
         for in_slice, expected in [
-                (SLC[::-1], 'yxdcb'), (SLC['b':'y':-1], ''),
-                (SLC['b'::-1], 'b'), (SLC[:'b':-1], 'yxdcb'),
-                (SLC[:'y':-1], 'y'), (SLC['y'::-1], 'yxdcb'),
-                (SLC['y'::-4], 'yb'),
-                # absent labels
-                (SLC[:'a':-1], 'yxdcb'), (SLC[:'a':-2], 'ydb'),
-                (SLC['z'::-1], 'yxdcb'), (SLC['z'::-3], 'yc'),
-                (SLC['m'::-1], 'dcb'), (SLC[:'m':-1], 'yx'),
-                (SLC['a':'a':-1], ''), (SLC['z':'z':-1], ''),
-                (SLC['m':'m':-1], '')
+            (SLC[::-1], 'yxdcb'), (SLC['b':'y':-1], ''),
+            (SLC['b'::-1], 'b'), (SLC[:'b':-1], 'yxdcb'),
+            (SLC[:'y':-1], 'y'), (SLC['y'::-1], 'yxdcb'),
+            (SLC['y'::-4], 'yb'),
+            # absent labels
+            (SLC[:'a':-1], 'yxdcb'), (SLC[:'a':-2], 'ydb'),
+            (SLC['z'::-1], 'yxdcb'), (SLC['z'::-3], 'yc'),
+            (SLC['m'::-1], 'dcb'), (SLC[:'m':-1], 'yx'),
+            (SLC['a':'a':-1], ''), (SLC['z':'z':-1], ''),
+            (SLC['m':'m':-1], '')
         ]:
             check_slice(in_slice, expected)
 
@@ -1976,8 +2008,18 @@ class TestMixedIntIndex(Base, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             pd.Index([1, 2, 3]).dropna(how='xxx')
 
+    def test_get_combined_index(self):
+        result = _get_combined_index([])
+        tm.assert_index_equal(result, Index([]))
 
-def test_get_combined_index():
-    from pandas.core.index import _get_combined_index
-    result = _get_combined_index([])
-    tm.assert_index_equal(result, Index([]))
+    def test_repeat(self):
+        repeats = 2
+        idx = pd.Index([1, 2, 3])
+        expected = pd.Index([1, 1, 2, 2, 3, 3])
+
+        result = idx.repeat(repeats)
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = idx.repeat(n=repeats)
+            tm.assert_index_equal(result, expected)

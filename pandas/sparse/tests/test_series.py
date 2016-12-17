@@ -161,7 +161,10 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         series = self.bseries.to_dense()
         tm.assert_series_equal(series, Series(arr, name='bseries'))
 
-        series = self.bseries.to_dense(sparse_only=True)
+        # see gh-14647
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            series = self.bseries.to_dense(sparse_only=True)
 
         indexer = np.isfinite(arr)
         exp = Series(arr[indexer], index=index[indexer], name='bseries')
@@ -1328,21 +1331,22 @@ class TestSparseSeriesAnalytics(tm.TestCase):
         expected = SparseSeries(self.bseries.to_dense().cumsum())
         tm.assert_sp_series_equal(result, expected)
 
-        # TODO: gh-12855 - return a SparseSeries here
         result = self.zbseries.cumsum()
         expected = self.zbseries.to_dense().cumsum()
-        self.assertNotIsInstance(result, SparseSeries)
         tm.assert_series_equal(result, expected)
+
+        axis = 1  # Series is 1-D, so only axis = 0 is valid.
+        msg = "No axis named {axis}".format(axis=axis)
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.bseries.cumsum(axis=axis)
 
     def test_numpy_cumsum(self):
         result = np.cumsum(self.bseries)
         expected = SparseSeries(self.bseries.to_dense().cumsum())
         tm.assert_sp_series_equal(result, expected)
 
-        # TODO: gh-12855 - return a SparseSeries here
         result = np.cumsum(self.zbseries)
         expected = self.zbseries.to_dense().cumsum()
-        self.assertNotIsInstance(result, SparseSeries)
         tm.assert_series_equal(result, expected)
 
         msg = "the 'dtype' parameter is not supported"

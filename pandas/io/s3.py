@@ -99,9 +99,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         conn = boto.connect_s3(host=s3_host, anon=True)
 
     b = conn.get_bucket(parsed_url.netloc, validate=False)
-    if compat.PY2 and (compression == 'gzip' or
-                       (compression == 'infer' and
-                        filepath_or_buffer.endswith(".gz"))):
+    if compat.PY2 and compression:
         k = boto.s3.key.Key(b, parsed_url.path)
         filepath_or_buffer = BytesIO(k.get_contents_as_string(
             encoding=encoding))

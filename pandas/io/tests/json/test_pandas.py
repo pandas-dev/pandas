@@ -167,7 +167,7 @@ class TestPandasContainer(tm.TestCase):
                 if raise_ok is not None:
                     if isinstance(detail, raise_ok):
                         return
-                    raise
+                raise
 
             if sort is not None and sort in unser.columns:
                 unser = unser.sort_values(sort)
@@ -388,6 +388,10 @@ class TestPandasContainer(tm.TestCase):
         self.assertFalse(df._is_mixed_type)
         assert_frame_equal(read_json(df.to_json(), dtype=dict(df.dtypes)), df,
                            check_index_type=False)
+        # GH 7445
+        result = pd.DataFrame({'test': []}, index=[]).to_json(orient='columns')
+        expected = '{"test":{}}'
+        tm.assert_equal(result, expected)
 
     def test_frame_empty_mixedtype(self):
         # mixed type

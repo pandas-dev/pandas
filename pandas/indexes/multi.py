@@ -25,7 +25,8 @@ from pandas.types.missing import isnull, array_equivalent
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,
                                 is_null_slice,
-                                PerformanceWarning)
+                                PerformanceWarning,
+                                UnsortedIndexError)
 
 
 from pandas.core.base import FrozenList
@@ -1166,10 +1167,11 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
-    def repeat(self, n, *args, **kwargs):
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
+    def repeat(self, repeats, *args, **kwargs):
         nv.validate_repeat(args, kwargs)
         return MultiIndex(levels=self.levels,
-                          labels=[label.view(np.ndarray).repeat(n)
+                          labels=[label.view(np.ndarray).repeat(repeats)
                                   for label in self.labels], names=self.names,
                           sortorder=self.sortorder, verify_integrity=False)
 
@@ -1935,9 +1937,10 @@ class MultiIndex(Index):
 
         # must be lexsorted to at least as many levels
         if not self.is_lexsorted_for_tuple(tup):
-            raise KeyError('MultiIndex Slicing requires the index to be fully '
-                           'lexsorted tuple len ({0}), lexsort depth '
-                           '({1})'.format(len(tup), self.lexsort_depth))
+            raise UnsortedIndexError('MultiIndex Slicing requires the index '
+                                     'to be fully lexsorted tuple len ({0}), '
+                                     'lexsort depth ({1})'
+                                     .format(len(tup), self.lexsort_depth))
 
         # indexer
         # this is the list of all values that we want to select

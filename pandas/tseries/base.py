@@ -27,7 +27,6 @@ from pandas.indexes.base import _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.types.concat as _concat
 import pandas.tseries.frequencies as frequencies
-import pandas.algos as _algos
 
 
 class DatelikeOps(object):
@@ -330,11 +329,16 @@ class DatetimeIndexOpsMixin(object):
     def map(self, f):
         try:
             result = f(self)
-            if not isinstance(result, (np.ndarray, Index)):
-                raise TypeError
+
+            # Try to use this result if we can
+            if isinstance(result, np.ndarray):
+                self._shallow_copy(result)
+
+            if not isinstance(result, Index):
+                raise TypeError('The map function must return an Index object')
             return result
         except Exception:
-            return _algos.arrmap_object(self.asobject.values, f)
+            return self.asobject.map(f)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """

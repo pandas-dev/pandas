@@ -126,13 +126,23 @@ index_col :  int or sequence or ``False``, default ``None``
   MultiIndex is used. If you have a malformed file with delimiters at the end of
   each line, you might consider ``index_col=False`` to force pandas to *not* use
   the first column as the index (row names).
-usecols : array-like, default ``None``
-  Return a subset of the columns. All elements in this array must either
+usecols : array-like or callable, default ``None``
+  Return a subset of the columns. If array-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
   that correspond to column names provided either by the user in `names` or
-  inferred from the document header row(s). For example, a valid `usecols`
-  parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Using this parameter
-  results in much faster parsing time and lower memory usage.
+  inferred from the document header row(s). For example, a valid array-like
+  `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz'].
+
+  If callable, the callable function will be evaluated against the column names,
+  returning names where the callable function evaluates to True:
+
+  .. ipython:: python
+
+     data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
+     pd.read_csv(StringIO(data))
+     pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ['COL1', 'COL3'])
+
+  Using this parameter results in much faster parsing time and lower memory usage.
 as_recarray : boolean, default ``False``
   DEPRECATED: this argument will be removed in a future version. Please call
   ``pd.read_csv(...).to_records()`` instead.
@@ -157,6 +167,9 @@ dtype : Type name or dict of column -> type, default ``None``
   Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32}``
   (unsupported with ``engine='python'``). Use `str` or `object` to preserve and
   not interpret dtype.
+
+  .. versionadded:: 0.20.0 support for the Python parser.
+
 engine : {``'c'``, ``'python'``}
   Parser engine to use. The C engine is faster while the python engine is
   currently more feature-complete.
@@ -473,10 +486,9 @@ However, if you wanted for all the data to be coerced, no matter the type, then
 using the ``converters`` argument of :func:`~pandas.read_csv` would certainly be
 worth trying.
 
-.. note::
-    The ``dtype`` option is currently only supported by the C engine.
-    Specifying ``dtype`` with ``engine`` other than 'c' raises a
-    ``ValueError``.
+  .. versionadded:: 0.20.0 support for the Python parser.
+
+     The ``dtype`` option is supported by the 'python' engine
 
 .. note::
    In some cases, reading in abnormal data with columns containing mixed dtypes
@@ -615,7 +627,9 @@ Filtering columns (``usecols``)
 +++++++++++++++++++++++++++++++
 
 The ``usecols`` argument allows you to select any subset of the columns in a
-file, either using the column names or position numbers:
+file, either using the column names, position numbers or a callable:
+
+.. versionadded:: 0.20.0 support for callable `usecols` arguments
 
 .. ipython:: python
 
@@ -623,6 +637,7 @@ file, either using the column names or position numbers:
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), usecols=['b', 'd'])
     pd.read_csv(StringIO(data), usecols=[0, 2, 3])
+    pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ['A', 'C'])
 
 Comments and Empty Lines
 ''''''''''''''''''''''''
@@ -851,6 +866,12 @@ data columns:
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
                     index_col=0) #index is the nominal column
    df
+
+.. note::
+   If a column or index contains an unparseable date, the entire column or
+   index will be returned unaltered as an object data type. For non-standard
+   datetime parsing, use :func:`to_datetime` after ``pd.read_csv``.
+
 
 .. note::
    read_csv has a fast_path for parsing datetime strings in iso8601 format,
@@ -1266,10 +1287,21 @@ is whitespace).
    df = pd.read_fwf('bar.csv', header=None, index_col=0)
    df
 
+.. versionadded:: 0.20.0
+
+``read_fwf`` supports the ``dtype`` parameter for specifying the types of
+parsed columns to be different from the inferred type.
+
+.. ipython:: python
+
+   pd.read_fwf('bar.csv', header=None, index_col=0).dtypes
+   pd.read_fwf('bar.csv', header=None, dtype={2: 'object'}).dtypes
+
 .. ipython:: python
    :suppress:
 
    os.remove('bar.csv')
+
 
 Indexes
 '''''''
@@ -2524,6 +2556,20 @@ missing data to recover integer dtype:
 
    cfun = lambda x: int(x) if x else -1
    read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
+
+dtype Specifications
+++++++++++++++++++++
+
+.. versionadded:: 0.20
+
+As an alternative to converters, the type for an entire column can
+be specified using the `dtype` keyword, which takes a dictionary
+mapping column names to types.  To interpret data with
+no type inference, use the type ``str`` or ``object``.
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', dtype={'MyInts': 'int64', 'MyText': str})
 
 .. _io.excel_writer:
 
@@ -3958,7 +4004,7 @@ and data values from the values and assembles them into a ``data.frame``:
    name_paths = paste(listing$group[name_nodes], listing$name[name_nodes], sep = "/")
    columns = list()
    for (idx in seq(data_paths)) {
-     # NOTE: matrices returned by h5read have to be transposed to to obtain
+     # NOTE: matrices returned by h5read have to be transposed to obtain
      # required Fortran order!
      data <- data.frame(t(h5read(h5File, data_paths[idx])))
      names <- t(h5read(h5File, name_paths[idx]))

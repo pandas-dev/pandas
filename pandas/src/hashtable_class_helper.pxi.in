@@ -10,23 +10,28 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# name, dtype
-dtypes = [('Float64', 'float64'), ('Int64', 'int64')]
+# name, dtype, arg
+# the generated StringVector is not actually used
+# but is included for completeness (rather ObjectVector is used
+# for uniques in hashtables)
 
+dtypes = [('Float64', 'float64', 'float64_t'),
+          ('Int64', 'int64', 'int64_t'),
+          ('String', 'string', 'char *')]
 }}
 
-{{for name, dtype in dtypes}}
+{{for name, dtype, arg in dtypes}}
 
 
 ctypedef struct {{name}}VectorData:
-    {{dtype}}_t *data
+    {{arg}} *data
     size_t n, m
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void append_data_{{dtype}}({{name}}VectorData *data,
-                                {{dtype}}_t x) nogil:
+cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
+                                       {{arg}} x) nogil:
 
     data.data[data.n] = x
     data.n += 1
@@ -36,8 +41,9 @@ cdef void append_data_{{dtype}}({{name}}VectorData *data,
 ctypedef fused vector_data:
     Int64VectorData
     Float64VectorData
+    StringVectorData
 
-cdef bint needs_resize(vector_data *data) nogil:
+cdef inline bint needs_resize(vector_data *data) nogil:
     return data.n == data.m
 
 #----------------------------------------------------------------------
@@ -46,12 +52,13 @@ cdef bint needs_resize(vector_data *data) nogil:
 
 {{py:
 
-# name, dtype
-dtypes = [('Float64', 'float64'), ('Int64', 'int64')]
+# name, dtype, arg, idtype
+dtypes = [('Float64', 'float64', 'float64_t', 'np.float64'),
+          ('Int64', 'int64', 'int64_t', 'np.int64')]
 
 }}
 
-{{for name, dtype in dtypes}}
+{{for name, dtype, arg, idtype in dtypes}}
 
 cdef class {{name}}Vector:
 
@@ -66,13 +73,13 @@ cdef class {{name}}Vector:
             raise MemoryError()
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
-        self.ao = np.empty(self.data.m, dtype=np.{{dtype}})
-        self.data.data = <{{dtype}}_t*> self.ao.data
+        self.ao = np.empty(self.data.m, dtype={{idtype}})
+        self.data.data = <{{arg}}*> self.ao.data
 
     cdef resize(self):
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
         self.ao.resize(self.data.m)
-        self.data.data = <{{dtype}}_t*> self.ao.data
+        self.data.data = <{{arg}}*> self.ao.data
 
     def __dealloc__(self):
         PyMem_Free(self.data)
@@ -85,7 +92,7 @@ cdef class {{name}}Vector:
         self.data.m = self.data.n
         return self.ao
 
-    cdef inline void append(self, {{dtype}}_t x):
+    cdef inline void append(self, {{arg}} x):
 
         if needs_resize(self.data):
             self.resize()
@@ -93,6 +100,61 @@ cdef class {{name}}Vector:
         append_data_{{dtype}}(self.data, x)
 
 {{endfor}}
+
+cdef class StringVector:
+
+    cdef:
+        StringVectorData *data
+
+    def __cinit__(self):
+        self.data = <StringVectorData *>PyMem_Malloc(
+            sizeof(StringVectorData))
+        if not self.data:
+            raise MemoryError()
+        self.data.n = 0
+        self.data.m = _INIT_VEC_CAP
+        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+
+    cdef resize(self):
+        cdef:
+            char **orig_data
+            size_t i, m
+
+        m = self.data.m
+        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
+
+        # TODO: can resize?
+        orig_data = self.data.data
+        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        for i in range(m):
+            self.data.data[i] = orig_data[i]
+
+    def __dealloc__(self):
+        free(self.data.data)
+        PyMem_Free(self.data)
+
+    def __len__(self):
+        return self.data.n
+
+    def to_array(self):
+        cdef:
+            ndarray ao
+            size_t n
+            object val
+
+        ao = np.empty(self.data.n, dtype=np.object)
+        for i in range(self.data.n):
+            val = self.data.data[i]
+            ao[i] = val
+        self.data.m = self.data.n
+        return ao
+
+    cdef inline void append(self, char * x):
+
+        if needs_resize(self.data):
+            self.resize()
+
+        append_data_string(self.data, x)
 
 
 cdef class ObjectVector:
@@ -377,9 +439,11 @@ cdef class {{name}}HashTable(HashTable):
 
 
 cdef class StringHashTable(HashTable):
-    cdef kh_str_t *table
+    # these by-definition *must* be strings
+    # or a sentinel np.nan / None missing value
+    na_string_sentinel = '__nan__'
 
-    def __cinit__(self, int size_hint=1):
+    def __init__(self, int size_hint=1):
         self.table = kh_init_str()
         if size_hint is not None:
             kh_resize_str(self.table, size_hint)
@@ -388,17 +452,26 @@ cdef class StringHashTable(HashTable):
         kh_destroy_str(self.table)
 
     cpdef get_item(self, object val):
-        cdef khiter_t k
-        k = kh_get_str(self.table, util.get_c_string(val))
+        cdef:
+            khiter_t k
+            char *v
+        v = util.get_c_string(val)
+
+        k = kh_get_str(self.table, v)
         if k != self.table.n_buckets:
             return self.table.vals[k]
         else:
             raise KeyError(val)
 
     def get_iter_test(self, object key, Py_ssize_t iterations):
-        cdef Py_ssize_t i, val
+        cdef:
+            Py_ssize_t i, val
+            char *v
+
+        v = util.get_c_string(key)
+
         for i in range(iterations):
-            k = kh_get_str(self.table, util.get_c_string(key))
+            k = kh_get_str(self.table, v)
             if k != self.table.n_buckets:
                 val = self.table.vals[k]
 
@@ -406,83 +479,203 @@ cdef class StringHashTable(HashTable):
         cdef:
             khiter_t k
             int ret = 0
-            char* buf
+            char *v
 
-        buf = util.get_c_string(key)
+        v = util.get_c_string(val)
 
-        k = kh_put_str(self.table, buf, &ret)
+        k = kh_put_str(self.table, v, &ret)
         self.table.keys[k] = key
         if kh_exist_str(self.table, k):
             self.table.vals[k] = val
         else:
             raise KeyError(key)
 
+    @cython.boundscheck(False)
     def get_indexer(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            char *buf
             int64_t *resbuf = <int64_t*> labels.data
             khiter_t k
             kh_str_t *table = self.table
+            char *v
+            char **vecs
 
-        for i in range(n):
-            buf = util.get_c_string(values[i])
-            k = kh_get_str(table, buf)
-            if k != table.n_buckets:
-                resbuf[i] = table.vals[k]
-            else:
-                resbuf[i] = -1
-        return labels
-
-    def unique(self, ndarray[object] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            object val
-            char *buf
-            khiter_t k
-            ObjectVector uniques = ObjectVector()
-
+        vecs = <char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
-            buf = util.get_c_string(val)
-            k = kh_get_str(self.table, buf)
-            if k == self.table.n_buckets:
-                kh_put_str(self.table, buf, &ret)
-                uniques.append(val)
+            v = util.get_c_string(val)
+            vecs[i] = v
 
+        with nogil:
+            for i in range(n):
+                k = kh_get_str(table, vecs[i])
+                if k != table.n_buckets:
+                    resbuf[i] = table.vals[k]
+                else:
+                    resbuf[i] = -1
+
+        free(vecs)
+        return labels
+
+    @cython.boundscheck(False)
+    def unique(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, count, n = len(values)
+            int64_t[:] uindexer
+            int ret = 0
+            object val
+            ObjectVector uniques
+            khiter_t k
+            char *v
+            char **vecs
+
+        vecs = <char **> malloc(n * sizeof(char *))
+        uindexer = np.empty(n, dtype=np.int64)
+        for i in range(n):
+            val = values[i]
+            v = util.get_c_string(val)
+            vecs[i] = v
+
+        count = 0
+        with nogil:
+            for i in range(n):
+                v = vecs[i]
+                k = kh_get_str(self.table, v)
+                if k == self.table.n_buckets:
+                    kh_put_str(self.table, v, &ret)
+                    uindexer[count] = i
+                    count += 1
+        free(vecs)
+
+        # uniques
+        uniques = ObjectVector()
+        for i in range(count):
+            uniques.append(values[uindexer[i]])
         return uniques.to_array()
 
     def factorize(self, ndarray[object] values):
+        uniques = ObjectVector()
+        labels = self.get_labels(values, uniques, 0, 0)
+        return uniques.to_array(), labels
+
+    @cython.boundscheck(False)
+    def lookup(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            dict reverse = {}
-            Py_ssize_t idx, count = 0
             int ret = 0
             object val
-            char *buf
+            char *v
             khiter_t k
+            int64_t[:] locs = np.empty(n, dtype=np.int64)
 
+        # these by-definition *must* be strings
+        vecs = <char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
-            buf = util.get_c_string(val)
-            k = kh_get_str(self.table, buf)
-            if k != self.table.n_buckets:
-                idx = self.table.vals[k]
-                labels[i] = idx
+
+            if PyUnicode_Check(val) or PyString_Check(val):
+                v = util.get_c_string(val)
             else:
-                k = kh_put_str(self.table, buf, &ret)
-                # print 'putting %s, %s' % (val, count)
+                v = util.get_c_string(self.na_string_sentinel)
+            vecs[i] = v
 
-                self.table.vals[k] = count
-                reverse[count] = val
-                labels[i] = count
-                count += 1
+        with nogil:
+            for i in range(n):
+                v = vecs[i]
+                k = kh_get_str(self.table, v)
+                if k != self.table.n_buckets:
+                    locs[i] = self.table.vals[k]
+                else:
+                    locs[i] = -1
 
-        return reverse, labels
+        free(vecs)
+        return np.asarray(locs)
 
+    @cython.boundscheck(False)
+    def map_locations(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            object val
+            char *v
+            char **vecs
+            khiter_t k
+
+        # these by-definition *must* be strings
+        vecs = <char **> malloc(n * sizeof(char *))
+        for i in range(n):
+            val = values[i]
+
+            if PyUnicode_Check(val) or PyString_Check(val):
+                v = util.get_c_string(val)
+            else:
+                v = util.get_c_string(self.na_string_sentinel)
+            vecs[i] = v
+
+        with nogil:
+            for i in range(n):
+                v = vecs[i]
+                k = kh_put_str(self.table, v, &ret)
+                self.table.vals[k] = i
+        free(vecs)
+
+    @cython.boundscheck(False)
+    def get_labels(self, ndarray[object] values, ObjectVector uniques,
+                   Py_ssize_t count_prior, int64_t na_sentinel,
+                   bint check_null=1):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int64_t[:] labels
+            int64_t[:] uindexer
+            Py_ssize_t idx, count = count_prior
+            int ret = 0
+            object val
+            char *v
+            char **vecs
+            khiter_t k
+
+        # these by-definition *must* be strings
+        labels = np.zeros(n, dtype=np.int64)
+        uindexer = np.empty(n, dtype=np.int64)
+
+        # pre-filter out missing
+        # and assign pointers
+        vecs = <char **> malloc(n * sizeof(char *))
+        for i in range(n):
+            val = values[i]
+
+            if PyUnicode_Check(val) or PyString_Check(val):
+                v = util.get_c_string(val)
+                vecs[i] = v
+            else:
+                labels[i] = na_sentinel
+
+        # compute
+        with nogil:
+            for i in range(n):
+                if labels[i] == na_sentinel:
+                    continue
+
+                v = vecs[i]
+                k = kh_get_str(self.table, v)
+                if k != self.table.n_buckets:
+                    idx = self.table.vals[k]
+                    labels[i] = <int64_t>idx
+                else:
+                    k = kh_put_str(self.table, v, &ret)
+                    self.table.vals[k] = count
+                    uindexer[count] = i
+                    labels[i] = <int64_t>count
+                    count += 1
+
+        free(vecs)
+
+        # uniques
+        for i in range(count):
+            uniques.append(values[uindexer[i]])
+
+        return np.asarray(labels)
 
 na_sentinel = object
 

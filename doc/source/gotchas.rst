@@ -514,40 +514,6 @@ parse HTML tables in the top-level pandas io function ``read_html``.
        text from the URL over the web, i.e., IO (input-output). For very large
        tables, this might not be true.
 
-**Issues with using** |Anaconda|_
-
-   * `Anaconda`_ ships with `lxml`_ version 3.2.0; the following workaround for
-     `Anaconda`_ was successfully used to deal with the versioning issues
-     surrounding `lxml`_ and `BeautifulSoup4`_.
-
-   .. note::
-
-      Unless you have *both*:
-
-         * A strong restriction on the upper bound of the runtime of some code
-           that incorporates :func:`~pandas.io.html.read_html`
-         * Complete knowledge that the HTML you will be parsing will be 100%
-           valid at all times
-
-      then you should install `html5lib`_ and things will work swimmingly
-      without you having to muck around with `conda`. If you want the best of
-      both worlds then install both `html5lib`_ and `lxml`_. If you do install
-      `lxml`_ then you need to perform the following commands to ensure that
-      lxml will work correctly:
-
-      .. code-block:: sh
-
-         # remove the included version
-         conda remove lxml
-
-         # install the latest version of lxml
-         pip install 'git+git://github.com/lxml/lxml.git'
-
-         # install the latest version of beautifulsoup4
-         pip install 'bzr+lp:beautifulsoup'
-
-      Note that you need `bzr <http://bazaar.canonical.com/en>`__ and `git
-      <http://git-scm.com>`__ installed to perform the last two operations.
 
 .. |svm| replace:: **strictly valid markup**
 .. _svm: http://validator.w3.org/docs/help.html#validation_basics
@@ -560,9 +526,6 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 .. |lxml| replace:: **lxml**
 .. _lxml: http://lxml.de
-
-.. |Anaconda| replace:: **Anaconda**
-.. _Anaconda: https://store.continuum.io/cshop/anaconda
 
 
 Byte-Ordering Issues

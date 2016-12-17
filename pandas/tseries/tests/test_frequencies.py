@@ -39,6 +39,21 @@ class TestToOffset(tm.TestCase):
         expected = offsets.Hour(3)
         assert (result == expected)
 
+        freqstr = '2h 20.5min'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.Second(8430)
+        assert (result == expected)
+
+        freqstr = '1.5min'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.Second(90)
+        assert (result == expected)
+
+        freqstr = '0.5S'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.Milli(500)
+        assert (result == expected)
+
         freqstr = '15l500u'
         result = frequencies.to_offset(freqstr)
         expected = offsets.Micro(15500)
@@ -47,6 +62,16 @@ class TestToOffset(tm.TestCase):
         freqstr = '10s75L'
         result = frequencies.to_offset(freqstr)
         expected = offsets.Milli(10075)
+        assert (result == expected)
+
+        freqstr = '1s0.25ms'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.Micro(1000250)
+        assert (result == expected)
+
+        freqstr = '1s0.25L'
+        result = frequencies.to_offset(freqstr)
+        expected = offsets.Micro(1000250)
         assert (result == expected)
 
         freqstr = '2800N'
@@ -107,10 +132,8 @@ class TestToOffset(tm.TestCase):
             frequencies.to_offset('-2-3U')
         with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: -2D:3H'):
             frequencies.to_offset('-2D:3H')
-
-        # ToDo: Must be fixed in #8419
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: .5S'):
-            frequencies.to_offset('.5S')
+        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 1.5.0S'):
+            frequencies.to_offset('1.5.0S')
 
         # split offsets with spaces are valid
         assert frequencies.to_offset('2D 3H') == offsets.Hour(51)
@@ -378,6 +401,26 @@ class TestFrequencyCode(tm.TestCase):
         for freq in ['D', 'H', 'T', 'S', 'L', 'U']:
             result = Reso.get_freq(Reso.get_str(Reso.get_reso_from_freq(freq)))
             self.assertEqual(freq, result)
+
+    def test_resolution_bumping(self):
+        # GH 14378
+        Reso = frequencies.Resolution
+
+        self.assertEqual(Reso.get_stride_from_decimal(1.5, 'T'), (90, 'S'))
+        self.assertEqual(Reso.get_stride_from_decimal(62.4, 'T'), (3744, 'S'))
+        self.assertEqual(Reso.get_stride_from_decimal(1.04, 'H'), (3744, 'S'))
+        self.assertEqual(Reso.get_stride_from_decimal(1, 'D'), (1, 'D'))
+        self.assertEqual(Reso.get_stride_from_decimal(0.342931, 'H'),
+                         (1234551600, 'U'))
+        self.assertEqual(Reso.get_stride_from_decimal(1.2345, 'D'),
+                         (106660800, 'L'))
+
+        with self.assertRaises(ValueError):
+            Reso.get_stride_from_decimal(0.5, 'N')
+
+        # too much precision in the input can prevent
+        with self.assertRaises(ValueError):
+            Reso.get_stride_from_decimal(0.3429324798798269273987982, 'H')
 
     def test_get_freq_code(self):
         # freqstr

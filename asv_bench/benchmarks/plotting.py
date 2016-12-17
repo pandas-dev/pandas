@@ -7,7 +7,7 @@ except ImportError:
 from pandas.tools.plotting import andrews_curves
 
 
-class plot_timeseries_period(object):
+class TimeseriesPlotting(object):
     goal_time = 0.2
 
     def setup(self):
@@ -17,11 +17,11 @@ class plot_timeseries_period(object):
         self.M = 5
         self.df = DataFrame(np.random.randn(self.N, self.M), index=date_range('1/1/1975', periods=self.N))
 
-    def time_plot_timeseries_period(self):
+    def time_plot_regular(self):
         self.df.plot()
 
 
-class plot_andrews_curves(object):
+class Misc(object):
     goal_time = 0.6
 
     def setup(self):

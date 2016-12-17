@@ -138,6 +138,19 @@ date,time,prn,rxstatus
                                names=['datetime', 'prn']))
         assert_frame_equal(df, df_correct)
 
+    def test_parse_date_column_with_empty_string(self):
+        # GH 6428
+        data = """case,opdate
+                  7,10/18/2006
+                  7,10/18/2008
+                  621, """
+        result = read_csv(StringIO(data), parse_dates=['opdate'])
+        expected_data = [[7, '10/18/2006'],
+                         [7, '10/18/2008'],
+                         [621, ' ']]
+        expected = DataFrame(expected_data, columns=['case', 'opdate'])
+        assert_frame_equal(result, expected)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

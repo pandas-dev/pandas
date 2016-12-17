@@ -155,14 +155,14 @@ class DateOffset(object):
     DateOffsets can be created to move dates forward a given number of
     valid dates.  For example, Bday(2) can be added to a date to move
     it two business days forward.  If the date does not start on a
-    valid date, first it is moved to a valid date.  Thus psedo code
+    valid date, first it is moved to a valid date.  Thus pseudo code
     is:
 
     def __add__(date):
       date = rollback(date) # does nothing if date is valid
       return date + <n number of periods>
 
-    When a date offset is created for a negitive number of periods,
+    When a date offset is created for a negative number of periods,
     the date is first rolled forward.  The pseudo code is:
 
     def __add__(date):
