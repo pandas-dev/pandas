@@ -16,7 +16,6 @@ def test_dtype_utc(self):
   
     filled=data.fillna(method='bfill')
     
-    
     expected=pd.Series([datetime.datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc) ,
                       datetime.datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc) ,
                       datetime.datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc) ])
