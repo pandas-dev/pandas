@@ -349,9 +349,19 @@ class TestGroupByCategorical(tm.TestCase):
                               'B': [101.0, nan, nan, 205.0, nan, nan]},
                              columns=['cat', 'A', 'B'])
 
+        group_columns = ['cat', 'A']
+
         for name in [None, 'X', 'B', 'cat']:
             df.index = Index(list("abc"), name=name)
-            result = df.groupby(['cat', 'A'], as_index=False).sum()
+
+            if name in group_columns and name in df.index.names:
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    result = df.groupby(group_columns, as_index=False).sum()
+
+            else:
+                result = df.groupby(group_columns, as_index=False).sum()
+
             tm.assert_frame_equal(result, expected, check_index_type=True)
 
     def test_groupby_preserve_categorical_dtype(self):
