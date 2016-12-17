@@ -366,6 +366,21 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         exp = pd.Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
+    def test_datetime_assignment_with_NaT_and_diff_time_units(self):
+        # GH 7492
+        data_ns = np.array([1, 'nat'], dtype='datetime64[ns]')
+        result = pd.Series(data_ns).to_frame()
+        result['new'] = data_ns
+        expected = pd.DataFrame({0: [1, None],
+                                'new': [1, None]}, dtype='datetime64[ns]')
+        tm.assert_frame_equal(result, expected)
+        # OutOfBoundsDatetime error shouldn't occur
+        data_s = np.array([1, 'nat'], dtype='datetime64[s]')
+        result['new'] = data_s
+        expected = pd.DataFrame({0: [1, None],
+                                'new': [1e9, None]}, dtype='datetime64[ns]')
+        tm.assert_frame_equal(result, expected)
+
 
 if __name__ == '__main__':
     import nose
