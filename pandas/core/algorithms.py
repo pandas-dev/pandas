@@ -27,6 +27,7 @@ from pandas.types.common import (is_integer_dtype,
                                  _ensure_float64,
                                  _ensure_int64,
                                  is_list_like)
+from pandas.compat.numpy import _np_version_under1p10
 from pandas.types.missing import isnull
 
 import pandas.core.common as com
@@ -549,6 +550,95 @@ def rank(values, axis=0, method='average', na_option='keep',
                   ascending=ascending, na_option=na_option, pct=pct)
 
     return ranks
+
+
+def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
+    """
+    Perform array addition that checks for underflow and overflow.
+
+    Performs the addition of an int64 array and an int64 integer (or array)
+    but checks that they do not result in overflow first. For elements that
+    are indicated to be NaN, whether or not there is overflow for that element
+    is automatically ignored.
+
+    Parameters
+    ----------
+    arr : array addend.
+    b : array or scalar addend.
+    arr_mask : boolean array or None
+        array indicating which elements to exclude from checking
+    b_mask : boolean array or boolean or None
+        array or scalar indicating which element(s) to exclude from checking
+
+    Returns
+    -------
+    sum : An array for elements x + b for each element x in arr if b is
+          a scalar or an array for elements x + y for each element pair
+          (x, y) in (arr, b).
+
+    Raises
+    ------
+    OverflowError if any x + y exceeds the maximum or minimum int64 value.
+    """
+    def _broadcast(arr_or_scalar, shape):
+        """
+        Helper function to broadcast arrays / scalars to the desired shape.
+        """
+        if _np_version_under1p10:
+            if lib.isscalar(arr_or_scalar):
+                out = np.empty(shape)
+                out.fill(arr_or_scalar)
+            else:
+                out = arr_or_scalar
+        else:
+            out = np.broadcast_to(arr_or_scalar, shape)
+        return out
+
+    # For performance reasons, we broadcast 'b' to the new array 'b2'
+    # so that it has the same size as 'arr'.
+    b2 = _broadcast(b, arr.shape)
+    if b_mask is not None:
+        # We do the same broadcasting for b_mask as well.
+        b2_mask = _broadcast(b_mask, arr.shape)
+    else:
+        b2_mask = None
+
+    # For elements that are NaN, regardless of their value, we should
+    # ignore whether they overflow or not when doing the checked add.
+    if arr_mask is not None and b2_mask is not None:
+        not_nan = np.logical_not(arr_mask | b2_mask)
+    elif arr_mask is not None:
+        not_nan = np.logical_not(arr_mask)
+    elif b_mask is not None:
+        not_nan = np.logical_not(b2_mask)
+    else:
+        not_nan = np.empty(arr.shape, dtype=bool)
+        not_nan.fill(True)
+
+    # gh-14324: For each element in 'arr' and its corresponding element
+    # in 'b2', we check the sign of the element in 'b2'. If it is positive,
+    # we then check whether its sum with the element in 'arr' exceeds
+    # np.iinfo(np.int64).max. If so, we have an overflow error. If it
+    # it is negative, we then check whether its sum with the element in
+    # 'arr' exceeds np.iinfo(np.int64).min. If so, we have an overflow
+    # error as well.
+    mask1 = b2 > 0
+    mask2 = b2 < 0
+
+    if not mask1.any():
+        to_raise = ((np.iinfo(np.int64).min - b2 > arr) & not_nan).any()
+    elif not mask2.any():
+        to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
+    else:
+        to_raise = (((np.iinfo(np.int64).max -
+                      b2[mask1] < arr[mask1]) & not_nan[mask1]).any() or
+                    ((np.iinfo(np.int64).min -
+                      b2[mask2] > arr[mask2]) & not_nan[mask2]).any())
+
+    if to_raise:
+        raise OverflowError("Overflow in int64 addition")
+    return arr + b
+
 
 _rank1d_functions = {
     'float64': algos.rank_1d_float64,
