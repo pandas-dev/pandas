@@ -120,7 +120,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3,
-         duplicate_edges='raise'):
+         duplicates='raise'):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -177,12 +177,12 @@ def qcut(x, q, labels=None, retbins=False, precision=3,
     bins = algos.quantile(x, quantiles)
     return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
                          precision=precision, include_lowest=True,
-                         duplicate_edges='raise')
+                         duplicates=duplicates)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
                   precision=3, name=None, include_lowest=False,
-                  duplicate_edges='raise'):
+                  duplicates='raise'):
     x_is_series = isinstance(x, Series)
     series_index = None
 
@@ -193,15 +193,21 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
     x = np.asarray(x)
 
-    side = 'left' if right else 'right'
-    ids = bins.searchsorted(x, side=side)
+    if duplicates not in ['raise', 'drop']:
+        raise ValueError("invalid value for 'duplicates' parameter, "
+                         + "valid options are: raise, drop")
 
     if len(algos.unique(bins)) < len(bins):
-        if (duplicate_edges == 'raise'):
-            raise ValueError('Bin edges must be unique: %s'
-                             % repr(bins))
+        if duplicates == 'raise':
+            raise ValueError('Bin edges must be unique: %s'% repr(bins) +
+                             ' You can drop duplicate edges ' +
+                             'by setting \'duplicates\' param'
+                             )
         else:
             bins = algos.unique(bins)
+
+    side = 'left' if right else 'right'
+    ids = bins.searchsorted(x, side=side)
 
     if include_lowest:
         ids[x == bins[0]] = 1
