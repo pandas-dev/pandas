@@ -621,8 +621,9 @@ cdef class TextReader:
                 if isinstance(source, basestring) or PY3:
                     source = bz2.BZ2File(source, 'rb')
                 else:
-                    raise ValueError('Python 2 cannot read bz2 from open file '
-                                     'handle')
+                    content = source.read()
+                    source.close()
+                    source = compat.StringIO(bz2.decompress(content))
             elif self.compression == 'zip':
                 import zipfile
                 zip_file = zipfile.ZipFile(source)
