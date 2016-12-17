@@ -1095,8 +1095,9 @@ class NDFrame(PandasObject):
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
-                double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None, lines=False):
+                timedelta_format='epoch', double_precision=10,
+                force_ascii=True, date_unit='ms', default_handler=None,
+                lines=False):
         """
         Convert the object to a JSON string.
 
@@ -1129,10 +1130,18 @@ class NDFrame(PandasObject):
               - index : dict like {index -> {column -> value}}
               - columns : dict like {column -> {index -> value}}
               - values : just the values array
+              - table : dict like {'schema': {schema}, 'data': {data}}
+                the schema component is a `Table Schema_`
+                describing the data, and the data component is
+                like ``orient='records'``.
+
+                .. versionchanged:: 0.20.0
 
         date_format : {'epoch', 'iso'}
             Type of date conversion. `epoch` = epoch milliseconds,
-            `iso`` = ISO8601, default is epoch.
+            `iso` = ISO8601. Default is epoch, except when orient is
+            table_schema, in which case this parameter is ignored
+            and iso formatting is always used.
         double_precision : The number of decimal places to use when encoding
             floating point values, default 10.
         force_ascii : force encoded string to be ASCII, default True.
@@ -1151,11 +1160,46 @@ class NDFrame(PandasObject):
 
             .. versionadded:: 0.19.0
 
-
         Returns
         -------
         same type as input object with filtered info axis
 
+        See Also
+        --------
+        pd.read_json
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
+        ...                   index=['row 1', 'row 2'],
+        ...                   columns=['col 1', 'col 2'])
+        >>> df.to_json(orient='split')
+        '{"columns":["col 1","col 2"],
+          "index":["row 1","row 2"],
+          "data":[["a","b"],["c","d"]]}'
+
+        Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
+
+        >>> df.to_json(orient='index')
+        '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
+
+        Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
+        Note that index labels are not preserved with this encoding.
+
+        >>> df.to_json(orient='records')
+        '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+
+        Encoding with Table Schema
+
+        >>> df.to_json(orient='table')
+        '{"schema": {"fields": [{"name": "index", "type": "string"},
+                                {"name": "col 1", "type": "string"},
+                                {"name": "col 2", "type": "string"}],
+                     "primaryKey": "index",
+                     "pandas_version": "0.20.0"},
+          "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
+                   {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
         """
 
         from pandas.io import json

@@ -12,6 +12,7 @@ Highlights include:
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
 - Switched the test framework to `pytest`_ (:issue:`13097`)
+- A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec, see :ref: `here <whatsnew_0200.enhancements.table_schema>`
 
 .. _pytest: http://doc.pytest.org/en/latest/
 
@@ -153,6 +154,27 @@ New Behavior:
 .. ipython:: python
 
   df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
+
+.. _whatsnew_0200.enhancements.table_schema
+
+Table Schema Output
+^^^^^^^^^^^^^^^^^^^
+
+The new orient ``'table'`` for :meth:`DataFrame.to_json`
+will generate a `Table Schema`_ compatible string representation of
+the data.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {'A': [1, 2, 3],
+        'B': ['a', 'b', 'c'],
+        'C': pd.date_range('2016-01-01', freq='d', periods=3),
+       }, index=pd.Index(range(3), name='idx'))
+   df
+   df.to_json(orient='table')
+
+.. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
 
 .. _whatsnew_0200.enhancements.other:
 

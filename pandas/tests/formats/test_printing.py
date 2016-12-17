@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import pytest
 from pandas import compat
+import pandas as pd
 import pandas.formats.printing as printing
 import pandas.formats.format as fmt
 import pandas.util.testing as tm
@@ -116,6 +118,65 @@ c        ff         いいい"""
         expected = u'あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい'
         adjoined = adj.adjoin(2, *data)
         self.assertEqual(adjoined, expected)
+
+
+class TestTableSchemaRepr(tm.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        pytest.importorskip('IPython')
+        try:
+            import mock
+        except ImportError:
+            try:
+                from unittest import mock
+            except ImportError:
+                pytest.skip("Mock is not installed")
+        cls.mock = mock
+
+    def test_publishes(self):
+        df = pd.DataFrame({"A": [1, 2]})
+        objects = [df['A'], df, df]  # dataframe / series
+        expected_keys = [
+            {'text/plain', 'application/vnd.dataresource+json'},
+            {'text/plain', 'text/html', 'application/vnd.dataresource+json'},
+        ]
+
+        make_patch = self.mock.patch('IPython.display.display')
+        opt = pd.option_context('display.html.table_schema', True)
+        for obj, expected in zip(objects, expected_keys):
+            with opt, make_patch as mock_display:
+                handle = obj._ipython_display_()
+                self.assertEqual(mock_display.call_count, 1)
+                self.assertIsNone(handle)
+                args, kwargs = mock_display.call_args
+                arg, = args  # just one argument
+
+            self.assertEqual(kwargs, {"raw": True})
+            self.assertEqual(set(arg.keys()), expected)
+
+        with_latex = pd.option_context('display.latex.repr', True)
+
+        with opt, with_latex, make_patch as mock_display:
+            handle = obj._ipython_display_()
+            args, kwargs = mock_display.call_args
+            arg, = args
+
+        expected = {'text/plain', 'text/html', 'text/latex',
+                    'application/vnd.dataresource+json'}
+        self.assertEqual(set(arg.keys()), expected)
+
+    def test_config_on(self):
+        df = pd.DataFrame({"A": [1, 2]})
+        with pd.option_context("display.html.table_schema", True):
+            result = df._repr_table_schema_()
+        self.assertIsNotNone(result)
+
+    def test_config_default_off(self):
+        df = pd.DataFrame({"A": [1, 2]})
+        with pd.option_context("display.html.table_schema", False):
+            result = df._repr_table_schema_()
+        self.assertIsNone(result)
 
 
 # TODO: fix this broken test

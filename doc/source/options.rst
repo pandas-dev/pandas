@@ -507,3 +507,20 @@ Enabling ``display.unicode.ambiguous_as_wide`` lets pandas to figure these chara
 
    pd.set_option('display.unicode.east_asian_width', False)
    pd.set_option('display.unicode.ambiguous_as_wide', False)
+
+.. _options.table_schema:
+
+Table Schema Display
+--------------------
+
+.. versionadded:: 0.20.0
+
+``DataFrame`` and ``Series`` will publish a Table Schema representation
+by default. This can be disabled globally with the ``display.table_schema``
+option:
+
+.. ipython:: python
+
+  pd.set_option('display.html.table_schema', False)
+
+By default, only ``'display.max_rows'`` are serialized and published.
