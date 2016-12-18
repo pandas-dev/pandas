@@ -77,41 +77,6 @@ bar2,12,13,14,15
             fname = prefix + compat.text_type(self.csv1)
             self.read_csv(fname, index_col=0, parse_dates=True)
 
-    def test_dialect(self):
-        data = """\
-label1,label2,label3
-index1,"a,c,e
-index2,b,d,f
-"""
-
-        dia = csv.excel()
-        dia.quoting = csv.QUOTE_NONE
-        df = self.read_csv(StringIO(data), dialect=dia)
-
-        data = '''\
-label1,label2,label3
-index1,a,c,e
-index2,b,d,f
-'''
-        exp = self.read_csv(StringIO(data))
-        exp.replace('a', '"a', inplace=True)
-        tm.assert_frame_equal(df, exp)
-
-    def test_dialect_str(self):
-        data = """\
-fruit:vegetable
-apple:brocolli
-pear:tomato
-"""
-        exp = DataFrame({
-            'fruit': ['apple', 'pear'],
-            'vegetable': ['brocolli', 'tomato']
-        })
-        dia = csv.register_dialect('mydialect', delimiter=':')  # noqa
-        df = self.read_csv(StringIO(data), dialect='mydialect')
-        tm.assert_frame_equal(df, exp)
-        csv.unregister_dialect('mydialect')
-
     def test_1000_sep(self):
         data = """A|B|C
 1|2,334|5

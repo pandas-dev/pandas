@@ -11,6 +11,7 @@ from pandas.core.common import AbstractMethodError
 from .common import ParserTests
 from .header import HeaderTests
 from .comment import CommentTests
+from .dialect import DialectTests
 from .quoting import QuotingTests
 from .usecols import UsecolsTests
 from .skiprows import SkipRowsTests
@@ -26,12 +27,12 @@ from .dtypes import DtypeTests
 
 
 class BaseParser(CommentTests, CompressionTests,
-                 ConverterTests, HeaderTests,
-                 IndexColTests, MultithreadTests,
-                 NAvaluesTests, ParseDatesTests,
-                 ParserTests, SkipRowsTests,
-                 UsecolsTests, QuotingTests,
-                 DtypeTests):
+                 ConverterTests, DialectTests,
+                 HeaderTests, IndexColTests,
+                 MultithreadTests, NAvaluesTests,
+                 ParseDatesTests, ParserTests,
+                 SkipRowsTests, UsecolsTests,
+                 QuotingTests, DtypeTests):
     def read_csv(self, *args, **kwargs):
         raise NotImplementedError
 
