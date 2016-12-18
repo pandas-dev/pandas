@@ -912,7 +912,7 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
     # GH 14872
-    def test_dtype_utc():
+    def test_dtype_utc(self):
 
         data = pd.Series([pd.NaT, pd.NaT,
                           datetime.datetime(2016, 12, 12, 22, 24, 6, 100001,
