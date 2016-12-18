@@ -64,4 +64,4 @@ Bug Fixes
 
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
-- Bug in indexing causing RecursionError to be coerced into a KeyError or IndexError. (:issue:`14554`)
+- Bug in indexing caused RecursionError to be coerced into a KeyError or IndexError. (:issue:`14554`)
