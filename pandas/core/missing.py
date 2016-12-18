@@ -12,7 +12,6 @@ from pandas.types.common import (is_numeric_v_string_like,
                                  is_float_dtype, is_datetime64_dtype,
                                  is_datetime64tz_dtype, is_integer_dtype,
                                  _ensure_float64, is_scalar,
-                                 _DATELIKE_DTYPES,
                                  needs_i8_conversion)
 from pandas.types.missing import isnull
 

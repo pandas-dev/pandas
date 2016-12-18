@@ -22,12 +22,10 @@ _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
-_NS_DTYPE_UTC = DatetimeTZDtype.__new__(DatetimeTZDtype, unit='ns', tz='UTC')
 
 _DATELIKE_DTYPES = set([np.dtype(t)
                         for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
-                                  'm8[ns]', '<m8[ns]', '>m8[ns]']] +
-                       [_NS_DTYPE_UTC])
+                                  'm8[ns]', '<m8[ns]', '>m8[ns]']])
 
 _ensure_float64 = algos.ensure_float64
 _ensure_float32 = algos.ensure_float32
