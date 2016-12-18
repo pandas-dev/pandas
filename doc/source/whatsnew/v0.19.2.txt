@@ -46,6 +46,7 @@ Bug Fixes
 - Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when multi-char delimiters were not being respected with quotes (:issue:`14582`)
 - Fix bugs (:issue:`14734`, :issue:`13654`) in ``pd.read_sas`` and ``pandas.io.sas.sas7bdat.SAS7BDATReader`` that caused problems when reading a SAS file incrementally.
 - Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when ``skipfooter`` was not being respected by Python's CSV library (:issue:`13879`)
+- Bug in ``.fillna()`` in which timezone aware datetime64 values were incorrectly rounded (:issue:`14872`)
 
 
 - Bug in ``.groupby(..., sort=True)`` of a non-lexsorted MultiIndex when grouping with multiple levels (:issue:`14776`)
