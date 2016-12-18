@@ -106,6 +106,7 @@ Other enhancements
 - ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 
+- ``.select_dtypes()`` now allows `datetimetz` to generically select datetimes with tz (:issue:`14910`)
 
 .. _whatsnew_0200.api_breaking:
 
@@ -236,7 +237,6 @@ Bug Fixes
 
 - Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
 - Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
-
 
 
 
