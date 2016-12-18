@@ -243,6 +243,8 @@ Other API Changes
 - ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)
 - ``DataFrame.applymap()`` with an empty ``DataFrame`` will return a copy of the empty ``DataFrame`` instead of a ``Series`` (:issue:`8222`)
 
+- ``pd.read_csv()`` will now issue a ``ParserWarning`` whenever there are conflicting values provided by the ``dialect`` parameter and the user (:issue:`14898`)
+
 .. _whatsnew_0200.deprecations:
 
 Deprecations
@@ -291,6 +293,8 @@ Bug Fixes
 - Bug in ``describe()`` when passing a numpy array which does not contain the median to the ``percentiles`` keyword argument (:issue:`14908`)
 - Bug in ``DataFrame.sort_values()`` when sorting by multiple columns where one column is of type ``int64`` and contains ``NaT`` (:issue:`14922`)
 - Bug in ``DataFrame.reindex()`` in which ``method`` was ignored when passing ``columns`` (:issue:`14992`)
+- Bug in ``pd.read_csv()`` in which the ``dialect`` parameter was not being verified before processing (:issue:`14898`)
+
 
 
 - Bug in ``pd.read_msgpack()`` in which ``Series`` categoricals were being improperly processed (:issue:`14901`)
