@@ -4942,12 +4942,18 @@ class TestSlicing(tm.TestCase):
 
     def test_partial_slicing_dataframe(self):
         # GH14856
-        # Test various combinations of string slicing
+        # Test various combinations of string slicing resolution vs.
+        # index resolution
+        # - If string resolution is less precise than index resolution,
+        # string is considered a slice
+        # - If string resolution is equal to or more precise than index
+        # resolution, string is considered an exact match
         formats = ['%Y', '%Y-%m', '%Y-%m-%d', '%Y-%m-%d %H',
                    '%Y-%m-%d %H:%M', '%Y-%m-%d %H:%M:%S']
         resolutions = ['year', 'month', 'day', 'hour', 'minute', 'second']
         for rnum, resolution in enumerate(resolutions[2:], 2):
-            unit = Timedelta(1, resolution[0])
+            # we check only 'day', 'hour', 'minute' and 'second'
+            unit = Timedelta("1 " + resolution)
             middate = datetime(2012, 1, 1, 0, 0, 0)
             index = DatetimeIndex([middate - unit,
                                    middate, middate + unit])
@@ -4956,7 +4962,8 @@ class TestSlicing(tm.TestCase):
             self.assertEqual(df.index.resolution, resolution)
 
             # Timestamp with the same resolution as index
-            # Should be exact match for series and raise KeyError for Frame
+            # Should be exact match for Series (return scalar)
+            # and raise KeyError for Frame
             for timestamp, expected in zip(index, values):
                 ts_string = timestamp.strftime(formats[rnum])
                 # make ts_string as precise as index
@@ -4970,6 +4977,7 @@ class TestSlicing(tm.TestCase):
                 for element, theslice in [[0, slice(None, 1)],
                                           [1, slice(1, None)]]:
                     ts_string = index[element].strftime(fmt)
+
                     # Series should return slice
                     result = df['a'][ts_string]
                     expected = df['a'][theslice]
@@ -4982,6 +4990,8 @@ class TestSlicing(tm.TestCase):
 
             # Timestamp with resolution more precise than index
             # Compatible with existing key
+            # Should return scalar for Series
+            # and raise KeyError for Frame
             for fmt in formats[rnum + 1:]:
                 ts_string = index[1].strftime(fmt)
                 result = df['a'][ts_string]
@@ -4990,8 +5000,9 @@ class TestSlicing(tm.TestCase):
                 self.assertRaises(KeyError, df.__getitem__, ts_string)
 
             # Not compatible with existing key
+            # Should raise KeyError
             for fmt, res in list(zip(formats, resolutions))[rnum + 1:]:
-                ts = index[1] + Timedelta(1, res[0])
+                ts = index[1] + Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
                 self.assertRaises(KeyError, df['a'].__getitem__, ts_string)
                 self.assertRaises(KeyError, df.__getitem__, ts_string)
