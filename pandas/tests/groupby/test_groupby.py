@@ -1374,6 +1374,15 @@ class TestGroupBy(tm.TestCase):
         expected = DataFrame(dict(B=1, C=[2, 3, 4, 10, 5, -1]))
         assert_frame_equal(result, expected)
 
+    def test_groupby_transform_with_nan_group(self):
+        # GH 9941
+        df = pd.DataFrame({'a': range(10),
+                           'b': [1, 1, 2, 3, np.nan, 4, 4, 5, 5, 5]})
+        result = df.groupby(df.b)['a'].transform(max)
+        expected = pd.Series([1., 1., 2., 3., np.nan, 6., 6., 9., 9., 9.],
+                             name='a')
+        assert_series_equal(result, expected)
+
     def test_indices_concatenation_order(self):
 
         # GH 2808
