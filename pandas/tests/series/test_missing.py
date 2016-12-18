@@ -17,6 +17,9 @@ import pandas.util.testing as tm
 
 from .common import TestData
 
+import datetime
+import pytz
+
 
 def _skip_if_no_pchip():
     try:
@@ -908,6 +911,24 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
                           index=pd.to_timedelta([1, 2, 4]))
         assert_series_equal(result, expected)
 
+    # GH 14872
+    def test_dtype_utc(self):
+
+        data = pd.Series([pd.NaT, pd.NaT,
+                          datetime.datetime(2016, 12, 12, 22, 24, 6, 100001,
+                                            tzinfo=pytz.utc)])
+
+        filled = data.fillna(method='bfill')
+
+        expected = pd.Series([
+                             datetime.datetime(2016, 12, 12, 22, 24, 6,
+                                               100001, tzinfo=pytz.utc),
+                             datetime.datetime(2016, 12, 12, 22, 24, 6,
+                                               100001, tzinfo=pytz.utc),
+                             datetime.datetime(2016, 12, 12, 22, 24, 6,
+                                               100001, tzinfo=pytz.utc)])
+
+        assert_series_equal(filled, expected)
 
 if __name__ == '__main__':
     import nose

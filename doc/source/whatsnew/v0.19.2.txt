@@ -39,6 +39,7 @@ Other Enhancements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in fillna() in which timezone aware datetime64 values were incorrectly rounded (:issue:'14872')
 - Compat with ``dateutil==2.6.0``; segfault reported in the testing suite (:issue:`14621`)
 - Allow ``nanoseconds`` in ``Timestamp.replace`` as a kwarg (:issue:`14621`)
 - Bug in ``pd.read_csv`` in which aliasing was being done for ``na_values`` when passed in as a dictionary (:issue:`14203`)

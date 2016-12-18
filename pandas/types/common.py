@@ -22,6 +22,7 @@ _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
+
 _DATELIKE_DTYPES = set([np.dtype(t)
                         for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
                                   'm8[ns]', '<m8[ns]', '>m8[ns]']])
