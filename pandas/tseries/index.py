@@ -1293,9 +1293,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def _partial_date_slice(self, reso, parsed, use_lhs=True, use_rhs=True):
         is_monotonic = self.is_monotonic
-        if (is_monotonic
-            and reso in ['day', 'hour', 'minute', 'second']
-            and self._resolution >= Resolution.get_reso(reso)):
+        if (is_monotonic and reso in ['day', 'hour', 'minute', 'second'] and
+                self._resolution >= Resolution.get_reso(reso)):
             # These resolution/monotonicity validations came from GH3931,
             # GH3452 and GH2369.
 
