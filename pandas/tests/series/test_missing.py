@@ -1,7 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-from datetime import timedelta
+import pytz
+from datetime import timedelta, datetime
 
 from numpy import nan
 import numpy as np
@@ -10,7 +11,6 @@ import pandas as pd
 from pandas import (Series, isnull, date_range,
                     MultiIndex, Index)
 from pandas.tseries.index import Timestamp
-
 from pandas.compat import range
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
@@ -249,6 +249,24 @@ class TestSeriesMissingData(TestData, tm.TestCase):
                                Timestamp('2013-01-01', tz='US/Pacific')])
             self.assert_series_equal(expected, result)
             self.assert_series_equal(pd.isnull(s), null_loc)
+
+    def test_datetime64tz_fillna_round_issue(self):
+        # GH 14872
+
+        data = pd.Series([pd.NaT, pd.NaT,
+                          datetime(2016, 12, 12, 22, 24, 6, 100001,
+                                   tzinfo=pytz.utc)])
+
+        filled = data.fillna(method='bfill')
+
+        expected = pd.Series([datetime(2016, 12, 12, 22, 24, 6,
+                                       100001, tzinfo=pytz.utc),
+                              datetime(2016, 12, 12, 22, 24, 6,
+                                       100001, tzinfo=pytz.utc),
+                              datetime(2016, 12, 12, 22, 24, 6,
+                                       100001, tzinfo=pytz.utc)])
+
+        assert_series_equal(filled, expected)
 
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
@@ -907,7 +925,6 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         expected = Series([1., 1.666667, 3.],
                           index=pd.to_timedelta([1, 2, 4]))
         assert_series_equal(result, expected)
-
 
 if __name__ == '__main__':
     import nose
