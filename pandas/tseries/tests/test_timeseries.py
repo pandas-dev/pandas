@@ -4896,64 +4896,6 @@ class TestSlicing(tm.TestCase):
 
         self.assertRaises(Exception, s.__getitem__, '2004-12-31 00')
 
-        # GH14856
-        # DatetimeIndex without explicit freq
-        df = DataFrame({'a': [1, 2, 3]}, DatetimeIndex(['2011-12-31',
-                                                        '2012-01-01',
-                                                        '2012-01-02']),
-                       dtype=np.int64)
-
-        self.assertEqual(df.index.resolution, 'day')
-
-        # Timestamp with resolution 'day'
-        # Should be exact match for series and raise KeyError for Frame
-        for ts, expected in (('2011-12-31', 1), ('2012-01-01', 2),
-                             ('2012-01-02', 3)):
-            result = df['a'][ts]
-            self.assertIsInstance(result, np.int64)
-            self.assertEqual(result, expected)
-            self.assertRaises(KeyError, df.__getitem__, ts)
-
-        # Timestamp with resolution less precise than 'day'
-        for ts in ('2011', '2011-12'):
-            # Series should return slice
-            result = df['a'][ts]
-            expected = df['a'][:1]
-            assert_series_equal(result, expected)
-
-            # Frame should return slice as well
-            result = df[ts]
-            expected = df[:1]
-            assert_frame_equal(result, expected)
-
-        # The same as previous but several elements in the slice
-        for ts in ('2012', '2012-01'):
-            # Series should return slice
-            result = df['a'][ts]
-            expected = df['a'][1:]
-            assert_series_equal(result, expected)
-
-            # Frame should return slice as well
-            result = df[ts]
-            expected = df[1:]
-            assert_frame_equal(result, expected)
-
-        # Timestamp with resolution more precise than 'day'
-        # Compatible with existing key
-        for ts in ('2012-01-01 00', '2012-01-01 00:00',
-                   '2012-01-01 00:00:00'):
-            result = df['a'][ts]
-            self.assertIsInstance(result, np.int64)
-            self.assertEqual(result, 2)
-            self.assertRaises(KeyError, df.__getitem__, ts)
-
-        # Timestamp with resolution more precise than 'day'
-        # Not compatible with existing key
-        for ts in ('2012-01-01 01', '2012-01-01 00:01',
-                   '2012-01-01 00:00:01'):
-            self.assertRaises(KeyError, df['a'].__getitem__, ts)
-            self.assertRaises(KeyError, df.__getitem__, ts)
-
     def test_partial_slice_hourly(self):
         rng = DatetimeIndex(freq='T', start=datetime(2005, 1, 1, 20, 0, 0),
                             periods=500)
@@ -4968,63 +4910,6 @@ class TestSlicing(tm.TestCase):
         self.assertEqual(s['2005-1-1 20:00'], s.ix[0])
         self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:15')
 
-        # GH14856
-        # DatetimeIndex without explicit freq
-        df = DataFrame({'a': [1, 2, 3]}, DatetimeIndex(['2011-12-31 23',
-                                                        '2012-01-01 00',
-                                                        '2012-01-01 01']),
-                       dtype=np.int64)
-
-        self.assertEqual(df.index.resolution, 'hour')
-
-        # Timestamp with resolution 'hour'
-        # Should be exact match for series and raise KeyError for Frame
-        for ts, expected in (('2011-12-31 23', 1),
-                             ('2012-01-01 00', 2),
-                             ('2012-01-01 01', 3)):
-            result = df['a'][ts]
-            self.assertIsInstance(result, np.int64)
-            self.assertEqual(result, expected)
-            self.assertRaises(KeyError, df.__getitem__, ts)
-
-        # Timestamp with resolution less precise than 'hour'
-        for ts in ('2011', '2011-12', '2011-12-31'):
-            # Series should return slice
-            result = df['a'][ts]
-            expected = df['a'][:1]
-            assert_series_equal(result, expected)
-
-            # Frame should return slice as well
-            result = df[ts]
-            expected = df[:1]
-            assert_frame_equal(result, expected)
-
-        # The same as previous but several elements in the slice
-        for ts in ('2012', '2012-01', '2012-01-01'):
-            # Series should return slice
-            result = df['a'][ts]
-            expected = df['a'][1:]
-            assert_series_equal(result, expected)
-
-            # Frame should return slice as well
-            result = df[ts]
-            expected = df[1:]
-            assert_frame_equal(result, expected)
-
-        # Timestamp with resolution more precise than 'hour'
-        # Compatible with existing key
-        for ts in ('2012-01-01 00:00', '2012-01-01 00:00:00'):
-            result = df['a'][ts]
-            self.assertIsInstance(result, np.int64)
-            self.assertEqual(result, 2)
-            self.assertRaises(KeyError, df.__getitem__, ts)
-
-        # Timestamp with resolution more precise than 'day'
-        # Not compatible with existing key
-        for ts in ('2012-01-01 00:01', '2012-01-01 00:00:01'):
-            self.assertRaises(KeyError, df['a'].__getitem__, ts)
-            self.assertRaises(KeyError, df.__getitem__, ts)
-
     def test_partial_slice_minutely(self):
         rng = DatetimeIndex(freq='S', start=datetime(2005, 1, 1, 23, 59, 0),
                             periods=500)
@@ -5038,64 +4923,6 @@ class TestSlicing(tm.TestCase):
 
         self.assertEqual(s[Timestamp('2005-1-1 23:59:00')], s.ix[0])
         self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:00:00')
-
-        # GH14856
-        # DatetimeIndex without explicit freq
-        df = DataFrame({'a': [1, 2, 3]},
-                       DatetimeIndex(['2011-12-31 23:59',
-                                      '2012-01-01 00:00',
-                                      '2012-01-01 00:01']),
-                       dtype=np.int64)
-
-        self.assertEqual(df.index.resolution, 'minute')
-
-        # Timestamp with resolution 'minute'
-        # Should be exact match for series and raise KeyError for Frame
-        for ts, expected in (('2011-12-31 23:59', 1),
-                             ('2012-01-01 00:00', 2),
-                             ('2012-01-01 00:01', 3)):
-            result = df['a'][ts]
-            self.assertIsInstance(result, np.int64)
-            self.assertEqual(result, expected)
-            self.assertRaises(KeyError, df.__getitem__, ts)
-
-        # Timestamp with resolution less precise than 'minute'
-        for ts in ('2011', '2011-12', '2011-12-31', '2011-12-31 23'):
-            # Series should return slice
-            result = df['a'][ts]
-            expected = df['a'][:1]
-            assert_series_equal(result, expected)
-
-            # Frame should return slice as well
-            result = df[ts]
-            expected = df[:1]
-            assert_frame_equal(result, expected)
-
-        # The same as previous but several elements in the slice
-        for ts in ('2012', '2012-01', '2012-01-01', '2012-01-01 00'):
-            # Series should return slice
-            result = df['a'][ts]
-            expected = df['a'][1:]
-            assert_series_equal(result, expected)
-
-            # Frame should return slice as well
-            result = df[ts]
-            expected = df[1:]
-            assert_frame_equal(result, expected)
-
-        # Timestamp with resolution more precise than 'minute'
-        # Compatible with existing key
-        ts = '2012-01-01 00:00:00'
-        result = df['a'][ts]
-        self.assertIsInstance(result, np.int64)
-        self.assertEqual(result, 2)
-        self.assertRaises(KeyError, df.__getitem__, ts)
-
-        # Timestamp with resolution more precise than 'day'
-        # Not compatible with existing key
-        ts = '2012-01-01 00:00:01'
-        self.assertRaises(KeyError, df['a'].__getitem__, ts)
-        self.assertRaises(KeyError, df.__getitem__, ts)
 
     def test_partial_slice_second_precision(self):
         rng = DatetimeIndex(start=datetime(2005, 1, 1, 0, 0, 59,
@@ -5113,55 +4940,61 @@ class TestSlicing(tm.TestCase):
         self.assertRaisesRegexp(KeyError, '2005-1-1 00:00:00',
                                 lambda: s['2005-1-1 00:00:00'])
 
+    def test_partial_slicing_dataframe(self):
         # GH14856
-        # DatetimeIndex without explicit freq
-        # Without microseconds
-        df = DataFrame({'a': [1, 2, 3]},
-                       DatetimeIndex(['2011-12-31 23:59:59',
-                                      '2012-01-01 00:00:00',
-                                      '2012-01-01 00:00:01']),
-                       dtype=np.int64)
+        # Test various combinations of string slicing
+        formats = ['%Y', '%Y-%m', '%Y-%m-%d', '%Y-%m-%d %H',
+                   '%Y-%m-%d %H:%M', '%Y-%m-%d %H:%M:%S']
+        resolutions = ['year', 'month', 'day', 'hour', 'minute', 'second']
+        for rnum, resolution in enumerate(resolutions[2:], 2):
+            unit = Timedelta(1, resolution[0])
+            middate = datetime(2012, 1, 1, 0, 0, 0)
+            index = DatetimeIndex([middate - unit,
+                                   middate, middate + unit])
+            values = [1, 2, 3]
+            df = DataFrame({'a': values}, index, dtype=np.int64)
+            self.assertEqual(df.index.resolution, resolution)
 
-        self.assertEqual(df.index.resolution, 'second')
+            # Timestamp with the same resolution as index
+            # Should be exact match for series and raise KeyError for Frame
+            for timestamp, expected in zip(index, values):
+                ts_string = timestamp.strftime(formats[rnum])
+                # make ts_string as precise as index
+                result = df['a'][ts_string]
+                self.assertIsInstance(result, np.int64)
+                self.assertEqual(result, expected)
+                self.assertRaises(KeyError, df.__getitem__, ts_string)
 
-        # Timestamp with resolution 'second'
-        # Should be exact match for series and raise KeyError for Frame
-        for ts, expected in (('2011-12-31 23:59:59', 1),
-                             ('2012-01-01 00:00:00', 2),
-                             ('2012-01-01 00:00:01', 3)):
-            result = df['a'][ts]
-            self.assertIsInstance(result, np.int64)
-            self.assertEqual(result, expected)
-            self.assertRaises(KeyError, df.__getitem__, ts)
+            # Timestamp with resolution less precise than index
+            for fmt in formats[:rnum]:
+                for element, theslice in [[0, slice(None, 1)],
+                                          [1, slice(1, None)]]:
+                    ts_string = index[element].strftime(fmt)
+                    # Series should return slice
+                    result = df['a'][ts_string]
+                    expected = df['a'][theslice]
+                    assert_series_equal(result, expected)
 
-        # Timestamp with resolution less precise than 'minute'
-        for ts in ('2011', '2011-12', '2011-12-31', '2011-12-31 23',
-                   '2011-12-31 23:59'):
-            # Series should return slice
-            result = df['a'][ts]
-            expected = df['a'][:1]
-            assert_series_equal(result, expected)
+                    # Frame should return slice as well
+                    result = df[ts_string]
+                    expected = df[theslice]
+                    assert_frame_equal(result, expected)
 
-            # Frame should return slice as well
-            result = df[ts]
-            expected = df[:1]
-            assert_frame_equal(result, expected)
+            # Timestamp with resolution more precise than index
+            # Compatible with existing key
+            for fmt in formats[rnum + 1:]:
+                ts_string = index[1].strftime(fmt)
+                result = df['a'][ts_string]
+                self.assertIsInstance(result, np.int64)
+                self.assertEqual(result, 2)
+                self.assertRaises(KeyError, df.__getitem__, ts_string)
 
-        # The same as previous but several elements in the slice
-        for ts in ('2012', '2012-01', '2012-01-01', '2012-01-01 00',
-                   '2012-01-01 00:00'):
-            # Series should return slice
-            result = df['a'][ts]
-            expected = df['a'][1:]
-            assert_series_equal(result, expected)
-
-            # Frame should return slice as well
-            result = df[ts]
-            expected = df[1:]
-            assert_frame_equal(result, expected)
-
-        # Not possible to create a string that represents timestamp
-        # that is more exact then 'second'
+            # Not compatible with existing key
+            for fmt, res in list(zip(formats, resolutions))[rnum + 1:]:
+                ts = index[1] + Timedelta(1, res[0])
+                ts_string = ts.strftime(fmt)
+                self.assertRaises(KeyError, df['a'].__getitem__, ts_string)
+                self.assertRaises(KeyError, df.__getitem__, ts_string)
 
     def test_partial_slicing_with_multiindex(self):
 
