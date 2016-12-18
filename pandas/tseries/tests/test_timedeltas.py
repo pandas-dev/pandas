@@ -1203,6 +1203,28 @@ class TestTimedeltas(tm.TestCase):
         with tm.assertRaises(OverflowError):
             Timedelta(max_td.value + 1, 'ns')
 
+    def test_timedelta_arithmetic(self):
+        data = pd.Series(['nat', '32 days'], dtype='timedelta64[ns]')
+        deltas = [timedelta(days=1), Timedelta(1, unit='D')]
+        for delta in deltas:
+            result_method = data.add(delta)
+            result_operator = data + delta
+            expected = pd.Series(['nat', '33 days'], dtype='timedelta64[ns]')
+            tm.assert_series_equal(result_operator, expected)
+            tm.assert_series_equal(result_method, expected)
+
+            result_method = data.sub(delta)
+            result_operator = data - delta
+            expected = pd.Series(['nat', '31 days'], dtype='timedelta64[ns]')
+            tm.assert_series_equal(result_operator, expected)
+            tm.assert_series_equal(result_method, expected)
+            # GH 9396
+            result_method = data.div(delta)
+            result_operator = data / delta
+            expected = pd.Series([np.nan, 32.], dtype='float64')
+            tm.assert_series_equal(result_operator, expected)
+            tm.assert_series_equal(result_method, expected)
+
 
 class TestTimedeltaIndex(tm.TestCase):
     _multiprocess_can_split_ = True
