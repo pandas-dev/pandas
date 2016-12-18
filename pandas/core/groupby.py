@@ -14,10 +14,10 @@ from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat.numpy import _np_version_under1p8
 
-from pandas.types.common import (_DATELIKE_DTYPES,
-                                 is_numeric_dtype,
+from pandas.types.common import (is_numeric_dtype,
                                  is_timedelta64_dtype, is_datetime64_dtype,
                                  is_categorical_dtype,
+                                 is_datetimelike,
                                  is_datetime_or_timedelta_dtype,
                                  is_bool, is_integer_dtype,
                                  is_complex_dtype,
@@ -3453,10 +3453,10 @@ class NDFrameGroupBy(GroupBy):
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
-                if (so.ndim == 2 and so.dtypes.isin(_DATELIKE_DTYPES).any()):
+                if (so.ndim == 2 and so.dtypes.apply(is_datetimelike).any()):
                     result = result._convert(numeric=True)
                     date_cols = self._selected_obj.select_dtypes(
-                        include=list(_DATELIKE_DTYPES)).columns
+                        include=['datetime', 'timedelta']).columns
                     date_cols = date_cols.intersection(result.columns)
                     result[date_cols] = (result[date_cols]
                                          ._convert(datetime=True,
