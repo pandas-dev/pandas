@@ -244,8 +244,11 @@ encoding : str, default None
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_
 dialect : str or csv.Dialect instance, default None
-    If None defaults to Excel dialect. Ignored if sep longer than 1 char
-    See csv.Dialect documentation for more details
+    If provided, this parameter will override values (default or not) for the
+    following parameters: `delimiter`, `doublequote`, `escapechar`,
+    `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
+    override values, a ParserWarning will be issued. See csv.Dialect
+    documentation for more details.
 tupleize_cols : boolean, default False
     Leave a list of tuples on columns as is (default is to convert to
     a Multi Index on the columns)
@@ -698,12 +701,33 @@ class TextFileReader(BaseIterator):
             dialect = kwds['dialect']
             if dialect in csv.list_dialects():
                 dialect = csv.get_dialect(dialect)
-            kwds['delimiter'] = dialect.delimiter
-            kwds['doublequote'] = dialect.doublequote
-            kwds['escapechar'] = dialect.escapechar
-            kwds['skipinitialspace'] = dialect.skipinitialspace
-            kwds['quotechar'] = dialect.quotechar
-            kwds['quoting'] = dialect.quoting
+
+            # Any valid dialect should have these attributes.
+            # If any are missing, we will raise automatically.
+            for param in ('delimiter', 'doublequote', 'escapechar',
+                          'skipinitialspace', 'quotechar', 'quoting'):
+                try:
+                    dialect_val = getattr(dialect, param)
+                except AttributeError:
+                    raise ValueError("Invalid dialect '{dialect}' provided"
+                                     .format(dialect=kwds['dialect']))
+                provided = kwds.get(param, _parser_defaults[param])
+
+                # Messages for conflicting values between the dialect instance
+                # and the actual parameters provided.
+                conflict_msgs = []
+
+                if dialect_val != provided:
+                    conflict_msgs.append((
+                        "Conflicting values for '{param}': '{val}' was "
+                        "provided, but the dialect specifies '{diaval}'. "
+                        "Using the dialect-specified value.".format(
+                            param=param, val=provided, diaval=dialect_val)))
+
+                if conflict_msgs:
+                    warnings.warn('\n\n'.join(conflict_msgs), ParserWarning,
+                                  stacklevel=2)
+                kwds[param] = dialect_val
 
         if kwds.get('header', 'infer') == 'infer':
             kwds['header'] = 0 if kwds.get('names') is None else None
