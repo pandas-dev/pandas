@@ -5,7 +5,9 @@ from pandas.types.common import (is_number,
                                  is_numeric_dtype,
                                  is_datetime_or_timedelta_dtype,
                                  is_list_like,
-                                 _ensure_object)
+                                 _ensure_object,
+                                 is_decimal,
+                                 is_scalar as isscalar)
 
 from pandas.types.cast import _possibly_downcast_to_dtype
 
@@ -174,8 +176,8 @@ def to_numeric(arg, errors='raise', downcast=None):
             values = arg.values
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype='O')
-    elif lib.isscalar(arg):
-        if lib.is_decimal(arg):
+    elif isscalar(arg):
+        if is_decimal(arg):
             return float(arg)
         if is_number(arg):
             return arg
