@@ -388,6 +388,10 @@ class TestPandasContainer(tm.TestCase):
         self.assertFalse(df._is_mixed_type)
         assert_frame_equal(read_json(df.to_json(), dtype=dict(df.dtypes)), df,
                            check_index_type=False)
+        # GH 7445
+        result = pd.DataFrame({'test': []}, index=[]).to_json(orient='columns')
+        expected = '{"test":{}}'
+        tm.assert_equal(result, expected)
 
     def test_frame_empty_mixedtype(self):
         # mixed type

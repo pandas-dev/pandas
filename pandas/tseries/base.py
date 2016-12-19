@@ -16,6 +16,7 @@ from pandas.types.generic import (ABCIndex, ABCSeries,
                                   ABCPeriodIndex, ABCIndexClass)
 from pandas.types.missing import isnull
 from pandas.core import common as com, algorithms
+from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
 
 import pandas.formats.printing as printing
@@ -27,7 +28,6 @@ from pandas.indexes.base import _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.types.concat as _concat
 import pandas.tseries.frequencies as frequencies
-import pandas.algos as _algos
 
 
 class DatelikeOps(object):
@@ -330,11 +330,16 @@ class DatetimeIndexOpsMixin(object):
     def map(self, f):
         try:
             result = f(self)
-            if not isinstance(result, (np.ndarray, Index)):
-                raise TypeError
+
+            # Try to use this result if we can
+            if isinstance(result, np.ndarray):
+                self._shallow_copy(result)
+
+            if not isinstance(result, Index):
+                raise TypeError('The map function must return an Index object')
             return result
         except Exception:
-            return _algos.arrmap_object(self.asobject.values, f)
+            return self.asobject.map(f)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -684,7 +689,8 @@ class DatetimeIndexOpsMixin(object):
         # return the i8 result view
 
         inc = tslib._delta_to_nanoseconds(other)
-        new_values = (self.asi8 + inc).view('i8')
+        new_values = checked_add_with_arr(self.asi8, inc,
+                                          arr_mask=self._isnan).view('i8')
         if self.hasnans:
             new_values[self._isnan] = tslib.iNaT
         return new_values.view('i8')
@@ -699,7 +705,9 @@ class DatetimeIndexOpsMixin(object):
 
         self_i8 = self.asi8
         other_i8 = other.asi8
-        new_values = self_i8 + other_i8
+        new_values = checked_add_with_arr(self_i8, other_i8,
+                                          arr_mask=self._isnan,
+                                          b_mask=other._isnan)
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = tslib.iNaT

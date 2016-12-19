@@ -4,7 +4,11 @@ from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
 from khash cimport *
 from numpy cimport *
-from cpython cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
+
+from libc.stdlib cimport malloc, free
+from cpython cimport (PyMem_Malloc, PyMem_Realloc, PyMem_Free,
+                      PyString_Check, PyBytes_Check,
+                      PyUnicode_Check)
 
 from util cimport _checknan
 cimport util
@@ -33,7 +37,7 @@ PyDateTime_IMPORT
 cdef extern from "Python.h":
     int PySlice_Check(object)
 
-cdef size_t _INIT_VEC_CAP = 32
+cdef size_t _INIT_VEC_CAP = 128
 
 
 include "hashtable_class_helper.pxi"

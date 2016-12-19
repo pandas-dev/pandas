@@ -27,6 +27,7 @@ from pandas.types.common import (is_integer_dtype,
                                  _ensure_float64,
                                  _ensure_int64,
                                  is_list_like)
+from pandas.compat.numpy import _np_version_under1p10
 from pandas.types.missing import isnull
 
 import pandas.core.common as com
@@ -65,7 +66,7 @@ def match(to_match, values, na_sentinel=-1):
         values = np.array(values, dtype='O')
 
     f = lambda htype, caster: _match_generic(to_match, values, htype, caster)
-    result = _hashtable_algo(f, values.dtype, np.int64)
+    result = _hashtable_algo(f, values, np.int64)
 
     if na_sentinel != -1:
 
@@ -102,7 +103,7 @@ def unique(values):
     values = com._asarray_tuplesafe(values)
 
     f = lambda htype, caster: _unique_generic(values, htype, caster)
-    return _hashtable_algo(f, values.dtype)
+    return _hashtable_algo(f, values)
 
 
 def _unique_generic(values, table_type, type_caster):
@@ -550,6 +551,95 @@ def rank(values, axis=0, method='average', na_option='keep',
 
     return ranks
 
+
+def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
+    """
+    Perform array addition that checks for underflow and overflow.
+
+    Performs the addition of an int64 array and an int64 integer (or array)
+    but checks that they do not result in overflow first. For elements that
+    are indicated to be NaN, whether or not there is overflow for that element
+    is automatically ignored.
+
+    Parameters
+    ----------
+    arr : array addend.
+    b : array or scalar addend.
+    arr_mask : boolean array or None
+        array indicating which elements to exclude from checking
+    b_mask : boolean array or boolean or None
+        array or scalar indicating which element(s) to exclude from checking
+
+    Returns
+    -------
+    sum : An array for elements x + b for each element x in arr if b is
+          a scalar or an array for elements x + y for each element pair
+          (x, y) in (arr, b).
+
+    Raises
+    ------
+    OverflowError if any x + y exceeds the maximum or minimum int64 value.
+    """
+    def _broadcast(arr_or_scalar, shape):
+        """
+        Helper function to broadcast arrays / scalars to the desired shape.
+        """
+        if _np_version_under1p10:
+            if lib.isscalar(arr_or_scalar):
+                out = np.empty(shape)
+                out.fill(arr_or_scalar)
+            else:
+                out = arr_or_scalar
+        else:
+            out = np.broadcast_to(arr_or_scalar, shape)
+        return out
+
+    # For performance reasons, we broadcast 'b' to the new array 'b2'
+    # so that it has the same size as 'arr'.
+    b2 = _broadcast(b, arr.shape)
+    if b_mask is not None:
+        # We do the same broadcasting for b_mask as well.
+        b2_mask = _broadcast(b_mask, arr.shape)
+    else:
+        b2_mask = None
+
+    # For elements that are NaN, regardless of their value, we should
+    # ignore whether they overflow or not when doing the checked add.
+    if arr_mask is not None and b2_mask is not None:
+        not_nan = np.logical_not(arr_mask | b2_mask)
+    elif arr_mask is not None:
+        not_nan = np.logical_not(arr_mask)
+    elif b_mask is not None:
+        not_nan = np.logical_not(b2_mask)
+    else:
+        not_nan = np.empty(arr.shape, dtype=bool)
+        not_nan.fill(True)
+
+    # gh-14324: For each element in 'arr' and its corresponding element
+    # in 'b2', we check the sign of the element in 'b2'. If it is positive,
+    # we then check whether its sum with the element in 'arr' exceeds
+    # np.iinfo(np.int64).max. If so, we have an overflow error. If it
+    # it is negative, we then check whether its sum with the element in
+    # 'arr' exceeds np.iinfo(np.int64).min. If so, we have an overflow
+    # error as well.
+    mask1 = b2 > 0
+    mask2 = b2 < 0
+
+    if not mask1.any():
+        to_raise = ((np.iinfo(np.int64).min - b2 > arr) & not_nan).any()
+    elif not mask2.any():
+        to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
+    else:
+        to_raise = (((np.iinfo(np.int64).max -
+                      b2[mask1] < arr[mask1]) & not_nan[mask1]).any() or
+                    ((np.iinfo(np.int64).min -
+                      b2[mask2] > arr[mask2]) & not_nan[mask2]).any())
+
+    if to_raise:
+        raise OverflowError("Overflow in int64 addition")
+    return arr + b
+
+
 _rank1d_functions = {
     'float64': algos.rank_1d_float64,
     'int64': algos.rank_1d_int64,
@@ -759,10 +849,12 @@ _dtype_map = {'datetime64[ns]': 'int64', 'timedelta64[ns]': 'int64'}
 # helpers #
 # ------- #
 
-def _hashtable_algo(f, dtype, return_dtype=None):
+def _hashtable_algo(f, values, return_dtype=None):
     """
     f(HashTable, type_caster) -> result
     """
+
+    dtype = values.dtype
     if is_float_dtype(dtype):
         return f(htable.Float64HashTable, _ensure_float64)
     elif is_integer_dtype(dtype):
@@ -773,17 +865,25 @@ def _hashtable_algo(f, dtype, return_dtype=None):
     elif is_timedelta64_dtype(dtype):
         return_dtype = return_dtype or 'm8[ns]'
         return f(htable.Int64HashTable, _ensure_int64).view(return_dtype)
-    else:
-        return f(htable.PyObjectHashTable, _ensure_object)
+
+    # its cheaper to use a String Hash Table than Object
+    if lib.infer_dtype(values) in ['string']:
+        return f(htable.StringHashTable, _ensure_object)
+
+    # use Object
+    return f(htable.PyObjectHashTable, _ensure_object)
 
 _hashtables = {
     'float64': (htable.Float64HashTable, htable.Float64Vector),
     'int64': (htable.Int64HashTable, htable.Int64Vector),
+    'string': (htable.StringHashTable, htable.ObjectVector),
     'generic': (htable.PyObjectHashTable, htable.ObjectVector)
 }
 
 
 def _get_data_algo(values, func_map):
+
+    f = None
     if is_float_dtype(values):
         f = func_map['float64']
         values = _ensure_float64(values)
@@ -796,8 +896,19 @@ def _get_data_algo(values, func_map):
         f = func_map['int64']
         values = _ensure_int64(values)
     else:
-        f = func_map['generic']
+
         values = _ensure_object(values)
+
+        # its cheaper to use a String Hash Table than Object
+        if lib.infer_dtype(values) in ['string']:
+            try:
+                f = func_map['string']
+            except KeyError:
+                pass
+
+    if f is None:
+        f = func_map['generic']
+
     return f, values
 
 

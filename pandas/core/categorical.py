@@ -930,8 +930,7 @@ class Categorical(PandasObject):
             return cat
 
     def map(self, mapper):
-        """
-        Apply mapper function to its categories (not codes).
+        """Apply mapper function to its categories (not codes).
 
         Parameters
         ----------
@@ -943,7 +942,8 @@ class Categorical(PandasObject):
 
         Returns
         -------
-        applied : Categorical or np.ndarray.
+        applied : Categorical or Index.
+
         """
         new_categories = self.categories.map(mapper)
         try:

@@ -9,6 +9,7 @@ users upgrade to this version.
 
 Highlights include:
 
+- Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
@@ -22,11 +23,10 @@ New features
 ~~~~~~~~~~~~
 
 
-``dtype`` keyword for data io
+``dtype`` keyword for data IO
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``dtype`` keyword argument in the :func:`read_csv` function for specifying the types of parsed columns
- is now supported with the ``'python'`` engine (:issue:`14295`). See the :ref:`io docs <io.dtypes>` for more information.
+The ``dtype`` keyword argument in the :func:`read_csv` function for specifying the types of parsed columns is now supported with the ``'python'`` engine (:issue:`14295`). See the :ref:`io docs <io.dtypes>` for more information.
 
 .. ipython:: python
 
@@ -43,6 +43,49 @@ fixed-width text files, and :func:`read_excel` for parsing Excel files.
    pd.read_fwf(StringIO(data)).dtypes
    pd.read_fwf(StringIO(data), dtype={'a':'float64', 'b':'object'}).dtypes
 
+.. _whatsnew_0200.enhancements.groupby_access:
+
+Groupby Enhancements
+^^^^^^^^^^^^^^^^^^^^
+
+Strings passed to ``DataFrame.groupby()`` as the ``by`` parameter may now reference either column names or index level names (:issue:`5677`)
+
+.. ipython:: python
+
+   arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+             ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+
+   index = pd.MultiIndex.from_arrays(arrays, names=['first', 'second'])
+
+   df = pd.DataFrame({'A': [1, 1, 1, 1, 2, 2, 3, 3],
+                      'B': np.arange(8)},
+                     index=index)
+   df
+
+   df.groupby(['second', 'A']).sum()
+
+.. _whatsnew_0200.enhancements.compressed_urls:
+
+Better support for compressed URLs in ``read_csv``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The compression code was refactored (:issue:`12688`). As a result, reading
+dataframes from URLs in :func:`read_csv` or :func:`read_table` now supports
+additional compression methods: ``xz``, ``bz2``, and ``zip`` (:issue:`14570`).
+Previously, only ``gzip`` compression was supported. By default, compression of
+URLs and paths are now both inferred using their file extensions. Additionally,
+support for bz2 compression in the python 2 c-engine improved (:issue:`14874`).
+
+.. ipython:: python
+   url = 'https://github.com/{repo}/raw/{branch}/{path}'.format(
+       repo = 'pandas-dev/pandas',
+       branch = 'master',
+       path = 'pandas/io/tests/parser/data/salaries.csv.bz2',
+   )
+   df = pd.read_table(url, compression='infer')  # default, infer compression
+   df = pd.read_table(url, compression='bz2')  # explicitly specify compression
+   df.head(2)
+
 .. _whatsnew_0200.enhancements.other:
 
 Other enhancements
@@ -50,19 +93,99 @@ Other enhancements
 - ``Series.sort_index`` accepts parameters ``kind`` and ``na_position`` (:issue:`13589`, :issue:`14444`)
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
-- ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (issue:`14714`)
+- Multiple offset aliases with decimal points are now supported (e.g. '0.5min' is parsed as '30s') (:issue:`8419`)
+
+- New ``UnsortedIndexError`` (subclass of ``KeyError``) raised when indexing/slicing into an
+  unsorted MultiIndex (:issue:`11897`). This allows differentiation between errors due to lack
+  of sorting or an incorrect key. See :ref:`here <advanced.unsorted>`
+
+- ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (:issue:`14714`)
 - ``Series`` provides a ``to_excel`` method to output Excel files (:issue:`8825`)
 - The ``usecols`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`14154`)
+- ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
+- ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
+- ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
+
 
 .. _whatsnew_0200.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_0200.api:
 
+.. _whatsnew.api_breaking.index_map
+
+Map on Index types now return other Index types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  ``map`` on an ``Index`` now returns an ``Index``, not a numpy array (:issue:`12766`)
+
+  .. ipython:: python
+
+     idx = Index([1, 2])
+     idx
+     mi = MultiIndex.from_tuples([(1, 2), (2, 4)])
+     mi
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+     In [5]: idx.map(lambda x: x * 2)
+     Out[5]: array([2, 4])
+
+     In [6]: idx.map(lambda x: (x, x * 2))
+     Out[6]: array([(1, 2), (2, 4)], dtype=object)
+
+     In [7]: mi.map(lambda x: x)
+     Out[7]: array([(1, 2), (2, 4)], dtype=object)
+
+     In [8]: mi.map(lambda x: x[0])
+     Out[8]: array([1, 2])
+
+  New Behavior:
+
+  .. ipython:: python
+
+      idx.map(lambda x: x * 2)
+
+      idx.map(lambda x: (x, x * 2))
+
+      mi.map(lambda x: x)
+
+      mi.map(lambda x: x[0])
+
+
+-  ``map`` on a Series with datetime64 values may return int64 dtypes rather than int32
+
+  .. ipython:: python
+
+    s = Series(date_range('2011-01-02T00:00', '2011-01-02T02:00', freq='H').tz_localize('Asia/Tokyo'))
+    s
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+    In [9]: s.map(lambda x: x.hour)
+    Out[9]:
+    0    0
+    1    1
+    2    2
+    dtype: int32
+
+
+  New Behavior:
+
+  .. ipython:: python
+
+    s.map(lambda x: x.hour)
+
+
+  .. _whatsnew_0200.api:
 
 - ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
+- ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)
 
 
 
@@ -132,7 +255,8 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-
+- Improved performance of ``pd.wide_to_long()`` (:issue:`14779`)
+- Increased performance of ``pd.factorize()`` by releasing the GIL with ``object`` dtype when inferred as strings (:issue:`14859`)
 
 
 
@@ -140,3 +264,21 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
+- Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)

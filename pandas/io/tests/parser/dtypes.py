@@ -241,6 +241,9 @@ one,two
         result = self.read_csv(StringIO(data), header=0,
                                dtype='category')
         tm.assert_frame_equal(result, expected)
+        result = self.read_csv(StringIO(data), header=0,
+                               dtype={'a': 'category', 'b': 'category'})
+        tm.assert_frame_equal(result, expected)
 
         expected = pd.DataFrame(columns=['a', 'b'], dtype='datetime64[ns]')
         result = self.read_csv(StringIO(data), header=0,

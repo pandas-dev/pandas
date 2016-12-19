@@ -698,7 +698,7 @@ class TestWideToLong(tm.TestCase):
         exp_data = {"X": x.tolist() + x.tolist(),
                     "A": ['a', 'b', 'c', 'd', 'e', 'f'],
                     "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-                    "year": [1970, 1970, 1970, 1980, 1980, 1980],
+                    "year": ['1970', '1970', '1970', '1980', '1980', '1980'],
                     "id": [0, 1, 2, 0, 1, 2]}
         exp_frame = DataFrame(exp_data)
         exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
@@ -715,6 +715,205 @@ class TestWideToLong(tm.TestCase):
         df_long = pd.wide_to_long(df, stubs, i='id', j='age')  # noqa
 
         self.assertEqual(stubs, ['inc', 'edu'])
+
+    def test_separating_character(self):
+        # GH14779
+        np.random.seed(123)
+        x = np.random.randn(3)
+        df = pd.DataFrame({"A.1970": {0: "a",
+                                      1: "b",
+                                      2: "c"},
+                           "A.1980": {0: "d",
+                                      1: "e",
+                                      2: "f"},
+                           "B.1970": {0: 2.5,
+                                      1: 1.2,
+                                      2: .7},
+                           "B.1980": {0: 3.2,
+                                      1: 1.3,
+                                      2: .1},
+                           "X": dict(zip(
+                               range(3), x))})
+        df["id"] = df.index
+        exp_data = {"X": x.tolist() + x.tolist(),
+                    "A": ['a', 'b', 'c', 'd', 'e', 'f'],
+                    "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
+                    "year": ['1970', '1970', '1970', '1980', '1980', '1980'],
+                    "id": [0, 1, 2, 0, 1, 2]}
+        exp_frame = DataFrame(exp_data)
+        exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
+        long_frame = wide_to_long(df, ["A", "B"], i="id", j="year", sep=".")
+        tm.assert_frame_equal(long_frame, exp_frame)
+
+    def test_escapable_characters(self):
+        np.random.seed(123)
+        x = np.random.randn(3)
+        df = pd.DataFrame({"A(quarterly)1970": {0: "a",
+                                                1: "b",
+                                                2: "c"},
+                           "A(quarterly)1980": {0: "d",
+                                                1: "e",
+                                                2: "f"},
+                           "B(quarterly)1970": {0: 2.5,
+                                                1: 1.2,
+                                                2: .7},
+                           "B(quarterly)1980": {0: 3.2,
+                                                1: 1.3,
+                                                2: .1},
+                           "X": dict(zip(
+                               range(3), x))})
+        df["id"] = df.index
+        exp_data = {"X": x.tolist() + x.tolist(),
+                    "A(quarterly)": ['a', 'b', 'c', 'd', 'e', 'f'],
+                    "B(quarterly)": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
+                    "year": ['1970', '1970', '1970', '1980', '1980', '1980'],
+                    "id": [0, 1, 2, 0, 1, 2]}
+        exp_frame = DataFrame(exp_data)
+        exp_frame = exp_frame.set_index(
+            ['id', 'year'])[["X", "A(quarterly)", "B(quarterly)"]]
+        long_frame = wide_to_long(df, ["A(quarterly)", "B(quarterly)"],
+                                  i="id", j="year")
+        tm.assert_frame_equal(long_frame, exp_frame)
+
+    def test_unbalanced(self):
+        # test that we can have a varying amount of time variables
+        df = pd.DataFrame({'A2010': [1.0, 2.0],
+                           'A2011': [3.0, 4.0],
+                           'B2010': [5.0, 6.0],
+                           'X': ['X1', 'X2']})
+        df['id'] = df.index
+        exp_data = {'X': ['X1', 'X1', 'X2', 'X2'],
+                    'A': [1.0, 3.0, 2.0, 4.0],
+                    'B': [5.0, np.nan, 6.0, np.nan],
+                    'id': [0, 0, 1, 1],
+                    'year': ['2010', '2011', '2010', '2011']}
+        exp_frame = pd.DataFrame(exp_data)
+        exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
+        long_frame = wide_to_long(df, ['A', 'B'], i='id', j='year')
+        tm.assert_frame_equal(long_frame, exp_frame)
+
+    def test_character_overlap(self):
+        # Test we handle overlapping characters in both id_vars and value_vars
+        df = pd.DataFrame({
+            'A11': ['a11', 'a22', 'a33'],
+            'A12': ['a21', 'a22', 'a23'],
+            'B11': ['b11', 'b12', 'b13'],
+            'B12': ['b21', 'b22', 'b23'],
+            'BB11': [1, 2, 3],
+            'BB12': [4, 5, 6],
+            'BBBX': [91, 92, 93],
+            'BBBZ': [91, 92, 93]
+        })
+        df['id'] = df.index
+        exp_frame = pd.DataFrame({
+            'BBBX': [91, 92, 93, 91, 92, 93],
+            'BBBZ': [91, 92, 93, 91, 92, 93],
+            'A': ['a11', 'a22', 'a33', 'a21', 'a22', 'a23'],
+            'B': ['b11', 'b12', 'b13', 'b21', 'b22', 'b23'],
+            'BB': [1, 2, 3, 4, 5, 6],
+            'id': [0, 1, 2, 0, 1, 2],
+            'year': ['11', '11', '11', '12', '12', '12']})
+        exp_frame = exp_frame.set_index(['id', 'year'])[
+            ['BBBX', 'BBBZ', 'A', 'B', 'BB']]
+        long_frame = wide_to_long(df, ['A', 'B', 'BB'], i='id', j='year')
+        tm.assert_frame_equal(long_frame.sort_index(axis=1),
+                              exp_frame.sort_index(axis=1))
+
+    def test_invalid_separator(self):
+        # if an invalid separator is supplied a empty data frame is returned
+        sep = 'nope!'
+        df = pd.DataFrame({'A2010': [1.0, 2.0],
+                           'A2011': [3.0, 4.0],
+                           'B2010': [5.0, 6.0],
+                           'X': ['X1', 'X2']})
+        df['id'] = df.index
+        exp_data = {'X': '',
+                    'A2010': [],
+                    'A2011': [],
+                    'B2010': [],
+                    'id': [],
+                    'year': [],
+                    'A': [],
+                    'B': []}
+        exp_frame = pd.DataFrame(exp_data)
+        exp_frame = exp_frame.set_index(['id', 'year'])[[
+            'X', 'A2010', 'A2011', 'B2010', 'A', 'B']]
+        exp_frame.index.set_levels([[0, 1], []], inplace=True)
+        long_frame = wide_to_long(df, ['A', 'B'], i='id', j='year', sep=sep)
+        tm.assert_frame_equal(long_frame.sort_index(axis=1),
+                              exp_frame.sort_index(axis=1))
+
+    def test_num_string_disambiguation(self):
+        # Test that we can disambiguate number value_vars from
+        # string value_vars
+        df = pd.DataFrame({
+            'A11': ['a11', 'a22', 'a33'],
+            'A12': ['a21', 'a22', 'a23'],
+            'B11': ['b11', 'b12', 'b13'],
+            'B12': ['b21', 'b22', 'b23'],
+            'BB11': [1, 2, 3],
+            'BB12': [4, 5, 6],
+            'Arating': [91, 92, 93],
+            'Arating_old': [91, 92, 93]
+        })
+        df['id'] = df.index
+        exp_frame = pd.DataFrame({
+            'Arating': [91, 92, 93, 91, 92, 93],
+            'Arating_old': [91, 92, 93, 91, 92, 93],
+            'A': ['a11', 'a22', 'a33', 'a21', 'a22', 'a23'],
+            'B': ['b11', 'b12', 'b13', 'b21', 'b22', 'b23'],
+            'BB': [1, 2, 3, 4, 5, 6],
+            'id': [0, 1, 2, 0, 1, 2],
+            'year': ['11', '11', '11', '12', '12', '12']})
+        exp_frame = exp_frame.set_index(['id', 'year'])[
+            ['Arating', 'Arating_old', 'A', 'B', 'BB']]
+        long_frame = wide_to_long(df, ['A', 'B', 'BB'], i='id', j='year')
+        tm.assert_frame_equal(long_frame.sort_index(axis=1),
+                              exp_frame.sort_index(axis=1))
+
+    def test_invalid_suffixtype(self):
+        # If all stubs names end with a string, but a numeric suffix is
+        # assumed,  an empty data frame is returned
+        df = pd.DataFrame({'Aone': [1.0, 2.0],
+                           'Atwo': [3.0, 4.0],
+                           'Bone': [5.0, 6.0],
+                           'X': ['X1', 'X2']})
+        df['id'] = df.index
+        exp_data = {'X': '',
+                    'Aone': [],
+                    'Atwo': [],
+                    'Bone': [],
+                    'id': [],
+                    'year': [],
+                    'A': [],
+                    'B': []}
+        exp_frame = pd.DataFrame(exp_data)
+        exp_frame = exp_frame.set_index(['id', 'year'])[[
+            'X', 'Aone', 'Atwo', 'Bone', 'A', 'B']]
+        exp_frame.index.set_levels([[0, 1], []], inplace=True)
+        long_frame = wide_to_long(df, ['A', 'B'], i='id', j='year')
+        tm.assert_frame_equal(long_frame.sort_index(axis=1),
+                              exp_frame.sort_index(axis=1))
+
+    def test_multiple_id_columns(self):
+        # Taken from http://www.ats.ucla.edu/stat/stata/modules/reshapel.htm
+        df = pd.DataFrame({
+            'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            'birth': [1, 2, 3, 1, 2, 3, 1, 2, 3],
+            'ht1': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
+            'ht2': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
+        })
+        exp_frame = pd.DataFrame({
+            'ht': [2.8, 3.4, 2.9, 3.8, 2.2, 2.9, 2.0, 3.2, 1.8,
+                   2.8, 1.9, 2.4, 2.2, 3.3, 2.3, 3.4, 2.1, 2.9],
+            'famid': [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
+            'birth': [1, 1, 2, 2, 3, 3, 1, 1, 2, 2, 3, 3, 1, 1, 2, 2, 3, 3],
+            'age': ['1', '2', '1', '2', '1', '2', '1', '2', '1',
+                    '2', '1', '2', '1', '2', '1', '2', '1', '2']
+        })
+        exp_frame = exp_frame.set_index(['famid', 'birth', 'age'])[['ht']]
+        long_frame = wide_to_long(df, 'ht', i=['famid', 'birth'], j='age')
+        tm.assert_frame_equal(long_frame, exp_frame)
 
 
 if __name__ == '__main__':

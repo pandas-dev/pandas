@@ -3354,12 +3354,16 @@ class NDFrame(PandasObject):
             return self._constructor(new_data).__finalize__(self)
 
     def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
-        """Synonym for NDFrame.fillna(method='ffill')"""
+        """
+        Synonym for :meth:`DataFrame.fillna(method='ffill') <DataFrame.fillna>`
+        """
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
     def bfill(self, axis=None, inplace=False, limit=None, downcast=None):
-        """Synonym for NDFrame.fillna(method='bfill')"""
+        """
+        Synonym for :meth:`DataFrame.fillna(method='bfill') <DataFrame.fillna>`
+        """
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
@@ -3635,14 +3639,17 @@ class NDFrame(PandasObject):
               require that you also specify an `order` (int),
               e.g. df.interpolate(method='polynomial', order=4).
               These use the actual numerical values of the index.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima' are all
-              wrappers around the scipy interpolation methods of similar
-              names. These use the actual numerical values of the index. See
-              the scipy documentation for more on their behavior
-              `here <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__  # noqa
-              `and here <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__  # noqa
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
+              are all wrappers around the scipy interpolation methods of
+              similar names. These use the actual numerical values of the
+              index. For more information on their behavior, see the
+              `scipy documentation
+              <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
+              and `tutorial documentation
+              <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__
             * 'from_derivatives' refers to BPoly.from_derivatives which
-              replaces 'piecewise_polynomial' interpolation method in scipy 0.18
+              replaces 'piecewise_polynomial' interpolation method in
+              scipy 0.18
 
             .. versionadded:: 0.18.1
 
@@ -3656,7 +3663,7 @@ class NDFrame(PandasObject):
             * 1: fill row-by-row
         limit : int, default None.
             Maximum number of consecutive NaNs to fill.
-        limit_direction : {'forward', 'backward', 'both'}, defaults to 'forward'
+        limit_direction : {'forward', 'backward', 'both'}, default 'forward'
             If limit is specified, consecutive NaNs will be filled in this
             direction.
 
@@ -4000,7 +4007,7 @@ class NDFrame(PandasObject):
         Parameters
         ----------
         by : mapping function / list of functions, dict, Series, or tuple /
-            list of column names.
+            list of column names or index level names.
             Called on each element of the object index to determine the groups.
             If a dict or Series is passed, the Series or dict VALUES will be
             used to determine the groups
@@ -4158,6 +4165,9 @@ class NDFrame(PandasObject):
             resampling.  Level must be datetime-like.
 
             .. versionadded:: 0.19.0
+
+        Notes
+        -----
 
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -4346,7 +4356,7 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        axis: {0 or 'index', 1 or 'columns'}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             index to direct ranking
         method : {'average', 'min', 'max', 'first', 'dense'}
             * average: average rank of group
@@ -5471,16 +5481,18 @@ class NDFrame(PandasObject):
 
         cls.cummin = _make_cum_function(
             cls, 'cummin', name, name2, axis_descr, "cumulative minimum",
-            lambda y, axis: np.minimum.accumulate(y, axis), np.inf, np.nan)
+            lambda y, axis: np.minimum.accumulate(y, axis), "min",
+            np.inf, np.nan)
         cls.cumsum = _make_cum_function(
             cls, 'cumsum', name, name2, axis_descr, "cumulative sum",
-            lambda y, axis: y.cumsum(axis), 0., np.nan)
+            lambda y, axis: y.cumsum(axis), "sum", 0., np.nan)
         cls.cumprod = _make_cum_function(
             cls, 'cumprod', name, name2, axis_descr, "cumulative product",
-            lambda y, axis: y.cumprod(axis), 1., np.nan)
+            lambda y, axis: y.cumprod(axis), "prod", 1., np.nan)
         cls.cummax = _make_cum_function(
             cls, 'cummax', name, name2, axis_descr, "cumulative max",
-            lambda y, axis: np.maximum.accumulate(y, axis), -np.inf, np.nan)
+            lambda y, axis: np.maximum.accumulate(y, axis), "max",
+            -np.inf, np.nan)
 
         cls.sum = _make_stat_function(
             cls, 'sum', name, name2, axis_descr,
@@ -5668,7 +5680,15 @@ skipna : boolean, default True
 
 Returns
 -------
-%(outname)s : %(name1)s\n"""
+%(outname)s : %(name1)s\n
+
+
+See also
+--------
+pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
+    but ignores ``NaN`` values.
+
+"""
 
 
 def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
@@ -5711,10 +5731,10 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
     return set_function_name(stat_func, name, cls)
 
 
-def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
-                       mask_a, mask_b):
+def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
+                       accum_func, accum_func_name, mask_a, mask_b):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr)
+                  axis_descr=axis_descr, accum_func_name=accum_func_name)
     @Appender("Return {0} over requested axis.".format(desc) +
               _cnum_doc)
     def cum_func(self, axis=None, skipna=True, *args, **kwargs):

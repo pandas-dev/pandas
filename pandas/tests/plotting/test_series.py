@@ -569,7 +569,11 @@ class TestSeriesPlots(TestPlotBase):
         _skip_if_no_scipy_gaussian_kde()
         s = Series(np.random.uniform(size=50))
         s[0] = np.nan
-        _check_plot_works(s.plot.kde)
+        axes = _check_plot_works(s.plot.kde)
+        # check if the values have any missing values
+        # GH14821
+        self.assertTrue(any(~np.isnan(axes.lines[0].get_xdata())),
+                        msg='Missing Values not dropped')
 
     @slow
     def test_hist_kwargs(self):

@@ -188,7 +188,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                         if len(data):
                             # coerce back to datetime objects for lookup
                             data = _dict_compat(data)
-                            data = lib.fast_multiget(data, index.astype('O'),
+                            data = lib.fast_multiget(data,
+                                                     index.asobject.values,
                                                      default=np.nan)
                         else:
                             data = np.nan
@@ -2033,9 +2034,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Parameters
         ----------
-        order: list of int representing new level order.
+        order : list of int representing new level order.
                (reference level by number or key)
-        axis: where to reorder levels
+        axis : where to reorder levels
 
         Returns
         -------
