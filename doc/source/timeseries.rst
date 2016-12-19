@@ -475,29 +475,48 @@ DatetimeIndex Partial String Indexing also works on DataFrames with a ``MultiInd
    dft2 = dft2.swaplevel(0, 1).sort_index()
    dft2.loc[idx[:, '2013-01-05'], :]
 
+.. _timeseries.slice_vs_exact_match:
+
 Slice vs. exact match
 ^^^^^^^^^^^^^^^^^^^^^
 
 The same string used as an indexing parameter can be treated either as a slice or as an exact match depending on the resolution of an index. If the string is less accurate than the index, it will be treated as a slice, otherwise as an exact match.
+
+For example, let us consider ``Series`` object which index has minute resolution.
 
 .. ipython:: python
 
     series_minute = pd.Series([1, 2, 3],
                               pd.DatetimeIndex(['2011-12-31 23:59:00',
                                                 '2012-01-01 00:00:00',
-                                                '2012-01-01 00:01:00']))
+                                                '2012-01-01 00:02:00']))
     series_minute.index.resolution
-    series_minute['2011-12-31 23'] # returns Series
-    series_minute['2011-12-31 23:59'] # returns scalar
+
+Timestamp string less accurate than minute gives ``Series`` object.
+
+.. ipython:: python
+
+    series_minute['2011-12-31 23']
+
+Timestamp string with minute resolution (or more accurate) gives scalar instead, i.e. it is not casted to a slice.
+
+.. ipython:: python
+
+    series_minute['2011-12-31 23:59']
+    series_minute['2011-12-31 23:59:00']
+
+If index resolution is second, the minute-accurate timestamp gives ``Series``.
+
+.. ipython:: python
 
     series_second = pd.Series([1, 2, 3],
                               pd.DatetimeIndex(['2011-12-31 23:59:59',
                                                 '2012-01-01 00:00:00',
                                                 '2012-01-01 00:00:01']))
     series_second.index.resolution
-    series_second['2011-12-31 23:59'] # now it returns Series
+    series_second['2011-12-31 23:59']
 
-It also works for ``DataFrame``:
+If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``[]`` as well.
 
 .. ipython:: python
 
@@ -505,25 +524,30 @@ It also works for ``DataFrame``:
                                index=series_minute.index)
     dft_minute['2011-12-31 23']
 
-.. warning::
+However if the string is treated as an exact match the selection in ``DataFrame``'s ``[]`` will be column-wise and not row-wise, see :ref:`Indexing Basics <indexing.basics>`. For example ``dft_minute['2011-12-31 23:59']`` will raise ``KeyError`` as ``'2012-12-31 23:59'`` has the same resolution as index and there is no column with such name:
 
-   If string used in ``DataFrame``'s ``[]`` indexing is treated as an exact match the selection will be column-wise and not row-wise. This is consistent with :ref:`Indexing Basics <indexing.basics>`. For example, the following code will raise ``KeyError`` as there is no column with index ``'2012-12-31 23:59'``:
+To select a single row, use ``.loc``.
 
-   .. code-block:: python
+.. ipython:: python
 
-      dft_minute['2011-12-31 23:59']
-      # KeyError: '2011-12-31 23:59'
+  dft_minute.loc['2011-12-31 23:59']
 
-   To select a single row, use ``.loc``
+Note also that ``DatetimeIndex`` resolution cannot be less precise than day.
 
-   .. ipython:: python
+.. ipython:: python
 
-      dft_minute.loc['2011-12-31 23:59']
+    series_monthly = pd.Series([1, 2, 3],
+                              pd.DatetimeIndex(['2011-12',
+                                                '2012-01',
+                                                '2012-02']))
+    series_monthly.index.resolution
+    series_monthly['2011-12'] # returns Series
+
 
 Datetime Indexing
 ~~~~~~~~~~~~~~~~~
 
-Indexing a ``DateTimeIndex`` with a partial string depends on the "accuracy" of the period, in other words how specific the interval is in relation to the frequency of the index. In contrast, indexing with datetime objects is exact, because the objects have exact meaning. These also follow the semantics of *including both endpoints*.
+As discussed in previous section, indexing a ``DateTimeIndex`` with a partial string depends on the "accuracy" of the period, in other words how specific the interval is in relation to the resolution of the index. In contrast, indexing with datetime objects is exact, because the objects have exact meaning. These also follow the semantics of *including both endpoints*.
 
 These ``datetime`` objects  are specific ``hours, minutes,`` and ``seconds`` even though they were not explicitly specified (they are ``0``).
 
