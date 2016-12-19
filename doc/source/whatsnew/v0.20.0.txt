@@ -70,6 +70,38 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>` now works as exact match provided that string resolution coincides with index resolution (:issue:`14826`).
+
+  .. ipython:: python
+
+    df = DataFrame({'a': [1, 2, 3]}, DatetimeIndex(['2011-12-31 23:59:59',
+                                                    '2012-01-01 00:00:00',
+                                                    '2012-01-01 00:00:01']))
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+    In [4]: df['2011-12-31 23:59:59']
+    Out[4]:
+                         a
+    2011-12-31 23:59:59  1
+
+    In [5]: df['a']['2011-12-31 23:59:59']
+    Out[5]:
+    2011-12-31 23:59:59    1
+    Name: a, dtype: int64
+
+
+  New Behavior:
+
+  .. code-block:: ipython
+
+    In [4]: df['2011-12-31 23:59:59']
+    KeyError: '2011-12-31 23:59:59'
+
+    In [5]: df['a']['2011-12-31 23:59:59']
+    Out[5]: 1
+
 .. _whatsnew_0200.deprecations:
 
 Deprecations
