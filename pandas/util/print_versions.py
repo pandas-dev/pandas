@@ -94,7 +94,7 @@ def show_versions(as_json=False):
         ("pymysql", lambda mod: mod.__version__),
         ("psycopg2", lambda mod: mod.__version__),
         ("jinja2", lambda mod: mod.__version__),
-        ("boto", lambda mod: mod.__version__),
+        ("s3fs", lambda mod: mod.__version__),
         ("pandas_datareader", lambda mod: mod.__version__)
     ]
 

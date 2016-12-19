@@ -378,10 +378,10 @@ class TestDataFrameOperators(tm.TestCase, TestData):
                     result = getattr(self.mixed_int, op)(2 + self.mixed_int)
                     exp = f(self.mixed_int, 2 + self.mixed_int)
 
-                    # overflow in the uint
+                    # no overflow in the uint
                     dtype = None
                     if op in ['sub']:
-                        dtype = dict(B='object', C=None)
+                        dtype = dict(B='uint64', C=None)
                     elif op in ['add', 'mul']:
                         dtype = dict(C=None)
                     assert_frame_equal(result, exp)
@@ -410,10 +410,10 @@ class TestDataFrameOperators(tm.TestCase, TestData):
                             2 + self.mixed_int)
                         exp = f(self.mixed_int, 2 + self.mixed_int)
 
-                        # overflow in the uint
+                        # no overflow in the uint
                         dtype = None
                         if op in ['sub']:
-                            dtype = dict(B='object', C=None)
+                            dtype = dict(B='uint64', C=None)
                         elif op in ['add', 'mul']:
                             dtype = dict(C=None)
                         assert_frame_equal(result, exp)
