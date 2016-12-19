@@ -277,28 +277,6 @@ class TestFactorize(tm.TestCase):
         self.assertTrue(
             np.array_equal(pd.isnull(key), expected == na_sentinel))
 
-    def test_vector_resize(self):
-        # Test for memory errors after internal vector
-        # reallocations (pull request #7157)
-
-        def _test_vector_resize(htable, uniques, dtype, nvals):
-            vals = np.array(np.random.randn(1000), dtype=dtype)
-            # get_labels appends to the vector
-            htable.get_labels(vals[:nvals], uniques, 0, -1)
-            # to_array resizes the vector
-            uniques.to_array()
-            htable.get_labels(vals, uniques, 0, -1)
-
-        test_cases = [
-            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
-            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64'),
-            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64')]
-
-        for (tbl, vect, dtype) in test_cases:
-            # resizing to empty is a special case
-            _test_vector_resize(tbl(), vect(), dtype, 0)
-            _test_vector_resize(tbl(), vect(), dtype, 10)
-
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
         # Test not valid numpy versions older than 1.11
@@ -912,6 +890,39 @@ class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
     rtol = 1e-2
 
 
+class TestHashTable(tm.TestCase):
+
+    def test_lookup_nan(self):
+        xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
+        m = hashtable.Float64HashTable()
+        m.map_locations(xs)
+        self.assert_numpy_array_equal(m.lookup(xs),
+                                      np.arange(len(xs), dtype=np.int64))
+
+    def test_vector_resize(self):
+        # Test for memory errors after internal vector
+        # reallocations (pull request #7157)
+
+        def _test_vector_resize(htable, uniques, dtype, nvals):
+            vals = np.array(np.random.randn(1000), dtype=dtype)
+            # get_labels appends to the vector
+            htable.get_labels(vals[:nvals], uniques, 0, -1)
+            # to_array resizes the vector
+            uniques.to_array()
+            htable.get_labels(vals, uniques, 0, -1)
+
+        test_cases = [
+            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
+            (hashtable.StringHashTable, hashtable.ObjectVector, 'object'),
+            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64'),
+            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64')]
+
+        for (tbl, vect, dtype) in test_cases:
+            # resizing to empty is a special case
+            _test_vector_resize(tbl(), vect(), dtype, 0)
+            _test_vector_resize(tbl(), vect(), dtype, 10)
+
+
 def test_quantile():
     s = Series(np.random.randn(100))
 
@@ -1127,6 +1138,55 @@ def test_ensure_platform_int():
 
     result = _algos.ensure_platform_int(arr)
     assert (result is arr)
+
+
+def test_int64_add_overflow():
+    # see gh-14068
+    msg = "Overflow in int64 addition"
+    m = np.iinfo(np.int64).max
+    n = np.iinfo(np.int64).min
+
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, m]), m)
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([n, n]), n)
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([n, n]), np.array([n, n]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, n]), np.array([n, n]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                   arr_mask=np.array([False, True]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                   b_mask=np.array([False, True]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                   arr_mask=np.array([False, True]),
+                                   b_mask=np.array([False, True]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_produces_warning(RuntimeWarning):
+            algos.checked_add_with_arr(np.array([m, m]),
+                                       np.array([np.nan, m]))
+
+    # Check that the nan boolean arrays override whether or not
+    # the addition overflows. We don't check the result but just
+    # the fact that an OverflowError is not raised.
+    with tm.assertRaises(AssertionError):
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                       arr_mask=np.array([True, True]))
+    with tm.assertRaises(AssertionError):
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                       b_mask=np.array([True, True]))
+    with tm.assertRaises(AssertionError):
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                       arr_mask=np.array([True, False]),
+                                       b_mask=np.array([False, True]))
 
 
 if __name__ == '__main__':

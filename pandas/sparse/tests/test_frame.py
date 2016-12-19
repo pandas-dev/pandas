@@ -215,6 +215,21 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         self.assertEqual(df['x'].dtype, np.int64)
         self.assertEqual(df['x'].fill_value, 0)
 
+    def test_constructor_nan_dataframe(self):
+        # GH 10079
+        trains = np.arange(100)
+        tresholds = [10, 20, 30, 40, 50, 60]
+        tuples = [(i, j) for i in trains for j in tresholds]
+        index = pd.MultiIndex.from_tuples(tuples,
+                                          names=['trains', 'tresholds'])
+        matrix = np.empty((len(index), len(trains)))
+        matrix.fill(np.nan)
+        df = pd.DataFrame(matrix, index=index, columns=trains, dtype=float)
+        result = df.to_sparse()
+        expected = pd.SparseDataFrame(matrix, index=index, columns=trains,
+                                      dtype=float)
+        tm.assert_sp_frame_equal(result, expected)
+
     def test_dtypes(self):
         df = DataFrame(np.random.randn(10000, 4))
         df.ix[:9998] = np.nan

@@ -868,6 +868,12 @@ data columns:
    df
 
 .. note::
+   If a column or index contains an unparseable date, the entire column or
+   index will be returned unaltered as an object data type. For non-standard
+   datetime parsing, use :func:`to_datetime` after ``pd.read_csv``.
+
+
+.. note::
    read_csv has a fast_path for parsing datetime strings in iso8601 format,
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
@@ -1480,6 +1486,23 @@ options include:
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
+
+Reading remote files
+''''''''''''''''''''
+
+You can pass in a URL to a CSV file:
+
+.. code-block:: python
+
+   df = pd.read_csv('https://download.bls.gov/pub/time.series/cu/cu.item',
+                    sep='\t')
+
+S3 URLs are handled as well:
+
+.. code-block:: python
+
+   df = pd.read_csv('s3://pandas-test/tips.csv')
+
 
 Writing out Data
 ''''''''''''''''
@@ -3998,7 +4021,7 @@ and data values from the values and assembles them into a ``data.frame``:
    name_paths = paste(listing$group[name_nodes], listing$name[name_nodes], sep = "/")
    columns = list()
    for (idx in seq(data_paths)) {
-     # NOTE: matrices returned by h5read have to be transposed to to obtain
+     # NOTE: matrices returned by h5read have to be transposed to obtain
      # required Fortran order!
      data <- data.frame(t(h5read(h5File, data_paths[idx])))
      names <- t(h5read(h5File, name_paths[idx]))

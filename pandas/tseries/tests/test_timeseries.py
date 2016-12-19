@@ -947,6 +947,18 @@ class TestTimeSeries(tm.TestCase):
         result = to_datetime(s)
         self.assertEqual(result[0], s[0])
 
+    def test_to_datetime_with_space_in_series(self):
+        # GH 6428
+        s = Series(['10/18/2006', '10/18/2008', ' '])
+        tm.assertRaises(ValueError, lambda: to_datetime(s, errors='raise'))
+        result_coerce = to_datetime(s, errors='coerce')
+        expected_coerce = Series([datetime(2006, 10, 18),
+                                  datetime(2008, 10, 18),
+                                  pd.NaT])
+        tm.assert_series_equal(result_coerce, expected_coerce)
+        result_ignore = to_datetime(s, errors='ignore')
+        tm.assert_series_equal(result_ignore, s)
+
     def test_to_datetime_with_apply(self):
         # this is only locale tested with US/None locales
         _skip_if_has_locale()
@@ -2991,8 +3003,8 @@ class TestDatetimeIndex(tm.TestCase):
 
         f = lambda x: x.strftime('%Y%m%d')
         result = rng.map(f)
-        exp = np.array([f(x) for x in rng], dtype='=U8')
-        tm.assert_almost_equal(result, exp)
+        exp = Index([f(x) for x in rng], dtype='<U8')
+        tm.assert_index_equal(result, exp)
 
     def test_iteration_preserves_tz(self):
 
@@ -3688,8 +3700,8 @@ class TestDatetimeIndex(tm.TestCase):
         f = index.asof
 
         result = index.map(f)
-        expected = np.array([f(index[0])])
-        self.assert_numpy_array_equal(result, expected)
+        expected = Index([f(index[0])])
+        tm.assert_index_equal(result, expected)
 
     def test_groupby_function_tuple_1677(self):
         df = DataFrame(np.random.rand(100),

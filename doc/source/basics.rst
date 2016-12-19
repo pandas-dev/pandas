@@ -486,7 +486,9 @@ standard deviation 1), very concisely:
    xs_stand.std(1)
 
 Note that methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`
-preserve the location of NA values:
+preserve the location of ``NaN`` values. This is somewhat different from
+:meth:`~DataFrame.expanding` and :meth:`~DataFrame.rolling`.
+For more details please see :ref:`this note <stats.moments.expanding.note>`.
 
 .. ipython:: python
 

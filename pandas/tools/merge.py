@@ -5,6 +5,8 @@ SQL-style merge routines
 import copy
 import warnings
 
+import string
+
 import numpy as np
 from pandas.compat import range, lrange, lzip, zip, map, filter
 import pandas.compat as compat
@@ -28,7 +30,8 @@ from pandas.types.common import (is_datetime64tz_dtype,
                                  is_list_like,
                                  _ensure_int64,
                                  _ensure_float64,
-                                 _ensure_object)
+                                 _ensure_object,
+                                 _get_dtype)
 from pandas.types.missing import na_value_for_dtype
 
 from pandas.core.generic import NDFrame
@@ -259,7 +262,8 @@ ordered_merge.__doc__ = merge_ordered.__doc__
 
 def merge_asof(left, right, on=None,
                left_on=None, right_on=None,
-               by=None,
+               left_index=False, right_index=False,
+               by=None, left_by=None, right_by=None,
                suffixes=('_x', '_y'),
                tolerance=None,
                allow_exact_matches=True):
@@ -270,8 +274,8 @@ def merge_asof(left, right, on=None,
     DataFrame whose 'on' key is less than or equal to the left's key. Both
     DataFrames must be sorted by the key.
 
-    Optionally perform group-wise merge. This searches for the nearest match
-    on the 'on' key within the same group according to 'by'.
+    Optionally match on equivalent keys with 'by' before searching for nearest
+    match with 'on'.
 
     .. versionadded:: 0.19.0
 
@@ -288,9 +292,28 @@ def merge_asof(left, right, on=None,
         Field name to join on in left DataFrame.
     right_on : label
         Field name to join on in right DataFrame.
-    by : column name
-        Group both the left and right DataFrames by the group column; perform
-        the merge operation on these pieces and recombine.
+    left_index : boolean
+        Use the index of the left DataFrame as the join key.
+
+        .. versionadded:: 0.19.2
+
+    right_index : boolean
+        Use the index of the right DataFrame as the join key.
+
+        .. versionadded:: 0.19.2
+
+    by : column name or list of column names
+        Match on these columns before performing merge operation.
+    left_by : column name
+        Field names to match on in the left DataFrame.
+
+        .. versionadded:: 0.19.2
+
+    right_by : column name
+        Field names to match on in the right DataFrame.
+
+        .. versionadded:: 0.19.2
+
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
         side, respectively
@@ -347,6 +370,28 @@ def merge_asof(left, right, on=None,
     0   1        a        1.0
     3   5        b        3.0
     6  10        c        7.0
+
+    We can use indexed DataFrames as well.
+
+    >>> left
+       left_val
+    1         a
+    5         b
+    10        c
+
+    >>> right
+       right_val
+    1          1
+    2          2
+    3          3
+    6          6
+    7          7
+
+    >>> pd.merge_asof(left, right, left_index=True, right_index=True)
+       left_val  right_val
+    1         a          1
+    5         b          3
+    10        c          7
 
     Here is a real-world times-series example
 
@@ -418,7 +463,9 @@ def merge_asof(left, right, on=None,
     """
     op = _AsOfMerge(left, right,
                     on=on, left_on=left_on, right_on=right_on,
-                    by=by, suffixes=suffixes,
+                    left_index=left_index, right_index=right_index,
+                    by=by, left_by=left_by, right_by=right_by,
+                    suffixes=suffixes,
                     how='asof', tolerance=tolerance,
                     allow_exact_matches=allow_exact_matches)
     return op.get_result()
@@ -650,7 +697,7 @@ class _MergeOperation(object):
         left_ax = self.left._data.axes[self.axis]
         right_ax = self.right._data.axes[self.axis]
 
-        if self.left_index and self.right_index:
+        if self.left_index and self.right_index and self.how != 'asof':
             join_index, left_indexer, right_indexer = \
                 left_ax.join(right_ax, how=self.how, return_indexers=True)
         elif self.right_index and self.how == 'left':
@@ -731,6 +778,16 @@ class _MergeOperation(object):
         is_rkey = lambda x: isinstance(
             x, (np.ndarray, ABCSeries)) and len(x) == len(right)
 
+        # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
+        # user could, for example, request 'left_index' and 'left_by'. In a
+        # regular pd.merge(), users cannot specify both 'left_index' and
+        # 'left_on'. (Instead, users have a MultiIndex). That means the
+        # self.left_on in this function is always empty in a pd.merge(), but
+        # a pd.merge_asof(left_index=True, left_by=...) will result in a
+        # self.left_on array with a None in the middle of it. This requires
+        # a work-around as designated in the code below.
+        # See _validate_specification() for where this happens.
+
         # ugh, spaghetti re #733
         if _any(self.left_on) and _any(self.right_on):
             for lk, rk in zip(self.left_on, self.right_on):
@@ -740,12 +797,21 @@ class _MergeOperation(object):
                         right_keys.append(rk)
                         join_names.append(None)  # what to do?
                     else:
-                        right_keys.append(right[rk]._values)
-                        join_names.append(rk)
+                        if rk is not None:
+                            right_keys.append(right[rk]._values)
+                            join_names.append(rk)
+                        else:
+                            # work-around for merge_asof(right_index=True)
+                            right_keys.append(right.index)
+                            join_names.append(right.index.name)
                 else:
                     if not is_rkey(rk):
-                        right_keys.append(right[rk]._values)
-                        if lk == rk:
+                        if rk is not None:
+                            right_keys.append(right[rk]._values)
+                        else:
+                            # work-around for merge_asof(right_index=True)
+                            right_keys.append(right.index)
+                        if lk is not None and lk == rk:
                             # avoid key upcast in corner case (length-0)
                             if len(left) > 0:
                                 right_drop.append(rk)
@@ -753,8 +819,13 @@ class _MergeOperation(object):
                                 left_drop.append(lk)
                     else:
                         right_keys.append(rk)
-                    left_keys.append(left[lk]._values)
-                    join_names.append(lk)
+                    if lk is not None:
+                        left_keys.append(left[lk]._values)
+                        join_names.append(lk)
+                    else:
+                        # work-around for merge_asof(left_index=True)
+                        left_keys.append(left.index)
+                        join_names.append(left.index.name)
         elif _any(self.left_on):
             for k in self.left_on:
                 if is_lkey(k):
@@ -879,13 +950,15 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner',
 class _OrderedMerge(_MergeOperation):
     _merge_type = 'ordered_merge'
 
-    def __init__(self, left, right, on=None, left_on=None,
-                 right_on=None, axis=1,
+    def __init__(self, left, right, on=None, left_on=None, right_on=None,
+                 left_index=False, right_index=False, axis=1,
                  suffixes=('_x', '_y'), copy=True,
                  fill_method=None, how='outer'):
 
         self.fill_method = fill_method
         _MergeOperation.__init__(self, left, right, on=on, left_on=left_on,
+                                 left_index=left_index,
+                                 right_index=right_index,
                                  right_on=right_on, axis=axis,
                                  how=how, suffixes=suffixes,
                                  sort=True  # factorize sorts
@@ -926,17 +999,13 @@ class _OrderedMerge(_MergeOperation):
         return result
 
 
-_asof_functions = {
-    'int64_t': _join.asof_join_int64_t,
-    'double': _join.asof_join_double,
-}
+def _asof_function(on_type):
+    return getattr(_join, 'asof_join_%s' % on_type, None)
 
-_asof_by_functions = {
-    ('int64_t', 'int64_t'): _join.asof_join_int64_t_by_int64_t,
-    ('double', 'int64_t'): _join.asof_join_double_by_int64_t,
-    ('int64_t', 'object'): _join.asof_join_int64_t_by_object,
-    ('double', 'object'): _join.asof_join_double_by_object,
-}
+
+def _asof_by_function(on_type, by_type):
+    return getattr(_join, 'asof_join_%s_by_%s' % (on_type, by_type), None)
+
 
 _type_casters = {
     'int64_t': _ensure_int64,
@@ -944,9 +1013,32 @@ _type_casters = {
     'object': _ensure_object,
 }
 
+_cython_types = {
+    'uint8': 'uint8_t',
+    'uint32': 'uint32_t',
+    'uint16': 'uint16_t',
+    'uint64': 'uint64_t',
+    'int8': 'int8_t',
+    'int32': 'int32_t',
+    'int16': 'int16_t',
+    'int64': 'int64_t',
+    'float16': 'error',
+    'float32': 'float',
+    'float64': 'double',
+}
+
 
 def _get_cython_type(dtype):
-    """ Given a dtype, return 'int64_t', 'double', or 'object' """
+    """ Given a dtype, return a C name like 'int64_t' or 'double' """
+    type_name = _get_dtype(dtype).name
+    ctype = _cython_types.get(type_name, 'object')
+    if ctype == 'error':
+        raise MergeError('unsupported type: ' + type_name)
+    return ctype
+
+
+def _get_cython_type_upcast(dtype):
+    """ Upcast a dtype to 'int64_t', 'double', or 'object' """
     if is_integer_dtype(dtype):
         return 'int64_t'
     elif is_float_dtype(dtype):
@@ -958,19 +1050,23 @@ def _get_cython_type(dtype):
 class _AsOfMerge(_OrderedMerge):
     _merge_type = 'asof_merge'
 
-    def __init__(self, left, right, on=None, by=None, left_on=None,
-                 right_on=None, axis=1,
-                 suffixes=('_x', '_y'), copy=True,
+    def __init__(self, left, right, on=None, left_on=None, right_on=None,
+                 left_index=False, right_index=False,
+                 by=None, left_by=None, right_by=None,
+                 axis=1, suffixes=('_x', '_y'), copy=True,
                  fill_method=None,
                  how='asof', tolerance=None,
                  allow_exact_matches=True):
 
         self.by = by
+        self.left_by = left_by
+        self.right_by = right_by
         self.tolerance = tolerance
         self.allow_exact_matches = allow_exact_matches
 
         _OrderedMerge.__init__(self, left, right, on=on, left_on=left_on,
-                               right_on=right_on, axis=axis,
+                               right_on=right_on, left_index=left_index,
+                               right_index=right_index, axis=axis,
                                how=how, suffixes=suffixes,
                                fill_method=fill_method)
 
@@ -978,23 +1074,39 @@ class _AsOfMerge(_OrderedMerge):
         super(_AsOfMerge, self)._validate_specification()
 
         # we only allow on to be a single item for on
-        if len(self.left_on) != 1:
+        if len(self.left_on) != 1 and not self.left_index:
             raise MergeError("can only asof on a key for left")
 
-        if len(self.right_on) != 1:
+        if len(self.right_on) != 1 and not self.right_index:
             raise MergeError("can only asof on a key for right")
+
+        if self.left_index and isinstance(self.left.index, MultiIndex):
+            raise MergeError("left can only have one index")
+
+        if self.right_index and isinstance(self.right.index, MultiIndex):
+            raise MergeError("right can only have one index")
+
+        # set 'by' columns
+        if self.by is not None:
+            if self.left_by is not None or self.right_by is not None:
+                raise MergeError('Can only pass by OR left_by '
+                                 'and right_by')
+            self.left_by = self.right_by = self.by
+        if self.left_by is None and self.right_by is not None:
+            raise MergeError('missing left_by')
+        if self.left_by is not None and self.right_by is None:
+            raise MergeError('missing right_by')
 
         # add by to our key-list so we can have it in the
         # output as a key
-        if self.by is not None:
-            if not is_list_like(self.by):
-                self.by = [self.by]
+        if self.left_by is not None:
+            if not is_list_like(self.left_by):
+                self.left_by = [self.left_by]
+            if not is_list_like(self.right_by):
+                self.right_by = [self.right_by]
 
-            if len(self.by) != 1:
-                raise MergeError("can only asof by a single key")
-
-            self.left_on = self.by + list(self.left_on)
-            self.right_on = self.by + list(self.right_on)
+            self.left_on = self.left_by + list(self.left_on)
+            self.right_on = self.right_by + list(self.right_on)
 
     @property
     def _asof_key(self):
@@ -1017,7 +1129,7 @@ class _AsOfMerge(_OrderedMerge):
         # validate tolerance; must be a Timedelta if we have a DTI
         if self.tolerance is not None:
 
-            lt = left_join_keys[self.left_on.index(self._asof_key)]
+            lt = left_join_keys[-1]
             msg = "incompatible tolerance, must be compat " \
                   "with type {0}".format(type(lt))
 
@@ -1046,9 +1158,18 @@ class _AsOfMerge(_OrderedMerge):
     def _get_join_indexers(self):
         """ return the join indexers """
 
+        def flip(xs):
+            """ unlike np.transpose, this returns an array of tuples """
+            labels = list(string.ascii_lowercase[:len(xs)])
+            dtypes = [x.dtype for x in xs]
+            labeled_dtypes = list(zip(labels, dtypes))
+            return np.array(lzip(*xs), labeled_dtypes)
+
         # values to compare
-        left_values = self.left_join_keys[-1]
-        right_values = self.right_join_keys[-1]
+        left_values = (self.left.index.values if self.left_index else
+                       self.left_join_keys[-1])
+        right_values = (self.right.index.values if self.right_index else
+                        self.right_join_keys[-1])
         tolerance = self.tolerance
 
         # we required sortedness in the join keys
@@ -1066,23 +1187,24 @@ class _AsOfMerge(_OrderedMerge):
                 tolerance = tolerance.value
 
         # a "by" parameter requires special handling
-        if self.by is not None:
-            left_by_values = self.left_join_keys[0]
-            right_by_values = self.right_join_keys[0]
+        if self.left_by is not None:
+            if len(self.left_join_keys) > 2:
+                # get tuple representation of values if more than one
+                left_by_values = flip(self.left_join_keys[0:-1])
+                right_by_values = flip(self.right_join_keys[0:-1])
+            else:
+                left_by_values = self.left_join_keys[0]
+                right_by_values = self.right_join_keys[0]
 
-            # choose appropriate function by type
-            on_type = _get_cython_type(left_values.dtype)
-            by_type = _get_cython_type(left_by_values.dtype)
-
-            on_type_caster = _type_casters[on_type]
+            # upcast 'by' parameter because HashTable is limited
+            by_type = _get_cython_type_upcast(left_by_values.dtype)
             by_type_caster = _type_casters[by_type]
-            func = _asof_by_functions[(on_type, by_type)]
-
-            left_values = on_type_caster(left_values)
-            right_values = on_type_caster(right_values)
             left_by_values = by_type_caster(left_by_values)
             right_by_values = by_type_caster(right_by_values)
 
+            # choose appropriate function by type
+            on_type = _get_cython_type(left_values.dtype)
+            func = _asof_by_function(on_type, by_type)
             return func(left_values,
                         right_values,
                         left_by_values,
@@ -1092,12 +1214,7 @@ class _AsOfMerge(_OrderedMerge):
         else:
             # choose appropriate function by type
             on_type = _get_cython_type(left_values.dtype)
-            type_caster = _type_casters[on_type]
-            func = _asof_functions[on_type]
-
-            left_values = type_caster(left_values)
-            right_values = type_caster(right_values)
-
+            func = _asof_function(on_type)
             return func(left_values,
                         right_values,
                         self.allow_exact_matches,

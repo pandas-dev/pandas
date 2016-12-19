@@ -7,6 +7,8 @@ source activate pandas
 RET=0
 
 if [ "$LINT" ]; then
+    pip install cpplint
+
     # pandas/rpy is deprecated and will be removed.
     # pandas/src is C code, so no need to search there.
     echo "Linting  *.py"
@@ -38,13 +40,20 @@ if [ "$LINT" ]; then
     # readability/casting: Warnings about C casting instead of C++ casting
     # runtime/int: Warnings about using C number types instead of C++ ones
     # build/include_subdir: Warnings about prefacing included header files with directory
-    pip install cpplint
 
+    # We don't lint all C files because we don't want to lint any that are built
+    # from Cython files nor do we want to lint C files that we didn't modify for
+    # this particular codebase (e.g. src/headers, src/klib, src/msgpack). However,
+    # we can lint all header files since they aren't "generated" like C files are.
     echo "Linting *.c and *.h"
-    cpplint --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/src/parser
-    if [ $? -ne "0" ]; then
-        RET=1
-    fi
+    for path in '*.h' 'period_helper.c' 'datetime' 'parser' 'ujson'
+    do
+        echo "linting -> pandas/src/$path"
+        cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/src/$path
+        if [ $? -ne "0" ]; then
+            RET=1
+        fi
+    done
     echo "Linting *.c and *.h DONE"
 
     echo "Check for invalid testing"

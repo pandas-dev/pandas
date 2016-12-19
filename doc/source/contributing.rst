@@ -113,11 +113,12 @@ want to clone your fork to your machine::
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
 
-The testing suite will run automatically on Travis-CI once your pull request is
-submitted.  However, if you wish to run the test suite on a branch prior to
-submitting the pull request, then Travis-CI needs to be hooked up to your
-GitHub repository.  Instructions for doing so are `here
-<http://about.travis-ci.org/docs/user/getting-started/>`__.
+The testing suite will run automatically on Travis-CI and Appveyor once your
+pull request is submitted.  However, if you wish to run the test suite on a
+branch prior to submitting the pull request, then Travis-CI and/or AppVeyor
+need to be hooked up to your GitHub repository.  Instructions for doing so
+are `here <http://about.travis-ci.org/docs/user/getting-started/>`__ for
+Travis-CI and `here <https://www.appveyor.com/docs/>`__ for AppVeyor.
 
 Creating a branch
 -----------------
@@ -142,7 +143,7 @@ To update this branch, you need to retrieve the changes from the master branch::
     git fetch upstream
     git rebase upstream/master
 
-This will replay your commits on top of the lastest pandas git master.  If this
+This will replay your commits on top of the latest pandas git master.  If this
 leads to merge conflicts, you must resolve these before submitting your pull
 request.  If you have uncommitted changes, you will need to ``stash`` them prior
 to updating.  This will effectively store your changes and they can be reapplied
@@ -396,7 +397,7 @@ evocations, sphinx will try to only build the pages that have been modified.
 If you want to do a full clean build, do::
 
     python make.py clean
-    python make.py build
+    python make.py html
 
 Starting with *pandas* 0.13.1 you can tell ``make.py`` to compile only a single section
 of the docs, greatly reducing the turn-around time for checking your changes.
@@ -442,18 +443,80 @@ Contributing to the code base
 Code standards
 --------------
 
+Writing good code is not just about what you write. It is also about *how* you
+write it. During testing on Travis-CI, several tools will be run to check your
+code for stylistic errors. Generating any warnings will cause the test to fail.
+Thus, good style is a requirement for submitting code to *pandas*.
+
+In addition, because a lot of people use our library, it is important that we
+do not make sudden changes to the code that could have the potential to break
+a lot of user code as a result, that is, we need it to be as *backwards compatible*
+as possible to avoid mass breakages.
+
+Additional standards are outlined on the `code style wiki
+page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
+
+C (cpplint)
+~~~~~~~~~~~
+
+*pandas* uses the `Google <https://google.github.io/styleguide/cppguide.html>`_
+standard. Google provides an open source style checker called ``cpplint``, but we
+use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`_.
+Here are *some* of the more common ``cpplint`` issues:
+
+  - we restrict line-length to 80 characters to promote readability
+  - every header file must include a header guard to avoid name collisions if re-included
+
+Travis-CI will run the `cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
+and report any stylistic errors in your code. Therefore, it is helpful before
+submitting code to run the check yourself::
+
+   cpplint --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir modified-c-file
+
+You can also run this command on an entire directory if necessary::
+
+   cpplint --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive modified-c-directory
+
+To make your commits compliant with this standard, you can install the
+`ClangFormat <http://clang.llvm.org/docs/ClangFormat.html>`_ tool, which can be
+downloaded `here <http://llvm.org/builds/>`_. To configure, in your home directory,
+run the following command::
+
+    clang-format style=google -dump-config  > .clang-format
+
+Then modify the file to ensure that any indentation width parameters are at least four.
+Once configured, you can run the tool as follows::
+
+    clang-format modified-c-file
+
+This will output what your file will look like if the changes are made, and to apply
+them, just run the following command::
+
+    clang-format -i modified-c-file
+
+To run the tool on an entire directory, you can run the following analogous commands::
+
+    clang-format modified-c-directory/*.c modified-c-directory/*.h
+    clang-format -i modified-c-directory/*.c modified-c-directory/*.h
+
+Do note that this tool is best-effort, meaning that it will try to correct as
+many errors as possible, but it may not correct *all* of them. Thus, it is
+recommended that you run ``cpplint`` to double check and make any other style
+fixes manually.
+
+Python (PEP8)
+~~~~~~~~~~~~~
+
 *pandas* uses the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard.
 There are several tools to ensure you abide by this standard. Here are *some* of
 the more common ``PEP8`` issues:
 
-  - we restrict line-length to 80 characters to promote readability
+  - we restrict line-length to 79 characters to promote readability
   - passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
 
-The Travis-CI will run `flake8 <http://pypi.python.org/pypi/flake8>`_ tool and report
-any stylistic errors in your code. Generating any warnings will cause the build to fail;
-thus these are part of the requirements for submitting code to *pandas*.
-
-It is helpful before submitting code to run this yourself on the diff::
+Travis-CI will run the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
+and report any stylistic errors in your code. Therefore, it is helpful before
+submitting code to run the check yourself on the diff::
 
    git diff master | flake8 --diff
 
@@ -466,8 +529,8 @@ and make these changes with::
 
     pep8radius master --diff --in-place
 
-Additional standards are outlined on the `code style wiki
-page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
+Backwards Compatibility
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of
 existing code, so don't break it if at all possible.  If you think breakage is required,
