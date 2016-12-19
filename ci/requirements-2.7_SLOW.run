@@ -13,7 +13,7 @@ numexpr
 pytables
 sqlalchemy
 lxml
-boto
+s3fs
 bottleneck
 psycopg2
 pymysql

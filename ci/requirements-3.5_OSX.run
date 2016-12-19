@@ -12,7 +12,7 @@ matplotlib
 jinja2
 bottleneck
 xarray
-boto
+s3fs
 
 # incompat with conda ATM
 # beautiful-soup
