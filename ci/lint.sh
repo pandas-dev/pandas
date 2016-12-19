@@ -49,7 +49,7 @@ if [ "$LINT" ]; then
     for path in '*.h' 'period_helper.c' 'datetime' 'parser' 'ujson'
     do
         echo "linting -> pandas/src/$path"
-        cpplint --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/src/$path
+        cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/src/$path
         if [ $? -ne "0" ]; then
             RET=1
         fi
