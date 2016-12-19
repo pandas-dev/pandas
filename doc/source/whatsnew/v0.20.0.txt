@@ -259,3 +259,4 @@ Bug Fixes
 
 
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
+- Bug in converting object elements of array-like objects to unsigned 64-bit integers (:issue:`4471`)
