@@ -4314,11 +4314,6 @@ def form_blocks(arrays, names, axes):
         elif is_datetimetz(v):
             datetime_tz_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.integer):
-            if v.dtype == np.uint64:
-                # HACK #2355 definite overflow
-                if (v > 2**63 - 1).any():
-                    object_items.append((i, k, v))
-                    continue
             int_items.append((i, k, v))
         elif v.dtype == np.bool_:
             bool_items.append((i, k, v))

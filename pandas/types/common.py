@@ -22,9 +22,6 @@ _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
-_DATELIKE_DTYPES = set([np.dtype(t)
-                        for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
-                                  'm8[ns]', '<m8[ns]', '>m8[ns]']])
 
 _ensure_float64 = algos.ensure_float64
 _ensure_float32 = algos.ensure_float32
@@ -126,7 +123,8 @@ def is_datetime_arraylike(arr):
 
 
 def is_datetimelike(arr):
-    return (arr.dtype in _DATELIKE_DTYPES or
+    return (is_datetime64_dtype(arr) or is_datetime64tz_dtype(arr) or
+            is_timedelta64_dtype(arr) or
             isinstance(arr, ABCPeriodIndex) or
             is_datetimetz(arr))
 
@@ -402,6 +400,11 @@ def _get_dtype_from_object(dtype):
             pass
         return dtype.type
     elif isinstance(dtype, string_types):
+        if dtype in ['datetimetz', 'datetime64tz']:
+            return DatetimeTZDtype.type
+        elif dtype in ['period']:
+            raise NotImplementedError
+
         if dtype == 'datetime' or dtype == 'timedelta':
             dtype += '64'
 
