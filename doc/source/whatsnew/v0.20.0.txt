@@ -236,7 +236,7 @@ Bug Fixes
 
 - Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
 - Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
-
+- Bug in ``describe()`` when passing a numpy array which does not contain the median to the ``percentiles`` keyword argument (:issue:`14908`)
 
 
 
