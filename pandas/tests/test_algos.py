@@ -277,28 +277,6 @@ class TestFactorize(tm.TestCase):
         self.assertTrue(
             np.array_equal(pd.isnull(key), expected == na_sentinel))
 
-    def test_vector_resize(self):
-        # Test for memory errors after internal vector
-        # reallocations (pull request #7157)
-
-        def _test_vector_resize(htable, uniques, dtype, nvals):
-            vals = np.array(np.random.randn(1000), dtype=dtype)
-            # get_labels appends to the vector
-            htable.get_labels(vals[:nvals], uniques, 0, -1)
-            # to_array resizes the vector
-            uniques.to_array()
-            htable.get_labels(vals, uniques, 0, -1)
-
-        test_cases = [
-            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
-            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64'),
-            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64')]
-
-        for (tbl, vect, dtype) in test_cases:
-            # resizing to empty is a special case
-            _test_vector_resize(tbl(), vect(), dtype, 0)
-            _test_vector_resize(tbl(), vect(), dtype, 10)
-
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
         # Test not valid numpy versions older than 1.11
@@ -910,6 +888,39 @@ class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
     algo = algos.algos.group_var_float32
     dtype = np.float32
     rtol = 1e-2
+
+
+class TestHashTable(tm.TestCase):
+
+    def test_lookup_nan(self):
+        xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
+        m = hashtable.Float64HashTable()
+        m.map_locations(xs)
+        self.assert_numpy_array_equal(m.lookup(xs),
+                                      np.arange(len(xs), dtype=np.int64))
+
+    def test_vector_resize(self):
+        # Test for memory errors after internal vector
+        # reallocations (pull request #7157)
+
+        def _test_vector_resize(htable, uniques, dtype, nvals):
+            vals = np.array(np.random.randn(1000), dtype=dtype)
+            # get_labels appends to the vector
+            htable.get_labels(vals[:nvals], uniques, 0, -1)
+            # to_array resizes the vector
+            uniques.to_array()
+            htable.get_labels(vals, uniques, 0, -1)
+
+        test_cases = [
+            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
+            (hashtable.StringHashTable, hashtable.ObjectVector, 'object'),
+            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64'),
+            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64')]
+
+        for (tbl, vect, dtype) in test_cases:
+            # resizing to empty is a special case
+            _test_vector_resize(tbl(), vect(), dtype, 0)
+            _test_vector_resize(tbl(), vect(), dtype, 10)
 
 
 def test_quantile():

@@ -113,6 +113,38 @@ def _unique_generic(values, table_type, type_caster):
     return type_caster(uniques)
 
 
+def unique1d(values):
+    """
+    Hash table-based unique
+    """
+    if np.issubdtype(values.dtype, np.floating):
+        table = htable.Float64HashTable(len(values))
+        uniques = np.array(table.unique(_ensure_float64(values)),
+                           dtype=np.float64)
+    elif np.issubdtype(values.dtype, np.datetime64):
+        table = htable.Int64HashTable(len(values))
+        uniques = table.unique(_ensure_int64(values))
+        uniques = uniques.view('M8[ns]')
+    elif np.issubdtype(values.dtype, np.timedelta64):
+        table = htable.Int64HashTable(len(values))
+        uniques = table.unique(_ensure_int64(values))
+        uniques = uniques.view('m8[ns]')
+    elif np.issubdtype(values.dtype, np.integer):
+        table = htable.Int64HashTable(len(values))
+        uniques = table.unique(_ensure_int64(values))
+    else:
+
+        # its cheaper to use a String Hash Table than Object
+        if lib.infer_dtype(values) in ['string']:
+            table = htable.StringHashTable(len(values))
+        else:
+            table = htable.PyObjectHashTable(len(values))
+
+        uniques = table.unique(_ensure_object(values))
+
+    return uniques
+
+
 def isin(comps, values):
     """
     Compute the isin boolean array
