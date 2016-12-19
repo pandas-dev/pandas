@@ -475,44 +475,50 @@ DatetimeIndex Partial String Indexing also works on DataFrames with a ``MultiInd
    dft2 = dft2.swaplevel(0, 1).sort_index()
    dft2.loc[idx[:, '2013-01-05'], :]
 
-String Indexing: slice vs. exact match
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Slice vs. exact match
+^^^^^^^^^^^^^^^^^^^^^
 
-The same string used as an indexing parameter can be treated either as slice or as exact match depending on the resolution of an index. If the string is less precise than index, it will be treated as a slice, otherwise as an exact match.
+The same string used as an indexing parameter can be treated either as a slice or as an exact match depending on the resolution of an index. If the string is less accurate than the index, it will be treated as a slice, otherwise as an exact match.
 
 .. ipython:: python
-    series_minute = pd.Series([1, 2, 3], DatetimeIndex(['2011-12-31 23:59:00',
-                                                        '2012-01-01 00:00:00',
-                                                        '2012-01-01 00:01:00']))
+
+    series_minute = pd.Series([1, 2, 3],
+                              pd.DatetimeIndex(['2011-12-31 23:59:00',
+                                                '2012-01-01 00:00:00',
+                                                '2012-01-01 00:01:00']))
     series_minute.index.resolution
     series_minute['2011-12-31 23'] # returns Series
-    series_minute['2012-12-31 23:59'] # returns scalar
+    series_minute['2011-12-31 23:59'] # returns scalar
 
-    series_second = pd.Series([1, 2, 3], DatetimeIndex(['2011-12-31 23:59:59',
-                                                        '2012-01-01 00:00:00',
-                                                        '2012-01-01 00:00:01']))
+    series_second = pd.Series([1, 2, 3],
+                              pd.DatetimeIndex(['2011-12-31 23:59:59',
+                                                '2012-01-01 00:00:00',
+                                                '2012-01-01 00:00:01']))
     series_second.index.resolution
-    series_second['2012-12-31 23:59'] # now it returns scalar
+    series_second['2011-12-31 23:59'] # now it returns Series
 
 It also works for ``DataFrame``:
 
 .. ipython:: python
-    dft_minute = pd.DataFrame(series_minute)
+
+    dft_minute = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
+                               index=series_minute.index)
     dft_minute['2011-12-31 23']
 
 .. warning::
 
-   If a string used in ``DataFrame``'s ``[]`` indexing is treated as an exact match the selection will be column-wise and not row-wise. This is consistent with :ref:`Indexing Basics <indexing.basics>`. For example, the following code will raise ``KeyError`` as there is no column with index ``'2012-12-31 23:59'``:
+   If string used in ``DataFrame``'s ``[]`` indexing is treated as an exact match the selection will be column-wise and not row-wise. This is consistent with :ref:`Indexing Basics <indexing.basics>`. For example, the following code will raise ``KeyError`` as there is no column with index ``'2012-12-31 23:59'``:
 
    .. code-block:: python
 
-      df_minute['2012-12-31 23:59']
+      dft_minute['2011-12-31 23:59']
+      # KeyError: '2011-12-31 23:59'
 
    To select a single row, use ``.loc``
 
    .. ipython:: python
 
-      df_minute.loc['2012-12-31 23:59']
+      dft_minute.loc['2011-12-31 23:59']
 
 Datetime Indexing
 ~~~~~~~~~~~~~~~~~
