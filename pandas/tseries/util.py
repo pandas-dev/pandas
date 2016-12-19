@@ -4,7 +4,7 @@ from pandas.compat import lrange
 import numpy as np
 from pandas.types.common import _ensure_platform_int
 from pandas.core.frame import DataFrame
-import pandas.core.nanops as nanops
+import pandas.core.algorithms as algorithms
 
 
 def pivot_annual(series, freq=None):
@@ -45,7 +45,7 @@ def pivot_annual(series, freq=None):
 
     index = series.index
     year = index.year
-    years = nanops.unique1d(year)
+    years = algorithms.unique1d(year)
 
     if freq is not None:
         freq = freq.upper()
