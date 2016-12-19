@@ -996,6 +996,15 @@ class TestDataFrame(tm.TestCase, Generic):
         self.assertTrue('0%' in d1.index)
         self.assertTrue('100%' in d2.index)
 
+    def test_describe_percentiles_insert_median_ndarray(self):
+        df = tm.makeDataFrame()
+        try:
+            d1 = df.describe(percentiles=np.array([.25, .75]))
+        except AttributeError:
+            self.fail
+        d2 = df.describe(percentiles=[.25, .75])
+        assert_frame_equal(d1, d2)
+
     def test_describe_percentiles_unique(self):
         # GH13104
         df = tm.makeDataFrame()
