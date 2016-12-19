@@ -400,6 +400,11 @@ def _get_dtype_from_object(dtype):
             pass
         return dtype.type
     elif isinstance(dtype, string_types):
+        if dtype in ['datetimetz', 'datetime64tz']:
+            return DatetimeTZDtype.type
+        elif dtype in ['period']:
+            raise NotImplementedError
+
         if dtype == 'datetime' or dtype == 'timedelta':
             dtype += '64'
 
