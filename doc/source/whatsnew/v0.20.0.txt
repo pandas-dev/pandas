@@ -193,7 +193,7 @@ Map on Index types now return other Index types
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-- :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>` now works as exact match provided that string resolution coincides with index resolution (:issue:`14826`).
+- :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>` now works as exact match provided that string resolution coincides with index resolution, including a case when both are seconds (:issue:`14826`). See :ref:`Slice vs. Exact Match <timeseries.slice_vs_exact_match>` for details.
 
   .. ipython:: python
 
