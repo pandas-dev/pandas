@@ -969,7 +969,7 @@ class IndexOpsMixin(object):
         if hasattr(values, 'unique'):
             result = values.unique()
         else:
-            from pandas.core.nanops import unique1d
+            from pandas.core.algorithms import unique1d
             result = unique1d(values)
         return result
 
