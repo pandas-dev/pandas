@@ -32,6 +32,8 @@ def _ensure_float(arr):
         arr = arr.astype(float)
     return arr
 
+
+_ensure_uint64 = algos.ensure_uint64
 _ensure_int64 = algos.ensure_int64
 _ensure_int32 = algos.ensure_int32
 _ensure_int16 = algos.ensure_int16
