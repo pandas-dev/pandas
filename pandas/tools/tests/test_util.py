@@ -229,6 +229,26 @@ class TestToNumeric(tm.TestCase):
         df_copy[['a', 'b']] = df_copy[['a', 'b']].apply(to_numeric)
         tm.assert_frame_equal(df_copy, expected)
 
+    def test_numeric_lists_and_arrays(self):
+        # Test to_numeric with embedded lists and arrays
+        df = pd.DataFrame(dict(
+            a=[[decimal.Decimal(3.14), 1.0], decimal.Decimal(1.6), 0.1]
+        ))
+        df['a'] = df['a'].apply(to_numeric)
+        expected = pd.DataFrame(dict(
+            a=[[3.14, 1.0], 1.6, 0.1],
+        ))
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame(dict(
+            a=[np.array([decimal.Decimal(3.14), 1.0]), 0.1]
+        ))
+        df['a'] = df['a'].apply(to_numeric)
+        expected = pd.DataFrame(dict(
+            a=[[3.14, 1.0], 0.1],
+        ))
+        tm.assert_frame_equal(df, expected)
+
     def test_all_nan(self):
         s = pd.Series(['a', 'b', 'c'])
         res = to_numeric(s, errors='coerce')

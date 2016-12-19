@@ -1,4 +1,3 @@
-from decimal import Decimal
 import numpy as np
 import pandas.lib as lib
 
@@ -7,6 +6,7 @@ from pandas.types.common import (is_number,
                                  is_datetime_or_timedelta_dtype,
                                  is_list_like,
                                  _ensure_object)
+
 from pandas.types.cast import _possibly_downcast_to_dtype
 
 import pandas as pd
@@ -174,9 +174,9 @@ def to_numeric(arg, errors='raise', downcast=None):
             values = arg.values
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype='O')
-    elif isinstance(arg, Decimal):
-        return float(arg)
-    elif np.isscalar(arg):
+    elif lib.isscalar(arg):
+        if lib.is_decimal(arg):
+            return float(arg)
         if is_number(arg):
             return arg
         is_scalar = True
