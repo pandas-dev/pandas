@@ -5255,6 +5255,9 @@ class NDFrame(PandasObject):
 
     @Appender(_shared_docs['describe'] % _shared_doc_kwargs)
     def describe(self, percentiles=None, include=None, exclude=None):
+	    # explicit conversion of `percentiles` to list
+	    percentiles = list(percentiles)
+
         if self.ndim >= 3:
             msg = "describe is not implemented on Panel or PanelND objects."
             raise NotImplementedError(msg)
