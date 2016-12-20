@@ -1,4 +1,5 @@
 import sys
+from decimal import Decimal
 cimport util
 from tslib import NaT, get_timezone
 from datetime import datetime, timedelta
@@ -27,6 +28,10 @@ def is_bool(object obj):
 
 def is_complex(object obj):
     return util.is_complex_object(obj)
+
+
+def is_decimal(object obj):
+    return isinstance(obj, Decimal)
 
 cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
@@ -673,6 +678,9 @@ def maybe_convert_numeric(object[:] values, set na_values,
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = True
+        elif is_decimal(val):
+            floats[i] = complexes[i] = val
+            seen_float = True
         else:
             try:
                 status = floatify(val, &fval, &maybe_int)
