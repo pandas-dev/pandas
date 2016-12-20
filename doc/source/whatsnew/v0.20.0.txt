@@ -281,7 +281,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``Series`` construction with a datetimetz (:issue:`14928`)
 
 
 
