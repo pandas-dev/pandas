@@ -254,6 +254,20 @@ class TestInference(tm.TestCase):
         result = lib.maybe_convert_numeric(arr, set(), False, True)
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
 
+    def test_maybe_convert_objects_uint64(self):
+        # see gh-4471
+        arr = np.array([2**63], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
+
+        arr = np.array([2, -1], dtype=object)
+        exp = np.array([2, -1], dtype=np.int64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
+
+        arr = np.array([2**63, -1], dtype=object)
+        exp = np.array([2**63, -1], dtype=object)
+        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
+
 
 class TestTypeInference(tm.TestCase):
     _multiprocess_can_split_ = True
