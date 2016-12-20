@@ -2,6 +2,7 @@ import os
 import locale
 import codecs
 import nose
+import decimal
 
 import numpy as np
 from numpy import iinfo
@@ -207,6 +208,46 @@ class TestToNumeric(tm.TestCase):
         s = pd.Series([1, -3.14, 7])
         res = to_numeric(s)
         tm.assert_series_equal(res, expected)
+
+        # GH 14827
+        df = pd.DataFrame(dict(
+            a=[1.2, decimal.Decimal(3.14), decimal.Decimal("infinity"), '0.1'],
+            b=[1.0, 2.0, 3.0, 4.0],
+        ))
+        expected = pd.DataFrame(dict(
+            a=[1.2, 3.14, np.inf, 0.1],
+            b=[1.0, 2.0, 3.0, 4.0],
+        ))
+
+        # Test to_numeric over one column
+        df_copy = df.copy()
+        df_copy['a'] = df_copy['a'].apply(to_numeric)
+        tm.assert_frame_equal(df_copy, expected)
+
+        # Test to_numeric over multiple columns
+        df_copy = df.copy()
+        df_copy[['a', 'b']] = df_copy[['a', 'b']].apply(to_numeric)
+        tm.assert_frame_equal(df_copy, expected)
+
+    def test_numeric_lists_and_arrays(self):
+        # Test to_numeric with embedded lists and arrays
+        df = pd.DataFrame(dict(
+            a=[[decimal.Decimal(3.14), 1.0], decimal.Decimal(1.6), 0.1]
+        ))
+        df['a'] = df['a'].apply(to_numeric)
+        expected = pd.DataFrame(dict(
+            a=[[3.14, 1.0], 1.6, 0.1],
+        ))
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame(dict(
+            a=[np.array([decimal.Decimal(3.14), 1.0]), 0.1]
+        ))
+        df['a'] = df['a'].apply(to_numeric)
+        expected = pd.DataFrame(dict(
+            a=[[3.14, 1.0], 0.1],
+        ))
+        tm.assert_frame_equal(df, expected)
 
     def test_all_nan(self):
         s = pd.Series(['a', 'b', 'c'])

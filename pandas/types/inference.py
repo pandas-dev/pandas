@@ -18,6 +18,8 @@ is_complex = lib.is_complex
 
 is_scalar = lib.isscalar
 
+is_decimal = lib.is_decimal
+
 
 def is_number(obj):
     return isinstance(obj, (Number, np.number))

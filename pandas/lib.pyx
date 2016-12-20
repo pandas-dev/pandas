@@ -313,6 +313,7 @@ def isscalar(object val):
     - instances of datetime.datetime
     - instances of datetime.timedelta
     - Period
+    - instances of decimal.Decimal
 
     """
 
@@ -325,7 +326,8 @@ def isscalar(object val):
             or PyDate_Check(val)
             or PyDelta_Check(val)
             or PyTime_Check(val)
-            or util.is_period_object(val))
+            or util.is_period_object(val)
+            or is_decimal(val))
 
 
 def item_from_zerodim(object val):
