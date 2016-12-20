@@ -16,28 +16,30 @@ from util cimport (UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX,
 npy_int64_max = np.iinfo(np.int64).max
 
 
-def is_float(object obj):
+cpdef bint is_float(object obj):
     return util.is_float_object(obj)
 
 
-def is_integer(object obj):
+cpdef bint is_integer(object obj):
     return util.is_integer_object(obj)
 
 
-def is_bool(object obj):
+cpdef bint is_bool(object obj):
     return util.is_bool_object(obj)
 
 
-def is_complex(object obj):
+cpdef bint is_complex(object obj):
     return util.is_complex_object(obj)
 
 
-def is_decimal(object obj):
+cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
+
 
 cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
+
 
 _TYPE_MAP = {
     'categorical': 'categorical',
@@ -236,7 +238,7 @@ def infer_dtype(object _values):
     return 'mixed'
 
 
-def is_possible_datetimelike_array(object arr):
+cpdef bint is_possible_datetimelike_array(object arr):
     # determine if we have a possible datetimelike (or null-like) array
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -321,7 +323,7 @@ cdef inline bint is_timedelta(object o):
     return PyDelta_Check(o) or util.is_timedelta64_object(o)
 
 
-def is_bool_array(ndarray values):
+cpdef bint is_bool_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
@@ -342,11 +344,7 @@ def is_bool_array(ndarray values):
         return False
 
 
-def is_integer(object o):
-    return util.is_integer_object(o)
-
-
-def is_integer_array(ndarray values):
+cpdef bint is_integer_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
@@ -367,7 +365,7 @@ def is_integer_array(ndarray values):
         return False
 
 
-def is_integer_float_array(ndarray values):
+cpdef bint is_integer_float_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
@@ -390,7 +388,7 @@ def is_integer_float_array(ndarray values):
         return False
 
 
-def is_float_array(ndarray values):
+cpdef bint is_float_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
@@ -411,7 +409,7 @@ def is_float_array(ndarray values):
         return False
 
 
-def is_string_array(ndarray values):
+cpdef bint is_string_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
@@ -433,7 +431,7 @@ def is_string_array(ndarray values):
         return False
 
 
-def is_unicode_array(ndarray values):
+cpdef bint is_unicode_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
@@ -454,7 +452,7 @@ def is_unicode_array(ndarray values):
         return False
 
 
-def is_bytes_array(ndarray values):
+cpdef bint is_bytes_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
@@ -475,7 +473,7 @@ def is_bytes_array(ndarray values):
         return False
 
 
-def is_datetime_array(ndarray[object] values):
+cpdef bint is_datetime_array(ndarray[object] values):
     cdef Py_ssize_t i, null_count = 0, n = len(values)
     cdef object v
     if n == 0:
@@ -493,7 +491,7 @@ def is_datetime_array(ndarray[object] values):
     return null_count != n
 
 
-def is_datetime64_array(ndarray values):
+cpdef bint is_datetime64_array(ndarray values):
     cdef Py_ssize_t i, null_count = 0, n = len(values)
     cdef object v
     if n == 0:
@@ -511,7 +509,7 @@ def is_datetime64_array(ndarray values):
     return null_count != n
 
 
-cpdef is_datetime_with_singletz_array(ndarray[object] values):
+cpdef bint is_datetime_with_singletz_array(ndarray[object] values):
     """
     Check values have the same tzinfo attribute.
     Doesn't check values are datetime-like types.
@@ -539,7 +537,7 @@ cpdef is_datetime_with_singletz_array(ndarray[object] values):
     return True
 
 
-def is_timedelta_array(ndarray values):
+cpdef bint is_timedelta_array(ndarray values):
     cdef Py_ssize_t i, null_count = 0, n = len(values)
     cdef object v
     if n == 0:
@@ -555,7 +553,7 @@ def is_timedelta_array(ndarray values):
     return null_count != n
 
 
-def is_timedelta64_array(ndarray values):
+cpdef bint is_timedelta64_array(ndarray values):
     cdef Py_ssize_t i, null_count = 0, n = len(values)
     cdef object v
     if n == 0:
@@ -571,7 +569,7 @@ def is_timedelta64_array(ndarray values):
     return null_count != n
 
 
-def is_timedelta_or_timedelta64_array(ndarray values):
+cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
     """ infer with timedeltas and/or nat/none """
     cdef Py_ssize_t i, null_count = 0, n = len(values)
     cdef object v
@@ -588,7 +586,7 @@ def is_timedelta_or_timedelta64_array(ndarray values):
     return null_count != n
 
 
-def is_date_array(ndarray[object] values):
+cpdef bint is_date_array(ndarray[object] values):
     cdef Py_ssize_t i, n = len(values)
     if n == 0:
         return False
@@ -598,7 +596,7 @@ def is_date_array(ndarray[object] values):
     return True
 
 
-def is_time_array(ndarray[object] values):
+cpdef bint is_time_array(ndarray[object] values):
     cdef Py_ssize_t i, n = len(values)
     if n == 0:
         return False
@@ -608,7 +606,7 @@ def is_time_array(ndarray[object] values):
     return True
 
 
-def is_period_array(ndarray[object] values):
+cpdef bint is_period_array(ndarray[object] values):
     cdef Py_ssize_t i, null_count = 0, n = len(values)
     cdef object v
     if n == 0:
