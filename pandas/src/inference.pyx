@@ -13,6 +13,8 @@ from util cimport (UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX,
 
 # core.common import for fast inference checks
 
+npy_int64_max = np.iinfo(np.int64).max
+
 
 def is_float(object obj):
     return util.is_float_object(obj)
@@ -730,6 +732,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[float64_t] floats
         ndarray[complex128_t] complexes
         ndarray[int64_t] ints
+        ndarray[uint64_t] uints
         ndarray[uint8_t] bools
         ndarray[int64_t] idatetimes
         ndarray[int64_t] itimedeltas
@@ -739,6 +742,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         bint seen_datetimetz = 0
         bint seen_timedelta = 0
         bint seen_int = 0
+        bint seen_uint = 0
+        bint seen_sint = 0
         bint seen_bool = 0
         bint seen_object = 0
         bint seen_null = 0
@@ -751,6 +756,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     floats = np.empty(n, dtype='f8')
     complexes = np.empty(n, dtype='c16')
     ints = np.empty(n, dtype='i8')
+    uints = np.empty(n, dtype='u8')
     bools = np.empty(n, dtype=np.uint8)
 
     if convert_datetime:
@@ -806,11 +812,21 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             floats[i] = <float64_t> val
             complexes[i] = <double complex> val
             if not seen_null:
-                try:
-                    ints[i] = val
-                except OverflowError:
+                seen_uint = seen_uint or (val > npy_int64_max)
+                seen_sint = seen_sint or (val < 0)
+
+                if seen_uint and seen_sint:
                     seen_object = 1
                     break
+
+                if seen_uint:
+                    uints[i] = val
+                elif seen_sint:
+                    ints[i] = val
+                else:
+                    uints[i] = val
+                    ints[i] = val
+
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
@@ -873,7 +889,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                         elif seen_float:
                             return floats
                         elif seen_int:
-                            return ints
+                            if seen_uint:
+                                return uints
+                            else:
+                                return ints
                 elif (not seen_datetime and not seen_numeric
                       and not seen_timedelta):
                     return bools.view(np.bool_)
@@ -904,7 +923,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                             if not seen_int:
                                 return floats
                         elif seen_int:
-                            return ints
+                            if seen_uint:
+                                return uints
+                            else:
+                                return ints
                 elif (not seen_datetime and not seen_numeric
                       and not seen_timedelta):
                     return bools.view(np.bool_)
