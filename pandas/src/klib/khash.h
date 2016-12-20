@@ -567,12 +567,14 @@ typedef const char *kh_cstr_t;
 
 #define kh_exist_str(h, k) (kh_exist(h, k))
 #define kh_exist_float64(h, k) (kh_exist(h, k))
+#define kh_exist_uint64(h, k) (kh_exist(h, k))
 #define kh_exist_int64(h, k) (kh_exist(h, k))
 #define kh_exist_int32(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(str, size_t)
 KHASH_MAP_INIT_INT(int32, size_t)
 KHASH_MAP_INIT_INT64(int64, size_t)
+KHASH_MAP_INIT_UINT64(uint64, size_t)
 
 
 #endif /* __AC_KHASH_H */

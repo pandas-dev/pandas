@@ -899,6 +899,18 @@ class TestHashTable(tm.TestCase):
         self.assert_numpy_array_equal(m.lookup(xs),
                                       np.arange(len(xs), dtype=np.int64))
 
+    def test_lookup_overflow(self):
+        xs = np.array([1, 2, 2**63], dtype=np.uint64)
+        m = hashtable.UInt64HashTable()
+        m.map_locations(xs)
+        self.assert_numpy_array_equal(m.lookup(xs),
+                                      np.arange(len(xs), dtype=np.int64))
+
+    def test_get_unique(self):
+        s = pd.Series([1, 2, 2**63, 2**63], dtype=np.uint64)
+        exp = np.array([1, 2, 2**63], dtype=np.uint64)
+        self.assert_numpy_array_equal(s.unique(), exp)
+
     def test_vector_resize(self):
         # Test for memory errors after internal vector
         # reallocations (pull request #7157)
@@ -915,7 +927,8 @@ class TestHashTable(tm.TestCase):
             (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
             (hashtable.StringHashTable, hashtable.ObjectVector, 'object'),
             (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64'),
-            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64')]
+            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64'),
+            (hashtable.UInt64HashTable, hashtable.UInt64Vector, 'uint64')]
 
         for (tbl, vect, dtype) in test_cases:
             # resizing to empty is a special case

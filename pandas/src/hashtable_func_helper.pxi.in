@@ -11,7 +11,7 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 {{py:
 
 # name
-dtypes = ['float64', 'int64']
+dtypes = ['float64', 'int64', 'uint64']
 
 }}
 

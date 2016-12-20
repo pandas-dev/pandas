@@ -25,6 +25,7 @@ from pandas.types.common import (is_integer_dtype,
                                  _ensure_platform_int,
                                  _ensure_object,
                                  _ensure_float64,
+                                 _ensure_uint64,
                                  _ensure_int64,
                                  is_list_like)
 from pandas.compat.numpy import _np_version_under1p10
@@ -129,9 +130,12 @@ def unique1d(values):
         table = htable.Int64HashTable(len(values))
         uniques = table.unique(_ensure_int64(values))
         uniques = uniques.view('m8[ns]')
-    elif np.issubdtype(values.dtype, np.integer):
+    elif np.issubdtype(values.dtype, np.signedinteger):
         table = htable.Int64HashTable(len(values))
         uniques = table.unique(_ensure_int64(values))
+    elif np.issubdtype(values.dtype, np.unsignedinteger):
+        table = htable.UInt64HashTable(len(values))
+        uniques = table.unique(_ensure_uint64(values))
     else:
 
         # its cheaper to use a String Hash Table than Object

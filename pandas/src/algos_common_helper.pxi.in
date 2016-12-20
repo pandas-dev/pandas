@@ -553,6 +553,7 @@ dtypes = [('float64', 'FLOAT64', 'float64'),
           ('int16', 'INT16', 'int16'),
           ('int32', 'INT32', 'int32'),
           ('int64', 'INT64', 'int64'),
+          ('uint64', 'UINT64', 'uint64'),
           # ('platform_int', 'INT', 'int_'),
           # ('object', 'OBJECT', 'object_'),
 ]
