@@ -596,6 +596,19 @@ class TestGroupByFilter(tm.TestCase):
         with tm.assertRaisesRegexp(TypeError, 'filter function returned a.*'):
             df.groupby('a').filter(lambda g: g.c.mean())
 
+    def test_filter_dropna_with_empty_groups(self):
+        # GH 10780
+        data = pd.Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))
+        groupped = data.groupby(level=0)
+        result_false = groupped.filter(lambda x: x.mean() > 1, dropna=False)
+        expected_false = pd.Series([np.nan] * 9,
+                                   index=np.repeat([1, 2, 3], 3))
+        tm.assert_series_equal(result_false, expected_false)
+
+        result_true = groupped.filter(lambda x: x.mean() > 1, dropna=True)
+        expected_true = pd.Series(index=pd.Index([], dtype=int))
+        tm.assert_series_equal(result_true, expected_true)
+
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
