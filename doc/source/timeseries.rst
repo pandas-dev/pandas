@@ -358,8 +358,8 @@ See :ref:`here <timeseries.oob>` for ways to represent data outside these bound.
 
 .. _timeseries.datetimeindex:
 
-DatetimeIndex
--------------
+Indexing
+--------
 
 One of the main uses for ``DatetimeIndex`` is as an index for pandas objects.
 The ``DatetimeIndex`` class contains many timeseries related optimizations:
@@ -399,8 +399,8 @@ intelligent functionality like selection, slicing, etc.
 
 .. _timeseries.partialindexing:
 
-DatetimeIndex Partial String Indexing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Partial String Indexing
+~~~~~~~~~~~~~~~~~~~~~~~
 
 You can pass in dates and strings that parse to dates as indexing parameters:
 
@@ -478,7 +478,9 @@ DatetimeIndex Partial String Indexing also works on DataFrames with a ``MultiInd
 .. _timeseries.slice_vs_exact_match:
 
 Slice vs. exact match
-^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~
+
+.. versionchanged:: 0.20.0
 
 The same string used as an indexing parameter can be treated either as a slice or as an exact match depending on the resolution of an index. If the string is less accurate than the index, it will be treated as a slice, otherwise as an exact match.
 
@@ -492,20 +494,20 @@ For example, let us consider ``Series`` object which index has minute resolution
                                                 '2012-01-01 00:02:00']))
     series_minute.index.resolution
 
-Timestamp string less accurate than minute gives ``Series`` object.
+A Timestamp string less accurate than a minute gives a ``Series`` object.
 
 .. ipython:: python
 
     series_minute['2011-12-31 23']
 
-Timestamp string with minute resolution (or more accurate) gives scalar instead, i.e. it is not casted to a slice.
+A Timestamp string with minute resolution (or more accurate), gives a scalar instead, i.e. it is not casted to a slice.
 
 .. ipython:: python
 
     series_minute['2011-12-31 23:59']
     series_minute['2011-12-31 23:59:00']
 
-If index resolution is second, the minute-accurate timestamp gives ``Series``.
+If index resolution is second, then, the minute-accurate timestamp gives a ``Series``.
 
 .. ipython:: python
 
@@ -524,13 +526,16 @@ If the timestamp string is treated as a slice, it can be used to index ``DataFra
                                index=series_minute.index)
     dft_minute['2011-12-31 23']
 
-However if the string is treated as an exact match the selection in ``DataFrame``'s ``[]`` will be column-wise and not row-wise, see :ref:`Indexing Basics <indexing.basics>`. For example ``dft_minute['2011-12-31 23:59']`` will raise ``KeyError`` as ``'2012-12-31 23:59'`` has the same resolution as index and there is no column with such name:
 
-To select a single row, use ``.loc``.
+:: warning:
 
-.. ipython:: python
+   However if the string is treated as an exact match the selection in ``DataFrame``'s ``[]`` will be column-wise and not row-wise, see :ref:`Indexing Basics <indexing.basics>`. For example ``dft_minute['2011-12-31 23:59']`` will raise ``KeyError`` as ``'2012-12-31 23:59'`` has the same resolution as index and there is no column with such name:
 
-  dft_minute.loc['2011-12-31 23:59']
+   To select a single row, use ``.loc``.
+
+   .. ipython:: python
+
+     dft_minute.loc['2011-12-31 23:59']
 
 Note also that ``DatetimeIndex`` resolution cannot be less precise than day.
 
@@ -544,12 +549,12 @@ Note also that ``DatetimeIndex`` resolution cannot be less precise than day.
     series_monthly['2011-12'] # returns Series
 
 
-Datetime Indexing
-~~~~~~~~~~~~~~~~~
+Exact Indexing
+~~~~~~~~~~~~~~
 
-As discussed in previous section, indexing a ``DateTimeIndex`` with a partial string depends on the "accuracy" of the period, in other words how specific the interval is in relation to the resolution of the index. In contrast, indexing with datetime objects is exact, because the objects have exact meaning. These also follow the semantics of *including both endpoints*.
+As discussed in previous section, indexing a ``DateTimeIndex`` with a partial string depends on the "accuracy" of the period, in other words how specific the interval is in relation to the resolution of the index. In contrast, indexing with ``Timestamp`` or ``datetime`` objects is exact, because the objects have exact meaning. These also follow the semantics of *including both endpoints*.
 
-These ``datetime`` objects  are specific ``hours, minutes,`` and ``seconds`` even though they were not explicitly specified (they are ``0``).
+These ``Timestamp`` and ``datetime`` objects have exact ``hours, minutes,`` and ``seconds``, even though they were not explicitly specified (they are ``0``).
 
 .. ipython:: python
 
@@ -578,10 +583,10 @@ regularity will result in a ``DatetimeIndex`` (but frequency is lost):
 
    ts[[0, 2, 6]].index
 
-.. _timeseries.offsets:
+.. _timeseries.components:
 
 Time/Date Components
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 There are several time/date properties that one can access from ``Timestamp`` or a collection of timestamps like a ``DateTimeIndex``.
 
@@ -616,6 +621,8 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_leap_year,"Logical indicating if the date belongs to a leap year"
 
 Furthermore, if you have a ``Series`` with datetimelike values, then you can access these properties via the ``.dt`` accessor, see the :ref:`docs <basics.dt_accessors>`
+
+.. _timeseries.offsets:
 
 DateOffset objects
 ------------------
