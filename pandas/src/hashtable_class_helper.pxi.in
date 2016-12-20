@@ -204,7 +204,7 @@ cdef class HashTable:
 
 # name, dtype, null_condition, float_group
 dtypes = [('Float64', 'float64', 'val != val', True),
-          ('UInt64', 'uint64', 'val == 0', False),
+          ('UInt64', 'uint64', 'False', False),
           ('Int64', 'int64', 'val == iNaT', False)]
 
 }}
