@@ -5262,6 +5262,9 @@ class NDFrame(PandasObject):
             raise ValueError("Cannot describe a DataFrame without columns")
 
         if percentiles is not None:
+            # explicit conversion of `percentiles` to list
+            percentiles = list(percentiles)
+
             # get them all to be in [0, 1]
             self._check_percentile(percentiles)
 
