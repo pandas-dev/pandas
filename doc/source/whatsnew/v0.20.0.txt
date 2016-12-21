@@ -51,7 +51,7 @@ Other enhancements
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
 
-- ``pd.io.gbq.read_gbq`` method now allows query configuration preferences (:issue:`14742`)
+- ``pd.read_gbq`` method now allows query configuration preferences (:issue:`14742`)
 
 - New ``UnsortedIndexError`` (subclass of ``KeyError``) raised when indexing/slicing into an
   unsorted MultiIndex (:issue:`11897`). This allows differentiation between errors due to lack

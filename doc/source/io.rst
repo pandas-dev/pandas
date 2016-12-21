@@ -4562,6 +4562,20 @@ destination DataFrame as well as a preferred column order as follows:
                              index_col='index_column_name',
                              col_order=['col1', 'col2', 'col3'], projectid)
 
+
+You can specify the query configuration as parameter
+
+.. code-block:: python
+
+   config = {
+      'query': {
+        "useQueryCache": False
+      }
+   }
+   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
+                             configuration=config, projectid)
+
+
 .. note::
 
    You can find your project id in the `Google developers console <https://console.developers.google.com>`__.
