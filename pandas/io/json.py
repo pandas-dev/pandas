@@ -834,7 +834,9 @@ def json_normalize(data, record_path=None, meta=None,
     lengths = []
 
     meta_vals = defaultdict(list)
-    meta_keys = [separator.join(val) for val in meta]
+    if not isinstance(sep, compat.string_types):
+        sep = str(sep)
+    meta_keys = [sep.join(val) for val in meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
         if len(path) > 1:
