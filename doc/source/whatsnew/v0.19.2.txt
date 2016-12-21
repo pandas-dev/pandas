@@ -23,6 +23,7 @@ Performance Improvements
 
 - Improved performance of ``.replace()`` (:issue:`12745`)
 - Improved performance of ``PeriodIndex`` (:issue:`14822`)
+- Performance regression in indexing with getitem (:issue:`14930`)
 - Improved performance ``Series`` creation with a datetime index and dictionary data (:issue:`14894`)
 
 
