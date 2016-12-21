@@ -82,20 +82,13 @@ cdef class IndexEngine:
 
     cdef:
         bint unique, monotonic_inc, monotonic_dec
-        bint initialized, monotonic_check, unique_check
+        bint need_monotonic_check, need_unique_check
 
     def __init__(self, vgetter, n):
         self.vgetter = vgetter
 
         self.over_size_threshold = n >= _SIZE_CUTOFF
-
-        self.initialized = 0
-        self.monotonic_check = 0
-        self.unique_check = 0
-
-        self.unique = 0
-        self.monotonic_inc = 0
-        self.monotonic_dec = 0
+        self.clear_mapping()
 
     def __contains__(self, object val):
         self._ensure_mapping_populated()
@@ -213,16 +206,20 @@ cdef class IndexEngine:
     property is_unique:
 
         def __get__(self):
-            if not self.initialized:
-                self.initialize()
+            if self.need_unique_check:
+                self._do_unique_check()
 
-            self.unique_check = 1
             return self.unique == 1
+
+    cdef inline _do_unique_check(self):
+
+        # this de-facto the same
+        self._ensure_mapping_populated()
 
     property is_monotonic_increasing:
 
         def __get__(self):
-            if not self.monotonic_check:
+            if self.need_monotonic_check:
                 self._do_monotonic_check()
 
             return self.monotonic_inc == 1
@@ -230,7 +227,7 @@ cdef class IndexEngine:
     property is_monotonic_decreasing:
 
         def __get__(self):
-            if not self.monotonic_check:
+            if self.need_monotonic_check:
                 self._do_monotonic_check()
 
             return self.monotonic_dec == 1
@@ -246,13 +243,12 @@ cdef class IndexEngine:
             self.monotonic_dec = 0
             is_unique = 0
 
-        self.monotonic_check = 1
+        self.need_monotonic_check = 0
 
         # we can only be sure of uniqueness if is_unique=1
         if is_unique:
-            self.initialized = 1
             self.unique = 1
-            self.unique_check = 1
+            self.need_unique_check = 0
 
     cdef _get_index_values(self):
         return self.vgetter()
@@ -266,30 +262,32 @@ cdef class IndexEngine:
     cdef _check_type(self, object val):
         hash(val)
 
+    property is_mapping_populated:
+
+        def __get__(self):
+            return self.mapping is not None
+
     cdef inline _ensure_mapping_populated(self):
-        # need to reset if we have previously
-        # set the initialized from monotonic checks
-        if self.unique_check:
-            self.initialized = 0
-        if not self.initialized:
-            self.initialize()
+        # this populates the mapping
+        # if its not already populated
+        # also satisfies the need_unique_check
 
-    cdef initialize(self):
-        values = self._get_index_values()
+        if not self.is_mapping_populated:
 
-        self.mapping = self._make_hash_table(len(values))
-        self.mapping.map_locations(values)
+            values = self._get_index_values()
 
-        if len(self.mapping) == len(values):
-            self.unique = 1
+            self.mapping = self._make_hash_table(len(values))
+            self.mapping.map_locations(values)
 
-        self.initialized = 1
+            if len(self.mapping) == len(values):
+                self.unique = 1
+
+        self.need_unique_check = 0
 
     def clear_mapping(self):
         self.mapping = None
-        self.initialized = 0
-        self.monotonic_check = 0
-        self.unique_check = 0
+        self.need_monotonic_check = 1
+        self.need_unique_check = 1
 
         self.unique = 0
         self.monotonic_inc = 0
