@@ -343,7 +343,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     table = hash_klass(size_hint or len(vals))
     uniques = vec_klass()
-    labels = table.get_labels(vals, uniques, 0, na_sentinel, True)
+    check_nulls = not is_integer_dtype(values)
+    labels = table.get_labels(vals, uniques, 0, na_sentinel, check_nulls)
 
     labels = _ensure_platform_int(labels)
 

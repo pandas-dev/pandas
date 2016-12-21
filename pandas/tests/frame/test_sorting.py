@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas.compat import lrange
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
-                    date_range)
+                    date_range, NaT)
 
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
@@ -491,3 +491,18 @@ class TestDataFrameSorting(tm.TestCase, TestData):
 
         cp = s.copy()
         cp.sort_values()  # it works!
+
+    def test_sort_nat_values_in_int_column(self):
+
+        # GH 14922, sorting with large float and multiple columns incorrect
+        int_values = (2, int(NaT))
+        float_values = (2.0, -1.797693e308)
+
+        df = DataFrame(dict(int=int_values, float=float_values),
+                       columns=["int", "float"])
+
+        df_sorted = df.sort_values(["int", "float"])
+        df_expected = DataFrame(dict(int=int_values[::-1], float=float_values[::-1]),
+                                columns=["int", "float"], index=[1, 0])
+
+        assert_frame_equal(df_sorted, df_expected)
