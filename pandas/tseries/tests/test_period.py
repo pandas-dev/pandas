@@ -2101,14 +2101,6 @@ class TestPeriodIndex(tm.TestCase):
         exp = idx.values < idx.values[10]
         self.assert_numpy_array_equal(result, exp)
 
-    def test_getitem_ndim2(self):
-        idx = period_range('2007-01', periods=3, freq='M')
-
-        result = idx[:, None]
-        # MPL kludge, internally has incorrect shape
-        tm.assertIsInstance(result, PeriodIndex)
-        self.assertEqual(result.shape, (len(idx), ))
-
     def test_getitem_index(self):
         idx = period_range('2007-01', periods=10, freq='M', name='x')
 
