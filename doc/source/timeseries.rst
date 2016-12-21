@@ -527,7 +527,7 @@ If the timestamp string is treated as a slice, it can be used to index ``DataFra
     dft_minute['2011-12-31 23']
 
 
-:: warning:
+:: warning::
 
    However if the string is treated as an exact match the selection in ``DataFrame``'s ``[]`` will be column-wise and not row-wise, see :ref:`Indexing Basics <indexing.basics>`. For example ``dft_minute['2011-12-31 23:59']`` will raise ``KeyError`` as ``'2012-12-31 23:59'`` has the same resolution as index and there is no column with such name:
 
@@ -688,12 +688,12 @@ We could have done the same thing with ``DateOffset``:
 
 The key features of a ``DateOffset`` object are:
 
-  - it can be added / subtracted to/from a datetime object to obtain a
-    shifted date
-  - it can be multiplied by an integer (positive or negative) so that the
-    increment will be applied multiple times
-  - it has ``rollforward`` and ``rollback`` methods for moving a date forward
-    or backward to the next or previous "offset date"
+- it can be added / subtracted to/from a datetime object to obtain a
+  shifted date
+- it can be multiplied by an integer (positive or negative) so that the
+  increment will be applied multiple times
+- it has ``rollforward`` and ``rollback`` methods for moving a date forward
+  or backward to the next or previous "offset date"
 
 Subclasses of ``DateOffset`` define the ``apply`` function which dictates
 custom date increment logic, such as adding business days:
@@ -805,7 +805,7 @@ used exactly like a ``Timedelta`` - see the
 
 Note that some offsets (such as ``BQuarterEnd``) do not have a
 vectorized implementation.  They can still be used but may
-calculate significantly slower and will raise a ``PerformanceWarning``
+calculate significantly slower and will show a ``PerformanceWarning``
 
 .. ipython:: python
    :okwarning:
@@ -815,8 +815,8 @@ calculate significantly slower and will raise a ``PerformanceWarning``
 
 .. _timeseries.custombusinessdays:
 
-Custom Business Days (Experimental)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Custom Business Days
+~~~~~~~~~~~~~~~~~~~~
 
 The ``CDay`` or ``CustomBusinessDay`` class provides a parametric
 ``BusinessDay`` class which can be used to create customized business day
@@ -845,7 +845,7 @@ Let's map to the weekday names
 
     pd.Series(dts.weekday, dts).map(pd.Series('Mon Tue Wed Thu Fri Sat Sun'.split()))
 
-As of v0.14 holiday calendars can be used to provide the list of holidays.  See the
+Holiday calendars can be used to provide the list of holidays.  See the
 :ref:`holiday calendar<timeseries.holiday>` section for more information.
 
 .. ipython:: python
@@ -1349,11 +1349,14 @@ limited to, financial applications.
 See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
 
 Starting in version 0.18.1, the ``resample()`` function can be used directly from
-DataFrameGroupBy objects, see the :ref:`groupby docs <groupby.transform.window_resample>`.
+``DataFrameGroupBy`` objects, see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
 .. note::
 
    ``.resample()`` is similar to using a ``.rolling()`` operation with a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`
+
+Basics
+~~~~~~
 
 .. ipython:: python
 
