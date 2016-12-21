@@ -31,6 +31,9 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
     """
 
     if format is None:
+        bufferr = "Format unrecognized. If buffer object, specify format")
+        if type(filesize_or_buffer) != str:
+            raise TypeError(bufferr)
         try:
             fname = filepath_or_buffer.lower()
             if fname.endswith(".xpt"):
