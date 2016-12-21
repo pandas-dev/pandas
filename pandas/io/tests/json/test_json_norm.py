@@ -148,6 +148,18 @@ class TestJSONNormalize(tm.TestCase):
         expected = DataFrame(ex_data, columns=result.columns)
         tm.assert_frame_equal(result, expected)
 
+    def test_simple_normalize_with_default_separator(self):
+        result = json_normalize({"A": {"A": 1, "B": 2}})
+        expected = pd.DataFrame([[1, 2]], columns={"A.A", "A.B"})
+        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
+
+    def test_simple_normalize_with_user_specified_separator(self):
+        result = json_normalize({"A": {"A": 1, "B": 2}}, sep='_')
+        expected = pd.DataFrame([[1, 2]], columns={"A_A", "A_B"})
+        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
+
     def test_meta_name_conflict(self):
         data = [{'foo': 'hello',
                  'bar': 'there',
