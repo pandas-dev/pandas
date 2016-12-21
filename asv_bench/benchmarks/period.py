@@ -49,3 +49,28 @@ class Algorithms(object):
         self.i.value_counts()
 
 
+class period_standard_indexing(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.index = PeriodIndex(start='1985', periods=1000, freq='D')
+        self.series = Series(range(1000), index=self.index)
+        self.period = self.index[500]
+
+    def time_get_loc(self):
+        self.index.get_loc(self.period)
+
+    def time_shape(self):
+        self.index.shape
+
+    def time_shallow_copy(self):
+        self.index._shallow_copy()
+
+    def time_series_loc(self):
+        self.series.loc[self.period]
+
+    def time_align(self):
+        pd.DataFrame({'a': self.series, 'b': self.series[:500]})
+
+    def time_intersection(self):
+        self.index[:750].intersection(self.index[250:])

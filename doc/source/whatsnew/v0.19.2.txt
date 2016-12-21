@@ -22,6 +22,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of ``.replace()`` (:issue:`12745`)
+- Improved performance of ``PeriodIndex`` (:issue:`14822`)
 - Improved performance ``Series`` creation with a datetime index and dictionary data (:issue:`14894`)
 
 .. _whatsnew_0192.enhancements.other:
