@@ -82,7 +82,7 @@ cdef class IndexEngine:
 
     cdef:
         bint unique, monotonic_inc, monotonic_dec
-        bint initialized, monotonic_check, unique_check
+        bint initialized, monotonic_check
 
     def __init__(self, vgetter, n):
         self.vgetter = vgetter
