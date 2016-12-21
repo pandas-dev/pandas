@@ -363,6 +363,8 @@ class TestSeries(TestPackers):
             'F': [Timestamp('20130102', tz='US/Eastern')] * 2 +
                  [Timestamp('20130603', tz='CET')] * 3,
             'G': [Timestamp('20130102', tz='US/Eastern')] * 5,
+            'H': Categorical([1, 2, 3, 4, 5]),
+            'I': Categorical([1, 2, 3, 4, 5], ordered=True),
         }
 
         self.d['float'] = Series(data['A'])
@@ -370,6 +372,8 @@ class TestSeries(TestPackers):
         self.d['mixed'] = Series(data['E'])
         self.d['dt_tz_mixed'] = Series(data['F'])
         self.d['dt_tz'] = Series(data['G'])
+        self.d['cat_ordered'] = Series(data['H'])
+        self.d['cat_unordered'] = Series(data['I'])
 
     def test_basic(self):
 

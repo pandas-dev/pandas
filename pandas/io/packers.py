@@ -593,17 +593,13 @@ def decode(obj):
     elif typ == u'series':
         dtype = dtype_for(obj[u'dtype'])
         pd_dtype = pandas_dtype(dtype)
-        np_dtype = pandas_dtype(dtype).base
 
         index = obj[u'index']
         result = globals()[obj[u'klass']](unconvert(obj[u'data'], dtype,
                                                     obj[u'compress']),
                                           index=index,
-                                          dtype=np_dtype,
+                                          dtype=pd_dtype,
                                           name=obj[u'name'])
-        tz = getattr(pd_dtype, 'tz', None)
-        if tz:
-            result = result.dt.tz_localize('UTC').dt.tz_convert(tz)
         return result
 
     elif typ == u'block_manager':

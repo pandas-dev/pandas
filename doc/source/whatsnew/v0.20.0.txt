@@ -286,6 +286,7 @@ Bug Fixes
 
 
 
+- Bug in ``pd.read_msgpack()`` in which ``Series`` categoricals were being improperly processed (:issue:`14901`)
 
 
 
