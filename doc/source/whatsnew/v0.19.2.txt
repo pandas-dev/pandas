@@ -76,3 +76,11 @@ Bug Fixes
 
 
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
+
+.. _whatsnew_0192.documentation:
+
+Documentation
+~~~~~~~~~~~~~
+
+- Added a Pandas Cheat Sheet (:issue:`13202`).  Can be found `here <http://pandas.pydata.org/docs/Pandas_Cheat_Sheet.pdf>`__.
+
