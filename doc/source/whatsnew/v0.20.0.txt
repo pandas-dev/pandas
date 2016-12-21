@@ -193,14 +193,42 @@ in prior versions of pandas) (:issue:`11915`).
 
 .. _whatsnew_0200.api:
 
-- ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
-- ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)
-
-
-
-
 Other API Changes
 ^^^^^^^^^^^^^^^^^
+
+- ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
+- ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)
+- :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>` now works as exact match provided that string resolution coincides with index resolution, including a case when both are seconds (:issue:`14826`). See :ref:`Slice vs. Exact Match <timeseries.slice_vs_exact_match>` for details.
+
+  .. ipython:: python
+
+    df = DataFrame({'a': [1, 2, 3]}, DatetimeIndex(['2011-12-31 23:59:59',
+                                                    '2012-01-01 00:00:00',
+                                                    '2012-01-01 00:00:01']))
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+    In [4]: df['2011-12-31 23:59:59']
+    Out[4]:
+                         a
+    2011-12-31 23:59:59  1
+
+    In [5]: df['a']['2011-12-31 23:59:59']
+    Out[5]:
+    2011-12-31 23:59:59    1
+    Name: a, dtype: int64
+
+
+  New Behavior:
+
+  .. code-block:: ipython
+
+    In [4]: df['2011-12-31 23:59:59']
+    KeyError: '2011-12-31 23:59:59'
+
+    In [5]: df['a']['2011-12-31 23:59:59']
+    Out[5]: 1
 
 .. _whatsnew_0200.deprecations:
 
@@ -253,7 +281,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``Series`` construction with a datetimetz (:issue:`14928`)
 
 
 
