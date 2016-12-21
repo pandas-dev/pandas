@@ -10,7 +10,8 @@ from pandas import (DataFrame, Series, MultiIndex, Timestamp,
 
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
-                                 assertRaisesRegexp)
+                                 assertRaisesRegexp,
+                                 is_sorted)
 
 import pandas.util.testing as tm
 
