@@ -10,8 +10,7 @@ from pandas import (DataFrame, Series, MultiIndex, Timestamp,
 
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
-                                 assertRaisesRegexp,
-                                 is_sorted)
+                                 assertRaisesRegexp)
 
 import pandas.util.testing as tm
 
@@ -495,15 +494,53 @@ class TestDataFrameSorting(tm.TestCase, TestData):
 
     def test_sort_nat_values_in_int_column(self):
 
-        # GH 14922, sorting with large float and multiple columns incorrect
+        # GH 14922: "sorting with large float and multiple columns incorrect"
+
+        # cause was that the int64 value NaT was considered as "na". Which is
+        # only correct for datetime64 columns.
+
         int_values = (2, int(NaT))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(dict(int=int_values, float=float_values),
                        columns=["int", "float"])
 
-        df_sorted = df.sort_values(["int", "float"])
-        df_expected = DataFrame(dict(int=int_values[::-1], float=float_values[::-1]),
-                                columns=["int", "float"], index=[1, 0])
+        df_reversed = DataFrame(dict(int=int_values[::-1],
+                                     float=float_values[::-1]),
+                                columns=["int", "float"],
+                                index=[1, 0])
 
-        assert_frame_equal(df_sorted, df_expected)
+        # NaT is not a "na" for int64 columns, so na_position must not
+        # influence the result:
+        df_sorted = df.sort_values(["int", "float"], na_position="last")
+        assert_frame_equal(df_sorted, df_reversed)
+
+        df_sorted = df.sort_values(["int", "float"], na_position="first")
+        assert_frame_equal(df_sorted, df_reversed)
+
+        # reverse sorting order
+        df_sorted = df.sort_values(["int", "float"], ascending=False)
+        assert_frame_equal(df_sorted, df)
+
+        # and now check if NaT is still considered as "na" for datetime64
+        # columns:
+        df = DataFrame(dict(int=int_values, float=float_values),
+                       columns=["int", "float"])
+
+        df = DataFrame(dict(datetime=[Timestamp("2016-01-01"), NaT],
+                            float=float_values), columns=["datetime", "float"])
+
+        # check if the dtype is datetime64[ns]:
+        assert df["datetime"].dtypes == np.dtype("datetime64[ns]"),\
+            "this test function is not reliable anymore"
+
+        df_reversed = DataFrame(dict(datetime=[NaT, Timestamp("2016-01-01")],
+                                     float=float_values[::-1]),
+                                columns=["datetime", "float"],
+                                index=[1, 0])
+
+        df_sorted = df.sort_values(["datetime", "float"], na_position="first")
+        assert_frame_equal(df_sorted, df_reversed)
+
+        df_sorted = df.sort_values(["datetime", "float"], na_position="last")
+        assert_frame_equal(df_sorted, df_reversed)
