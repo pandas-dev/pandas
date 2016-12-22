@@ -11,6 +11,7 @@ import collections
 import re
 from datetime import datetime, date, timedelta, time
 import numpy as np
+import pytz
 
 import pandas as pd
 from pandas import lib, tslib
@@ -274,6 +275,13 @@ class TestInference(tm.TestCase):
         arr = np.array([2**63, -1], dtype=object)
         exp = np.array([2**63, -1], dtype=object)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
+
+    def test_mixed_dtypes_remain_object_array(self):
+        # GH14956
+        array = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1],
+                         dtype=object)
+        result = lib.maybe_convert_objects(array, convert_datetime=1)
+        tm.assert_numpy_array_equal(result, array)
 
 
 class TestTypeInference(tm.TestCase):

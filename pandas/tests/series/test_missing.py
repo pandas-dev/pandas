@@ -386,6 +386,12 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         ts[2] = np.NaN
         assert_series_equal(ts.ffill(), ts.fillna(method='ffill'))
 
+    def test_ffill_mixed_dtypes_without_missing_data(self):
+        # GH14956
+        series = pd.Series([datetime(2015, 1, 1, tzinfo=pytz.utc), 1])
+        result = series.ffill()
+        assert_series_equal(series, result)
+
     def test_bfill(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
         ts[2] = np.NaN
