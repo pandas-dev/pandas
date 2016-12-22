@@ -739,13 +739,13 @@ class TestReadGBQIntegration(tm.TestCase):
                 ]
             }
         }
-        # Test that a query that relies on parameters fails 
+        # Test that a query that relies on parameters fails
         # when parameters are not supplied via configuration
         with tm.assertRaises(ValueError):
             gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                          private_key=_get_private_key_path())
 
-        # Test that the query is successful because we have supplied 
+        # Test that the query is successful because we have supplied
         # the correct query parameters via the 'config' option
         df = gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                           private_key=_get_private_key_path(),
@@ -761,7 +761,7 @@ class TestReadGBQIntegration(tm.TestCase):
                 "useQueryCache": False,
             }
         }
-        # Test that it can't pass query both 
+        # Test that it can't pass query both
         # inside config and as parameter
         with tm.assertRaises(ValueError):
             gbq.read_gbq(query_no_use, project_id=_get_project_id(),
