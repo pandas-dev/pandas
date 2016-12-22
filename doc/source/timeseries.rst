@@ -527,11 +527,11 @@ If the timestamp string is treated as a slice, it can be used to index ``DataFra
     dft_minute['2011-12-31 23']
 
 
-:: warning::
+.. warning::
 
-   However if the string is treated as an exact match the selection in ``DataFrame``'s ``[]`` will be column-wise and not row-wise, see :ref:`Indexing Basics <indexing.basics>`. For example ``dft_minute['2011-12-31 23:59']`` will raise ``KeyError`` as ``'2012-12-31 23:59'`` has the same resolution as index and there is no column with such name:
+   However if the string is treated as an exact match, the selection in ``DataFrame``'s ``[]`` will be column-wise and not row-wise, see :ref:`Indexing Basics <indexing.basics>`. For example ``dft_minute['2011-12-31 23:59']`` will raise ``KeyError`` as ``'2012-12-31 23:59'`` has the same resolution as index and there is no column with such name:
 
-   To select a single row, use ``.loc``.
+   To *always* have unambiguous selection, whether the row is treated as a slice or a single selection, use ``.loc``.
 
    .. ipython:: python
 

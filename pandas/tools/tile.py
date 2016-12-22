@@ -13,6 +13,7 @@ import pandas.core.nanops as nanops
 from pandas.compat import zip
 from pandas import to_timedelta, to_datetime
 from pandas.types.common import is_datetime64_dtype, is_timedelta64_dtype
+from pandas.lib import infer_dtype
 
 import numpy as np
 
@@ -116,6 +117,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     else:
         bins = np.asarray(bins)
+        bins = _convert_bin_to_numeric_type(bins)
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
@@ -325,6 +327,19 @@ def _coerce_to_type(x):
         dtype = np.datetime64
 
     return x, dtype
+
+
+def _convert_bin_to_numeric_type(x):
+    """
+    if the passed bin is of datetime/timedelta type,
+    this method converts it to integer
+    """
+    dtype = infer_dtype(x)
+    if dtype == 'timedelta' or dtype == 'timedelta64':
+        x = to_timedelta(x).view(np.int64)
+    elif dtype == 'datetime' or dtype == 'datetime64':
+        x = to_datetime(x).view(np.int64)
+    return x
 
 
 def _preprocess_for_cut(x):

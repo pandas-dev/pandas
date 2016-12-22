@@ -10,6 +10,8 @@ We recommend that all users upgrade to this version.
 Highlights include:
 
 - Compatibility with Python 3.6
+- Added a `Pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/master/doc/cheatsheet/Pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`).
+
 
 .. contents:: What's new in v0.19.2
     :local:
@@ -23,6 +25,7 @@ Performance Improvements
 
 - Improved performance of ``.replace()`` (:issue:`12745`)
 - Improved performance of ``PeriodIndex`` (:issue:`14822`)
+- Performance regression in indexing with getitem (:issue:`14930`)
 - Improved performance ``Series`` creation with a datetime index and dictionary data (:issue:`14894`)
 
 .. _whatsnew_0192.enhancements.other:
