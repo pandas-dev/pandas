@@ -3262,10 +3262,14 @@ class NDFrame(PandasObject):
                             'you passed a "{0}"'.format(type(value).__name__))
         self._consolidate_inplace()
 
-        # set the default here, so functions examining the signaure
+        # set the default here, so functions examining the signature
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
-            axis = 0
+            if self.ndim == 3:
+                axis = 1
+            else:
+                axis = 0
+
         axis = self._get_axis_number(axis)
         method = missing.clean_fill_method(method)
 
@@ -3273,15 +3277,6 @@ class NDFrame(PandasObject):
         if value is None:
             if method is None:
                 raise ValueError('must specify a fill method or value')
-            if self._is_mixed_type and axis == 1:
-                if inplace:
-                    raise NotImplementedError()
-                result = self.T.fillna(method=method, limit=limit).T
-
-                # need to downcast here because of all of the transposes
-                result._data = result._data.downcast()
-
-                return result
 
             # > 3d
             if self.ndim > 3:
@@ -3290,21 +3285,41 @@ class NDFrame(PandasObject):
 
             # 3d
             elif self.ndim == 3:
-
                 # fill in 2d chunks
-                result = dict([(col, s.fillna(method=method, value=value))
-                               for col, s in self.iteritems()])
+                if axis == 0:
+                    frame = self.swapaxes(0, 1)
+                    axis2d = 0
+                else:
+                    frame = self
+                    axis2d = axis - 1
+                result = dict([(col, s.fillna(method=method,
+                                              value=value,
+                                              axis=axis2d))
+                               for col, s in frame.iteritems()])
                 new_obj = self._constructor.\
                     from_dict(result).__finalize__(self)
+                if axis == 0:
+                    new_obj = new_obj.swapaxes(0, 1)
                 new_data = new_obj._data
 
             else:
                 # 2d or less
-                method = missing.clean_fill_method(method)
-                new_data = self._data.interpolate(method=method, axis=axis,
-                                                  limit=limit, inplace=inplace,
-                                                  coerce=True,
-                                                  downcast=downcast)
+                if self._is_mixed_type and axis == 1:
+                    if inplace:
+                        raise NotImplementedError()
+                    result = self.T.fillna(method=method, limit=limit).T
+
+                    # need to downcast here because of all of the transposes
+                    result._data = result._data.downcast()
+
+                    return result
+                else:
+                    method = missing.clean_fill_method(method)
+                    new_data = self._data.interpolate(method=method, axis=axis,
+                                                      limit=limit,
+                                                      inplace=inplace,
+                                                      coerce=True,
+                                                      downcast=downcast)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
