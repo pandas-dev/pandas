@@ -810,7 +810,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             floats[i] = <float64_t> val
             complexes[i] = <double complex> val
             if not seen_null:
-                seen_uint = seen_uint or (val > npy_int64_max)
+                seen_uint = seen_uint or (int(val) > npy_int64_max)
                 seen_sint = seen_sint or (val < 0)
 
                 if seen_uint and seen_sint:
