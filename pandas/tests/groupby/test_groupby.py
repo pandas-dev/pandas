@@ -5725,6 +5725,20 @@ class TestGroupBy(tm.TestCase):
 
         assert_frame_equal(result, expected)
 
+    def test_pivot_table_values_key_error(self):
+        # This test is designed to replicate the error in issue #14938
+        df = pd.DataFrame({'eventDate':
+                           pd.date_range(pd.datetime.today(),
+                                         periods=20, freq='M').tolist(),
+                           'thename': range(0, 20)})
+
+        df['year'] = df.set_index('eventDate').index.year
+        df['month'] = df.set_index('eventDate').index.month
+
+        with self.assertRaises(KeyError):
+            df.reset_index().pivot_table(index='year', columns='month',
+                                         values='badname', aggfunc='count')
+
     def test_agg_over_numpy_arrays(self):
         # GH 3788
         df = pd.DataFrame([[1, np.array([10, 20, 30])],
