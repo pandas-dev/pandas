@@ -527,9 +527,6 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         df = DataFrame(dict(datetime=[Timestamp("2016-01-01"), NaT],
                             float=float_values), columns=["datetime", "float"])
 
-        assert df["datetime"].dtypes == np.dtype("datetime64[ns]"),\
-            "this test function is not reliable anymore"
-
         df_reversed = DataFrame(dict(datetime=[NaT, Timestamp("2016-01-01")],
                                      float=float_values[::-1]),
                                 columns=["datetime", "float"],
