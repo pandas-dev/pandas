@@ -524,13 +524,9 @@ class TestDataFrameSorting(tm.TestCase, TestData):
 
         # and now check if NaT is still considered as "na" for datetime64
         # columns:
-        df = DataFrame(dict(int=int_values, float=float_values),
-                       columns=["int", "float"])
-
         df = DataFrame(dict(datetime=[Timestamp("2016-01-01"), NaT],
                             float=float_values), columns=["datetime", "float"])
 
-        # check if the dtype is datetime64[ns]:
         assert df["datetime"].dtypes == np.dtype("datetime64[ns]"),\
             "this test function is not reliable anymore"
 
