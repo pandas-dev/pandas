@@ -394,17 +394,17 @@ class GbqConnector(object):
                 # 'preserveNulls', destinationTable, useQueryCache
             }
         }
-        configuration = kwargs.get('configuration')
-        if configuration is not None:
-            if 'query' in configuration:
-                if 'query' in configuration['query'] and query is not None:
-                    raise ValueError("Query statement can't be specified \
-                        inside config while it is specified as parameter")
+        config = kwargs.get('config')
+        if config is not None:
+            if 'query' in config:
+                if 'query' in config['query'] and query is not None:
+                    raise ValueError("Query statement can't be specified "
+                                     "inside config while it is specified "
+                                     "as parameter")
 
-                job_config['query'].update(configuration['query'])
+                job_config['query'].update(config['query'])
             else:
                 raise ValueError("Only 'query' job type is supported")
-                #job_config = configuration
 
         job_data = {
             'configuration': job_config
@@ -698,10 +698,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         .. versionadded:: 0.19.0
 
     **kwargs : Arbitrary keyword arguments
-        configuration (dict): query config parameters for job processing.
+        config (dict): query config parameters for job processing.
         For example:
 
-            configuration = {'query': {'useQueryCache': False}}
+            config = {'query': {'useQueryCache': False}}
 
         For more information see `BigQuery SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`

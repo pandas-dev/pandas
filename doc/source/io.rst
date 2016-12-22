@@ -4563,7 +4563,7 @@ destination DataFrame as well as a preferred column order as follows:
                              col_order=['col1', 'col2', 'col3'], projectid)
 
 
-You can specify the query configuration as parameter
+You can specify the query config as parameter
 
 .. code-block:: python
 
@@ -4573,7 +4573,7 @@ You can specify the query configuration as parameter
       }
    }
    data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
-                             configuration=config, projectid)
+                             config=config, projectid)
 
 
 .. note::

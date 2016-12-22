@@ -707,7 +707,7 @@ class TestReadGBQIntegration(tm.TestCase):
                          private_key=_get_private_key_path())
 
         # Test that a correct option for dialect succeeds
-        # to make sure ValueError was due to invalid  dialect
+        # to make sure ValueError was due to invalid dialect
         gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                      dialect='standard', private_key=_get_private_key_path())
 
@@ -746,10 +746,10 @@ class TestReadGBQIntegration(tm.TestCase):
                          private_key=_get_private_key_path())
 
         # Test that the query is successful because we have supplied 
-        # the correct query parameters via the 'configuration' option
+        # the correct query parameters via the 'config' option
         df = gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                           private_key=_get_private_key_path(),
-                          configuration=config)
+                          config=config)
         tm.assert_frame_equal(df, DataFrame({'VALID_RESULT': [3]}))
 
     def test_query_inside_configuration(self):
@@ -762,15 +762,15 @@ class TestReadGBQIntegration(tm.TestCase):
             }
         }
         # Test that it can't pass query both 
-        # inside configuration and as parameter
+        # inside config and as parameter
         with tm.assertRaises(ValueError):
             gbq.read_gbq(query_no_use, project_id=_get_project_id(),
-                              private_key=_get_private_key_path(),
-                              configuration=config)
+                         private_key=_get_private_key_path(),
+                         config=config)
 
         df = gbq.read_gbq(None, project_id=_get_project_id(),
-                              private_key=_get_private_key_path(),
-                              configuration=config)
+                          private_key=_get_private_key_path(),
+                          config=config)
         tm.assert_frame_equal(df, DataFrame({'VALID_STRING': ['PI']}))
 
     def test_configuration_without_query(self):
@@ -794,7 +794,7 @@ class TestReadGBQIntegration(tm.TestCase):
         with tm.assertRaises(ValueError):
             gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                          private_key=_get_private_key_path(),
-                         configuration=config)
+                         config=config)
 
 
 class TestToGBQIntegration(tm.TestCase):
