@@ -218,8 +218,9 @@ class TestSeriesPlots(TestPlotBase):
             expected = np.hstack((1.0e-04, expected, 1.0e+01))
 
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar')
+        ymin = 0.00079432823472428218 if self.mpl_ge_2_0_0 else 0.001
         ymax = 0.12589254117941673 if self.mpl_ge_2_0_0 else .10000000000000001
-        self.assertEqual(ax.get_ylim(), (0.001, ymax))
+        self.assertEqual(ax.get_ylim(), (ymin, ymax))
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
         tm.close()
 
