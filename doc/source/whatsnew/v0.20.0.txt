@@ -300,3 +300,4 @@ Bug Fixes
 - Bug in ``Series.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14721`)
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
 - Bug in converting object elements of array-like objects to unsigned 64-bit integers (:issue:`4471`)
+- Bug in Series.ffill() with mixed dtypes containing tz-aware datetimes. (:issue:`14956`)
