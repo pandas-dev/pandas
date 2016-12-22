@@ -67,6 +67,21 @@ class TestJSONNormalize(tm.TestCase):
         expected = DataFrame()
         tm.assert_frame_equal(result, expected)
 
+    def test_simple_normalize_with_default_separator(self):
+        result = json_normalize({'A': {'A': 1, 'B': 2}})
+        expected = DataFrame([[1, 2]], columns={'A.A', 'A.B'})
+        tm.assert_frame_equal(result, expected)
+
+    def test_simple_normalize_with_user_specified_separator(self):
+        result = json_normalize({'A': {'A': 1, 'B': 2}}, sep='_')
+        expected = DataFrame([[1, 2]], columns={'A_A', 'A_B'})
+        tm.assert_frame_equal(result, expected)
+
+    def test_simple_normalize_with_user_specified_unicode_separator(self):
+        result = json_normalize({'A': {'A': 1, 'B': 2}}, sep=u'\u03c3')
+        expected = DataFrame([[1, 2]], columns={u'A\u03c3A', u'A\u03c3B'})
+        tm.assert_frame_equal(result, expected)
+
     def test_more_deeply_nested(self):
         data = [{'country': 'USA',
                  'states': [{'name': 'California',
