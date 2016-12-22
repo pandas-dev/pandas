@@ -1757,6 +1757,7 @@ then the more *general* one will be used as the result of the operation.
    # conversion of dtypes
    df3.astype('float32').dtypes
 
+
 Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`
 
 .. ipython:: python
@@ -1765,6 +1766,17 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`
    dft[['a','b']] = dft[['a','b']].astype(np.uint8)
    dft
    dft.dtypes
+
+.. versionadded:: 0.19.0
+
+Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFrame.astype`
+
+.. ipython:: python
+
+   dft1 = pd.DataFrame({'a': [1,0,1], 'b': [4,5,6], 'c': [7, 8, 9]})
+   dft1 = dft1.astype({'a': np.bool, 'c': np.float64})
+   dft1
+   dft1.dtypes
 
 .. note::
 
