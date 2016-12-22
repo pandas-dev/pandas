@@ -12,7 +12,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import quantile
 from pandas.tools.tile import cut, qcut
 import pandas.tools.tile as tmod
-from pandas import to_datetime, DatetimeIndex
+from pandas import to_datetime, DatetimeIndex, Timestamp
 
 
 class TestCut(tm.TestCase):
@@ -315,14 +315,22 @@ class TestCut(tm.TestCase):
 
     def test_datetime_bin(self):
         data = [np.datetime64('2012-12-13'), np.datetime64('2012-12-15')]
-        bins = [np.datetime64('2012-12-12'), np.datetime64('2012-12-14'),
-                np.datetime64('2012-12-16')]
-        result = cut(data, bins=bins)
-
+        bin_data = ['2012-12-12', '2012-12-14', '2012-12-16']
         expected = Series(['(2012-12-12 00:00:00, 2012-12-14 00:00:00]',
-                           '(2012-12-14 00:00:00, 2012-12-16 00:00:00]'],
+                          '(2012-12-14 00:00:00, 2012-12-16 00:00:00]'],
                           ).astype("category", ordered=True)
 
+        for conv in [Timestamp, Timestamp, np.datetime64]:
+            bins = [conv(v) for v in bin_data]
+            result = cut(data, bins=bins)
+            tm.assert_series_equal(Series(result), expected)
+
+        bin_pydatetime = [Timestamp(v).to_pydatetime() for v in bin_data]
+        result = cut(data, bins=bin_pydatetime)
+        tm.assert_series_equal(Series(result), expected)
+
+        bins = to_datetime(bin_data)
+        result = cut(data, bins=bin_pydatetime)
         tm.assert_series_equal(Series(result), expected)
 
 
