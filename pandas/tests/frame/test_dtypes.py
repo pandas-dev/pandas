@@ -357,7 +357,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         df = self.frame.copy()
         expected = self.frame.astype(int)
         df['string'] = 'foo'
-        casted = df.astype(int, raise_on_error=False)
+        casted = df.astype(int, errors='ignore')
 
         expected['string'] = 'foo'
         assert_frame_equal(casted, expected)
@@ -365,7 +365,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         df = self.frame.copy()
         expected = self.frame.astype(np.int32)
         df['string'] = 'foo'
-        casted = df.astype(np.int32, raise_on_error=False)
+        casted = df.astype(np.int32, errors='ignore')
 
         expected['string'] = 'foo'
         assert_frame_equal(casted, expected)

@@ -3061,7 +3061,9 @@ class NDFrame(PandasObject):
         """Internal property, property synonym for as_blocks()"""
         return self.as_blocks()
 
-    def astype(self, dtype, copy=True, raise_on_error=True, **kwargs):
+    @deprecate_kwarg(old_arg_name='raise_on_error', new_arg_name='errors',
+                     mapping={True: 'raise', False: 'ignore'})
+    def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
         Cast object to input numpy.dtype
         Return a copy when copy = True (be really careful with this!)
@@ -3073,7 +3075,9 @@ class NDFrame(PandasObject):
             the same type. Alternatively, use {col: dtype, ...}, where col is a
             column label and dtype is a numpy.dtype or Python type to cast one
             or more of the DataFrame's columns to column-specific types.
-        raise_on_error : raise on invalid input
+        errors : {'raise', 'ignore'}, default 'raise'
+            - ``raise`` : allow exceptions to be raised on invalid input
+            - ``ignore`` : suppress raising exceptions on invalid input
         kwargs : keyword arguments to pass on to the constructor
 
         Returns
@@ -3086,7 +3090,7 @@ class NDFrame(PandasObject):
                     raise KeyError('Only the Series name can be used for '
                                    'the key in Series dtype mappings.')
                 new_type = list(dtype.values())[0]
-                return self.astype(new_type, copy, raise_on_error, **kwargs)
+                return self.astype(new_type, copy, errors, **kwargs)
             elif self.ndim > 2:
                 raise NotImplementedError(
                     'astype() only accepts a dtype arg of type dict when '
@@ -3107,8 +3111,8 @@ class NDFrame(PandasObject):
             return concat(results, axis=1, copy=False)
 
         # else, only a single dtype is given
-        new_data = self._data.astype(dtype=dtype, copy=copy,
-                                     raise_on_error=raise_on_error, **kwargs)
+        new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
+                                     **kwargs)
         return self._constructor(new_data).__finalize__(self)
 
     def copy(self, deep=True):
