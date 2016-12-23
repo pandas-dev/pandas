@@ -585,6 +585,7 @@ Bug Fixes
 - Bug in ``DataFrame.sort_values()`` when sorting by multiple columns where one column is of type ``int64`` and contains ``NaT`` (:issue:`14922`)
 - Bug in ``DataFrame.reindex()`` in which ``method`` was ignored when passing ``columns`` (:issue:`14992`)
 - Bug in ``pd.to_numeric()`` in which float and unsigned integer elements were being improperly casted (:issue:`14941`, :issue:`15005`)
+- Cleaned up ``PeriodIndex`` constructor, including raising on floats more consistently (:issue:`13277`)
 - Bug in ``pd.read_csv()`` in which the ``dialect`` parameter was not being verified before processing (:issue:`14898`)
 - Bug in ``pd.read_fwf`` where the skiprows parameter was not being respected during column width inference (:issue:`11256`)
 - Bug in ``pd.read_csv()`` in which missing data was being improperly handled with ``usecols`` (:issue:`6710`)
