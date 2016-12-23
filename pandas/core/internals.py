@@ -465,6 +465,13 @@ class Block(PandasObject):
         Coerce to the new type (if copy=True, return a new copy)
         raise on an except if raise == True
         """
+        errors_legal_values = ('raise', 'ignore')
+
+        if errors not in errors_legal_values:
+            invalid_arg = "Expected value of kwarg 'errors' to be one of %s. "\
+                "Supplied value is '%s'" % (', '.join("'%s'" % arg for arg in
+                                            errors_legal_values), errors)
+            raise ValueError(invalid_arg)
 
         # may need to convert to categorical
         # this is only called for non-categoricals

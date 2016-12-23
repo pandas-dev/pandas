@@ -3075,9 +3075,14 @@ class NDFrame(PandasObject):
             the same type. Alternatively, use {col: dtype, ...}, where col is a
             column label and dtype is a numpy.dtype or Python type to cast one
             or more of the DataFrame's columns to column-specific types.
+        raise_on_error : raise on invalid input. DEPRECATED use ``errors``
+            instead
         errors : {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised on invalid input
             - ``ignore`` : suppress raising exceptions on invalid input
+
+            .. versionadded:: 0.20.0
+
         kwargs : keyword arguments to pass on to the constructor
 
         Returns
