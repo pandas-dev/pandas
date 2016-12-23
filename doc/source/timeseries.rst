@@ -494,13 +494,13 @@ For example, let us consider ``Series`` object which index has minute resolution
                                                 '2012-01-01 00:02:00']))
     series_minute.index.resolution
 
-A Timestamp string less accurate than a minute gives a ``Series`` object.
+A timestamp string less accurate than a minute gives a ``Series`` object.
 
 .. ipython:: python
 
     series_minute['2011-12-31 23']
 
-A Timestamp string with minute resolution (or more accurate), gives a scalar instead, i.e. it is not casted to a slice.
+A timestamp string with minute resolution (or more accurate), gives a scalar instead, i.e. it is not casted to a slice.
 
 .. ipython:: python
 
