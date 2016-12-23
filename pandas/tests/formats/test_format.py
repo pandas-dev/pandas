@@ -1667,6 +1667,34 @@ class TestDataFrameFormatting(tm.TestCase):
         result = df.to_html(border=0)
         self.assertTrue('border="0"' in result)
 
+    def test_to_html_na_rep_and_float_format(self):
+        # GH 13828
+        df = DataFrame([['A', 1.2225], ['A', ]], columns=['Group', 'Data'])
+        result = df.to_html(na_rep='Ted', float_format='{0:.2f}'.format)
+        expected = '''\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Group</th>
+      <th>Data</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>A</td>
+      <td>1.22</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>A</td>
+      <td>Ted</td>
+    </tr>
+  </tbody>
+</table>'''
+        self.assertEqual(result, expected)
+
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()
@@ -2906,6 +2934,22 @@ index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
 """
         self.assertEqual(result, expected)
 
+    def test_to_latex_na_rep_and_float_format(self):
+        # GH 13828
+        df = DataFrame([['A', 1.2225], ['A', ]], columns=['Group', 'Data'])
+        result = df.to_latex(na_rep='Ted', float_format='{0:.2f}'.format)
+        expected = '''\
+\\begin{tabular}{llr}
+\\toprule
+{} & Group &  Data \\\\
+\\midrule
+0 &     A &  1.22 \\\\
+1 &     A &   Ted \\\\
+\\bottomrule
+\\end{tabular}
+'''
+        self.assertEqual(result, expected)
+
     def test_to_latex_multiindex(self):
         df = DataFrame({('x', 'y'): ['a']})
         result = df.to_latex()
@@ -3448,6 +3492,16 @@ class TestSeriesFormatting(tm.TestCase):
         result = s.to_string()
         expected = (u('0       NaN\n') + '1    1.5678\n' + '2       NaN\n' +
                     '3   -3.0000\n' + '4       NaN')
+        self.assertEqual(result, expected)
+
+    def test_to_string_na_rep_and_float_format(self):
+        # GH 13828
+        df = DataFrame([['A', 1.2225], ['A', ]], columns=['Group', 'Data'])
+        result = df.to_string(na_rep='Ted', float_format='{0:.2f}'.format)
+        expected = '''\
+  Group  Data
+0     A  1.22
+1     A   Ted'''
         self.assertEqual(result, expected)
 
     def test_to_string_without_index(self):

@@ -2063,7 +2063,19 @@ class FloatArrayFormatter(GenericArrayFormatter):
         """
 
         if self.formatter is not None:
-            return np.array([self.formatter(x) for x in self.values])
+            if self.na_rep is None:
+                fmt_values = np.array([self.formatter(x)
+                                       for x in self.values])
+            else:
+                fmt_values = self.values
+                mask = isnull(fmt_values)
+                fmt_values = np.array(fmt_values, dtype='object')
+                fmt_values[mask] = self.na_rep
+                imask = (~mask).ravel()
+                fmt_values.flat[imask] = np.array([self.formatter(x)
+                                                   for x in
+                                                   fmt_values.ravel()[imask]])
+            return fmt_values
 
         if self.fixed_width:
             threshold = get_option("display.chop_threshold")
@@ -2129,7 +2141,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
     def _format_strings(self):
         # shortcut
-        if self.formatter is not None:
+        if self.formatter is not None and self.na_rep is None:
             return [self.formatter(x) for x in self.values]
 
         return list(self.get_result_as_array())
