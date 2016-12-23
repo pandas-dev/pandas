@@ -107,6 +107,11 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
             values_multi = False
             values = [values]
 
+        # GH14938 Make sure value labels are in data
+        for i in values:
+            if i not in data:
+                raise KeyError(i)
+
         to_filter = []
         for x in keys + values:
             if isinstance(x, Grouper):
