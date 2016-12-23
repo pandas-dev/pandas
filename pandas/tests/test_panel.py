@@ -1519,6 +1519,50 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         assert_panel_equal(self.panel.bfill(),
                            self.panel.fillna(method='bfill'))
 
+    def test_ffill_bfill_axis(self):
+        # GH 14499
+        a = Panel({
+            'a': np.arange(15, dtype=float).reshape((5, 3)),
+            'b': np.arange(15, 30, dtype=float).reshape((5, 3))
+        })
+        f0 = a.copy()
+        f1 = a.copy()
+        f2 = a.copy()
+        b0 = a.copy()
+        b1 = a.copy()
+        b2 = a.copy()
+        a['a'].loc[1, 1] = np.nan
+        f0['a'].loc[1, 1] = np.nan
+        f1['a'].loc[1, 1] = 1
+        f2['a'].loc[1, 1] = 3
+        b0['a'].loc[1, 1] = 19.0
+        b1['a'].loc[1, 1] = 7
+        b2['a'].loc[1, 1] = 5
+
+        # method='ffill'
+        # axis=0
+        assert_panel_equal(a.ffill(axis=0), f0)
+
+        # method='ffill'
+        # axis=1
+        assert_panel_equal(a.ffill(axis=1), f1)
+
+        # method='ffill'
+        # axis=2
+        assert_panel_equal(a.ffill(axis=2), f2)
+
+        # method='bfill'
+        # axis=1
+        assert_panel_equal(a.bfill(axis=0), b0)
+
+        # method='bfill'
+        # axis=1
+        assert_panel_equal(a.bfill(axis=1), b1)
+
+        # method='bfill'
+        # axis=2
+        assert_panel_equal(a.bfill(axis=2), b2)
+
     def test_truncate_fillna_bug(self):
         # #1823
         result = self.panel.truncate(before=None, after=None, axis='items')

@@ -301,3 +301,4 @@ Bug Fixes
 - Bug in ``pd.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14915`)
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
 - Bug in converting object elements of array-like objects to unsigned 64-bit integers (:issue:`4471`)
+- Bug in ``pd.Panel.ffill`` where ``axis`` was not propagated (:issue:`14499`)
