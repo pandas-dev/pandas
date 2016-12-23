@@ -9,7 +9,9 @@ import numpy as np
 from pandas import compat, lib, tslib, _np_version_under1p8
 from pandas.types.cast import _maybe_promote
 from pandas.types.generic import ABCSeries, ABCIndex
-from pandas.types.common import (is_integer_dtype,
+from pandas.types.common import (is_unsigned_integer_dtype,
+                                 is_signed_integer_dtype,
+                                 is_integer_dtype,
                                  is_int64_dtype,
                                  is_categorical_dtype,
                                  is_extension_type,
@@ -479,8 +481,9 @@ def _value_counts_arraylike(values, dropna=True):
         keys, counts = htable.value_count_float64(values, dropna)
     else:
         values = _ensure_object(values)
+        keys, counts = htable.value_count_object(values, dropna)
+
         mask = isnull(values)
-        keys, counts = htable.value_count_object(values, mask)
         if not dropna and mask.any():
             keys = np.insert(keys, 0, np.NaN)
             counts = np.insert(counts, 0, mask.sum())
@@ -490,12 +493,14 @@ def _value_counts_arraylike(values, dropna=True):
 
 def duplicated(values, keep='first'):
     """
-    Return boolean ndarray denoting duplicate values
+    Return boolean ndarray denoting duplicate values.
 
     .. versionadded:: 0.19.0
 
     Parameters
     ----------
+    values : ndarray-like
+        Array over which to check for duplicate values.
     keep : {'first', 'last', False}, default 'first'
         - ``first`` : Mark duplicates as ``True`` except for the first
           occurrence.
@@ -521,9 +526,12 @@ def duplicated(values, keep='first'):
     elif isinstance(values, (ABCSeries, ABCIndex)):
         values = values.values
 
-    if is_integer_dtype(dtype):
+    if is_signed_integer_dtype(dtype):
         values = _ensure_int64(values)
         duplicated = htable.duplicated_int64(values, keep=keep)
+    elif is_unsigned_integer_dtype(dtype):
+        values = _ensure_uint64(values)
+        duplicated = htable.duplicated_uint64(values, keep=keep)
     elif is_float_dtype(dtype):
         values = _ensure_float64(values)
         duplicated = htable.duplicated_float64(values, keep=keep)
@@ -535,7 +543,19 @@ def duplicated(values, keep='first'):
 
 
 def mode(values):
-    """Returns the mode or mode(s) of the passed Series or ndarray (sorted)"""
+    """
+    Returns the mode(s) of an array.
+
+    Parameters
+    ----------
+    values : array-like
+        Array over which to check for duplicate values.
+
+    Returns
+    -------
+    mode : Series
+    """
+
     # must sort because hash order isn't necessarily defined.
     from pandas.core.series import Series
 
@@ -547,23 +567,23 @@ def mode(values):
         constructor = Series
 
     dtype = values.dtype
-    if is_integer_dtype(values):
+    if is_signed_integer_dtype(values):
         values = _ensure_int64(values)
-        result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
-
+        result = constructor(np.sort(htable.mode_int64(values)), dtype=dtype)
+    elif is_unsigned_integer_dtype(values):
+        values = _ensure_uint64(values)
+        result = constructor(np.sort(htable.mode_uint64(values)), dtype=dtype)
     elif issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
         dtype = values.dtype
         values = values.view(np.int64)
-        result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
-
+        result = constructor(np.sort(htable.mode_int64(values)), dtype=dtype)
     elif is_categorical_dtype(values):
         result = constructor(values.mode())
     else:
-        mask = isnull(values)
         values = _ensure_object(values)
-        res = htable.mode_object(values, mask)
+        res = htable.mode_object(values)
         try:
-            res = sorted(res)
+            res = np.sort(res)
         except TypeError as e:
             warn("Unable to sort modes: %s" % e)
         result = constructor(res, dtype=dtype)
@@ -893,8 +913,10 @@ def _hashtable_algo(f, values, return_dtype=None):
     dtype = values.dtype
     if is_float_dtype(dtype):
         return f(htable.Float64HashTable, _ensure_float64)
-    elif is_integer_dtype(dtype):
+    elif is_signed_integer_dtype(dtype):
         return f(htable.Int64HashTable, _ensure_int64)
+    elif is_unsigned_integer_dtype(dtype):
+        return f(htable.UInt64HashTable, _ensure_uint64)
     elif is_datetime64_dtype(dtype):
         return_dtype = return_dtype or 'M8[ns]'
         return f(htable.Int64HashTable, _ensure_int64).view(return_dtype)

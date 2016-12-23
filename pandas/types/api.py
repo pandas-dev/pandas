@@ -44,6 +44,8 @@ from .common import (pandas_dtype,
                      is_floating_dtype,
                      is_bool_dtype,
                      is_complex_dtype,
+                     is_signed_integer_dtype,
+                     is_unsigned_integer_dtype,
 
                      # like
                      is_re,
