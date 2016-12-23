@@ -285,11 +285,14 @@ class TestPeriodIndex(tm.TestCase):
         result = idx._simple_new(idx, name='p', freq='M')
         tm.assert_index_equal(result, idx)
 
-    def test_constructor_simple_new_floats(self):
+    def test_constructor_floats(self):
         # GH13079
-        for floats in [[1.1], np.array([1.1])]:
+        for floats in [[1.1, 2.1], np.array([1.1, 2.1])]:
             with self.assertRaises(TypeError):
                 pd.PeriodIndex._simple_new(floats, freq='M')
+
+            with self.assertRaises(TypeError):
+                pd.PeriodIndex(floats, freq='M')
 
     def test_constructor_nat(self):
         self.assertRaises(ValueError, period_range, start='NaT',

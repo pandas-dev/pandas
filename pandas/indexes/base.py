@@ -88,6 +88,11 @@ def _new_Index(cls, d):
     """ This is called upon unpickling, rather than the default which doesn't
     have arguments and breaks __new__
     """
+    from pandas.types.generic import ABCPeriodIndex
+    if issubclass(cls, ABCPeriodIndex):
+        if d['data'].dtype == 'int64':
+            values = d.pop('data')
+            return cls._from_ordinals(values=values, **d)
     return cls.__new__(cls, **d)
 
 
