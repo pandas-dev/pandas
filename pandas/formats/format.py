@@ -1248,6 +1248,7 @@ class HTMLFormatter(TableFormatter):
                 # Insert ... row and adjust idx_values and
                 # level_lengths to take this into account.
                 ins_row = self.fmt.tr_row_num
+                inserted = False
                 for lnum, records in enumerate(level_lengths):
                     rec_new = {}
                     for tag, span in list(records.items()):
@@ -1255,9 +1256,17 @@ class HTMLFormatter(TableFormatter):
                             rec_new[tag + 1] = span
                         elif tag + span > ins_row:
                             rec_new[tag] = span + 1
-                            dot_row = list(idx_values[ins_row - 1])
-                            dot_row[-1] = u('...')
-                            idx_values.insert(ins_row, tuple(dot_row))
+
+                            # GH 14882 - Make sure insertion done once
+                            if not inserted:
+                                dot_row = list(idx_values[ins_row - 1])
+                                dot_row[-1] = u('...')
+                                idx_values.insert(ins_row, tuple(dot_row))
+                                inserted = True
+                            else:
+                                dot_row = list(idx_values[ins_row])
+                                dot_row[inner_lvl - lnum] = u('...')
+                                idx_values[ins_row] = tuple(dot_row)
                         else:
                             rec_new[tag] = span
                         # If ins_row lies between tags, all cols idx cols
@@ -1267,6 +1276,12 @@ class HTMLFormatter(TableFormatter):
                             if lnum == 0:
                                 idx_values.insert(ins_row, tuple(
                                     [u('...')] * len(level_lengths)))
+
+                            # GH 14882 - Place ... in correct level
+                            elif inserted:
+                                dot_row = list(idx_values[ins_row])
+                                dot_row[inner_lvl - lnum] = u('...')
+                                idx_values[ins_row] = tuple(dot_row)
                     level_lengths[lnum] = rec_new
 
                 level_lengths[inner_lvl][ins_row] = 1
