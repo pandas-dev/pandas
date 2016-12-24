@@ -217,7 +217,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return cls._from_ordinals(data, name=name, freq=freq)
 
         if isinstance(data, PeriodIndex):
-            if freq is None or freq == data.freq:
+            if freq is None or freq == data.freq:  # no freq change
                 freq = data.freq
                 data = data._values
             else:
@@ -227,6 +227,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                                                 base1, base2, 1)
             return cls._simple_new(data, name=name, freq=freq)
 
+        # not array / index
         if not isinstance(data, (np.ndarray, PeriodIndex,
                                  DatetimeIndex, Int64Index)):
             if is_scalar(data) or isinstance(data, Period):
@@ -240,20 +241,20 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
             data = np.asarray(data)
 
+        # datetime other than period
         if np.issubdtype(data.dtype, np.datetime64):
             data = dt64arr_to_periodarr(data, freq, tz)
             return cls._from_ordinals(data, name=name, freq=freq)
 
-        inferred_dtype = infer_dtype(data)
-
-        if inferred_dtype == 'floating' and len(data) > 0:
+        # check not floats
+        if infer_dtype(data) == 'floating' and len(data) > 0:
             raise TypeError("PeriodIndex can't take floats")
 
-        else:
-            data = _ensure_object(data)
-            freq = freq or period.extract_freq(data)
-            data = period.extract_ordinals(data, freq)
-            return cls._from_ordinals(data, name=name, freq=freq)
+        # anything else, likely an array of strings or periods
+        data = _ensure_object(data)
+        freq = freq or period.extract_freq(data)
+        data = period.extract_ordinals(data, freq)
+        return cls._from_ordinals(data, name=name, freq=freq)
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
@@ -276,10 +277,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
-
+        """
+        Values can be any type that can be coerced to Periods.
+        Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
+        """
         if not is_integer_dtype(values):
             values = np.array(values, copy=False)
-            if (len(values) > 0 and is_float_dtype(values)):
+            if len(values) > 0 and is_float_dtype(values):
                 raise TypeError("PeriodIndex can't take floats")
             else:
                 return cls(values, name=name, freq=freq, **kwargs)
@@ -288,6 +292,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _from_ordinals(cls, values, name=None, freq=None, **kwargs):
+        """
+        Values should be int ordinals
+        `__new__` & `_simple_new` cooerce to ordinals and call this method
+        """
 
         values = np.array(values, dtype='int64', copy=False)
 
