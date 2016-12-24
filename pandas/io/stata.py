@@ -169,8 +169,10 @@ def read_stata(filepath_or_buffer, convert_dates=True,
     if iterator or chunksize:
         data = reader
     else:
-        data = reader.read()
-        reader.close()
+        try:
+            data = reader.read()
+        finally:
+            reader.close()
     return data
 
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
