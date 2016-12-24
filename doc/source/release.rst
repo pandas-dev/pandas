@@ -51,7 +51,7 @@ Highlights include:
 - Compatibility with Python 3.6
 - Added a `Pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/master/doc/cheatsheet/Pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`).
 
-See the :ref:`v0.19.1 Whatsnew <whatsnew_0192>` page for an overview of all
+See the :ref:`v0.19.2 Whatsnew <whatsnew_0192>` page for an overview of all
 bugs that have been fixed in 0.19.2.
 
 Thanks
