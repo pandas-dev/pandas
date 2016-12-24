@@ -2466,7 +2466,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                          "Defaulting to column but "
                          "this will raise an ambiguity error in a "
                          "future version") % gpr,
-                        FutureWarning, stacklevel=2)
+                        FutureWarning, stacklevel=3)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 exclusions.append(name)
             elif gpr in obj.index.names:
