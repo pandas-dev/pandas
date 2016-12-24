@@ -7,7 +7,6 @@ source activate pandas
 RET=0
 
 if [ "$LINT" ]; then
-    pip install cpplint
 
     # pandas/rpy is deprecated and will be removed.
     # pandas/src is C code, so no need to search there.
