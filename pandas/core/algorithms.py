@@ -68,7 +68,7 @@ def match(to_match, values, na_sentinel=-1):
     if issubclass(values.dtype.type, string_types):
         values = np.array(values, dtype='O')
 
-    f = lambda htype, caster: _match_generic(to_match, values, htype, caster)
+    f = lambda htype, caster: _match_object(to_match, values, htype, caster)
     result = _hashtable_algo(f, values, np.int64)
 
     if na_sentinel != -1:
@@ -82,7 +82,7 @@ def match(to_match, values, na_sentinel=-1):
     return result
 
 
-def _match_generic(values, index, table_type, type_caster):
+def _match_object(values, index, table_type, type_caster):
     values = type_caster(values)
     index = type_caster(index)
     table = table_type(min(len(index), 1000000))
@@ -105,11 +105,11 @@ def unique(values):
     """
     values = com._asarray_tuplesafe(values)
 
-    f = lambda htype, caster: _unique_generic(values, htype, caster)
+    f = lambda htype, caster: _unique_object(values, htype, caster)
     return _hashtable_algo(f, values)
 
 
-def _unique_generic(values, table_type, type_caster):
+def _unique_object(values, table_type, type_caster):
     values = type_caster(values)
     table = table_type(min(len(values), 1000000))
     uniques = table.unique(values)
@@ -366,6 +366,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     if isinstance(values, Index):
         uniques = values._shallow_copy(uniques, name=None)
     elif isinstance(values, Series):
+        # TODO: This constructor is bugged for uint's, especially
+        # np.uint64 due to overflow. Test this for uint behavior
+        # once constructor has been fixed.
         uniques = Index(uniques)
     return labels, uniques
 
@@ -595,7 +598,27 @@ def mode(values):
 def rank(values, axis=0, method='average', na_option='keep',
          ascending=True, pct=False):
     """
+    Rank the values along a given axis.
 
+    Parameters
+    ----------
+    values : array-like
+        Array whose values will be ranked. The number of dimensions in this
+        array must not exceed 2.
+    axis : int, default 0
+        Axis over which to perform rankings.
+    method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
+        The method by which tiebreaks are broken during the ranking.
+    na_option : {'keep', 'top'}, default 'keep'
+        The method by which NaNs are placed in the ranking.
+        - ``keep``: rank each NaN value with a NaN ranking
+        - ``top``: replace each NaN with either +/- inf so that they
+                   there are ranked at the top
+    ascending : boolean, default True
+        Whether or not the elements should be ranked in ascending order.
+    pct : boolean, default False
+        Whether or not to the display the returned rankings in integer form
+        (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
     if values.ndim == 1:
         f, values = _get_data_algo(values, _rank1d_functions)
@@ -605,6 +628,8 @@ def rank(values, axis=0, method='average', na_option='keep',
         f, values = _get_data_algo(values, _rank2d_functions)
         ranks = f(values, axis=axis, ties_method=method,
                   ascending=ascending, na_option=na_option, pct=pct)
+    else:
+        raise TypeError("Array with ndim > 2 are not supported.")
 
     return ranks
 
@@ -700,13 +725,15 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
 _rank1d_functions = {
     'float64': algos.rank_1d_float64,
     'int64': algos.rank_1d_int64,
-    'generic': algos.rank_1d_generic
+    'uint64': algos.rank_1d_uint64,
+    'object': algos.rank_1d_object
 }
 
 _rank2d_functions = {
     'float64': algos.rank_2d_float64,
     'int64': algos.rank_2d_int64,
-    'generic': algos.rank_2d_generic
+    'uint64': algos.rank_2d_uint64,
+    'object': algos.rank_2d_object
 }
 
 
@@ -934,9 +961,10 @@ def _hashtable_algo(f, values, return_dtype=None):
 
 _hashtables = {
     'float64': (htable.Float64HashTable, htable.Float64Vector),
+    'uint64': (htable.UInt64HashTable, htable.UInt64Vector),
     'int64': (htable.Int64HashTable, htable.Int64Vector),
     'string': (htable.StringHashTable, htable.ObjectVector),
-    'generic': (htable.PyObjectHashTable, htable.ObjectVector)
+    'object': (htable.PyObjectHashTable, htable.ObjectVector)
 }
 
 
@@ -951,11 +979,15 @@ def _get_data_algo(values, func_map):
         f = func_map['int64']
         values = values.view('i8')
 
-    elif is_integer_dtype(values):
+    elif is_signed_integer_dtype(values):
         f = func_map['int64']
         values = _ensure_int64(values)
-    else:
 
+    elif is_unsigned_integer_dtype(values):
+        f = func_map['uint64']
+        values = _ensure_uint64(values)
+
+    else:
         values = _ensure_object(values)
 
         # its cheaper to use a String Hash Table than Object
@@ -966,7 +998,7 @@ def _get_data_algo(values, func_map):
                 pass
 
     if f is None:
-        f = func_map['generic']
+        f = func_map['object']
 
     return f, values
 
@@ -997,7 +1029,7 @@ def _convert_wrapper(f, conv_dtype):
     return wrapper
 
 
-def _take_2d_multi_generic(arr, indexer, out, fill_value, mask_info):
+def _take_2d_multi_object(arr, indexer, out, fill_value, mask_info):
     # this is not ideal, performance-wise, but it's better than raising
     # an exception (best to optimize in Cython to avoid getting here)
     row_idx, col_idx = indexer
@@ -1020,7 +1052,7 @@ def _take_2d_multi_generic(arr, indexer, out, fill_value, mask_info):
             out[i, j] = arr[u_, v]
 
 
-def _take_nd_generic(arr, indexer, out, axis, fill_value, mask_info):
+def _take_nd_object(arr, indexer, out, axis, fill_value, mask_info):
     if mask_info is not None:
         mask, needs_masking = mask_info
     else:
@@ -1171,8 +1203,8 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
 
     def func(arr, indexer, out, fill_value=np.nan):
         indexer = _ensure_int64(indexer)
-        _take_nd_generic(arr, indexer, out, axis=axis, fill_value=fill_value,
-                         mask_info=mask_info)
+        _take_nd_object(arr, indexer, out, axis=axis, fill_value=fill_value,
+                        mask_info=mask_info)
 
     return func
 
@@ -1343,8 +1375,8 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
     if func is None:
 
         def func(arr, indexer, out, fill_value=np.nan):
-            _take_2d_multi_generic(arr, indexer, out, fill_value=fill_value,
-                                   mask_info=mask_info)
+            _take_2d_multi_object(arr, indexer, out, fill_value=fill_value,
+                                  mask_info=mask_info)
 
     func(arr, indexer, out=out, fill_value=fill_value)
     return out

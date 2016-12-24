@@ -969,21 +969,44 @@ def test_unique_label_indices():
                                 check_dtype=False)
 
 
-def test_rank():
-    tm._skip_if_no_scipy()
-    from scipy.stats import rankdata
+class TestRank(tm.TestCase):
 
-    def _check(arr):
-        mask = ~np.isfinite(arr)
-        arr = arr.copy()
-        result = _algos.rank_1d_float64(arr)
-        arr[mask] = np.inf
-        exp = rankdata(arr)
-        exp[mask] = nan
-        assert_almost_equal(result, exp)
+    def test_scipy_compat(self):
+        tm._skip_if_no_scipy()
+        from scipy.stats import rankdata
 
-    _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
-    _check(np.array([4., nan, 5., 5., 5., nan, 1, 2, 4., nan]))
+        def _check(arr):
+            mask = ~np.isfinite(arr)
+            arr = arr.copy()
+            result = _algos.rank_1d_float64(arr)
+            arr[mask] = np.inf
+            exp = rankdata(arr)
+            exp[mask] = nan
+            assert_almost_equal(result, exp)
+
+        _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
+        _check(np.array([4., nan, 5., 5., 5., nan, 1, 2, 4., nan]))
+
+    def test_basic(self):
+        exp = np.array([1, 2], dtype=np.float64)
+
+        for dtype in np.typecodes['AllInteger']:
+            s = Series([1, 100], dtype=dtype)
+            tm.assert_numpy_array_equal(algos.rank(s), exp)
+
+    def test_uint64_overflow(self):
+        exp = np.array([1, 2], dtype=np.float64)
+
+        for dtype in [np.float64, np.uint64]:
+            s = Series([1, 2**63], dtype=dtype)
+            tm.assert_numpy_array_equal(algos.rank(s), exp)
+
+    def test_too_many_ndims(self):
+        arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
+        msg = "Array with ndim > 2 are not supported"
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            algos.rank(arr)
 
 
 def test_pad_backfill_object_segfault():
