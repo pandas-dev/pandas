@@ -4288,6 +4288,8 @@ class DataFrame(NDFrame):
 
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
+            if x.empty:
+                return lib.map_infer(x, func)
             return lib.map_infer(x.asobject, func)
 
         return self.apply(infer)
