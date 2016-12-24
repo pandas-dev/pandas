@@ -175,6 +175,7 @@ def read_stata(filepath_or_buffer, convert_dates=True,
             reader.close()
     return data
 
+
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
 
