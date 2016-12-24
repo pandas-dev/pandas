@@ -1,3 +1,4 @@
 python-dateutil
 pytz
 numpy
+scipy

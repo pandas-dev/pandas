@@ -2466,7 +2466,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                          "Defaulting to column but "
                          "this will raise an ambiguity error in a "
                          "future version") % gpr,
-                        FutureWarning, stacklevel=2)
+                        FutureWarning, stacklevel=5)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 exclusions.append(name)
             elif gpr in obj.index.names:
@@ -4025,7 +4025,9 @@ class DataSplitter(object):
         sdata = self._get_sorted_data()
 
         if self.ngroups == 0:
-            raise StopIteration
+            # we are inside a generator, rather than raise StopIteration
+            # we merely return signal the end
+            return
 
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 

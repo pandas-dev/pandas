@@ -385,14 +385,20 @@ def _read(filepath_or_buffer, kwds):
         raise NotImplementedError("'nrows' and 'chunksize' cannot be used"
                                   " together yet.")
     elif nrows is not None:
-        data = parser.read(nrows)
-        parser.close()
+        try:
+            data = parser.read(nrows)
+        finally:
+            parser.close()
         return data
+
     elif chunksize or iterator:
         return parser
 
-    data = parser.read()
-    parser.close()
+    try:
+        data = parser.read()
+    finally:
+        parser.close()
+
     return data
 
 _parser_defaults = {
