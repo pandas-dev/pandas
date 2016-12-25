@@ -4,7 +4,7 @@
 .. ipython:: python
    :suppress:
 
-   from datetime import datetime, timedelta
+   import datetime
    import numpy as np
    import pandas as pd
    np.random.seed(123456)
@@ -51,8 +51,8 @@ You can construct a ``Timedelta`` scalar through various arguments:
    # integers with a unit
    pd.Timedelta(1, unit='d')
 
-   # from a timedelta/np.timedelta64
-   pd.Timedelta(timedelta(days=1, seconds=1))
+   # from a datetime.timedelta/np.timedelta64
+   pd.Timedelta(datetime.timedelta(days=1, seconds=1))
    pd.Timedelta(np.timedelta64(1, 'ms'))
 
    # negative Timedeltas have this string repr
@@ -141,8 +141,8 @@ subtraction operations on ``datetime64[ns]`` Series, or ``Timestamps``.
    df.dtypes
 
    s - s.max()
-   s - datetime(2011, 1, 1, 3, 5)
-   s + timedelta(minutes=5)
+   s - datetime.datetime(2011, 1, 1, 3, 5)
+   s + datetime.timedelta(minutes=5)
    s + Minute(5)
    s + Minute(5) + Milli(5)
 
@@ -172,8 +172,8 @@ Operands can also appear in a reversed order (a singular object operated with a 
 .. ipython:: python
 
    s.max() - s
-   datetime(2011, 1, 1, 3, 5) - s
-   timedelta(minutes=5) + s
+   datetime.datetime(2011, 1, 1, 3, 5) - s
+   datetime.timedelta(minutes=5) + s
 
 ``min, max`` and the corresponding ``idxmin, idxmax`` operations are supported on frames:
 
@@ -252,7 +252,7 @@ Note that division by the numpy scalar is true division, while astyping is equiv
 
    td = pd.Series(pd.date_range('20130101', periods=4)) - \
         pd.Series(pd.date_range('20121201', periods=4))
-   td[2] += timedelta(minutes=5, seconds=3)
+   td[2] += datetime.timedelta(minutes=5, seconds=3)
    td[3] = np.nan
    td
 
@@ -326,7 +326,7 @@ or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent miss
 .. ipython:: python
 
    pd.TimedeltaIndex(['1 days', '1 days, 00:00:05',
-                     np.timedelta64(2,'D'), timedelta(days=2,seconds=2)])
+                     np.timedelta64(2,'D'), datetime.timedelta(days=2,seconds=2)])
 
 Similarly to ``date_range``, you can construct regular ranges of a ``TimedeltaIndex``:
 
