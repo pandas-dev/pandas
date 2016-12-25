@@ -15,7 +15,6 @@
    import dateutil
    import pytz
    from dateutil.relativedelta import relativedelta
-   from pandas.tseries.api import *
    from pandas.tseries.offsets import *
 
 .. _timedeltas.timedeltas:
@@ -93,21 +92,21 @@ You can parse a single string to a Timedelta:
 
 .. ipython:: python
 
-   to_timedelta('1 days 06:05:01.00003')
-   to_timedelta('15.5us')
+   pd.to_timedelta('1 days 06:05:01.00003')
+   pd.to_timedelta('15.5us')
 
 or a list/array of strings:
 
 .. ipython:: python
 
-   to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
+   pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
 
 The ``unit`` keyword argument specifies the unit of the Timedelta:
 
 .. ipython:: python
 
-   to_timedelta(np.arange(5), unit='s')
-   to_timedelta(np.arange(5), unit='d')
+   pd.to_timedelta(np.arange(5), unit='s')
+   pd.to_timedelta(np.arange(5), unit='d')
 
 .. _timedeltas.limitations:
 
@@ -133,7 +132,7 @@ subtraction operations on ``datetime64[ns]`` Series, or ``Timestamps``.
 
 .. ipython:: python
 
-   s = pd.Series(date_range('2012-1-1', periods=3, freq='D'))
+   s = pd.Series(pd.date_range('2012-1-1', periods=3, freq='D'))
    td = pd.Series([ pd.Timedelta(days=i) for i in range(3) ])
    df = pd.DataFrame(dict(A = s, B = td))
    df
@@ -181,7 +180,7 @@ Operands can also appear in a reversed order (a singular object operated with a 
 .. ipython:: python
 
    A = s - pd.Timestamp('20120101') - pd.Timedelta('00:05:05')
-   B = s - pd.Series(date_range('2012-1-2', periods=3, freq='D'))
+   B = s - pd.Series(pd.date_range('2012-1-2', periods=3, freq='D'))
 
    df = pd.DataFrame(dict(A=A, B=B))
    df
@@ -231,7 +230,7 @@ Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` ob
 
 .. ipython:: python
 
-   y2 = pd.Series(to_timedelta(['-1 days +00:00:05', 'nat', '-1 days +00:00:05', '1 days']))
+   y2 = pd.Series(pd.to_timedelta(['-1 days +00:00:05', 'nat', '-1 days +00:00:05', '1 days']))
    y2
    y2.mean()
    y2.median()
@@ -251,8 +250,8 @@ Note that division by the numpy scalar is true division, while astyping is equiv
 
 .. ipython:: python
 
-   td = pd.Series(date_range('20130101', periods=4)) - \
-        pd.Series(date_range('20121201', periods=4))
+   td = pd.Series(pd.date_range('20130101', periods=4)) - \
+        pd.Series(pd.date_range('20121201', periods=4))
    td[2] += timedelta(minutes=5, seconds=3)
    td[3] = np.nan
    td
@@ -333,8 +332,8 @@ Similarly to ``date_range``, you can construct regular ranges of a ``TimedeltaIn
 
 .. ipython:: python
 
-   timedelta_range(start='1 days', periods=5, freq='D')
-   timedelta_range(start='1 days', end='2 days', freq='30T')
+   pd.timedelta_range(start='1 days', periods=5, freq='D')
+   pd.timedelta_range(start='1 days', end='2 days', freq='30T')
 
 Using the TimedeltaIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -345,7 +344,7 @@ Similarly to other of the datetime-like indices, ``DatetimeIndex`` and ``PeriodI
 .. ipython:: python
 
    s = pd.Series(np.arange(100),
-                 index=timedelta_range('1 days', periods=100, freq='h'))
+                 index=pd.timedelta_range('1 days', periods=100, freq='h'))
    s
 
 Selections work similarly, with coercion on string-likes and slices:
@@ -371,7 +370,7 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 
    tdi = pd.TimedeltaIndex(['1 days', pd.NaT, '2 days'])
    tdi.tolist()
-   dti = date_range('20130101', periods=3)
+   dti = pd.date_range('20130101', periods=3)
    dti.tolist()
    (dti + tdi).tolist()
    (dti - tdi).tolist()
