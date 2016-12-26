@@ -571,8 +571,8 @@ class SparseDataFrame(DataFrame):
             new_series, index=index, columns=self.columns,
             default_fill_value=self._default_fill_value).__finalize__(self)
 
-    def _reindex_columns(self, columns, copy, level, fill_value, limit=None,
-                         takeable=False):
+    def _reindex_columns(self, columns, method, copy, level, fill_value,
+                         limit=None, takeable=False):
         if level is not None:
             raise TypeError('Reindex by level not supported for sparse')
 
