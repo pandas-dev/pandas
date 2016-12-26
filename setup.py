@@ -112,7 +112,7 @@ from os.path import join as pjoin
 _pxipath = pjoin('pandas', 'src')
 _pxi_dep_template = {
     'algos': ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
-              'algos_take_helper.pxi.in'],
+              'algos_take_helper.pxi.in', 'algos_rank_helper.pxi.in'],
     '_join': ['join_helper.pxi.in', 'joins_func_helper.pxi.in'],
     'hashtable': ['hashtable_class_helper.pxi.in',
                   'hashtable_func_helper.pxi.in'],
@@ -637,6 +637,7 @@ setup(name=DISTNAME,
                 'pandas.tests',
                 'pandas.tests.frame',
                 'pandas.tests.indexes',
+                'pandas.tests.groupby',
                 'pandas.tests.series',
                 'pandas.tests.formats',
                 'pandas.tests.types',

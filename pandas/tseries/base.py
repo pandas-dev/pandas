@@ -16,6 +16,7 @@ from pandas.types.generic import (ABCIndex, ABCSeries,
                                   ABCPeriodIndex, ABCIndexClass)
 from pandas.types.missing import isnull
 from pandas.core import common as com, algorithms
+from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
 
 import pandas.formats.printing as printing
@@ -688,7 +689,8 @@ class DatetimeIndexOpsMixin(object):
         # return the i8 result view
 
         inc = tslib._delta_to_nanoseconds(other)
-        new_values = (self.asi8 + inc).view('i8')
+        new_values = checked_add_with_arr(self.asi8, inc,
+                                          arr_mask=self._isnan).view('i8')
         if self.hasnans:
             new_values[self._isnan] = tslib.iNaT
         return new_values.view('i8')
@@ -703,7 +705,9 @@ class DatetimeIndexOpsMixin(object):
 
         self_i8 = self.asi8
         other_i8 = other.asi8
-        new_values = self_i8 + other_i8
+        new_values = checked_add_with_arr(self_i8, other_i8,
+                                          arr_mask=self._isnan,
+                                          b_mask=other._isnan)
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = tslib.iNaT

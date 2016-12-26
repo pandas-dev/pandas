@@ -90,7 +90,15 @@ if [ -e ${INSTALL} ]; then
 else
 
     # create new env
-    time conda create -n pandas python=$PYTHON_VERSION nose coverage flake8 || exit 1
+    time conda create -n pandas python=$PYTHON_VERSION nose || exit 1
+
+    if [ "$COVERAGE" ]; then
+        pip install coverage
+    fi
+    if [ "$LINT" ]; then
+        conda install flake8
+        pip install cpplint
+    fi
 fi
 
 # build deps

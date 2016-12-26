@@ -1051,17 +1051,6 @@ class TestIndexOps(Ops):
             self.assertTrue(0 <= index <= len(o))
 
 
-class TestFloat64HashTable(tm.TestCase):
-
-    def test_lookup_nan(self):
-        from pandas.hashtable import Float64HashTable
-        xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
-        m = Float64HashTable()
-        m.map_locations(xs)
-        self.assert_numpy_array_equal(m.lookup(xs),
-                                      np.arange(len(xs), dtype=np.int64))
-
-
 class TestTranspose(Ops):
     errmsg = "the 'axes' parameter is not supported"
 

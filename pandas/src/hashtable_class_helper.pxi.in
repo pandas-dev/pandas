@@ -17,7 +17,8 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 dtypes = [('Float64', 'float64', 'float64_t'),
           ('Int64', 'int64', 'int64_t'),
-          ('String', 'string', 'char *')]
+          ('String', 'string', 'char *'),
+          ('UInt64', 'uint64', 'uint64_t')]
 }}
 
 {{for name, dtype, arg in dtypes}}
@@ -40,6 +41,7 @@ cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
 
 ctypedef fused vector_data:
     Int64VectorData
+    UInt64VectorData
     Float64VectorData
     StringVectorData
 
@@ -54,6 +56,7 @@ cdef inline bint needs_resize(vector_data *data) nogil:
 
 # name, dtype, arg, idtype
 dtypes = [('Float64', 'float64', 'float64_t', 'np.float64'),
+          ('UInt64', 'uint64', 'uint64_t', 'np.uint64'),
           ('Int64', 'int64', 'int64_t', 'np.int64')]
 
 }}
@@ -201,6 +204,7 @@ cdef class HashTable:
 
 # name, dtype, null_condition, float_group
 dtypes = [('Float64', 'float64', 'val != val', True),
+          ('UInt64', 'uint64', 'False', False),
           ('Int64', 'int64', 'val == iNaT', False)]
 
 }}

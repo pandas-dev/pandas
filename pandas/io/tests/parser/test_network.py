@@ -12,7 +12,6 @@ from itertools import product
 
 import pandas.util.testing as tm
 from pandas import DataFrame
-from pandas import compat
 from pandas.io.parsers import read_csv, read_table
 
 
@@ -39,7 +38,7 @@ class TestCompressedUrl(object):
         for compression, extension in self.compression_to_extension.items():
             url = self.base_url + extension
             # args is a (compression, engine) tuple
-            for args in product([compression, 'infer'], ['python']):
+            for args in product([compression, 'infer'], ['python', 'c']):
                 # test_fxn is a workaround for more descriptive nose reporting.
                 # See http://stackoverflow.com/a/37393684/4651668.
                 test_fxn = functools.partial(self.check_table)
@@ -57,25 +56,19 @@ class TestS3(tm.TestCase):
 
     def setUp(self):
         try:
-            import boto  # noqa
+            import s3fs  # noqa
         except ImportError:
-            raise nose.SkipTest("boto not installed")
+            raise nose.SkipTest("s3fs not installed")
 
     @tm.network
     def test_parse_public_s3_bucket(self):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
-            if comp == 'bz2' and compat.PY2:
-                # The Python 2 C parser can't read bz2 from S3.
-                self.assertRaises(ValueError, read_csv,
-                                  's3://pandas-test/tips.csv' + ext,
-                                  compression=comp)
-            else:
-                df = read_csv('s3://pandas-test/tips.csv' +
-                              ext, compression=comp)
-                self.assertTrue(isinstance(df, DataFrame))
-                self.assertFalse(df.empty)
-                tm.assert_frame_equal(read_csv(
-                    tm.get_data_path('tips.csv')), df)
+            df = read_csv('s3://pandas-test/tips.csv' +
+                          ext, compression=comp)
+            self.assertTrue(isinstance(df, DataFrame))
+            self.assertFalse(df.empty)
+            tm.assert_frame_equal(read_csv(
+                tm.get_data_path('tips.csv')), df)
 
         # Read public file from bucket with not-public contents
         df = read_csv('s3://cant_get_it/tips.csv')
@@ -104,18 +97,12 @@ class TestS3(tm.TestCase):
     @tm.network
     def test_parse_public_s3_bucket_nrows(self):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
-            if comp == 'bz2' and compat.PY2:
-                # The Python 2 C parser can't read bz2 from S3.
-                self.assertRaises(ValueError, read_csv,
-                                  's3://pandas-test/tips.csv' + ext,
-                                  compression=comp)
-            else:
-                df = read_csv('s3://pandas-test/tips.csv' +
-                              ext, nrows=10, compression=comp)
-                self.assertTrue(isinstance(df, DataFrame))
-                self.assertFalse(df.empty)
-                tm.assert_frame_equal(read_csv(
-                    tm.get_data_path('tips.csv')).iloc[:10], df)
+            df = read_csv('s3://pandas-test/tips.csv' +
+                          ext, nrows=10, compression=comp)
+            self.assertTrue(isinstance(df, DataFrame))
+            self.assertFalse(df.empty)
+            tm.assert_frame_equal(read_csv(
+                tm.get_data_path('tips.csv')).iloc[:10], df)
 
     @tm.network
     def test_parse_public_s3_bucket_chunked(self):
@@ -123,24 +110,18 @@ class TestS3(tm.TestCase):
         chunksize = 5
         local_tips = read_csv(tm.get_data_path('tips.csv'))
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
-            if comp == 'bz2' and compat.PY2:
-                # The Python 2 C parser can't read bz2 from S3.
-                self.assertRaises(ValueError, read_csv,
-                                  's3://pandas-test/tips.csv' + ext,
-                                  compression=comp)
-            else:
-                df_reader = read_csv('s3://pandas-test/tips.csv' + ext,
-                                     chunksize=chunksize, compression=comp)
-                self.assertEqual(df_reader.chunksize, chunksize)
-                for i_chunk in [0, 1, 2]:
-                    # Read a couple of chunks and make sure we see them
-                    # properly.
-                    df = df_reader.get_chunk()
-                    self.assertTrue(isinstance(df, DataFrame))
-                    self.assertFalse(df.empty)
-                    true_df = local_tips.iloc[
-                        chunksize * i_chunk: chunksize * (i_chunk + 1)]
-                    tm.assert_frame_equal(true_df, df)
+            df_reader = read_csv('s3://pandas-test/tips.csv' + ext,
+                                 chunksize=chunksize, compression=comp)
+            self.assertEqual(df_reader.chunksize, chunksize)
+            for i_chunk in [0, 1, 2]:
+                # Read a couple of chunks and make sure we see them
+                # properly.
+                df = df_reader.get_chunk()
+                self.assertTrue(isinstance(df, DataFrame))
+                self.assertFalse(df.empty)
+                true_df = local_tips.iloc[
+                    chunksize * i_chunk: chunksize * (i_chunk + 1)]
+                tm.assert_frame_equal(true_df, df)
 
     @tm.network
     def test_parse_public_s3_bucket_chunked_python(self):
@@ -193,15 +174,12 @@ class TestS3(tm.TestCase):
 
     @tm.network
     def test_s3_fails(self):
-        import boto
-        with tm.assertRaisesRegexp(boto.exception.S3ResponseError,
-                                   'S3ResponseError: 404 Not Found'):
+        with tm.assertRaises(IOError):
             read_csv('s3://nyqpug/asdf.csv')
 
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
-        with tm.assertRaisesRegexp(boto.exception.S3ResponseError,
-                                   'S3ResponseError: 403 Forbidden'):
+        with tm.assertRaises(IOError):
             read_csv('s3://cant_get_it/')
 
 if __name__ == '__main__':

@@ -12,6 +12,12 @@ from pandas.formats.printing import pprint_thing
 from pandas.core.common import AbstractMethodError
 from pandas.types.common import is_number
 
+try:
+    from s3fs import S3File
+    need_text_wrapping = (BytesIO, S3File)
+except ImportError:
+    need_text_wrapping = (BytesIO,)
+
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
@@ -187,8 +193,8 @@ def _stringify_path(filepath_or_buffer):
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                            compression=None):
     """
-    If the filepath_or_buffer is a url, translate and return the buffer
-    passthru otherwise.
+    If the filepath_or_buffer is a url, translate and return the buffer.
+    Otherwise passthrough.
 
     Parameters
     ----------
@@ -212,10 +218,10 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         return reader, encoding, compression
 
     if _is_s3_url(filepath_or_buffer):
-        from pandas.io.s3 import get_filepath_or_buffer
-        return get_filepath_or_buffer(filepath_or_buffer,
-                                      encoding=encoding,
-                                      compression=compression)
+        from pandas.io import s3
+        return s3.get_filepath_or_buffer(filepath_or_buffer,
+                                         encoding=encoding,
+                                         compression=compression)
 
     # It is a pathlib.Path/py.path.local or string
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
@@ -247,23 +253,26 @@ _compression_to_extension = {
 
 def _infer_compression(filepath_or_buffer, compression):
     """
-    Get file handle for given path/buffer and mode.
+    Get the compression method for filepath_or_buffer. If compression='infer',
+    the inferred compression method is returned. Otherwise, the input
+    compression method is returned unchanged, unless it's invalid, in which
+    case an error is raised.
 
     Parameters
     ----------
     filepath_or_buf :
         a path (str) or buffer
-    compression : str, or None
+    compression : str or None
+        the compression method including None for no compression and 'infer'
 
     Returns
     -------
-    string compression method, None
+    string or None :
+        compression method
 
     Raises
     ------
     ValueError on invalid compression specified
-
-    If compression='infer', infer compression. If compression
     """
 
     # No compression has been explicitly specified
@@ -388,7 +397,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         handles.append(f)
 
     # in Python 3, convert BytesIO or fileobjects passed with an encoding
-    if compat.PY3 and (compression or isinstance(f, compat.BytesIO)):
+    if compat.PY3 and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
         f = TextIOWrapper(f, encoding=encoding)
         handles.append(f)

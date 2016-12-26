@@ -23,6 +23,8 @@ New features
 ~~~~~~~~~~~~
 
 
+.. _whatsnew_0200.enhancements.dataio_dtype:
+
 ``dtype`` keyword for data IO
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -64,6 +66,27 @@ Strings passed to ``DataFrame.groupby()`` as the ``by`` parameter may now refere
 
    df.groupby(['second', 'A']).sum()
 
+.. _whatsnew_0200.enhancements.compressed_urls:
+
+Better support for compressed URLs in ``read_csv``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The compression code was refactored (:issue:`12688`). As a result, reading
+dataframes from URLs in :func:`read_csv` or :func:`read_table` now supports
+additional compression methods: ``xz``, ``bz2``, and ``zip`` (:issue:`14570`).
+Previously, only ``gzip`` compression was supported. By default, compression of
+URLs and paths are now both inferred using their file extensions. Additionally,
+support for bz2 compression in the python 2 c-engine improved (:issue:`14874`).
+
+.. ipython:: python
+   url = 'https://github.com/{repo}/raw/{branch}/{path}'.format(
+       repo = 'pandas-dev/pandas',
+       branch = 'master',
+       path = 'pandas/io/tests/parser/data/salaries.csv.bz2',
+   )
+   df = pd.read_table(url, compression='infer')  # default, infer compression
+   df = pd.read_table(url, compression='bz2')  # explicitly specify compression
+   df.head(2)
 
 .. _whatsnew_0200.enhancements.other:
 
@@ -78,19 +101,20 @@ Other enhancements
   unsorted MultiIndex (:issue:`11897`). This allows differentiation between errors due to lack
   of sorting or an incorrect key. See :ref:`here <advanced.unsorted>`
 
-- ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (:issue:`14714`)
+- ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (:issue:`14714`, :issue:`14798`)
 - ``Series`` provides a ``to_excel`` method to output Excel files (:issue:`8825`)
 - The ``usecols`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`14154`)
 - ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
 - ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 
+- ``.select_dtypes()`` now allows the string 'datetimetz' to generically select datetimes with tz (:issue:`14910`)
+
 
 .. _whatsnew_0200.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 .. _whatsnew.api_breaking.index_map
 
@@ -135,7 +159,7 @@ Map on Index types now return other Index types
       mi.map(lambda x: x[0])
 
 
--  ``map`` on a Series with datetime64 values may return int64 dtypes rather than int32
+-  ``map`` on a ``Series`` with ``datetime64`` values may return ``int64`` dtypes rather than ``int32``
 
   .. ipython:: python
 
@@ -160,24 +184,68 @@ Map on Index types now return other Index types
 
     s.map(lambda x: x.hour)
 
+.. _whatsnew_0200.api_breaking.s3:
 
-  .. _whatsnew_0200.api:
+S3 File Handling
+^^^^^^^^^^^^^^^^
 
-- ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
-- ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)
+pandas now uses `s3fs <http://s3fs.readthedocs.io/>`_ for handling S3 connections. This shouldn't break
+any code. However, since s3fs is not a required dependency, you will need to install it separately, like ``boto``
+in prior versions of pandas. (:issue:`11915`).
+
+.. _whatsnew_0200.api_breaking.partial_string_indexing:
+
+Partial String Indexing Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>` now works as exact match, provided that string resolution coincides with index resolution, including a case when both are seconds (:issue:`14826`). See :ref:`Slice vs. Exact Match <timeseries.slice_vs_exact_match>` for details.
+
+.. ipython:: python
+
+  df = DataFrame({'a': [1, 2, 3]}, DatetimeIndex(['2011-12-31 23:59:59',
+                                                  '2012-01-01 00:00:00',
+                                                  '2012-01-01 00:00:01']))
+Previous Behavior:
+
+.. code-block:: ipython
+
+  In [4]: df['2011-12-31 23:59:59']
+  Out[4]:
+                         a
+  2011-12-31 23:59:59  1
+
+  In [5]: df['a']['2011-12-31 23:59:59']
+  Out[5]:
+  2011-12-31 23:59:59    1
+  Name: a, dtype: int64
 
 
+New Behavior:
 
+.. code-block:: ipython
+
+  In [4]: df['2011-12-31 23:59:59']
+  KeyError: '2011-12-31 23:59:59'
+
+  In [5]: df['a']['2011-12-31 23:59:59']
+  Out[5]: 1
+
+.. _whatsnew_0200.api:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
+- ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)
+- ``DataFrame.applymap()`` with an empty ``DataFrame`` will return a copy of the empty ``DataFrame`` instead of a ``Series`` (:issue:`8222`)
 
 .. _whatsnew_0200.deprecations:
 
 Deprecations
 ^^^^^^^^^^^^
 
+- ``SparseArray.to_dense()`` has deprecated the ``fill`` parameter, as that parameter was not being respected (:issue:`14647`)
+- ``SparseSeries.to_dense()`` has deprecated the ``sparse_only`` parameter (:issue:`14647`)
 - ``Series.repeat()`` has deprecated the ``reps`` parameter in favor of ``repeats`` (:issue:`12662`)
 - ``Index.repeat()`` and ``MultiIndex.repeat()`` have deprecated the ``n`` parameter in favor of ``repeats`` (:issue:`12662`)
 - ``Categorical.searchsorted()`` and ``Series.searchsorted()`` have deprecated the ``v`` parameter in favor of ``value`` (:issue:`12662`)
@@ -192,8 +260,6 @@ Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
-- ``SparseArray.to_dense()`` has deprecated the ``fill`` parameter, as that parameter was not being respected (:issue:`14647`)
-- ``SparseSeries.to_dense()`` has deprecated the ``sparse_only`` parameter (:issue:`14647`)
 
 
 
@@ -213,7 +279,28 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
+- Bug in ``DataFrame`` construction in which unsigned 64-bit integer elements were being converted to objects (:issue:`14881`)
 - Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
+- Bug in ``DataFrame(..).apply(to_numeric)`` when values are of type decimal.Decimal. (:issue:`14827`)
+- Bug in ``describe()`` when passing a numpy array which does not contain the median to the ``percentiles`` keyword argument (:issue:`14908`)
+- Bug in ``DataFrame.sort_values()`` when sorting by multiple columns where one column is of type ``int64`` and contains ``NaT`` (:issue:`14922`)
+
+
+- Bug in ``pd.read_msgpack()`` in which ``Series`` categoricals were being improperly processed (:issue:`14901`)
+- Bug in ``Series.ffill()`` with mixed dtypes containing tz-aware datetimes. (:issue:`14956`)
+
+
+
+- Bug in ``Series`` construction with a datetimetz (:issue:`14928`)
+
+
+
+
+
+
+- Bug in ``Series.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14721`)
+- Bug in ``pd.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14915`)
 
 
 
@@ -229,3 +316,5 @@ Bug Fixes
 
 
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
+- Bug in converting object elements of array-like objects to unsigned 64-bit integers (:issue:`4471`)
+- Bug in ``pd.pivot_table()`` where no error was raised when values argument was not in the columns (:issue:`14938`)
