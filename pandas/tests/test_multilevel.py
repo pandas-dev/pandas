@@ -2450,16 +2450,11 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_searchsorted(self):
         # GH 14833
-        # Test if MultiIndex searchsorted returns the right results for both left and right search sorted
-        df_mi = pd.MultiIndex([[0,1], ["a","c"]], [[0,0,1], [0,1,1]])
-        expected_left = list([0,1,3,1])
-        expected_right = list([0,1,3,2])
-
-        result_left = df_mi.searchsorted([(-1, "b"),(0,"b"),(2,"a"),(0,"c")],side='left')
-        result_right = df_mi.searchsorted([(-1, "b"),(0,"b"),(2,"a"),(0,"c")],side='right')
-
-        self.assertEqual(result_left,expected_left)
-        self.assertEqual(result_right,expected_right)
+        # Test if MultiIndex searchsorted raises the NotImplementedException
+        df_mi = pd.MultiIndex([[0], ["a"]], [[0], [0]])
+        with self.assertRaises(Exception) as context:
+            df_mi.searchsorted((1, "b"))
+        self.assertTrue(context.exception,NotImplementedError())
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
