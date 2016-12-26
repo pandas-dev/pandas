@@ -7,7 +7,7 @@ from pandas.compat import string_types, string_and_binary_types
 
 
 # numpy versioning
-_np_version = np.version.short_version
+_np_version = np.__version__
 _nlv = LooseVersion(_np_version)
 _np_version_under1p8 = _nlv < '1.8'
 _np_version_under1p9 = _nlv < '1.9'
@@ -15,7 +15,7 @@ _np_version_under1p10 = _nlv < '1.10'
 _np_version_under1p11 = _nlv < '1.11'
 _np_version_under1p12 = _nlv < '1.12'
 
-if LooseVersion(_np_version) < '1.7.0':
+if _nlv < '1.7.0':
     raise ImportError('this version of pandas is incompatible with '
                       'numpy < 1.7.0\n'
                       'your numpy version is {0}.\n'
