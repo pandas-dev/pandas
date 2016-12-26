@@ -123,18 +123,18 @@ There are four sections covering selected topics as follows:
 
 -  `Time Series <http://wavedatalab.github.io/datawithpython/timeseries.html>`_
 
-.. _tutorial-modern:
+.. _tutorial-exercises-new-users:
 
 Exercises for New Users
------------------------------------
-Practice your skilss with real data sets and exercises.
+-----------------------
+Practice your skills with real data sets and exercises.
 For more resources, please visit the main `repository <https://github.com/guipsamora/pandas_exercises>`_.
 
 - `01 - Getting & Knowing Your Data <https://github.com/guipsamora/pandas_exercises/tree/master/01_Getting_%26_Knowing_Your_Data>`_
 
 - `02 - Filtering & Sorting <https://github.com/guipsamora/pandas_exercises/tree/master/02_Filtering_%26_Sorting>`_
 
-- `03 - Grouping<https://github.com/guipsamora/pandas_exercises/tree/master/03_Grouping>`_
+- `03 - Grouping <https://github.com/guipsamora/pandas_exercises/tree/master/03_Grouping>`_
 
 - `04 - Apply <https://github.com/guipsamora/pandas_exercises/tree/master/04_Apply>`_
 
@@ -149,6 +149,8 @@ For more resources, please visit the main `repository <https://github.com/guipsa
 - `09 - Time Series <https://github.com/guipsamora/pandas_exercises/tree/master/09_Time_Series>`_
 
 - `10 - Deleting <https://github.com/guipsamora/pandas_exercises/tree/master/10_Deleting>`_
+
+.. _tutorial-modern:
 
 Modern Pandas
 -------------
