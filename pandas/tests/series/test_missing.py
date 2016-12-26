@@ -295,6 +295,11 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         self.assertRaises(TypeError, s.fillna, [1, 2])
         self.assertRaises(TypeError, s.fillna, (1, 2))
 
+        # related GH 9217, make sure limit is greater than 0
+        for limit in [-1, 0]:
+            s = Series([1, 2, 3, None])
+            tm.assertRaises(ValueError, lambda: s.fillna(1, limit=limit))
+
     def test_fillna_nat(self):
         series = Series([0, 1, 2, tslib.iNaT], dtype='M8[ns]')
 
@@ -864,6 +869,11 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         expected = Series([1., 3., 5., 7., np.nan, 11.])
         result = s.interpolate(method='linear', limit=2)
         assert_series_equal(result, expected)
+
+        # GH 9217
+        for limit in [-1, 0]:
+            s = pd.Series([1, 2, np.nan, np.nan, 5])
+            tm.assertRaises(ValueError, lambda: s.interpolate(limit=limit))
 
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
