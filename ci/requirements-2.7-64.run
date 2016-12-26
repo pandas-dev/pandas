@@ -3,7 +3,7 @@ pytz
 numpy=1.10*
 xlwt
 numexpr
-pytables
+pytables==3.2.2
 matplotlib
 openpyxl
 xlrd
