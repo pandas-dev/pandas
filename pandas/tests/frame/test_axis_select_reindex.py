@@ -297,6 +297,35 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         newFrame = self.frame.reindex(columns=[])
         self.assertTrue(newFrame.empty)
 
+        # GH 14992, reindexing over columns ignored method
+        df = DataFrame(data=[[11, 12, 13], [21, 22, 23], [31, 32, 33]],
+                       index=[1, 2, 4],
+                       columns=[1, 2, 4],
+                       dtype=float)
+        expected_def = DataFrame(data=[[np.nan, 11, 12, np.nan, 13, np.nan],
+                                       [np.nan, 21, 22, np.nan, 23, np.nan],
+                                       [np.nan, 31, 32, np.nan, 33, np.nan]],
+                                 index=[1, 2, 4],
+                                 columns=range(6),
+                                 dtype=float)
+        expected_ffill = DataFrame(data=[[np.nan, 11, 12, 12, 13, 13],
+                                         [np.nan, 21, 22, 22, 23, 23],
+                                         [np.nan, 31, 32, 32, 33, 33]],
+                                   index=[1, 2, 4],
+                                   columns=range(6),
+                                   dtype=float)
+        expected_bfill = DataFrame(data=[[11, 11, 12, 13, 13, np.nan],
+                                         [21, 21, 22, 23, 23, np.nan],
+                                         [31, 31, 32, 33, 33, np.nan]],
+                                   index=[1, 2, 4],
+                                   columns=range(6),
+                                   dtype=float)
+        assert_frame_equal(df.reindex(columns=range(6)), expected_def)
+        assert_frame_equal(df.reindex(columns=range(6), method='ffill'),
+                           expected_ffill)
+        assert_frame_equal(df.reindex(columns=range(6), method='bfill'),
+                           expected_bfill)
+
     def test_reindex_axes(self):
         # GH 3317, reindexing by both axes loses freq of the index
         df = DataFrame(np.ones((3, 3)),
