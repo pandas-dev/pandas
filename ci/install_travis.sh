@@ -71,7 +71,8 @@ else
     conda config --set always_yes true --set changeps1 false || exit 1
     conda update -q conda
 
-    # add the pandas channel *before* defaults to have defaults take priority
+    # add the pandas channel to take priority
+    # to add extra packages
     echo "add channels"
     conda config --add channels pandas || exit 1
     conda config --remove channels defaults || exit 1

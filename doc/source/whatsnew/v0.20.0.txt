@@ -22,6 +22,9 @@ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
+- Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
+
+
 
 .. _whatsnew_0200.enhancements.dataio_dtype:
 

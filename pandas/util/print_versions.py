@@ -80,6 +80,7 @@ def show_versions(as_json=False):
         ("bottleneck", lambda mod: mod.__version__),
         ("tables", lambda mod: mod.__version__),
         ("numexpr", lambda mod: mod.__version__),
+        ("feather", lambda mod: mod.__version__),
         ("matplotlib", lambda mod: mod.__version__),
         ("openpyxl", lambda mod: mod.__version__),
         ("xlrd", lambda mod: mod.__VERSION__),

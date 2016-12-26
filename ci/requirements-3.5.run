@@ -18,6 +18,4 @@ pymysql
 psycopg2
 xarray
 s3fs
-
-# incompat with conda ATM
-# beautiful-soup
+beautifulsoup4

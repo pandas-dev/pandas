@@ -1477,6 +1477,21 @@ class DataFrame(NDFrame):
                              variable_labels=variable_labels)
         writer.write_file()
 
+    def to_feather(self, fname):
+        """
+        write out the binary feather-format for DataFrames
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        fname : str
+            string file path
+
+        """
+        from pandas.io.feather_format import to_feather
+        to_feather(self, fname)
+
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
