@@ -116,6 +116,7 @@ _pxi_dep_template = {
     '_join': ['join_helper.pxi.in', 'joins_func_helper.pxi.in'],
     'hashtable': ['hashtable_class_helper.pxi.in',
                   'hashtable_func_helper.pxi.in'],
+    'index': ['index_class_helper.pxi.in'],
     '_sparse': ['sparse_op_helper.pxi.in']
 }
 _pxifiles = []
