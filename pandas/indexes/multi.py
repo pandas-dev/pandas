@@ -1470,6 +1470,26 @@ class MultiIndex(Index):
 
         return _ensure_platform_int(indexer)
 
+    def searchsorted(self, value, side='left', sorter=None):
+        ans = []
+        for val in value:
+            left_index=0
+            right_index=None
+            for dim in range(0,self.labels.__len__()):
+                v=self.levels[dim][self.labels[dim]]
+                if right_index==None: right_index=len(v)
+                v=v[left_index:right_index]
+                if (dim<self.labels.__len__()-1):
+                    left_addition = v.searchsorted(val[dim],'left')
+                    right_addition = v.searchsorted(val[dim],'right')
+                    right_index=left_index+right_addition
+                    left_index=left_index+left_addition
+                else:
+                    ans.append(left_index+ v.searchsorted(val[dim],side))
+        return ans
+
+
+
     def reindex(self, target, method=None, level=None, limit=None,
                 tolerance=None):
         """
