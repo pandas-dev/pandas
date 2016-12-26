@@ -363,115 +363,6 @@ cdef class IndexEngine:
 
         return result[0:count], missing[0:count_missing]
 
-cdef class Int64Engine(IndexEngine):
-
-    cdef _get_index_values(self):
-        return algos.ensure_int64(self.vgetter())
-
-    cdef _make_hash_table(self, n):
-        return _hash.Int64HashTable(n)
-
-    def _call_monotonic(self, values):
-        return algos.is_monotonic_int64(values, timelike=False)
-
-    def get_pad_indexer(self, other, limit=None):
-        return algos.pad_int64(self._get_index_values(), other,
-                               limit=limit)
-
-    def get_backfill_indexer(self, other, limit=None):
-        return algos.backfill_int64(self._get_index_values(), other,
-                                    limit=limit)
-
-    cdef _check_type(self, object val):
-        hash(val)
-        if util.is_bool_object(val):
-            raise KeyError(val)
-        elif util.is_float_object(val):
-            raise KeyError(val)
-
-    cdef _maybe_get_bool_indexer(self, object val):
-        cdef:
-            ndarray[uint8_t, cast=True] indexer
-            ndarray[int64_t] values
-            int count = 0
-            Py_ssize_t i, n
-            int64_t ival
-            int last_true
-
-        if not util.is_integer_object(val):
-            raise KeyError(val)
-
-        ival = val
-
-        values = self._get_index_values()
-        n = len(values)
-
-        result = np.empty(n, dtype=bool)
-        indexer = result.view(np.uint8)
-
-        for i in range(n):
-            if values[i] == val:
-                count += 1
-                indexer[i] = 1
-                last_true = i
-            else:
-                indexer[i] = 0
-
-        if count == 0:
-            raise KeyError(val)
-        if count == 1:
-            return last_true
-
-        return result
-
-cdef class Float64Engine(IndexEngine):
-
-    cdef _make_hash_table(self, n):
-        return _hash.Float64HashTable(n)
-
-    cdef _get_index_values(self):
-        return algos.ensure_float64(self.vgetter())
-
-    cdef _maybe_get_bool_indexer(self, object val):
-        cdef:
-            ndarray[uint8_t] indexer
-            ndarray[float64_t] values
-            int count = 0
-            Py_ssize_t i, n
-            int last_true
-
-        values = self._get_index_values()
-        n = len(values)
-
-        result = np.empty(n, dtype=bool)
-        indexer = result.view(np.uint8)
-
-        for i in range(n):
-            if values[i] == val:
-                count += 1
-                indexer[i] = 1
-                last_true = i
-            else:
-                indexer[i] = 0
-
-        if count == 0:
-            raise KeyError(val)
-        if count == 1:
-            return last_true
-
-        return result
-
-    def _call_monotonic(self, values):
-        return algos.is_monotonic_float64(values, timelike=False)
-
-    def get_pad_indexer(self, other, limit=None):
-        return algos.pad_float64(self._get_index_values(), other,
-                                    limit=limit)
-
-    def get_backfill_indexer(self, other, limit=None):
-        return algos.backfill_float64(self._get_index_values(), other,
-                                         limit=limit)
-
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
@@ -509,22 +400,6 @@ _backfill_functions = {
     'int64': algos.backfill_int64,
     'float64': algos.backfill_float64
 }
-
-cdef class ObjectEngine(IndexEngine):
-
-    cdef _make_hash_table(self, n):
-        return _hash.PyObjectHashTable(n)
-
-    def _call_monotonic(self, values):
-        return algos.is_monotonic_object(values, timelike=False)
-
-    def get_pad_indexer(self, other, limit=None):
-        return algos.pad_object(self._get_index_values(), other,
-                                   limit=limit)
-
-    def get_backfill_indexer(self, other, limit=None):
-        return algos.backfill_object(self._get_index_values(), other,
-                                        limit=limit)
 
 
 cdef class DatetimeEngine(Int64Engine):
@@ -668,3 +543,7 @@ cdef inline _to_i8(object val):
 
 cdef inline bint _is_utc(object tz):
     return tz is UTC or isinstance(tz, _du_utc)
+
+
+# Generated from template.
+include "index_class_helper.pxi"
