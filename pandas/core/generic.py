@@ -5224,7 +5224,7 @@ class NDFrame(PandasObject):
               provided data types.
               To limit the result to numeric types submit
               ``numpy.number``. To limit it instead to categorical
-              objects submit the object data type. Strings
+              objects submit the ``numpy.object`` data type. Strings
               can also be used in the style of
               ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
         exclude : None (default) or a list of dtypes or strings, optional,
@@ -5234,8 +5234,8 @@ class NDFrame(PandasObject):
             - None (default). The result will exclude nothing.
             - A list of dtypes or strings. Excludes the provided data types
               from the result. To select numeric types submit
-              ``numpy.number``. To select categorical objects submut the data
-              type ``object``. Strings can also be used in the style of
+              ``numpy.number``. To select categorical objects submit the data
+              type ``numpy.object``. Strings can also be used in the style of
               ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
 
         Returns
