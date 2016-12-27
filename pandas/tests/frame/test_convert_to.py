@@ -186,7 +186,9 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         result = DataFrame(data={u"accented_name_é": [1.0]}).to_records()
         # Note that numpy allows for unicode field names but dtypes need
         # to be specified using dictionnary intsead of list of tuples.
-        expected = np.rec.array([(0, 1.0)],
-                                dtype={"names": ["index", u"accented_name_é"],
-                                       "formats": ['<i8', '<f8']})
+        expected = np.rec.array(
+            [(0, 1.0)],
+            dtype={"names": ["index", u"accented_name_é"],
+                   "formats": ['<i8', '<f8']}
+        )
         tm.assert_almost_equal(result, expected)
