@@ -5207,31 +5207,6 @@ class NDFrame(PandasObject):
         dispersion and shape of a dataset's distribution, excluding
         ``NaN`` values.
 
-        Analyzes both ``numeric`` and ``object`` series, as well
-        as `DataFrame` column sets of mixed data types.
-
-        For ``numeric`` data, the result's index will include ``count``,
-        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
-        upper percentiles. By default the lower percentile is ``25`` and the
-        upper percentile is ``75``. The ``50`` percentile is typically the
-        same as the median.
-
-        For ``object`` data (e.g. strings or timestamps), the result's index
-        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
-        is the most common value. The ``freq`` is the most common value's
-        frequency. Timestamps also include the ``first`` and ``last`` items.
-
-        If multiple ``object`` values have the highest count, then the
-        ``count`` and ``top`` results will be arbitrarily chosen from
-        among those with the highest count.
-
-        For mixed data types provided via a `DataFrame`, the result will
-        include a union of attributes of each type.
-
-        The `include` and `exclude` parameters can be used to limit
-        which columns in a `DataFrame` are analyzed for the output.
-        The parameters are ignored when analyzing a `Series`.
-
         Parameters
         ----------
         percentiles : list of numbers, optional
@@ -5243,33 +5218,61 @@ class NDFrame(PandasObject):
             A white list of data types to include in the result. Ignored
             for `Series`. Here are the options:
 
-            - None (default). The result will include all ``numeric`` columns.
+            - None (default). The result will include all numeric columns.
             - 'all'. All columns on the input will be included in the output.
             - A list of dtypes or strings. Limits the results to the
               provided data types.
               To limit the result to numeric types submit
               ``numpy.number``. To limit it instead to categorical
-              objects submit the data type ``object``. Strings
+              objects submit the object data type. Strings
               can also be used in the style of
-              `select_dtypes` (e.g. df.describe(include=['O']))
+              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
         exclude : None (default) or a list of dtypes or strings, optional,
             A black list of data types to omit from the result. Ignored
-            for `Series`. Here are the options:
+            for Series. Here are the options:
 
             - None (default). The result will exclude nothing.
             - A list of dtypes or strings. Excludes the provided data types
               from the result. To select numeric types submit
               ``numpy.number``. To select categorical objects submut the data
               type ``object``. Strings can also be used in the style of
-              `select_dtypes` (e.g. df.describe(include=['O']))
+              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
 
         Returns
         -------
         summary: NDFrame of summary statistics
 
+        Notes
+        -----
+
+        Analyzes both numeric and object series, as well
+        as DataFrame column sets of mixed data types.
+
+        For numeric data, the result's index will include ``count``,
+        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
+        upper percentiles. By default the lower percentile is ``25`` and the
+        upper percentile is ``75``. The ``50`` percentile is typically the
+        same as the median.
+
+        For object data (e.g. strings or timestamps), the result's index
+        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
+        is the most common value. The ``freq`` is the most common value's
+        frequency. Timestamps also include the ``first`` and ``last`` items.
+
+        If multiple object values have the highest count, then the
+        ``count`` and ``top`` results will be arbitrarily chosen from
+        among those with the highest count.
+
+        For mixed data types provided via a DataFrame, the result will
+        include a union of attributes of each type.
+
+        The `include` and `exclude` parameters can be used to limit
+        which columns in a DataFrame are analyzed for the output.
+        The parameters are ignored when analyzing a Series.
+
         Examples
         --------
-        Describing a numeric `Series`.
+        Describing a numeric Series.
 
         >>> import pandas as pd
         >>> s = pd.Series([1, 2, 3])
@@ -5283,7 +5286,7 @@ class NDFrame(PandasObject):
         75%      2.5
         max      3.0
 
-        Describing a categorical `Series`.
+        Describing a categorical Series.
 
         >>> s = pd.Series(['a', 'a', 'b', 'c'])
         >>> s.describe()
@@ -5293,7 +5296,7 @@ class NDFrame(PandasObject):
         freq      2
         dtype: object
 
-        Describing a timestamp `Series`.
+        Describing a timestamp Series.
 
         >>> import numpy as np
         >>> s = pd.Series([
@@ -5310,7 +5313,7 @@ class NDFrame(PandasObject):
         last      2010-01-01 00:00:00
         dtype: object
 
-        Describing a `DataFrame`. By default only numeric fields are returned.
+        Describing a DataFrame. By default only numeric fields are returned.
 
         >>> df = pd.DataFrame(
         ..    [[1, 'a'], [2, 'b'], [3, 'c']],
@@ -5327,7 +5330,7 @@ class NDFrame(PandasObject):
         75%        2.5
         max        3.0
 
-        Describing all columns of a `DataFrame` regardless of data type.
+        Describing all columns of a DataFrame regardless of data type.
 
         >>> df.describe(include='all')
                 numeric object
@@ -5343,7 +5346,7 @@ class NDFrame(PandasObject):
         75%         2.5    NaN
         max         3.0    NaN
 
-        Describing a column from a `DataFrame` by accessing it as an attribute.
+        Describing a column from a DataFrame by accessing it as an attribute.
 
         >>> df.numeric.describe()
         count    3.0
@@ -5356,7 +5359,7 @@ class NDFrame(PandasObject):
         max      3.0
         Name: numeric, dtype: float64
 
-        Including only ``numeric`` columns in a `DataFrame` description.
+        Including only numeric columns in a DataFrame description.
 
         >>> df.describe(include=[np.number])
                numeric
@@ -5369,7 +5372,7 @@ class NDFrame(PandasObject):
         75%        2.5
         max        3.0
 
-        Including only ``string`` columns in a `DataFrame` description.
+        Including only string columns in a DataFrame description.
 
         >>> df.describe(include=[np.object])
                object
@@ -5378,7 +5381,7 @@ class NDFrame(PandasObject):
         top         b
         freq        1
 
-        Excluding ``numeric`` columns from a `DataFrame` description.
+        Excluding numeric columns from a DataFrame description.
 
         >>> df.describe(exclude=[np.number])
                object
@@ -5387,7 +5390,7 @@ class NDFrame(PandasObject):
         top         b
         freq        1
 
-        Excluding ``object`` columns from a `DataFrame` description.
+        Excluding object columns from a DataFrame description.
 
         >>> df.describe(exclude=[np.object])
                numeric
@@ -5402,6 +5405,11 @@ class NDFrame(PandasObject):
 
         See Also
         --------
+        DataFrame.count
+        DataFrame.max
+        DataFrame.min
+        DataFrame.mean
+        DataFrame.std
         DataFrame.select_dtypes
         """
         if self.ndim >= 3:
