@@ -1111,7 +1111,10 @@ class DataFrame(NDFrame):
             names = lmap(compat.text_type, self.columns)
 
         formats = [v.dtype for v in arrays]
-        return np.rec.fromarrays(arrays, dtype={'names': names, 'formats': formats})
+        return np.rec.fromarrays(
+            arrays,
+            dtype={'names': names, 'formats': formats}
+        )
 
     @classmethod
     def from_items(cls, items, columns=None, orient='columns'):
