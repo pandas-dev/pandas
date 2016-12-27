@@ -129,7 +129,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                                 series_index, name)
 
 
-def qcut(x, q, labels=None, retbins=False, precision=3):
+def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -151,6 +151,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
         as a scalar.
     precision : int
         The precision at which to store and display the bins labels
+    duplicates : {'raise', 'drop'}, optional 
+        If binned edges are not unique, raise ValueError or drop non- uniques.
 
     Returns
     -------
@@ -187,7 +189,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     bins = algos.quantile(x, quantiles)
     fac, bins = _bins_to_cuts(x, bins, labels=labels,
                               precision=precision, include_lowest=True,
-                              dtype=dtype)
+                              dtype=dtype, duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
                                 series_index, name)
@@ -195,7 +197,18 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
 
 def _bins_to_cuts(x, bins, right=True, labels=None,
                   precision=3, include_lowest=False,
-                  dtype=None):
+                  dtype=None, duplicates='raise'):
+
+    if duplicates not in ['raise', 'drop']:
+        raise ValueError("invalid value for 'duplicates' parameter, "
+                         + "valid options are: raise, drop")
+
+    if duplicates == 'raise':
+            raise ValueError('Bin edges must be unique: %s' % repr(bins) +
+                             ' You can drop duplicate edges ' +
+                             'by setting \'duplicates\' param')
+    else:
+            bins = algos.unique(bins)
 
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
