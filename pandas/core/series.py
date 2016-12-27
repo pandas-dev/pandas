@@ -2354,8 +2354,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             return self._constructor(mapped,
                                      index=self.index).__finalize__(self)
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+    def _reduce(self, op, name, axis=0, skipna=True, weights=None,
+                numeric_only=None, filter_type=None, **kwds):
         """
         perform a reduction operation
 
@@ -2370,11 +2370,15 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             if numeric_only:
                 raise NotImplementedError('Series.{0} does not implement '
                                           'numeric_only.'.format(name))
+
+            if weights is not None:
+                kwds['weights'] = weights
+
             with np.errstate(all='ignore'):
                 return op(delegate, skipna=skipna, **kwds)
 
         return delegate._reduce(op=op, name=name, axis=axis, skipna=skipna,
-                                numeric_only=numeric_only,
+                                weights=weights, numeric_only=numeric_only,
                                 filter_type=filter_type, **kwds)
 
     def _reindex_indexer(self, new_index, indexer, copy):

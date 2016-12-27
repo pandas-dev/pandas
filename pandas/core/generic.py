@@ -2552,7 +2552,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.iloc[-n:]
 
     def sample(self, n=None, frac=None, replace=False, weights=None,
-               random_state=None, axis=None):
+               random_state=None, axis=None, **kwargs):
         """
         Returns a random sample of items from an axis of object.
 
@@ -2567,7 +2567,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Fraction of axis items to return. Cannot be used with `n`.
         replace : boolean, optional
             Sample with or without replacement. Default = False.
-        weights : str or ndarray-like, optional
+        weights : str or ndarray-like, optional [DEPRECATED]
             Default 'None' results in equal probability weighting.
             If passed a Series, will align with target object on index. Index
             values in weights not found in sampled object will be ignored and
@@ -2638,59 +2638,22 @@ class NDFrame(PandasObject, SelectionMixin):
             axis = self._stat_axis_number
 
         axis = self._get_axis_number(axis)
-        axis_length = self.shape[axis]
 
         # Process random_state argument
         rs = com._random_state(random_state)
 
-        # Check weights for compliance
         if weights is not None:
+            from warnings import warn
+            warn("the weights argument to .sample() is deprecated."
+                 "use {typ}.weightby(weights, axis={axis}).sample(...) "
+                 "instead".format(typ=type(self).__name__, axis=axis),
+                 FutureWarning, stacklevel=2)
+            return self.weightby(weights, axis=axis).sample(
+                n=n, frac=frac,
+                replace=replace,
+                random_state=random_state)
 
-            # If a series, align with frame
-            if isinstance(weights, pd.Series):
-                weights = weights.reindex(self.axes[axis])
-
-            # Strings acceptable if a dataframe and axis = 0
-            if isinstance(weights, string_types):
-                if isinstance(self, pd.DataFrame):
-                    if axis == 0:
-                        try:
-                            weights = self[weights]
-                        except KeyError:
-                            raise KeyError("String passed to weights not a "
-                                           "valid column")
-                    else:
-                        raise ValueError("Strings can only be passed to "
-                                         "weights when sampling from rows on "
-                                         "a DataFrame")
-                else:
-                    raise ValueError("Strings cannot be passed as weights "
-                                     "when sampling from a Series or Panel.")
-
-            weights = pd.Series(weights, dtype='float64')
-
-            if len(weights) != axis_length:
-                raise ValueError("Weights and axis to be sampled must be of "
-                                 "same length")
-
-            if (weights == np.inf).any() or (weights == -np.inf).any():
-                raise ValueError("weight vector may not include `inf` values")
-
-            if (weights < 0).any():
-                raise ValueError("weight vector many not include negative "
-                                 "values")
-
-            # If has nan, set to zero.
-            weights = weights.fillna(0)
-
-            # Renormalize if don't sum to 1
-            if weights.sum() != 1:
-                if weights.sum() != 0:
-                    weights = weights / weights.sum()
-                else:
-                    raise ValueError("Invalid weights: weights sum to zero")
-
-            weights = weights.values
+        axis_length = self.shape[axis]
 
         # If no frac or n, default to n=1.
         if n is None and frac is None:
@@ -2708,6 +2671,7 @@ class NDFrame(PandasObject, SelectionMixin):
             raise ValueError("A negative number of rows requested. Please "
                              "provide positive value.")
 
+        weights = kwargs.pop('_weights', None)
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
         return self.take(locs, axis=axis, is_copy=False)
 
@@ -5475,14 +5439,20 @@ class NDFrame(PandasObject, SelectionMixin):
             np.putmask(rs.values, mask, np.nan)
         return rs
 
-    def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
+    def _agg_by_level(self, name, axis=0, level=0, skipna=True,
+                      weights=None, **kwargs):
         grouped = self.groupby(level=level, axis=axis)
         if hasattr(grouped, name) and skipna:
             return getattr(grouped, name)(**kwargs)
         axis = self._get_axis_number(axis)
         method = getattr(type(self), name)
-        applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwargs)
-        return grouped.aggregate(applyf)
+
+        def f(x):
+            if weights is not None:
+                kwargs['weights'] = weights
+            return method(x, axis=axis, skipna=skipna, **kwargs)
+
+        return grouped.aggregate(f)
 
     @classmethod
     def _add_numeric_operations(cls):
@@ -5677,6 +5647,50 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.transform = transform
 
+        def weightby(self, weights, axis=0):
+            """
+            Provides weighted statistical calculations
+
+            .. versionadded:: 0.20.0
+
+            Parameters
+            ----------
+            weights : str or ndarray-like
+                If passed a Series, will align with the target object
+                on the index.
+
+                Index values in weights that are not found in the target
+                object will be ignored and index values in the target
+                object not in the weights will be assigned weights of zero.
+
+                If called on a DataFrame, will accept the name of a column
+                when axis = 0.
+                Unless weights are a Series, weights must be same length
+                as the axis of the target object.
+
+                If weights do not sum to 1, they will be normalized to
+                sum to 1. Missing values in the weights column will be
+                treated as zero.
+
+                inf and -inf values not allowed.
+
+            axis : int or string, default 0
+
+            Returns
+            -------
+            a Weightby lazy object for the particular operation
+
+            Examples
+            --------
+            """
+            from pandas.core import weightby
+
+            axis = self._get_axis_number(axis)
+            return weightby.weightby(self, weights=weights,
+                                     axis=axis)
+
+        cls.weightby = weightby
+
 
 def _doc_parms(cls):
     """Return a tuple of the doc parms."""
@@ -5781,6 +5795,7 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
+        weights = kwargs.pop('_weights', None)
         nv.validate_stat_func(tuple(), kwargs, fname=name)
         if skipna is None:
             skipna = True
@@ -5788,9 +5803,9 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
             axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level(name, axis=axis, level=level,
-                                      skipna=skipna)
+                                      skipna=skipna, weights=weights)
         return self._reduce(f, name, axis=axis, skipna=skipna,
-                            numeric_only=numeric_only)
+                            weights=weights, numeric_only=numeric_only)
 
     return set_function_name(stat_func, name, cls)
 
@@ -5801,6 +5816,7 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
     @Appender(_num_ddof_doc)
     def stat_func(self, axis=None, skipna=None, level=None, ddof=1,
                   numeric_only=None, **kwargs):
+        weights = kwargs.pop('_weights', None)
         nv.validate_stat_ddof_func(tuple(), kwargs, fname=name)
         if skipna is None:
             skipna = True
@@ -5808,9 +5824,10 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
             axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level(name, axis=axis, level=level,
-                                      skipna=skipna, ddof=ddof)
+                                      skipna=skipna, weights=weights,
+                                      ddof=ddof)
         return self._reduce(f, name, axis=axis, numeric_only=numeric_only,
-                            skipna=skipna, ddof=ddof)
+                            weights=weights, skipna=skipna, ddof=ddof)
 
     return set_function_name(stat_func, name, cls)
 

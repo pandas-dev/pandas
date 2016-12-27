@@ -4946,11 +4946,14 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+    def _reduce(self, op, name, axis=0, skipna=True, weights=None,
+                numeric_only=None, filter_type=None, **kwds):
         axis = self._get_axis_number(axis)
 
         def f(x):
+            if weights is not None:
+                kwds['weights'] = weights
+
             return op(x, axis=axis, skipna=skipna, **kwds)
 
         labels = self._get_agg_axis(axis)
