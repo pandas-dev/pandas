@@ -5204,7 +5204,8 @@ class NDFrame(PandasObject):
     def describe(self, percentiles=None, include=None, exclude=None):
         """
         Generates descriptive statistics that summarize the central tendency,
-        dispersion and shape of a dataset's distribution, excluding ``NaN`` values.
+        dispersion and shape of a dataset's distribution, excluding
+        ``NaN`` values.
 
         Analyzes both ``numeric`` and ``object`` series, as well
         as `DataFrame` column sets of mixed data types.
