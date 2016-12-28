@@ -273,7 +273,7 @@ class TestCut(tm.TestCase):
         tm.assert_numpy_array_equal(bins, np.array([0, 1.5, 3]))
 
     def test_qcut_duplicates_drop(self):
-        # GH 7751 
+        # GH 7751
         values = [0, 0, 0, 0, 1, 2, 3]
         cats = qcut(values, 3, duplicates='drop')
         ex_levels = ['[0, 1]', '(1, 3]']
