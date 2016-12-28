@@ -80,11 +80,10 @@ matrix:
         apt:
           packages:
           - xsel
-    - python: 3.6-dev
+    - python: 3.6
       env:
         - PYTHON_VERSION=3.6
-        - JOB_NAME: "36_dev"
-        - JOB_TAG=_DEV
+        - JOB_NAME: "36"
         - NOSE_ARGS="not slow and not network and not disabled"
         - PANDAS_TESTING_MODE="deprecate"
       addons:

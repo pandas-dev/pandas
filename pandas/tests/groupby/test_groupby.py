@@ -1374,6 +1374,15 @@ class TestGroupBy(tm.TestCase):
         expected = DataFrame(dict(B=1, C=[2, 3, 4, 10, 5, -1]))
         assert_frame_equal(result, expected)
 
+    def test_groupby_transform_with_nan_group(self):
+        # GH 9941
+        df = pd.DataFrame({'a': range(10),
+                           'b': [1, 1, 2, 3, np.nan, 4, 4, 5, 5, 5]})
+        result = df.groupby(df.b)['a'].transform(max)
+        expected = pd.Series([1., 1., 2., 3., np.nan, 6., 6., 9., 9., 9.],
+                             name='a')
+        assert_series_equal(result, expected)
+
     def test_indices_concatenation_order(self):
 
         # GH 2808
@@ -3924,6 +3933,27 @@ class TestGroupBy(tm.TestCase):
         groups = grouped.groups
         tm.assertIsInstance(list(groups.keys())[0], datetime)
 
+        # GH 11442
+        index = pd.date_range('2015/01/01', periods=5, name='date')
+        df = pd.DataFrame({'A': [5, 6, 7, 8, 9],
+                           'B': [1, 2, 3, 4, 5]}, index=index)
+        result = df.groupby(level='date').groups
+        dates = ['2015-01-05', '2015-01-04', '2015-01-03',
+                 '2015-01-02', '2015-01-01']
+        expected = {pd.Timestamp(date): pd.DatetimeIndex([date], name='date')
+                    for date in dates}
+        tm.assert_dict_equal(result, expected)
+
+        grouped = df.groupby(level='date')
+        for date in dates:
+            result = grouped.get_group(date)
+            data = [[df.loc[date, 'A'], df.loc[date, 'B']]]
+            expected_index = pd.DatetimeIndex([date], name='date')
+            expected = pd.DataFrame(data,
+                                    columns=list('AB'),
+                                    index=expected_index)
+            tm.assert_frame_equal(result, expected)
+
     def test_groupby_groups_datetimeindex_tz(self):
         # GH 3950
         dates = ['2011-07-19 07:00:00', '2011-07-19 08:00:00',
@@ -5715,6 +5745,20 @@ class TestGroupBy(tm.TestCase):
         result = g.shift(-1)
 
         assert_frame_equal(result, expected)
+
+    def test_pivot_table_values_key_error(self):
+        # This test is designed to replicate the error in issue #14938
+        df = pd.DataFrame({'eventDate':
+                           pd.date_range(pd.datetime.today(),
+                                         periods=20, freq='M').tolist(),
+                           'thename': range(0, 20)})
+
+        df['year'] = df.set_index('eventDate').index.year
+        df['month'] = df.set_index('eventDate').index.month
+
+        with self.assertRaises(KeyError):
+            df.reset_index().pivot_table(index='year', columns='month',
+                                         values='badname', aggfunc='count')
 
     def test_agg_over_numpy_arrays(self):
         # GH 3788

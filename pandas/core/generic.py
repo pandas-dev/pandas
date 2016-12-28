@@ -690,7 +690,7 @@ class NDFrame(PandasObject):
     def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
         """
         Alter index and / or columns using input function or functions.
-        A scaler or list-like for ``mapper`` will alter the ``Index.name``
+        A scalar or list-like for ``mapper`` will alter the ``Index.name``
         or ``MultiIndex.names`` attribute.
         A function or dict for ``mapper`` will alter the labels.
         Function / dict values must be unique (1-to-1). Labels not contained in
@@ -5264,6 +5264,9 @@ class NDFrame(PandasObject):
             raise ValueError("Cannot describe a DataFrame without columns")
 
         if percentiles is not None:
+            # explicit conversion of `percentiles` to list
+            percentiles = list(percentiles)
+
             # get them all to be in [0, 1]
             self._check_percentile(percentiles)
 

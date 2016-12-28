@@ -7,6 +7,7 @@ from pandas.tslib import iNaT
 from pandas.compat import string_types, text_type, PY3
 from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
+                     is_datetimelike,
                      is_extension_type, is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
                      is_timedelta64_dtype, is_dtype_equal,
@@ -18,7 +19,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int8, _ensure_int16,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
-                     _DATELIKE_DTYPES, _POSSIBLY_CAST_DTYPES)
+                     _POSSIBLY_CAST_DTYPES)
 from .dtypes import ExtensionDtype
 from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
 from .missing import isnull, notnull
@@ -164,7 +165,7 @@ def _maybe_upcast_putmask(result, mask, other):
         # in np.place:
         #   NaN -> NaT
         #   integer or integer array -> date-like array
-        if result.dtype in _DATELIKE_DTYPES:
+        if is_datetimelike(result.dtype):
             if is_scalar(other):
                 if isnull(other):
                     other = result.dtype.type('nat')
@@ -666,7 +667,7 @@ def _possibly_castable(arr):
     # otherwise try to coerce
     kind = arr.dtype.kind
     if kind == 'M' or kind == 'm':
-        return arr.dtype in _DATELIKE_DTYPES
+        return is_datetime64_dtype(arr.dtype)
 
     return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
 
@@ -822,9 +823,10 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                         elif is_datetime64tz:
                             # input has to be UTC at this point, so just
                             # localize
-                            value = to_datetime(
-                                value,
-                                errors=errors).tz_localize(dtype.tz)
+                            value = (to_datetime(value, errors=errors)
+                                     .tz_localize('UTC')
+                                     .tz_convert(dtype.tz)
+                                     )
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
                     except (AttributeError, ValueError, TypeError):

@@ -7,6 +7,7 @@ source activate pandas
 RET=0
 
 if [ "$LINT" ]; then
+
     # pandas/rpy is deprecated and will be removed.
     # pandas/src is C code, so no need to search there.
     echo "Linting  *.py"
@@ -43,13 +44,11 @@ if [ "$LINT" ]; then
     # from Cython files nor do we want to lint C files that we didn't modify for
     # this particular codebase (e.g. src/headers, src/klib, src/msgpack). However,
     # we can lint all header files since they aren't "generated" like C files are.
-    pip install cpplint
-
     echo "Linting *.c and *.h"
     for path in '*.h' 'period_helper.c' 'datetime' 'parser' 'ujson'
     do
         echo "linting -> pandas/src/$path"
-        cpplint --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/src/$path
+        cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/src/$path
         if [ $? -ne "0" ]; then
             RET=1
         fi

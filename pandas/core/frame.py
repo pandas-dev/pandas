@@ -1477,6 +1477,21 @@ class DataFrame(NDFrame):
                              variable_labels=variable_labels)
         writer.write_file()
 
+    def to_feather(self, fname):
+        """
+        write out the binary feather-format for DataFrames
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        fname : str
+            string file path
+
+        """
+        from pandas.io.feather_format import to_feather
+        to_feather(self, fname)
+
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -2257,7 +2272,12 @@ class DataFrame(NDFrame):
           this will return *all* object dtype columns
         * See the `numpy dtype hierarchy
           <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__
+        * To select datetimes, use np.datetime64, 'datetime' or 'datetime64'
+        * To select timedeltas, use np.timedelta64, 'timedelta' or
+          'timedelta64'
         * To select Pandas categorical dtypes, use 'category'
+        * To select Pandas datetimetz dtypes, use 'datetimetz' (new in 0.20.0),
+          or a 'datetime64[ns, tz]' string
 
         Examples
         --------
@@ -4283,6 +4303,8 @@ class DataFrame(NDFrame):
 
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
+            if x.empty:
+                return lib.map_infer(x, func)
             return lib.map_infer(x.asobject, func)
 
         return self.apply(infer)

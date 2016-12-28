@@ -56,9 +56,9 @@ class TestS3(tm.TestCase):
 
     def setUp(self):
         try:
-            import boto  # noqa
+            import s3fs  # noqa
         except ImportError:
-            raise nose.SkipTest("boto not installed")
+            raise nose.SkipTest("s3fs not installed")
 
     @tm.network
     def test_parse_public_s3_bucket(self):
@@ -174,15 +174,12 @@ class TestS3(tm.TestCase):
 
     @tm.network
     def test_s3_fails(self):
-        import boto
-        with tm.assertRaisesRegexp(boto.exception.S3ResponseError,
-                                   'S3ResponseError: 404 Not Found'):
+        with tm.assertRaises(IOError):
             read_csv('s3://nyqpug/asdf.csv')
 
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
-        with tm.assertRaisesRegexp(boto.exception.S3ResponseError,
-                                   'S3ResponseError: 403 Forbidden'):
+        with tm.assertRaises(IOError):
             read_csv('s3://cant_get_it/')
 
 if __name__ == '__main__':

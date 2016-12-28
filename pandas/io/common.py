@@ -12,6 +12,12 @@ from pandas.formats.printing import pprint_thing
 from pandas.core.common import AbstractMethodError
 from pandas.types.common import is_number
 
+try:
+    from s3fs import S3File
+    need_text_wrapping = (BytesIO, S3File)
+except ImportError:
+    need_text_wrapping = (BytesIO,)
+
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
@@ -212,10 +218,10 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         return reader, encoding, compression
 
     if _is_s3_url(filepath_or_buffer):
-        from pandas.io.s3 import get_filepath_or_buffer
-        return get_filepath_or_buffer(filepath_or_buffer,
-                                      encoding=encoding,
-                                      compression=compression)
+        from pandas.io import s3
+        return s3.get_filepath_or_buffer(filepath_or_buffer,
+                                         encoding=encoding,
+                                         compression=compression)
 
     # It is a pathlib.Path/py.path.local or string
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
@@ -395,7 +401,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         handles.append(f)
 
     # in Python 3, convert BytesIO or fileobjects passed with an encoding
-    if compat.PY3 and is_text and (compression or isinstance(f, compat.BytesIO)):
+    if compat.PY3 and is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
         f = TextIOWrapper(f, encoding=encoding)
         handles.append(f)
