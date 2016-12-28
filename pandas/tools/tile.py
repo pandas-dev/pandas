@@ -204,13 +204,14 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
         raise ValueError("invalid value for 'duplicates' parameter, "
                          + "valid options are: raise, drop")
 
-    if len(algos.unique(bins)) < len(bins):
+    unique_bins = algos.unique(bins)
+    if len(unique_bins) < len(bins):
         if duplicates == 'raise':
             raise ValueError('Bin edges must be unique: %s' % repr(bins) +
                              ' You can drop duplicate edges ' +
                              'by setting \'duplicates\' param')
         else:
-            bins = algos.unique(bins)
+            bins = unique_bins
 
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
