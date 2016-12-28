@@ -151,8 +151,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
         as a scalar.
     precision : int
         The precision at which to store and display the bins labels
-    duplicates : {'raise', 'drop'}, optional 
-        If binned edges are not unique, raise ValueError or drop non- uniques.
+    duplicates : {'raise', 'drop'}, optional
+        If binned edges are not unique, raise ValueError or drop non-uniques.
 
     Returns
     -------
