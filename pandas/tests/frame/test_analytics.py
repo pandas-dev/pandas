@@ -16,6 +16,7 @@ from pandas import (compat, isnull, notnull, DataFrame, Series,
                     MultiIndex, date_range, Timestamp)
 import pandas as pd
 import pandas.core.nanops as nanops
+import pandas.core.algorithms as algorithms
 import pandas.formats.printing as printing
 
 import pandas.util.testing as tm
@@ -411,7 +412,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_series_equal(result, expected)
 
     def test_nunique(self):
-        f = lambda s: len(nanops.unique1d(s.dropna()))
+        f = lambda s: len(algorithms.unique1d(s.dropna()))
         self._check_stat_op('nunique', f, has_skipna=False,
                             check_dtype=False, check_dates=True)
 

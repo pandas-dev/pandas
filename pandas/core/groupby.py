@@ -3901,7 +3901,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     def nunique(self, dropna=True):
         """
-        Return Series with number of distinct observations per group.
+        Return DataFrame with number of distinct observations per group for
+        each column.
 
         .. versionadded:: 0.20.0
 
@@ -3909,6 +3910,38 @@ class DataFrameGroupBy(NDFrameGroupBy):
         ----------
         dropna : boolean, default True
             Don't include NaN in the counts.
+
+        Returns
+        -------
+        nunique: DataFrame
+
+        Examples
+        --------
+        >>> df = DataFrame({'id': ['spam', 'egg', 'egg', 'spam', 'ham', 'ham'],
+        ...                 'value1': [1, 5, 5, 2, 5, 5],
+        ...                 'value2': list('abbaxy')})
+        >>> df
+             id  value1 value2
+        0  spam       1      a
+        1   egg       5      b
+        2   egg       5      b
+        3  spam       2      a
+        4   ham       5      x
+        5   ham       5      y
+
+        >>> df.groupby('id').nunique()
+            id  value1  value2
+        id
+        egg    1       1       1
+        ham    1       1       2
+        spam   1       2       1
+
+        >>> df.groupby('id').filter(lambda g: (g.nunique() > 1).any())
+             id  value1 value2
+        0  spam       1      a
+        3  spam       2      a
+        4   ham       5      x
+        5   ham       5      y
         """
         from functools import partial
         func = partial(Series.nunique, dropna=dropna)
