@@ -4229,11 +4229,11 @@ class NDFrame(PandasObject):
         Upsample the series into 30 second bins.
 
         >>> series.resample('30S').asfreq()[0:5] #select first 5 rows
-        2000-01-01 00:00:00     0
+        2000-01-01 00:00:00   0.0
         2000-01-01 00:00:30   NaN
-        2000-01-01 00:01:00     1
+        2000-01-01 00:01:00   1.0
         2000-01-01 00:01:30   NaN
-        2000-01-01 00:02:00     2
+        2000-01-01 00:02:00   2.0
         Freq: 30S, dtype: float64
 
         Upsample the series into 30 second bins and fill the ``NaN``
