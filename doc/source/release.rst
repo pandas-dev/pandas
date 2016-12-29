@@ -38,6 +38,60 @@ analysis / manipulation tool available in any language.
 * Documentation: http://pandas.pydata.org
 
 
+pandas 0.19.2
+-------------
+
+**Release date:** December 24, 2016
+
+This is a minor bug-fix release in the 0.19.x series and includes some small regression fixes,
+bug fixes and performance improvements.
+
+Highlights include:
+
+- Compatibility with Python 3.6
+- Added a `Pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/master/doc/cheatsheet/Pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`).
+
+See the :ref:`v0.19.2 Whatsnew <whatsnew_0192>` page for an overview of all
+bugs that have been fixed in 0.19.2.
+
+Thanks
+~~~~~~
+
+- Ajay Saxena
+- Ben Kandel
+- Chris
+- Chris Ham
+- Christopher C. Aycock
+- Daniel Himmelstein
+- Dave Willmer
+- Dr-Irv
+- gfyoung
+- hesham shabana
+- Jeff Carey
+- Jeff Reback
+- Joe Jevnik
+- Joris Van den Bossche
+- Julian Santander
+- Kerby Shedden
+- Keshav Ramaswamy
+- Kevin Sheppard
+- Luca Scarabello
+- Matti Picus
+- Matt Roeschke
+- Maximilian Roos
+- Mykola Golubyev
+- Nate Yoder
+- Nicholas Ver Halen
+- Pawel Kordek
+- Pietro Battiston
+- Rodolfo Fernandez
+- sinhrks
+- Tara Adiseshan
+- Tom Augspurger
+- wandersoncferreira
+- Yaroslav Halchenko
+
+
 pandas 0.19.1
 -------------
 

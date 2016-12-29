@@ -27,12 +27,11 @@ from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.categorical import Categorical
 from pandas.core.common import AbstractMethodError
-from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
                               _get_handle, UnicodeReader, UTF8Recoder,
                               BaseIterator, ParserError, EmptyDataError,
-                              ParserWarning, _NA_VALUES)
+                              ParserWarning, _NA_VALUES, _infer_compression)
 from pandas.tseries import tools
 
 from pandas.util.decorators import Appender
@@ -167,6 +166,10 @@ default False
         a single date column.
     * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result
       'foo'
+
+    If a column or index contains an unparseable date, the entire column or
+    index will be returned unaltered as an object data type. For non-standard
+    datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
 
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : boolean, default False
@@ -354,37 +357,17 @@ def _validate_nrows(nrows):
 
 
 def _read(filepath_or_buffer, kwds):
-    "Generic reader of line files."
+    """Generic reader of line files."""
     encoding = kwds.get('encoding', None)
     if encoding is not None:
         encoding = re.sub('_', '-', encoding).lower()
         kwds['encoding'] = encoding
 
-    # If the input could be a filename, check for a recognizable compression
-    # extension.  If we're reading from a URL, the `get_filepath_or_buffer`
-    # will use header info to determine compression, so use what it finds in
-    # that case.
-    inferred_compression = kwds.get('compression')
-    if inferred_compression == 'infer':
-        if isinstance(filepath_or_buffer, compat.string_types):
-            if filepath_or_buffer.endswith('.gz'):
-                inferred_compression = 'gzip'
-            elif filepath_or_buffer.endswith('.bz2'):
-                inferred_compression = 'bz2'
-            elif filepath_or_buffer.endswith('.zip'):
-                inferred_compression = 'zip'
-            elif filepath_or_buffer.endswith('.xz'):
-                inferred_compression = 'xz'
-            else:
-                inferred_compression = None
-        else:
-            inferred_compression = None
-
+    compression = kwds.get('compression')
+    compression = _infer_compression(filepath_or_buffer, compression)
     filepath_or_buffer, _, compression = get_filepath_or_buffer(
-        filepath_or_buffer, encoding,
-        compression=kwds.get('compression', None))
-    kwds['compression'] = (inferred_compression if compression == 'infer'
-                           else compression)
+        filepath_or_buffer, encoding, compression)
+    kwds['compression'] = compression
 
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):
@@ -402,14 +385,20 @@ def _read(filepath_or_buffer, kwds):
         raise NotImplementedError("'nrows' and 'chunksize' cannot be used"
                                   " together yet.")
     elif nrows is not None:
-        data = parser.read(nrows)
-        parser.close()
+        try:
+            data = parser.read(nrows)
+        finally:
+            parser.close()
         return data
+
     elif chunksize or iterator:
         return parser
 
-    data = parser.read()
-    parser.close()
+    try:
+        data = parser.read()
+    finally:
+        parser.close()
+
     return data
 
 _parser_defaults = {
@@ -1771,70 +1760,6 @@ def count_empty_vals(vals):
     return sum([1 for v in vals if v == '' or v is None])
 
 
-def _wrap_compressed(f, compression, encoding=None):
-    """wraps compressed fileobject in a decompressing fileobject
-    NOTE: For all files in Python 3.2 and for bzip'd files under all Python
-    versions, this means reading in the entire file and then re-wrapping it in
-    StringIO.
-    """
-    compression = compression.lower()
-    encoding = encoding or get_option('display.encoding')
-
-    if compression == 'gzip':
-        import gzip
-
-        f = gzip.GzipFile(fileobj=f)
-        if compat.PY3:
-            from io import TextIOWrapper
-
-            f = TextIOWrapper(f)
-        return f
-    elif compression == 'bz2':
-        import bz2
-
-        if compat.PY3:
-            f = bz2.open(f, 'rt', encoding=encoding)
-        else:
-            # Python 2's bz2 module can't take file objects, so have to
-            # run through decompress manually
-            data = bz2.decompress(f.read())
-            f = StringIO(data)
-        return f
-    elif compression == 'zip':
-        import zipfile
-        zip_file = zipfile.ZipFile(f)
-        zip_names = zip_file.namelist()
-
-        if len(zip_names) == 1:
-            file_name = zip_names.pop()
-            f = zip_file.open(file_name)
-            return f
-
-        elif len(zip_names) == 0:
-            raise ValueError('Corrupted or zero files found in compressed '
-                             'zip file %s', zip_file.filename)
-
-        else:
-            raise ValueError('Multiple files found in compressed '
-                             'zip file %s', str(zip_names))
-
-    elif compression == 'xz':
-
-        lzma = compat.import_lzma()
-        f = lzma.LZMAFile(f)
-
-        if compat.PY3:
-            from io import TextIOWrapper
-
-            f = TextIOWrapper(f)
-
-        return f
-
-    else:
-        raise ValueError('do not recognize compression method %s'
-                         % compression)
-
-
 class PythonParser(ParserBase):
 
     def __init__(self, f, **kwds):
@@ -1890,20 +1815,10 @@ class PythonParser(ParserBase):
         self.comment = kwds['comment']
         self._comment_lines = []
 
-        if isinstance(f, compat.string_types):
-            f = _get_handle(f, 'r', encoding=self.encoding,
-                            compression=self.compression,
-                            memory_map=self.memory_map)
-            self.handles.append(f)
-        elif self.compression:
-            f = _wrap_compressed(f, self.compression, self.encoding)
-            self.handles.append(f)
-        # in Python 3, convert BytesIO or fileobjects passed with an encoding
-        elif compat.PY3 and isinstance(f, compat.BytesIO):
-            from io import TextIOWrapper
-
-            f = TextIOWrapper(f, encoding=self.encoding)
-            self.handles.append(f)
+        f, handles = _get_handle(f, 'r', encoding=self.encoding,
+                                 compression=self.compression,
+                                 memory_map=self.memory_map)
+        self.handles.extend(handles)
 
         # Set self.data to something that can read lines.
         if hasattr(f, 'readline'):
@@ -2146,9 +2061,27 @@ class PythonParser(ParserBase):
         else:
             clean_dtypes = _clean_mapping(self.dtype)
 
-        return self._convert_to_ndarrays(data, self.na_values, self.na_fvalues,
-                                         self.verbose, clean_conv,
-                                         clean_dtypes)
+        # Apply NA values.
+        clean_na_values = {}
+        clean_na_fvalues = {}
+
+        if isinstance(self.na_values, dict):
+            for col in self.na_values:
+                na_value = self.na_values[col]
+                na_fvalue = self.na_fvalues[col]
+
+                if isinstance(col, int) and col not in self.orig_names:
+                    col = self.orig_names[col]
+
+                clean_na_values[col] = na_value
+                clean_na_fvalues[col] = na_fvalue
+        else:
+            clean_na_values = self.na_values
+            clean_na_fvalues = self.na_fvalues
+
+        return self._convert_to_ndarrays(data, clean_na_values,
+                                         clean_na_fvalues, self.verbose,
+                                         clean_conv, clean_dtypes)
 
     def _to_recarray(self, data, columns):
         dtypes = []
@@ -2858,6 +2791,7 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = []
         na_fvalues = set()
     elif isinstance(na_values, dict):
+        na_values = na_values.copy()  # Prevent aliasing.
         if keep_default_na:
             for k, v in compat.iteritems(na_values):
                 if not is_list_like(v):

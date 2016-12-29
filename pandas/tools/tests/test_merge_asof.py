@@ -118,6 +118,96 @@ class TestAsOfMerge(tm.TestCase):
                             by='ticker')
         assert_frame_equal(result, expected)
 
+    def test_basic_left_index(self):
+
+        # GH14253
+        expected = self.asof
+        trades = self.trades.set_index('time')
+        quotes = self.quotes
+
+        result = merge_asof(trades, quotes,
+                            left_index=True,
+                            right_on='time',
+                            by='ticker')
+        # left-only index uses right's index, oddly
+        expected.index = result.index
+        # time column appears after left's columns
+        expected = expected[result.columns]
+        assert_frame_equal(result, expected)
+
+    def test_basic_right_index(self):
+
+        expected = self.asof
+        trades = self.trades
+        quotes = self.quotes.set_index('time')
+
+        result = merge_asof(trades, quotes,
+                            left_on='time',
+                            right_index=True,
+                            by='ticker')
+        assert_frame_equal(result, expected)
+
+    def test_basic_left_index_right_index(self):
+
+        expected = self.asof.set_index('time')
+        trades = self.trades.set_index('time')
+        quotes = self.quotes.set_index('time')
+
+        result = merge_asof(trades, quotes,
+                            left_index=True,
+                            right_index=True,
+                            by='ticker')
+        assert_frame_equal(result, expected)
+
+    def test_multi_index(self):
+
+        # MultiIndex is prohibited
+        trades = self.trades.set_index(['time', 'price'])
+        quotes = self.quotes.set_index('time')
+        with self.assertRaises(MergeError):
+            merge_asof(trades, quotes,
+                       left_index=True,
+                       right_index=True)
+
+        trades = self.trades.set_index('time')
+        quotes = self.quotes.set_index(['time', 'bid'])
+        with self.assertRaises(MergeError):
+            merge_asof(trades, quotes,
+                       left_index=True,
+                       right_index=True)
+
+    def test_on_and_index(self):
+
+        # 'on' parameter and index together is prohibited
+        trades = self.trades.set_index('time')
+        quotes = self.quotes.set_index('time')
+        with self.assertRaises(MergeError):
+            merge_asof(trades, quotes,
+                       left_on='price',
+                       left_index=True,
+                       right_index=True)
+
+        trades = self.trades.set_index('time')
+        quotes = self.quotes.set_index('time')
+        with self.assertRaises(MergeError):
+            merge_asof(trades, quotes,
+                       right_on='bid',
+                       left_index=True,
+                       right_index=True)
+
+    def test_basic_left_by_right_by(self):
+
+        # GH14253
+        expected = self.asof
+        trades = self.trades
+        quotes = self.quotes
+
+        result = merge_asof(trades, quotes,
+                            on='time',
+                            left_by='ticker',
+                            right_by='ticker')
+        assert_frame_equal(result, expected)
+
     def test_missing_right_by(self):
 
         expected = self.asof
@@ -129,6 +219,117 @@ class TestAsOfMerge(tm.TestCase):
                             on='time',
                             by='ticker')
         expected.loc[expected.ticker == 'MSFT', ['bid', 'ask']] = np.nan
+        assert_frame_equal(result, expected)
+
+    def test_multiby(self):
+        # GH13936
+        trades = pd.DataFrame({
+            'time': pd.to_datetime(['20160525 13:30:00.023',
+                                    '20160525 13:30:00.023',
+                                    '20160525 13:30:00.046',
+                                    '20160525 13:30:00.048',
+                                    '20160525 13:30:00.050']),
+            'ticker': ['MSFT', 'MSFT',
+                       'GOOG', 'GOOG', 'AAPL'],
+            'exch': ['ARCA', 'NSDQ', 'NSDQ', 'BATS', 'NSDQ'],
+            'price': [51.95, 51.95,
+                      720.77, 720.92, 98.00],
+            'quantity': [75, 155,
+                         100, 100, 100]},
+            columns=['time', 'ticker', 'exch',
+                     'price', 'quantity'])
+
+        quotes = pd.DataFrame({
+            'time': pd.to_datetime(['20160525 13:30:00.023',
+                                    '20160525 13:30:00.023',
+                                    '20160525 13:30:00.030',
+                                    '20160525 13:30:00.041',
+                                    '20160525 13:30:00.045',
+                                    '20160525 13:30:00.049']),
+            'ticker': ['GOOG', 'MSFT', 'MSFT',
+                       'MSFT', 'GOOG', 'AAPL'],
+            'exch': ['BATS', 'NSDQ', 'ARCA', 'ARCA',
+                     'NSDQ', 'ARCA'],
+            'bid': [720.51, 51.95, 51.97, 51.99,
+                    720.50, 97.99],
+            'ask': [720.92, 51.96, 51.98, 52.00,
+                    720.93, 98.01]},
+            columns=['time', 'ticker', 'exch', 'bid', 'ask'])
+
+        expected = pd.DataFrame({
+            'time': pd.to_datetime(['20160525 13:30:00.023',
+                                    '20160525 13:30:00.023',
+                                    '20160525 13:30:00.046',
+                                    '20160525 13:30:00.048',
+                                    '20160525 13:30:00.050']),
+            'ticker': ['MSFT', 'MSFT',
+                       'GOOG', 'GOOG', 'AAPL'],
+            'exch': ['ARCA', 'NSDQ', 'NSDQ', 'BATS', 'NSDQ'],
+            'price': [51.95, 51.95,
+                      720.77, 720.92, 98.00],
+            'quantity': [75, 155,
+                         100, 100, 100],
+            'bid': [np.nan, 51.95, 720.50, 720.51, np.nan],
+            'ask': [np.nan, 51.96, 720.93, 720.92, np.nan]},
+            columns=['time', 'ticker', 'exch',
+                     'price', 'quantity', 'bid', 'ask'])
+
+        result = pd.merge_asof(trades, quotes, on='time',
+                               by=['ticker', 'exch'])
+        assert_frame_equal(result, expected)
+
+    def test_multiby_heterogeneous_types(self):
+        # GH13936
+        trades = pd.DataFrame({
+            'time': pd.to_datetime(['20160525 13:30:00.023',
+                                    '20160525 13:30:00.023',
+                                    '20160525 13:30:00.046',
+                                    '20160525 13:30:00.048',
+                                    '20160525 13:30:00.050']),
+            'ticker': [0, 0, 1, 1, 2],
+            'exch': ['ARCA', 'NSDQ', 'NSDQ', 'BATS', 'NSDQ'],
+            'price': [51.95, 51.95,
+                      720.77, 720.92, 98.00],
+            'quantity': [75, 155,
+                         100, 100, 100]},
+            columns=['time', 'ticker', 'exch',
+                     'price', 'quantity'])
+
+        quotes = pd.DataFrame({
+            'time': pd.to_datetime(['20160525 13:30:00.023',
+                                    '20160525 13:30:00.023',
+                                    '20160525 13:30:00.030',
+                                    '20160525 13:30:00.041',
+                                    '20160525 13:30:00.045',
+                                    '20160525 13:30:00.049']),
+            'ticker': [1, 0, 0, 0, 1, 2],
+            'exch': ['BATS', 'NSDQ', 'ARCA', 'ARCA',
+                     'NSDQ', 'ARCA'],
+            'bid': [720.51, 51.95, 51.97, 51.99,
+                    720.50, 97.99],
+            'ask': [720.92, 51.96, 51.98, 52.00,
+                    720.93, 98.01]},
+            columns=['time', 'ticker', 'exch', 'bid', 'ask'])
+
+        expected = pd.DataFrame({
+            'time': pd.to_datetime(['20160525 13:30:00.023',
+                                    '20160525 13:30:00.023',
+                                    '20160525 13:30:00.046',
+                                    '20160525 13:30:00.048',
+                                    '20160525 13:30:00.050']),
+            'ticker': [0, 0, 1, 1, 2],
+            'exch': ['ARCA', 'NSDQ', 'NSDQ', 'BATS', 'NSDQ'],
+            'price': [51.95, 51.95,
+                      720.77, 720.92, 98.00],
+            'quantity': [75, 155,
+                         100, 100, 100],
+            'bid': [np.nan, 51.95, 720.50, 720.51, np.nan],
+            'ask': [np.nan, 51.96, 720.93, 720.92, np.nan]},
+            columns=['time', 'ticker', 'exch',
+                     'price', 'quantity', 'bid', 'ask'])
+
+        result = pd.merge_asof(trades, quotes, on='time',
+                               by=['ticker', 'exch'])
         assert_frame_equal(result, expected)
 
     def test_basic2(self):
@@ -451,6 +652,78 @@ class TestAsOfMerge(tm.TestCase):
             columns=['symbol', 'price', 'mpv'])
 
         assert_frame_equal(result, expected)
+
+    def test_on_specialized_type(self):
+        # GH13936
+        for dtype in [np.uint8, np.uint16, np.uint32, np.uint64,
+                      np.int8, np.int16, np.int32, np.int64,
+                      np.float16, np.float32, np.float64]:
+            df1 = pd.DataFrame({
+                'value': [5, 2, 25, 100, 78, 120, 79],
+                'symbol': list("ABCDEFG")},
+                columns=['symbol', 'value'])
+            df1.value = dtype(df1.value)
+
+            df2 = pd.DataFrame({
+                'value': [0, 80, 120, 125],
+                'result': list('xyzw')},
+                columns=['value', 'result'])
+            df2.value = dtype(df2.value)
+
+            df1 = df1.sort_values('value').reset_index(drop=True)
+
+            if dtype == np.float16:
+                with self.assertRaises(MergeError):
+                    pd.merge_asof(df1, df2, on='value')
+                continue
+
+            result = pd.merge_asof(df1, df2, on='value')
+
+            expected = pd.DataFrame(
+                {'symbol': list("BACEGDF"),
+                 'value': [2, 5, 25, 78, 79, 100, 120],
+                 'result': list('xxxxxyz')
+                 }, columns=['symbol', 'value', 'result'])
+            expected.value = dtype(expected.value)
+
+            assert_frame_equal(result, expected)
+
+    def test_on_specialized_type_by_int(self):
+        # GH13936
+        for dtype in [np.uint8, np.uint16, np.uint32, np.uint64,
+                      np.int8, np.int16, np.int32, np.int64,
+                      np.float16, np.float32, np.float64]:
+            df1 = pd.DataFrame({
+                'value': [5, 2, 25, 100, 78, 120, 79],
+                'key': [1, 2, 3, 2, 3, 1, 2],
+                'symbol': list("ABCDEFG")},
+                columns=['symbol', 'key', 'value'])
+            df1.value = dtype(df1.value)
+
+            df2 = pd.DataFrame({
+                'value': [0, 80, 120, 125],
+                'key': [1, 2, 2, 3],
+                'result': list('xyzw')},
+                columns=['value', 'key', 'result'])
+            df2.value = dtype(df2.value)
+
+            df1 = df1.sort_values('value').reset_index(drop=True)
+
+            if dtype == np.float16:
+                with self.assertRaises(MergeError):
+                    pd.merge_asof(df1, df2, on='value', by='key')
+            else:
+                result = pd.merge_asof(df1, df2, on='value', by='key')
+
+                expected = pd.DataFrame({
+                    'symbol': list("BACEGDF"),
+                    'key': [2, 1, 3, 3, 2, 2, 1],
+                    'value': [2, 5, 25, 78, 79, 100, 120],
+                    'result': [np.nan, 'x', np.nan, np.nan, np.nan, 'y', 'x']},
+                    columns=['symbol', 'key', 'value', 'result'])
+                expected.value = dtype(expected.value)
+
+                assert_frame_equal(result, expected)
 
     def test_on_float_by_int(self):
         # type specialize both "by" and "on" parameters

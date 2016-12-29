@@ -8,6 +8,7 @@ class Algorithms(object):
 
     def setup(self):
         N = 100000
+        np.random.seed(1234)
 
         self.int_unique = pd.Int64Index(np.arange(N * 5))
         # cache is_unique
@@ -17,16 +18,23 @@ class Algorithms(object):
         self.float = pd.Float64Index(np.random.randn(N).repeat(5))
 
         # Convenience naming.
-        self.checked_add = pd.core.nanops._checked_add_with_arr
+        self.checked_add = pd.core.algorithms.checked_add_with_arr
 
         self.arr = np.arange(1000000)
         self.arrpos = np.arange(1000000)
         self.arrneg = np.arange(-1000000, 0)
         self.arrmixed = np.array([1, -1]).repeat(500000)
+        self.strings = tm.makeStringIndex(100000)
+
+        self.arr_nan = np.random.choice([True, False], size=1000000)
+        self.arrmixed_nan = np.random.choice([True, False], size=1000000)
 
         # match
         self.uniques = tm.makeStringIndex(1000).values
         self.all = self.uniques.repeat(10)
+
+    def time_factorize_string(self):
+        self.strings.factorize()
 
     def time_factorize_int(self):
         self.int.factorize()
@@ -63,6 +71,16 @@ class Algorithms(object):
 
     def time_add_overflow_mixed_arr(self):
         self.checked_add(self.arr, self.arrmixed)
+
+    def time_add_overflow_first_arg_nan(self):
+        self.checked_add(self.arr, self.arrmixed, arr_mask=self.arr_nan)
+
+    def time_add_overflow_second_arg_nan(self):
+        self.checked_add(self.arr, self.arrmixed, b_mask=self.arrmixed_nan)
+
+    def time_add_overflow_both_arg_nan(self):
+        self.checked_add(self.arr, self.arrmixed, arr_mask=self.arr_nan,
+                         b_mask=self.arrmixed_nan)
 
 
 class Hashing(object):

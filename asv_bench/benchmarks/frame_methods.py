@@ -68,6 +68,8 @@ class Iteration(object):
     def setup(self):
         self.df = DataFrame(randn(10000, 1000))
         self.df2 = DataFrame(np.random.randn(50000, 10))
+        self.df3 = pd.DataFrame(np.random.randn(1000,5000),
+                                columns=['C'+str(c) for c in range(5000)])
 
     def f(self):
         if hasattr(self.df, '_item_cache'):
@@ -84,6 +86,11 @@ class Iteration(object):
 
     def time_iteritems_cached(self):
         self.g()
+
+    def time_iteritems_indexing(self):
+        df = self.df3
+        for col in df:
+            df[col]
 
     def time_itertuples(self):
         for row in self.df2.itertuples():

@@ -83,6 +83,14 @@ HDFStore: PyTables (HDF5)
    HDFStore.get
    HDFStore.select
 
+Feather
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   read_feather
+
 SAS
 ~~~
 
@@ -157,6 +165,7 @@ Data manipulations
    concat
    get_dummies
    factorize
+   wide_to_long
 
 Top-level missing data
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -1014,6 +1023,7 @@ Serialization / IO / Conversion
    DataFrame.to_excel
    DataFrame.to_json
    DataFrame.to_html
+   DataFrame.to_feather
    DataFrame.to_latex
    DataFrame.to_stata
    DataFrame.to_msgpack

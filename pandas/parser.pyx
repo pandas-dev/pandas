@@ -621,8 +621,9 @@ cdef class TextReader:
                 if isinstance(source, basestring) or PY3:
                     source = bz2.BZ2File(source, 'rb')
                 else:
-                    raise ValueError('Python 2 cannot read bz2 from open file '
-                                     'handle')
+                    content = source.read()
+                    source.close()
+                    source = compat.StringIO(bz2.decompress(content))
             elif self.compression == 'zip':
                 import zipfile
                 zip_file = zipfile.ZipFile(source)
@@ -1262,19 +1263,23 @@ cdef class TextReader:
             return None, set()
 
         if isinstance(self.na_values, dict):
+            key = None
             values = None
+
             if name is not None and name in self.na_values:
-                values = self.na_values[name]
-                if values is not None and not isinstance(values, list):
-                    values = list(values)
-                fvalues = self.na_fvalues[name]
-                if fvalues is not None and not isinstance(fvalues, set):
-                    fvalues = set(fvalues)
-            else:
-                if i in self.na_values:
-                    return self.na_values[i], self.na_fvalues[i]
-                else:
-                    return _NA_VALUES, set()
+                key = name
+            elif i in self.na_values:
+                key = i
+            else:  # No na_values provided for this column.
+                return _NA_VALUES, set()
+
+            values = self.na_values[key]
+            if values is not None and not isinstance(values, list):
+                values = list(values)
+
+            fvalues = self.na_fvalues[key]
+            if fvalues is not None and not isinstance(fvalues, set):
+                fvalues = set(fvalues)
 
             return _ensure_encoded(values), fvalues
         else:

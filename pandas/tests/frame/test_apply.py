@@ -405,6 +405,16 @@ class TestDataFrameApply(tm.TestCase, TestData):
         for f in ['datetime', 'timedelta']:
             self.assertEqual(result.loc[0, f], str(df.loc[0, f]))
 
+        # GH 8222
+        empty_frames = [pd.DataFrame(),
+                        pd.DataFrame(columns=list('ABC')),
+                        pd.DataFrame(index=list('ABC')),
+                        pd.DataFrame({'A': [], 'B': [], 'C': []})]
+        for frame in empty_frames:
+            for func in [round, lambda x: x]:
+                result = frame.applymap(func)
+                tm.assert_frame_equal(result, frame)
+
     def test_applymap_box(self):
         # ufunc will not be boxed. Same test cases as the test_map_box
         df = pd.DataFrame({'a': [pd.Timestamp('2011-01-01'),

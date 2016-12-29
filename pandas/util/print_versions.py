@@ -80,6 +80,7 @@ def show_versions(as_json=False):
         ("bottleneck", lambda mod: mod.__version__),
         ("tables", lambda mod: mod.__version__),
         ("numexpr", lambda mod: mod.__version__),
+        ("feather", lambda mod: mod.__version__),
         ("matplotlib", lambda mod: mod.__version__),
         ("openpyxl", lambda mod: mod.__version__),
         ("xlrd", lambda mod: mod.__VERSION__),
@@ -94,7 +95,7 @@ def show_versions(as_json=False):
         ("pymysql", lambda mod: mod.__version__),
         ("psycopg2", lambda mod: mod.__version__),
         ("jinja2", lambda mod: mod.__version__),
-        ("boto", lambda mod: mod.__version__),
+        ("s3fs", lambda mod: mod.__version__),
         ("pandas_datareader", lambda mod: mod.__version__)
     ]
 

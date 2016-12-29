@@ -95,7 +95,7 @@ class TestPDApi(Base, tm.TestCase):
                   'read_gbq', 'read_hdf', 'read_html', 'read_json',
                   'read_msgpack', 'read_pickle', 'read_sas', 'read_sql',
                   'read_sql_query', 'read_sql_table', 'read_stata',
-                  'read_table']
+                  'read_table', 'read_feather']
 
     # top-level to_* funcs
     funcs_to = ['to_datetime', 'to_msgpack',
@@ -153,10 +153,10 @@ class TestTypes(Base, tm.TestCase):
                'is_floating_dtype', 'is_int64_dtype', 'is_integer',
                'is_integer_dtype', 'is_number', 'is_numeric_dtype',
                'is_object_dtype', 'is_scalar', 'is_sparse',
-               'is_string_dtype',
+               'is_string_dtype', 'is_signed_integer_dtype',
                'is_timedelta64_dtype', 'is_timedelta64_ns_dtype',
-               'is_period', 'is_period_dtype',
-               'is_re', 'is_re_compilable',
+               'is_unsigned_integer_dtype', 'is_period',
+               'is_period_dtype', 'is_re', 'is_re_compilable',
                'is_dict_like', 'is_iterator',
                'is_list_like', 'is_hashable',
                'is_named_tuple', 'is_sequence',

@@ -266,16 +266,15 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         expected = ts['2013']
         assert_series_equal(expected, ts)
 
-        # GH 3925, indexing with a seconds resolution string / datetime object
+        # GH14826, indexing with a seconds resolution string / datetime object
         df = DataFrame(randn(5, 5),
                        columns=['open', 'high', 'low', 'close', 'volume'],
                        index=date_range('2012-01-02 18:01:00',
                                         periods=5, tz='US/Central', freq='s'))
         expected = df.loc[[df.index[2]]]
-        result = df['2012-01-02 18:01:02']
-        assert_frame_equal(result, expected)
 
         # this is a single date, so will raise
+        self.assertRaises(KeyError, df.__getitem__, '2012-01-02 18:01:02', )
         self.assertRaises(KeyError, df.__getitem__, df.index[2], )
 
     def test_recreate_from_data(self):
@@ -946,6 +945,18 @@ class TestTimeSeries(tm.TestCase):
 
         result = to_datetime(s)
         self.assertEqual(result[0], s[0])
+
+    def test_to_datetime_with_space_in_series(self):
+        # GH 6428
+        s = Series(['10/18/2006', '10/18/2008', ' '])
+        tm.assertRaises(ValueError, lambda: to_datetime(s, errors='raise'))
+        result_coerce = to_datetime(s, errors='coerce')
+        expected_coerce = Series([datetime(2006, 10, 18),
+                                  datetime(2008, 10, 18),
+                                  pd.NaT])
+        tm.assert_series_equal(result_coerce, expected_coerce)
+        result_ignore = to_datetime(s, errors='ignore')
+        tm.assert_series_equal(result_ignore, s)
 
     def test_to_datetime_with_apply(self):
         # this is only locale tested with US/None locales
@@ -2991,8 +3002,8 @@ class TestDatetimeIndex(tm.TestCase):
 
         f = lambda x: x.strftime('%Y%m%d')
         result = rng.map(f)
-        exp = np.array([f(x) for x in rng], dtype='=U8')
-        tm.assert_almost_equal(result, exp)
+        exp = Index([f(x) for x in rng], dtype='<U8')
+        tm.assert_index_equal(result, exp)
 
     def test_iteration_preserves_tz(self):
 
@@ -3688,8 +3699,8 @@ class TestDatetimeIndex(tm.TestCase):
         f = index.asof
 
         result = index.map(f)
-        expected = np.array([f(index[0])])
-        self.assert_numpy_array_equal(result, expected)
+        expected = Index([f(index[0])])
+        tm.assert_index_equal(result, expected)
 
     def test_groupby_function_tuple_1677(self):
         df = DataFrame(np.random.rand(100),
@@ -4940,6 +4951,73 @@ class TestSlicing(tm.TestCase):
         self.assertEqual(s[Timestamp('2005-1-1 00:00:59.999990')], s.iloc[0])
         self.assertRaisesRegexp(KeyError, '2005-1-1 00:00:00',
                                 lambda: s['2005-1-1 00:00:00'])
+
+    def test_partial_slicing_dataframe(self):
+        # GH14856
+        # Test various combinations of string slicing resolution vs.
+        # index resolution
+        # - If string resolution is less precise than index resolution,
+        # string is considered a slice
+        # - If string resolution is equal to or more precise than index
+        # resolution, string is considered an exact match
+        formats = ['%Y', '%Y-%m', '%Y-%m-%d', '%Y-%m-%d %H',
+                   '%Y-%m-%d %H:%M', '%Y-%m-%d %H:%M:%S']
+        resolutions = ['year', 'month', 'day', 'hour', 'minute', 'second']
+        for rnum, resolution in enumerate(resolutions[2:], 2):
+            # we check only 'day', 'hour', 'minute' and 'second'
+            unit = Timedelta("1 " + resolution)
+            middate = datetime(2012, 1, 1, 0, 0, 0)
+            index = DatetimeIndex([middate - unit,
+                                   middate, middate + unit])
+            values = [1, 2, 3]
+            df = DataFrame({'a': values}, index, dtype=np.int64)
+            self.assertEqual(df.index.resolution, resolution)
+
+            # Timestamp with the same resolution as index
+            # Should be exact match for Series (return scalar)
+            # and raise KeyError for Frame
+            for timestamp, expected in zip(index, values):
+                ts_string = timestamp.strftime(formats[rnum])
+                # make ts_string as precise as index
+                result = df['a'][ts_string]
+                self.assertIsInstance(result, np.int64)
+                self.assertEqual(result, expected)
+                self.assertRaises(KeyError, df.__getitem__, ts_string)
+
+            # Timestamp with resolution less precise than index
+            for fmt in formats[:rnum]:
+                for element, theslice in [[0, slice(None, 1)],
+                                          [1, slice(1, None)]]:
+                    ts_string = index[element].strftime(fmt)
+
+                    # Series should return slice
+                    result = df['a'][ts_string]
+                    expected = df['a'][theslice]
+                    assert_series_equal(result, expected)
+
+                    # Frame should return slice as well
+                    result = df[ts_string]
+                    expected = df[theslice]
+                    assert_frame_equal(result, expected)
+
+            # Timestamp with resolution more precise than index
+            # Compatible with existing key
+            # Should return scalar for Series
+            # and raise KeyError for Frame
+            for fmt in formats[rnum + 1:]:
+                ts_string = index[1].strftime(fmt)
+                result = df['a'][ts_string]
+                self.assertIsInstance(result, np.int64)
+                self.assertEqual(result, 2)
+                self.assertRaises(KeyError, df.__getitem__, ts_string)
+
+            # Not compatible with existing key
+            # Should raise KeyError
+            for fmt, res in list(zip(formats, resolutions))[rnum + 1:]:
+                ts = index[1] + Timedelta("1 " + res)
+                ts_string = ts.strftime(fmt)
+                self.assertRaises(KeyError, df['a'].__getitem__, ts_string)
+                self.assertRaises(KeyError, df.__getitem__, ts_string)
 
     def test_partial_slicing_with_multiindex(self):
 

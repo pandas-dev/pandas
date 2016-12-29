@@ -9,7 +9,9 @@ import numpy as np
 from pandas import compat, lib, tslib, _np_version_under1p8
 from pandas.types.cast import _maybe_promote
 from pandas.types.generic import ABCSeries, ABCIndex
-from pandas.types.common import (is_integer_dtype,
+from pandas.types.common import (is_unsigned_integer_dtype,
+                                 is_signed_integer_dtype,
+                                 is_integer_dtype,
                                  is_int64_dtype,
                                  is_categorical_dtype,
                                  is_extension_type,
@@ -25,8 +27,10 @@ from pandas.types.common import (is_integer_dtype,
                                  _ensure_platform_int,
                                  _ensure_object,
                                  _ensure_float64,
+                                 _ensure_uint64,
                                  _ensure_int64,
                                  is_list_like)
+from pandas.compat.numpy import _np_version_under1p10
 from pandas.types.missing import isnull
 
 import pandas.core.common as com
@@ -64,8 +68,8 @@ def match(to_match, values, na_sentinel=-1):
     if issubclass(values.dtype.type, string_types):
         values = np.array(values, dtype='O')
 
-    f = lambda htype, caster: _match_generic(to_match, values, htype, caster)
-    result = _hashtable_algo(f, values.dtype, np.int64)
+    f = lambda htype, caster: _match_object(to_match, values, htype, caster)
+    result = _hashtable_algo(f, values, np.int64)
 
     if na_sentinel != -1:
 
@@ -78,7 +82,7 @@ def match(to_match, values, na_sentinel=-1):
     return result
 
 
-def _match_generic(values, index, table_type, type_caster):
+def _match_object(values, index, table_type, type_caster):
     values = type_caster(values)
     index = type_caster(index)
     table = table_type(min(len(index), 1000000))
@@ -101,15 +105,50 @@ def unique(values):
     """
     values = com._asarray_tuplesafe(values)
 
-    f = lambda htype, caster: _unique_generic(values, htype, caster)
-    return _hashtable_algo(f, values.dtype)
+    f = lambda htype, caster: _unique_object(values, htype, caster)
+    return _hashtable_algo(f, values)
 
 
-def _unique_generic(values, table_type, type_caster):
+def _unique_object(values, table_type, type_caster):
     values = type_caster(values)
     table = table_type(min(len(values), 1000000))
     uniques = table.unique(values)
     return type_caster(uniques)
+
+
+def unique1d(values):
+    """
+    Hash table-based unique
+    """
+    if np.issubdtype(values.dtype, np.floating):
+        table = htable.Float64HashTable(len(values))
+        uniques = np.array(table.unique(_ensure_float64(values)),
+                           dtype=np.float64)
+    elif np.issubdtype(values.dtype, np.datetime64):
+        table = htable.Int64HashTable(len(values))
+        uniques = table.unique(_ensure_int64(values))
+        uniques = uniques.view('M8[ns]')
+    elif np.issubdtype(values.dtype, np.timedelta64):
+        table = htable.Int64HashTable(len(values))
+        uniques = table.unique(_ensure_int64(values))
+        uniques = uniques.view('m8[ns]')
+    elif np.issubdtype(values.dtype, np.signedinteger):
+        table = htable.Int64HashTable(len(values))
+        uniques = table.unique(_ensure_int64(values))
+    elif np.issubdtype(values.dtype, np.unsignedinteger):
+        table = htable.UInt64HashTable(len(values))
+        uniques = table.unique(_ensure_uint64(values))
+    else:
+
+        # its cheaper to use a String Hash Table than Object
+        if lib.infer_dtype(values) in ['string']:
+            table = htable.StringHashTable(len(values))
+        else:
+            table = htable.PyObjectHashTable(len(values))
+
+        uniques = table.unique(_ensure_object(values))
+
+    return uniques
 
 
 def isin(comps, values):
@@ -310,7 +349,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     table = hash_klass(size_hint or len(vals))
     uniques = vec_klass()
-    labels = table.get_labels(vals, uniques, 0, na_sentinel, True)
+    check_nulls = not is_integer_dtype(values)
+    labels = table.get_labels(vals, uniques, 0, na_sentinel, check_nulls)
 
     labels = _ensure_platform_int(labels)
 
@@ -326,6 +366,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     if isinstance(values, Index):
         uniques = values._shallow_copy(uniques, name=None)
     elif isinstance(values, Series):
+        # TODO: This constructor is bugged for uint's, especially
+        # np.uint64 due to overflow. Test this for uint behavior
+        # once constructor has been fixed.
         uniques = Index(uniques)
     return labels, uniques
 
@@ -442,8 +485,9 @@ def _value_counts_arraylike(values, dropna=True):
         keys, counts = htable.value_count_float64(values, dropna)
     else:
         values = _ensure_object(values)
+        keys, counts = htable.value_count_object(values, dropna)
+
         mask = isnull(values)
-        keys, counts = htable.value_count_object(values, mask)
         if not dropna and mask.any():
             keys = np.insert(keys, 0, np.NaN)
             counts = np.insert(counts, 0, mask.sum())
@@ -453,12 +497,14 @@ def _value_counts_arraylike(values, dropna=True):
 
 def duplicated(values, keep='first'):
     """
-    Return boolean ndarray denoting duplicate values
+    Return boolean ndarray denoting duplicate values.
 
     .. versionadded:: 0.19.0
 
     Parameters
     ----------
+    values : ndarray-like
+        Array over which to check for duplicate values.
     keep : {'first', 'last', False}, default 'first'
         - ``first`` : Mark duplicates as ``True`` except for the first
           occurrence.
@@ -484,9 +530,12 @@ def duplicated(values, keep='first'):
     elif isinstance(values, (ABCSeries, ABCIndex)):
         values = values.values
 
-    if is_integer_dtype(dtype):
+    if is_signed_integer_dtype(dtype):
         values = _ensure_int64(values)
         duplicated = htable.duplicated_int64(values, keep=keep)
+    elif is_unsigned_integer_dtype(dtype):
+        values = _ensure_uint64(values)
+        duplicated = htable.duplicated_uint64(values, keep=keep)
     elif is_float_dtype(dtype):
         values = _ensure_float64(values)
         duplicated = htable.duplicated_float64(values, keep=keep)
@@ -498,7 +547,19 @@ def duplicated(values, keep='first'):
 
 
 def mode(values):
-    """Returns the mode or mode(s) of the passed Series or ndarray (sorted)"""
+    """
+    Returns the mode(s) of an array.
+
+    Parameters
+    ----------
+    values : array-like
+        Array over which to check for duplicate values.
+
+    Returns
+    -------
+    mode : Series
+    """
+
     # must sort because hash order isn't necessarily defined.
     from pandas.core.series import Series
 
@@ -510,23 +571,23 @@ def mode(values):
         constructor = Series
 
     dtype = values.dtype
-    if is_integer_dtype(values):
+    if is_signed_integer_dtype(values):
         values = _ensure_int64(values)
-        result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
-
+        result = constructor(np.sort(htable.mode_int64(values)), dtype=dtype)
+    elif is_unsigned_integer_dtype(values):
+        values = _ensure_uint64(values)
+        result = constructor(np.sort(htable.mode_uint64(values)), dtype=dtype)
     elif issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
         dtype = values.dtype
         values = values.view(np.int64)
-        result = constructor(sorted(htable.mode_int64(values)), dtype=dtype)
-
+        result = constructor(np.sort(htable.mode_int64(values)), dtype=dtype)
     elif is_categorical_dtype(values):
         result = constructor(values.mode())
     else:
-        mask = isnull(values)
         values = _ensure_object(values)
-        res = htable.mode_object(values, mask)
+        res = htable.mode_object(values)
         try:
-            res = sorted(res)
+            res = np.sort(res)
         except TypeError as e:
             warn("Unable to sort modes: %s" % e)
         result = constructor(res, dtype=dtype)
@@ -537,7 +598,27 @@ def mode(values):
 def rank(values, axis=0, method='average', na_option='keep',
          ascending=True, pct=False):
     """
+    Rank the values along a given axis.
 
+    Parameters
+    ----------
+    values : array-like
+        Array whose values will be ranked. The number of dimensions in this
+        array must not exceed 2.
+    axis : int, default 0
+        Axis over which to perform rankings.
+    method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
+        The method by which tiebreaks are broken during the ranking.
+    na_option : {'keep', 'top'}, default 'keep'
+        The method by which NaNs are placed in the ranking.
+        - ``keep``: rank each NaN value with a NaN ranking
+        - ``top``: replace each NaN with either +/- inf so that they
+                   there are ranked at the top
+    ascending : boolean, default True
+        Whether or not the elements should be ranked in ascending order.
+    pct : boolean, default False
+        Whether or not to the display the returned rankings in integer form
+        (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
     if values.ndim == 1:
         f, values = _get_data_algo(values, _rank1d_functions)
@@ -547,19 +628,112 @@ def rank(values, axis=0, method='average', na_option='keep',
         f, values = _get_data_algo(values, _rank2d_functions)
         ranks = f(values, axis=axis, ties_method=method,
                   ascending=ascending, na_option=na_option, pct=pct)
+    else:
+        raise TypeError("Array with ndim > 2 are not supported.")
 
     return ranks
+
+
+def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
+    """
+    Perform array addition that checks for underflow and overflow.
+
+    Performs the addition of an int64 array and an int64 integer (or array)
+    but checks that they do not result in overflow first. For elements that
+    are indicated to be NaN, whether or not there is overflow for that element
+    is automatically ignored.
+
+    Parameters
+    ----------
+    arr : array addend.
+    b : array or scalar addend.
+    arr_mask : boolean array or None
+        array indicating which elements to exclude from checking
+    b_mask : boolean array or boolean or None
+        array or scalar indicating which element(s) to exclude from checking
+
+    Returns
+    -------
+    sum : An array for elements x + b for each element x in arr if b is
+          a scalar or an array for elements x + y for each element pair
+          (x, y) in (arr, b).
+
+    Raises
+    ------
+    OverflowError if any x + y exceeds the maximum or minimum int64 value.
+    """
+    def _broadcast(arr_or_scalar, shape):
+        """
+        Helper function to broadcast arrays / scalars to the desired shape.
+        """
+        if _np_version_under1p10:
+            if lib.isscalar(arr_or_scalar):
+                out = np.empty(shape)
+                out.fill(arr_or_scalar)
+            else:
+                out = arr_or_scalar
+        else:
+            out = np.broadcast_to(arr_or_scalar, shape)
+        return out
+
+    # For performance reasons, we broadcast 'b' to the new array 'b2'
+    # so that it has the same size as 'arr'.
+    b2 = _broadcast(b, arr.shape)
+    if b_mask is not None:
+        # We do the same broadcasting for b_mask as well.
+        b2_mask = _broadcast(b_mask, arr.shape)
+    else:
+        b2_mask = None
+
+    # For elements that are NaN, regardless of their value, we should
+    # ignore whether they overflow or not when doing the checked add.
+    if arr_mask is not None and b2_mask is not None:
+        not_nan = np.logical_not(arr_mask | b2_mask)
+    elif arr_mask is not None:
+        not_nan = np.logical_not(arr_mask)
+    elif b_mask is not None:
+        not_nan = np.logical_not(b2_mask)
+    else:
+        not_nan = np.empty(arr.shape, dtype=bool)
+        not_nan.fill(True)
+
+    # gh-14324: For each element in 'arr' and its corresponding element
+    # in 'b2', we check the sign of the element in 'b2'. If it is positive,
+    # we then check whether its sum with the element in 'arr' exceeds
+    # np.iinfo(np.int64).max. If so, we have an overflow error. If it
+    # it is negative, we then check whether its sum with the element in
+    # 'arr' exceeds np.iinfo(np.int64).min. If so, we have an overflow
+    # error as well.
+    mask1 = b2 > 0
+    mask2 = b2 < 0
+
+    if not mask1.any():
+        to_raise = ((np.iinfo(np.int64).min - b2 > arr) & not_nan).any()
+    elif not mask2.any():
+        to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
+    else:
+        to_raise = (((np.iinfo(np.int64).max -
+                      b2[mask1] < arr[mask1]) & not_nan[mask1]).any() or
+                    ((np.iinfo(np.int64).min -
+                      b2[mask2] > arr[mask2]) & not_nan[mask2]).any())
+
+    if to_raise:
+        raise OverflowError("Overflow in int64 addition")
+    return arr + b
+
 
 _rank1d_functions = {
     'float64': algos.rank_1d_float64,
     'int64': algos.rank_1d_int64,
-    'generic': algos.rank_1d_generic
+    'uint64': algos.rank_1d_uint64,
+    'object': algos.rank_1d_object
 }
 
 _rank2d_functions = {
     'float64': algos.rank_2d_float64,
     'int64': algos.rank_2d_int64,
-    'generic': algos.rank_2d_generic
+    'uint64': algos.rank_2d_uint64,
+    'object': algos.rank_2d_object
 }
 
 
@@ -759,31 +933,44 @@ _dtype_map = {'datetime64[ns]': 'int64', 'timedelta64[ns]': 'int64'}
 # helpers #
 # ------- #
 
-def _hashtable_algo(f, dtype, return_dtype=None):
+def _hashtable_algo(f, values, return_dtype=None):
     """
     f(HashTable, type_caster) -> result
     """
+
+    dtype = values.dtype
     if is_float_dtype(dtype):
         return f(htable.Float64HashTable, _ensure_float64)
-    elif is_integer_dtype(dtype):
+    elif is_signed_integer_dtype(dtype):
         return f(htable.Int64HashTable, _ensure_int64)
+    elif is_unsigned_integer_dtype(dtype):
+        return f(htable.UInt64HashTable, _ensure_uint64)
     elif is_datetime64_dtype(dtype):
         return_dtype = return_dtype or 'M8[ns]'
         return f(htable.Int64HashTable, _ensure_int64).view(return_dtype)
     elif is_timedelta64_dtype(dtype):
         return_dtype = return_dtype or 'm8[ns]'
         return f(htable.Int64HashTable, _ensure_int64).view(return_dtype)
-    else:
-        return f(htable.PyObjectHashTable, _ensure_object)
+
+    # its cheaper to use a String Hash Table than Object
+    if lib.infer_dtype(values) in ['string']:
+        return f(htable.StringHashTable, _ensure_object)
+
+    # use Object
+    return f(htable.PyObjectHashTable, _ensure_object)
 
 _hashtables = {
     'float64': (htable.Float64HashTable, htable.Float64Vector),
+    'uint64': (htable.UInt64HashTable, htable.UInt64Vector),
     'int64': (htable.Int64HashTable, htable.Int64Vector),
-    'generic': (htable.PyObjectHashTable, htable.ObjectVector)
+    'string': (htable.StringHashTable, htable.ObjectVector),
+    'object': (htable.PyObjectHashTable, htable.ObjectVector)
 }
 
 
 def _get_data_algo(values, func_map):
+
+    f = None
     if is_float_dtype(values):
         f = func_map['float64']
         values = _ensure_float64(values)
@@ -792,12 +979,27 @@ def _get_data_algo(values, func_map):
         f = func_map['int64']
         values = values.view('i8')
 
-    elif is_integer_dtype(values):
+    elif is_signed_integer_dtype(values):
         f = func_map['int64']
         values = _ensure_int64(values)
+
+    elif is_unsigned_integer_dtype(values):
+        f = func_map['uint64']
+        values = _ensure_uint64(values)
+
     else:
-        f = func_map['generic']
         values = _ensure_object(values)
+
+        # its cheaper to use a String Hash Table than Object
+        if lib.infer_dtype(values) in ['string']:
+            try:
+                f = func_map['string']
+            except KeyError:
+                pass
+
+    if f is None:
+        f = func_map['object']
+
     return f, values
 
 
@@ -827,7 +1029,7 @@ def _convert_wrapper(f, conv_dtype):
     return wrapper
 
 
-def _take_2d_multi_generic(arr, indexer, out, fill_value, mask_info):
+def _take_2d_multi_object(arr, indexer, out, fill_value, mask_info):
     # this is not ideal, performance-wise, but it's better than raising
     # an exception (best to optimize in Cython to avoid getting here)
     row_idx, col_idx = indexer
@@ -850,7 +1052,7 @@ def _take_2d_multi_generic(arr, indexer, out, fill_value, mask_info):
             out[i, j] = arr[u_, v]
 
 
-def _take_nd_generic(arr, indexer, out, axis, fill_value, mask_info):
+def _take_nd_object(arr, indexer, out, axis, fill_value, mask_info):
     if mask_info is not None:
         mask, needs_masking = mask_info
     else:
@@ -1001,8 +1203,8 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
 
     def func(arr, indexer, out, fill_value=np.nan):
         indexer = _ensure_int64(indexer)
-        _take_nd_generic(arr, indexer, out, axis=axis, fill_value=fill_value,
-                         mask_info=mask_info)
+        _take_nd_object(arr, indexer, out, axis=axis, fill_value=fill_value,
+                        mask_info=mask_info)
 
     return func
 
@@ -1173,8 +1375,8 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
     if func is None:
 
         def func(arr, indexer, out, fill_value=np.nan):
-            _take_2d_multi_generic(arr, indexer, out, fill_value=fill_value,
-                                   mask_info=mask_info)
+            _take_2d_multi_object(arr, indexer, out, fill_value=fill_value,
+                                  mask_info=mask_info)
 
     func(arr, indexer, out=out, fill_value=fill_value)
     return out
