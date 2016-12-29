@@ -398,7 +398,7 @@ class GbqConnector(object):
         if config is not None:
             if len(config) != 1:
                 raise ValueError("Only one job type must be specified, "
-                                 "but given {}".format(','.join(config.keys()))
+                                 "but given {}".format(','.join(config.keys())))
             if 'query' in config:
                 if 'query' in config['query'] and query is not None:
                     raise ValueError("Query statement can't be specified "
