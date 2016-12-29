@@ -1065,7 +1065,7 @@ class TestToGBQIntegrationServiceAccountKeyPath(tm.TestCase):
         pass
 
     def test_upload_data_as_service_account_with_key_path(self):
-        destination_table = DESTINATION_TABLE + "11"
+        destination_table = "{0}.{1}".format(DATASET_ID + "2", TABLE_ID + "1")
 
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
@@ -1124,10 +1124,7 @@ class TestToGBQIntegrationServiceAccountKeyContents(tm.TestCase):
         pass
 
     def test_upload_data_as_service_account_with_key_contents(self):
-        raise nose.SkipTest(
-            "flaky test")
-
-        destination_table = DESTINATION_TABLE + "12"
+        destination_table = "{0}.{1}".format(DATASET_ID + "3", TABLE_ID + "1")
 
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
