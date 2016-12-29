@@ -152,7 +152,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     precision : int
         The precision at which to store and display the bins labels
     duplicates : {'raise', 'drop'}, optional
-        If binned edges are not unique, raise ValueError or drop non-uniques.
+        If bin edges are not unique, raise ValueError or drop non-uniques.
         .. versionadded:: 0.20.0
 
     Returns
@@ -202,22 +202,19 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
 
     if duplicates not in ['raise', 'drop']:
         raise ValueError("invalid value for 'duplicates' parameter, "
-                         + "valid options are: raise, drop")
+                         "valid options are: raise, drop")
 
     unique_bins = algos.unique(bins)
     if len(unique_bins) < len(bins):
         if duplicates == 'raise':
-            raise ValueError('Bin edges must be unique: %s' % repr(bins) +
-                             ' You can drop duplicate edges ' +
-                             'by setting \'duplicates\' param')
+            raise ValueError("Bin edges must be unique: {} "
+                             "You can drop duplicate edges "
+                             "by setting 'duplicates' param".format(repr(bins)))
         else:
             bins = unique_bins
 
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
-
-    if len(algos.unique(bins)) < len(bins):
-        raise ValueError('Bin edges must be unique: %s' % repr(bins))
 
     if include_lowest:
         ids[x == bins[0]] = 1

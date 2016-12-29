@@ -279,6 +279,11 @@ class TestCut(tm.TestCase):
         ex_levels = ['[0, 1]', '(1, 3]']
         self.assertTrue((cats.categories == ex_levels).all())
 
+    def test_qcut_duplicates_raise(self):
+        # GH 7751
+        values = [0, 0, 0, 0, 1, 2, 3]
+        self.assertRaises(ValueError, qcut, values, 3, duplicates='raise')
+
     def test_single_bin(self):
         # issue 14652
         expected = Series([0, 0])
