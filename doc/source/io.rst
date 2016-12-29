@@ -502,7 +502,7 @@ worth trying.
    .. ipython:: python
         :okwarning:
 
-        df = pd.DataFrame({'col_1':range(500000) + ['a', 'b'] + range(500000)})
+        df = pd.DataFrame({'col_1': list(range(500000)) + ['a', 'b'] + list(range(500000))})
         df.to_csv('foo')
         mixed_df = pd.read_csv('foo')
         mixed_df['col_1'].apply(type).value_counts()

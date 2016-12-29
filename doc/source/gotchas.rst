@@ -249,7 +249,7 @@ normal Python ``list``. Monotonicity of an index can be tested with the ``is_mon
 
 .. ipython:: python
 
-    df = pd.DataFrame(index=[2,3,3,4,5], columns=['data'], data=range(5))
+    df = pd.DataFrame(index=[2,3,3,4,5], columns=['data'], data=list(range(5)))
     df.index.is_monotonic_increasing
 
     # no rows 0 or 1, but still returns rows 2, 3 (both of them), and 4:
@@ -263,7 +263,7 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
 
 .. ipython:: python
 
-    df = pd.DataFrame(index=[2,3,1,4,3,5], columns=['data'], data=range(6))
+    df = pd.DataFrame(index=[2,3,1,4,3,5], columns=['data'], data=list(range(6)))
     df.index.is_monotonic_increasing
 
     # OK because 2 and 4 are in the index
