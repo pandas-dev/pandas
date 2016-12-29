@@ -207,9 +207,9 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     unique_bins = algos.unique(bins)
     if len(unique_bins) < len(bins):
         if duplicates == 'raise':
-            raise ValueError("Bin edges must be unique: {} "
-                             "You can drop duplicate edges "
-                             "by setting 'duplicates' param".format(repr(bins)))
+            raise ValueError("Bin edges must be unique: {}. You "
+                             "can drop duplicate edges by setting "
+                             "'duplicates' param".format(repr(bins)))
         else:
             bins = unique_bins
 
