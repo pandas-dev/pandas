@@ -1807,8 +1807,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
         idx = self.create_index()
         # 9816 deprecated
         if PY36:
-            with tm.assertRaisesRegexp(TypeError, "'>' not supported "
-                                       "between instances of 'str' and 'int'"):
+            with tm.assertRaisesRegexp(TypeError, "'>' not supported"):
                 with tm.assert_produces_warning(FutureWarning):
                     idx.order()
         elif PY3:
@@ -1822,8 +1821,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
     def test_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assertRaisesRegexp(TypeError, "'>' not supported "
-                                       "between instances of 'str' and 'int'"):
+            with tm.assertRaisesRegexp(TypeError, "'>' not supported"):
                 result = idx.argsort()
         elif PY3:
             with tm.assertRaisesRegexp(TypeError, "unorderable types"):
@@ -1836,8 +1834,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
     def test_numpy_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assertRaisesRegexp(TypeError, "'>' not supported "
-                                       "between instances of 'str' and 'int'"):
+            with tm.assertRaisesRegexp(TypeError, "'>' not supported"):
                 result = np.argsort(idx)
         elif PY3:
             with tm.assertRaisesRegexp(TypeError, "unorderable types"):
