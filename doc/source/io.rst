@@ -4198,13 +4198,13 @@ Write to a feather file.
 
 .. ipython:: python
 
-   df.to_feather('example.fth')
+   df.to_feather('example.feather')
 
 Read from a feather file.
 
 .. ipython:: python
 
-   result = pd.read_feather('example.fth')
+   result = pd.read_feather('example.feather')
    result
 
    # we preserve dtypes
@@ -4214,7 +4214,7 @@ Read from a feather file.
    :suppress:
 
    import os
-   os.remove('example.fth')
+   os.remove('example.feather')
 
 .. _io.sql:
 
