@@ -17,12 +17,19 @@ def to_pickle(obj, path, compression='infer'):
     path : string
         File path
     compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
-        .. versionadded:: 0.19.2
+        a string representing the compression to use in the output file
+
+        .. versionadded:: 0.20.0
     """
     inferred_compression = _infer_compression(path, compression)
-    f, fh = _get_handle(path, 'wb', compression=inferred_compression, is_text=False)
-    with f:
+    f, fh = _get_handle(path, 'wb',
+                        compression=inferred_compression,
+                        is_text=False)
+    try:
         pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
+    finally:
+        for _f in fh:
+            _f.close()
 
 
 def read_pickle(path, compression='infer'):
@@ -38,7 +45,12 @@ def read_pickle(path, compression='infer'):
     path : string
         File path
     compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
-        .. versionadded:: 0.19.2
+        For on-the-fly decompression of on-disk data. If 'infer', then use
+        gzip, bz2 or xz if path is a string ending in '.gz', '.bz2', or 'xz',
+        respectively, and no decompression otherwise.
+        Set to None for no decompression.
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -57,22 +69,35 @@ def read_pickle(path, compression='infer'):
         # cpickle
         # GH 6899
         try:
-            f, fh = _get_handle(path, 'rb', compression=inferred_compression, is_text=False)
-            with f:
+            f, fh = _get_handle(path, 'rb',
+                                compression=inferred_compression,
+                                is_text=False)
+            try:
                 return pkl.load(f)
+            finally:
+                for _f in fh:
+                    _f.close()
         except Exception:
             # reg/patched pickle
             try:
-                f, fh = _get_handle(path, 'rb', compression=inferred_compression, is_text=False)
-                with f:
+                f, fh = _get_handle(path, 'rb',
+                                    compression=inferred_compression,
+                                    is_text=False)
+                try:
                     return pc.load(f, encoding=encoding, compat=False)
-
+                finally:
+                    for _f in fh:
+                        _f.close()
             # compat pickle
             except:
-                f, fh = _get_handle(path, 'rb', compression=inferred_compression, is_text=False)
-                with f:
+                f, fh = _get_handle(path, 'rb',
+                                    compression=inferred_compression,
+                                    is_text=False)
+                try:
                     return pc.load(f, encoding=encoding, compat=True)
-
+                finally:
+                    for _f in fh:
+                        _f.close()
     try:
         return try_read(path)
     except:

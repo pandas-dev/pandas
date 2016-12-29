@@ -1265,7 +1265,9 @@ class NDFrame(PandasObject):
         path : string
             File path
         compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
-            .. versionadded:: 0.19.2
+            a string representing the compression to use in the output file
+
+            .. versionadded:: 0.20.0
         """
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path, compression=compression)

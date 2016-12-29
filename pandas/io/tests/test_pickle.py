@@ -286,10 +286,13 @@ class TestPickle():
 
     def compression_explicit(self, compression):
         # issue 11666
+        if compression == 'xz':
+            tm._skip_if_no_lzma()
         with tm.ensure_clean(self.path) as path:
             df = tm.makeDataFrame()
             df.to_pickle(path, compression=compression)
-            tm.assert_frame_equal(df, pandas.read_pickle(path, compression=compression))
+            df2 = pd.read_pickle(path, compression=compression)
+            tm.assert_frame_equal(df, df2)
 
     def test_compression_explicit(self):
         compressions = [None, 'gzip', 'bz2', 'xz']
@@ -297,7 +300,8 @@ class TestPickle():
             yield self.compression_explicit, c
 
     def compression_explicit_bad(self, compression):
-        with tm.assertRaisesRegexp(ValueError, "Unrecognized compression type"):
+        with tm.assertRaisesRegexp(ValueError,
+                                   "Unrecognized compression type"):
             with tm.ensure_clean(self.path) as path:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)
@@ -308,10 +312,12 @@ class TestPickle():
             yield self.compression_explicit_bad, c
 
     def compression_infer(self, ext):
-        with tm.ensure_clean(self.path + ext) as p:
+        if ext == '.xz':
+            tm._skip_if_no_lzma()
+        with tm.ensure_clean(self.path + ext) as path:
             df = tm.makeDataFrame()
-            df.to_pickle(p)
-            tm.assert_frame_equal(df, pandas.read_pickle(p))
+            df.to_pickle(path)
+            tm.assert_frame_equal(df, pd.read_pickle(path))
 
     def test_compression_infer(self):
         extensions = ['', '.gz', '.bz2', '.xz', '.who_am_i']
