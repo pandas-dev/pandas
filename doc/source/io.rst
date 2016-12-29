@@ -4198,7 +4198,7 @@ Write to a feather file.
 
 .. ipython:: python
 
-   df.to_feather('example.fth)
+   df.to_feather('example.fth')
 
 Read from a feather file.
 
