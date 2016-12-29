@@ -381,11 +381,16 @@ class AccessorAttributeDocumenter(AccessorLevelDocumenter, AttributeDocumenter):
     objtype = 'accessorattribute'
     directivetype = 'attribute'
 
+    # lower than AttributeDocumenter so this is not chosen for normal attributes
+    priority = 0.6
 
 class AccessorMethodDocumenter(AccessorLevelDocumenter, MethodDocumenter):
 
     objtype = 'accessormethod'
     directivetype = 'method'
+
+    # lower than MethodDocumenter so this is not chosen for normal methods
+    priority = 0.6
 
 
 class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
