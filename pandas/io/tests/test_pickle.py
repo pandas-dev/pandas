@@ -324,6 +324,20 @@ class TestPickle():
         for ext in extensions:
             yield self.compression_infer, ext
 
+    def compression_prepared_data(self, ext):
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'pickle_compression',
+                                   'data.pickle')
+        compressed_path = pickle_path + ext
+        data1 = pd.read_pickle(pickle_path)
+        data2 = pd.read_pickle(compressed_path)
+        tm.assert_frame_equal(data1, data2)
+
+    def test_compression_prepared_data(self):
+        extensions = ['.gz', '.bz2', '.xz']
+        for ext in extensions:
+            yield self.compression_prepared_data, ext
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
