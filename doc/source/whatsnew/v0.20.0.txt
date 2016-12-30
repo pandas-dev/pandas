@@ -319,6 +319,7 @@ Bug Fixes
 
 - Bug in ``DataFrame.to_html`` with ``index=False`` and ``max_rows`` raising in ``IndexError`` (:issue:`14998`)
 
+- Bug in ``Categorical.searchsorted()`` where alphabetical instead of the provided categorical order was used (:issue:`14522`)
 
 
 
