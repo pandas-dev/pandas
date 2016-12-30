@@ -3543,7 +3543,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             operator.sub, '__sub__', reversed=True)
         cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(
             operator.mul, '__mul__')
-        cls.__pow__ = cls.__rpow__ = _make_evaluate_binop(
+        cls.__rpow__ = _make_evaluate_binop(
+            operator.pow, '__pow__', reversed=False)
+        cls.__pow__ = _make_evaluate_binop(
             operator.pow, '__pow__')
         cls.__mod__ = _make_evaluate_binop(
             operator.mod, '__mod__')
