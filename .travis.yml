@@ -182,9 +182,9 @@ matrix:
         - CACHE_NAME="35_ascii"
         - USE_CACHE=true
 #    In allow_failures
-    - python: 2.7
+    - python: 3.5
       env:
-        - PYTHON_VERSION=2.7
+        - PYTHON_VERSION=3.5
         - JOB_NAME: "doc_build"
         - FULL_DEPS=true
         - DOC_BUILD=true
@@ -275,9 +275,9 @@ matrix:
         - LOCALE_OVERRIDE="C"
         - CACHE_NAME="35_ascii"
         - USE_CACHE=true
-      - python: 2.7
+      - python: 3.5
         env:
-        - PYTHON_VERSION=2.7
+        - PYTHON_VERSION=3.5
         - JOB_NAME: "doc_build"
         - FULL_DEPS=true
         - DOC_BUILD=true
