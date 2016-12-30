@@ -12,7 +12,6 @@ from pandas import (date_range, Index, _np_version_under1p9)
 import pandas.util.testing as tm
 from pandas.tools.util import cartesian_product, to_numeric
 
-CURRENT_LOCALE = locale.getlocale()
 LOCALE_OVERRIDE = os.environ.get('LOCALE_OVERRIDE', None)
 
 
@@ -89,6 +88,8 @@ class TestLocaleUtils(tm.TestCase):
         assert len(tm.get_locales(prefix=first_locale[:2])) > 0
 
     def test_set_locale(self):
+        CURRENT_LOCALE = locale.getlocale()
+
         if len(self.locales) == 1:
             raise nose.SkipTest("Only a single locale found, no point in "
                                 "trying to test setting another locale")
