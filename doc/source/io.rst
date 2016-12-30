@@ -325,8 +325,11 @@ encoding : str, default ``None``
   Python standard encodings
   <https://docs.python.org/3/library/codecs.html#standard-encodings>`_.
 dialect : str or :class:`python:csv.Dialect` instance, default ``None``
-  If ``None`` defaults to Excel dialect. Ignored if sep longer than 1 char. See
-  :class:`python:csv.Dialect` documentation for more details.
+  If provided, this parameter will override values (default or not) for the
+  following parameters: `delimiter`, `doublequote`, `escapechar`,
+  `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
+  override values, a ParserWarning will be issued. See :class:`python:csv.Dialect`
+  documentation for more details.
 tupleize_cols : boolean, default ``False``
   Leave a list of tuples on columns as is (default is to convert to a MultiIndex
   on the columns).
