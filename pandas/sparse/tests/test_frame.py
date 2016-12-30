@@ -799,6 +799,76 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         exp = exp.to_sparse(self.zframe.default_fill_value)
         tm.assert_sp_frame_equal(result, exp)
 
+    def test_reindex_method(self):
+
+        sparse = SparseDataFrame(data=[[11., 12., 14.],
+                                       [21., 22., 24.],
+                                       [41., 42., 44.]],
+                                 index=[1, 2, 4],
+                                 columns=[1, 2, 4],
+                                 dtype=float)
+
+        # Over indices
+
+        # default method
+        result = sparse.reindex(index=range(6))
+        expected = SparseDataFrame(data=[[nan, nan, nan],
+                                         [11., 12., 14.],
+                                         [21., 22., 24.],
+                                         [nan, nan, nan],
+                                         [41., 42., 44.],
+                                         [nan, nan, nan]],
+                                   index=range(6),
+                                   columns=[1, 2, 4],
+                                   dtype=float)
+        tm.assert_sp_frame_equal(result, expected)
+
+        # method='bfill'
+        result = sparse.reindex(index=range(6), method='bfill')
+        expected = SparseDataFrame(data=[[11., 12., 14.],
+                                         [11., 12., 14.],
+                                         [21., 22., 24.],
+                                         [41., 42., 44.],
+                                         [41., 42., 44.],
+                                         [nan, nan, nan]],
+                                   index=range(6),
+                                   columns=[1, 2, 4],
+                                   dtype=float)
+        tm.assert_sp_frame_equal(result, expected)
+
+        # method='ffill'
+        result = sparse.reindex(index=range(6), method='ffill')
+        expected = SparseDataFrame(data=[[nan, nan, nan],
+                                         [11., 12., 14.],
+                                         [21., 22., 24.],
+                                         [21., 22., 24.],
+                                         [41., 42., 44.],
+                                         [41., 42., 44.]],
+                                   index=range(6),
+                                   columns=[1, 2, 4],
+                                   dtype=float)
+        tm.assert_sp_frame_equal(result, expected)
+
+        # Over columns
+
+        # default method
+        result = sparse.reindex(columns=range(6))
+        expected = SparseDataFrame(data=[[nan, 11., 12., nan, 14., nan],
+                                         [nan, 21., 22., nan, 24., nan],
+                                         [nan, 41., 42., nan, 44., nan]],
+                                   index=[1, 2, 4],
+                                   columns=range(6),
+                                   dtype=float)
+        tm.assert_sp_frame_equal(result, expected)
+
+        # method='bfill'
+        with tm.assertRaises(NotImplementedError):
+            sparse.reindex(columns=range(6), method='bfill')
+
+        # method='ffill'
+        with tm.assertRaises(NotImplementedError):
+            sparse.reindex(columns=range(6), method='ffill')
+
     def test_take(self):
         result = self.frame.take([1, 0, 2], axis=1)
         expected = self.frame.reindex(columns=['B', 'A', 'C'])
