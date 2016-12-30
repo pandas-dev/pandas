@@ -54,6 +54,27 @@ class TestCategorical(tm.TestCase):
         expected = c[np.array([100000]).astype(np.int64)].codes
         self.assert_numpy_array_equal(result, expected)
 
+    def test_getitem_category_type(self):
+        # GH 14580
+        # test iloc() on Series with Categorical data
+
+        s = pd.Series([1, 2, 3]).astype('category')
+
+        # get slice
+        result = s.iloc[0:2]
+        expected = pd.Series([1, 2]).astype('category', categories=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        # get list of indexes
+        result = s.iloc[[0, 1]]
+        expected = pd.Series([1, 2]).astype('category', categories=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        # get boolean array
+        result = s.iloc[[True, False, False]]
+        expected = pd.Series([1]).astype('category', categories=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
     def test_setitem(self):
 
         # int/positional

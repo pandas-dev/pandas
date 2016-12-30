@@ -311,6 +311,7 @@ Bug Fixes
 
 
 
+- Bug in ``Series.iloc`` where a ``Categorical`` object for list-like indexes input was returned, where a ``Series`` was expected. (:issue:`14580`)
 
 
 
