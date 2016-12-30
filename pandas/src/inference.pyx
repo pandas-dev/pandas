@@ -13,9 +13,6 @@ from util cimport (UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX,
 
 # core.common import for fast inference checks
 
-npy_int64_max = np.iinfo(np.int64).max
-
-
 cpdef bint is_float(object obj):
     return util.is_float_object(obj)
 
@@ -629,13 +626,88 @@ cdef extern from "parse_helper.h":
 
 cdef int64_t iINT64_MAX = <int64_t> INT64_MAX
 cdef int64_t iINT64_MIN = <int64_t> INT64_MIN
+cdef uint64_t iUINT64_MAX = <uint64_t> UINT64_MAX
 
 
-def maybe_convert_numeric(object[:] values, set na_values,
+cdef inline bint _check_uint64_nan(bint seen_uint, bint seen_null,
+                                   bint coerce_numeric) except -1:
+    """
+    Check whether we have encountered uint64 when handling a NaN element.
+
+    If uint64 has been encountered, we cannot safely cast to float64 due
+    to truncation problems (this would occur if we return a numeric array
+    containing a NaN element).
+
+    Returns
+    -------
+    return_values : bool
+        Whether or not we should return the original input array to avoid
+        data truncation.
+    """
+    if seen_null and seen_uint:
+        if not coerce_numeric:
+            return True
+        else:
+            raise ValueError("uint64 array detected, and such an "
+                             "array cannot contain NaN.")
+
+    return False
+
+
+cdef inline bint _check_uint64_int64_conflict(bint seen_sint, bint seen_uint,
+                                              bint coerce_numeric) except -1:
+    """
+    Check whether we have encountered both int64 and uint64 elements.
+
+    If both have been encountered, we cannot safely cast to an integer
+    dtype since none is large enough to hold both types of elements.
+
+    Returns
+    -------
+    return_values : bool
+        Whether or not we should return the original input array to avoid
+        data truncation.
+    """
+    if seen_sint and seen_uint:
+        if not coerce_numeric:
+            return True
+        else:
+            raise ValueError("uint64 and negative values detected. "
+                             "Cannot safely return a numeric array "
+                             "without truncating data.")
+
+    return False
+
+
+def maybe_convert_numeric(ndarray[object] values, set na_values,
                           bint convert_empty=True, bint coerce_numeric=False):
     """
-    Type inference function-- convert strings to numeric (potentially) and
-    convert to proper dtype array
+    Convert object array to a numeric array if possible.
+
+    Parameters
+    ----------
+    values : ndarray
+        Array of object elements to convert.
+    na_values : set
+        Set of values that should be interpreted as NaN.
+    convert_empty : bool, default True
+        If an empty array-like object is encountered, whether to interpret
+        that element as NaN or not. If set to False, a ValueError will be
+        raised if such an element is encountered and 'coerce_numeric' is False.
+    coerce_numeric : bool, default False
+        If initial attempts to convert to numeric have failed, whether to
+        force conversion to numeric via alternative methods or by setting the
+        element to NaN. Otherwise, an Exception will be raised when such an
+        element is encountered.
+
+        This boolean also has an impact on how conversion behaves when a
+        numeric array has no suitable numerical dtype to return (i.e. uint64,
+        int32, uint8). If set to False, the original object array will be
+        returned. Otherwise, a ValueError will be raised.
+
+    Returns
+    -------
+    numeric_array : array of converted object values to numerical ones
     """
     cdef:
         int status, maybe_int
@@ -643,7 +715,11 @@ def maybe_convert_numeric(object[:] values, set na_values,
         ndarray[float64_t] floats = np.empty(n, dtype='f8')
         ndarray[complex128_t] complexes = np.empty(n, dtype='c16')
         ndarray[int64_t] ints = np.empty(n, dtype='i8')
+        ndarray[uint64_t] uints = np.empty(n, dtype='u8')
         ndarray[uint8_t] bools = np.empty(n, dtype='u1')
+        bint seen_null = False
+        bint seen_uint = False
+        bint seen_sint = False
         bint seen_float = False
         bint seen_complex = False
         bint seen_int = False
@@ -655,22 +731,60 @@ def maybe_convert_numeric(object[:] values, set na_values,
         val = values[i]
 
         if val.__hash__ is not None and val in na_values:
+            seen_null = True
+            if _check_uint64_nan(seen_uint, seen_null,
+                                 coerce_numeric):
+                return values
+
             floats[i] = complexes[i] = nan
             seen_float = True
         elif util.is_float_object(val):
+            if val != val:
+                seen_null = True
+                if _check_uint64_nan(seen_uint, seen_null,
+                                     coerce_numeric):
+                    return values
+
             floats[i] = complexes[i] = val
             seen_float = True
         elif util.is_integer_object(val):
-            floats[i] = ints[i] = val
+            floats[i] = complexes[i] = val
+            as_int = int(val)
             seen_int = True
+
+            seen_uint = seen_uint or (as_int > iINT64_MAX)
+            seen_sint = seen_sint or (as_int < 0)
+
+            if (_check_uint64_nan(seen_uint, seen_null, coerce_numeric) or
+                _check_uint64_int64_conflict(seen_sint, seen_uint,
+                                             coerce_numeric)):
+                return values
+
+            if seen_uint:
+                uints[i] = as_int
+            elif seen_sint:
+                ints[i] = as_int
+            else:
+                uints[i] = as_int
+                ints[i] = as_int
         elif util.is_bool_object(val):
-            floats[i] = ints[i] = bools[i] = val
+            floats[i] = uints[i] = ints[i] = bools[i] = val
             seen_bool = True
         elif val is None:
+            seen_null = True
+            if _check_uint64_nan(seen_uint, seen_null,
+                                 coerce_numeric):
+                return values
+
             floats[i] = complexes[i] = nan
             seen_float = True
         elif hasattr(val, '__len__') and len(val) == 0:
             if convert_empty or coerce_numeric:
+                seen_null = True
+                if _check_uint64_nan(seen_uint, seen_null,
+                                     coerce_numeric):
+                    return values
+
                 floats[i] = complexes[i] = nan
                 seen_float = True
             else:
@@ -686,24 +800,61 @@ def maybe_convert_numeric(object[:] values, set na_values,
                 status = floatify(val, &fval, &maybe_int)
 
                 if fval in na_values:
+                    seen_null = True
+                    if _check_uint64_nan(seen_uint, seen_null,
+                                         coerce_numeric):
+                        return values
+
                     floats[i] = complexes[i] = nan
                     seen_float = True
                 else:
+                    if fval != fval:
+                        seen_null = True
+                        if _check_uint64_nan(seen_uint, seen_null,
+                                             coerce_numeric):
+                            return values
+
                     floats[i] = fval
 
-                if not seen_float:
-                    if maybe_int:
-                        as_int = int(val)
+                if maybe_int:
+                    as_int = int(val)
 
-                        if as_int <= iINT64_MAX and as_int >= iINT64_MIN:
+                    if as_int in na_values:
+                        seen_float = True
+                        seen_null = True
+                    else:
+                        seen_uint = seen_uint or (as_int > iINT64_MAX)
+                        seen_sint = seen_sint or (as_int < 0)
+                        seen_int = True
+
+                    if (_check_uint64_nan(seen_uint, seen_null,
+                                          coerce_numeric) or
+                        _check_uint64_int64_conflict(seen_sint, seen_uint,
+                                                     coerce_numeric)):
+                        return values
+
+                    if not (seen_float or as_int in na_values):
+                        if as_int < iINT64_MIN or as_int > iUINT64_MAX:
+                            raise ValueError('Integer out of range.')
+
+                        if seen_uint:
+                            uints[i] = as_int
+                        elif seen_sint:
                             ints[i] = as_int
                         else:
-                            raise ValueError('integer out of range')
-                    else:
-                        seen_float = True
+                            uints[i] = as_int
+                            ints[i] = as_int
+                else:
+                    seen_float = True
             except (TypeError, ValueError) as e:
                 if not coerce_numeric:
                     raise type(e)(str(e) + ' at position {}'.format(i))
+                elif "uint64" in str(e):  # Exception from check functions.
+                    raise
+                seen_null = True
+                if _check_uint64_nan(seen_uint, seen_null,
+                                     coerce_numeric):
+                    return values
 
                 floats[i] = nan
                 seen_float = True
@@ -713,9 +864,14 @@ def maybe_convert_numeric(object[:] values, set na_values,
     elif seen_float:
         return floats
     elif seen_int:
-        return ints
+        if seen_uint:
+            return uints
+        else:
+            return ints
     elif seen_bool:
         return bools.view(np.bool_)
+    elif seen_uint:
+        return uints
     return ints
 
 
@@ -810,7 +966,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             floats[i] = <float64_t> val
             complexes[i] = <double complex> val
             if not seen_null:
-                seen_uint = seen_uint or (int(val) > npy_int64_max)
+                seen_uint = seen_uint or (int(val) > iINT64_MAX)
                 seen_sint = seen_sint or (val < 0)
 
                 if seen_uint and seen_sint:

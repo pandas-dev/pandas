@@ -255,6 +255,59 @@ class TestInference(tm.TestCase):
         result = lib.maybe_convert_numeric(arr, set(), False, True)
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
 
+    def test_convert_numeric_uint64(self):
+        arr = np.array([2**63], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+
+        arr = np.array([str(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+
+        arr = np.array([np.uint64(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+
+    def test_convert_numeric_uint64_nan(self):
+        msg = 'uint64 array detected'
+        cases = [(np.array([2**63, np.nan], dtype=object), set()),
+                 (np.array([str(2**63), np.nan], dtype=object), set()),
+                 (np.array([np.nan, 2**63], dtype=object), set()),
+                 (np.array([np.nan, str(2**63)], dtype=object), set()),
+                 (np.array([2**63, 2**63 + 1], dtype=object), set([2**63])),
+                 (np.array([str(2**63), str(2**63 + 1)],
+                           dtype=object), set([2**63]))]
+
+        for coerce in (True, False):
+            for arr, na_values in cases:
+                if coerce:
+                    with tm.assertRaisesRegexp(ValueError, msg):
+                        lib.maybe_convert_numeric(arr, na_values,
+                                                  coerce_numeric=coerce)
+                else:
+                    tm.assert_numpy_array_equal(lib.maybe_convert_numeric(
+                        arr, na_values), arr)
+
+    def test_convert_numeric_int64_uint64(self):
+        msg = 'uint64 and negative values detected'
+        cases = [np.array([2**63, -1], dtype=object),
+                 np.array([str(2**63), -1], dtype=object),
+                 np.array([str(2**63), str(-1)], dtype=object),
+                 np.array([-1, 2**63], dtype=object),
+                 np.array([-1, str(2**63)], dtype=object),
+                 np.array([str(-1), str(2**63)], dtype=object)]
+
+        for coerce in (True, False):
+            for case in cases:
+                if coerce:
+                    with tm.assertRaisesRegexp(ValueError, msg):
+                        print(case)
+                        lib.maybe_convert_numeric(case, set(),
+                                                  coerce_numeric=coerce)
+                else:
+                    tm.assert_numpy_array_equal(lib.maybe_convert_numeric(
+                        case, set()), case)
+
     def test_maybe_convert_objects_uint64(self):
         # see gh-4471
         arr = np.array([2**63], dtype=object)
