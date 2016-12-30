@@ -987,24 +987,42 @@ def _evaluate_usecols(usecols, names):
 
 def _validate_usecols_arg(usecols):
     """
-    Check whether or not the 'usecols' parameter
-    contains all integers (column selection by index),
-    strings (column by name) or is a callable. Raises
-    a ValueError if that is not the case.
+    Validate the 'usecols' parameter.
+
+    Checks whether or not the 'usecols' parameter contains all integers
+    (column selection by index), strings (column by name) or is a callable.
+    Raises a ValueError if that is not the case.
+
+    Parameters
+    ----------
+    usecols : array-like, callable, or None
+        List of columns to use when parsing or a callable that can be used
+        to filter a list of table columns.
+
+    Returns
+    -------
+    usecols_tuple : tuple
+        A tuple of (verified_usecols, usecols_dtype).
+
+        'verified_usecols' is either a set if an array-like is passed in or
+        'usecols' if a callable or None is passed in.
+
+        'usecols_dtype` is the inferred dtype of 'usecols' if an array-like
+        is passed in or None if a callable or None is passed in.
     """
     msg = ("'usecols' must either be all strings, all unicode, "
            "all integers or a callable")
 
     if usecols is not None:
         if callable(usecols):
-            return usecols
+            return usecols, None
         usecols_dtype = lib.infer_dtype(usecols)
         if usecols_dtype not in ('empty', 'integer',
                                  'string', 'unicode'):
             raise ValueError(msg)
 
-        return set(usecols)
-    return usecols
+        return set(usecols), usecols_dtype
+    return usecols, None
 
 
 def _validate_parse_dates_arg(parse_dates):
@@ -1473,7 +1491,8 @@ class CParserWrapper(ParserBase):
         self._reader = _parser.TextReader(src, **kwds)
 
         # XXX
-        self.usecols = _validate_usecols_arg(self._reader.usecols)
+        self.usecols, self.usecols_dtype = _validate_usecols_arg(
+            self._reader.usecols)
 
         passed_names = self.names is None
 
@@ -1549,12 +1568,29 @@ class CParserWrapper(ParserBase):
             pass
 
     def _set_noconvert_columns(self):
+        """
+        Set the columns that should not undergo dtype conversions.
+
+        Currently, any column that is involved with date parsing will not
+        undergo such conversions.
+        """
         names = self.orig_names
-        usecols = self.usecols
+        if self.usecols_dtype == 'integer':
+            # A set of integers will be converted to a list in
+            # the correct order every single time.
+            usecols = list(self.usecols)
+        elif (callable(self.usecols) or
+                self.usecols_dtype not in ('empty', None)):
+            # The names attribute should have the correct columns
+            # in the proper order for indexing with parse_dates.
+            usecols = self.names[:]
+        else:
+            # Usecols is empty.
+            usecols = None
 
         def _set(x):
-            if usecols and is_integer(x):
-                x = list(usecols)[x]
+            if usecols is not None and is_integer(x):
+                x = usecols[x]
 
             if not is_integer(x):
                 x = names.index(x)
@@ -1792,7 +1828,7 @@ class PythonParser(ParserBase):
         self.skipinitialspace = kwds['skipinitialspace']
         self.lineterminator = kwds['lineterminator']
         self.quoting = kwds['quoting']
-        self.usecols = _validate_usecols_arg(kwds['usecols'])
+        self.usecols, _ = _validate_usecols_arg(kwds['usecols'])
         self.skip_blank_lines = kwds['skip_blank_lines']
 
         self.names_passed = kwds['names'] or None
