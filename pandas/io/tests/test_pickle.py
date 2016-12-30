@@ -324,7 +324,9 @@ class TestPickle():
         for ext in extensions:
             yield self.compression_infer, ext
 
-    def compression_prepared_data(self, ext):
+    def decompression_prepared_data(self, ext):
+        if ext == '.xz':
+            tm._skip_if_no_lzma()
         pickle_path = os.path.join(tm.get_data_path(),
                                    'pickle_compression',
                                    'data.pickle')
@@ -333,10 +335,10 @@ class TestPickle():
         data2 = pd.read_pickle(compressed_path)
         tm.assert_frame_equal(data1, data2)
 
-    def test_compression_prepared_data(self):
-        extensions = ['.gz', '.bz2', '.xz']
+    def test_decompression_prepared_data(self):
+        extensions = ['.gz', '.bz2', '.xz', '.zip']
         for ext in extensions:
-            yield self.compression_prepared_data, ext
+            yield self.decompression_prepared_data, ext
 
 
 if __name__ == '__main__':

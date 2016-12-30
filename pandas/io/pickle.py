@@ -44,10 +44,10 @@ def read_pickle(path, compression='infer'):
     ----------
     path : string
         File path
-    compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'xz', 'zip', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
-        gzip, bz2 or xz if path is a string ending in '.gz', '.bz2', or 'xz',
-        respectively, and no decompression otherwise.
+        gzip, bz2, xz or zip if path is a string ending in '.gz', '.bz2', 'xz',
+        or 'zip' respectively, and no decompression otherwise.
         Set to None for no decompression.
 
         .. versionadded:: 0.20.0
@@ -59,6 +59,17 @@ def read_pickle(path, compression='infer'):
 
     inferred_compression = _infer_compression(path, compression)
 
+    def read_wrapper(func):
+        # wrapper file handle open/close operation
+        f, fh = _get_handle(path, 'rb',
+                            compression=inferred_compression,
+                            is_text=False)
+        try:
+            return func(f)
+        finally:
+            for _f in fh:
+                _f.close()
+
     def try_read(path, encoding=None):
         # try with cPickle
         # try with current pickle, if we have a Type Error then
@@ -69,35 +80,16 @@ def read_pickle(path, compression='infer'):
         # cpickle
         # GH 6899
         try:
-            f, fh = _get_handle(path, 'rb',
-                                compression=inferred_compression,
-                                is_text=False)
-            try:
-                return pkl.load(f)
-            finally:
-                for _f in fh:
-                    _f.close()
+            return read_wrapper(lambda f: pkl.load(f))
         except Exception:
             # reg/patched pickle
             try:
-                f, fh = _get_handle(path, 'rb',
-                                    compression=inferred_compression,
-                                    is_text=False)
-                try:
-                    return pc.load(f, encoding=encoding, compat=False)
-                finally:
-                    for _f in fh:
-                        _f.close()
+                return read_wrapper(
+                    lambda f: pc.load(f, encoding=encoding, compat=False))
             # compat pickle
             except:
-                f, fh = _get_handle(path, 'rb',
-                                    compression=inferred_compression,
-                                    is_text=False)
-                try:
-                    return pc.load(f, encoding=encoding, compat=True)
-                finally:
-                    for _f in fh:
-                        _f.close()
+                return read_wrapper(
+                    lambda f: pc.load(f, encoding=encoding, compat=True))
     try:
         return try_read(path)
     except:
