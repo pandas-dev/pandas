@@ -2771,6 +2771,25 @@ c  10  11  12  13  14\
         result = df.to_html(classes=["sortable", "draggable"])
         self.assertEqual(result, expected)
 
+    def test_to_html_no_index_max_rows(self):
+        # GH https://github.com/pandas-dev/pandas/issues/14998
+        df = DataFrame({"A": [1, 2, 3, 4]})
+        result = df.to_html(index=False, max_rows=1)
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th>A</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+            </tr>
+          </tbody>
+        </table>""")
+        self.assertEqual(result, expected)
+
     def test_pprint_pathological_object(self):
         """
         if the test fails, the stack will overflow and nose crash,
