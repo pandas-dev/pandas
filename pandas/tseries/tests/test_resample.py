@@ -777,19 +777,26 @@ class Base(object):
         expected_index = self.create_index(df.index[0],
                                            periods=len(df.index) / 2,
                                            freq='2D')
+
         # loffset coreces PeriodIndex to DateTimeIndex
         if isinstance(expected_index, PeriodIndex):
             expected_index = expected_index.to_timestamp()
+
         expected_index += timedelta(hours=2)
         expected = DataFrame({'value': expected_means}, index=expected_index)
+
         for arg in ['mean', {'value': 'mean'}, ['mean']]:
+
             result_agg = df.resample('2D', loffset='2H').agg(arg)
+
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 result_how = df.resample('2D', how=arg, loffset='2H')
+
             if isinstance(arg, list):
                 expected.columns = pd.MultiIndex.from_tuples([('value',
                                                                'mean')])
+
             # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
             if isinstance(expected.index, TimedeltaIndex):
                 with tm.assertRaises(AssertionError):
