@@ -101,8 +101,8 @@ def _possibly_downcast_to_dtype(result, dtype):
             arr = np.array([r[0]])
 
             # if we have any nulls, then we are done
-            if isnull(arr).any() or not np.allclose(arr,
-                                                    trans(arr).astype(dtype)):
+            if (isnull(arr).any() or
+                    not np.allclose(arr, trans(arr).astype(dtype), rtol=0)):
                 return result
 
             # a comparable, e.g. a Decimal may slip in here
@@ -114,7 +114,7 @@ def _possibly_downcast_to_dtype(result, dtype):
                     notnull(result).all()):
                 new_result = trans(result).astype(dtype)
                 try:
-                    if np.allclose(new_result, result):
+                    if np.allclose(new_result, result, rtol=0):
                         return new_result
                 except:
 
