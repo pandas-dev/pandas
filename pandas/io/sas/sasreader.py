@@ -31,7 +31,7 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
     """
     from pandas import compat
     if format is None:
-        buffErr = "Format unrecognized. If buffer object, specify format")
+        buffErr = "Format unrecognized. If buffer object, specify format"
         if not isinstance(filepath_or_buffer,compat.string_types):
             raise TypeError(buffErr)
         try:
