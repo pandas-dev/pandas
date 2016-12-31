@@ -5219,12 +5219,12 @@ class NDFrame(PandasObject):
             fall between 0 and 1. The default is
             ``[.25, .5, .75]``, which returns the 25th, 50th, and
             75th percentiles.
-        include : 'all' , list-like of dtypes or strings, or None (default), optional
+        include : 'all', list-like of dtypes or None (default), optional
             A white list of data types to include in the result. Ignored
             for ``Series``. Here are the options:
 
             - 'all' : All columns of the input will be included in the output.
-            - A list-like of dtypes or strings : Limits the results to the
+            - A list-like of dtypes : Limits the results to the
               provided data types.
               To limit the result to numeric types submit
               ``numpy.number``. To limit it instead to categorical
@@ -5232,11 +5232,11 @@ class NDFrame(PandasObject):
               can also be used in the style of
               ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
             - None (default) : The result will include all numeric columns.
-        exclude : list-like of dtypes or strings, or None (default), optional,
+        exclude : list-like of dtypes or None (default), optional,
             A black list of data types to omit from the result. Ignored
             for ``Series``. Here are the options:
 
-            - A list-like of dtypes or strings : Excludes the provided data types
+            - A list-like of dtypes : Excludes the provided data types
               from the result. To select numeric types submit
               ``numpy.number``. To select categorical objects submit the data
               type ``numpy.object``. Strings can also be used in the style of
@@ -5317,7 +5317,8 @@ class NDFrame(PandasObject):
         last      2010-01-01 00:00:00
         dtype: object
 
-        Describing a ``DataFrame``. By default only numeric fields are returned.
+        Describing a ``DataFrame``. By default only numeric fields
+        are returned.
 
         >>> df = pd.DataFrame(
         ..    [[1, 'a'], [2, 'b'], [3, 'c']],
@@ -5350,7 +5351,8 @@ class NDFrame(PandasObject):
         75%         2.5    NaN
         max         3.0    NaN
 
-        Describing a column from a ``DataFrame`` by accessing it as an attribute.
+        Describing a column from a ``DataFrame`` by accessing it as
+        an attribute.
 
         >>> df.numeric.describe()
         count    3.0
