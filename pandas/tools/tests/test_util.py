@@ -426,12 +426,16 @@ class TestToNumeric(tm.TestCase):
 
         # cannot cast to an integer (signed or unsigned)
         # because we have a float number
-        data = ['1.1', 2, 3]
-        expected = np.array([1.1, 2, 3], dtype=np.float64)
+        data = (['1.1', 2, 3],
+                [10000.0, 20000, 3000, 40000.36, 50000, 50000.00])
+        expected = (np.array([1.1, 2, 3], dtype=np.float64),
+                    np.array([10000.0, 20000, 3000,
+                              40000.36, 50000, 50000.00], dtype=np.float64))
 
-        for downcast in ('integer', 'signed', 'unsigned'):
-            res = pd.to_numeric(data, downcast=downcast)
-            tm.assert_numpy_array_equal(res, expected)
+        for _data, _expected in zip(data, expected):
+            for downcast in ('integer', 'signed', 'unsigned'):
+                res = pd.to_numeric(_data, downcast=downcast)
+                tm.assert_numpy_array_equal(res, _expected)
 
         # the smallest integer dtype need not be np.(u)int8
         data = ['256', 257, 258]
@@ -459,8 +463,7 @@ class TestToNumeric(tm.TestCase):
             ('uint8', u, [iinfo(np.uint8).min, iinfo(np.uint8).max]),
             ('uint16', u, [iinfo(np.uint16).min, iinfo(np.uint16).max]),
             ('uint32', u, [iinfo(np.uint32).min, iinfo(np.uint32).max]),
-            # Test will be skipped until there is more uint64 support.
-            # ('uint64', u, [iinfo(uint64).min, iinfo(uint64).max]),
+            ('uint64', u, [iinfo(np.uint64).min, iinfo(np.uint64).max]),
             ('int16', i, [iinfo(np.int8).min, iinfo(np.int8).max + 1]),
             ('int32', i, [iinfo(np.int16).min, iinfo(np.int16).max + 1]),
             ('int64', i, [iinfo(np.int32).min, iinfo(np.int32).max + 1]),
@@ -469,8 +472,7 @@ class TestToNumeric(tm.TestCase):
             ('int64', i, [iinfo(np.int32).min - 1, iinfo(np.int64).max]),
             ('uint16', u, [iinfo(np.uint8).min, iinfo(np.uint8).max + 1]),
             ('uint32', u, [iinfo(np.uint16).min, iinfo(np.uint16).max + 1]),
-            # Test will be skipped until there is more uint64 support.
-            # ('uint64', u, [iinfo(np.uint32).min, iinfo(np.uint32).max + 1]),
+            ('uint64', u, [iinfo(np.uint32).min, iinfo(np.uint32).max + 1])
         ]
 
         for dtype, downcast, min_max in dtype_downcast_min_max:
