@@ -319,9 +319,19 @@ class Resampler(_GroupBy):
         self._set_binner()
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
-            return self._groupby_and_aggregate(arg,
-                                               *args,
-                                               **kwargs)
+            # It seems there is an ambiguity in having both named args
+            # and variadic in the same function, so we need to distinguish here,
+            # otherwise the first element of args is "eaten" by grouper in
+            # _groupby_and_aggregate.
+            if len(args) == 0:
+                return self._groupby_and_aggregate(arg,
+                                                   *args,
+                                                   **kwargs)
+            else:
+                return self._groupby_and_aggregate(arg,
+                                                   None,
+                                                   *args,
+                                                   **kwargs)
 
         return result
 
