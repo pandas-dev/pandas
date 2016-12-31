@@ -29,11 +29,11 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
     DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
     or XportReader
     """
-
+    from pandas import compat
     if format is None:
-        bufferr = "Format unrecognized. If buffer object, specify format")
-        if type(filesize_or_buffer) != str:
-            raise TypeError(bufferr)
+        buffErr = "Format unrecognized. If buffer object, specify format")
+        if not isinstance(filepath_or_buffer,compat.string_types):
+            raise TypeError(buffErr)
         try:
             fname = filepath_or_buffer.lower()
             if fname.endswith(".xpt"):
