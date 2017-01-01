@@ -1509,13 +1509,14 @@ class TestDataFrame(tm.TestCase, Generic):
         df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]}, columns=['a', 'b'])
 
         expected = df.copy()
-        result = df.rename(columns=['J', 'K'])
         expected.columns = ['J', 'K']
+        result = df.rename(columns=['J', 'K'])
         assert_frame_equal(result, expected)
 
-        result = df.rename(columns=['J', 'K'], index=['a', 'b'])
         expected.index = ['a', 'b']
-        assert_frame_equal(result, expected)
+        for box in [list, np.array, Index]:
+            result = df.rename(columns=box(['J', 'K']), index=box(['a', 'b']))
+            assert_frame_equal(result, expected)
 
         result = df.copy()
         result.rename(columns=['J', 'K'], index=['a', 'b'], inplace=True)
@@ -1523,6 +1524,9 @@ class TestDataFrame(tm.TestCase, Generic):
 
         with tm.assertRaises(ValueError):
             df.rename(index=[1, 3, 3])
+
+        with tm.assertRaises(TypeError):
+            df.rename(index=1)
 
 
 class TestPanel(tm.TestCase, Generic):
