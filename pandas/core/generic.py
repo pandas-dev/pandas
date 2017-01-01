@@ -5249,7 +5249,6 @@ class NDFrame(PandasObject):
 
         Notes
         -----
-
         For numeric data, the result's index will include ``count``,
         ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
         upper percentiles. By default the lower percentile is ``25`` and the
