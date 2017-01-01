@@ -1398,9 +1398,11 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            copy=True):
     """
     Concatenate pandas objects along a particular axis with optional set logic
-    along the other axes. Can also add a layer of hierarchical indexing on the
-    concatenation axis, which may be useful if the labels are the same (or
-    overlapping) on the passed axis number
+    along the other axes.
+
+    Can also add a layer of hierarchical indexing on the concatenation axis,
+    which may be useful if the labels are the same (or overlapping) on
+    the passed axis number
 
     Parameters
     ----------
@@ -1436,13 +1438,51 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     copy : boolean, default True
         If False, do not copy data unnecessarily
 
-    Notes
-    -----
-    The keys, levels, and names arguments are all optional
-
     Returns
     -------
     concatenated : type of objects
+
+    Notes
+    -----
+    The keys, levels, and names arguments are all optional.
+
+    Examples
+    --------
+    Combine two ``Series``.
+
+        >>> import pandas as pd
+        >>> s1 = pd.Series(['a', 'b'])
+        >>> s2 = pd.Series(['c', 'd'])
+        >>> pd.concat([s1, s2])
+        0    a
+        1    b
+        0    c
+        1    d
+
+    Combine two ``DataFrame`` objects with identical columns.
+
+        >>> df1 = pd.DataFrame(
+        ...     [['a', 1], ['b', 2]],
+        ...     columns=['letter', 'number']
+        ... )
+        >>> df1
+          letter  number
+        0      a       1
+        1      b       2
+        >>> df2 = pd.DataFrame(
+        ...     [['c', 3], ['d', 4]],
+        ...     columns=['letter', 'number']
+        ... )
+        >>> df2
+          letter  number
+        0      c       3
+        1      d       4
+        >>> pd.concat([df1, df2])
+          letter  number
+        0      a       1
+        1      b       2
+        0      c       3
+        1      d       4
     """
     op = _Concatenator(objs, axis=axis, join_axes=join_axes,
                        ignore_index=ignore_index, join=join,
