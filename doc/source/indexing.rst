@@ -1586,6 +1586,25 @@ If you create an index yourself, you can just assign it to the ``index`` field:
 
    data.index = index
 
+.. versionadded:: 0.20.0
+
+A new index can also be created on an existing object by passing values
+to the ``rename`` method.
+
+.. ipython:: python
+   :suppress:
+   
+   data = data.reset_index()
+
+.. ipython:: python
+   
+   data
+   data.rename(index=['a', 'b', 'c', 'd'])
+   data.rename(columns=['q', 'w', 'r', 't'])
+
+
+
+
 .. _indexing.view_versus_copy:
 
 Returning a view versus a copy

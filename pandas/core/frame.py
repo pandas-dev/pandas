@@ -2842,6 +2842,11 @@ class DataFrame(NDFrame):
         Returns
         -------
         dataframe : DataFrame
+
+        See Also
+        --------
+        DataFrame.rename
+
         """
         if not isinstance(keys, list):
             keys = [keys]
