@@ -5304,10 +5304,10 @@ class NDFrame(PandasObject):
 
         >>> import numpy as np
         >>> s = pd.Series([
-        ..    np.datetime64("2000-01-01"),
-        ..    np.datetime64("2010-01-01"),
-        ..    np.datetime64("2010-01-01")
-        ..  ])
+        ...   np.datetime64("2000-01-01"),
+        ...   np.datetime64("2010-01-01"),
+        ...   np.datetime64("2010-01-01")
+        ... ])
         >>> s.describe()
         count                       3
         unique                      2
@@ -5321,9 +5321,9 @@ class NDFrame(PandasObject):
         are returned.
 
         >>> df = pd.DataFrame(
-        ..    [[1, 'a'], [2, 'b'], [3, 'c']],
-        ..    columns=['numeric', 'object']
-        ..  )
+        ...   [[1, 'a'], [2, 'b'], [3, 'c']],
+        ...   columns=['numeric', 'object']
+        ... )
         >>> df.describe()
                numeric
         count      3.0
