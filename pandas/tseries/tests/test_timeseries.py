@@ -1883,6 +1883,17 @@ class TestTimeSeries(tm.TestCase):
         self.assertRaises(ValueError, DatetimeIndex, ['1400-01-01'])
         self.assertRaises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
 
+    def test_compat_replace(self):
+        # https://github.com/statsmodels/statsmodels/issues/3349
+        # replace should take ints/longs for compat
+
+        for f in [compat.long, int]:
+            result = date_range(Timestamp('1960-04-01 00:00:00',
+                                          freq='QS-JAN'),
+                                periods=f(76),
+                                freq='QS-JAN')
+            self.assertEqual(len(result), 76)
+
     def test_timestamp_repr(self):
         # pre-1900
         stamp = Timestamp('1850-01-01', tz='US/Eastern')
