@@ -1459,7 +1459,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     1    d
     dtype: object
 
-    Ignore the existing index and reset it in the result
+    Clear the existing index and reset it in the result
     by setting the ``ignore_index`` option to ``True``.
 
     >>> s1 = pd.Series(['a', 'b'])
