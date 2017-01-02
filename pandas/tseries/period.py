@@ -208,6 +208,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 msg = 'specified freq and dtype are different'
                 raise IncompatibleFrequency(msg)
 
+        # coerce freq to freq object, otherwise it can be coorced elementwise
+        # which is slow
+        if freq is not None:
+            freq = Period._maybe_convert_freq(freq)
+
         if data is None:
             if ordinal is not None:
                 data = np.asarray(ordinal, dtype=np.int64)
