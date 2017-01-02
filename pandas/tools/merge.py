@@ -1528,6 +1528,59 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     0      c       3
     1      d       4
 
+    Combine ``DataFrame`` objects with overlapping columns
+    and return everything.
+
+    >>> df1 = pd.DataFrame(
+    ...     [['a', 1], ['b', 2]],
+    ...     columns=['letter', 'number']
+    ... )
+    >>> df1
+      letter  number
+    0      a       1
+    1      b       2
+    >>> df2 = pd.DataFrame(
+    ...     [['c', 3, 'cat'], ['d', 4, 'dog']],
+    ...     columns=['letter', 'number', 'animal']
+    ... )
+    >>> df2
+      letter  number animal
+    0      c       3    cat
+    1      d       4    dog
+    >>> pd.concat([df1, df2])
+      animal letter  number
+    0    NaN      a       1
+    1    NaN      b       2
+    0    cat      c       3
+    1    dog      d       4
+
+    Combine ``DataFrame`` objects with overlapping columns
+    and return only those that are shared pass ``inner`` to
+    the ``join`` keyword argument.
+
+    >>> df1 = pd.DataFrame(
+    ...     [['a', 1], ['b', 2]],
+    ...     columns=['letter', 'number']
+    ... )
+    >>> df1
+      letter  number
+    0      a       1
+    1      b       2
+    >>> df2 = pd.DataFrame(
+    ...     [['c', 3, 'cat'], ['d', 4, 'dog']],
+    ...     columns=['letter', 'number', 'animal']
+    ... )
+    >>> df2
+      letter  number animal
+    0      c       3    cat
+    1      d       4    dog
+    >>> pd.concat([df1, df2], join="inner")
+      letter  number
+    0      a       1
+    1      b       2
+    0      c       3
+    1      d       4
+
     Combine ``DataFrame`` objects horizonally along the x axis using the index.
 
     >>> import pandas as pd
