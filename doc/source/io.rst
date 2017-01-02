@@ -4650,7 +4650,9 @@ destination DataFrame as well as a preferred column order as follows:
                              col_order=['col1', 'col2', 'col3'], projectid)
 
 
-You can specify the query config as parameter
+Starting with 0.20.0, you can specify the query config as parameter to use additional options of your job.
+For more information about query configuration parameters see 
+`here <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__.
 
 .. code-block:: python
 

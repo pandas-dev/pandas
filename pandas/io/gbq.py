@@ -707,7 +707,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             config = {'query': {'useQueryCache': False}}
 
         For more information see `BigQuery SQL Reference
-            <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`
+        <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`
 
         .. versionadded:: 0.20.0
 
