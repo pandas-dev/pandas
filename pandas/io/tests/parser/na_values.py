@@ -289,3 +289,17 @@ nan,B
         out = self.read_csv(StringIO(data), na_values=na_values)
         expected = DataFrame({'a': [np.nan, 1]})
         tm.assert_frame_equal(out, expected)
+
+    def test_na_values_uint64(self):
+        # see gh-14983
+
+        na_values = [2**63]
+        data = str(2**63) + '\n' + str(2**63 + 1)
+        expected = DataFrame([str(2**63), str(2**63 + 1)])
+        out = self.read_csv(StringIO(data), header=None, na_values=na_values)
+        tm.assert_frame_equal(out, expected)
+
+        data = str(2**63) + ',1' + '\n,2'
+        expected = DataFrame([[str(2**63), 1], ['', 2]])
+        out = self.read_csv(StringIO(data), header=None)
+        tm.assert_frame_equal(out, expected)

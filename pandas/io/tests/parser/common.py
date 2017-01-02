@@ -921,28 +921,38 @@ A,B,C
             self.assertRaises(OverflowError, self.read_csv,
                               StringIO(data), converters={'ID': conv})
 
-        # These numbers fall right inside the int64 range,
+        # These numbers fall right inside the int64-uint64 range,
         # so they should be parsed as string.
+        ui_max = np.iinfo(np.uint64).max
         i_max = np.iinfo(np.int64).max
         i_min = np.iinfo(np.int64).min
 
-        for x in [i_max, i_min]:
+        for x in [i_max, i_min, ui_max]:
             result = self.read_csv(StringIO(str(x)), header=None)
             expected = DataFrame([x])
             tm.assert_frame_equal(result, expected)
 
-        # These numbers fall just outside the int64 range,
+        # These numbers fall just outside the int64-uint64 range,
         # so they should be parsed as string.
-        too_big = i_max + 1
+        too_big = ui_max + 1
         too_small = i_min - 1
 
         for x in [too_big, too_small]:
             result = self.read_csv(StringIO(str(x)), header=None)
-            if self.engine == 'python' and x == too_big:
-                expected = DataFrame([x])
-            else:
-                expected = DataFrame([str(x)])
+            expected = DataFrame([str(x)])
             tm.assert_frame_equal(result, expected)
+
+        # No numerical dtype can hold both negative and uint64 values,
+        # so they should be cast as string.
+        data = '-1\n' + str(2**63)
+        expected = DataFrame([str(-1), str(2**63)])
+        result = self.read_csv(StringIO(data), header=None)
+        tm.assert_frame_equal(result, expected)
+
+        data = str(2**63) + '\n-1'
+        expected = DataFrame([str(2**63), str(-1)])
+        result = self.read_csv(StringIO(data), header=None)
+        tm.assert_frame_equal(result, expected)
 
     def test_empty_with_nrows_chunksize(self):
         # see gh-9535
