@@ -705,7 +705,7 @@ class _MergeOperation(object):
                 _left_join_on_index(left_ax, right_ax, self.left_join_keys,
                                     sort=self.sort)
 
-        elif self.left_index and self.how == 'right':
+        elif self.tleft_index and self.how == 'right':
             join_index, right_indexer, left_indexer = \
                 _left_join_on_index(right_ax, left_ax, self.right_join_keys,
                                     sort=self.sort)
@@ -1450,39 +1450,52 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     --------
     Combine two ``Series``.
 
-        >>> import pandas as pd
-        >>> s1 = pd.Series(['a', 'b'])
-        >>> s2 = pd.Series(['c', 'd'])
-        >>> pd.concat([s1, s2])
-        0    a
-        1    b
-        0    c
-        1    d
+    >>> import pandas as pd
+    >>> s1 = pd.Series(['a', 'b'])
+    >>> s2 = pd.Series(['c', 'd'])
+    >>> pd.concat([s1, s2])
+    0    a
+    1    b
+    0    c
+    1    d
+    dtype: object
+
+    Ignore the existing index and reset it in the result
+    by setting the ``ignore_index`` option to ``True``.
+
+    >>> s1 = pd.Series(['a', 'b'])
+    >>> s2 = pd.Series(['c', 'd'])
+    >>> pd.concat([s1, s2], ignore_index=True)
+    0    a
+    1    b
+    2    c
+    3    d
+    dtype: object
 
     Combine two ``DataFrame`` objects with identical columns.
 
-        >>> df1 = pd.DataFrame(
-        ...     [['a', 1], ['b', 2]],
-        ...     columns=['letter', 'number']
-        ... )
-        >>> df1
-          letter  number
-        0      a       1
-        1      b       2
-        >>> df2 = pd.DataFrame(
-        ...     [['c', 3], ['d', 4]],
-        ...     columns=['letter', 'number']
-        ... )
-        >>> df2
-          letter  number
-        0      c       3
-        1      d       4
-        >>> pd.concat([df1, df2])
-          letter  number
-        0      a       1
-        1      b       2
-        0      c       3
-        1      d       4
+    >>> df1 = pd.DataFrame(
+    ...     [['a', 1], ['b', 2]],
+    ...     columns=['letter', 'number']
+    ... )
+    >>> df1
+      letter  number
+    0      a       1
+    1      b       2
+    >>> df2 = pd.DataFrame(
+    ...     [['c', 3], ['d', 4]],
+    ...     columns=['letter', 'number']
+    ... )
+    >>> df2
+      letter  number
+    0      c       3
+    1      d       4
+    >>> pd.concat([df1, df2])
+      letter  number
+    0      a       1
+    1      b       2
+    0      c       3
+    1      d       4
     """
     op = _Concatenator(objs, axis=axis, join_axes=join_axes,
                        ignore_index=ignore_index, join=join,
