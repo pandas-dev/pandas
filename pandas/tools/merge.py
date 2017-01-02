@@ -1528,28 +1528,22 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     0      c       3
     1      d       4
 
-    Combine ``DataFrame`` objects horizonally along the x axis.
+    Combine ``DataFrame`` objects horizonally along the x axis using the index.
 
+    >>> import pandas as pd
     >>> df1 = pd.DataFrame(
     ...     [['a', 1], ['b', 2]],
     ...     columns=['letter', 'number']
     ... )
-    >>> df1
-      letter  number
-    0      a       1
-    1      b       2
+    >>>
     >>> df2 = pd.DataFrame(
-    ...     [['c', 3], ['d', 4]],
+    ...     [['b', 3],],
     ...     columns=['letter', 'number']
     ... )
-    >>> df2
-      letter  number
-    0      c       3
-    1      d       4
     >>> pd.concat([df1, df2], axis=1)
       letter  number letter  number
-    0      a       1      b       3
-    1      b       2      c       4
+    0      a       1      b     3.0
+    1      b       2    NaN     NaN
     """
     op = _Concatenator(objs, axis=axis, join_axes=join_axes,
                        ignore_index=ignore_index, join=join,
