@@ -705,7 +705,7 @@ class _MergeOperation(object):
                 _left_join_on_index(left_ax, right_ax, self.left_join_keys,
                                     sort=self.sort)
 
-        elif self.tleft_index and self.how == 'right':
+        elif self.left_index and self.how == 'right':
             join_index, right_indexer, left_indexer = \
                 _left_join_on_index(right_ax, left_ax, self.right_join_keys,
                                     sort=self.sort)
