@@ -23,7 +23,7 @@ from pandas.types.cast import _int64_max, _maybe_upcast_putmask
 from pandas.types.missing import isnull, notnull
 
 from pandas.core.common import _values_from_object
-
+from pandas.tools import weightby
 
 class disallow(object):
     def __init__(self, *dtypes):
@@ -204,9 +204,7 @@ def _get_values(values, skipna,
         mask = isnull(values)
 
     # weights
-    if weights is not None:
-        values = values * weights.reshape(values.shape)
-
+    values = weightby.weight(values, weights)
     dtype = values.dtype
     dtype_ok = _na_ok_dtype(dtype)
 

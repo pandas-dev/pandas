@@ -94,3 +94,30 @@ tuple of (obj, ndarray of weights, like indexed to obj)"""
             raise ValueError("Invalid weights: weights sum to zero")
 
     return obj, weights.values
+
+
+def weight(values, weights):
+    """
+    Return the values * weights, broadcasting if needed
+
+    Parameters
+    ----------
+    values : ndarray
+    weights : 1d-ndarray
+
+    Returns
+    -------
+    values shaped ndarray
+    """
+
+    if weights is None:
+        return values
+
+    if values.ndim == 1:
+        return values * weights
+
+    elif values.ndim == 2:
+
+        return values * weights
+
+    raise NotImplementedError

@@ -306,13 +306,16 @@ def validate_expanding_func(name, args, kwargs):
             raise UnsupportedFunctionCall(msg)
 
 
-def validate_groupby_func(name, args, kwargs):
+def validate_groupby_func(name, args, kwargs, allowed_kwargs=None):
     """
-    'args' and 'kwargs' should be empty because all of
+    'args' should be empty because all of
     their necessary parameters are explicitly listed in
     the function signature
     """
-    if len(args) + len(kwargs) > 0:
+    if allowed_kwargs:
+        kwargs = set(kwargs) - set(allowed_kwargs)
+
+    if len(args) or len(kwargs):
         raise UnsupportedFunctionCall((
             "numpy operations are not valid "
             "with groupby. Use .groupby(...)."

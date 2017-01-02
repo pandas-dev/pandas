@@ -13,6 +13,9 @@ class TestWeightsby(tm.TestCase):
                              'B': [1, 2, 3, 4]})
         self.df2 = DataFrame({'A': [1, 2, 3, 4],
                               'B': [1, 2, 3, 4]})
+        self.df3 = DataFrame({'A': [1, 2, 3, 4],
+                              'B': [1, 2, 3, 4],
+                              'C': [1, 1, 2, 2]})
 
     @property
     def rs(self):
@@ -54,6 +57,16 @@ class TestWeightsby(tm.TestCase):
             result = getattr(self.df2, f)(weights='A', ddof=2)
             expected = getattr(self.df2[['B']] * weights2, f)(ddof=2)
             # tm.assert_series_equal(result, expected)
+
+    def test_groupby(self):
+
+        for f in ['mean', 'sum']:
+            weights = (self.df3['A'] / self.df3.A.sum()).values
+            result = getattr(self.df3.groupby('C'), f)(weights='A')
+            adj = self.df3.assign(A=self.df3.A * weights,
+                                  B=self.df3.B * weights)
+            expected = getattr(adj.groupby('C'), f)()
+            tm.assert_frame_equal(result, expected)
 
     def test_unsupported(self):
         for f in ['first', 'median', 'min', 'max', 'prod']:

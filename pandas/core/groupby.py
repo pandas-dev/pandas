@@ -49,6 +49,7 @@ from pandas.util.decorators import (cache_readonly, Substitution, Appender,
 from pandas.formats.printing import pprint_thing
 from pandas.util.validators import validate_kwargs
 
+from pandas.tools import weightby
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.config import option_context
@@ -791,15 +792,21 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         return self._wrap_transformed_output(output, names)
 
-    def _cython_agg_general(self, how, numeric_only=True):
+    def _cython_agg_general(self, how, weights=None, numeric_only=True):
+        if weights is not None:
+
+            # TODO, need to integrate this with the exclusions
+            _, weights = weightby.weightby(self.obj, weights=weights, axis=axis)
+
         output = {}
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
 
+            values = weightby.weight(obj.values, weights)
             try:
-                result, names = self.grouper.aggregate(obj.values, how)
+                result, names = self.grouper.aggregate(values, how)
             except AssertionError as e:
                 raise GroupByError(str(e))
             output[name] = self._try_cast(result, obj)
@@ -1008,20 +1015,41 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
+    def sum(self, *args, **kwargs):
+        """
+        Compute sum of groups, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+
+        # TODO: this is slightly different from other cythonized functions (e.g. mean)
+        # to accomodate np.sum functionaility
+        nv.validate_groupby_func('sum', args, kwargs, ('weights', 'numeric_only'))
+        self._set_group_selection()
+        try:
+            return self._cython_agg_general('add', **kwargs)
+        except AssertionError as e:
+            raise SpecificationError(str(e))
+        except Exception:  # pragma: no cover
+            return self.aggregate(lambda x: np.sum(x, axis=self.axis))
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
     def mean(self, *args, **kwargs):
         """
         Compute mean of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        nv.validate_groupby_func('mean', args, kwargs)
+        nv.validate_groupby_func('mean', args, kwargs, ('weights', 'numeric_only'))
         try:
-            return self._cython_agg_general('mean')
+            return self._cython_agg_general('mean', **kwargs)
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
             self._set_group_selection()
-            f = lambda x: x.mean(axis=self.axis)
+            kwargs['axis'] = self.axis
+            f = lambda x: x.mean(**kwargs)
             return self._python_agg_general(f)
 
     @Substitution(name='groupby')
@@ -1107,7 +1135,6 @@ class GroupBy(_GroupBy):
         """Compute group sizes"""
         return self.grouper.size()
 
-    sum = _groupby_function('sum', 'add', np.sum)
     prod = _groupby_function('prod', 'prod', np.prod)
     min = _groupby_function('min', 'min', np.min, numeric_only=False)
     max = _groupby_function('max', 'max', np.max, numeric_only=False)
@@ -3134,9 +3161,9 @@ class NDFrameGroupBy(GroupBy):
                 continue
             yield val, slicer(val)
 
-    def _cython_agg_general(self, how, numeric_only=True):
+    def _cython_agg_general(self, how, **kwargs):
         new_items, new_blocks = self._cython_agg_blocks(
-            how, numeric_only=numeric_only)
+            how, **kwargs)
         return self._wrap_agged_blocks(new_items, new_blocks)
 
     def _wrap_agged_blocks(self, items, blocks):
@@ -3162,8 +3189,15 @@ class NDFrameGroupBy(GroupBy):
 
     _block_agg_axis = 0
 
-    def _cython_agg_blocks(self, how, numeric_only=True):
+    def _cython_agg_blocks(self, how, weights=None, numeric_only=True):
         data, agg_axis = self._get_data_to_aggregate()
+
+        if weights is not None:
+
+            # TODO, need to integrate this with the exclusions
+            _, weights = weightby.weightby(self.obj,
+                                           weights=weights,
+                                           axis=self.axis)
 
         new_blocks = []
 
@@ -3172,8 +3206,9 @@ class NDFrameGroupBy(GroupBy):
 
         for block in data.blocks:
 
+            values = weightby.weight(block.values, weights)
             result, _ = self.grouper.aggregate(
-                block.values, how, axis=agg_axis)
+                values, how, axis=agg_axis)
 
             # see if we can cast the block back to the original dtype
             result = block._try_coerce_and_cast_result(result)
