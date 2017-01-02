@@ -1498,6 +1498,27 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     >>> c.ix['s1'].ix[0]
     'a'
 
+    Label the index keys with the ``names`` option.
+
+    >>> s1 = pd.Series(['a', 'b', 'c'])
+    >>> s2 = pd.Series(['c', 'd', 'e'])
+    >>> c = pd.concat([s1, s2], keys=["s1", 's2',], names=["Series name", "Row ID"])
+    >>> c
+    Series name  Row ID
+    s1           0         a
+                 1         b
+                 2         c
+    s2           0         c
+                 1         d
+                 2         e
+    dtype: object
+    >>> c.loc('Series name')['s1']
+    Row ID
+    0    a
+    1    b
+    2    c
+    dtype: object
+
     Combine two ``DataFrame`` objects with identical columns.
 
     >>> df1 = pd.DataFrame(
