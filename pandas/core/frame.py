@@ -4989,7 +4989,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': [1, 1, 1]})
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 1, 1]})
         >>> df.nunique()
         A    3
         B    1
@@ -4999,8 +4999,7 @@ class DataFrame(NDFrame):
         1    2
         2    2
         """
-        func = functools.partial(Series.nunique, dropna=dropna)
-        return self.apply(func, axis=axis)
+        return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
     def idxmin(self, axis=0, skipna=True):
         """

@@ -3917,9 +3917,10 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         Examples
         --------
-        >>> df = DataFrame({'id': ['spam', 'egg', 'egg', 'spam', 'ham', 'ham'],
-        ...                 'value1': [1, 5, 5, 2, 5, 5],
-        ...                 'value2': list('abbaxy')})
+        >>> df = pd.DataFrame({'id': ['spam', 'egg', 'egg', 'spam',
+        ...                           'ham', 'ham'],
+        ...                    'value1': [1, 5, 5, 2, 5, 5],
+        ...                    'value2': list('abbaxy')})
         >>> df
              id  value1 value2
         0  spam       1      a
@@ -3936,6 +3937,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         ham    1       1       2
         spam   1       2       1
 
+        # check for rows with the same id but conflicting values
         >>> df.groupby('id').filter(lambda g: (g.nunique() > 1).any())
              id  value1 value2
         0  spam       1      a
@@ -3943,9 +3945,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         4   ham       5      x
         5   ham       5      y
         """
-        from functools import partial
-        func = partial(Series.nunique, dropna=dropna)
-        return self.apply(lambda g: g.apply(func))
+        return self.apply(lambda g: g.apply(Series.nunique, dropna=dropna))
 
 
 from pandas.tools.plotting import boxplot_frame_groupby  # noqa
