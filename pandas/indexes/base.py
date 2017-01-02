@@ -91,9 +91,8 @@ def _new_Index(cls, d):
     # required for backward compat, because PI can't be instantiated with
     # ordinals through __new__ GH #13277
     if issubclass(cls, ABCPeriodIndex):
-        if d['data'].dtype == 'int64':
-            values = d.pop('data')
-            return cls._from_ordinals(values=values, **d)
+        from pandas.tseries.period import _new_PeriodIndex
+        return _new_PeriodIndex(cls, **d)
     return cls.__new__(cls, **d)
 
 

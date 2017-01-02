@@ -113,6 +113,13 @@ def _period_index_cmp(opname, nat_result=False):
     return wrapper
 
 
+def _new_PeriodIndex(cls, **d):
+    # GH13277 for unpickling
+    if d['data'].dtype == 'int64':
+        values = d.pop('data')
+    return cls._from_ordinals(values=values, **d)
+
+
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
@@ -208,9 +215,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 msg = 'specified freq and dtype are different'
                 raise IncompatibleFrequency(msg)
 
-        # coerce freq to freq object, otherwise it can be coorced elementwise
+        # coerce freq to freq object, otherwise it can be coerced elementwise
         # which is slow
-        if freq is not None:
+        if freq:
             freq = Period._maybe_convert_freq(freq)
 
         if data is None:
