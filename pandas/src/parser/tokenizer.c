@@ -1757,6 +1757,16 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
 // End of xstrtod code
 // ---------------------------------------------------------------------------
 
+void uint_state_init(uint_state *self) {
+    self->seen_sint = 0;
+    self->seen_uint = 0;
+    self->seen_null = 0;
+}
+
+int uint64_conflict(uint_state *self) {
+    return self->seen_uint && (self->seen_sint || self->seen_null);
+}
+
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep) {
     const char *p = (const char *)p_item;
@@ -1871,6 +1881,91 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     if (*p) {
         *error = ERROR_INVALID_CHARS;
         return 0;
+    }
+
+    *error = 0;
+    return number;
+}
+
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
+                       uint64_t uint_max, int *error, char tsep) {
+    const char *p = (const char *)p_item;
+    uint64_t pre_max = uint_max / 10;
+    int dig_pre_max = uint_max % 10;
+    uint64_t number = 0;
+    int d;
+
+    // Skip leading spaces.
+    while (isspace(*p)) {
+        ++p;
+    }
+
+    // Handle sign.
+    if (*p == '-') {
+        state->seen_sint = 1;
+        *error = 0;
+        return 0;
+    } else if (*p == '+') {
+        p++;
+    }
+
+    // Check that there is a first digit.
+    if (!isdigit(*p)) {
+        // Error...
+        *error = ERROR_NO_DIGITS;
+        return 0;
+    }
+
+    // If number is less than pre_max, at least one more digit
+    // can be processed without overflowing.
+    //
+    // Process the digits.
+    d = *p;
+    if (tsep != '\0') {
+        while (1) {
+            if (d == tsep) {
+                d = *++p;
+                continue;
+            } else if (!isdigit(d)) {
+                break;
+            }
+            if ((number < pre_max) ||
+                ((number == pre_max) && (d - '0' <= dig_pre_max))) {
+                number = number * 10 + (d - '0');
+                d = *++p;
+
+            } else {
+                *error = ERROR_OVERFLOW;
+                return 0;
+            }
+        }
+    } else {
+        while (isdigit(d)) {
+            if ((number < pre_max) ||
+                ((number == pre_max) && (d - '0' <= dig_pre_max))) {
+                number = number * 10 + (d - '0');
+                d = *++p;
+
+            } else {
+                *error = ERROR_OVERFLOW;
+                return 0;
+            }
+        }
+    }
+
+    // Skip trailing spaces.
+    while (isspace(*p)) {
+        ++p;
+    }
+
+    // Did we use up all the characters?
+    if (*p) {
+        *error = ERROR_INVALID_CHARS;
+        return 0;
+    }
+
+    if (number > int_max) {
+        state->seen_uint = 1;
     }
 
     *error = 0;
