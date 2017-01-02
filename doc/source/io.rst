@@ -2372,7 +2372,7 @@ read into memory only once.
 
 .. code-block:: python
 
-   xlsx = pd.ExcelFile('path_to_file.xls)
+   xlsx = pd.ExcelFile('path_to_file.xls')
    df = pd.read_excel(xlsx, 'Sheet1')
 
 The ``ExcelFile`` class can also be used as a context manager.
