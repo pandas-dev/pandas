@@ -1450,7 +1450,6 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     --------
     Combine two ``Series``.
 
-    >>> import pandas as pd
     >>> s1 = pd.Series(['a', 'b'])
     >>> s2 = pd.Series(['c', 'd'])
     >>> pd.concat([s1, s2])
