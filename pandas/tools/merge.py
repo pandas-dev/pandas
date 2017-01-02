@@ -1471,13 +1471,12 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     3    d
     dtype: object
 
-    Add a ``hierarchical index`` at the outermost level of
+    Add a hierarchical index at the outermost level of
     the data.
 
     >>> s1 = pd.Series(['a', 'b', 'c'])
     >>> s2 = pd.Series(['c', 'd', 'e'])
-    >>> c = pd.concat([s1, s2], keys=["s1", 's2',])
-    >>> c
+    >>> pd.concat([s1, s2], keys=['s1', 's2',])
     s1  0    a
         1    b
         2    c
@@ -1485,25 +1484,16 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         1    d
         2    e
     dtype: object
-    >>> c.ix['s1']
-    0    a
-    1    b
-    2    c
-    dtype: object
-    >>> c.ix['s2']
-    0    c
-    1    d
-    2    e
-    dtype: object
-    >>> c.ix['s1'].ix[0]
-    'a'
 
     Label the index keys with the ``names`` option.
 
     >>> s1 = pd.Series(['a', 'b', 'c'])
     >>> s2 = pd.Series(['c', 'd', 'e'])
-    >>> c = pd.concat([s1, s2], keys=["s1", 's2',], names=["Series name", "Row ID"])
-    >>> c
+    >>> pd.concat(
+    ...     [s1, s2],
+    ...     keys=['s1', 's2',],
+    ...     names=['Series name', 'Row ID']
+    ... )
     Series name  Row ID
     s1           0         a
                  1         b
@@ -1511,12 +1501,6 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     s2           0         c
                  1         d
                  2         e
-    dtype: object
-    >>> c.loc('Series name')['s1']
-    Row ID
-    0    a
-    1    b
-    2    c
     dtype: object
 
     Combine two ``DataFrame`` objects with identical columns.
