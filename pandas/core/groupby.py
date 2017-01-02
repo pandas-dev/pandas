@@ -341,9 +341,13 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
-                 sort=True, group_keys=True, squeeze=False, **kwargs):
+                 sort=True, group_keys=True, squeeze=False, ref_obj=None, **kwargs):
 
         self._selection = selection
+
+        if ref_obj is None:
+            ref_obj = obj
+        self.ref_obj = ref_obj
 
         if isinstance(obj, NDFrame):
             obj._consolidate_inplace()
@@ -796,7 +800,9 @@ class _GroupBy(PandasObject, SelectionMixin):
         if weights is not None:
 
             # TODO, need to integrate this with the exclusions
-            _, weights = weightby.weightby(self.obj, weights=weights, axis=axis)
+            _, weights = weightby.weightby(self.ref_obj,
+                                           weights=weights,
+                                           axis=self.axis)
 
         output = {}
         for name, obj in self._iterate_slices():
@@ -3189,13 +3195,14 @@ class NDFrameGroupBy(GroupBy):
 
     _block_agg_axis = 0
 
-    def _cython_agg_blocks(self, how, weights=None, numeric_only=True):
+    def _cython_agg_blocks(self, how, weights=None, numeric_only=True,
+                           **kwargs):
         data, agg_axis = self._get_data_to_aggregate()
 
         if weights is not None:
 
             # TODO, need to integrate this with the exclusions
-            _, weights = weightby.weightby(self.obj,
+            _, weights = weightby.weightby(self.ref_obj,
                                            weights=weights,
                                            axis=self.axis)
 
@@ -3765,19 +3772,20 @@ class DataFrameGroupBy(NDFrameGroupBy):
         subset : object, default None
             subset to act on
         """
-
         if ndim == 2:
             if subset is None:
                 subset = self.obj
             return DataFrameGroupBy(subset, self.grouper, selection=key,
                                     grouper=self.grouper,
                                     exclusions=self.exclusions,
-                                    as_index=self.as_index)
+                                    as_index=self.as_index,
+                                    ref_obj=self.obj)
         elif ndim == 1:
             if subset is None:
                 subset = self.obj[key]
             return SeriesGroupBy(subset, selection=key,
-                                 grouper=self.grouper)
+                                 grouper=self.grouper,
+                                 ref_obj=self.obj)
 
         raise AssertionError("invalid ndim for _gotitem")
 
