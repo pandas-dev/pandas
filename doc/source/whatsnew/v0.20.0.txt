@@ -84,3 +84,4 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``pd.DataFrame.to_records`` which failed with unicode caracters in column names (:issue:`11879`)
