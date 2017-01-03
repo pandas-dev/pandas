@@ -258,7 +258,7 @@ Deprecations
 - ``Index.repeat()`` and ``MultiIndex.repeat()`` have deprecated the ``n`` parameter in favor of ``repeats`` (:issue:`12662`)
 - ``Categorical.searchsorted()`` and ``Series.searchsorted()`` have deprecated the ``v`` parameter in favor of ``value`` (:issue:`12662`)
 - ``TimedeltaIndex.searchsorted()``, ``DatetimeIndex.searchsorted()``, and ``PeriodIndex.searchsorted()`` have deprecated the ``key`` parameter in favor of ``value`` (:issue:`12662`)
-
+- ``DataFrame.astype()`` has deprecated the ``raise_on_error`` parameter in favor of ``errors`` (:issue:`14878`)
 
 
 
