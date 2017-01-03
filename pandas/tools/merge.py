@@ -1402,7 +1402,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     Can also add a layer of hierarchical indexing on the concatenation axis,
     which may be useful if the labels are the same (or overlapping) on
-    the passed axis number
+    the passed axis number.
 
     Parameters
     ----------
@@ -1473,8 +1473,6 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     Clear the existing index and reset it in the result
     by setting the ``ignore_index`` option to ``True``.
 
-    >>> s1 = pd.Series(['a', 'b'])
-    >>> s2 = pd.Series(['c', 'd'])
     >>> pd.concat([s1, s2], ignore_index=True)
     0    a
     1    b
@@ -1485,49 +1483,34 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     Add a hierarchical index at the outermost level of
     the data with the ``keys`` option.
 
-    >>> s1 = pd.Series(['a', 'b', 'c'])
-    >>> s2 = pd.Series(['c', 'd', 'e'])
     >>> pd.concat([s1, s2], keys=['s1', 's2',])
     s1  0    a
         1    b
-        2    c
     s2  0    c
         1    d
-        2    e
     dtype: object
 
     Label the index keys you create with the ``names`` option.
 
-    >>> s1 = pd.Series(['a', 'b', 'c'])
-    >>> s2 = pd.Series(['c', 'd', 'e'])
-    >>> pd.concat(
-    ...     [s1, s2],
-    ...     keys=['s1', 's2',],
-    ...     names=['Series name', 'Row ID']
-    ... )
+    >>> pd.concat([s1, s2], keys=['s1', 's2'],
+    ...           names=['Series name', 'Row ID'])
     Series name  Row ID
     s1           0         a
                  1         b
-                 2         c
     s2           0         c
                  1         d
-                 2         e
     dtype: object
 
     Combine two ``DataFrame`` objects with identical columns.
 
-    >>> df1 = pd.DataFrame(
-    ...     [['a', 1], ['b', 2]],
-    ...     columns=['letter', 'number']
-    ... )
+    >>> df1 = pd.DataFrame([['a', 1], ['b', 2]],
+    ...                    columns=['letter', 'number'])
     >>> df1
       letter  number
     0      a       1
     1      b       2
-    >>> df2 = pd.DataFrame(
-    ...     [['c', 3], ['d', 4]],
-    ...     columns=['letter', 'number']
-    ... )
+    >>> df2 = pd.DataFrame([['c', 3], ['d', 4]],
+    ...                    columns=['letter', 'number'])
     >>> df2
       letter  number
     0      c       3
@@ -1543,23 +1526,15 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     and return everything. Columns outside the intersection will
     be filled with ``NaN`` values.
 
-    >>> df1 = pd.DataFrame(
-    ...     [['a', 1], ['b', 2]],
-    ...     columns=['letter', 'number']
-    ... )
-    >>> df1
-      letter  number
-    0      a       1
-    1      b       2
-    >>> df2 = pd.DataFrame(
+    >>> df3 = pd.DataFrame(
     ...     [['c', 3, 'cat'], ['d', 4, 'dog']],
     ...     columns=['letter', 'number', 'animal']
     ... )
-    >>> df2
+    >>> df3
       letter  number animal
     0      c       3    cat
     1      d       4    dog
-    >>> pd.concat([df1, df2])
+    >>> pd.concat([df1, df3])
       animal letter  number
     0    NaN      a       1
     1    NaN      b       2
@@ -1570,23 +1545,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     and return only those that are shared by passing ``inner`` to
     the ``join`` keyword argument.
 
-    >>> df1 = pd.DataFrame(
-    ...     [['a', 1], ['b', 2]],
-    ...     columns=['letter', 'number']
-    ... )
-    >>> df1
-      letter  number
-    0      a       1
-    1      b       2
-    >>> df2 = pd.DataFrame(
-    ...     [['c', 3, 'cat'], ['d', 4, 'dog']],
-    ...     columns=['letter', 'number', 'animal']
-    ... )
-    >>> df2
-      letter  number animal
-    0      c       3    cat
-    1      d       4    dog
-    >>> pd.concat([df1, df2], join="inner")
+    >>> pd.concat([df1, df3], join="inner")
       letter  number
     0      a       1
     1      b       2
@@ -1596,39 +1555,25 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     Combine ``DataFrame`` objects horizonally along the x axis by
     passing in ``axis=1``.
 
-    >>> df1 = pd.DataFrame(
-    ...     [['a', 1], ['b', 2]],
-    ...     columns=['letter', 'number']
-    ... )
-    >>> df1
-      letter  number
-    0      a       1
-    1      b       2
-    >>> df2 = pd.DataFrame(
-    ...     [['c', 3], ['d', 4]],
-    ...     columns=['letter', 'number']
-    ... )
-    >>> df2
-      letter  number
-    0      c       3
-    1      d       4
-    >>> pd.concat([df1, df2], axis=1)
-      letter  number letter  number
-    0      a       1      c       3
-    1      b       2      d       4
+    >>> df4 = pd.DataFrame([['bird', 'polly'], ['monkey', 'george']],
+    ...                    columns=['animal', 'name'])
+    >>> pd.concat([df1, df4], axis=1)
+      letter  number  animal    name
+    0      a       1    bird   polly
+    1      b       2  monkey  george
 
     Prevent the result from including duplicate index values with the
     ``verify_integrity`` option.
 
-    >>> df1 = pd.DataFrame([1], index=['a'])
-    >>> df1
+    >>> df5 = pd.DataFrame([1], index=['a'])
+    >>> df5
        0
     a  1
-    >>> df2 = pd.DataFrame([2], index=['a'])
-    >>> df2
+    >>> df6 = pd.DataFrame([2], index=['a'])
+    >>> df6
        0
     a  2
-    >>> pd.concat([df1, df2], verify_integrity=True)
+    >>> pd.concat([df5, df6], verify_integrity=True)
     ValueError: Indexes have overlapping values: ['a']
     """
     op = _Concatenator(objs, axis=axis, join_axes=join_axes,
