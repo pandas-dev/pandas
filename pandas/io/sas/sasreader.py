@@ -33,8 +33,8 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
     if format is None:
         buffer_error_msg = ("If this is a buffer object rather"
                             "than a string name, you must specify"
-                            " a format string")    
-        if not isinstance(filepath_or_buffer,compat.string_types):
+                            " a format string")
+        if not isinstance(filepath_or_buffer, compat.string_types):
             raise TypeError(buffer_error_msg)
         try:
             fname = filepath_or_buffer.lower()
