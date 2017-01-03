@@ -1461,6 +1461,9 @@ class _LocIndexer(_LocationIndexer):
             if isinstance(labels, MultiIndex):
                 if (not isinstance(key, tuple) and len(key) > 1 and
                         not isinstance(key[0], tuple)):
+                    if isinstance(key, ABCSeries):
+                        # GH 14730
+                        key = list(key)
                     key = tuple([key])
 
             # an iterable multi-selection
