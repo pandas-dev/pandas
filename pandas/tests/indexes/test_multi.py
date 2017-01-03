@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
 
-from datetime import timedelta
-from itertools import product
-import nose
 import re
 import warnings
 
-from pandas import (DataFrame, date_range, period_range, MultiIndex, Index,
-                    CategoricalIndex, compat)
-from pandas.core.common import PerformanceWarning, UnsortedIndexError
-from pandas.indexes.base import InvalidIndexError
-from pandas.compat import range, lrange, u, PY3, long, lzip
+from datetime import timedelta
+from itertools import product
+
+import nose
 
 import numpy as np
 
-from pandas.util.testing import (assert_almost_equal, assertRaises,
-                                 assertRaisesRegexp, assert_copy)
+import pandas as pd
+
+from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex, Series,
+                    compat, date_range, period_range)
+from pandas.compat import PY3, long, lrange, lzip, range, u
+from pandas.core.common import PerformanceWarning, UnsortedIndexError
+from pandas.indexes.base import InvalidIndexError
+from pandas.lib import Timestamp
 
 import pandas.util.testing as tm
 
-import pandas as pd
-from pandas.lib import Timestamp
+from pandas.util.testing import (assertRaises, assertRaisesRegexp,
+                                 assert_almost_equal, assert_copy)
+
 
 from .common import Base
 
@@ -342,6 +345,19 @@ class TestMultiIndex(Base, tm.TestCase):
 
         with tm.assertRaisesRegexp(TypeError, 'string'):
             self.index.set_names(names, level=0)
+
+    def test_series_index(self):
+        # GH14730
+        index = MultiIndex.from_product([[1, 2, 3], ['A', 'B', 'C']])
+        x = Series(index=index, data=range(9))
+        y = Series([1, 3])
+        expected = Series(
+            data=[0, 1, 2, 6, 7, 8],
+            index=MultiIndex.from_product([[1, 3], ['A', 'B', 'C']]))
+        actual_from_series = x.loc[y]
+        actual_from_list = x.loc[[1, 3]]
+        tm.assert_series_equal(expected, actual_from_list)
+        tm.assert_series_equal(expected, actual_from_series)
 
     def test_set_levels_categorical(self):
         # GH13854
