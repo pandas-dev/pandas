@@ -23,8 +23,20 @@ elif [ "$COVERAGE" ]; then
     echo pytest -s --cov=pandas --cov-report xml:/tmp/nosetests.xml $NOSE_ARGS pandas
     pytest -s --cov=pandas --cov-report xml:/tmp/nosetests.xml $NOSE_ARGS pandas
 else
+    # XXX debugging
+    echo nosetests pandas/io/tests/test_stata.py
+    nosetests pandas/io/tests/test_stata.py
+
     echo pytest $NOSE_ARGS pandas
     pytest $NOSE_ARGS pandas # TODO: doctest
+
+    # XXX debugging
+    echo nosetests pandas/io/tests/test_stata.py
+    nosetests pandas/io/tests/test_stata.py
+    echo nosetests pandas/tools/tests/test_util.py
+    nosetests pandas/tools/tests/test_util.py
+    echo nosetests pandas/tseries/tests/test_timezones.py
+    nosetests pandas/tseries/tests/test_timezones.py
 fi
 
 RET="$?"
