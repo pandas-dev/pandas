@@ -301,7 +301,6 @@ class TestInference(tm.TestCase):
             for case in cases:
                 if coerce:
                     with tm.assertRaisesRegexp(ValueError, msg):
-                        print(case)
                         lib.maybe_convert_numeric(case, set(),
                                                   coerce_numeric=coerce)
                 else:

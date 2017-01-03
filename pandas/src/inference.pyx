@@ -85,6 +85,128 @@ try:
 except AttributeError:
     pass
 
+
+cdef class Seen(object):
+    """
+    Class for keeping track of the types of elements
+    encountered when trying to perform type conversions.
+    """
+
+    cdef public:
+        bint int_             # seen_int
+        bint bool_            # seen_bool
+        bint null_            # seen_null
+        bint uint_            # seen_uint (unsigned integer)
+        bint sint_            # seen_sint (signed integer)
+        bint float_           # seen_float
+        bint object_          # seen_object
+        bint complex_         # seen_complex
+        bint datetime_        # seen_datetime
+        bint coerce_numeric   # coerce data to numeric
+        bint timedelta_       # seen_timedelta
+        bint datetimetz_      # seen_datetimetz
+
+    def __cinit__(self, bint coerce_numeric=0):
+        """
+        Initialize a Seen instance.
+
+        Parameters
+        ----------
+        coerce_numeric : bint, default 0
+            Whether or not to force conversion to a numeric data type if
+            initial methods to convert to numeric fail.
+        """
+        self.int_ = 0
+        self.bool_ = 0
+        self.null_ = 0
+        self.uint_ = 0
+        self.sint_ = 0
+        self.float_ = 0
+        self.object_ = 0
+        self.complex_ = 0
+        self.datetime_ = 0
+        self.timedelta_ = 0
+        self.datetimetz_ = 0
+        self.coerce_numeric = coerce_numeric
+
+    cdef inline bint check_uint64_conflict(self) except -1:
+        """
+        Check whether we can safely convert a uint64 array to a numeric dtype.
+
+        There are two cases when conversion to numeric dtype with a uint64
+        array is not safe (and will therefore not be performed)
+
+        1) A NaN element is encountered.
+
+           uint64 cannot be safely cast to float64 due to truncation issues
+           at the extreme ends of the range.
+
+        2) A negative number is encountered.
+
+           There is no numerical dtype that can hold both negative numbers
+           and numbers greater than INT64_MAX. Hence, at least one number
+           will be improperly cast if we convert to a numeric dtype.
+
+        Returns
+        -------
+        return_values : bool
+            Whether or not we should return the original input array to avoid
+            data truncation.
+
+        Raises
+        ------
+        ValueError : uint64 elements were detected, and at least one of the
+                     two conflict cases was also detected. However, we are
+                     trying to force conversion to a numeric dtype.
+        """
+        if self.uint_ and (self.null_ or self.sint_):
+            if not self.coerce_numeric:
+                return True
+
+            if self.null_:
+                msg = ("uint64 array detected, and such an "
+                       "array cannot contain NaN.")
+            else:  # self.sint_ = 1
+                msg = ("uint64 and negative values detected. "
+                       "Cannot safely return a numeric array "
+                       "without truncating data.")
+
+            raise ValueError(msg)
+        return False
+
+    cdef inline saw_null(self):
+        """
+        Set flags indicating that a null value was encountered.
+        """
+        self.null_ = 1
+        self.float_ = 1
+
+    def saw_int(self, val):
+        """
+        Set flags indicating that an integer value was encountered.
+
+        Parameters
+        ----------
+        val : Python int
+            Value with which to set the flags.
+        """
+        self.int_ = 1
+        self.sint_ = self.sint_ or (val < 0)
+        self.uint_ = self.uint_ or (val > iINT64_MAX)
+
+    @property
+    def numeric_(self):
+        return self.complex_ or self.float_ or self.int_
+
+    @property
+    def is_bool(self):
+        return not (self.datetime_ or self.numeric_ or self.timedelta_)
+
+    @property
+    def is_float_or_complex(self):
+        return not (self.bool_ or self.datetime_ or self.timedelta_)
+
+
 cdef _try_infer_map(v):
     """ if its in our map, just return the dtype """
     cdef:
@@ -629,56 +751,6 @@ cdef int64_t iINT64_MIN = <int64_t> INT64_MIN
 cdef uint64_t iUINT64_MAX = <uint64_t> UINT64_MAX
 
 
-cdef inline bint _check_uint64_nan(bint seen_uint, bint seen_null,
-                                   bint coerce_numeric) except -1:
-    """
-    Check whether we have encountered uint64 when handling a NaN element.
-
-    If uint64 has been encountered, we cannot safely cast to float64 due
-    to truncation problems (this would occur if we return a numeric array
-    containing a NaN element).
-
-    Returns
-    -------
-    return_values : bool
-        Whether or not we should return the original input array to avoid
-        data truncation.
-    """
-    if seen_null and seen_uint:
-        if not coerce_numeric:
-            return True
-        else:
-            raise ValueError("uint64 array detected, and such an "
-                             "array cannot contain NaN.")
-
-    return False
-
-
-cdef inline bint _check_uint64_int64_conflict(bint seen_sint, bint seen_uint,
-                                              bint coerce_numeric) except -1:
-    """
-    Check whether we have encountered both int64 and uint64 elements.
-
-    If both have been encountered, we cannot safely cast to an integer
-    dtype since none is large enough to hold both types of elements.
-
-    Returns
-    -------
-    return_values : bool
-        Whether or not we should return the original input array to avoid
-        data truncation.
-    """
-    if seen_sint and seen_uint:
-        if not coerce_numeric:
-            return True
-        else:
-            raise ValueError("uint64 and negative values detected. "
-                             "Cannot safely return a numeric array "
-                             "without truncating data.")
-
-    return False
-
-
 def maybe_convert_numeric(ndarray[object] values, set na_values,
                           bint convert_empty=True, bint coerce_numeric=False):
     """
@@ -712,18 +784,12 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
+        Seen seen = Seen(coerce_numeric);
         ndarray[float64_t] floats = np.empty(n, dtype='f8')
         ndarray[complex128_t] complexes = np.empty(n, dtype='c16')
         ndarray[int64_t] ints = np.empty(n, dtype='i8')
         ndarray[uint64_t] uints = np.empty(n, dtype='u8')
         ndarray[uint8_t] bools = np.empty(n, dtype='u1')
-        bint seen_null = False
-        bint seen_uint = False
-        bint seen_sint = False
-        bint seen_float = False
-        bint seen_complex = False
-        bint seen_int = False
-        bint seen_bool = False
         object val
         float64_t fval
 
@@ -731,88 +797,52 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         val = values[i]
 
         if val.__hash__ is not None and val in na_values:
-            seen_null = True
-            if _check_uint64_nan(seen_uint, seen_null,
-                                 coerce_numeric):
-                return values
-
+            seen.saw_null()
             floats[i] = complexes[i] = nan
-            seen_float = True
         elif util.is_float_object(val):
             if val != val:
-                seen_null = True
-                if _check_uint64_nan(seen_uint, seen_null,
-                                     coerce_numeric):
-                    return values
+                seen.null_ = True
 
             floats[i] = complexes[i] = val
-            seen_float = True
+            seen.float_ = True
         elif util.is_integer_object(val):
             floats[i] = complexes[i] = val
+
             as_int = int(val)
-            seen_int = True
+            seen.saw_int(as_int)
 
-            seen_uint = seen_uint or (as_int > iINT64_MAX)
-            seen_sint = seen_sint or (as_int < 0)
-
-            if (_check_uint64_nan(seen_uint, seen_null, coerce_numeric) or
-                _check_uint64_int64_conflict(seen_sint, seen_uint,
-                                             coerce_numeric)):
-                return values
-
-            if seen_uint:
+            if as_int >= 0:
                 uints[i] = as_int
-            elif seen_sint:
-                ints[i] = as_int
-            else:
-                uints[i] = as_int
+            if as_int <= iINT64_MAX:
                 ints[i] = as_int
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
-            seen_bool = True
+            seen.bool_ = True
         elif val is None:
-            seen_null = True
-            if _check_uint64_nan(seen_uint, seen_null,
-                                 coerce_numeric):
-                return values
-
+            seen.saw_null()
             floats[i] = complexes[i] = nan
-            seen_float = True
         elif hasattr(val, '__len__') and len(val) == 0:
-            if convert_empty or coerce_numeric:
-                seen_null = True
-                if _check_uint64_nan(seen_uint, seen_null,
-                                     coerce_numeric):
-                    return values
-
+            if convert_empty or seen.coerce_numeric:
+                seen.saw_null()
                 floats[i] = complexes[i] = nan
-                seen_float = True
             else:
                 raise ValueError('Empty string encountered')
         elif util.is_complex_object(val):
             complexes[i] = val
-            seen_complex = True
+            seen.complex_ = True
         elif is_decimal(val):
             floats[i] = complexes[i] = val
-            seen_float = True
+            seen.float_ = True
         else:
             try:
                 status = floatify(val, &fval, &maybe_int)
 
                 if fval in na_values:
-                    seen_null = True
-                    if _check_uint64_nan(seen_uint, seen_null,
-                                         coerce_numeric):
-                        return values
-
+                    seen.saw_null()
                     floats[i] = complexes[i] = nan
-                    seen_float = True
                 else:
                     if fval != fval:
-                        seen_null = True
-                        if _check_uint64_nan(seen_uint, seen_null,
-                                             coerce_numeric):
-                            return values
+                        seen.null_ = True
 
                     floats[i] = fval
 
@@ -820,57 +850,43 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                     as_int = int(val)
 
                     if as_int in na_values:
-                        seen_float = True
-                        seen_null = True
+                        seen.saw_null()
                     else:
-                        seen_uint = seen_uint or (as_int > iINT64_MAX)
-                        seen_sint = seen_sint or (as_int < 0)
-                        seen_int = True
+                        seen.saw_int(as_int)
 
-                    if (_check_uint64_nan(seen_uint, seen_null,
-                                          coerce_numeric) or
-                        _check_uint64_int64_conflict(seen_sint, seen_uint,
-                                                     coerce_numeric)):
-                        return values
-
-                    if not (seen_float or as_int in na_values):
+                    if not (seen.float_ or as_int in na_values):
                         if as_int < iINT64_MIN or as_int > iUINT64_MAX:
                             raise ValueError('Integer out of range.')
 
-                        if seen_uint:
+                        if as_int >= 0:
                             uints[i] = as_int
-                        elif seen_sint:
-                            ints[i] = as_int
-                        else:
-                            uints[i] = as_int
+                        if as_int <= iINT64_MAX:
                             ints[i] = as_int
                 else:
-                    seen_float = True
+                    seen.float_ = True
             except (TypeError, ValueError) as e:
-                if not coerce_numeric:
+                if not seen.coerce_numeric:
                     raise type(e)(str(e) + ' at position {}'.format(i))
                 elif "uint64" in str(e):  # Exception from check functions.
                     raise
-                seen_null = True
-                if _check_uint64_nan(seen_uint, seen_null,
-                                     coerce_numeric):
-                    return values
-
+                seen.saw_null()
                 floats[i] = nan
-                seen_float = True
 
-    if seen_complex:
+    if seen.check_uint64_conflict():
+        return values
+
+    if seen.complex_:
         return complexes
-    elif seen_float:
+    elif seen.float_:
         return floats
-    elif seen_int:
-        if seen_uint:
+    elif seen.int_:
+        if seen.uint_:
             return uints
         else:
             return ints
-    elif seen_bool:
+    elif seen.bool_:
         return bools.view(np.bool_)
-    elif seen_uint:
+    elif seen.uint_:
         return uints
     return ints
 
@@ -890,18 +906,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[uint8_t] bools
         ndarray[int64_t] idatetimes
         ndarray[int64_t] itimedeltas
-        bint seen_float = 0
-        bint seen_complex = 0
-        bint seen_datetime = 0
-        bint seen_datetimetz = 0
-        bint seen_timedelta = 0
-        bint seen_int = 0
-        bint seen_uint = 0
-        bint seen_sint = 0
-        bint seen_bool = 0
-        bint seen_object = 0
-        bint seen_null = 0
-        bint seen_numeric = 0
+        Seen seen = Seen();
         object val, onan
         float64_t fval, fnan
 
@@ -928,54 +933,52 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         val = objects[i]
 
         if val is None:
-            seen_null = 1
+            seen.null_ = 1
             floats[i] = complexes[i] = fnan
         elif val is NaT:
             if convert_datetime:
                 idatetimes[i] = iNaT
-                seen_datetime = 1
+                seen.datetime_ = 1
             if convert_timedelta:
                 itimedeltas[i] = iNaT
-                seen_timedelta = 1
+                seen.timedelta_ = 1
             if not (convert_datetime or convert_timedelta):
-                seen_object = 1
+                seen.object_ = 1
         elif util.is_bool_object(val):
-            seen_bool = 1
+            seen.bool_ = 1
             bools[i] = val
         elif util.is_float_object(val):
             floats[i] = complexes[i] = val
-            seen_float = 1
+            seen.float_ = 1
         elif util.is_datetime64_object(val):
             if convert_datetime:
                 idatetimes[i] = convert_to_tsobject(
                     val, None, None, 0, 0).value
-                seen_datetime = 1
+                seen.datetime_ = 1
             else:
-                seen_object = 1
-                # objects[i] = val.astype('O')
+                seen.object_ = 1
                 break
         elif is_timedelta(val):
             if convert_timedelta:
                 itimedeltas[i] = convert_to_timedelta64(val, 'ns')
-                seen_timedelta = 1
+                seen.timedelta_ = 1
             else:
-                seen_object = 1
+                seen.object_ = 1
                 break
         elif util.is_integer_object(val):
-            seen_int = 1
+            seen.int_ = 1
             floats[i] = <float64_t> val
             complexes[i] = <double complex> val
-            if not seen_null:
-                seen_uint = seen_uint or (int(val) > iINT64_MAX)
-                seen_sint = seen_sint or (val < 0)
+            if not seen.null_:
+                seen.saw_int(int(val))
 
-                if seen_uint and seen_sint:
-                    seen_object = 1
+                if seen.uint_ and seen.sint_:
+                    seen.object_ = 1
                     break
 
-                if seen_uint:
+                if seen.uint_:
                     uints[i] = val
-                elif seen_sint:
+                elif seen.sint_:
                     ints[i] = val
                 else:
                     uints[i] = val
@@ -983,106 +986,101 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
         elif util.is_complex_object(val):
             complexes[i] = val
-            seen_complex = 1
+            seen.complex_ = 1
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
 
             # if we have an tz's attached then return the objects
             if convert_datetime:
                 if getattr(val, 'tzinfo', None) is not None:
-                    seen_datetimetz = 1
+                    seen.datetimetz_ = 1
                     break
                 else:
-                    seen_datetime = 1
+                    seen.datetime_ = 1
                     idatetimes[i] = convert_to_tsobject(
                         val, None, None, 0, 0).value
             else:
-                seen_object = 1
+                seen.object_ = 1
                 break
         elif try_float and not util.is_string_object(val):
             # this will convert Decimal objects
             try:
                 floats[i] = float(val)
                 complexes[i] = complex(val)
-                seen_float = 1
+                seen.float_ = 1
             except Exception:
-                seen_object = 1
+                seen.object_ = 1
                 break
         else:
-            seen_object = 1
+            seen.object_ = 1
             break
 
-    seen_numeric = seen_complex or seen_float or seen_int
-
     # we try to coerce datetime w/tz but must all have the same tz
-    if seen_datetimetz:
+    if seen.datetimetz_:
         if len(set([getattr(val, 'tzinfo', None) for val in objects])) == 1:
             from pandas import DatetimeIndex
             return DatetimeIndex(objects)
-        seen_object = 1
+        seen.object_ = 1
 
-    if not seen_object:
-
+    if not seen.object_:
         if not safe:
-            if seen_null:
-                if not seen_bool and not seen_datetime and not seen_timedelta:
-                    if seen_complex:
+            if seen.null_:
+                if seen.is_float_or_complex:
+                    if seen.complex_:
                         return complexes
-                    elif seen_float or seen_int:
+                    elif seen.float_ or seen.int_:
                         return floats
             else:
-                if not seen_bool:
-                    if seen_datetime:
-                        if not seen_numeric:
+                if not seen.bool_:
+                    if seen.datetime_:
+                        if not seen.numeric_:
                             return datetimes
-                    elif seen_timedelta:
-                        if not seen_numeric:
+                    elif seen.timedelta_:
+                        if not seen.numeric_:
                             return timedeltas
                     else:
-                        if seen_complex:
+                        if seen.complex_:
                             return complexes
-                        elif seen_float:
+                        elif seen.float_:
                             return floats
-                        elif seen_int:
-                            if seen_uint:
+                        elif seen.int_:
+                            if seen.uint_:
                                 return uints
                             else:
                                 return ints
-                elif (not seen_datetime and not seen_numeric
-                      and not seen_timedelta):
+                elif seen.is_bool:
                     return bools.view(np.bool_)
 
         else:
             # don't cast int to float, etc.
-            if seen_null:
-                if not seen_bool and not seen_datetime and not seen_timedelta:
-                    if seen_complex:
-                        if not seen_int:
+            if seen.null_:
+                if seen.is_float_or_complex:
+                    if seen.complex_:
+                        if not seen.int_:
                             return complexes
-                    elif seen_float:
-                        if not seen_int:
+                    elif seen.float_:
+                        if not seen.int_:
                             return floats
             else:
-                if not seen_bool:
-                    if seen_datetime:
-                        if not seen_numeric:
+                if not seen.bool_:
+                    if seen.datetime_:
+                        if not seen.numeric_:
                             return datetimes
-                    elif seen_timedelta:
-                        if not seen_numeric:
+                    elif seen.timedelta_:
+                        if not seen.numeric_:
                             return timedeltas
                     else:
-                        if seen_complex:
-                            if not seen_int:
+                        if seen.complex_:
+                            if not seen.int_:
                                 return complexes
-                        elif seen_float:
-                            if not seen_int:
+                        elif seen.float_:
+                            if not seen.int_:
                                 return floats
-                        elif seen_int:
-                            if seen_uint:
+                        elif seen.int_:
+                            if seen.uint_:
                                 return uints
                             else:
                                 return ints
-                elif (not seen_datetime and not seen_numeric
-                      and not seen_timedelta):
+                elif seen.is_bool:
                     return bools.view(np.bool_)
 
     return objects
