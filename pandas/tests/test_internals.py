@@ -566,13 +566,6 @@ class TestBlockManager(tm.TestCase):
             else:
                 self.assertEqual(tmgr.get('d').dtype.type, t)
 
-    def test_illegal_arg_for_errors_in_astype(self):
-        """ ValueError exception raised when illegal value used for errors """
-        mgr = create_mgr('a,b,c: i8')
-
-        with self.assertRaises(ValueError):
-            mgr.astype(np.float64, errors=True)
-
     def test_convert(self):
         def _compare(old_mgr, new_mgr):
             """ compare the blocks, numeric compare ==, object don't """

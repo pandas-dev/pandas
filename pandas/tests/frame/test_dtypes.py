@@ -523,6 +523,24 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         result = df.get_dtype_counts().sort_values()
         assert_series_equal(result, expected)
 
+    def test_illegal_arg_for_errors_in_astype(self):
+        # issue #14878
+
+        df = DataFrame([1, 2, 3])
+
+        with self.assertRaises(ValueError):
+            df.astype(np.float64, errors=True)
+
+    def test_depr_kwarg_produces_future_warning(self):
+        # issue #14878
+
+        df = DataFrame([1, 2, 3])
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.astype(np.int8, raise_on_error=False)
+
+        df.astype(np.int8, errors='ignore')
+
 
 class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
 

@@ -468,9 +468,9 @@ class Block(PandasObject):
         errors_legal_values = ('raise', 'ignore')
 
         if errors not in errors_legal_values:
-            invalid_arg = "Expected value of kwarg 'errors' to be one of %s. "\
-                "Supplied value is '%s'" % (', '.join("'%s'" % arg for arg in
-                                            errors_legal_values), errors)
+            invalid_arg = ("Expected value of kwarg 'errors' to be one of {}. "
+                           "Supplied value is '{}'".format(
+                               list(errors_legal_values), errors))
             raise ValueError(invalid_arg)
 
         # may need to convert to categorical
