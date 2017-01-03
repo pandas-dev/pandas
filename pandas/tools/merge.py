@@ -1446,6 +1446,17 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     -----
     The keys, levels, and names arguments are all optional.
 
+    A walkthrough of how this method fits in with other tools for combining
+    panda objects can be found `here </pandas-docs/stable/merging.html>`_.
+
+    See Also
+    --------
+    Series.append
+    DataFrame.append
+    DataFrame.join
+    DataFrame.merge
+    Panel.join
+
     Examples
     --------
     Combine two ``Series``.
@@ -1472,7 +1483,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     dtype: object
 
     Add a hierarchical index at the outermost level of
-    the data.
+    the data with the ``keys`` option.
 
     >>> s1 = pd.Series(['a', 'b', 'c'])
     >>> s2 = pd.Series(['c', 'd', 'e'])
@@ -1485,7 +1496,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         2    e
     dtype: object
 
-    Label the index keys with the ``names`` option.
+    Label the index keys you create with the ``names`` option.
 
     >>> s1 = pd.Series(['a', 'b', 'c'])
     >>> s2 = pd.Series(['c', 'd', 'e'])
@@ -1529,7 +1540,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     1      d       4
 
     Combine ``DataFrame`` objects with overlapping columns
-    and return everything.
+    and return everything. Columns outside the intersection will
+    be filled with ``NaN`` values.
 
     >>> df1 = pd.DataFrame(
     ...     [['a', 1], ['b', 2]],
@@ -1555,7 +1567,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     1    dog      d       4
 
     Combine ``DataFrame`` objects with overlapping columns
-    and return only those that are shared pass ``inner`` to
+    and return only those that are shared by passing ``inner`` to
     the ``join`` keyword argument.
 
     >>> df1 = pd.DataFrame(
@@ -1581,9 +1593,9 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     0      c       3
     1      d       4
 
-    Combine ``DataFrame`` objects horizonally along the x axis using the index.
+    Combine ``DataFrame`` objects horizonally along the x axis by
+    passing in ``axis=1``.
 
-    >>> import pandas as pd
     >>> df1 = pd.DataFrame(
     ...     [['a', 1], ['b', 2]],
     ...     columns=['letter', 'number']
@@ -1597,6 +1609,20 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
       letter  number letter  number
     0      a       1      b     3.0
     1      b       2    NaN     NaN
+
+    Prevent the result from including duplicate index values with the
+    ``verify_integrity`` option.
+
+    >>> df1 = pd.DataFrame([1], index=['a'])
+    >>> df1
+       0
+    a  1
+    >>> df2 = pd.DataFrame([2], index=['a'])
+    >>> df2
+       0
+    a  2
+    >>> pd.concat([df1, df2], verify_integrity=True)
+    ValueError: Indexes have overlapping values: ['a']
     """
     op = _Concatenator(objs, axis=axis, join_axes=join_axes,
                        ignore_index=ignore_index, join=join,
