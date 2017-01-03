@@ -690,6 +690,25 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected.columns = expected.columns.droplevel(0).droplevel(0)
         assert_frame_equal(result, expected)
 
+    def test_series_index(self):
+        # GH14730
+        index = MultiIndex.from_product([[1, 2, 3], ['A', 'B', 'C']])
+        x = Series(index=index, data=range(9), dtype=np.float64)
+        y = Series([1, 3])
+        expected = Series(
+            data=[0, 1, 2, 6, 7, 8],
+            index=MultiIndex.from_product([[1, 3], ['A', 'B', 'C']]),
+            dtype=np.float64)
+        result = x.loc[y]
+        result2 = x.loc[[1, 3]]
+        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result2, expected)
+        empty_series = Series(data=[], dtype=np.float64)
+        expected2 = Series([], index=MultiIndex(
+            levels=index.levels, labels=[[], []], dtype=np.float64))
+        result3 = x.loc[empty_series]
+        tm.assert_series_equal(result3, expected2)
+
     def test_getitem_slice_not_sorted(self):
         df = self.frame.sortlevel(1).T
 

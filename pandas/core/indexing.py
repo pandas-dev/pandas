@@ -1463,7 +1463,7 @@ class _LocIndexer(_LocationIndexer):
                         not isinstance(key[0], tuple)):
                     if isinstance(key, ABCSeries):
                         # GH 14730
-                        key = key.values.tolist()
+                        key = list(key)
                     key = tuple([key])
 
             # an iterable multi-selection

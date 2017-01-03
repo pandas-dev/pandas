@@ -12,7 +12,7 @@ import numpy as np
 
 import pandas as pd
 
-from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex, Series,
+from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
                     compat, date_range, period_range)
 from pandas.compat import PY3, long, lrange, lzip, range, u
 from pandas.core.common import PerformanceWarning, UnsortedIndexError
@@ -345,19 +345,6 @@ class TestMultiIndex(Base, tm.TestCase):
 
         with tm.assertRaisesRegexp(TypeError, 'string'):
             self.index.set_names(names, level=0)
-
-    def test_series_index(self):
-        # GH14730
-        index = MultiIndex.from_product([[1, 2, 3], ['A', 'B', 'C']])
-        x = Series(index=index, data=range(9))
-        y = Series([1, 3])
-        expected = Series(
-            data=[0, 1, 2, 6, 7, 8],
-            index=MultiIndex.from_product([[1, 3], ['A', 'B', 'C']]))
-        actual_from_series = x.loc[y]
-        actual_from_list = x.loc[[1, 3]]
-        tm.assert_series_equal(expected, actual_from_list)
-        tm.assert_series_equal(expected, actual_from_series)
 
     def test_set_levels_categorical(self):
         # GH13854
