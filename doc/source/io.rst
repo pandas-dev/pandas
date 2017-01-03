@@ -4652,6 +4652,22 @@ destination DataFrame as well as a preferred column order as follows:
                              index_col='index_column_name',
                              col_order=['col1', 'col2', 'col3'], projectid)
 
+
+Starting with 0.20.0, you can specify the query config as parameter to use additional options of your job.
+For more information about query configuration parameters see 
+`here <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__.
+
+.. code-block:: python
+
+   configuration = {
+      'query': {
+        "useQueryCache": False
+      }
+   }
+   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
+                             configuration=configuration, projectid)
+
+
 .. note::
 
    You can find your project id in the `Google developers console <https://console.developers.google.com>`__.

@@ -711,6 +711,91 @@ class TestReadGBQIntegration(tm.TestCase):
         gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                      dialect='standard', private_key=_get_private_key_path())
 
+    def test_query_with_parameters(self):
+        sql_statement = "SELECT @param1 + @param2 as VALID_RESULT"
+        config = {
+            'query': {
+                "useLegacySql": False,
+                "parameterMode": "named",
+                "queryParameters": [
+                    {
+                        "name": "param1",
+                        "parameterType": {
+                            "type": "INTEGER"
+                        },
+                        "parameterValue": {
+                            "value": 1
+                        }
+                    },
+                    {
+                        "name": "param2",
+                        "parameterType": {
+                            "type": "INTEGER"
+                        },
+                        "parameterValue": {
+                            "value": 2
+                        }
+                    }
+                ]
+            }
+        }
+        # Test that a query that relies on parameters fails
+        # when parameters are not supplied via configuration
+        with tm.assertRaises(ValueError):
+            gbq.read_gbq(sql_statement, project_id=_get_project_id(),
+                         private_key=_get_private_key_path())
+
+        # Test that the query is successful because we have supplied
+        # the correct query parameters via the 'config' option
+        df = gbq.read_gbq(sql_statement, project_id=_get_project_id(),
+                          private_key=_get_private_key_path(),
+                          configuration=config)
+        tm.assert_frame_equal(df, DataFrame({'VALID_RESULT': [3]}))
+
+    def test_query_inside_configuration(self):
+        query_no_use = 'SELECT "PI_WRONG" as VALID_STRING'
+        query = 'SELECT "PI" as VALID_STRING'
+        config = {
+            'query': {
+                "query": query,
+                "useQueryCache": False,
+            }
+        }
+        # Test that it can't pass query both
+        # inside config and as parameter
+        with tm.assertRaises(ValueError):
+            gbq.read_gbq(query_no_use, project_id=_get_project_id(),
+                         private_key=_get_private_key_path(),
+                         configuration=config)
+
+        df = gbq.read_gbq(None, project_id=_get_project_id(),
+                          private_key=_get_private_key_path(),
+                          configuration=config)
+        tm.assert_frame_equal(df, DataFrame({'VALID_STRING': ['PI']}))
+
+    def test_configuration_without_query(self):
+        sql_statement = 'SELECT 1'
+        config = {
+            'copy': {
+                "sourceTable": {
+                    "projectId": _get_project_id(),
+                    "datasetId": "publicdata:samples",
+                    "tableId": "wikipedia"
+                },
+                "destinationTable": {
+                    "projectId": _get_project_id(),
+                    "datasetId": "publicdata:samples",
+                    "tableId": "wikipedia_copied"
+                },
+            }
+        }
+        # Test that only 'query' configurations are supported
+        # nor 'copy','load','extract'
+        with tm.assertRaises(ValueError):
+            gbq.read_gbq(sql_statement, project_id=_get_project_id(),
+                         private_key=_get_private_key_path(),
+                         configuration=config)
+
 
 class TestToGBQIntegration(tm.TestCase):
     # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
