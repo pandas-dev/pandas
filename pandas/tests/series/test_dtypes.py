@@ -168,3 +168,16 @@ class TestSeriesDtypes(TestData, tm.TestCase):
         b.real = np.arange(5) + 5
         tm.assert_numpy_array_equal(a + 5, b.real)
         tm.assert_numpy_array_equal(4 * a, b.imag)
+
+    def test_arg_for_errors_in_astype(self):
+        # issue #14878
+
+        sr = Series([1, 2, 3])
+
+        with self.assertRaises(ValueError):
+            sr.astype(np.float64, errors=False)
+
+        with tm.assert_produces_warning(FutureWarning):
+            sr.astype(np.int8, raise_on_error=True)
+
+        sr.astype(np.int8, errors='raise')
