@@ -709,7 +709,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result3 = x.loc[empty_series]
         tm.assert_series_equal(result3, expected2)
 
-
     def test_getitem_slice_not_sorted(self):
         df = self.frame.sortlevel(1).T
 
