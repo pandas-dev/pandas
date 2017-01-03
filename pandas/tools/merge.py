@@ -1526,10 +1526,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     and return everything. Columns outside the intersection will
     be filled with ``NaN`` values.
 
-    >>> df3 = pd.DataFrame(
-    ...     [['c', 3, 'cat'], ['d', 4, 'dog']],
-    ...     columns=['letter', 'number', 'animal']
-    ... )
+    >>> df3 = pd.DataFrame([['c', 3, 'cat'], ['d', 4, 'dog']],
+    ...                    columns=['letter', 'number', 'animal'])
     >>> df3
       letter  number animal
     0      c       3    cat
