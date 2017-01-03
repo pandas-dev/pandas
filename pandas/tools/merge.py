@@ -1600,15 +1600,22 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     ...     [['a', 1], ['b', 2]],
     ...     columns=['letter', 'number']
     ... )
-    >>>
+    >>> df1
+      letter  number
+    0      a       1
+    1      b       2
     >>> df2 = pd.DataFrame(
-    ...     [['b', 3],],
+    ...     [['c', 3], ['d', 4]],
     ...     columns=['letter', 'number']
     ... )
+    >>> df2
+      letter  number
+    0      c       3
+    1      d       4
     >>> pd.concat([df1, df2], axis=1)
       letter  number letter  number
-    0      a       1      b     3.0
-    1      b       2    NaN     NaN
+    0      a       1      c       3
+    1      b       2      d       4
 
     Prevent the result from including duplicate index values with the
     ``verify_integrity`` option.
