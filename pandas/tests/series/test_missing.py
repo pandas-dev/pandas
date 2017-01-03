@@ -1,7 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-from datetime import timedelta
+import pytz
+from datetime import timedelta, datetime
 
 from numpy import nan
 import numpy as np
@@ -10,7 +11,6 @@ import pandas as pd
 from pandas import (Series, isnull, date_range,
                     MultiIndex, Index)
 from pandas.tseries.index import Timestamp
-
 from pandas.compat import range
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
@@ -250,6 +250,24 @@ class TestSeriesMissingData(TestData, tm.TestCase):
             self.assert_series_equal(expected, result)
             self.assert_series_equal(pd.isnull(s), null_loc)
 
+    def test_datetime64tz_fillna_round_issue(self):
+        # GH 14872
+
+        data = pd.Series([pd.NaT, pd.NaT,
+                          datetime(2016, 12, 12, 22, 24, 6, 100001,
+                                   tzinfo=pytz.utc)])
+
+        filled = data.fillna(method='bfill')
+
+        expected = pd.Series([datetime(2016, 12, 12, 22, 24, 6,
+                                       100001, tzinfo=pytz.utc),
+                              datetime(2016, 12, 12, 22, 24, 6,
+                                       100001, tzinfo=pytz.utc),
+                              datetime(2016, 12, 12, 22, 24, 6,
+                                       100001, tzinfo=pytz.utc)])
+
+        assert_series_equal(filled, expected)
+
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
         s.fillna(method='ffill', inplace=True)
@@ -367,6 +385,12 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
         ts[2] = np.NaN
         assert_series_equal(ts.ffill(), ts.fillna(method='ffill'))
+
+    def test_ffill_mixed_dtypes_without_missing_data(self):
+        # GH14956
+        series = pd.Series([datetime(2015, 1, 1, tzinfo=pytz.utc), 1])
+        result = series.ffill()
+        assert_series_equal(series, result)
 
     def test_bfill(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
@@ -891,6 +915,22 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         with tm.assertRaises(ValueError):
             s.interpolate(method='spline', order=0)
 
+    def test_interp_timedelta64(self):
+        # GH 6424
+        df = Series([1, np.nan, 3],
+                    index=pd.to_timedelta([1, 2, 3]))
+        result = df.interpolate(method='time')
+        expected = Series([1., 2., 3.],
+                          index=pd.to_timedelta([1, 2, 3]))
+        assert_series_equal(result, expected)
+
+        # test for non uniform spacing
+        df = Series([1, np.nan, 3],
+                    index=pd.to_timedelta([1, 2, 4]))
+        result = df.interpolate(method='time')
+        expected = Series([1., 1.666667, 3.],
+                          index=pd.to_timedelta([1, 2, 4]))
+        assert_series_equal(result, expected)
 
 if __name__ == '__main__':
     import nose

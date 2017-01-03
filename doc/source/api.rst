@@ -27,6 +27,7 @@ Flat File
    read_table
    read_csv
    read_fwf
+   read_msgpack
 
 Clipboard
 ~~~~~~~~~
@@ -81,6 +82,14 @@ HDFStore: PyTables (HDF5)
    HDFStore.append
    HDFStore.get
    HDFStore.select
+
+Feather
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   read_feather
 
 SAS
 ~~~
@@ -156,6 +165,7 @@ Data manipulations
    concat
    get_dummies
    factorize
+   wide_to_long
 
 Top-level missing data
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -691,6 +701,7 @@ Serialization / IO / Conversion
    Series.to_pickle
    Series.to_csv
    Series.to_dict
+   Series.to_excel
    Series.to_frame
    Series.to_xarray
    Series.to_hdf
@@ -1012,6 +1023,7 @@ Serialization / IO / Conversion
    DataFrame.to_excel
    DataFrame.to_json
    DataFrame.to_html
+   DataFrame.to_feather
    DataFrame.to_latex
    DataFrame.to_stata
    DataFrame.to_msgpack

@@ -14,10 +14,10 @@ from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat.numpy import _np_version_under1p8
 
-from pandas.types.common import (_DATELIKE_DTYPES,
-                                 is_numeric_dtype,
+from pandas.types.common import (is_numeric_dtype,
                                  is_timedelta64_dtype, is_datetime64_dtype,
                                  is_categorical_dtype,
+                                 is_datetimelike,
                                  is_datetime_or_timedelta_dtype,
                                  is_bool, is_integer_dtype,
                                  is_complex_dtype,
@@ -175,8 +175,8 @@ class Grouper(object):
     freq : string / frequency object, defaults to None
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
-        of available frequencies, please see
-        `here <http://pandas.pydata.org/pandas-docs/stable/timeseries.html>`_.
+        of available frequencies, please see `here
+        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`_.
     axis : number/name of the axis, defaults to 0
     sort : boolean, default to False
         whether to sort the resulting labels
@@ -861,7 +861,17 @@ class _GroupBy(PandasObject, SelectionMixin):
             if isinstance(result, Series):
                 result = result.reindex(ax)
             else:
-                result = result.reindex_axis(ax, axis=self.axis)
+
+                # this is a very unfortunate situation
+                # we have a multi-index that is NOT lexsorted
+                # and we have a result which is duplicated
+                # we can't reindex, so we resort to this
+                # GH 14776
+                if isinstance(ax, MultiIndex) and not ax.is_unique:
+                    result = result.take(result.index.get_indexer_for(
+                        ax.values).unique(), axis=self.axis)
+                else:
+                    result = result.reindex_axis(ax, axis=self.axis)
 
         elif self.group_keys:
 
@@ -2449,8 +2459,20 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
             exclusions.append(name)
 
         elif is_in_axis(gpr):  # df.groupby('name')
-            in_axis, name, gpr = True, gpr, obj[gpr]
-            exclusions.append(name)
+            if gpr in obj:
+                if gpr in obj.index.names:
+                    warnings.warn(
+                        ("'%s' is both a column name and an index level.\n"
+                         "Defaulting to column but "
+                         "this will raise an ambiguity error in a "
+                         "future version") % gpr,
+                        FutureWarning, stacklevel=5)
+                in_axis, name, gpr = True, gpr, obj[gpr]
+                exclusions.append(name)
+            elif gpr in obj.index.names:
+                in_axis, name, level, gpr = False, None, gpr, None
+            else:
+                raise KeyError(gpr)
         elif isinstance(gpr, Grouper) and gpr.key is not None:
             # Add key to exclusions
             exclusions.append(gpr.key)
@@ -2898,6 +2920,7 @@ class SeriesGroupBy(GroupBy):
     def nunique(self, dropna=True):
         """ Returns number of unique elements in the group """
         ids, _, _ = self.grouper.group_info
+
         val = self.obj.get_values()
 
         try:
@@ -2928,7 +2951,10 @@ class SeriesGroupBy(GroupBy):
             inc[idx] = 1
 
         out = np.add.reduceat(inc, idx).astype('int64', copy=False)
-        res = out if ids[0] != -1 else out[1:]
+        if len(ids):
+            res = out if ids[0] != -1 else out[1:]
+        else:
+            res = out[1:]
         ri = self.grouper.result_index
 
         # we might have duplications among the bins
@@ -3427,10 +3453,10 @@ class NDFrameGroupBy(GroupBy):
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
-                if (so.ndim == 2 and so.dtypes.isin(_DATELIKE_DTYPES).any()):
+                if (so.ndim == 2 and so.dtypes.apply(is_datetimelike).any()):
                     result = result._convert(numeric=True)
                     date_cols = self._selected_obj.select_dtypes(
-                        include=list(_DATELIKE_DTYPES)).columns
+                        include=['datetime', 'timedelta']).columns
                     date_cols = date_cols.intersection(result.columns)
                     result[date_cols] = (result[date_cols]
                                          ._convert(datetime=True,
@@ -3999,7 +4025,9 @@ class DataSplitter(object):
         sdata = self._get_sorted_data()
 
         if self.ngroups == 0:
-            raise StopIteration
+            # we are inside a generator, rather than raise StopIteration
+            # we merely return signal the end
+            return
 
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 

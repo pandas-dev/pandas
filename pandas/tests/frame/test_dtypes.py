@@ -109,14 +109,47 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
                         'c': np.arange(3, 6).astype('u1'),
                         'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
-                        'f': pd.Categorical(list('abc'))})
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101', periods=3,
+                                           tz='US/Eastern'),
+                        'i': pd.date_range('20130101', periods=3,
+                                           tz='CET'),
+                        'j': pd.period_range('2013-01', periods=3,
+                                             freq='M'),
+                        'k': pd.timedelta_range('1 day', periods=3)})
+
         ri = df.select_dtypes(include=[np.number])
+        ei = df[['b', 'c', 'd', 'k']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include=[np.number], exclude=['timedelta'])
         ei = df[['b', 'c', 'd']]
         assert_frame_equal(ri, ei)
 
-        ri = df.select_dtypes(include=[np.number, 'category'])
+        ri = df.select_dtypes(include=[np.number, 'category'],
+                              exclude=['timedelta'])
         ei = df[['b', 'c', 'd', 'f']]
         assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include=['datetime'])
+        ei = df[['g']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include=['datetime64'])
+        ei = df[['g']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include=['datetimetz'])
+        ei = df[['h', 'i']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include=['timedelta'])
+        ei = df[['k']]
+        assert_frame_equal(ri, ei)
+
+        self.assertRaises(NotImplementedError,
+                          lambda: df.select_dtypes(include=['period']))
 
     def test_select_dtypes_exclude(self):
         df = DataFrame({'a': list('abc'),
@@ -353,9 +386,17 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         tf = self.frame.astype(np.float64)
         casted = tf.astype(np.int64, copy=False)  # noqa
 
-    def test_astype_cast_nan_int(self):
-        df = DataFrame(data={"Values": [1.0, 2.0, 3.0, np.nan]})
-        self.assertRaises(ValueError, df.astype, np.int64)
+    def test_astype_cast_nan_inf_int(self):
+        # GH14265, check nan and inf raise error when converting to int
+        types = [np.int32, np.int64]
+        values = [np.nan, np.inf]
+        msg = 'Cannot convert non-finite values \\(NA or inf\\) to integer'
+
+        for this_type in types:
+            for this_val in values:
+                df = DataFrame([this_val])
+                with tm.assertRaisesRegexp(ValueError, msg):
+                    df.astype(this_type)
 
     def test_astype_str(self):
         # GH9757

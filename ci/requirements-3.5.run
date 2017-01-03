@@ -17,8 +17,5 @@ sqlalchemy
 pymysql
 psycopg2
 xarray
-boto
-pyqt=4.11.4
-
-# incompat with conda ATM
-# beautiful-soup
+s3fs
+beautifulsoup4

@@ -44,16 +44,6 @@ class TestUnsupportedFeatures(tm.TestCase):
         data = 'a b c\n1 2 3'
         msg = 'does not support'
 
-        # specify C-unsupported options with python-unsupported option
-        # (options will be ignored on fallback, raise)
-        with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), sep=None,
-                       delim_whitespace=False, dtype={'a': float})
-        with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), sep=r'\s', dtype={'a': float})
-        with tm.assertRaisesRegexp(ValueError, msg):
-            read_table(StringIO(data), skipfooter=1, dtype={'a': float})
-
         # specify C engine with unsupported options (raise)
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), engine='c',
@@ -79,9 +69,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         msg = 'Error tokenizing data'
 
         with tm.assertRaisesRegexp(ParserError, msg):
-            read_table(StringIO(text), sep='\s+')
+            read_table(StringIO(text), sep='\\s+')
         with tm.assertRaisesRegexp(ParserError, msg):
-            read_table(StringIO(text), engine='c', sep='\s+')
+            read_table(StringIO(text), engine='c', sep='\\s+')
 
         msg = "Only length-1 thousands markers supported"
         data = """A|B|C

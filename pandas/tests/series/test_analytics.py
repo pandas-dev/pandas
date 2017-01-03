@@ -10,8 +10,8 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas import (Series, DataFrame, isnull, notnull, bdate_range,
-                    date_range, _np_version_under1p10)
+from pandas import (Series, Categorical, DataFrame, isnull, notnull,
+                    bdate_range, date_range, _np_version_under1p10)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp
 from pandas.tseries.tdi import Timedelta
@@ -128,45 +128,99 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertAlmostEqual(np.median(int_ts), int_ts.median())
 
     def test_mode(self):
-        s = Series([12, 12, 11, 10, 19, 11])
-        exp = Series([11, 12])
-        assert_series_equal(s.mode(), exp)
+        # No mode should be found.
+        exp = Series([], dtype=np.float64)
+        tm.assert_series_equal(Series([]).mode(), exp)
 
-        assert_series_equal(
-            Series([1, 2, 3]).mode(), Series(
-                [], dtype='int64'))
+        exp = Series([], dtype=np.int64)
+        tm.assert_series_equal(Series([1]).mode(), exp)
 
-        lst = [5] * 20 + [1] * 10 + [6] * 25
-        np.random.shuffle(lst)
-        s = Series(lst)
-        assert_series_equal(s.mode(), Series([6]))
+        exp = Series([], dtype=np.object)
+        tm.assert_series_equal(Series(['a', 'b', 'c']).mode(), exp)
 
-        s = Series([5] * 10)
-        assert_series_equal(s.mode(), Series([5]))
+        # Test numerical data types.
+        exp_single = [1]
+        data_single = [1] * 5 + [2] * 3
 
-        s = Series(lst)
-        s[0] = np.nan
-        assert_series_equal(s.mode(), Series([6.]))
+        exp_multi = [1, 3]
+        data_multi = [1] * 5 + [2] * 3 + [3] * 5
 
-        s = Series(list('adfasbasfwewefwefweeeeasdfasnbam'))
-        assert_series_equal(s.mode(), Series(['e']))
+        for dt in np.typecodes['AllInteger'] + np.typecodes['Float']:
+            s = Series(data_single, dtype=dt)
+            exp = Series(exp_single, dtype=dt)
+            tm.assert_series_equal(s.mode(), exp)
 
-        s = Series(['2011-01-03', '2013-01-02', '1900-05-03'], dtype='M8[ns]')
-        assert_series_equal(s.mode(), Series([], dtype="M8[ns]"))
-        s = Series(['2011-01-03', '2013-01-02', '1900-05-03', '2011-01-03',
-                    '2013-01-02'], dtype='M8[ns]')
-        assert_series_equal(s.mode(), Series(['2011-01-03', '2013-01-02'],
-                                             dtype='M8[ns]'))
+            s = Series(data_multi, dtype=dt)
+            exp = Series(exp_multi, dtype=dt)
+            tm.assert_series_equal(s.mode(), exp)
 
-        # GH 5986
-        s = Series(['1 days', '-1 days', '0 days'], dtype='timedelta64[ns]')
-        assert_series_equal(s.mode(), Series([], dtype='timedelta64[ns]'))
+        # Test string and object types.
+        exp = ['b']
+        data = ['a'] * 2 + ['b'] * 3
 
-        s = Series(['1 day', '1 day', '-1 day', '-1 day 2 min',
-                    '2 min', '2 min'],
+        s = Series(data, dtype='c')
+        exp = Series(exp, dtype='c')
+        tm.assert_series_equal(s.mode(), exp)
+
+        exp = ['bar']
+        data = ['foo'] * 2 + ['bar'] * 3
+
+        for dt in [str, object]:
+            s = Series(data, dtype=dt)
+            exp = Series(exp, dtype=dt)
+            tm.assert_series_equal(s.mode(), exp)
+
+        # Test datetime types.
+        exp = Series([], dtype="M8[ns]")
+        s = Series(['2011-01-03', '2013-01-02',
+                    '1900-05-03'], dtype='M8[ns]')
+        tm.assert_series_equal(s.mode(), exp)
+
+        exp = Series(['2011-01-03', '2013-01-02'], dtype='M8[ns]')
+        s = Series(['2011-01-03', '2013-01-02', '1900-05-03',
+                    '2011-01-03', '2013-01-02'], dtype='M8[ns]')
+        tm.assert_series_equal(s.mode(), exp)
+
+        # gh-5986: Test timedelta types.
+        exp = Series([], dtype='timedelta64[ns]')
+        s = Series(['1 days', '-1 days', '0 days'],
                    dtype='timedelta64[ns]')
-        assert_series_equal(s.mode(), Series(['2 min', '1 day'],
-                                             dtype='timedelta64[ns]'))
+        tm.assert_series_equal(s.mode(), exp)
+
+        exp = Series(['2 min', '1 day'], dtype='timedelta64[ns]')
+        s = Series(['1 day', '1 day', '-1 day', '-1 day 2 min',
+                    '2 min', '2 min'], dtype='timedelta64[ns]')
+        tm.assert_series_equal(s.mode(), exp)
+
+        # Test mixed dtype.
+        exp = Series(['foo'])
+        s = Series([1, 'foo', 'foo'])
+        tm.assert_series_equal(s.mode(), exp)
+
+        # Test for uint64 overflow.
+        exp = Series([2**63], dtype=np.uint64)
+        s = Series([1, 2**63, 2**63], dtype=np.uint64)
+        tm.assert_series_equal(s.mode(), exp)
+
+        exp = Series([], dtype=np.uint64)
+        s = Series([1, 2**63], dtype=np.uint64)
+        tm.assert_series_equal(s.mode(), exp)
+
+        # Test category dtype.
+        c = Categorical([1, 2])
+        exp = Categorical([], categories=[1, 2])
+        exp = Series(exp, dtype='category')
+        tm.assert_series_equal(Series(c).mode(), exp)
+
+        c = Categorical([1, 'a', 'a'])
+        exp = Categorical(['a'], categories=[1, 'a'])
+        exp = Series(exp, dtype='category')
+        tm.assert_series_equal(Series(c).mode(), exp)
+
+        c = Categorical([1, 1, 2, 3, 3])
+        exp = Categorical([1, 3], categories=[1, 2, 3])
+        exp = Series(exp, dtype='category')
+        tm.assert_series_equal(Series(c).mode(), exp)
 
     def test_prod(self):
         self._check_stat_op('prod', np.prod)
@@ -1363,6 +1417,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         exp = Series(s.values.repeat(5), index=s.index.values.repeat(5))
         assert_series_equal(reps, exp)
 
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.repeat(reps=5)
+            assert_series_equal(result, exp)
+
         to_rep = [2, 3, 4]
         reps = s.repeat(to_rep)
         exp = Series(s.values.repeat(to_rep),
@@ -1377,6 +1435,19 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         msg = "the 'axis' parameter is not supported"
         tm.assertRaisesRegexp(ValueError, msg, np.repeat, s, 2, axis=0)
+
+    def test_searchsorted(self):
+        s = Series([1, 2, 3])
+
+        idx = s.searchsorted(1, side='left')
+        tm.assert_numpy_array_equal(idx, np.array([0], dtype=np.intp))
+
+        idx = s.searchsorted(1, side='right')
+        tm.assert_numpy_array_equal(idx, np.array([1], dtype=np.intp))
+
+        with tm.assert_produces_warning(FutureWarning):
+            idx = s.searchsorted(v=1, side='left')
+            tm.assert_numpy_array_equal(idx, np.array([0], dtype=np.intp))
 
     def test_searchsorted_numeric_dtypes_scalar(self):
         s = Series([1, 2, 90, 1000, 3e9])
@@ -1514,6 +1585,15 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             s.nsmallest(keep='invalid')
         with tm.assertRaisesRegexp(ValueError, msg):
             s.nlargest(keep='invalid')
+
+        # GH 13412
+        s = Series([1, 4, 3, 2], index=[0, 0, 1, 1])
+        result = s.nlargest(3)
+        expected = s.sort_values(ascending=False).head(3)
+        assert_series_equal(result, expected)
+        result = s.nsmallest(3)
+        expected = s.sort_values().head(3)
+        assert_series_equal(result, expected)
 
     def test_sortlevel(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))

@@ -814,7 +814,7 @@ class IndexOpsMixin(object):
     @property
     def shape(self):
         """ return a tuple of the shape of the underlying data """
-        return self.values.shape
+        return self._values.shape
 
     @property
     def ndim(self):
@@ -842,22 +842,22 @@ class IndexOpsMixin(object):
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
-        return self.values.itemsize
+        return self._values.itemsize
 
     @property
     def nbytes(self):
         """ return the number of bytes in the underlying data """
-        return self.values.nbytes
+        return self._values.nbytes
 
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        return self.values.strides
+        return self._values.strides
 
     @property
     def size(self):
         """ return the number of elements in the underlying data """
-        return self.values.size
+        return self._values.size
 
     @property
     def flags(self):
@@ -969,7 +969,7 @@ class IndexOpsMixin(object):
         if hasattr(values, 'unique'):
             result = values.unique()
         else:
-            from pandas.core.nanops import unique1d
+            from pandas.core.algorithms import unique1d
             result = unique1d(values)
         return result
 
@@ -1091,12 +1091,12 @@ class IndexOpsMixin(object):
         """Find indices where elements should be inserted to maintain order.
 
         Find the indices into a sorted %(klass)s `self` such that, if the
-        corresponding elements in `v` were inserted before the indices, the
-        order of `self` would be preserved.
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
 
         Parameters
         ----------
-        %(value)s : array_like
+        value : array_like
             Values to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
@@ -1109,7 +1109,7 @@ class IndexOpsMixin(object):
         Returns
         -------
         indices : array of ints
-            Array of insertion points with the same shape as `v`.
+            Array of insertion points with the same shape as `value`.
 
         See Also
         --------
@@ -1149,11 +1149,12 @@ class IndexOpsMixin(object):
         array([3, 4])    # eggs before milk
         """)
 
-    @Substitution(klass='IndexOpsMixin', value='key')
+    @Substitution(klass='IndexOpsMixin')
     @Appender(_shared_docs['searchsorted'])
-    def searchsorted(self, key, side='left', sorter=None):
+    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
+    def searchsorted(self, value, side='left', sorter=None):
         # needs coercion on the key (DatetimeIndex does already)
-        return self.values.searchsorted(key, side=side, sorter=sorter)
+        return self.values.searchsorted(value, side=side, sorter=sorter)
 
     _shared_docs['drop_duplicates'] = (
         """Return %(klass)s with duplicate values removed

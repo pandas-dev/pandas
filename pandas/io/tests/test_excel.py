@@ -64,11 +64,11 @@ def _skip_if_no_excelsuite():
     _skip_if_no_openpyxl()
 
 
-def _skip_if_no_boto():
+def _skip_if_no_s3fs():
     try:
-        import boto  # NOQA
+        import s3fs  # noqa
     except ImportError:
-        raise nose.SkipTest('boto not installed, skipping')
+        raise nose.SkipTest('s3fs not installed, skipping')
 
 
 _seriesd = tm.getSeriesData()
@@ -373,6 +373,33 @@ class ReadingTestsBase(SharedItems):
         actual = self.get_exceldf(basename, 'Sheet1', converters=converters)
         tm.assert_frame_equal(actual, expected)
 
+    def test_reader_dtype(self):
+        # GH 8212
+        basename = 'testdtype'
+        actual = self.get_exceldf(basename)
+
+        expected = DataFrame({
+            'a': [1, 2, 3, 4],
+            'b': [2.5, 3.5, 4.5, 5.5],
+            'c': [1, 2, 3, 4],
+            'd': [1.0, 2.0, np.nan, 4.0]}).reindex(
+                columns=['a', 'b', 'c', 'd'])
+
+        tm.assert_frame_equal(actual, expected)
+
+        actual = self.get_exceldf(basename,
+                                  dtype={'a': 'float64',
+                                         'b': 'float32',
+                                         'c': str})
+
+        expected['a'] = expected['a'].astype('float64')
+        expected['b'] = expected['b'].astype('float32')
+        expected['c'] = ['001', '002', '003', '004']
+        tm.assert_frame_equal(actual, expected)
+
+        with tm.assertRaises(ValueError):
+            actual = self.get_exceldf(basename, dtype={'d': 'int64'})
+
     def test_reading_all_sheets(self):
         # Test reading all sheetnames by setting sheetname to None,
         # Ensure a dict is returned.
@@ -555,7 +582,7 @@ class XlrdTests(ReadingTestsBase):
 
     @tm.network(check_before_test=True)
     def test_read_from_s3_url(self):
-        _skip_if_no_boto()
+        _skip_if_no_s3fs()
 
         url = ('s3://pandas-test/test1' + self.ext)
         url_table = read_excel(url)
@@ -1050,6 +1077,12 @@ class ExcelWriterBase(SharedItems):
             self.frame.to_excel(path, '0')
             recons = read_excel(path, index_col=0)
             tm.assert_frame_equal(self.frame, recons)
+
+            # GH 8825 Pandas Series should provide to_excel method
+            s = self.frame["A"]
+            s.to_excel(path)
+            recons = read_excel(path, index_col=0)
+            tm.assert_frame_equal(s.to_frame(), recons)
 
     def test_mixed(self):
         _skip_if_no_xlrd()

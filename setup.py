@@ -27,7 +27,7 @@ def is_platform_mac():
 import versioneer
 cmdclass = versioneer.get_cmdclass()
 
-min_cython_ver = '0.19.1'
+min_cython_ver = '0.23'
 try:
     import Cython
     ver = Cython.__version__
@@ -112,10 +112,11 @@ from os.path import join as pjoin
 _pxipath = pjoin('pandas', 'src')
 _pxi_dep_template = {
     'algos': ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
-              'algos_take_helper.pxi.in'],
+              'algos_take_helper.pxi.in', 'algos_rank_helper.pxi.in'],
     '_join': ['join_helper.pxi.in', 'joins_func_helper.pxi.in'],
     'hashtable': ['hashtable_class_helper.pxi.in',
                   'hashtable_func_helper.pxi.in'],
+    'index': ['index_class_helper.pxi.in'],
     '_sparse': ['sparse_op_helper.pxi.in']
 }
 _pxifiles = []
@@ -293,6 +294,11 @@ class CleanCommand(Command):
                 if d == '__pycache__':
                     self._clean_trees.append(pjoin(root, d))
 
+        # clean the generated pxi files
+        for pxifile in _pxifiles:
+            pxifile = pxifile.replace(".pxi.in", ".pxi")
+            self._clean_me.append(pxifile)
+
         for d in ('build', 'dist'):
             if os.path.exists(d):
                 self._clean_trees.append(d)
@@ -331,6 +337,7 @@ class CheckSDist(sdist_class):
                  'pandas/src/period.pyx',
                  'pandas/src/sparse.pyx',
                  'pandas/src/testing.pyx',
+                 'pandas/src/hash.pyx',
                  'pandas/io/sas/saslib.pyx']
 
     def initialize_options(self):
@@ -501,10 +508,12 @@ ext_data = dict(
             'sources': ['pandas/src/parser/tokenizer.c',
                         'pandas/src/parser/io.c']},
     _sparse={'pyxfile': 'src/sparse',
-             'depends': ([srcpath('sparse', suffix='.pyx')]
-                         + _pxi_dep['_sparse'])},
+             'depends': ([srcpath('sparse', suffix='.pyx')] +
+                         _pxi_dep['_sparse'])},
     _testing={'pyxfile': 'src/testing',
               'depends': [srcpath('testing', suffix='.pyx')]},
+    _hash={'pyxfile': 'src/hash',
+           'depends': [srcpath('hash', suffix='.pyx')]},
 )
 
 ext_data["io.sas.saslib"] = {'pyxfile': 'io/sas/saslib'}
@@ -629,6 +638,7 @@ setup(name=DISTNAME,
                 'pandas.tests',
                 'pandas.tests.frame',
                 'pandas.tests.indexes',
+                'pandas.tests.groupby',
                 'pandas.tests.series',
                 'pandas.tests.formats',
                 'pandas.tests.types',

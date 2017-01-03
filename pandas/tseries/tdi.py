@@ -20,12 +20,12 @@ from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import to_offset
+from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.base import _shared_docs
-from pandas.core.nanops import _checked_add_with_arr
 from pandas.indexes.base import _index_shared_docs
 import pandas.core.common as com
 import pandas.types.concat as _concat
-from pandas.util.decorators import Appender, Substitution
+from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.tseries.base import TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.timedeltas import (to_timedelta,
                                        _coerce_scalar_to_timedelta_type)
@@ -347,7 +347,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         else:
             other = Timestamp(other)
             i8 = self.asi8
-            result = _checked_add_with_arr(i8, other.value)
+            result = checked_add_with_arr(i8, other.value)
             result = self._maybe_mask_results(result, fill_value=tslib.iNaT)
         return DatetimeIndex(result, name=self.name, copy=False)
 
@@ -785,15 +785,16 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         # # try to find a the dates
         # return (lhs_mask & rhs_mask).nonzero()[0]
 
-    @Substitution(klass='TimedeltaIndex', value='key')
+    @Substitution(klass='TimedeltaIndex')
     @Appender(_shared_docs['searchsorted'])
-    def searchsorted(self, key, side='left', sorter=None):
-        if isinstance(key, (np.ndarray, Index)):
-            key = np.array(key, dtype=_TD_DTYPE, copy=False)
+    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
+    def searchsorted(self, value, side='left', sorter=None):
+        if isinstance(value, (np.ndarray, Index)):
+            value = np.array(value, dtype=_TD_DTYPE, copy=False)
         else:
-            key = _to_m8(key)
+            value = _to_m8(value)
 
-        return self.values.searchsorted(key, side=side, sorter=sorter)
+        return self.values.searchsorted(value, side=side, sorter=sorter)
 
     def is_type_compatible(self, typ):
         return typ == self.inferred_type or typ == 'timedelta'

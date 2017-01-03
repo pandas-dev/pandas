@@ -105,7 +105,8 @@ _shared_doc_kwargs = dict(
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
     optional_by="""
         by : str or list of str
-            Name or list of names which refer to the axis items.""")
+            Name or list of names which refer to the axis items.""",
+    versionadded_to_excel='')
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -1389,65 +1390,11 @@ class DataFrame(NDFrame):
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
 
+    @Appender(_shared_docs['to_excel'] % _shared_doc_kwargs)
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
                  merge_cells=True, encoding=None, inf_rep='inf', verbose=True):
-        """
-        Write DataFrame to a excel sheet
-
-        Parameters
-        ----------
-        excel_writer : string or ExcelWriter object
-            File path or existing ExcelWriter
-        sheet_name : string, default 'Sheet1'
-            Name of sheet which will contain DataFrame
-        na_rep : string, default ''
-            Missing data representation
-        float_format : string, default None
-            Format string for floating point numbers
-        columns : sequence, optional
-            Columns to write
-        header : boolean or list of string, default True
-            Write out column names. If a list of string is given it is
-            assumed to be aliases for the column names
-        index : boolean, default True
-            Write row names (index)
-        index_label : string or sequence, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the DataFrame uses MultiIndex.
-        startrow :
-            upper left cell row to dump data frame
-        startcol :
-            upper left cell column to dump data frame
-        engine : string, default None
-            write engine to use - you can also set this via the options
-            ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
-            ``io.excel.xlsm.writer``.
-        merge_cells : boolean, default True
-            Write MultiIndex and Hierarchical Rows as merged cells.
-        encoding: string, default None
-            encoding of the resulting excel file. Only necessary for xlwt,
-            other writers support unicode natively.
-        inf_rep : string, default 'inf'
-            Representation for infinity (there is no native representation for
-            infinity in Excel)
-
-        Notes
-        -----
-        If passing an existing ExcelWriter object, then the sheet will be added
-        to the existing workbook.  This can be used to save different
-        DataFrames to one workbook:
-
-        >>> writer = ExcelWriter('output.xlsx')
-        >>> df1.to_excel(writer,'Sheet1')
-        >>> df2.to_excel(writer,'Sheet2')
-        >>> writer.save()
-
-        For compatibility with to_csv, to_excel serializes lists and dicts to
-        strings before writing.
-        """
         from pandas.io.excel import ExcelWriter
         need_save = False
         if encoding is None:
@@ -1533,6 +1480,21 @@ class DataFrame(NDFrame):
                              write_index=write_index,
                              variable_labels=variable_labels)
         writer.write_file()
+
+    def to_feather(self, fname):
+        """
+        write out the binary feather-format for DataFrames
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        fname : str
+            string file path
+
+        """
+        from pandas.io.feather_format import to_feather
+        to_feather(self, fname)
 
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
@@ -2314,7 +2276,12 @@ class DataFrame(NDFrame):
           this will return *all* object dtype columns
         * See the `numpy dtype hierarchy
           <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__
+        * To select datetimes, use np.datetime64, 'datetime' or 'datetime64'
+        * To select timedeltas, use np.timedelta64, 'timedelta' or
+          'timedelta64'
         * To select Pandas categorical dtypes, use 'category'
+        * To select Pandas datetimetz dtypes, use 'datetimetz' (new in 0.20.0),
+          or a 'datetime64[ns, tz]' string
 
         Examples
         --------
@@ -2540,7 +2507,7 @@ class DataFrame(NDFrame):
         Notes
         -----
         Since ``kwargs`` is a dictionary, the order of your
-        arguments may not be preserved. The make things predicatable,
+        arguments may not be preserved. To make things predicatable,
         the columns are inserted in alphabetical order, at the end of
         your DataFrame. Assigning multiple columns within the same
         ``assign`` is possible, but you cannot reference other columns
@@ -2762,8 +2729,8 @@ class DataFrame(NDFrame):
 
         columns = axes['columns']
         if columns is not None:
-            frame = frame._reindex_columns(columns, copy, level, fill_value,
-                                           limit, tolerance)
+            frame = frame._reindex_columns(columns, method, copy, level,
+                                           fill_value, limit, tolerance)
 
         index = axes['index']
         if index is not None:
@@ -2774,17 +2741,17 @@ class DataFrame(NDFrame):
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
                        limit=None, tolerance=None):
-        new_index, indexer = self.index.reindex(new_index, method, level,
-                                                limit=limit,
+        new_index, indexer = self.index.reindex(new_index, method=method,
+                                                level=level, limit=limit,
                                                 tolerance=tolerance)
         return self._reindex_with_indexers({0: [new_index, indexer]},
                                            copy=copy, fill_value=fill_value,
                                            allow_dups=False)
 
-    def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
+    def _reindex_columns(self, new_columns, method, copy, level, fill_value=NA,
                          limit=None, tolerance=None):
-        new_columns, indexer = self.columns.reindex(new_columns, level=level,
-                                                    limit=limit,
+        new_columns, indexer = self.columns.reindex(new_columns, method=method,
+                                                    level=level, limit=limit,
                                                     tolerance=tolerance)
         return self._reindex_with_indexers({1: [new_columns, indexer]},
                                            copy=copy, fill_value=fill_value,
@@ -3394,15 +3361,6 @@ class DataFrame(NDFrame):
         return self.sort_index(level=level, axis=axis, ascending=ascending,
                                inplace=inplace, sort_remaining=sort_remaining)
 
-    def _nsorted(self, columns, n, method, keep):
-        if not is_list_like(columns):
-            columns = [columns]
-        columns = list(columns)
-        ser = getattr(self[columns[0]], method)(n, keep=keep)
-        ascending = dict(nlargest=False, nsmallest=True)[method]
-        return self.loc[ser.index].sort_values(columns, ascending=ascending,
-                                               kind='mergesort')
-
     def nlargest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` largest
         values of `columns`.
@@ -3435,7 +3393,7 @@ class DataFrame(NDFrame):
         1  10  b   2
         2   8  d NaN
         """
-        return self._nsorted(columns, n, 'nlargest', keep)
+        return algos.select_n_frame(self, columns, n, 'nlargest', keep)
 
     def nsmallest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` smallest
@@ -3469,7 +3427,7 @@ class DataFrame(NDFrame):
         0  1  a   1
         2  8  d NaN
         """
-        return self._nsorted(columns, n, 'nsmallest', keep)
+        return algos.select_n_frame(self, columns, n, 'nsmallest', keep)
 
     def swaplevel(self, i=-2, j=-1, axis=0):
         """
@@ -3731,10 +3689,8 @@ class DataFrame(NDFrame):
                 otherSeries[other_mask] = fill_value
 
             # if we have different dtypes, possibily promote
-            if notnull(series).all():
-                new_dtype = this_dtype
-                otherSeries = otherSeries.astype(new_dtype)
-            else:
+            new_dtype = this_dtype
+            if not is_dtype_equal(this_dtype, other_dtype):
                 new_dtype = _find_common_type([this_dtype, other_dtype])
                 if not is_dtype_equal(this_dtype, new_dtype):
                     series = series.astype(new_dtype)
@@ -4351,6 +4307,8 @@ class DataFrame(NDFrame):
 
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
+            if x.empty:
+                return lib.map_infer(x, func)
             return lib.map_infer(x.asobject, func)
 
         return self.apply(infer)

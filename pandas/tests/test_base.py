@@ -949,6 +949,21 @@ class TestIndexOps(Ops):
                 s.drop_duplicates(inplace=True)
                 tm.assert_series_equal(s, original)
 
+    def test_drop_duplicates_series_vs_dataframe(self):
+        # GH 14192
+        df = pd.DataFrame({'a': [1, 1, 1, 'one', 'one'],
+                           'b': [2, 2, np.nan, np.nan, np.nan],
+                           'c': [3, 3, np.nan, np.nan, 'three'],
+                           'd': [1, 2, 3, 4, 4],
+                           'e': [datetime(2015, 1, 1), datetime(2015, 1, 1),
+                                 datetime(2015, 2, 1), pd.NaT, pd.NaT]
+                           })
+        for column in df.columns:
+            for keep in ['first', 'last', False]:
+                dropped_frame = df[[column]].drop_duplicates(keep=keep)
+                dropped_series = df[column].drop_duplicates(keep=keep)
+                tm.assert_frame_equal(dropped_frame, dropped_series.to_frame())
+
     def test_fillna(self):
         # # GH 11343
         # though Index.fillna and Series.fillna has separate impl,
@@ -1034,17 +1049,6 @@ class TestIndexOps(Ops):
 
             index = np.searchsorted(o, max(o), sorter=range(len(o)))
             self.assertTrue(0 <= index <= len(o))
-
-
-class TestFloat64HashTable(tm.TestCase):
-
-    def test_lookup_nan(self):
-        from pandas.hashtable import Float64HashTable
-        xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
-        m = Float64HashTable()
-        m.map_locations(xs)
-        self.assert_numpy_array_equal(m.lookup(xs),
-                                      np.arange(len(xs), dtype=np.int64))
 
 
 class TestTranspose(Ops):

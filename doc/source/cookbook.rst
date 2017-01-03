@@ -7,6 +7,7 @@
 
    import pandas as pd
    import numpy as np
+   from pandas.compat import StringIO
 
    import random
    import os
@@ -107,10 +108,8 @@ Splitting
    df = pd.DataFrame(
         {'AAA' : [4,5,6,7], 'BBB' : [10,20,30,40],'CCC' : [100,50,-30,-50]}); df
 
-   dflow = df[df.AAA <= 5]
-   dfhigh = df[df.AAA > 5]
-
-   dflow; dfhigh
+   dflow = df[df.AAA <= 5]; dflow
+   dfhigh = df[df.AAA > 5]; dfhigh
 
 Building Criteria
 *****************
@@ -987,9 +986,6 @@ Skip row between header and data
 
 .. ipython:: python
 
-    from io import StringIO
-    import pandas as pd
-
     data = """;;;;
      ;;;;
      ;;;;
@@ -1016,7 +1012,7 @@ Option 1: pass rows explicitly to skiprows
 
 .. ipython:: python
 
-    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';', skiprows=[11,12],
+    pd.read_csv(StringIO(data), sep=';', skiprows=[11,12],
             index_col=0, parse_dates=True, header=10)
 
 Option 2: read column names and then data
@@ -1024,13 +1020,10 @@ Option 2: read column names and then data
 
 .. ipython:: python
 
-    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';',
-            header=10, parse_dates=True, nrows=10).columns
-    columns = pd.read_csv(StringIO(data.decode('UTF-8')), sep=';',
-                      header=10, parse_dates=True, nrows=10).columns
-    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';',
+    pd.read_csv(StringIO(data), sep=';', header=10, nrows=10).columns
+    columns = pd.read_csv(StringIO(data), sep=';', header=10, nrows=10).columns
+    pd.read_csv(StringIO(data), sep=';', index_col=0,
                 header=12, parse_dates=True, names=columns)
-
 
 
 .. _cookbook.sql:

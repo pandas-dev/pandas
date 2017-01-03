@@ -82,20 +82,13 @@ cdef class IndexEngine:
 
     cdef:
         bint unique, monotonic_inc, monotonic_dec
-        bint initialized, monotonic_check, unique_check
+        bint need_monotonic_check, need_unique_check
 
     def __init__(self, vgetter, n):
         self.vgetter = vgetter
 
         self.over_size_threshold = n >= _SIZE_CUTOFF
-
-        self.initialized = 0
-        self.monotonic_check = 0
-        self.unique_check = 0
-
-        self.unique = 0
-        self.monotonic_inc = 0
-        self.monotonic_dec = 0
+        self.clear_mapping()
 
     def __contains__(self, object val):
         self._ensure_mapping_populated()
@@ -213,16 +206,20 @@ cdef class IndexEngine:
     property is_unique:
 
         def __get__(self):
-            if not self.initialized:
-                self.initialize()
+            if self.need_unique_check:
+                self._do_unique_check()
 
-            self.unique_check = 1
             return self.unique == 1
+
+    cdef inline _do_unique_check(self):
+
+        # this de-facto the same
+        self._ensure_mapping_populated()
 
     property is_monotonic_increasing:
 
         def __get__(self):
-            if not self.monotonic_check:
+            if self.need_monotonic_check:
                 self._do_monotonic_check()
 
             return self.monotonic_inc == 1
@@ -230,7 +227,7 @@ cdef class IndexEngine:
     property is_monotonic_decreasing:
 
         def __get__(self):
-            if not self.monotonic_check:
+            if self.need_monotonic_check:
                 self._do_monotonic_check()
 
             return self.monotonic_dec == 1
@@ -246,13 +243,12 @@ cdef class IndexEngine:
             self.monotonic_dec = 0
             is_unique = 0
 
-        self.monotonic_check = 1
+        self.need_monotonic_check = 0
 
         # we can only be sure of uniqueness if is_unique=1
         if is_unique:
-            self.initialized = 1
             self.unique = 1
-            self.unique_check = 1
+            self.need_unique_check = 0
 
     cdef _get_index_values(self):
         return self.vgetter()
@@ -266,30 +262,32 @@ cdef class IndexEngine:
     cdef _check_type(self, object val):
         hash(val)
 
+    property is_mapping_populated:
+
+        def __get__(self):
+            return self.mapping is not None
+
     cdef inline _ensure_mapping_populated(self):
-        # need to reset if we have previously
-        # set the initialized from monotonic checks
-        if self.unique_check:
-            self.initialized = 0
-        if not self.initialized:
-            self.initialize()
+        # this populates the mapping
+        # if its not already populated
+        # also satisfies the need_unique_check
 
-    cdef initialize(self):
-        values = self._get_index_values()
+        if not self.is_mapping_populated:
 
-        self.mapping = self._make_hash_table(len(values))
-        self.mapping.map_locations(values)
+            values = self._get_index_values()
 
-        if len(self.mapping) == len(values):
-            self.unique = 1
+            self.mapping = self._make_hash_table(len(values))
+            self.mapping.map_locations(values)
 
-        self.initialized = 1
+            if len(self.mapping) == len(values):
+                self.unique = 1
+
+        self.need_unique_check = 0
 
     def clear_mapping(self):
         self.mapping = None
-        self.initialized = 0
-        self.monotonic_check = 0
-        self.unique_check = 0
+        self.need_monotonic_check = 1
+        self.need_unique_check = 1
 
         self.unique = 0
         self.monotonic_inc = 0
@@ -365,115 +363,6 @@ cdef class IndexEngine:
 
         return result[0:count], missing[0:count_missing]
 
-cdef class Int64Engine(IndexEngine):
-
-    cdef _get_index_values(self):
-        return algos.ensure_int64(self.vgetter())
-
-    cdef _make_hash_table(self, n):
-        return _hash.Int64HashTable(n)
-
-    def _call_monotonic(self, values):
-        return algos.is_monotonic_int64(values, timelike=False)
-
-    def get_pad_indexer(self, other, limit=None):
-        return algos.pad_int64(self._get_index_values(), other,
-                               limit=limit)
-
-    def get_backfill_indexer(self, other, limit=None):
-        return algos.backfill_int64(self._get_index_values(), other,
-                                    limit=limit)
-
-    cdef _check_type(self, object val):
-        hash(val)
-        if util.is_bool_object(val):
-            raise KeyError(val)
-        elif util.is_float_object(val):
-            raise KeyError(val)
-
-    cdef _maybe_get_bool_indexer(self, object val):
-        cdef:
-            ndarray[uint8_t, cast=True] indexer
-            ndarray[int64_t] values
-            int count = 0
-            Py_ssize_t i, n
-            int64_t ival
-            int last_true
-
-        if not util.is_integer_object(val):
-            raise KeyError(val)
-
-        ival = val
-
-        values = self._get_index_values()
-        n = len(values)
-
-        result = np.empty(n, dtype=bool)
-        indexer = result.view(np.uint8)
-
-        for i in range(n):
-            if values[i] == val:
-                count += 1
-                indexer[i] = 1
-                last_true = i
-            else:
-                indexer[i] = 0
-
-        if count == 0:
-            raise KeyError(val)
-        if count == 1:
-            return last_true
-
-        return result
-
-cdef class Float64Engine(IndexEngine):
-
-    cdef _make_hash_table(self, n):
-        return _hash.Float64HashTable(n)
-
-    cdef _get_index_values(self):
-        return algos.ensure_float64(self.vgetter())
-
-    cdef _maybe_get_bool_indexer(self, object val):
-        cdef:
-            ndarray[uint8_t] indexer
-            ndarray[float64_t] values
-            int count = 0
-            Py_ssize_t i, n
-            int last_true
-
-        values = self._get_index_values()
-        n = len(values)
-
-        result = np.empty(n, dtype=bool)
-        indexer = result.view(np.uint8)
-
-        for i in range(n):
-            if values[i] == val:
-                count += 1
-                indexer[i] = 1
-                last_true = i
-            else:
-                indexer[i] = 0
-
-        if count == 0:
-            raise KeyError(val)
-        if count == 1:
-            return last_true
-
-        return result
-
-    def _call_monotonic(self, values):
-        return algos.is_monotonic_float64(values, timelike=False)
-
-    def get_pad_indexer(self, other, limit=None):
-        return algos.pad_float64(self._get_index_values(), other,
-                                    limit=limit)
-
-    def get_backfill_indexer(self, other, limit=None):
-        return algos.backfill_float64(self._get_index_values(), other,
-                                         limit=limit)
-
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
@@ -511,22 +400,6 @@ _backfill_functions = {
     'int64': algos.backfill_int64,
     'float64': algos.backfill_float64
 }
-
-cdef class ObjectEngine(IndexEngine):
-
-    cdef _make_hash_table(self, n):
-        return _hash.PyObjectHashTable(n)
-
-    def _call_monotonic(self, values):
-        return algos.is_monotonic_object(values, timelike=False)
-
-    def get_pad_indexer(self, other, limit=None):
-        return algos.pad_object(self._get_index_values(), other,
-                                   limit=limit)
-
-    def get_backfill_indexer(self, other, limit=None):
-        return algos.backfill_object(self._get_index_values(), other,
-                                        limit=limit)
 
 
 cdef class DatetimeEngine(Int64Engine):
@@ -670,3 +543,7 @@ cdef inline _to_i8(object val):
 
 cdef inline bint _is_utc(object tz):
     return tz is UTC or isinstance(tz, _du_utc)
+
+
+# Generated from template.
+include "index_class_helper.pxi"

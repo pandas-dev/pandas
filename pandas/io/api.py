@@ -12,6 +12,7 @@ from pandas.io.json import read_json
 from pandas.io.html import read_html
 from pandas.io.sql import read_sql, read_sql_table, read_sql_query
 from pandas.io.sas.sasreader import read_sas
+from pandas.io.feather_format import read_feather
 from pandas.io.stata import read_stata
 from pandas.io.pickle import read_pickle, to_pickle
 from pandas.io.packers import read_msgpack, to_msgpack

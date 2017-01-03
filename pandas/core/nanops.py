@@ -9,11 +9,8 @@ try:
 except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
-import pandas.hashtable as _hash
 from pandas import compat, lib, algos, tslib
-from pandas.compat.numpy import _np_version_under1p10
-from pandas.types.common import (_ensure_int64, _ensure_object,
-                                 _ensure_float64, _get_dtype,
+from pandas.types.common import (_get_dtype,
                                  is_float, is_scalar,
                                  is_integer, is_complex, is_float_dtype,
                                  is_complex_dtype, is_integer_dtype,
@@ -785,82 +782,3 @@ nanlt = make_nancomp(operator.lt)
 nanle = make_nancomp(operator.le)
 naneq = make_nancomp(operator.eq)
 nanne = make_nancomp(operator.ne)
-
-
-def unique1d(values):
-    """
-    Hash table-based unique
-    """
-    if np.issubdtype(values.dtype, np.floating):
-        table = _hash.Float64HashTable(len(values))
-        uniques = np.array(table.unique(_ensure_float64(values)),
-                           dtype=np.float64)
-    elif np.issubdtype(values.dtype, np.datetime64):
-        table = _hash.Int64HashTable(len(values))
-        uniques = table.unique(_ensure_int64(values))
-        uniques = uniques.view('M8[ns]')
-    elif np.issubdtype(values.dtype, np.timedelta64):
-        table = _hash.Int64HashTable(len(values))
-        uniques = table.unique(_ensure_int64(values))
-        uniques = uniques.view('m8[ns]')
-    elif np.issubdtype(values.dtype, np.integer):
-        table = _hash.Int64HashTable(len(values))
-        uniques = table.unique(_ensure_int64(values))
-    else:
-        table = _hash.PyObjectHashTable(len(values))
-        uniques = table.unique(_ensure_object(values))
-    return uniques
-
-
-def _checked_add_with_arr(arr, b):
-    """
-    Performs the addition of an int64 array and an int64 integer (or array)
-    but checks that they do not result in overflow first.
-
-    Parameters
-    ----------
-    arr : array addend.
-    b : array or scalar addend.
-
-    Returns
-    -------
-    sum : An array for elements x + b for each element x in arr if b is
-          a scalar or an array for elements x + y for each element pair
-          (x, y) in (arr, b).
-
-    Raises
-    ------
-    OverflowError if any x + y exceeds the maximum or minimum int64 value.
-    """
-    # For performance reasons, we broadcast 'b' to the new array 'b2'
-    # so that it has the same size as 'arr'.
-    if _np_version_under1p10:
-        if lib.isscalar(b):
-            b2 = np.empty(arr.shape)
-            b2.fill(b)
-        else:
-            b2 = b
-    else:
-        b2 = np.broadcast_to(b, arr.shape)
-
-    # gh-14324: For each element in 'arr' and its corresponding element
-    # in 'b2', we check the sign of the element in 'b2'. If it is positive,
-    # we then check whether its sum with the element in 'arr' exceeds
-    # np.iinfo(np.int64).max. If so, we have an overflow error. If it
-    # it is negative, we then check whether its sum with the element in
-    # 'arr' exceeds np.iinfo(np.int64).min. If so, we have an overflow
-    # error as well.
-    mask1 = b2 > 0
-    mask2 = b2 < 0
-
-    if not mask1.any():
-        to_raise = (np.iinfo(np.int64).min - b2 > arr).any()
-    elif not mask2.any():
-        to_raise = (np.iinfo(np.int64).max - b2 < arr).any()
-    else:
-        to_raise = ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]).any() or
-                    (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]).any())
-
-    if to_raise:
-        raise OverflowError("Overflow in int64 addition")
-    return arr + b

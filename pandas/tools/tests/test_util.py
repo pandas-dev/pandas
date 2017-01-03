@@ -2,6 +2,7 @@ import os
 import locale
 import codecs
 import nose
+import decimal
 
 import numpy as np
 from numpy import iinfo
@@ -208,6 +209,46 @@ class TestToNumeric(tm.TestCase):
         res = to_numeric(s)
         tm.assert_series_equal(res, expected)
 
+        # GH 14827
+        df = pd.DataFrame(dict(
+            a=[1.2, decimal.Decimal(3.14), decimal.Decimal("infinity"), '0.1'],
+            b=[1.0, 2.0, 3.0, 4.0],
+        ))
+        expected = pd.DataFrame(dict(
+            a=[1.2, 3.14, np.inf, 0.1],
+            b=[1.0, 2.0, 3.0, 4.0],
+        ))
+
+        # Test to_numeric over one column
+        df_copy = df.copy()
+        df_copy['a'] = df_copy['a'].apply(to_numeric)
+        tm.assert_frame_equal(df_copy, expected)
+
+        # Test to_numeric over multiple columns
+        df_copy = df.copy()
+        df_copy[['a', 'b']] = df_copy[['a', 'b']].apply(to_numeric)
+        tm.assert_frame_equal(df_copy, expected)
+
+    def test_numeric_lists_and_arrays(self):
+        # Test to_numeric with embedded lists and arrays
+        df = pd.DataFrame(dict(
+            a=[[decimal.Decimal(3.14), 1.0], decimal.Decimal(1.6), 0.1]
+        ))
+        df['a'] = df['a'].apply(to_numeric)
+        expected = pd.DataFrame(dict(
+            a=[[3.14, 1.0], 1.6, 0.1],
+        ))
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame(dict(
+            a=[np.array([decimal.Decimal(3.14), 1.0]), 0.1]
+        ))
+        df['a'] = df['a'].apply(to_numeric)
+        expected = pd.DataFrame(dict(
+            a=[[3.14, 1.0], 0.1],
+        ))
+        tm.assert_frame_equal(df, expected)
+
     def test_all_nan(self):
         s = pd.Series(['a', 'b', 'c'])
         res = to_numeric(s, errors='coerce')
@@ -385,12 +426,16 @@ class TestToNumeric(tm.TestCase):
 
         # cannot cast to an integer (signed or unsigned)
         # because we have a float number
-        data = ['1.1', 2, 3]
-        expected = np.array([1.1, 2, 3], dtype=np.float64)
+        data = (['1.1', 2, 3],
+                [10000.0, 20000, 3000, 40000.36, 50000, 50000.00])
+        expected = (np.array([1.1, 2, 3], dtype=np.float64),
+                    np.array([10000.0, 20000, 3000,
+                              40000.36, 50000, 50000.00], dtype=np.float64))
 
-        for downcast in ('integer', 'signed', 'unsigned'):
-            res = pd.to_numeric(data, downcast=downcast)
-            tm.assert_numpy_array_equal(res, expected)
+        for _data, _expected in zip(data, expected):
+            for downcast in ('integer', 'signed', 'unsigned'):
+                res = pd.to_numeric(_data, downcast=downcast)
+                tm.assert_numpy_array_equal(res, _expected)
 
         # the smallest integer dtype need not be np.(u)int8
         data = ['256', 257, 258]
@@ -418,8 +463,7 @@ class TestToNumeric(tm.TestCase):
             ('uint8', u, [iinfo(np.uint8).min, iinfo(np.uint8).max]),
             ('uint16', u, [iinfo(np.uint16).min, iinfo(np.uint16).max]),
             ('uint32', u, [iinfo(np.uint32).min, iinfo(np.uint32).max]),
-            # Test will be skipped until there is more uint64 support.
-            # ('uint64', u, [iinfo(uint64).min, iinfo(uint64).max]),
+            ('uint64', u, [iinfo(np.uint64).min, iinfo(np.uint64).max]),
             ('int16', i, [iinfo(np.int8).min, iinfo(np.int8).max + 1]),
             ('int32', i, [iinfo(np.int16).min, iinfo(np.int16).max + 1]),
             ('int64', i, [iinfo(np.int32).min, iinfo(np.int32).max + 1]),
@@ -428,8 +472,7 @@ class TestToNumeric(tm.TestCase):
             ('int64', i, [iinfo(np.int32).min - 1, iinfo(np.int64).max]),
             ('uint16', u, [iinfo(np.uint8).min, iinfo(np.uint8).max + 1]),
             ('uint32', u, [iinfo(np.uint16).min, iinfo(np.uint16).max + 1]),
-            # Test will be skipped until there is more uint64 support.
-            # ('uint64', u, [iinfo(np.uint32).min, iinfo(np.uint32).max + 1]),
+            ('uint64', u, [iinfo(np.uint32).min, iinfo(np.uint32).max + 1])
         ]
 
         for dtype, downcast, min_max in dtype_downcast_min_max:

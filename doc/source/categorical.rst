@@ -129,8 +129,7 @@ To get back to the original Series or `numpy` array, use ``Series.astype(origina
     s
     s2 = s.astype('category')
     s2
-    s3 = s2.astype('string')
-    s3
+    s2.astype(str)
     np.asarray(s2)
 
 If you have already `codes` and `categories`, you can use the :func:`~pandas.Categorical.from_codes`
