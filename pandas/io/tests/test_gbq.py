@@ -749,7 +749,7 @@ class TestReadGBQIntegration(tm.TestCase):
         # the correct query parameters via the 'config' option
         df = gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                           private_key=_get_private_key_path(),
-                          config=config)
+                          configuration=config)
         tm.assert_frame_equal(df, DataFrame({'VALID_RESULT': [3]}))
 
     def test_query_inside_configuration(self):
@@ -766,11 +766,11 @@ class TestReadGBQIntegration(tm.TestCase):
         with tm.assertRaises(ValueError):
             gbq.read_gbq(query_no_use, project_id=_get_project_id(),
                          private_key=_get_private_key_path(),
-                         config=config)
+                         configuration=config)
 
         df = gbq.read_gbq(None, project_id=_get_project_id(),
                           private_key=_get_private_key_path(),
-                          config=config)
+                          configuration=config)
         tm.assert_frame_equal(df, DataFrame({'VALID_STRING': ['PI']}))
 
     def test_configuration_without_query(self):
@@ -794,7 +794,7 @@ class TestReadGBQIntegration(tm.TestCase):
         with tm.assertRaises(ValueError):
             gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                          private_key=_get_private_key_path(),
-                         config=config)
+                         configuration=config)
 
 
 class TestToGBQIntegration(tm.TestCase):

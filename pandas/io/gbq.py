@@ -394,7 +394,7 @@ class GbqConnector(object):
                 # 'preserveNulls', destinationTable, useQueryCache
             }
         }
-        config = kwargs.get('config')
+        config = kwargs.get('configuration')
         if config is not None:
             if len(config) != 1:
                 raise ValueError("Only one job type must be specified, but "
@@ -701,10 +701,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         .. versionadded:: 0.19.0
 
     **kwargs : Arbitrary keyword arguments
-        config (dict): query config parameters for job processing.
+        configuration (dict): query config parameters for job processing.
         For example:
 
-            config = {'query': {'useQueryCache': False}}
+            configuration = {'query': {'useQueryCache': False}}
 
         For more information see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`

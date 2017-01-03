@@ -4656,13 +4656,13 @@ For more information about query configuration parameters see
 
 .. code-block:: python
 
-   config = {
+   configuration = {
       'query': {
         "useQueryCache": False
       }
    }
    data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
-                             config=config, projectid)
+                             configuration=configuration, projectid)
 
 
 .. note::
