@@ -332,6 +332,7 @@ Bug Fixes
 
 
 
+- Bug in  groupby operations with timedelta64 when passing ``numeric_only=False`` (:issue:`5724`)
 
 
 - Bug in ``DataFrame.to_html`` with ``index=False`` and ``max_rows`` raising in ``IndexError`` (:issue:`14998`)

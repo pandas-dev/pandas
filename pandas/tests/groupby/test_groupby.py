@@ -2257,8 +2257,130 @@ class TestGroupBy(tm.TestCase):
         result = aa.groupby('nn').max()
         self.assertTrue('ss' in result)
 
+        result = aa.groupby('nn').max(numeric_only=False)
+        self.assertTrue('ss' in result)
+
         result = aa.groupby('nn').min()
         self.assertTrue('ss' in result)
+
+        result = aa.groupby('nn').min(numeric_only=False)
+        self.assertTrue('ss' in result)
+
+    def test_arg_passthru(self):
+        # make sure that we are passing thru kwargs
+        # to our agg functions
+
+        # GH3668
+        # GH5724
+        df = pd.DataFrame(
+            {'group': [1, 1, 2],
+             'int': [1, 2, 3],
+             'float': [4., 5., 6.],
+             'string': list('abc'),
+             'category_string': pd.Series(list('abc')).astype('category'),
+             'category_int': [7, 8, 9],
+             'datetime': pd.date_range('20130101', periods=3),
+             'datetimetz': pd.date_range('20130101',
+                                         periods=3,
+                                         tz='US/Eastern'),
+             'timedelta': pd.timedelta_range('1 s', periods=3, freq='s')},
+            columns=['group', 'int', 'float', 'string',
+                     'category_string', 'category_int',
+                     'datetime', 'datetimetz',
+                     'timedelta'])
+
+        expected_columns_numeric = Index(['int', 'float', 'category_int'])
+
+        # mean / median
+        expected = pd.DataFrame(
+            {'category_int': [7.5, 9],
+             'float': [4.5, 6.],
+             'timedelta': [pd.Timedelta('1.5s'),
+                           pd.Timedelta('3s')],
+             'int': [1.5, 3],
+             'datetime': [pd.Timestamp('2013-01-01 12:00:00'),
+                          pd.Timestamp('2013-01-03 00:00:00')],
+             'datetimetz': [
+                 pd.Timestamp('2013-01-01 12:00:00', tz='US/Eastern'),
+                 pd.Timestamp('2013-01-03 00:00:00', tz='US/Eastern')]},
+            index=Index([1, 2], name='group'),
+            columns=['int', 'float', 'category_int',
+                     'datetime', 'datetimetz', 'timedelta'])
+        for attr in ['mean', 'median']:
+            f = getattr(df.groupby('group'), attr)
+            result = f()
+            tm.assert_index_equal(result.columns, expected_columns_numeric)
+
+            result = f(numeric_only=False)
+            assert_frame_equal(result.reindex_like(expected), expected)
+
+        # TODO: min, max *should* handle
+        # categorical (ordered) dtype
+        expected_columns = Index(['int', 'float', 'string',
+                                  'category_int',
+                                  'datetime', 'datetimetz',
+                                  'timedelta'])
+        for attr in ['min', 'max']:
+            f = getattr(df.groupby('group'), attr)
+            result = f()
+            tm.assert_index_equal(result.columns, expected_columns)
+
+            result = f(numeric_only=False)
+            tm.assert_index_equal(result.columns, expected_columns)
+
+        expected_columns = Index(['int', 'float', 'string',
+                                  'category_string', 'category_int',
+                                  'datetime', 'datetimetz',
+                                  'timedelta'])
+        for attr in ['first', 'last']:
+            f = getattr(df.groupby('group'), attr)
+            result = f()
+            tm.assert_index_equal(result.columns, expected_columns)
+
+            result = f(numeric_only=False)
+            tm.assert_index_equal(result.columns, expected_columns)
+
+        expected_columns = Index(['int', 'float', 'string',
+                                  'category_int', 'timedelta'])
+        for attr in ['sum']:
+            f = getattr(df.groupby('group'), attr)
+            result = f()
+            tm.assert_index_equal(result.columns, expected_columns_numeric)
+
+            result = f(numeric_only=False)
+            tm.assert_index_equal(result.columns, expected_columns)
+
+        expected_columns = Index(['int', 'float', 'category_int'])
+        for attr in ['prod', 'cumprod']:
+            f = getattr(df.groupby('group'), attr)
+            result = f()
+            tm.assert_index_equal(result.columns, expected_columns_numeric)
+
+            result = f(numeric_only=False)
+            tm.assert_index_equal(result.columns, expected_columns)
+
+        # like min, max, but don't include strings
+        expected_columns = Index(['int', 'float',
+                                  'category_int',
+                                  'datetime', 'datetimetz',
+                                  'timedelta'])
+        for attr in ['cummin', 'cummax']:
+            f = getattr(df.groupby('group'), attr)
+            result = f()
+            tm.assert_index_equal(result.columns, expected_columns_numeric)
+
+            result = f(numeric_only=False)
+            tm.assert_index_equal(result.columns, expected_columns)
+
+        expected_columns = Index(['int', 'float', 'category_int',
+                                  'timedelta'])
+        for attr in ['cumsum']:
+            f = getattr(df.groupby('group'), attr)
+            result = f()
+            tm.assert_index_equal(result.columns, expected_columns_numeric)
+
+            result = f(numeric_only=False)
+            tm.assert_index_equal(result.columns, expected_columns)
 
     def test_cython_agg_boolean(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
@@ -3436,6 +3558,7 @@ class TestGroupBy(tm.TestCase):
         tups = list(map(tuple, df[['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
                                    ]].values))
         tups = com._asarray_tuplesafe(tups)
+
         expected = df.groupby(tups).sum()['values']
 
         for k, v in compat.iteritems(expected):
