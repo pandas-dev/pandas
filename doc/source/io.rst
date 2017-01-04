@@ -187,6 +187,16 @@ skipinitialspace : boolean, default ``False``
 skiprows : list-like or integer, default ``None``
   Line numbers to skip (0-indexed) or number of lines to skip (int) at the start
   of the file.
+
+  If callable, the callable function will be evaluated against the row
+  indices, returning True if the row should be skipped and False otherwise:
+
+  .. ipython:: python
+
+     data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
+     pd.read_csv(StringIO(data))
+     pd.read_csv(StringIO(data), skiprows=lambda x: x % 2 != 0)
+
 skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
 skip_footer : int, default ``0``
