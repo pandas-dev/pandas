@@ -410,9 +410,18 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
     def test_empty_nonzero(self):
         df = DataFrame([1, 2, 3])
         self.assertFalse(df.empty)
+        df = pd.DataFrame(index=[1], columns=[1])
+        self.assertFalse(df.empty)
         df = DataFrame(index=['a', 'b'], columns=['c', 'd']).dropna()
         self.assertTrue(df.empty)
         self.assertTrue(df.T.empty)
+        empty_frames = [pd.DataFrame(),
+                        pd.DataFrame(index=[1]),
+                        pd.DataFrame(columns=[1]),
+                        pd.DataFrame({1: []})]
+        for df in empty_frames:
+            self.assertTrue(df.empty)
+            self.assertTrue(df.T.empty)
 
     def test_inplace_return_self(self):
         # re #1893

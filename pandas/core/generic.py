@@ -909,7 +909,7 @@ class NDFrame(PandasObject):
         pandas.Series.dropna
         pandas.DataFrame.dropna
         """
-        return not all(len(self._get_axis(a)) > 0 for a in self._AXIS_ORDERS)
+        return any(len(self._get_axis(a)) == 0 for a in self._AXIS_ORDERS)
 
     def __nonzero__(self):
         raise ValueError("The truth value of a {0} is ambiguous. "
