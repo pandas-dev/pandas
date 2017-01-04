@@ -3,6 +3,7 @@ Read SAS sas7bdat or xport files.
 """
 from pandas import compat
 
+
 def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
              chunksize=None, iterator=False):
 
