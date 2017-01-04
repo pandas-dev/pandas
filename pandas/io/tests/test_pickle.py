@@ -284,6 +284,12 @@ class TestPickle():
         #
         tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
+
+class TestPickleCompression:
+
+    def setUp(self):
+        self.path = u('__%s__.pickle' % tm.rands(10))
+
     def compression_explicit(self, compression):
         # issue 11666
         if compression == 'xz':
