@@ -303,8 +303,8 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     ----------
     pat : string
         Character sequence or regular expression
-    repl : string or function
-        Replacement string or a function, which passed the match object and 
+    repl : string or callable
+        Replacement string or a callable, it's passed the match object and 
         must return a replacement string to be used. See :func:`re.sub`.
     n : int, default -1 (all)
         Number of replacements to make from start
