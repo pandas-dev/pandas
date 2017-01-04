@@ -216,15 +216,22 @@ class TestSeriesPlots(TestPlotBase):
 
         if not self.mpl_le_1_2_1:
             expected = np.hstack((1.0e-04, expected, 1.0e+01))
+        if self.mpl_ge_2_0_0:
+            expected = np.hstack((1.0e-05, expected))
 
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar')
+        ymin = 0.0007943282347242822 if self.mpl_ge_2_0_0 else 0.001
         ymax = 0.12589254117941673 if self.mpl_ge_2_0_0 else .10000000000000001
-        self.assertEqual(ax.get_ylim(), (0.001, ymax))
+        res = ax.get_ylim()
+        self.assertAlmostEqual(res[0], ymin)
+        self.assertAlmostEqual(res[1], ymax)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
         tm.close()
 
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='barh')
-        self.assertEqual(ax.get_xlim(), (0.001, ymax))
+        res = ax.get_xlim()
+        self.assertAlmostEqual(res[0], ymin)
+        self.assertAlmostEqual(res[1], ymax)
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
 
     @slow

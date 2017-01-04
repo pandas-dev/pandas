@@ -128,6 +128,29 @@ class read_parse_dates_iso8601(object):
         read_csv(StringIO(self.data), header=None, names=['foo'], parse_dates=['foo'])
 
 
+class read_uint64_integers(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.na_values = [2**63 + 500]
+
+        self.arr1 = np.arange(10000).astype('uint64') + 2**63
+        self.data1 = '\n'.join(map(lambda x: str(x), self.arr1))
+
+        self.arr2 = self.arr1.copy().astype(object)
+        self.arr2[500] = -1
+        self.data2 = '\n'.join(map(lambda x: str(x), self.arr2))
+
+    def time_read_uint64(self):
+        read_csv(StringIO(self.data1), header=None)
+
+    def time_read_uint64_neg_values(self):
+        read_csv(StringIO(self.data2), header=None)
+
+    def time_read_uint64_na_values(self):
+        read_csv(StringIO(self.data1), header=None, na_values=self.na_values)
+
+
 class write_csv_standard(object):
     goal_time = 0.2
 

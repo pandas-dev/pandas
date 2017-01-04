@@ -96,3 +96,22 @@ class to_numeric_downcast(object):
 
     def time_downcast(self, dtype, downcast):
         pd.to_numeric(self.data, downcast=downcast)
+
+
+class MaybeConvertNumeric(object):
+
+    def setup(self):
+        n = 1000000
+        arr = np.repeat([2**63], n)
+        arr = arr + np.arange(n).astype('uint64')
+        arr = np.array([arr[i] if i%2 == 0 else
+                        str(arr[i]) for i in range(n)],
+                       dtype=object)
+
+        arr[-1] = -1
+        self.data = arr
+        self.na_values = set()
+
+    def time_convert(self):
+        pd.lib.maybe_convert_numeric(self.data, self.na_values,
+                                     coerce_numeric=False)

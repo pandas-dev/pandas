@@ -200,6 +200,51 @@ a,b,c
                            parse_dates=parse_dates)
         tm.assert_frame_equal(df, expected)
 
+        # See gh-13604
+        s = """2008-02-07 09:40,1032.43
+        2008-02-07 09:50,1042.54
+        2008-02-07 10:00,1051.65
+        """
+        parse_dates = [0]
+        names = ['date', 'values']
+        usecols = names[:]
+
+        index = Index([Timestamp('2008-02-07 09:40'),
+                       Timestamp('2008-02-07 09:50'),
+                       Timestamp('2008-02-07 10:00')],
+                      name='date')
+        cols = {'values': [1032.43, 1042.54, 1051.65]}
+        expected = DataFrame(cols, index=index)
+
+        df = self.read_csv(StringIO(s), parse_dates=parse_dates, index_col=0,
+                           usecols=usecols, header=None, names=names)
+        tm.assert_frame_equal(df, expected)
+
+        # See gh-14792
+        s = """a,b,c,d,e,f,g,h,i,j
+        2016/09/21,1,1,2,3,4,5,6,7,8"""
+        parse_dates = [0]
+        usecols = list('abcdefghij')
+        cols = {'a': Timestamp('2016-09-21'),
+                'b': [1], 'c': [1], 'd': [2],
+                'e': [3], 'f': [4], 'g': [5],
+                'h': [6], 'i': [7], 'j': [8]}
+        expected = DataFrame(cols, columns=usecols)
+        df = self.read_csv(StringIO(s), usecols=usecols,
+                           parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+        s = """a,b,c,d,e,f,g,h,i,j\n2016/09/21,1,1,2,3,4,5,6,7,8"""
+        parse_dates = [[0, 1]]
+        usecols = list('abcdefghij')
+        cols = {'a_b': '2016/09/21 1',
+                'c': [1], 'd': [2], 'e': [3], 'f': [4],
+                'g': [5], 'h': [6], 'i': [7], 'j': [8]}
+        expected = DataFrame(cols, columns=['a_b'] + list('cdefghij'))
+        df = self.read_csv(StringIO(s), usecols=usecols,
+                           parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
     def test_usecols_with_parse_dates_and_full_names(self):
         # See gh-9755
         s = """0,1,20140101,0900,4

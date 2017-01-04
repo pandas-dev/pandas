@@ -375,7 +375,7 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
-    def run_query(self, query):
+    def run_query(self, query, **kwargs):
         try:
             from googleapiclient.errors import HttpError
         except:
@@ -385,15 +385,32 @@ class GbqConnector(object):
         _check_google_client_version()
 
         job_collection = self.service.jobs()
-        job_data = {
-            'configuration': {
-                'query': {
-                    'query': query,
-                    'useLegacySql': self.dialect == 'legacy'
-                    # 'allowLargeResults', 'createDisposition',
-                    # 'preserveNulls', destinationTable, useQueryCache
-                }
+
+        job_config = {
+            'query': {
+                'query': query,
+                'useLegacySql': self.dialect == 'legacy'
+                # 'allowLargeResults', 'createDisposition',
+                # 'preserveNulls', destinationTable, useQueryCache
             }
+        }
+        config = kwargs.get('configuration')
+        if config is not None:
+            if len(config) != 1:
+                raise ValueError("Only one job type must be specified, but "
+                                 "given {}".format(','.join(config.keys())))
+            if 'query' in config:
+                if 'query' in config['query'] and query is not None:
+                    raise ValueError("Query statement can't be specified "
+                                     "inside config while it is specified "
+                                     "as parameter")
+
+                job_config['query'].update(config['query'])
+            else:
+                raise ValueError("Only 'query' job type is supported")
+
+        job_data = {
+            'configuration': job_config
         }
 
         self._start_timer()
@@ -622,8 +639,9 @@ def _parse_entry(field_value, field_type):
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None, dialect='legacy'):
-    """Load data from Google BigQuery.
+             reauth=False, verbose=True, private_key=None, dialect='legacy',
+             **kwargs):
+    r"""Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
 
@@ -682,6 +700,17 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
         .. versionadded:: 0.19.0
 
+    **kwargs : Arbitrary keyword arguments
+        configuration (dict): query config parameters for job processing.
+        For example:
+
+            configuration = {'query': {'useQueryCache': False}}
+
+        For more information see `BigQuery SQL Reference
+        <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`
+
+        .. versionadded:: 0.20.0
+
     Returns
     -------
     df: DataFrame
@@ -698,7 +727,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     connector = GbqConnector(project_id, reauth=reauth, verbose=verbose,
                              private_key=private_key,
                              dialect=dialect)
-    schema, pages = connector.run_query(query)
+    schema, pages = connector.run_query(query, **kwargs)
     dataframe_list = []
     while len(pages) > 0:
         page = pages.pop()

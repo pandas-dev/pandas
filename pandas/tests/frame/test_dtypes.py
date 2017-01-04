@@ -357,7 +357,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         df = self.frame.copy()
         expected = self.frame.astype(int)
         df['string'] = 'foo'
-        casted = df.astype(int, raise_on_error=False)
+        casted = df.astype(int, errors='ignore')
 
         expected['string'] = 'foo'
         assert_frame_equal(casted, expected)
@@ -365,7 +365,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         df = self.frame.copy()
         expected = self.frame.astype(np.int32)
         df['string'] = 'foo'
-        casted = df.astype(np.int32, raise_on_error=False)
+        casted = df.astype(np.int32, errors='ignore')
 
         expected['string'] = 'foo'
         assert_frame_equal(casted, expected)
@@ -390,7 +390,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         # GH14265, check nan and inf raise error when converting to int
         types = [np.int32, np.int64]
         values = [np.nan, np.inf]
-        msg = 'Cannot convert non-finite values \(NA or inf\) to integer'
+        msg = 'Cannot convert non-finite values \\(NA or inf\\) to integer'
 
         for this_type in types:
             for this_val in values:
@@ -522,6 +522,19 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
                            'int64': 1}).sort_values()
         result = df.get_dtype_counts().sort_values()
         assert_series_equal(result, expected)
+
+    def test_arg_for_errors_in_astype(self):
+        # issue #14878
+
+        df = DataFrame([1, 2, 3])
+
+        with self.assertRaises(ValueError):
+            df.astype(np.float64, errors=True)
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.astype(np.int8, raise_on_error=False)
+
+        df.astype(np.int8, errors='ignore')
 
 
 class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):

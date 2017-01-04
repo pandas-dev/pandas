@@ -7,7 +7,7 @@ notebook
 matplotlib
 scipy
 lxml
-beautiful-soup
+beautifulsoup4
 html5lib
 pytables
 openpyxl=1.8.5

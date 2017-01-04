@@ -25,7 +25,6 @@ See LICENSE for the license
 #define ERROR_NO_DIGITS 1
 #define ERROR_OVERFLOW 2
 #define ERROR_INVALID_CHARS 3
-#define ERROR_MINUS_SIGN 4
 
 #include "../headers/stdint.h"
 
@@ -250,6 +249,18 @@ int tokenize_all_rows(parser_t *self);
 // Have parsed / type-converted a chunk of data
 // and want to free memory from the token stream
 
+typedef struct uint_state {
+    int seen_sint;
+    int seen_uint;
+    int seen_null;
+} uint_state;
+
+void uint_state_init(uint_state *self);
+
+int uint64_conflict(uint_state *self);
+
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
+                       uint64_t uint_max, int *error, char tsep);
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep);
 double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,

@@ -272,6 +272,20 @@ class TestCut(tm.TestCase):
                                     np.array([0, 0, 1, 1], dtype=np.int8))
         tm.assert_numpy_array_equal(bins, np.array([0, 1.5, 3]))
 
+    def test_qcut_duplicates_bin(self):
+        # GH 7751
+        values = [0, 0, 0, 0, 1, 2, 3]
+        result_levels = ['[0, 1]', '(1, 3]']
+
+        cats = qcut(values, 3, duplicates='drop')
+        self.assertTrue((cats.categories == result_levels).all())
+
+        self.assertRaises(ValueError, qcut, values, 3)
+        self.assertRaises(ValueError, qcut, values, 3, duplicates='raise')
+
+        # invalid
+        self.assertRaises(ValueError, qcut, values, 3, duplicates='foo')
+
     def test_single_bin(self):
         # issue 14652
         expected = Series([0, 0])

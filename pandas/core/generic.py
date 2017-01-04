@@ -690,7 +690,7 @@ class NDFrame(PandasObject):
     def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
         """
         Alter index and / or columns using input function or functions.
-        A scaler or list-like for ``mapper`` will alter the ``Index.name``
+        A scalar or list-like for ``mapper`` will alter the ``Index.name``
         or ``MultiIndex.names`` attribute.
         A function or dict for ``mapper`` will alter the labels.
         Function / dict values must be unique (1-to-1). Labels not contained in
@@ -3061,7 +3061,9 @@ class NDFrame(PandasObject):
         """Internal property, property synonym for as_blocks()"""
         return self.as_blocks()
 
-    def astype(self, dtype, copy=True, raise_on_error=True, **kwargs):
+    @deprecate_kwarg(old_arg_name='raise_on_error', new_arg_name='errors',
+                     mapping={True: 'raise', False: 'ignore'})
+    def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
         Cast object to input numpy.dtype
         Return a copy when copy = True (be really careful with this!)
@@ -3073,7 +3075,15 @@ class NDFrame(PandasObject):
             the same type. Alternatively, use {col: dtype, ...}, where col is a
             column label and dtype is a numpy.dtype or Python type to cast one
             or more of the DataFrame's columns to column-specific types.
-        raise_on_error : raise on invalid input
+        errors : {'raise', 'ignore'}, default 'raise'.
+            Control raising of exceptions on invalid data for provided dtype.
+
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
+
+            .. versionadded:: 0.20.0
+
+        raise_on_error : DEPRECATED use ``errors`` instead
         kwargs : keyword arguments to pass on to the constructor
 
         Returns
@@ -3086,7 +3096,7 @@ class NDFrame(PandasObject):
                     raise KeyError('Only the Series name can be used for '
                                    'the key in Series dtype mappings.')
                 new_type = list(dtype.values())[0]
-                return self.astype(new_type, copy, raise_on_error, **kwargs)
+                return self.astype(new_type, copy, errors, **kwargs)
             elif self.ndim > 2:
                 raise NotImplementedError(
                     'astype() only accepts a dtype arg of type dict when '
@@ -3107,8 +3117,8 @@ class NDFrame(PandasObject):
             return concat(results, axis=1, copy=False)
 
         # else, only a single dtype is given
-        new_data = self._data.astype(dtype=dtype, copy=copy,
-                                     raise_on_error=raise_on_error, **kwargs)
+        new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
+                                     **kwargs)
         return self._constructor(new_data).__finalize__(self)
 
     def copy(self, deep=True):
@@ -4229,11 +4239,11 @@ class NDFrame(PandasObject):
         Upsample the series into 30 second bins.
 
         >>> series.resample('30S').asfreq()[0:5] #select first 5 rows
-        2000-01-01 00:00:00     0
+        2000-01-01 00:00:00   0.0
         2000-01-01 00:00:30   NaN
-        2000-01-01 00:01:00     1
+        2000-01-01 00:01:00   1.0
         2000-01-01 00:01:30   NaN
-        2000-01-01 00:02:00     2
+        2000-01-01 00:02:00   2.0
         Freq: 30S, dtype: float64
 
         Upsample the series into 30 second bins and fill the ``NaN``
@@ -5201,60 +5211,222 @@ class NDFrame(PandasObject):
         """
         return np.abs(self)
 
-    _shared_docs['describe'] = """
-        Generate various summary statistics, excluding NaN values.
+    def describe(self, percentiles=None, include=None, exclude=None):
+        """
+        Generates descriptive statistics that summarize the central tendency,
+        dispersion and shape of a dataset's distribution, excluding
+        ``NaN`` values.
+
+        Analyzes both numeric and object series, as well
+        as ``DataFrame`` column sets of mixed data types. The output
+        will vary depending on what is provided. Refer to the notes
+        below for more detail.
 
         Parameters
         ----------
-        percentiles : array-like, optional
-            The percentiles to include in the output. Should all
-            be in the interval [0, 1]. By default `percentiles` is
-            [.25, .5, .75], returning the 25th, 50th, and 75th percentiles.
-        include, exclude : list-like, 'all', or None (default)
-            Specify the form of the returned result. Either:
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should
+            fall between 0 and 1. The default is
+            ``[.25, .5, .75]``, which returns the 25th, 50th, and
+            75th percentiles.
+        include : 'all', list-like of dtypes or None (default), optional
+            A white list of data types to include in the result. Ignored
+            for ``Series``. Here are the options:
 
-            - None to both (default). The result will include only
-              numeric-typed columns or, if none are, only categorical columns.
-            - A list of dtypes or strings to be included/excluded.
-              To select all numeric types use numpy numpy.number. To select
-              categorical objects use type object. See also the select_dtypes
-              documentation. eg. df.describe(include=['O'])
-            - If include is the string 'all', the output column-set will
-              match the input one.
+            - 'all' : All columns of the input will be included in the output.
+            - A list-like of dtypes : Limits the results to the
+              provided data types.
+              To limit the result to numeric types submit
+              ``numpy.number``. To limit it instead to categorical
+              objects submit the ``numpy.object`` data type. Strings
+              can also be used in the style of
+              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
+            - None (default) : The result will include all numeric columns.
+        exclude : list-like of dtypes or None (default), optional,
+            A black list of data types to omit from the result. Ignored
+            for ``Series``. Here are the options:
+
+            - A list-like of dtypes : Excludes the provided data types
+              from the result. To select numeric types submit
+              ``numpy.number``. To select categorical objects submit the data
+              type ``numpy.object``. Strings can also be used in the style of
+              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
+            - None (default) : The result will exclude nothing.
 
         Returns
         -------
-        summary: %(klass)s of summary statistics
+        summary:  Series/DataFrame of summary statistics
 
         Notes
         -----
-        The output DataFrame index depends on the requested dtypes:
+        For numeric data, the result's index will include ``count``,
+        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
+        upper percentiles. By default the lower percentile is ``25`` and the
+        upper percentile is ``75``. The ``50`` percentile is the
+        same as the median.
 
-        For numeric dtypes, it will include: count, mean, std, min,
-        max, and lower, 50, and upper percentiles.
+        For object data (e.g. strings or timestamps), the result's index
+        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
+        is the most common value. The ``freq`` is the most common value's
+        frequency. Timestamps also include the ``first`` and ``last`` items.
 
-        For object dtypes (e.g. timestamps or strings), the index
-        will include the count, unique, most common, and frequency of the
-        most common. Timestamps also include the first and last items.
-
-        For mixed dtypes, the index will be the union of the corresponding
-        output types. Non-applicable entries will be filled with NaN.
-        Note that mixed-dtype outputs can only be returned from mixed-dtype
-        inputs and appropriate use of the include/exclude arguments.
-
-        If multiple values have the highest count, then the
-        `count` and `most common` pair will be arbitrarily chosen from
+        If multiple object values have the highest count, then the
+        ``count`` and ``top`` results will be arbitrarily chosen from
         among those with the highest count.
 
-        The include, exclude arguments are ignored for Series.
+        For mixed data types provided via a ``DataFrame``, the default is to
+        return only an analysis of numeric columns. If ``include='all'``
+        is provided as an option, the result will include a union of
+        attributes of each type.
+
+        The `include` and `exclude` parameters can be used to limit
+        which columns in a ``DataFrame`` are analyzed for the output.
+        The parameters are ignored when analyzing a ``Series``.
+
+        Examples
+        --------
+        Describing a numeric ``Series``.
+
+        >>> import pandas as pd
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.describe()
+        count    3.0
+        mean     2.0
+        std      1.0
+        min      1.0
+        25%      1.5
+        50%      2.0
+        75%      2.5
+        max      3.0
+
+        Describing a categorical ``Series``.
+
+        >>> s = pd.Series(['a', 'a', 'b', 'c'])
+        >>> s.describe()
+        count     4
+        unique    3
+        top       a
+        freq      2
+        dtype: object
+
+        Describing a timestamp ``Series``.
+
+        >>> import numpy as np
+        >>> s = pd.Series([
+        ...   np.datetime64("2000-01-01"),
+        ...   np.datetime64("2010-01-01"),
+        ...   np.datetime64("2010-01-01")
+        ... ])
+        >>> s.describe()
+        count                       3
+        unique                      2
+        top       2010-01-01 00:00:00
+        freq                        2
+        first     2000-01-01 00:00:00
+        last      2010-01-01 00:00:00
+        dtype: object
+
+        Describing a ``DataFrame``. By default only numeric fields
+        are returned.
+
+        >>> df = pd.DataFrame(
+        ...   [[1, 'a'], [2, 'b'], [3, 'c']],
+        ...   columns=['numeric', 'object']
+        ... )
+        >>> df.describe()
+               numeric
+        count      3.0
+        mean       2.0
+        std        1.0
+        min        1.0
+        25%        1.5
+        50%        2.0
+        75%        2.5
+        max        3.0
+
+        Describing all columns of a ``DataFrame`` regardless of data type.
+
+        >>> df.describe(include='all')
+                numeric object
+        count       3.0      3
+        unique      NaN      3
+        top         NaN      b
+        freq        NaN      1
+        mean        2.0    NaN
+        std         1.0    NaN
+        min         1.0    NaN
+        25%         1.5    NaN
+        50%         2.0    NaN
+        75%         2.5    NaN
+        max         3.0    NaN
+
+        Describing a column from a ``DataFrame`` by accessing it as
+        an attribute.
+
+        >>> df.numeric.describe()
+        count    3.0
+        mean     2.0
+        std      1.0
+        min      1.0
+        25%      1.5
+        50%      2.0
+        75%      2.5
+        max      3.0
+        Name: numeric, dtype: float64
+
+        Including only numeric columns in a ``DataFrame`` description.
+
+        >>> df.describe(include=[np.number])
+               numeric
+        count      3.0
+        mean       2.0
+        std        1.0
+        min        1.0
+        25%        1.5
+        50%        2.0
+        75%        2.5
+        max        3.0
+
+        Including only string columns in a ``DataFrame`` description.
+
+        >>> df.describe(include=[np.object])
+               object
+        count       3
+        unique      3
+        top         b
+        freq        1
+
+        Excluding numeric columns from a ``DataFrame`` description.
+
+        >>> df.describe(exclude=[np.number])
+               object
+        count       3
+        unique      3
+        top         b
+        freq        1
+
+        Excluding object columns from a ``DataFrame`` description.
+
+        >>> df.describe(exclude=[np.object])
+               numeric
+        count      3.0
+        mean       2.0
+        std        1.0
+        min        1.0
+        25%        1.5
+        50%        2.0
+        75%        2.5
+        max        3.0
 
         See Also
         --------
+        DataFrame.count
+        DataFrame.max
+        DataFrame.min
+        DataFrame.mean
+        DataFrame.std
         DataFrame.select_dtypes
         """
-
-    @Appender(_shared_docs['describe'] % _shared_doc_kwargs)
-    def describe(self, percentiles=None, include=None, exclude=None):
         if self.ndim >= 3:
             msg = "describe is not implemented on Panel or PanelND objects."
             raise NotImplementedError(msg)

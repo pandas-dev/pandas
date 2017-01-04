@@ -77,41 +77,6 @@ bar2,12,13,14,15
             fname = prefix + compat.text_type(self.csv1)
             self.read_csv(fname, index_col=0, parse_dates=True)
 
-    def test_dialect(self):
-        data = """\
-label1,label2,label3
-index1,"a,c,e
-index2,b,d,f
-"""
-
-        dia = csv.excel()
-        dia.quoting = csv.QUOTE_NONE
-        df = self.read_csv(StringIO(data), dialect=dia)
-
-        data = '''\
-label1,label2,label3
-index1,a,c,e
-index2,b,d,f
-'''
-        exp = self.read_csv(StringIO(data))
-        exp.replace('a', '"a', inplace=True)
-        tm.assert_frame_equal(df, exp)
-
-    def test_dialect_str(self):
-        data = """\
-fruit:vegetable
-apple:brocolli
-pear:tomato
-"""
-        exp = DataFrame({
-            'fruit': ['apple', 'pear'],
-            'vegetable': ['brocolli', 'tomato']
-        })
-        dia = csv.register_dialect('mydialect', delimiter=':')  # noqa
-        df = self.read_csv(StringIO(data), dialect='mydialect')
-        tm.assert_frame_equal(df, exp)
-        csv.unregister_dialect('mydialect')
-
     def test_1000_sep(self):
         data = """A|B|C
 1|2,334|5
@@ -944,27 +909,50 @@ A,B,C
 00013007854817840017963235
 00013007854817840018860166"""
 
+        # 13007854817840016671868 > UINT64_MAX, so this
+        # will overflow and return object as the dtype.
         result = self.read_csv(StringIO(data))
         self.assertTrue(result['ID'].dtype == object)
 
-        self.assertRaises(OverflowError, self.read_csv,
-                          StringIO(data), converters={'ID': np.int64})
+        # 13007854817840016671868 > UINT64_MAX, so attempts
+        # to cast to either int64 or uint64 will result in
+        # an OverflowError being raised.
+        for conv in (np.int64, np.uint64):
+            self.assertRaises(OverflowError, self.read_csv,
+                              StringIO(data), converters={'ID': conv})
 
-        # Just inside int64 range: parse as integer
+        # These numbers fall right inside the int64-uint64 range,
+        # so they should be parsed as string.
+        ui_max = np.iinfo(np.uint64).max
         i_max = np.iinfo(np.int64).max
         i_min = np.iinfo(np.int64).min
-        for x in [i_max, i_min]:
+
+        for x in [i_max, i_min, ui_max]:
             result = self.read_csv(StringIO(str(x)), header=None)
             expected = DataFrame([x])
             tm.assert_frame_equal(result, expected)
 
-        # Just outside int64 range: parse as string
-        too_big = i_max + 1
+        # These numbers fall just outside the int64-uint64 range,
+        # so they should be parsed as string.
+        too_big = ui_max + 1
         too_small = i_min - 1
+
         for x in [too_big, too_small]:
             result = self.read_csv(StringIO(str(x)), header=None)
             expected = DataFrame([str(x)])
             tm.assert_frame_equal(result, expected)
+
+        # No numerical dtype can hold both negative and uint64 values,
+        # so they should be cast as string.
+        data = '-1\n' + str(2**63)
+        expected = DataFrame([str(-1), str(2**63)])
+        result = self.read_csv(StringIO(data), header=None)
+        tm.assert_frame_equal(result, expected)
+
+        data = str(2**63) + '\n-1'
+        expected = DataFrame([str(2**63), str(-1)])
+        result = self.read_csv(StringIO(data), header=None)
+        tm.assert_frame_equal(result, expected)
 
     def test_empty_with_nrows_chunksize(self):
         # see gh-9535

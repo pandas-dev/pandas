@@ -54,6 +54,27 @@ class TestCategorical(tm.TestCase):
         expected = c[np.array([100000]).astype(np.int64)].codes
         self.assert_numpy_array_equal(result, expected)
 
+    def test_getitem_category_type(self):
+        # GH 14580
+        # test iloc() on Series with Categorical data
+
+        s = pd.Series([1, 2, 3]).astype('category')
+
+        # get slice
+        result = s.iloc[0:2]
+        expected = pd.Series([1, 2]).astype('category', categories=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        # get list of indexes
+        result = s.iloc[[0, 1]]
+        expected = pd.Series([1, 2]).astype('category', categories=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        # get boolean array
+        result = s.iloc[[True, False, False]]
+        expected = pd.Series([1]).astype('category', categories=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
     def test_setitem(self):
 
         # int/positional
@@ -1548,54 +1569,55 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
     def test_searchsorted(self):
         # https://github.com/pandas-dev/pandas/issues/8420
-        s1 = pd.Series(['apple', 'bread', 'bread', 'cheese', 'milk'])
-        s2 = pd.Series(['apple', 'bread', 'bread', 'cheese', 'milk', 'donuts'])
-        c1 = pd.Categorical(s1, ordered=True)
-        c2 = pd.Categorical(s2, ordered=True)
+        # https://github.com/pandas-dev/pandas/issues/14522
 
-        # Single item array
-        res = c1.searchsorted(['bread'])
-        chk = s1.searchsorted(['bread'])
-        exp = np.array([1], dtype=np.intp)
-        self.assert_numpy_array_equal(res, exp)
-        self.assert_numpy_array_equal(res, chk)
+        c1 = pd.Categorical(['cheese', 'milk', 'apple', 'bread', 'bread'],
+                 categories=['cheese', 'milk', 'apple', 'bread'],
+                 ordered=True)
+        s1 = pd.Series(c1)
+        c2 = pd.Categorical(['cheese', 'milk', 'apple', 'bread', 'bread'],
+                 categories=['cheese', 'milk', 'apple', 'bread'],
+                 ordered=False)
+        s2 = pd.Series(c2)
 
-        # Scalar version of single item array
-        # Categorical return np.array like pd.Series, but different from
-        # np.array.searchsorted()
-        res = c1.searchsorted('bread')
-        chk = s1.searchsorted('bread')
-        exp = np.array([1], dtype=np.intp)
-        self.assert_numpy_array_equal(res, exp)
-        self.assert_numpy_array_equal(res, chk)
+        # Searching for single item argument, side='left' (default)
+        res_cat = c1.searchsorted('apple')
+        res_ser = s1.searchsorted('apple')
+        exp = np.array([2], dtype=np.intp)
+        self.assert_numpy_array_equal(res_cat, exp)
+        self.assert_numpy_array_equal(res_ser, exp)
 
-        # Searching for a value that is not present in the Categorical
-        res = c1.searchsorted(['bread', 'eggs'])
-        chk = s1.searchsorted(['bread', 'eggs'])
-        exp = np.array([1, 4], dtype=np.intp)
-        self.assert_numpy_array_equal(res, exp)
-        self.assert_numpy_array_equal(res, chk)
+        # Searching for single item array, side='left' (default)
+        res_cat = c1.searchsorted(['bread'])
+        res_ser = s1.searchsorted(['bread'])
+        exp = np.array([3], dtype=np.intp)
+        self.assert_numpy_array_equal(res_cat, exp)
+        self.assert_numpy_array_equal(res_ser, exp)
 
-        # Searching for a value that is not present, to the right
-        res = c1.searchsorted(['bread', 'eggs'], side='right')
-        chk = s1.searchsorted(['bread', 'eggs'], side='right')
-        exp = np.array([3, 4], dtype=np.intp)  # eggs before milk
-        self.assert_numpy_array_equal(res, exp)
-        self.assert_numpy_array_equal(res, chk)
-
-        # As above, but with a sorter array to reorder an unsorted array
-        res = c2.searchsorted(['bread', 'eggs'], side='right',
-                              sorter=[0, 1, 2, 3, 5, 4])
-        chk = s2.searchsorted(['bread', 'eggs'], side='right',
-                              sorter=[0, 1, 2, 3, 5, 4])
-        # eggs after donuts, after switching milk and donuts
+        # Searching for several items array, side='right'
+        res_cat = c1.searchsorted(['apple', 'bread'], side='right')
+        res_ser = s1.searchsorted(['apple', 'bread'], side='right')
         exp = np.array([3, 5], dtype=np.intp)
-        self.assert_numpy_array_equal(res, exp)
-        self.assert_numpy_array_equal(res, chk)
+        self.assert_numpy_array_equal(res_cat, exp)
+        self.assert_numpy_array_equal(res_ser, exp)
+
+        # Searching for a single value that is not from the Categorical
+        self.assertRaises(ValueError, lambda: c1.searchsorted('cucumber'))
+        self.assertRaises(ValueError, lambda: s1.searchsorted('cucumber'))
+
+        # Searching for multiple values one of each is not from the Categorical
+        self.assertRaises(ValueError,
+                          lambda: c1.searchsorted(['bread', 'cucumber']))
+        self.assertRaises(ValueError,
+                          lambda: s1.searchsorted(['bread', 'cucumber']))
+
+        # searchsorted call for unordered Categorical
+        self.assertRaises(ValueError, lambda: c2.searchsorted('apple'))
+        self.assertRaises(ValueError, lambda: s2.searchsorted('apple'))
 
         with tm.assert_produces_warning(FutureWarning):
             res = c1.searchsorted(v=['bread'])
-            exp = np.array([1], dtype=np.intp)
+            exp = np.array([3], dtype=np.intp)
             tm.assert_numpy_array_equal(res, exp)
 
     def test_deprecated_labels(self):

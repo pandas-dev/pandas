@@ -129,7 +129,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                                 series_index, name)
 
 
-def qcut(x, q, labels=None, retbins=False, precision=3):
+def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -151,6 +151,10 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
         as a scalar.
     precision : int
         The precision at which to store and display the bins labels
+    duplicates : {default 'raise', 'drop'}, optional
+        If bin edges are not unique, raise ValueError or drop non-uniques.
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -187,7 +191,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     bins = algos.quantile(x, quantiles)
     fac, bins = _bins_to_cuts(x, bins, labels=labels,
                               precision=precision, include_lowest=True,
-                              dtype=dtype)
+                              dtype=dtype, duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
                                 series_index, name)
@@ -195,13 +199,23 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
 
 def _bins_to_cuts(x, bins, right=True, labels=None,
                   precision=3, include_lowest=False,
-                  dtype=None):
+                  dtype=None, duplicates='raise'):
+
+    if duplicates not in ['raise', 'drop']:
+        raise ValueError("invalid value for 'duplicates' parameter, "
+                         "valid options are: raise, drop")
+
+    unique_bins = algos.unique(bins)
+    if len(unique_bins) < len(bins):
+        if duplicates == 'raise':
+            raise ValueError("Bin edges must be unique: {}.\nYou "
+                             "can drop duplicate edges by setting "
+                             "the 'duplicates' kwarg".format(repr(bins)))
+        else:
+            bins = unique_bins
 
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
-
-    if len(algos.unique(bins)) < len(bins):
-        raise ValueError('Bin edges must be unique: %s' % repr(bins))
 
     if include_lowest:
         ids[x == bins[0]] = 1

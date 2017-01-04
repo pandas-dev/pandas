@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
 
-from datetime import timedelta
-from itertools import product
-import nose
 import re
 import warnings
 
-from pandas import (DataFrame, date_range, period_range, MultiIndex, Index,
-                    CategoricalIndex, compat)
-from pandas.core.common import PerformanceWarning, UnsortedIndexError
-from pandas.indexes.base import InvalidIndexError
-from pandas.compat import range, lrange, u, PY3, long, lzip
+from datetime import timedelta
+from itertools import product
+
+import nose
 
 import numpy as np
 
-from pandas.util.testing import (assert_almost_equal, assertRaises,
-                                 assertRaisesRegexp, assert_copy)
+import pandas as pd
+
+from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
+                    compat, date_range, period_range)
+from pandas.compat import PY3, long, lrange, lzip, range, u
+from pandas.core.common import PerformanceWarning, UnsortedIndexError
+from pandas.indexes.base import InvalidIndexError
+from pandas.lib import Timestamp
 
 import pandas.util.testing as tm
 
-import pandas as pd
-from pandas.lib import Timestamp
+from pandas.util.testing import (assertRaises, assertRaisesRegexp,
+                                 assert_almost_equal, assert_copy)
+
 
 from .common import Base
 
