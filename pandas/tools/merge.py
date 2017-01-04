@@ -1447,7 +1447,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     The keys, levels, and names arguments are all optional.
 
     A walkthrough of how this method fits in with other tools for combining
-    panda objects can be found `here </pandas-docs/stable/merging.html>`_.
+    panda objects can be found `here
+    <http://pandas.pydata.org/pandas-docs/stable/merging.html>`__.
 
     See Also
     --------
@@ -1455,7 +1456,6 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     DataFrame.append
     DataFrame.join
     DataFrame.merge
-    Panel.join
 
     Examples
     --------
@@ -1550,7 +1550,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     0      c       3
     1      d       4
 
-    Combine ``DataFrame`` objects horizonally along the x axis by
+    Combine ``DataFrame`` objects horizontally along the x axis by
     passing in ``axis=1``.
 
     >>> df4 = pd.DataFrame([['bird', 'polly'], ['monkey', 'george']],
