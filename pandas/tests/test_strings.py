@@ -435,6 +435,12 @@ class TestStringMethods(tm.TestCase):
                 for data in (['a', 'b', None], ['a', 'b', 'c', 'ad']):
                     values = klass(data)
                     self.assertRaises(TypeError, values.str.replace, 'a', repl)
+        
+        # GH 15055, callable repl
+        repl = lambda m: m.group(0).swapcase()
+        result = values.str.replace('[a-z][A-Z]{2}', repl, n=2)
+        exp = Series([u('foObaD__baRbaD'), NA])
+        tm.assert_series_equal(result, exp)
 
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
