@@ -303,8 +303,9 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     ----------
     pat : string
         Character sequence or regular expression
-    repl : string
-        Replacement sequence
+    repl : string or function
+        Replacement string or a function, which passed the match object and 
+        must return a replacement string to be used. See :func:`re.sub`.
     n : int, default -1 (all)
         Number of replacements to make from start
     case : boolean, default True
@@ -318,9 +319,9 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     """
 
     # Check whether repl is valid (GH 13438)
-    if not is_string_like(repl):
-        raise TypeError("repl must be a string")
-    use_re = not case or len(pat) > 1 or flags
+    if not is_string_like(repl) or not callable(repl):
+        raise TypeError("repl must be a string or function")
+    use_re = not case or len(pat) > 1 or flags or callable(repl)
 
     if use_re:
         if not case:
