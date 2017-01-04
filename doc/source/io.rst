@@ -644,6 +644,15 @@ file, either using the column names, position numbers or a callable:
     pd.read_csv(StringIO(data), usecols=[0, 2, 3])
     pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ['A', 'C'])
 
+The ``usecols`` argument can also be used to specify which columns not to
+use in the final result:
+
+.. ipython:: python
+   pd.read_csv(StringIO(data), usecols=lambda x: x not in ['a', 'c'])
+
+In this case, the callable is specifying that we exclude the "a" and "c"
+columns from the output.
+
 Comments and Empty Lines
 ''''''''''''''''''''''''
 
