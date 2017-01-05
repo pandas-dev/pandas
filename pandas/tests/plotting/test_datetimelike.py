@@ -1282,8 +1282,8 @@ class TestTSPlot(TestPlotBase):
         rng = timedelta_range('0', periods=10, freq='ns')
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         ax = df.plot(fontsize=2)
-        plt.draw()
         plt.gcf().autofmt_xdate()
+        ax.get_figure().canvas.draw_idle()
         labels = ax.get_xticklabels()
         self.assertEqual(len(labels), len(expected_labels))
         for l, l_expected in zip(labels, expected_labels):
@@ -1308,8 +1308,8 @@ class TestTSPlot(TestPlotBase):
         rng = timedelta_range('0', periods=10, freq='1 d')
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         ax = df.plot(fontsize=2)
-        plt.draw()
         plt.gcf().autofmt_xdate()
+        ax.get_figure().canvas.draw_idle()
         labels = ax.get_xticklabels()
         self.assertEqual(len(labels), len(expected_labels))
         for l, l_expected in zip(labels, expected_labels):
