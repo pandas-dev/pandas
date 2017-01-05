@@ -296,6 +296,7 @@ def format_dateaxis(subplot, freq, index):
     the positions of the ticks.
     """
 
+    # handle index specific formatting
     if isinstance(index, PeriodIndex):
 
         majlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
@@ -316,15 +317,18 @@ def format_dateaxis(subplot, freq, index):
         subplot.xaxis.set_major_formatter(majformatter)
         subplot.xaxis.set_minor_formatter(minformatter)
 
-        # x and y coord info
-        subplot.format_coord = lambda t, y: (
-            "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
-
-        pylab.draw_if_interactive()
-
     elif isinstance(index, TimedeltaIndex):
         from matplotlib import ticker
         formatter = ticker.FuncFormatter(timeTicks)
         subplot.xaxis.set_major_formatter(formatter)
     else:
         raise IOError('index type not supported')
+
+    # Note, DatetimeIndex does not use this
+    # interface. DatetimeIndex uses matplotlib.date directly
+
+    # x and y coord info
+    subplot.format_coord = lambda t, y: (
+        "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
+
+    pylab.draw_if_interactive()
