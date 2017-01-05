@@ -6,7 +6,6 @@ Pierre GF Gerard-Marchant & Matt Knox
 # TODO: Use the fact that axis can have units to simplify the process
 
 import numpy as np
-import datetime
 
 from matplotlib import pylab
 from pandas.tseries.period import Period
@@ -281,9 +280,19 @@ def _maybe_convert_index(ax, data):
 # Patch methods for subplot. Only format_dateaxis is currently used.
 # Do we need the rest for convenience?
 
-def timeTicks(x, pos):
-    d = datetime.timedelta(seconds=int(x / 1e9))
-    return str(d)
+def timeTicks(x, pos, n_decimals):
+    ''' Convert seconds to 'D days HH:MM:SS.F' '''
+    s, ns = divmod(x, 1e9)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    d, h = divmod(h, 24)
+    decimals = int(ns * 10**(n_decimals - 9))
+    s = r'{:02d}:{:02d}:{:02d}'.format(int(h), int(m), int(s))
+    if n_decimals > 0:
+        s += '.{{:0{:0d}d}}'.format(n_decimals).format(decimals)
+    if d != 0:
+        s = '{:d} days '.format(int(d)) + s
+    return s
 
 
 def format_dateaxis(subplot, freq, index):
@@ -319,7 +328,12 @@ def format_dateaxis(subplot, freq, index):
 
     elif isinstance(index, TimedeltaIndex):
         from matplotlib import ticker
-        formatter = ticker.FuncFormatter(timeTicks)
+        (vmin, vmax) = tuple(subplot.xaxis.get_view_interval())
+        n_decimals = int(np.ceil(np.log10(100 * 1e9 / (vmax - vmin))))
+        if n_decimals > 9:
+            n_decimals = 9
+        formatter = ticker.FuncFormatter(
+            lambda x, pos: timeTicks(x, pos, n_decimals))
         subplot.xaxis.set_major_formatter(formatter)
     else:
         raise IOError('index type not supported')
