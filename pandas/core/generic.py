@@ -5287,7 +5287,6 @@ class NDFrame(PandasObject):
         --------
         Describing a numeric ``Series``.
 
-        >>> import pandas as pd
         >>> s = pd.Series([1, 2, 3])
         >>> s.describe()
         count    3.0
@@ -5311,7 +5310,6 @@ class NDFrame(PandasObject):
 
         Describing a timestamp ``Series``.
 
-        >>> import numpy as np
         >>> s = pd.Series([
         ...   np.datetime64("2000-01-01"),
         ...   np.datetime64("2010-01-01"),
@@ -5329,10 +5327,8 @@ class NDFrame(PandasObject):
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame(
-        ...   [[1, 'a'], [2, 'b'], [3, 'c']],
-        ...   columns=['numeric', 'object']
-        ... )
+        >>> df = pd.DataFrame([[1, 'a'], [2, 'b'], [3, 'c']],
+        ...                   columns=['numeric', 'object'])
         >>> df.describe()
                numeric
         count      3.0
