@@ -1282,13 +1282,11 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         ax = df.plot(fontsize=2)
         fig = ax.get_figure()
-        #fig.autofmt_xdate()
         fig.canvas.draw()
         labels = ax.get_xticklabels()
         self.assertEqual(len(labels), len(expected_labels))
         for l, l_expected in zip(labels, expected_labels):
             self.assertEqual(l.get_text(), l_expected)
-            self.assertEqual(l.get_rotation(), 30)
 
     def test_format_timedelta_ticks_wide(self):
 
@@ -1308,13 +1306,11 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         ax = df.plot(fontsize=2)
         fig = ax.get_figure()
-        #fig.autofmt_xdate()
         fig.canvas.draw()
         labels = ax.get_xticklabels()
         self.assertEqual(len(labels), len(expected_labels))
         for l, l_expected in zip(labels, expected_labels):
             self.assertEqual(l.get_text(), l_expected)
-            self.assertEqual(l.get_rotation(), 30)
 
     def test_timedelta_plot(self):
         # test issue #8711
