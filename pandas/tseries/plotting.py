@@ -282,8 +282,9 @@ def _maybe_convert_index(ax, data):
 # Do we need the rest for convenience?
 
 def timeTicks(x, pos):
-    d = datetime.timedelta(seconds=int(x/1e9))
+    d = datetime.timedelta(seconds=int(x / 1e9))
     return str(d)
+
 
 def format_dateaxis(subplot, freq, index):
     """
@@ -327,5 +328,3 @@ def format_dateaxis(subplot, freq, index):
         subplot.xaxis.set_major_formatter(formatter)
     else:
         raise IOError('index type not supported')
-
-
