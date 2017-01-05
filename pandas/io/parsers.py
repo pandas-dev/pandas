@@ -2295,11 +2295,12 @@ class PythonParser(ParserBase):
                     columns = [lrange(ncols)]
                 columns = self._handle_usecols(columns, columns[0])
             else:
-                if self.usecols is None or len(names) == num_original_columns:
+                if self.usecols is None or len(names) >= num_original_columns:
                     columns = self._handle_usecols([names], names)
                     num_original_columns = len(names)
                 else:
-                    if self.usecols and len(names) != len(self.usecols):
+                    if (not callable(self.usecols) and
+                            len(names) != len(self.usecols)):
                         raise ValueError(
                             'Number of passed names did not match number of '
                             'header fields in the file'
