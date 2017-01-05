@@ -555,6 +555,8 @@ class HDFStore(StringMixin):
         """
         tables = _tables()
 
+        path_or_buf = _stringify_path(path_or_buf)
+
         if self._mode != mode:
 
             # if we are changing a write mode to read, ok
