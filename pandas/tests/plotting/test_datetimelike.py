@@ -1273,7 +1273,6 @@ class TestTSPlot(TestPlotBase):
         self.plt.plot(values)
 
     def test_format_timedelta_ticks_narrow(self):
-        import matplotlib.pyplot as plt
 
         expected_labels = [
             '00:00:00.00000000{:d}'.format(i)
@@ -1282,8 +1281,9 @@ class TestTSPlot(TestPlotBase):
         rng = timedelta_range('0', periods=10, freq='ns')
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         ax = df.plot(fontsize=2)
-        plt.gcf().autofmt_xdate()
-        ax.get_figure().canvas.draw_idle()
+        fig = ax.get_figure()
+        fig.autofmt_xdate()
+        fig.canvas.draw()
         labels = ax.get_xticklabels()
         self.assertEqual(len(labels), len(expected_labels))
         for l, l_expected in zip(labels, expected_labels):
@@ -1291,7 +1291,6 @@ class TestTSPlot(TestPlotBase):
             self.assertEqual(l.get_rotation(), 30)
 
     def test_format_timedelta_ticks_wide(self):
-        import matplotlib.pyplot as plt
 
         expected_labels = [
             '00:00:00',
@@ -1308,8 +1307,9 @@ class TestTSPlot(TestPlotBase):
         rng = timedelta_range('0', periods=10, freq='1 d')
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         ax = df.plot(fontsize=2)
-        plt.gcf().autofmt_xdate()
-        ax.get_figure().canvas.draw_idle()
+        fig = ax.get_figure()
+        fig.autofmt_xdate()
+        fig.canvas.draw()
         labels = ax.get_xticklabels()
         self.assertEqual(len(labels), len(expected_labels))
         for l, l_expected in zip(labels, expected_labels):
