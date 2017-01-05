@@ -319,7 +319,7 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     """
 
     # Check whether repl is valid (GH 13438)
-    if not is_string_like(repl) or not callable(repl):
+    if not (is_string_like(repl) or callable(repl)):
         raise TypeError("repl must be a string or function")
     use_re = not case or len(pat) > 1 or flags or callable(repl)
 
