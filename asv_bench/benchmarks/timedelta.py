@@ -2,54 +2,36 @@ from .pandas_vb_common import *
 from pandas import to_timedelta, Timestamp
 
 
-class timedelta_convert_int(object):
+class ToTimedelta(object):
     goal_time = 0.2
 
     def setup(self):
         self.arr = np.random.randint(0, 1000, size=10000)
+        self.arr2 = ['{0} days'.format(i) for i in self.arr]
 
-    def time_timedelta_convert_int(self):
+        self.arr3 = np.random.randint(0, 60, size=10000)
+        self.arr3 = ['00:00:{0:02d}'.format(i) for i in self.arr3]
+
+        self.arr4 = list(self.arr2)
+        self.arr4[-1] = 'apple'
+
+    def time_convert_int(self):
         to_timedelta(self.arr, unit='s')
 
+    def time_convert_string(self):
+        to_timedelta(self.arr2)
 
-class timedelta_convert_string(object):
-    goal_time = 0.2
+    def time_convert_string_seconds(self):
+        to_timedelta(self.arr3)
 
-    def setup(self):
-        self.arr = np.random.randint(0, 1000, size=10000)
-        self.arr = ['{0} days'.format(i) for i in self.arr]
+    def time_convert_coerce(self):
+        to_timedelta(self.arr4, errors='coerce')
 
-    def time_timedelta_convert_string(self):
-        to_timedelta(self.arr)
-
-
-class timedelta_convert_string_seconds(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.arr = np.random.randint(0, 60, size=10000)
-        self.arr = ['00:00:{0:02d}'.format(i) for i in self.arr]
-
-    def time_timedelta_convert_string_seconds(self):
-        to_timedelta(self.arr)
+    def time_convert_ignore(self):
+        to_timedelta(self.arr4, errors='ignore')
 
 
-class timedelta_convert_bad_parse(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.arr = np.random.randint(0, 1000, size=10000)
-        self.arr = ['{0} days'.format(i) for i in self.arr]
-        self.arr[-1] = 'apple'
-
-    def time_timedelta_convert_coerce(self):
-        to_timedelta(self.arr, errors='coerce')
-
-    def time_timedelta_convert_ignore(self):
-        to_timedelta(self.arr, errors='ignore')
-
-
-class timedelta_add_overflow(object):
+class Ops(object):
     goal_time = 0.2
 
     def setup(self):

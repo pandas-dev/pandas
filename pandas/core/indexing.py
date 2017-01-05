@@ -848,7 +848,7 @@ class _NDFrameIndexer(object):
                 [(a, self._convert_for_reindex(t, axis=o._get_axis_number(a)))
                  for t, a in zip(tup, o._AXIS_ORDERS)])
             return o.reindex(**d)
-        except:
+        except(KeyError, IndexingError):
             raise self._exception
 
     def _convert_for_reindex(self, key, axis=0):
@@ -1461,6 +1461,9 @@ class _LocIndexer(_LocationIndexer):
             if isinstance(labels, MultiIndex):
                 if (not isinstance(key, tuple) and len(key) > 1 and
                         not isinstance(key[0], tuple)):
+                    if isinstance(key, ABCSeries):
+                        # GH 14730
+                        key = list(key)
                     key = tuple([key])
 
             # an iterable multi-selection
@@ -1596,6 +1599,27 @@ class _iLocIndexer(_LocationIndexer):
         else:
             return self.obj.take(slice_obj, axis=axis, convert=False)
 
+    def _get_list_axis(self, key_list, axis=0):
+        """
+        Return Series values by list or array of integers
+
+        Parameters
+        ----------
+        key_list : list-like positional indexer
+        axis : int (can only be zero)
+
+        Returns
+        -------
+        Series object
+        """
+
+        # validate list bounds
+        self._is_valid_list_like(key_list, axis)
+
+        # force an actual list
+        key_list = list(key_list)
+        return self.obj.take(key_list, axis=axis, convert=False)
+
     def _getitem_axis(self, key, axis=0):
 
         if isinstance(key, slice):
@@ -1606,26 +1630,20 @@ class _iLocIndexer(_LocationIndexer):
             self._has_valid_type(key, axis)
             return self._getbool_axis(key, axis=axis)
 
-        # a single integer or a list of integers
+        # a list of integers
+        elif is_list_like_indexer(key):
+            return self._get_list_axis(key, axis=axis)
+
+        # a single integer
         else:
+            key = self._convert_scalar_indexer(key, axis)
 
-            if is_list_like_indexer(key):
+            if not is_integer(key):
+                raise TypeError("Cannot index by location index with a "
+                                "non-integer key")
 
-                # validate list bounds
-                self._is_valid_list_like(key, axis)
-
-                # force an actual list
-                key = list(key)
-
-            else:
-                key = self._convert_scalar_indexer(key, axis)
-
-                if not is_integer(key):
-                    raise TypeError("Cannot index by location index with a "
-                                    "non-integer key")
-
-                # validate the location
-                self._is_valid_integer(key, axis)
+            # validate the location
+            self._is_valid_integer(key, axis)
 
             return self._get_loc(key, axis=axis)
 
@@ -1814,7 +1832,9 @@ def check_bool_indexer(ax, key):
         result = result.reindex(ax)
         mask = isnull(result._values)
         if mask.any():
-            raise IndexingError('Unalignable boolean Series key provided')
+            raise IndexingError('Unalignable boolean Series provided as '
+                                'indexer (index of the boolean Series and of '
+                                'the indexed object do not match')
         result = result.astype(bool)._values
     elif is_sparse(result):
         result = result.to_dense()

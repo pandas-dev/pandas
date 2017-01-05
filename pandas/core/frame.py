@@ -1477,6 +1477,21 @@ class DataFrame(NDFrame):
                              variable_labels=variable_labels)
         writer.write_file()
 
+    def to_feather(self, fname):
+        """
+        write out the binary feather-format for DataFrames
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        fname : str
+            string file path
+
+        """
+        from pandas.io.feather_format import to_feather
+        to_feather(self, fname)
+
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -2257,7 +2272,12 @@ class DataFrame(NDFrame):
           this will return *all* object dtype columns
         * See the `numpy dtype hierarchy
           <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__
+        * To select datetimes, use np.datetime64, 'datetime' or 'datetime64'
+        * To select timedeltas, use np.timedelta64, 'timedelta' or
+          'timedelta64'
         * To select Pandas categorical dtypes, use 'category'
+        * To select Pandas datetimetz dtypes, use 'datetimetz' (new in 0.20.0),
+          or a 'datetime64[ns, tz]' string
 
         Examples
         --------
@@ -2483,7 +2503,7 @@ class DataFrame(NDFrame):
         Notes
         -----
         Since ``kwargs`` is a dictionary, the order of your
-        arguments may not be preserved. The make things predicatable,
+        arguments may not be preserved. To make things predicatable,
         the columns are inserted in alphabetical order, at the end of
         your DataFrame. Assigning multiple columns within the same
         ``assign`` is possible, but you cannot reference other columns
@@ -2705,8 +2725,8 @@ class DataFrame(NDFrame):
 
         columns = axes['columns']
         if columns is not None:
-            frame = frame._reindex_columns(columns, copy, level, fill_value,
-                                           limit, tolerance)
+            frame = frame._reindex_columns(columns, method, copy, level,
+                                           fill_value, limit, tolerance)
 
         index = axes['index']
         if index is not None:
@@ -2717,17 +2737,17 @@ class DataFrame(NDFrame):
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
                        limit=None, tolerance=None):
-        new_index, indexer = self.index.reindex(new_index, method, level,
-                                                limit=limit,
+        new_index, indexer = self.index.reindex(new_index, method=method,
+                                                level=level, limit=limit,
                                                 tolerance=tolerance)
         return self._reindex_with_indexers({0: [new_index, indexer]},
                                            copy=copy, fill_value=fill_value,
                                            allow_dups=False)
 
-    def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
+    def _reindex_columns(self, new_columns, method, copy, level, fill_value=NA,
                          limit=None, tolerance=None):
-        new_columns, indexer = self.columns.reindex(new_columns, level=level,
-                                                    limit=limit,
+        new_columns, indexer = self.columns.reindex(new_columns, method=method,
+                                                    level=level, limit=limit,
                                                     tolerance=tolerance)
         return self._reindex_with_indexers({1: [new_columns, indexer]},
                                            copy=copy, fill_value=fill_value,
@@ -3665,10 +3685,8 @@ class DataFrame(NDFrame):
                 otherSeries[other_mask] = fill_value
 
             # if we have different dtypes, possibily promote
-            if notnull(series).all():
-                new_dtype = this_dtype
-                otherSeries = otherSeries.astype(new_dtype)
-            else:
+            new_dtype = this_dtype
+            if not is_dtype_equal(this_dtype, other_dtype):
                 new_dtype = _find_common_type([this_dtype, other_dtype])
                 if not is_dtype_equal(this_dtype, new_dtype):
                     series = series.astype(new_dtype)
@@ -4285,6 +4303,8 @@ class DataFrame(NDFrame):
 
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
+            if x.empty:
+                return lib.map_infer(x, func)
             return lib.map_infer(x.asobject, func)
 
         return self.apply(infer)

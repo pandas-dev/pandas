@@ -1002,28 +1002,6 @@ class TestNankurtFixedValues(tm.TestCase):
         return np.random.RandomState(1234)
 
 
-def test_int64_add_overflow():
-    # see gh-14068
-    msg = "Overflow in int64 addition"
-    m = np.iinfo(np.int64).max
-    n = np.iinfo(np.int64).min
-
-    with tm.assertRaisesRegexp(OverflowError, msg):
-        nanops._checked_add_with_arr(np.array([m, m]), m)
-    with tm.assertRaisesRegexp(OverflowError, msg):
-        nanops._checked_add_with_arr(np.array([m, m]), np.array([m, m]))
-    with tm.assertRaisesRegexp(OverflowError, msg):
-        nanops._checked_add_with_arr(np.array([n, n]), n)
-    with tm.assertRaisesRegexp(OverflowError, msg):
-        nanops._checked_add_with_arr(np.array([n, n]), np.array([n, n]))
-    with tm.assertRaisesRegexp(OverflowError, msg):
-        nanops._checked_add_with_arr(np.array([m, n]), np.array([n, n]))
-    with tm.assertRaisesRegexp(OverflowError, msg):
-        with tm.assert_produces_warning(RuntimeWarning):
-            nanops._checked_add_with_arr(np.array([m, m]),
-                                         np.array([np.nan, m]))
-
-
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure', '-s'

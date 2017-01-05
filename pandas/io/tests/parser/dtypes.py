@@ -241,6 +241,9 @@ one,two
         result = self.read_csv(StringIO(data), header=0,
                                dtype='category')
         tm.assert_frame_equal(result, expected)
+        result = self.read_csv(StringIO(data), header=0,
+                               dtype={'a': 'category', 'b': 'category'})
+        tm.assert_frame_equal(result, expected)
 
         expected = pd.DataFrame(columns=['a', 'b'], dtype='datetime64[ns]')
         result = self.read_csv(StringIO(data), header=0,
@@ -272,3 +275,11 @@ one,two
         result = self.read_csv(StringIO(data), header=0,
                                dtype={'a': np.int32, 1: np.float64})
         tm.assert_frame_equal(result, expected)
+
+    def test_numeric_dtype(self):
+        data = '0\n1'
+
+        for dt in np.typecodes['AllInteger'] + np.typecodes['Float']:
+            expected = pd.DataFrame([0, 1], dtype=dt)
+            result = self.read_csv(StringIO(data), header=None, dtype=dt)
+            tm.assert_frame_equal(expected, result)

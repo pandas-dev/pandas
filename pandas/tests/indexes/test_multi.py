@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
 
-from datetime import timedelta
-from itertools import product
-import nose
 import re
 import warnings
 
-from pandas import (DataFrame, date_range, period_range, MultiIndex, Index,
-                    CategoricalIndex, compat)
-from pandas.core.common import PerformanceWarning
-from pandas.indexes.base import InvalidIndexError
-from pandas.compat import range, lrange, u, PY3, long, lzip
+from datetime import timedelta
+from itertools import product
+
+import nose
 
 import numpy as np
 
-from pandas.util.testing import (assert_almost_equal, assertRaises,
-                                 assertRaisesRegexp, assert_copy)
+import pandas as pd
+
+from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
+                    compat, date_range, period_range)
+from pandas.compat import PY3, long, lrange, lzip, range, u
+from pandas.core.common import PerformanceWarning, UnsortedIndexError
+from pandas.indexes.base import InvalidIndexError
+from pandas.lib import Timestamp
 
 import pandas.util.testing as tm
 
-import pandas as pd
-from pandas.lib import Timestamp
+from pandas.util.testing import (assertRaises, assertRaisesRegexp,
+                                 assert_almost_equal, assert_copy)
+
 
 from .common import Base
 
@@ -2535,3 +2538,19 @@ class TestMultiIndex(Base, tm.TestCase):
         msg = "invalid how option: xxx"
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.dropna(how='xxx')
+
+    def test_unsortedindex(self):
+        # GH 11897
+        mi = pd.MultiIndex.from_tuples([('z', 'a'), ('x', 'a'), ('y', 'b'),
+                                        ('x', 'b'), ('y', 'a'), ('z', 'b')],
+                                       names=['one', 'two'])
+        df = pd.DataFrame([[i, 10 * i] for i in lrange(6)], index=mi,
+                          columns=['one', 'two'])
+
+        with assertRaises(UnsortedIndexError):
+            df.loc(axis=0)['z', :]
+        df.sort_index(inplace=True)
+        self.assertEqual(len(df.loc(axis=0)['z', :]), 2)
+
+        with assertRaises(KeyError):
+            df.loc(axis=0)['q', :]

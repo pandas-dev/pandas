@@ -1203,6 +1203,28 @@ class TestTimedeltas(tm.TestCase):
         with tm.assertRaises(OverflowError):
             Timedelta(max_td.value + 1, 'ns')
 
+    def test_timedelta_arithmetic(self):
+        data = pd.Series(['nat', '32 days'], dtype='timedelta64[ns]')
+        deltas = [timedelta(days=1), Timedelta(1, unit='D')]
+        for delta in deltas:
+            result_method = data.add(delta)
+            result_operator = data + delta
+            expected = pd.Series(['nat', '33 days'], dtype='timedelta64[ns]')
+            tm.assert_series_equal(result_operator, expected)
+            tm.assert_series_equal(result_method, expected)
+
+            result_method = data.sub(delta)
+            result_operator = data - delta
+            expected = pd.Series(['nat', '31 days'], dtype='timedelta64[ns]')
+            tm.assert_series_equal(result_operator, expected)
+            tm.assert_series_equal(result_method, expected)
+            # GH 9396
+            result_method = data.div(delta)
+            result_operator = data / delta
+            expected = pd.Series([np.nan, 32.], dtype='float64')
+            tm.assert_series_equal(result_operator, expected)
+            tm.assert_series_equal(result_method, expected)
+
 
 class TestTimedeltaIndex(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -1513,8 +1535,8 @@ class TestTimedeltaIndex(tm.TestCase):
 
         f = lambda x: x.days
         result = rng.map(f)
-        exp = np.array([f(x) for x in rng], dtype=np.int64)
-        self.assert_numpy_array_equal(result, exp)
+        exp = Int64Index([f(x) for x in rng])
+        tm.assert_index_equal(result, exp)
 
     def test_misc_coverage(self):
 
@@ -1958,11 +1980,34 @@ class TestSlicing(tm.TestCase):
         with tm.assertRaisesRegexp(OverflowError, msg):
             Timestamp('2000') + to_timedelta(106580, 'D')
 
+        _NaT = int(pd.NaT) + 1
         msg = "Overflow in int64 addition"
         with tm.assertRaisesRegexp(OverflowError, msg):
             to_timedelta([106580], 'D') + Timestamp('2000')
         with tm.assertRaisesRegexp(OverflowError, msg):
             Timestamp('2000') + to_timedelta([106580], 'D')
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            to_timedelta([_NaT]) - Timedelta('1 days')
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            to_timedelta(['5 days', _NaT]) - Timedelta('1 days')
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            (to_timedelta([_NaT, '5 days', '1 hours']) -
+             to_timedelta(['7 seconds', _NaT, '4 hours']))
+
+        # These should not overflow!
+        exp = TimedeltaIndex([pd.NaT])
+        result = to_timedelta([pd.NaT]) - Timedelta('1 days')
+        tm.assert_index_equal(result, exp)
+
+        exp = TimedeltaIndex(['4 days', pd.NaT])
+        result = to_timedelta(['5 days', pd.NaT]) - Timedelta('1 days')
+        tm.assert_index_equal(result, exp)
+
+        exp = TimedeltaIndex([pd.NaT, pd.NaT, '5 hours'])
+        result = (to_timedelta([pd.NaT, '5 days', '1 hours']) +
+                  to_timedelta(['7 seconds', pd.NaT, '4 hours']))
+        tm.assert_index_equal(result, exp)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

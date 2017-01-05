@@ -2101,14 +2101,6 @@ class TestPeriodIndex(tm.TestCase):
         exp = idx.values < idx.values[10]
         self.assert_numpy_array_equal(result, exp)
 
-    def test_getitem_ndim2(self):
-        idx = period_range('2007-01', periods=3, freq='M')
-
-        result = idx[:, None]
-        # MPL kludge, internally has incorrect shape
-        tm.assertIsInstance(result, PeriodIndex)
-        self.assertEqual(result.shape, (len(idx), ))
-
     def test_getitem_index(self):
         idx = period_range('2007-01', periods=10, freq='M', name='x')
 
@@ -3521,8 +3513,8 @@ class TestPeriodIndex(tm.TestCase):
         tm.assert_index_equal(result, expected)
 
         result = index.map(lambda x: x.ordinal)
-        exp = np.array([x.ordinal for x in index], dtype=np.int64)
-        tm.assert_numpy_array_equal(result, exp)
+        exp = Index([x.ordinal for x in index])
+        tm.assert_index_equal(result, exp)
 
     def test_map_with_string_constructor(self):
         raw = [2005, 2007, 2009]
@@ -3534,20 +3526,17 @@ class TestPeriodIndex(tm.TestCase):
             types += text_type,
 
         for t in types:
-            expected = np.array(lmap(t, raw), dtype=object)
+            expected = Index(lmap(t, raw))
             res = index.map(t)
 
-            # should return an array
-            tm.assertIsInstance(res, np.ndarray)
+            # should return an Index
+            tm.assertIsInstance(res, Index)
 
             # preserve element types
             self.assertTrue(all(isinstance(resi, t) for resi in res))
 
-            # dtype should be object
-            self.assertEqual(res.dtype, np.dtype('object').type)
-
             # lastly, values should compare equal
-            tm.assert_numpy_array_equal(res, expected)
+            tm.assert_index_equal(res, expected)
 
     def test_convert_array_of_periods(self):
         rng = period_range('1/1/2000', periods=20, freq='D')

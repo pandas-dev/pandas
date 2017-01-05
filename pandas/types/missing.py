@@ -19,8 +19,7 @@ from .common import (is_string_dtype, is_datetimelike,
                      is_object_dtype,
                      is_integer,
                      _TD_DTYPE,
-                     _NS_DTYPE,
-                     _DATELIKE_DTYPES)
+                     _NS_DTYPE)
 from .inference import is_list_like
 
 
@@ -169,7 +168,7 @@ def _isnull_ndarraylike_old(obj):
             vec = lib.isnullobj_old(values.ravel())
             result[:] = vec.reshape(shape)
 
-    elif dtype in _DATELIKE_DTYPES:
+    elif is_datetime64_dtype(dtype):
         # this is the NaT pattern
         result = values.view('i8') == iNaT
     else:

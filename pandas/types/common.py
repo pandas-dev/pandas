@@ -22,9 +22,6 @@ _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
-_DATELIKE_DTYPES = set([np.dtype(t)
-                        for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
-                                  'm8[ns]', '<m8[ns]', '>m8[ns]']])
 
 _ensure_float64 = algos.ensure_float64
 _ensure_float32 = algos.ensure_float32
@@ -35,6 +32,8 @@ def _ensure_float(arr):
         arr = arr.astype(float)
     return arr
 
+
+_ensure_uint64 = algos.ensure_uint64
 _ensure_int64 = algos.ensure_int64
 _ensure_int32 = algos.ensure_int32
 _ensure_int16 = algos.ensure_int16
@@ -126,7 +125,8 @@ def is_datetime_arraylike(arr):
 
 
 def is_datetimelike(arr):
-    return (arr.dtype in _DATELIKE_DTYPES or
+    return (is_datetime64_dtype(arr) or is_datetime64tz_dtype(arr) or
+            is_timedelta64_dtype(arr) or
             isinstance(arr, ABCPeriodIndex) or
             is_datetimetz(arr))
 
@@ -152,6 +152,18 @@ def is_any_int_dtype(arr_or_dtype):
 def is_integer_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.integer) and
+            not issubclass(tipo, (np.datetime64, np.timedelta64)))
+
+
+def is_signed_integer_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return (issubclass(tipo, np.signedinteger) and
+            not issubclass(tipo, (np.datetime64, np.timedelta64)))
+
+
+def is_unsigned_integer_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return (issubclass(tipo, np.unsignedinteger) and
             not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
 
@@ -402,6 +414,11 @@ def _get_dtype_from_object(dtype):
             pass
         return dtype.type
     elif isinstance(dtype, string_types):
+        if dtype in ['datetimetz', 'datetime64tz']:
+            return DatetimeTZDtype.type
+        elif dtype in ['period']:
+            raise NotImplementedError
+
         if dtype == 'datetime' or dtype == 'timedelta':
             dtype += '64'
 

@@ -16,7 +16,7 @@ env:
   global:
 
   # pandas-docs-travis GH
-  - secure: "PCzUFR8CHmw9lH84p4ygnojdF7Z8U5h7YfY0RyT+5K/aiQ1ZTU3ZkDTPI0/rR5FVMxsEEKEQKMcc5fvqW0PeD7Q2wRmluloKgT9w4EVEJ1ppKf7lITPcvZR2QgVOvjv4AfDtibLHFNiaSjzoqyJVjM4igjOu8WTlF3JfZcmOQjQ="
+  - secure: "YvvTc+FrSYHgdxqoxn9s8VOaCWjvZzlkaf6k55kkmQqCYR9dPiLMsot1F96/N7o3YlD1s0znPQCak93Du8HHi/8809zAXloTaMSZrWz4R4qn96xlZFRE88O/w/Z1t3VVYpKX3MHlCggBc8MtXrqmvWKJMAqXyysZ4TTzoiJDPvE="
 
 git:
     # for cloning
@@ -66,19 +66,6 @@ matrix:
         apt:
           packages:
           - python-gtk2
-    - python: 3.4
-      env:
-        - PYTHON_VERSION=3.4
-        - JOB_NAME: "34_nslow"
-        - NOSE_ARGS="not slow and not disabled"
-        - FULL_DEPS=true
-        - CLIPBOARD=xsel
-        - CACHE_NAME="34_nslow"
-        - USE_CACHE=true
-      addons:
-        apt:
-          packages:
-          - xsel
     - python: 3.5
       env:
         - PYTHON_VERSION=3.5
@@ -93,65 +80,12 @@ matrix:
         apt:
           packages:
           - xsel
-#    In allow_failures
-    - python: 2.7
-      env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_slow"
-        - JOB_TAG=_SLOW
-        - NOSE_ARGS="slow and not network and not disabled"
-        - FULL_DEPS=true
-        - CACHE_NAME="27_slow"
-        - USE_CACHE=true
-#    In allow_failures
-    - python: 3.4
-      env:
-        - PYTHON_VERSION=3.4
-        - JOB_NAME: "34_slow"
-        - JOB_TAG=_SLOW
-        - NOSE_ARGS="slow and not network and not disabled"
-        - FULL_DEPS=true
-        - CLIPBOARD=xsel
-        - CACHE_NAME="34_slow"
-        - USE_CACHE=true
-      addons:
-        apt:
-          packages:
-          - xsel
-#    In allow_failures
-    - python: 2.7
-      env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_build_test_conda"
-        - JOB_TAG=_BUILD_TEST
-        - NOSE_ARGS="not slow and not disabled"
-        - FULL_DEPS=true
-        - BUILD_TEST=true
-        - CACHE_NAME="27_build_test_conda"
-        - USE_CACHE=true
-#    In allow_failures
-    - python: 3.6-dev
+    - python: 3.6
       env:
         - PYTHON_VERSION=3.6
-        - JOB_NAME: "36_dev"
-        - JOB_TAG=_DEV
+        - JOB_NAME: "36"
         - NOSE_ARGS="not slow and not network and not disabled"
         - PANDAS_TESTING_MODE="deprecate"
-      addons:
-        apt:
-          packages:
-          - libatlas-base-dev
-          - gfortran
-#    In allow_failures
-    - python: 3.5
-      env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "35_numpy_dev"
-        - JOB_TAG=_NUMPY_DEV
-        - NOSE_ARGS="not slow and not network and not disabled"
-        - PANDAS_TESTING_MODE="deprecate"
-        - CACHE_NAME="35_numpy_dev"
-        - USE_CACHE=true
       addons:
         apt:
           packages:
@@ -173,6 +107,71 @@ matrix:
           packages:
           - language-pack-it
 #    In allow_failures
+    - python: 2.7
+      env:
+        - PYTHON_VERSION=2.7
+        - JOB_NAME: "27_slow"
+        - JOB_TAG=_SLOW
+        - NOSE_ARGS="slow and not network and not disabled"
+        - FULL_DEPS=true
+        - CACHE_NAME="27_slow"
+        - USE_CACHE=true
+#    In allow_failures
+    - python: 2.7
+      env:
+        - PYTHON_VERSION=2.7
+        - JOB_NAME: "27_build_test_conda"
+        - JOB_TAG=_BUILD_TEST
+        - NOSE_ARGS="not slow and not disabled"
+        - FULL_DEPS=true
+        - BUILD_TEST=true
+        - CACHE_NAME="27_build_test_conda"
+        - USE_CACHE=true
+#    In allow_failures
+    - python: 3.4
+      env:
+        - PYTHON_VERSION=3.4
+        - JOB_NAME: "34_nslow"
+        - NOSE_ARGS="not slow and not disabled"
+        - FULL_DEPS=true
+        - CLIPBOARD=xsel
+        - CACHE_NAME="34_nslow"
+        - USE_CACHE=true
+      addons:
+        apt:
+          packages:
+          - xsel
+#    In allow_failures
+    - python: 3.4
+      env:
+        - PYTHON_VERSION=3.4
+        - JOB_NAME: "34_slow"
+        - JOB_TAG=_SLOW
+        - NOSE_ARGS="slow and not network and not disabled"
+        - FULL_DEPS=true
+        - CLIPBOARD=xsel
+        - CACHE_NAME="34_slow"
+        - USE_CACHE=true
+      addons:
+        apt:
+          packages:
+          - xsel
+#    In allow_failures
+    - python: 3.5
+      env:
+        - PYTHON_VERSION=3.5
+        - JOB_NAME: "35_numpy_dev"
+        - JOB_TAG=_NUMPY_DEV
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - PANDAS_TESTING_MODE="deprecate"
+        - CACHE_NAME="35_numpy_dev"
+        - USE_CACHE=true
+      addons:
+        apt:
+          packages:
+          - libatlas-base-dev
+          - gfortran
+#    In allow_failures
     - python: 3.5
       env:
         - PYTHON_VERSION=3.5
@@ -183,9 +182,9 @@ matrix:
         - CACHE_NAME="35_ascii"
         - USE_CACHE=true
 #    In allow_failures
-    - python: 2.7
+    - python: 3.5
       env:
-        - PYTHON_VERSION=2.7
+        - PYTHON_VERSION=3.5
         - JOB_NAME: "doc_build"
         - FULL_DEPS=true
         - DOC_BUILD=true
@@ -226,18 +225,19 @@ matrix:
         - BUILD_TEST=true
         - CACHE_NAME="27_build_test_conda"
         - USE_CACHE=true
-      - python: 3.6-dev
+      - python: 3.4
         env:
-        - PYTHON_VERSION=3.6
-        - JOB_NAME: "36_dev"
-        - JOB_TAG=_DEV
-        - NOSE_ARGS="not slow and not network and not disabled"
-        - PANDAS_TESTING_MODE="deprecate"
+          - PYTHON_VERSION=3.4
+          - JOB_NAME: "34_nslow"
+          - NOSE_ARGS="not slow and not disabled"
+          - FULL_DEPS=true
+          - CLIPBOARD=xsel
+          - CACHE_NAME="34_nslow"
+          - USE_CACHE=true
         addons:
           apt:
             packages:
-            - libatlas-base-dev
-            - gfortran
+            - xsel
       - python: 3.5
         env:
           - PYTHON_VERSION=3.5
@@ -275,9 +275,9 @@ matrix:
         - LOCALE_OVERRIDE="C"
         - CACHE_NAME="35_ascii"
         - USE_CACHE=true
-      - python: 2.7
+      - python: 3.5
         env:
-        - PYTHON_VERSION=2.7
+        - PYTHON_VERSION=3.5
         - JOB_NAME: "doc_build"
         - FULL_DEPS=true
         - DOC_BUILD=true

@@ -257,7 +257,7 @@ cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
 
-cpdef checknull(object val):
+cpdef bint checknull(object val):
     if util.is_float_object(val) or util.is_complex_object(val):
         return val != val # and val != INF and val != NEGINF
     elif util.is_datetime64_object(val):
@@ -272,7 +272,7 @@ cpdef checknull(object val):
         return _checknull(val)
 
 
-cpdef checknull_old(object val):
+cpdef bint checknull_old(object val):
     if util.is_float_object(val) or util.is_complex_object(val):
         return val != val or val == INF or val == NEGINF
     elif util.is_datetime64_object(val):
@@ -287,21 +287,21 @@ cpdef checknull_old(object val):
         return util._checknull(val)
 
 
-cpdef isposinf_scalar(object val):
+cpdef bint isposinf_scalar(object val):
     if util.is_float_object(val) and val == INF:
         return True
     else:
         return False
 
 
-cpdef isneginf_scalar(object val):
+cpdef bint isneginf_scalar(object val):
     if util.is_float_object(val) and val == NEGINF:
         return True
     else:
         return False
 
 
-def isscalar(object val):
+cpdef bint isscalar(object val):
     """
     Return True if given value is scalar.
 
@@ -313,6 +313,7 @@ def isscalar(object val):
     - instances of datetime.datetime
     - instances of datetime.timedelta
     - Period
+    - instances of decimal.Decimal
 
     """
 
@@ -325,7 +326,8 @@ def isscalar(object val):
             or PyDate_Check(val)
             or PyDelta_Check(val)
             or PyTime_Check(val)
-            or util.is_period_object(val))
+            or util.is_period_object(val)
+            or is_decimal(val))
 
 
 def item_from_zerodim(object val):

@@ -1,4 +1,4 @@
 python-dateutil=2.4.1
 pytz=2013b
 numpy
-cython=0.19.1
+cython=0.23

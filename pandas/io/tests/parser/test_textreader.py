@@ -392,6 +392,12 @@ a,b,c
                           names=list('abcd'), engine='c')
             assert_frame_equal(df, c)
 
+    def test_empty_csv_input(self):
+        # GH14867
+        df = read_csv(StringIO(), chunksize=20, header=None,
+                      names=['a', 'b', 'c'])
+        self.assertTrue(isinstance(df, TextFileReader))
+
 
 def assert_array_dicts_equal(left, right):
     for k, v in compat.iteritems(left):

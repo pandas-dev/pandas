@@ -65,6 +65,7 @@ def dt64arr_to_periodarr(data, freq, tz):
 
 # --- Period index sketch
 
+
 _DIFFERENT_FREQ_INDEX = period._DIFFERENT_FREQ_INDEX
 
 
@@ -305,7 +306,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             if (len(values) > 0 and is_float_dtype(values)):
                 raise TypeError("PeriodIndex can't take floats")
             else:
-                return PeriodIndex(values, name=name, freq=freq, **kwargs)
+                return cls(values, name=name, freq=freq, **kwargs)
 
         values = np.array(values, dtype='int64', copy=False)
 
@@ -326,6 +327,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if kwargs.get('freq') is None:
             # freq must be provided
             kwargs['freq'] = self.freq
+        if values is None:
+            values = self._values
         return super(PeriodIndex, self)._shallow_copy(values=values, **kwargs)
 
     def _coerce_scalar_to_index(self, item):
@@ -356,9 +359,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def asi8(self):
         return self._values.view('i8')
 
-    @property
+    @cache_readonly
     def _int64index(self):
-        # do not cache, same as .asi8
         return Int64Index(self.asi8, name=self.name, fastpath=True)
 
     @property

@@ -1,5 +1,5 @@
 from .pandas_vb_common import *
-from pandas.core.reshape import melt
+from pandas.core.reshape import melt, wide_to_long
 
 
 class melt_dataframe(object):
@@ -74,3 +74,25 @@ class unstack_sparse_keyspace(object):
 
     def time_unstack_sparse_keyspace(self):
         self.idf.unstack()
+
+
+class wide_to_long_big(object):
+    goal_time = 0.2
+
+    def setup(self):
+        vars = 'ABCD'
+        nyrs = 20
+        nidvars = 20
+        N = 5000
+        yrvars = []
+        for var in vars:
+            for yr in range(1, nyrs + 1):
+                yrvars.append(var + str(yr))
+
+        self.df = pd.DataFrame(np.random.randn(N, nidvars + len(yrvars)),
+                               columns=list(range(nidvars)) + yrvars)
+        self.vars = vars
+
+    def time_wide_to_long_big(self):
+        self.df['id'] = self.df.index
+        wide_to_long(self.df, list(self.vars), i='id', j='year')

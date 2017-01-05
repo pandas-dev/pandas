@@ -24,7 +24,7 @@ from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex, Period
 from pandas.tseries.resample import (DatetimeIndex, TimeGrouper,
                                      DatetimeIndexResampler)
-from pandas.tseries.tdi import timedelta_range
+from pandas.tseries.tdi import timedelta_range, TimedeltaIndex
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
 from pandas._period import IncompatibleFrequency
@@ -768,6 +768,43 @@ class Base(object):
                         # Ignore these since some combinations are invalid
                         # (ex: doing mean with dtype of np.object)
                         pass
+
+    def test_resample_loffset_arg_type(self):
+        # GH 13218, 15002
+        df = self.create_series().to_frame('value')
+        expected_means = [df.values[i:i + 2].mean()
+                          for i in range(0, len(df.values), 2)]
+        expected_index = self.create_index(df.index[0],
+                                           periods=len(df.index) / 2,
+                                           freq='2D')
+
+        # loffset coreces PeriodIndex to DateTimeIndex
+        if isinstance(expected_index, PeriodIndex):
+            expected_index = expected_index.to_timestamp()
+
+        expected_index += timedelta(hours=2)
+        expected = DataFrame({'value': expected_means}, index=expected_index)
+
+        for arg in ['mean', {'value': 'mean'}, ['mean']]:
+
+            result_agg = df.resample('2D', loffset='2H').agg(arg)
+
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result_how = df.resample('2D', how=arg, loffset='2H')
+
+            if isinstance(arg, list):
+                expected.columns = pd.MultiIndex.from_tuples([('value',
+                                                               'mean')])
+
+            # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
+            if isinstance(expected.index, TimedeltaIndex):
+                with tm.assertRaises(AssertionError):
+                    assert_frame_equal(result_agg, expected)
+                    assert_frame_equal(result_how, expected)
+            else:
+                assert_frame_equal(result_agg, expected)
+                assert_frame_equal(result_how, expected)
 
 
 class TestDatetimeIndex(Base, tm.TestCase):

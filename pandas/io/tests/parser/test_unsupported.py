@@ -69,9 +69,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         msg = 'Error tokenizing data'
 
         with tm.assertRaisesRegexp(ParserError, msg):
-            read_table(StringIO(text), sep='\s+')
+            read_table(StringIO(text), sep='\\s+')
         with tm.assertRaisesRegexp(ParserError, msg):
-            read_table(StringIO(text), engine='c', sep='\s+')
+            read_table(StringIO(text), engine='c', sep='\\s+')
 
         msg = "Only length-1 thousands markers supported"
         data = """A|B|C

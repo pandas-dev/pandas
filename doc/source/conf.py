@@ -326,6 +326,23 @@ from sphinx.ext.autodoc import Documenter, MethodDocumenter, AttributeDocumenter
 from sphinx.ext.autosummary import Autosummary
 
 
+class AccessorDocumenter(MethodDocumenter):
+    """
+    Specialized Documenter subclass for accessors.
+    """
+
+    objtype = 'accessor'
+    directivetype = 'method'
+
+    # lower than MethodDocumenter so this is not chosen for normal methods
+    priority = 0.6
+
+    def format_signature(self):
+        # this method gives an error/warning for the accessors, therefore
+        # overriding it (accessor has no arguments)
+        return ''
+
+
 class AccessorLevelDocumenter(Documenter):
     """
     Specialized Documenter subclass for objects on accessor level (methods,
@@ -381,11 +398,16 @@ class AccessorAttributeDocumenter(AccessorLevelDocumenter, AttributeDocumenter):
     objtype = 'accessorattribute'
     directivetype = 'attribute'
 
+    # lower than AttributeDocumenter so this is not chosen for normal attributes
+    priority = 0.6
 
 class AccessorMethodDocumenter(AccessorLevelDocumenter, MethodDocumenter):
 
     objtype = 'accessormethod'
     directivetype = 'method'
+
+    # lower than MethodDocumenter so this is not chosen for normal methods
+    priority = 0.6
 
 
 class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
@@ -483,6 +505,7 @@ def remove_flags_docstring(app, what, name, obj, options, lines):
 
 def setup(app):
     app.connect("autodoc-process-docstring", remove_flags_docstring)
+    app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)
     app.add_autodocumenter(AccessorCallableDocumenter)

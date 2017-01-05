@@ -34,6 +34,7 @@ object.
     * :ref:`read_csv<io.read_csv_table>`
     * :ref:`read_excel<io.excel_reader>`
     * :ref:`read_hdf<io.hdf5>`
+    * :ref:`read_feather<io.feather>`
     * :ref:`read_sql<io.sql>`
     * :ref:`read_json<io.json_reader>`
     * :ref:`read_msgpack<io.msgpack>` (experimental)
@@ -49,6 +50,7 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * :ref:`to_csv<io.store_in_csv>`
     * :ref:`to_excel<io.excel_writer>`
     * :ref:`to_hdf<io.hdf5>`
+    * :ref:`to_feather<io.feather>`
     * :ref:`to_sql<io.sql>`
     * :ref:`to_json<io.json_writer>`
     * :ref:`to_msgpack<io.msgpack>` (experimental)
@@ -323,8 +325,11 @@ encoding : str, default ``None``
   Python standard encodings
   <https://docs.python.org/3/library/codecs.html#standard-encodings>`_.
 dialect : str or :class:`python:csv.Dialect` instance, default ``None``
-  If ``None`` defaults to Excel dialect. Ignored if sep longer than 1 char. See
-  :class:`python:csv.Dialect` documentation for more details.
+  If provided, this parameter will override values (default or not) for the
+  following parameters: `delimiter`, `doublequote`, `escapechar`,
+  `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
+  override values, a ParserWarning will be issued. See :class:`python:csv.Dialect`
+  documentation for more details.
 tupleize_cols : boolean, default ``False``
   Leave a list of tuples on columns as is (default is to convert to a MultiIndex
   on the columns).
@@ -500,7 +505,7 @@ worth trying.
    .. ipython:: python
         :okwarning:
 
-        df = pd.DataFrame({'col_1':range(500000) + ['a', 'b'] + range(500000)})
+        df = pd.DataFrame({'col_1': list(range(500000)) + ['a', 'b'] + list(range(500000))})
         df.to_csv('foo')
         mixed_df = pd.read_csv('foo')
         mixed_df['col_1'].apply(type).value_counts()
@@ -638,6 +643,15 @@ file, either using the column names, position numbers or a callable:
     pd.read_csv(StringIO(data), usecols=['b', 'd'])
     pd.read_csv(StringIO(data), usecols=[0, 2, 3])
     pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ['A', 'C'])
+
+The ``usecols`` argument can also be used to specify which columns not to
+use in the final result:
+
+.. ipython:: python
+   pd.read_csv(StringIO(data), usecols=lambda x: x not in ['a', 'c'])
+
+In this case, the callable is specifying that we exclude the "a" and "c"
+columns from the output.
 
 Comments and Empty Lines
 ''''''''''''''''''''''''
@@ -866,6 +880,12 @@ data columns:
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
                     index_col=0) #index is the nominal column
    df
+
+.. note::
+   If a column or index contains an unparseable date, the entire column or
+   index will be returned unaltered as an object data type. For non-standard
+   datetime parsing, use :func:`to_datetime` after ``pd.read_csv``.
+
 
 .. note::
    read_csv has a fast_path for parsing datetime strings in iso8601 format,
@@ -1480,6 +1500,23 @@ options include:
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
+
+Reading remote files
+''''''''''''''''''''
+
+You can pass in a URL to a CSV file:
+
+.. code-block:: python
+
+   df = pd.read_csv('https://download.bls.gov/pub/time.series/cu/cu.item',
+                    sep='\t')
+
+S3 URLs are handled as well:
+
+.. code-block:: python
+
+   df = pd.read_csv('s3://pandas-test/tips.csv')
+
 
 Writing out Data
 ''''''''''''''''
@@ -2344,7 +2381,7 @@ read into memory only once.
 
 .. code-block:: python
 
-   xlsx = pd.ExcelFile('path_to_file.xls)
+   xlsx = pd.ExcelFile('path_to_file.xls')
    df = pd.read_excel(xlsx, 'Sheet1')
 
 The ``ExcelFile`` class can also be used as a context manager.
@@ -3998,7 +4035,7 @@ and data values from the values and assembles them into a ``data.frame``:
    name_paths = paste(listing$group[name_nodes], listing$name[name_nodes], sep = "/")
    columns = list()
    for (idx in seq(data_paths)) {
-     # NOTE: matrices returned by h5read have to be transposed to to obtain
+     # NOTE: matrices returned by h5read have to be transposed to obtain
      # required Fortran order!
      data <- data.frame(t(h5read(h5File, data_paths[idx])))
      names <- t(h5read(h5File, name_paths[idx]))
@@ -4128,6 +4165,68 @@ object). This cannot be changed after table creation.
    import os
    os.remove('store.h5')
 
+
+.. _io.feather:
+
+Feather
+-------
+
+.. versionadded:: 0.20.0
+
+Feather provides binary columnar serialization for data frames. It is designed to make reading and writing data
+frames efficient, and to make sharing data across data analysis languages easy.
+
+Feather is designed to faithfully serialize and de-serialize DataFrames, supporting all of the pandas
+dtypes, including extension dtypes such as categorical and datetime with tz.
+
+Several caveats.
+
+- This is a newer library, and the format, though stable, is not guaranteed to be backward compatible
+  to the earlier versions.
+- The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
+  error if a non-default one is provided. You can simply ``.reset_index()`` in order to store the index.
+- Duplicate column names and non-string columns names are not supported
+- Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
+  on an attempt at serialization.
+
+See the `Full Documentation <https://github.com/wesm/feather>`__
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': list('abc'),
+                      'b': list(range(1, 4)),
+                      'c': np.arange(3, 6).astype('u1'),
+                      'd': np.arange(4.0, 7.0, dtype='float64'),
+                      'e': [True, False, True],
+                      'f': pd.Categorical(list('abc')),
+                      'g': pd.date_range('20130101', periods=3),
+                      'h': pd.date_range('20130101', periods=3, tz='US/Eastern'),
+                      'i': pd.date_range('20130101', periods=3, freq='ns')})
+
+   df
+   df.dtypes
+
+Write to a feather file.
+
+.. ipython:: python
+
+   df.to_feather('example.feather')
+
+Read from a feather file.
+
+.. ipython:: python
+
+   result = pd.read_feather('example.feather')
+   result
+
+   # we preserve dtypes
+   result.dtypes
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('example.feather')
 
 .. _io.sql:
 
@@ -4561,6 +4660,22 @@ destination DataFrame as well as a preferred column order as follows:
    data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
                              index_col='index_column_name',
                              col_order=['col1', 'col2', 'col3'], projectid)
+
+
+Starting with 0.20.0, you can specify the query config as parameter to use additional options of your job.
+For more information about query configuration parameters see 
+`here <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__.
+
+.. code-block:: python
+
+   configuration = {
+      'query': {
+        "useQueryCache": False
+      }
+   }
+   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
+                             configuration=configuration, projectid)
+
 
 .. note::
 

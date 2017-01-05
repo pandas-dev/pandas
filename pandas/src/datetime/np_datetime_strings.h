@@ -1,9 +1,26 @@
 /*
- * This is derived from numpy 1.7. See NP_LICENSE.txt
- */
 
-#ifndef _NPY_PRIVATE__DATETIME_STRINGS_H_
-#define _NPY_PRIVATE__DATETIME_STRINGS_H_
+Copyright (c) 2016, PyData Development Team
+All rights reserved.
+
+Distributed under the terms of the BSD Simplified License.
+
+The full license is in the LICENSE file, distributed with this software.
+
+Written by Mark Wiebe (mwwiebe@gmail.com)
+Copyright (c) 2011 by Enthought, Inc.
+
+Copyright (c) 2005-2011, NumPy Developers
+All rights reserved.
+
+See NUMPY_LICENSE.txt for the license.
+
+This file implements string parsing and creation for NumPy datetime.
+
+*/
+
+#ifndef PANDAS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
+#define PANDAS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
 
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
@@ -86,4 +103,4 @@ make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
                     int local, PANDAS_DATETIMEUNIT base, int tzoffset,
                     NPY_CASTING casting);
 
-#endif
+#endif  // PANDAS_SRC_DATETIME_NP_DATETIME_STRINGS_H_

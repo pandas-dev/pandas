@@ -687,7 +687,7 @@ class Timestamp(_Timestamp):
         # replace
         def validate(k, v):
             """ validate integers """
-            if not isinstance(v, int):
+            if not is_integer_object(v):
                 raise ValueError("value must be an integer, received "
                                  "{v} for {k}".format(v=type(v), k=k))
             return v

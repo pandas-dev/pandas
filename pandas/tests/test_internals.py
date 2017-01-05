@@ -553,7 +553,7 @@ class TestBlockManager(tm.TestCase):
                          'e: f4; f: f2; g: f8')
         for t in ['float16', 'float32', 'float64', 'int32', 'int64']:
             t = np.dtype(t)
-            tmgr = mgr.astype(t, raise_on_error=False)
+            tmgr = mgr.astype(t, errors='ignore')
             self.assertEqual(tmgr.get('c').dtype.type, t)
             self.assertEqual(tmgr.get('e').dtype.type, t)
             self.assertEqual(tmgr.get('f').dtype.type, t)

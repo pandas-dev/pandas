@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 
 import numpy as np
 
@@ -347,6 +347,19 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         with tm.assertRaises(OutOfBoundsDatetime):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
+
+    def test_construction_with_ndarray(self):
+        # GH 5152
+        dates = [datetime(2013, 10, 7),
+                 datetime(2013, 10, 8),
+                 datetime(2013, 10, 9)]
+        data = DatetimeIndex(dates, freq=pd.tseries.frequencies.BDay()).values
+        result = DatetimeIndex(data, freq=pd.tseries.frequencies.BDay())
+        expected = DatetimeIndex(['2013-10-07',
+                                  '2013-10-08',
+                                  '2013-10-09'],
+                                 freq='B')
+        tm.assert_index_equal(result, expected)
 
     def test_astype(self):
         # GH 13149, GH 13209
@@ -747,6 +760,26 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         expected = DatetimeIndex(["20160920", "20160921"], freq=None)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
+
+    def test_week_of_month_frequency(self):
+        # GH 5348: "ValueError: Could not evaluate WOM-1SUN" shouldn't raise
+        d1 = date(2002, 9, 1)
+        d2 = date(2013, 10, 27)
+        d3 = date(2012, 9, 30)
+        idx1 = DatetimeIndex([d1, d2])
+        idx2 = DatetimeIndex([d3])
+        result_append = idx1.append(idx2)
+        expected = DatetimeIndex([d1, d2, d3])
+        tm.assert_index_equal(result_append, expected)
+        result_union = idx1.union(idx2)
+        expected = DatetimeIndex([d1, d3, d2])
+        tm.assert_index_equal(result_union, expected)
+
+        # GH 5115
+        result = date_range("2013-1-1", periods=4, freq='WOM-1SAT')
+        dates = ['2013-01-05', '2013-02-02', '2013-03-02', '2013-04-06']
+        expected = DatetimeIndex(dates, freq='WOM-1SAT')
+        tm.assert_index_equal(result, expected)
 
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):

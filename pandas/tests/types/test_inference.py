@@ -11,6 +11,7 @@ import collections
 import re
 from datetime import datetime, date, timedelta, time
 import numpy as np
+import pytz
 
 import pandas as pd
 from pandas import lib, tslib
@@ -253,6 +254,86 @@ class TestInference(tm.TestCase):
         arr = np.array([[10.0, 2], 1.0, 'apple'])
         result = lib.maybe_convert_numeric(arr, set(), False, True)
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
+
+    def test_convert_numeric_uint64(self):
+        arr = np.array([2**63], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+
+        arr = np.array([str(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+
+        arr = np.array([np.uint64(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+
+    def test_convert_numeric_uint64_nan(self):
+        msg = 'uint64 array detected'
+        cases = [(np.array([2**63, np.nan], dtype=object), set()),
+                 (np.array([str(2**63), np.nan], dtype=object), set()),
+                 (np.array([np.nan, 2**63], dtype=object), set()),
+                 (np.array([np.nan, str(2**63)], dtype=object), set()),
+                 (np.array([2**63, 2**63 + 1], dtype=object), set([2**63])),
+                 (np.array([str(2**63), str(2**63 + 1)],
+                           dtype=object), set([2**63]))]
+
+        for coerce in (True, False):
+            for arr, na_values in cases:
+                if coerce:
+                    with tm.assertRaisesRegexp(ValueError, msg):
+                        lib.maybe_convert_numeric(arr, na_values,
+                                                  coerce_numeric=coerce)
+                else:
+                    tm.assert_numpy_array_equal(lib.maybe_convert_numeric(
+                        arr, na_values), arr)
+
+    def test_convert_numeric_int64_uint64(self):
+        msg = 'uint64 and negative values detected'
+        cases = [np.array([2**63, -1], dtype=object),
+                 np.array([str(2**63), -1], dtype=object),
+                 np.array([str(2**63), str(-1)], dtype=object),
+                 np.array([-1, 2**63], dtype=object),
+                 np.array([-1, str(2**63)], dtype=object),
+                 np.array([str(-1), str(2**63)], dtype=object)]
+
+        for coerce in (True, False):
+            for case in cases:
+                if coerce:
+                    with tm.assertRaisesRegexp(ValueError, msg):
+                        lib.maybe_convert_numeric(case, set(),
+                                                  coerce_numeric=coerce)
+                else:
+                    tm.assert_numpy_array_equal(lib.maybe_convert_numeric(
+                        case, set()), case)
+
+    def test_maybe_convert_objects_uint64(self):
+        # see gh-4471
+        arr = np.array([2**63], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
+
+        # NumPy bug: can't compare uint64 to int64, as that
+        # results in both casting to float64, so we should
+        # make sure that this function is robust against it
+        arr = np.array([np.uint64(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
+
+        arr = np.array([2, -1], dtype=object)
+        exp = np.array([2, -1], dtype=np.int64)
+        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
+
+        arr = np.array([2**63, -1], dtype=object)
+        exp = np.array([2**63, -1], dtype=object)
+        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
+
+    def test_mixed_dtypes_remain_object_array(self):
+        # GH14956
+        array = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1],
+                         dtype=object)
+        result = lib.maybe_convert_objects(array, convert_datetime=1)
+        tm.assert_numpy_array_equal(result, array)
 
 
 class TestTypeInference(tm.TestCase):

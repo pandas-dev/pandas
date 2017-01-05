@@ -455,17 +455,23 @@ class Block(PandasObject):
 
         return blocks
 
-    def astype(self, dtype, copy=False, raise_on_error=True, values=None,
-               **kwargs):
-        return self._astype(dtype, copy=copy, raise_on_error=raise_on_error,
-                            values=values, **kwargs)
+    def astype(self, dtype, copy=False, errors='raise', values=None, **kwargs):
+        return self._astype(dtype, copy=copy, errors=errors, values=values,
+                            **kwargs)
 
-    def _astype(self, dtype, copy=False, raise_on_error=True, values=None,
+    def _astype(self, dtype, copy=False, errors='raise', values=None,
                 klass=None, mgr=None, **kwargs):
         """
         Coerce to the new type (if copy=True, return a new copy)
         raise on an except if raise == True
         """
+        errors_legal_values = ('raise', 'ignore')
+
+        if errors not in errors_legal_values:
+            invalid_arg = ("Expected value of kwarg 'errors' to be one of {}. "
+                           "Supplied value is '{}'".format(
+                               list(errors_legal_values), errors))
+            raise ValueError(invalid_arg)
 
         # may need to convert to categorical
         # this is only called for non-categoricals
@@ -507,7 +513,7 @@ class Block(PandasObject):
             newb = make_block(values, placement=self.mgr_locs, dtype=dtype,
                               klass=klass)
         except:
-            if raise_on_error is True:
+            if errors == 'raise':
                 raise
             newb = self.copy() if copy else self
 
@@ -2147,7 +2153,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def _astype(self, dtype, copy=False, raise_on_error=True, values=None,
+    def _astype(self, dtype, copy=False, errors='raise', values=None,
                 klass=None, mgr=None):
         """
         Coerce to the new type (if copy=True, return a new copy)
@@ -4314,11 +4320,6 @@ def form_blocks(arrays, names, axes):
         elif is_datetimetz(v):
             datetime_tz_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.integer):
-            if v.dtype == np.uint64:
-                # HACK #2355 definite overflow
-                if (v > 2**63 - 1).any():
-                    object_items.append((i, k, v))
-                    continue
             int_items.append((i, k, v))
         elif v.dtype == np.bool_:
             bool_items.append((i, k, v))

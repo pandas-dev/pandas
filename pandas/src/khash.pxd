@@ -1,5 +1,5 @@
 from cpython cimport PyObject
-from numpy cimport int64_t, int32_t, uint32_t, float64_t
+from numpy cimport int64_t, uint64_t, int32_t, uint32_t, float64_t
 
 cdef extern from "khash_python.h":
     ctypedef uint32_t khint_t
@@ -55,7 +55,6 @@ cdef extern from "khash_python.h":
 
     bint kh_exist_str(kh_str_t*, khiter_t) nogil
 
-
     ctypedef struct kh_int64_t:
         khint_t n_buckets, size, n_occupied, upper_bound
         uint32_t *flags
@@ -71,6 +70,24 @@ cdef extern from "khash_python.h":
     inline void kh_del_int64(kh_int64_t*, khint_t) nogil
 
     bint kh_exist_int64(kh_int64_t*, khiter_t) nogil
+
+    ctypedef uint64_t khuint64_t
+
+    ctypedef struct kh_uint64_t:
+        khint_t n_buckets, size, n_occupied, upper_bound
+        uint32_t *flags
+        khuint64_t *keys
+        size_t *vals
+
+    inline kh_uint64_t* kh_init_uint64() nogil
+    inline void kh_destroy_uint64(kh_uint64_t*) nogil
+    inline void kh_clear_uint64(kh_uint64_t*) nogil
+    inline khint_t kh_get_uint64(kh_uint64_t*, int64_t) nogil
+    inline void kh_resize_uint64(kh_uint64_t*, khint_t) nogil
+    inline khint_t kh_put_uint64(kh_uint64_t*, int64_t, int*) nogil
+    inline void kh_del_uint64(kh_uint64_t*, khint_t) nogil
+
+    bint kh_exist_uint64(kh_uint64_t*, khiter_t) nogil
 
     ctypedef struct kh_float64_t:
         khint_t n_buckets, size, n_occupied, upper_bound

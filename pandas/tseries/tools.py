@@ -183,7 +183,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     Parameters
     ----------
-    arg : string, datetime, list, tuple, 1-d array, Series
+    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
 
         .. versionadded: 0.18.1
 

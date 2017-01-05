@@ -183,13 +183,14 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         self.assertEqual(df.values.dtype, np.bool_)
 
     def test_constructor_overflow_int64(self):
+        # see gh-14881
         values = np.array([2 ** 64 - i for i in range(1, 10)],
                           dtype=np.uint64)
 
         result = DataFrame({'a': values})
-        self.assertEqual(result['a'].dtype, object)
+        self.assertEqual(result['a'].dtype, np.uint64)
 
-        # #2355
+        # see gh-2355
         data_scores = [(6311132704823138710, 273), (2685045978526272070, 23),
                        (8921811264899370420, 45),
                        (long(17019687244989530680), 270),
@@ -198,7 +199,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         data = np.zeros((len(data_scores),), dtype=dtype)
         data[:] = data_scores
         df_crawls = DataFrame(data)
-        self.assertEqual(df_crawls['uid'].dtype, object)
+        self.assertEqual(df_crawls['uid'].dtype, np.uint64)
 
     def test_constructor_ordereddict(self):
         import random

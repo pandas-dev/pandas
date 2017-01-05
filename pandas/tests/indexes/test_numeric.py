@@ -105,6 +105,15 @@ class Numeric(Base):
         for r, e in zip(result, expected):
             tm.assert_index_equal(r, e)
 
+        # test power calculations both ways, GH 14973
+        expected = pd.Float64Index(2.0**idx.values)
+        result = 2.0**idx
+        tm.assert_index_equal(result, expected)
+
+        expected = pd.Float64Index(idx.values**2.0)
+        result = idx**2.0
+        tm.assert_index_equal(result, expected)
+
     def test_explicit_conversions(self):
 
         # GH 8608

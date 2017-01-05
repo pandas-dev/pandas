@@ -49,8 +49,8 @@ tree doesn't have cyclic references.
 
 */
 
-#ifndef __ULTRAJSON_H__
-#define __ULTRAJSON_H__
+#ifndef PANDAS_SRC_UJSON_LIB_ULTRAJSON_H_
+#define PANDAS_SRC_UJSON_LIB_ULTRAJSON_H_
 
 #include <stdio.h>
 #include <wchar.h>
@@ -143,25 +143,23 @@ typedef int64_t JSLONG;
 #error "Endianess not supported"
 #endif
 
-enum JSTYPES
-{
-  JT_NULL,        // NULL
-  JT_TRUE,        //boolean true
-  JT_FALSE,       //boolean false
-  JT_INT,         //(JSINT32 (signed 32-bit))
-  JT_LONG,        //(JSINT64 (signed 64-bit))
-  JT_DOUBLE,    //(double)
-  JT_UTF8,        //(char 8-bit)
-  JT_ARRAY,       // Array structure
-  JT_OBJECT,    // Key/Value structure
-  JT_INVALID,    // Internal, do not return nor expect
+enum JSTYPES {
+  JT_NULL,     // NULL
+  JT_TRUE,     // boolean true
+  JT_FALSE,    // boolean false
+  JT_INT,      // (JSINT32 (signed 32-bit))
+  JT_LONG,     // (JSINT64 (signed 64-bit))
+  JT_DOUBLE,   // (double)
+  JT_UTF8,     // (char 8-bit)
+  JT_ARRAY,    // Array structure
+  JT_OBJECT,   // Key/Value structure
+  JT_INVALID,  // Internal, do not return nor expect
 };
 
 typedef void * JSOBJ;
 typedef void * JSITER;
 
-typedef struct __JSONTypeContext
-{
+typedef struct __JSONTypeContext {
   int type;
   void *encoder;
   void *prv;
@@ -173,16 +171,17 @@ typedef void (*JSPFN_ITERBEGIN)(JSOBJ obj, JSONTypeContext *tc);
 typedef int (*JSPFN_ITERNEXT)(JSOBJ obj, JSONTypeContext *tc);
 typedef void (*JSPFN_ITEREND)(JSOBJ obj, JSONTypeContext *tc);
 typedef JSOBJ (*JSPFN_ITERGETVALUE)(JSOBJ obj, JSONTypeContext *tc);
-typedef char *(*JSPFN_ITERGETNAME)(JSOBJ obj, JSONTypeContext *tc, size_t *outLen);
+typedef char *(*JSPFN_ITERGETNAME)(JSOBJ obj, JSONTypeContext *tc,
+                                   size_t *outLen);
 typedef void *(*JSPFN_MALLOC)(size_t size);
 typedef void (*JSPFN_FREE)(void *pptr);
 typedef void *(*JSPFN_REALLOC)(void *base, size_t size);
 
-typedef struct __JSONObjectEncoder
-{
+typedef struct __JSONObjectEncoder {
   void (*beginTypeContext)(JSOBJ obj, JSONTypeContext *tc);
   void (*endTypeContext)(JSOBJ obj, JSONTypeContext *tc);
-  const char *(*getStringValue)(JSOBJ obj, JSONTypeContext *tc, size_t *_outLen);
+  const char *(*getStringValue)(JSOBJ obj, JSONTypeContext *tc,
+                                size_t *_outLen);
   JSINT64 (*getLongValue)(JSOBJ obj, JSONTypeContext *tc);
   JSINT32 (*getIntValue)(JSOBJ obj, JSONTypeContext *tc);
   double (*getDoubleValue)(JSOBJ obj, JSONTypeContext *tc);
@@ -256,9 +255,7 @@ typedef struct __JSONObjectEncoder
   char *end;
   int heap;
   int level;
-
 } JSONObjectEncoder;
-
 
 /*
 Encode an object structure into JSON.
@@ -279,12 +276,10 @@ Life cycle of the provided buffer must still be handled by caller.
 If the return value doesn't equal the specified buffer caller must release the memory using
 JSONObjectEncoder.free or free() as specified when calling this function.
 */
-EXPORTFUNCTION char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *buffer, size_t cbBuffer);
+EXPORTFUNCTION char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc,
+                                       char *buffer, size_t cbBuffer);
 
-
-
-typedef struct __JSONObjectDecoder
-{
+typedef struct __JSONObjectDecoder {
   JSOBJ (*newString)(void *prv, wchar_t *start, wchar_t *end);
   int (*objectAddKey)(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value);
   int (*arrayAddItem)(void *prv, JSOBJ obj, JSOBJ value);
@@ -308,7 +303,8 @@ typedef struct __JSONObjectDecoder
   void *prv;
 } JSONObjectDecoder;
 
-EXPORTFUNCTION JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer, size_t cbBuffer);
+EXPORTFUNCTION JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec,
+                                       const char *buffer, size_t cbBuffer);
 EXPORTFUNCTION void encode(JSOBJ, JSONObjectEncoder *, const char *, size_t);
 
-#endif
+#endif  // PANDAS_SRC_UJSON_LIB_ULTRAJSON_H_

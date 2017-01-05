@@ -3,6 +3,7 @@
 from pandas.compat import range, zip
 from pandas import compat
 import itertools
+import re
 
 import numpy as np
 
@@ -277,7 +278,8 @@ def _unstack_multiple(data, clocs):
                              verify_integrity=False)
 
     if isinstance(data, Series):
-        dummy = Series(data.values, index=dummy_index)
+        dummy = data.copy()
+        dummy.index = dummy_index
         unstacked = dummy.unstack('__placeholder__')
         new_levels = clevels
         new_names = cnames
@@ -292,7 +294,8 @@ def _unstack_multiple(data, clocs):
 
             return result
 
-        dummy = DataFrame(data.values, index=dummy_index, columns=data.columns)
+        dummy = data.copy()
+        dummy.index = dummy_index
 
         unstacked = dummy.unstack('__placeholder__')
         if isinstance(unstacked, Series):
@@ -875,29 +878,55 @@ def lreshape(data, groups, dropna=True, label=None):
     return DataFrame(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df, stubnames, i, j):
-    """
+def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
+    r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
+
+    With stubnames ['A', 'B'], this function expects to find one or more
+    group of columns with format Asuffix1, Asuffix2,..., Bsuffix1, Bsuffix2,...
+    You specify what you want to call this suffix in the resulting long format
+    with `j` (for example `j='year'`)
+
+    Each row of these wide variables are assumed to be uniquely identified by
+    `i` (can be a single column name or a list of column names)
+
+    All remaining variables in the data frame are left intact.
 
     Parameters
     ----------
     df : DataFrame
         The wide-format DataFrame
-    stubnames : list
-        A list of stub names. The wide format variables are assumed to
+    stubnames : str or list-like
+        The stub name(s). The wide format variables are assumed to
         start with the stub names.
-    i : str
-        The name of the id variable.
+    i : str or list-like
+        Column(s) to use as id variable(s)
     j : str
-        The name of the subobservation variable.
-    stubend : str
-        Regex to match for the end of the stubs.
+        The name of the subobservation variable. What you wish to name your
+        suffix in the long format.
+    sep : str, default ""
+        A character indicating the separation of the variable names
+        in the wide format, to be stripped from the names in the long format.
+        For example, if your column names are A-suffix1, A-suffix2, you
+        can strip the hypen by specifying `sep='-'`
+
+        .. versionadded:: 0.20.0
+
+    suffix : str, default '\\d+'
+        A regular expression capturing the wanted suffixes. '\\d+' captures
+        numeric suffixes. Suffixes with no numbers could be specified with the
+        negated character class '\\D+'. You can also further disambiguate
+        suffixes, for example, if your wide variables are of the form
+        Aone, Btwo,.., and you have an unrelated column Arating, you can
+        ignore the last one by specifying `suffix='(!?one|two)'`
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
     DataFrame
-        A DataFrame that contains each stub name as a variable as well as
-        variables for i and j.
+        A DataFrame that contains each stub name as a variable, with new index
+        (i, j)
 
     Examples
     --------
@@ -916,7 +945,7 @@ def wide_to_long(df, stubnames, i, j):
     0     a     d    2.5    3.2 -1.085631   0
     1     b     e    1.2    1.3  0.997345   1
     2     c     f    0.7    0.1  0.282978   2
-    >>> wide_to_long(df, ["A", "B"], i="id", j="year")
+    >>> pd.wide_to_long(df, ["A", "B"], i="id", j="year")
                     X  A    B
     id year
     0  1970 -1.085631  a  2.5
@@ -926,38 +955,151 @@ def wide_to_long(df, stubnames, i, j):
     1  1980  0.997345  e  1.3
     2  1980  0.282978  f  0.1
 
+    With multuple id columns
+
+    >>> df = pd.DataFrame({
+    ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+    ...     'birth': [1, 2, 3, 1, 2, 3, 1, 2, 3],
+    ...     'ht1': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
+    ...     'ht2': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
+    ... })
+    >>> df
+       birth  famid  ht1  ht2
+    0      1      1  2.8  3.4
+    1      2      1  2.9  3.8
+    2      3      1  2.2  2.9
+    3      1      2  2.0  3.2
+    4      2      2  1.8  2.8
+    5      3      2  1.9  2.4
+    6      1      3  2.2  3.3
+    7      2      3  2.3  3.4
+    8      3      3  2.1  2.9
+    >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age')
+    >>> l
+                      ht
+    famid birth age
+    1     1     1    2.8
+                2    3.4
+          2     1    2.9
+                2    3.8
+          3     1    2.2
+                2    2.9
+    2     1     1    2.0
+                2    3.2
+          2     1    1.8
+                2    2.8
+          3     1    1.9
+                2    2.4
+    3     1     1    2.2
+                2    3.3
+          2     1    2.3
+                2    3.4
+          3     1    2.1
+                2    2.9
+
+    Going from long back to wide just takes some creative use of `unstack`
+
+    >>> w = l.reset_index().set_index(['famid', 'birth', 'age']).unstack()
+    >>> w.columns = pd.Index(w.columns).str.join('')
+    >>> w.reset_index()
+       famid  birth  ht1  ht2
+    0      1      1  2.8  3.4
+    1      1      2  2.9  3.8
+    2      1      3  2.2  2.9
+    3      2      1  2.0  3.2
+    4      2      2  1.8  2.8
+    5      2      3  1.9  2.4
+    6      3      1  2.2  3.3
+    7      3      2  2.3  3.4
+    8      3      3  2.1  2.9
+
+    Less wieldy column names are also handled
+
+    >>> df = pd.DataFrame({'A(quarterly)-2010': np.random.rand(3),
+    ...                    'A(quarterly)-2011': np.random.rand(3),
+    ...                    'B(quarterly)-2010': np.random.rand(3),
+    ...                    'B(quarterly)-2011': np.random.rand(3),
+    ...                    'X' : np.random.randint(3, size=3)})
+    >>> df['id'] = df.index
+    >>> df
+      A(quarterly)-2010 A(quarterly)-2011 B(quarterly)-2010 B(quarterly)-2011
+    0          0.531828          0.724455          0.322959          0.293714
+    1          0.634401          0.611024          0.361789          0.630976
+    2          0.849432          0.722443          0.228263          0.092105
+    \
+       X  id
+    0  0   0
+    1  1   1
+    2  2   2
+    >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'],
+                        i='id', j='year', sep='-')
+             X     A(quarterly)  B(quarterly)
+    id year
+    0  2010  0       0.531828       0.322959
+    1  2010  2       0.634401       0.361789
+    2  2010  2       0.849432       0.228263
+    0  2011  0       0.724455       0.293714
+    1  2011  2       0.611024       0.630976
+    2  2011  2       0.722443       0.092105
+
+    If we have many columns, we could also use a regex to find our
+    stubnames and pass that list on to wide_to_long
+
+    >>> stubnames = set([match[0] for match in
+                        df.columns.str.findall('[A-B]\(.*\)').values
+                        if match != [] ])
+    >>> list(stubnames)
+    ['B(quarterly)', 'A(quarterly)']
+
     Notes
     -----
-    All extra variables are treated as extra id variables. This simply uses
+    All extra variables are left untouched. This simply uses
     `pandas.melt` under the hood, but is hard-coded to "do the right thing"
     in a typicaly case.
     """
-
-    def get_var_names(df, regex):
+    def get_var_names(df, stub, sep, suffix):
+        regex = "^{0}{1}{2}".format(re.escape(stub), re.escape(sep), suffix)
         return df.filter(regex=regex).columns.tolist()
 
-    def melt_stub(df, stub, i, j):
-        varnames = get_var_names(df, "^" + stub)
-        newdf = melt(df, id_vars=i, value_vars=varnames, value_name=stub,
-                     var_name=j)
-        newdf_j = newdf[j].str.replace(stub, "")
-        try:
-            newdf_j = newdf_j.astype(int)
-        except ValueError:
-            pass
-        newdf[j] = newdf_j
-        return newdf
+    def melt_stub(df, stub, i, j, value_vars, sep):
+        newdf = melt(df, id_vars=i, value_vars=value_vars,
+                     value_name=stub.rstrip(sep), var_name=j)
+        newdf[j] = Categorical(newdf[j])
+        newdf[j] = newdf[j].str.replace(re.escape(stub + sep), "")
 
-    id_vars = get_var_names(df, "^(?!%s)" % "|".join(stubnames))
-    if i not in id_vars:
-        id_vars += [i]
+        return newdf.set_index(i + [j])
 
-    newdf = melt_stub(df, stubnames[0], id_vars, j)
+    if any(map(lambda s: s in df.columns.tolist(), stubnames)):
+        raise ValueError("stubname can't be identical to a column name")
 
-    for stub in stubnames[1:]:
-        new = melt_stub(df, stub, id_vars, j)
-        newdf = newdf.merge(new, how="outer", on=id_vars + [j], copy=False)
-    return newdf.set_index([i, j])
+    if not is_list_like(stubnames):
+        stubnames = [stubnames]
+    else:
+        stubnames = list(stubnames)
+
+    if not is_list_like(i):
+        i = [i]
+    else:
+        i = list(i)
+
+    value_vars = list(map(lambda stub:
+                          get_var_names(df, stub, sep, suffix), stubnames))
+
+    value_vars_flattened = [e for sublist in value_vars for e in sublist]
+    id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
+
+    melted = []
+    for s, v in zip(stubnames, value_vars):
+        melted.append(melt_stub(df, s, i, j, v, sep))
+    melted = melted[0].join(melted[1:], how='outer')
+
+    if len(i) == 1:
+        new = df[id_vars].set_index(i).join(melted)
+        return new
+
+    new = df[id_vars].merge(melted.reset_index(), on=i).set_index(i + [j])
+
+    return new
 
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,

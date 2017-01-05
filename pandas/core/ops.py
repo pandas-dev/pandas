@@ -545,9 +545,9 @@ class _TimeOp(_Op):
 
                 # with tz, convert to UTC
                 if self.is_datetime64tz_lhs:
-                    lvalues = lvalues.tz_localize(None)
+                    lvalues = lvalues.tz_convert('UTC').tz_localize(None)
                 if self.is_datetime64tz_rhs:
-                    rvalues = rvalues.tz_localize(None)
+                    rvalues = rvalues.tz_convert('UTC').tz_localize(None)
 
                 lvalues = lvalues.view(np.int64)
                 rvalues = rvalues.view(np.int64)
@@ -1006,7 +1006,7 @@ missing data in one of the inputs.
 
 Parameters
 ----------
-other: Series or scalar value
+other : Series or scalar value
 fill_value : None or float value, default None (NaN)
     Fill missing (NaN) values with this value. If both Series are
     missing, the result will be missing

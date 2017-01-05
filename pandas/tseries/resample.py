@@ -319,10 +319,11 @@ class Resampler(_GroupBy):
         self._set_binner()
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
-            return self._groupby_and_aggregate(arg,
-                                               *args,
-                                               **kwargs)
+            result = self._groupby_and_aggregate(arg,
+                                                 *args,
+                                                 **kwargs)
 
+        result = self._apply_loffset(result)
         return result
 
     agg = aggregate
@@ -381,7 +382,7 @@ class Resampler(_GroupBy):
             return grouped
 
     def _groupby_and_aggregate(self, how, grouper=None, *args, **kwargs):
-        """ revaluate the obj with a groupby aggregation """
+        """ re-evaluate the obj with a groupby aggregation """
 
         if grouper is None:
             self._set_binner()
@@ -405,23 +406,31 @@ class Resampler(_GroupBy):
             result = grouped.apply(how, *args, **kwargs)
 
         result = self._apply_loffset(result)
-
         return self._wrap_result(result)
 
     def _apply_loffset(self, result):
-        """if loffset if set, offset the result index"""
-        loffset = self.loffset
-        if isinstance(loffset, compat.string_types):
-            loffset = to_offset(self.loffset)
+        """
+        if loffset is set, offset the result index
+
+        This is NOT an idempotent routine, it will be applied
+        exactly once to the result.
+
+        Parameters
+        ----------
+        result : Series or DataFrame
+            the result of resample
+        """
 
         needs_offset = (
-            isinstance(loffset, (DateOffset, timedelta)) and
+            isinstance(self.loffset, (DateOffset, timedelta)) and
             isinstance(result.index, DatetimeIndex) and
             len(result.index) > 0
         )
-        if needs_offset:
-            result.index = result.index + loffset
 
+        if needs_offset:
+            result.index = result.index + self.loffset
+
+        self.loffset = None
         return result
 
     def _get_resampler_for_grouping(self, groupby, **kwargs):
@@ -432,6 +441,7 @@ class Resampler(_GroupBy):
         """ potentially wrap any results """
         if isinstance(result, com.ABCSeries) and self._selection is not None:
             result.name = self._selection
+
         return result
 
     def pad(self, limit=None):
@@ -693,7 +703,6 @@ class DatetimeIndexResampler(Resampler):
             self.grouper, axis=self.axis).aggregate(how, **kwargs)
 
         result = self._apply_loffset(result)
-
         return self._wrap_result(result)
 
     def _adjust_binner_for_upsample(self, binner):
@@ -797,6 +806,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if result is None:
             result = self._downsample(arg, *args, **kwargs)
 
+        result = self._apply_loffset(result)
         return result
 
     agg = aggregate
@@ -1004,7 +1014,10 @@ class TimeGrouper(Grouper):
         self.convention = convention or 'E'
         self.convention = self.convention.lower()
 
+        if isinstance(loffset, compat.string_types):
+            loffset = to_offset(loffset)
         self.loffset = loffset
+
         self.how = how
         self.fill_method = fill_method
         self.limit = limit

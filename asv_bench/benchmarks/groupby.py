@@ -35,107 +35,67 @@ class groupby_apply_dict_return(object):
 #----------------------------------------------------------------------
 # groups
 
-class groupby_groups(object):
+class Groups(object):
     goal_time = 0.1
 
-    def setup(self):
-        size = 2**22
-        self.data = Series(np.random.randint(0, 100, size=size))
-        self.data2 = Series(np.random.randint(0, 10000, size=size))
-        self.data3 = Series(tm.makeStringIndex(100).take(np.random.randint(0, 100, size=size)))
-        self.data4 = Series(tm.makeStringIndex(10000).take(np.random.randint(0, 10000, size=size)))
+    size = 2 ** 22
+    data = {
+        'int64_small': Series(np.random.randint(0, 100, size=size)),
+        'int64_large' : Series(np.random.randint(0, 10000, size=size)),
+        'object_small': Series(tm.makeStringIndex(100).take(np.random.randint(0, 100, size=size))),
+        'object_large': Series(tm.makeStringIndex(10000).take(np.random.randint(0, 10000, size=size)))
+    }
 
-    def time_groupby_groups_int64_small(self):
-        self.data.groupby(self.data).groups
+    param_names = ['df']
+    params = ['int64_small', 'int64_large', 'object_small', 'object_large']
 
-    def time_groupby_groups_int64_large(self):
-        self.data2.groupby(self.data2).groups
+    def setup(self, df):
+        self.df = self.data[df]
 
-    def time_groupby_groups_object_small(self):
-        self.data3.groupby(self.data3).groups
-
-    def time_groupby_groups_object_large(self):
-        self.data4.groupby(self.data4).groups
+    def time_groupby_groups(self, df):
+        self.df.groupby(self.df).groups
 
 
 #----------------------------------------------------------------------
 # First / last functions
 
-class groupby_first_last(object):
+class FirstLast(object):
     goal_time = 0.2
 
-    def setup(self):
-        self.labels = np.arange(10000).repeat(10)
-        self.data = Series(randn(len(self.labels)))
-        self.data[::3] = np.nan
-        self.data[1::3] = np.nan
-        self.data2 = Series(randn(len(self.labels)), dtype='float32')
-        self.data2[::3] = np.nan
-        self.data2[1::3] = np.nan
-        self.labels = self.labels.take(np.random.permutation(len(self.labels)))
+    param_names = ['dtype']
+    params = ['float32', 'float64', 'datetime', 'object']
 
-    def time_groupby_first_float32(self):
-        self.data2.groupby(self.labels).first()
+    # with datetimes (GH7555)
 
-    def time_groupby_first_float64(self):
-        self.data.groupby(self.labels).first()
+    def setup(self, dtype):
 
-    def time_groupby_last_float32(self):
-        self.data2.groupby(self.labels).last()
+        if dtype == 'datetime':
+            self.df = DataFrame(
+                {'values': date_range('1/1/2011', periods=100000, freq='s'),
+                 'key': range(100000),})
+        elif dtype == 'object':
+            self.df = DataFrame(
+                {'values': (['foo'] * 100000),
+                 'key': range(100000)})
+        else:
+            labels = np.arange(10000).repeat(10)
+            data = Series(randn(len(labels)), dtype=dtype)
+            data[::3] = np.nan
+            data[1::3] = np.nan
+            labels = labels.take(np.random.permutation(len(labels)))
+            self.df = DataFrame({'values': data, 'key': labels})
 
-    def time_groupby_last_float64(self):
-        self.data.groupby(self.labels).last()
+    def time_groupby_first(self, dtype):
+        self.df.groupby('key').first()
 
-    def time_groupby_nth_float32_any(self):
-        self.data2.groupby(self.labels).nth(0, dropna='all')
+    def time_groupby_last(self, dtype):
+        self.df.groupby('key').last()
 
-    def time_groupby_nth_float32_none(self):
-        self.data2.groupby(self.labels).nth(0)
+    def time_groupby_nth_any(self, dtype):
+        self.df.groupby('key').nth(0, dropna='all')
 
-    def time_groupby_nth_float64_any(self):
-        self.data.groupby(self.labels).nth(0, dropna='all')
-
-    def time_groupby_nth_float64_none(self):
-        self.data.groupby(self.labels).nth(0)
-
-# with datetimes (GH7555)
-
-class groupby_first_last_datetimes(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame({'a': date_range('1/1/2011', periods=100000, freq='s'), 'b': range(100000), })
-
-    def time_groupby_first_datetimes(self):
-        self.df.groupby('b').first()
-
-    def time_groupby_last_datetimes(self):
-        self.df.groupby('b').last()
-
-    def time_groupby_nth_datetimes_any(self):
-        self.df.groupby('b').nth(0, dropna='all')
-
-    def time_groupby_nth_datetimes_none(self):
-        self.df.groupby('b').nth(0)
-
-
-class groupby_first_last_object(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame({'a': (['foo'] * 100000), 'b': range(100000)})
-
-    def time_groupby_first_object(self):
-        self.df.groupby('b').first()
-
-    def time_groupby_last_object(self):
-        self.df.groupby('b').last()
-
-    def time_groupby_nth_object_any(self):
-        self.df.groupby('b').nth(0, dropna='any')
-
-    def time_groupby_nth_object_none(self):
-        self.df.groupby('b').nth(0)
+    def time_groupby_nth_none(self, dtype):
+        self.df.groupby('key').nth(0)
 
 
 #----------------------------------------------------------------------
@@ -187,24 +147,6 @@ class groupby_frame_singlekey_integer(object):
 
     def time_sum(self):
         self.df.groupby(self.labels).sum()
-
-
-#----------------------------------------------------------------------
-# median
-
-class groupby_frame(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(100000, 2)
-        self.labels = np.random.randint(0, 1000, size=100000)
-        self.df = DataFrame(self.data)
-
-    def time_groupby_frame_median(self):
-        self.df.groupby(self.labels).median()
-
-    def time_groupby_simple_compress_timing(self):
-        self.df.groupby(self.labels).mean()
 
 
 #----------------------------------------------------------------------
@@ -405,132 +347,118 @@ class groupby_size(object):
 #----------------------------------------------------------------------
 # groupby with a variable value for ngroups
 
-class groupby_ngroups_int_10000(object):
+class GroupBySuite(object):
     goal_time = 0.2
-    dtype = 'int'
-    ngroups = 10000
 
-    def setup(self):
+    param_names = ['dtype', 'ngroups']
+    params = [['int', 'float'], [100, 10000]]
+
+    def setup(self, dtype, ngroups):
         np.random.seed(1234)
-        size = self.ngroups * 2
-        rng = np.arange(self.ngroups)
-        ts = rng.take(np.random.randint(0, self.ngroups, size=size))
-        if self.dtype == 'int':
-            value = np.random.randint(0, size, size=size)
+        size = ngroups * 2
+        rng = np.arange(ngroups)
+        values = rng.take(np.random.randint(0, ngroups, size=size))
+        if dtype == 'int':
+            key = np.random.randint(0, size, size=size)
         else:
-            value = np.concatenate([np.random.random(self.ngroups) * 0.1,
-                                    np.random.random(self.ngroups) * 10.0])
+            key = np.concatenate([np.random.random(ngroups) * 0.1,
+                                  np.random.random(ngroups) * 10.0])
 
-        self.df = DataFrame({'timestamp': ts,
-                             'value': value})
+        self.df = DataFrame({'values': values,
+                             'key': key})
 
-    def time_all(self):
-        self.df.groupby('value')['timestamp'].all()
+    def time_all(self, dtype, ngroups):
+        self.df.groupby('key')['values'].all()
 
-    def time_any(self):
-        self.df.groupby('value')['timestamp'].any()
+    def time_any(self, dtype, ngroups):
+        self.df.groupby('key')['values'].any()
 
-    def time_count(self):
-        self.df.groupby('value')['timestamp'].count()
+    def time_count(self, dtype, ngroups):
+        self.df.groupby('key')['values'].count()
 
-    def time_cumcount(self):
-        self.df.groupby('value')['timestamp'].cumcount()
+    def time_cumcount(self, dtype, ngroups):
+        self.df.groupby('key')['values'].cumcount()
 
-    def time_cummax(self):
-        self.df.groupby('value')['timestamp'].cummax()
+    def time_cummax(self, dtype, ngroups):
+        self.df.groupby('key')['values'].cummax()
 
-    def time_cummin(self):
-        self.df.groupby('value')['timestamp'].cummin()
+    def time_cummin(self, dtype, ngroups):
+        self.df.groupby('key')['values'].cummin()
 
-    def time_cumprod(self):
-        self.df.groupby('value')['timestamp'].cumprod()
+    def time_cumprod(self, dtype, ngroups):
+        self.df.groupby('key')['values'].cumprod()
 
-    def time_cumsum(self):
-        self.df.groupby('value')['timestamp'].cumsum()
+    def time_cumsum(self, dtype, ngroups):
+        self.df.groupby('key')['values'].cumsum()
 
-    def time_describe(self):
-        self.df.groupby('value')['timestamp'].describe()
+    def time_describe(self, dtype, ngroups):
+        self.df.groupby('key')['values'].describe()
 
-    def time_diff(self):
-        self.df.groupby('value')['timestamp'].diff()
+    def time_diff(self, dtype, ngroups):
+        self.df.groupby('key')['values'].diff()
 
-    def time_first(self):
-        self.df.groupby('value')['timestamp'].first()
+    def time_first(self, dtype, ngroups):
+        self.df.groupby('key')['values'].first()
 
-    def time_head(self):
-        self.df.groupby('value')['timestamp'].head()
+    def time_head(self, dtype, ngroups):
+        self.df.groupby('key')['values'].head()
 
-    def time_last(self):
-        self.df.groupby('value')['timestamp'].last()
+    def time_last(self, dtype, ngroups):
+        self.df.groupby('key')['values'].last()
 
-    def time_mad(self):
-        self.df.groupby('value')['timestamp'].mad()
+    def time_mad(self, dtype, ngroups):
+        self.df.groupby('key')['values'].mad()
 
-    def time_max(self):
-        self.df.groupby('value')['timestamp'].max()
+    def time_max(self, dtype, ngroups):
+        self.df.groupby('key')['values'].max()
 
-    def time_mean(self):
-        self.df.groupby('value')['timestamp'].mean()
+    def time_mean(self, dtype, ngroups):
+        self.df.groupby('key')['values'].mean()
 
-    def time_median(self):
-        self.df.groupby('value')['timestamp'].median()
+    def time_median(self, dtype, ngroups):
+        self.df.groupby('key')['values'].median()
 
-    def time_min(self):
-        self.df.groupby('value')['timestamp'].min()
+    def time_min(self, dtype, ngroups):
+        self.df.groupby('key')['values'].min()
 
-    def time_nunique(self):
-        self.df.groupby('value')['timestamp'].nunique()
+    def time_nunique(self, dtype, ngroups):
+        self.df.groupby('key')['values'].nunique()
 
-    def time_pct_change(self):
-        self.df.groupby('value')['timestamp'].pct_change()
+    def time_pct_change(self, dtype, ngroups):
+        self.df.groupby('key')['values'].pct_change()
 
-    def time_prod(self):
-        self.df.groupby('value')['timestamp'].prod()
+    def time_prod(self, dtype, ngroups):
+        self.df.groupby('key')['values'].prod()
 
-    def time_rank(self):
-        self.df.groupby('value')['timestamp'].rank()
+    def time_rank(self, dtype, ngroups):
+        self.df.groupby('key')['values'].rank()
 
-    def time_sem(self):
-        self.df.groupby('value')['timestamp'].sem()
+    def time_sem(self, dtype, ngroups):
+        self.df.groupby('key')['values'].sem()
 
-    def time_size(self):
-        self.df.groupby('value')['timestamp'].size()
+    def time_size(self, dtype, ngroups):
+        self.df.groupby('key')['values'].size()
 
-    def time_skew(self):
-        self.df.groupby('value')['timestamp'].skew()
+    def time_skew(self, dtype, ngroups):
+        self.df.groupby('key')['values'].skew()
 
-    def time_std(self):
-        self.df.groupby('value')['timestamp'].std()
+    def time_std(self, dtype, ngroups):
+        self.df.groupby('key')['values'].std()
 
-    def time_sum(self):
-        self.df.groupby('value')['timestamp'].sum()
+    def time_sum(self, dtype, ngroups):
+        self.df.groupby('key')['values'].sum()
 
-    def time_tail(self):
-        self.df.groupby('value')['timestamp'].tail()
+    def time_tail(self, dtype, ngroups):
+        self.df.groupby('key')['values'].tail()
 
-    def time_unique(self):
-        self.df.groupby('value')['timestamp'].unique()
+    def time_unique(self, dtype, ngroups):
+        self.df.groupby('key')['values'].unique()
 
-    def time_value_counts(self):
-        self.df.groupby('value')['timestamp'].value_counts()
+    def time_value_counts(self, dtype, ngroups):
+        self.df.groupby('key')['values'].value_counts()
 
-    def time_var(self):
-        self.df.groupby('value')['timestamp'].var()
-
-class groupby_ngroups_int_100(groupby_ngroups_int_10000):
-    goal_time = 0.2
-    dtype = 'int'
-    ngroups = 100
-
-class groupby_ngroups_float_100(groupby_ngroups_int_10000):
-    goal_time = 0.2
-    dtype = 'float'
-    ngroups = 100
-
-class groupby_ngroups_float_10000(groupby_ngroups_int_10000):
-    goal_time = 0.2
-    dtype = 'float'
-    ngroups = 10000
+    def time_var(self, dtype, ngroups):
+        self.df.groupby('key')['values'].var()
 
 
 class groupby_float32(object):
@@ -647,89 +575,75 @@ class groupby_sum_multiindex(object):
 #-------------------------------------------------------------------------------
 # Transform testing
 
-class groupby_transform(object):
+class Transform(object):
     goal_time = 0.2
 
     def setup(self):
-        self.n_dates = 400
-        self.n_securities = 250
-        self.n_columns = 3
-        self.share_na = 0.1
-        self.dates = date_range('1997-12-31', periods=self.n_dates, freq='B')
-        self.dates = Index(map((lambda x: (((x.year * 10000) + (x.month * 100)) + x.day)), self.dates))
-        self.secid_min = int('10000000', 16)
-        self.secid_max = int('F0000000', 16)
-        self.step = ((self.secid_max - self.secid_min) // (self.n_securities - 1))
-        self.security_ids = map((lambda x: hex(x)[2:10].upper()), list(range(self.secid_min, (self.secid_max + 1), self.step)))
-        self.data_index = MultiIndex(levels=[self.dates.values, self.security_ids],
-                                     labels=[[i for i in range(self.n_dates) for _ in range(self.n_securities)], (list(range(self.n_securities)) * self.n_dates)],
-                                     names=['date', 'security_id'])
-        self.n_data = len(self.data_index)
-        self.columns = Index(['factor{}'.format(i) for i in range(1, (self.n_columns + 1))])
-        self.data = DataFrame(np.random.randn(self.n_data, self.n_columns), index=self.data_index, columns=self.columns)
-        self.step = int((self.n_data * self.share_na))
-        for column_index in range(self.n_columns):
-            self.index = column_index
-            while (self.index < self.n_data):
-                self.data.set_value(self.data_index[self.index], self.columns[column_index], np.nan)
-                self.index += self.step
+        n1 = 400
+        n2 = 250
+
+        index = MultiIndex(
+            levels=[np.arange(n1), pd.util.testing.makeStringIndex(n2)],
+            labels=[[i for i in range(n1) for _ in range(n2)],
+                    (list(range(n2)) * n1)],
+            names=['lev1', 'lev2'])
+
+        data = DataFrame(np.random.randn(n1 * n2, 3),
+                         index=index, columns=['col1', 'col20', 'col3'])
+        step = int((n1 * n2 * 0.1))
+        for col in range(len(data.columns)):
+            idx = col
+            while (idx < len(data)):
+                data.set_value(data.index[idx], data.columns[col], np.nan)
+                idx += step
+        self.df = data
         self.f_fillna = (lambda x: x.fillna(method='pad'))
 
-    def time_groupby_transform(self):
-        self.data.groupby(level='security_id').transform(self.f_fillna)
-
-    def time_groupby_transform_ufunc(self):
-        self.data.groupby(level='date').transform(np.max)
-
-
-class groupby_transform_multi_key(object):
-    goal_time = 0.2
-
-    def setup(self):
         np.random.seed(2718281)
-        self.n = 20000
-        self.df = DataFrame(np.random.randint(1, self.n, (self.n, 3)), columns=['jim', 'joe', 'jolie'])
+        n = 20000
+        self.df1 = DataFrame(np.random.randint(1, n, (n, 3)),
+                             columns=['jim', 'joe', 'jolie'])
+        self.df2 = self.df1.copy()
+        self.df2['jim'] = self.df2['joe']
 
-    def time_groupby_transform_multi_key1(self):
-        self.df.groupby(['jim', 'joe'])['jolie'].transform('max')
+        self.df3 = DataFrame(np.random.randint(1, (n / 10), (n, 3)),
+                             columns=['jim', 'joe', 'jolie'])
+        self.df4 = self.df3.copy()
+        self.df4['jim'] = self.df4['joe']
 
+    def time_transform_func(self):
+        self.df.groupby(level='lev2').transform(self.f_fillna)
 
-class groupby_transform_multi_key2(object):
-    goal_time = 0.2
+    def time_transform_ufunc(self):
+        self.df.groupby(level='lev1').transform(np.max)
 
-    def setup(self):
-        np.random.seed(2718281)
-        self.n = 20000
-        self.df = DataFrame(np.random.randint(1, self.n, (self.n, 3)), columns=['jim', 'joe', 'jolie'])
-        self.df['jim'] = self.df['joe']
+    def time_transform_multi_key1(self):
+        self.df1.groupby(['jim', 'joe'])['jolie'].transform('max')
 
-    def time_groupby_transform_multi_key2(self):
-        self.df.groupby(['jim', 'joe'])['jolie'].transform('max')
+    def time_transform_multi_key2(self):
+        self.df2.groupby(['jim', 'joe'])['jolie'].transform('max')
 
+    def time_transform_multi_key3(self):
+        self.df3.groupby(['jim', 'joe'])['jolie'].transform('max')
 
-class groupby_transform_multi_key3(object):
-    goal_time = 0.2
-
-    def setup(self):
-        np.random.seed(2718281)
-        self.n = 200000
-        self.df = DataFrame(np.random.randint(1, (self.n / 10), (self.n, 3)), columns=['jim', 'joe', 'jolie'])
-
-    def time_groupby_transform_multi_key3(self):
-        self.df.groupby(['jim', 'joe'])['jolie'].transform('max')
+    def time_transform_multi_key4(self):
+        self.df4.groupby(['jim', 'joe'])['jolie'].transform('max')
 
 
-class groupby_transform_multi_key4(object):
-    goal_time = 0.2
 
-    def setup(self):
-        np.random.seed(2718281)
-        self.n = 200000
-        self.df = DataFrame(np.random.randint(1, (self.n / 10), (self.n, 3)), columns=['jim', 'joe', 'jolie'])
-        self.df['jim'] = self.df['joe']
 
-    def time_groupby_transform_multi_key4(self):
-        self.df.groupby(['jim', 'joe'])['jolie'].transform('max')
+np.random.seed(0)
+N = 120000
+N_TRANSITIONS = 1400
+transition_points = np.random.permutation(np.arange(N))[:N_TRANSITIONS]
+transition_points.sort()
+transitions = np.zeros((N,), dtype=np.bool)
+transitions[transition_points] = True
+g = transitions.cumsum()
+df = DataFrame({'signal': np.random.rand(N), })
+
+
+
 
 
 class groupby_transform_series(object):
@@ -737,14 +651,12 @@ class groupby_transform_series(object):
 
     def setup(self):
         np.random.seed(0)
-        self.N = 120000
-        self.N_TRANSITIONS = 1400
-        self.transition_points = np.random.permutation(np.arange(self.N))[:self.N_TRANSITIONS]
-        self.transition_points.sort()
-        self.transitions = np.zeros((self.N,), dtype=np.bool)
-        self.transitions[self.transition_points] = True
-        self.g = self.transitions.cumsum()
-        self.df = DataFrame({'signal': np.random.rand(self.N), })
+        N = 120000
+        transition_points = np.sort(np.random.choice(np.arange(N), 1400))
+        transitions = np.zeros((N,), dtype=np.bool)
+        transitions[transition_points] = True
+        self.g = transitions.cumsum()
+        self.df = DataFrame({'signal': np.random.rand(N)})
 
     def time_groupby_transform_series(self):
         self.df['signal'].groupby(self.g).transform(np.mean)
@@ -755,38 +667,29 @@ class groupby_transform_series2(object):
 
     def setup(self):
         np.random.seed(0)
-        self.df = DataFrame({'id': (np.arange(100000) / 3), 'val': np.random.randn(100000), })
+        self.df = DataFrame({'key': (np.arange(100000) // 3),
+                             'val': np.random.randn(100000)})
 
-    def time_groupby_transform_series2(self):
-        self.df.groupby('id')['val'].transform(np.mean)
+        self.df_nans = pd.DataFrame({'key': np.repeat(np.arange(1000), 10),
+                                     'B': np.nan,
+                                     'C': np.nan})
+        self.df_nans.ix[4::10, 'B':'C'] = 5
+
+    def time_transform_series2(self):
+        self.df.groupby('key')['val'].transform(np.mean)
+
+    def time_cumprod(self):
+        self.df.groupby('key').cumprod()
+
+    def time_cumsum(self):
+        self.df.groupby('key').cumsum()
+
+    def time_shift(self):
+        self.df.groupby('key').shift()
+
+    def time_transform_dataframe(self):
+        # GH 12737
+        self.df_nans.groupby('key').transform('first')
 
 
-class groupby_transform_dataframe(object):
-    # GH 12737
-    goal_time = 0.2
 
-    def setup(self):
-        self.df = pd.DataFrame({'group': np.repeat(np.arange(1000), 10),
-                                'B': np.nan,
-                                'C': np.nan})
-        self.df.ix[4::10, 'B':'C'] = 5
-
-    def time_groupby_transform_dataframe(self):
-        self.df.groupby('group').transform('first')
-
-
-class groupby_transform_cythonized(object):
-    goal_time = 0.2
-
-    def setup(self):
-        np.random.seed(0)
-        self.df = DataFrame({'id': (np.arange(100000) / 3), 'val': np.random.randn(100000), })
-
-    def time_groupby_transform_cumprod(self):
-        self.df.groupby('id').cumprod()
-
-    def time_groupby_transform_cumsum(self):
-        self.df.groupby('id').cumsum()
-
-    def time_groupby_transform_shift(self):
-        self.df.groupby('id').shift()

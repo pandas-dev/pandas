@@ -25,7 +25,7 @@ from pandas.types.common import (_ensure_int64,
                                  is_scalar)
 from pandas.core.common import is_null_slice
 
-from pandas.core.algorithms import factorize, take_1d
+from pandas.core.algorithms import factorize, take_1d, unique1d
 from pandas.core.base import (PandasObject, PandasDelegate,
                               NoNewAttributesMixin, _shared_docs)
 import pandas.core.common as com
@@ -930,8 +930,7 @@ class Categorical(PandasObject):
             return cat
 
     def map(self, mapper):
-        """
-        Apply mapper function to its categories (not codes).
+        """Apply mapper function to its categories (not codes).
 
         Parameters
         ----------
@@ -943,7 +942,8 @@ class Categorical(PandasObject):
 
         Returns
         -------
-        applied : Categorical or np.ndarray.
+        applied : Categorical or Index.
+
         """
         new_categories = self.categories.map(mapper)
         try:
@@ -1086,10 +1086,15 @@ class Categorical(PandasObject):
                              "ordered one")
 
         from pandas.core.series import Series
-        values_as_codes = self.categories.values.searchsorted(
-            Series(value).values, side=side)
 
-        return self.codes.searchsorted(values_as_codes, sorter=sorter)
+        values_as_codes = _get_codes_for_values(Series(value).values,
+                                                self.categories)
+
+        if -1 in values_as_codes:
+            raise ValueError("Value(s) to be inserted must be in categories.")
+
+        return self.codes.searchsorted(values_as_codes, side=side,
+                                       sorter=sorter)
 
     def isnull(self):
         """
@@ -1834,7 +1839,6 @@ class Categorical(PandasObject):
         unique values : ``Categorical``
         """
 
-        from pandas.core.nanops import unique1d
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
         cat = self.copy()

@@ -1182,7 +1182,7 @@ class HTMLFormatter(TableFormatter):
             else:
                 self._write_regular_rows(fmt_values, indent)
         else:
-            for i in range(len(self.frame)):
+            for i in range(min(len(self.frame), self.max_rows)):
                 row = [fmt_values[j][i] for j in range(len(self.columns))]
                 self.write_tr(row, indent, self.indent_delta, tags=None)
 
@@ -1455,9 +1455,9 @@ class CSVFormatter(object):
             f = self.path_or_buf
             close = False
         else:
-            f = _get_handle(self.path_or_buf, self.mode,
-                            encoding=self.encoding,
-                            compression=self.compression)
+            f, handles = _get_handle(self.path_or_buf, self.mode,
+                                     encoding=self.encoding,
+                                     compression=self.compression)
             close = True
 
         try:

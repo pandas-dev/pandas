@@ -529,6 +529,21 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         expected = Series(pd.DatetimeIndex(['NaT', 'NaT'], tz='US/Eastern'))
         assert_series_equal(s, expected)
 
+    def test_construction_consistency(self):
+
+        # make sure that we are not re-localizing upon construction
+        # GH 14928
+        s = Series(pd.date_range('20130101', periods=3, tz='US/Eastern'))
+
+        result = Series(s, dtype=s.dtype)
+        tm.assert_series_equal(result, s)
+
+        result = Series(s.dt.tz_convert('UTC'), dtype=s.dtype)
+        tm.assert_series_equal(result, s)
+
+        result = Series(s.values, dtype=s.dtype)
+        tm.assert_series_equal(result, s)
+
     def test_constructor_periodindex(self):
         # GH7932
         # converting a PeriodIndex when put in a Series

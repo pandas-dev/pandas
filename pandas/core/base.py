@@ -814,7 +814,7 @@ class IndexOpsMixin(object):
     @property
     def shape(self):
         """ return a tuple of the shape of the underlying data """
-        return self.values.shape
+        return self._values.shape
 
     @property
     def ndim(self):
@@ -842,22 +842,22 @@ class IndexOpsMixin(object):
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
-        return self.values.itemsize
+        return self._values.itemsize
 
     @property
     def nbytes(self):
         """ return the number of bytes in the underlying data """
-        return self.values.nbytes
+        return self._values.nbytes
 
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        return self.values.strides
+        return self._values.strides
 
     @property
     def size(self):
         """ return the number of elements in the underlying data """
-        return self.values.size
+        return self._values.size
 
     @property
     def flags(self):
@@ -969,7 +969,7 @@ class IndexOpsMixin(object):
         if hasattr(values, 'unique'):
             result = values.unique()
         else:
-            from pandas.core.nanops import unique1d
+            from pandas.core.algorithms import unique1d
             result = unique1d(values)
         return result
 

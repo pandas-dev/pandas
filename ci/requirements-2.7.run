@@ -11,7 +11,7 @@ sqlalchemy=0.9.6
 lxml=3.2.1
 scipy
 xlsxwriter=0.4.6
-boto=2.36.0
+s3fs
 bottleneck
 psycopg2=2.5.2
 patsy

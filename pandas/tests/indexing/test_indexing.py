@@ -23,7 +23,7 @@ from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
                              MultiIndex, Timestamp, Timedelta)
 from pandas.formats.printing import pprint_thing
 from pandas import concat
-from pandas.core.common import PerformanceWarning
+from pandas.core.common import PerformanceWarning, UnsortedIndexError
 
 import pandas.util.testing as tm
 from pandas import date_range
@@ -1210,6 +1210,28 @@ class TestIndexing(tm.TestCase):
         self.check_result('array like', 'loc', Series(index=[4, 8, 12]).index,
                           'ix', [4, 8, 12], typs=['ints'], axes=2)
 
+    def test_loc_getitem_series(self):
+        # GH14730
+        # passing a series as a key with a MultiIndex
+        index = MultiIndex.from_product([[1, 2, 3], ['A', 'B', 'C']])
+        x = Series(index=index, data=range(9), dtype=np.float64)
+        y = Series([1, 3])
+        expected = Series(
+            data=[0, 1, 2, 6, 7, 8],
+            index=MultiIndex.from_product([[1, 3], ['A', 'B', 'C']]),
+            dtype=np.float64)
+        result = x.loc[y]
+        tm.assert_series_equal(result, expected)
+
+        result = x.loc[[1, 3]]
+        tm.assert_series_equal(result, expected)
+
+        empty = Series(data=[], dtype=np.float64)
+        expected = Series([], index=MultiIndex(
+            levels=index.levels, labels=[[], []], dtype=np.float64))
+        result = x.loc[empty]
+        tm.assert_series_equal(result, expected)
+
     def test_loc_getitem_bool(self):
         # boolean indexers
         b = [True, False, True, False]
@@ -2230,7 +2252,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = df.sortlevel(level=1, axis=0)
         self.assertEqual(df.index.lexsort_depth, 0)
         with tm.assertRaisesRegexp(
-                KeyError,
+                UnsortedIndexError,
                 'MultiIndex Slicing requires the index to be fully '
                 r'lexsorted tuple len \(2\), lexsort depth \(0\)'):
             df.loc[(slice(None), df.loc[:, ('a', 'bar')] > 5), :]
@@ -2417,7 +2439,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def f():
             df.loc['A1', (slice(None), 'foo')]
 
-        self.assertRaises(KeyError, f)
+        self.assertRaises(UnsortedIndexError, f)
         df = df.sortlevel(axis=1)
 
         # slicing
@@ -3480,8 +3502,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             ('index', '.loc'): '0b11',
             ('index', '.iloc'): ('iLocation based boolean indexing '
                                  'cannot use an indexable as a mask'),
-            ('locs', ''): 'Unalignable boolean Series key provided',
-            ('locs', '.loc'): 'Unalignable boolean Series key provided',
+            ('locs', ''): 'Unalignable boolean Series provided as indexer '
+                          '(index of the boolean Series and of the indexed '
+                          'object do not match',
+            ('locs', '.loc'): 'Unalignable boolean Series provided as indexer '
+                              '(index of the boolean Series and of the '
+                              'indexed object do not match',
             ('locs', '.iloc'): ('iLocation based boolean indexing on an '
                                 'integer type is not available'),
         }

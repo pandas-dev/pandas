@@ -259,8 +259,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             exists = False
 
         if exists:
-            with _get_handle(filepath_or_buffer, 'r', encoding=encoding) as fh:
-                json = fh.read()
+            fh, handles = _get_handle(filepath_or_buffer, 'r',
+                                      encoding=encoding)
+            json = fh.read()
+            fh.close()
         else:
             json = filepath_or_buffer
     elif hasattr(filepath_or_buffer, 'read'):
@@ -723,7 +725,9 @@ def nested_to_record(ds, prefix="", level=0):
 
 def json_normalize(data, record_path=None, meta=None,
                    meta_prefix=None,
-                   record_prefix=None):
+                   record_prefix=None,
+                   errors='raise'):
+
     """
     "Normalize" semi-structured JSON data into a flat table
 
@@ -740,6 +744,13 @@ def json_normalize(data, record_path=None, meta=None,
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar']
     meta_prefix : string, default None
+    errors : {'raise', 'ignore'}, default 'raise'
+        * ignore : will ignore KeyError if keys listed in meta are not
+        always present
+        * raise : will raise KeyError if keys listed in meta are not
+        always present
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -839,7 +850,16 @@ def json_normalize(data, record_path=None, meta=None,
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
-                        meta_val = _pull_field(obj, val[level:])
+                        try:
+                            meta_val = _pull_field(obj, val[level:])
+                        except KeyError as e:
+                            if errors == 'ignore':
+                                meta_val = np.nan
+                            else:
+                                raise \
+                                    KeyError("Try running with "
+                                             "errors='ignore' as key "
+                                             "%s is not always present", e)
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)

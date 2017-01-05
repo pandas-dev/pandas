@@ -7,6 +7,7 @@ from pandas.tslib import iNaT
 from pandas.compat import string_types, text_type, PY3
 from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
+                     is_datetimelike,
                      is_extension_type, is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
                      is_timedelta64_dtype, is_dtype_equal,
@@ -18,7 +19,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int8, _ensure_int16,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
-                     _DATELIKE_DTYPES, _POSSIBLY_CAST_DTYPES)
+                     _POSSIBLY_CAST_DTYPES)
 from .dtypes import ExtensionDtype
 from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
 from .missing import isnull, notnull
@@ -100,8 +101,8 @@ def _possibly_downcast_to_dtype(result, dtype):
             arr = np.array([r[0]])
 
             # if we have any nulls, then we are done
-            if isnull(arr).any() or not np.allclose(arr,
-                                                    trans(arr).astype(dtype)):
+            if (isnull(arr).any() or
+                    not np.allclose(arr, trans(arr).astype(dtype), rtol=0)):
                 return result
 
             # a comparable, e.g. a Decimal may slip in here
@@ -113,7 +114,7 @@ def _possibly_downcast_to_dtype(result, dtype):
                     notnull(result).all()):
                 new_result = trans(result).astype(dtype)
                 try:
-                    if np.allclose(new_result, result):
+                    if np.allclose(new_result, result, rtol=0):
                         return new_result
                 except:
 
@@ -164,7 +165,7 @@ def _maybe_upcast_putmask(result, mask, other):
         # in np.place:
         #   NaN -> NaT
         #   integer or integer array -> date-like array
-        if result.dtype in _DATELIKE_DTYPES:
+        if is_datetimelike(result.dtype):
             if is_scalar(other):
                 if isnull(other):
                     other = result.dtype.type('nat')
@@ -527,8 +528,10 @@ def _astype_nansafe(arr, dtype, copy=True):
     elif (np.issubdtype(arr.dtype, np.floating) and
           np.issubdtype(dtype, np.integer)):
 
-        if np.isnan(arr).any():
-            raise ValueError('Cannot convert NA to integer')
+        if not np.isfinite(arr).all():
+            raise ValueError('Cannot convert non-finite values (NA or inf) to '
+                             'integer')
+
     elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
         # work around NumPy brokenness, #1987
         return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
@@ -664,7 +667,7 @@ def _possibly_castable(arr):
     # otherwise try to coerce
     kind = arr.dtype.kind
     if kind == 'M' or kind == 'm':
-        return arr.dtype in _DATELIKE_DTYPES
+        return is_datetime64_dtype(arr.dtype)
 
     return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
 
@@ -820,9 +823,10 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                         elif is_datetime64tz:
                             # input has to be UTC at this point, so just
                             # localize
-                            value = to_datetime(
-                                value,
-                                errors=errors).tz_localize(dtype.tz)
+                            value = (to_datetime(value, errors=errors)
+                                     .tz_localize('UTC')
+                                     .tz_convert(dtype.tz)
+                                     )
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
                     except (AttributeError, ValueError, TypeError):

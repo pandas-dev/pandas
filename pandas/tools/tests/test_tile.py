@@ -12,7 +12,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import quantile
 from pandas.tools.tile import cut, qcut
 import pandas.tools.tile as tmod
-from pandas import to_datetime, DatetimeIndex
+from pandas import to_datetime, DatetimeIndex, Timestamp
 
 
 class TestCut(tm.TestCase):
@@ -272,6 +272,20 @@ class TestCut(tm.TestCase):
                                     np.array([0, 0, 1, 1], dtype=np.int8))
         tm.assert_numpy_array_equal(bins, np.array([0, 1.5, 3]))
 
+    def test_qcut_duplicates_bin(self):
+        # GH 7751
+        values = [0, 0, 0, 0, 1, 2, 3]
+        result_levels = ['[0, 1]', '(1, 3]']
+
+        cats = qcut(values, 3, duplicates='drop')
+        self.assertTrue((cats.categories == result_levels).all())
+
+        self.assertRaises(ValueError, qcut, values, 3)
+        self.assertRaises(ValueError, qcut, values, 3, duplicates='raise')
+
+        # invalid
+        self.assertRaises(ValueError, qcut, values, 3, duplicates='foo')
+
     def test_single_bin(self):
         # issue 14652
         expected = Series([0, 0])
@@ -311,6 +325,26 @@ class TestCut(tm.TestCase):
         # testing for time data to be present as datetime index
         data = DatetimeIndex(['2013-01-01', '2013-01-02', '2013-01-03'])
         result, bins = cut(data, 3, retbins=True)
+        tm.assert_series_equal(Series(result), expected)
+
+    def test_datetime_bin(self):
+        data = [np.datetime64('2012-12-13'), np.datetime64('2012-12-15')]
+        bin_data = ['2012-12-12', '2012-12-14', '2012-12-16']
+        expected = Series(['(2012-12-12 00:00:00, 2012-12-14 00:00:00]',
+                          '(2012-12-14 00:00:00, 2012-12-16 00:00:00]'],
+                          ).astype("category", ordered=True)
+
+        for conv in [Timestamp, Timestamp, np.datetime64]:
+            bins = [conv(v) for v in bin_data]
+            result = cut(data, bins=bins)
+            tm.assert_series_equal(Series(result), expected)
+
+        bin_pydatetime = [Timestamp(v).to_pydatetime() for v in bin_data]
+        result = cut(data, bins=bin_pydatetime)
+        tm.assert_series_equal(Series(result), expected)
+
+        bins = to_datetime(bin_data)
+        result = cut(data, bins=bin_pydatetime)
         tm.assert_series_equal(Series(result), expected)
 
 

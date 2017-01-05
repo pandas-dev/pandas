@@ -8,7 +8,6 @@ of the parsers defined in parsers.py
 import nose
 
 import pandas.util.testing as tm
-from pandas import compat
 
 
 class CompressionTests(object):
@@ -114,12 +113,8 @@ class CompressionTests(object):
                               path, compression='bz3')
 
             with open(path, 'rb') as fin:
-                if compat.PY3:
-                    result = self.read_csv(fin, compression='bz2')
-                    tm.assert_frame_equal(result, expected)
-                elif self.engine is not 'python':
-                    self.assertRaises(ValueError, self.read_csv,
-                                      fin, compression='bz2')
+                result = self.read_csv(fin, compression='bz2')
+                tm.assert_frame_equal(result, expected)
 
         with tm.ensure_clean('test.bz2') as path:
             tmp = bz2.BZ2File(path, mode='wb')
@@ -168,3 +163,8 @@ class CompressionTests(object):
             tm.assert_frame_equal(expected, df)
 
         inputs[3].close()
+
+    def test_invalid_compression(self):
+        msg = 'Unrecognized compression type: sfark'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv('test_file.zip', compression='sfark')

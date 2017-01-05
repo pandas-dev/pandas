@@ -80,6 +80,7 @@ install:
   - cmd: conda config --set ssl_verify false
 
   # add the pandas channel *before* defaults to have defaults take priority
+  - cmd: conda config --add channels conda-forge
   - cmd: conda config --add channels pandas
   - cmd: conda config --remove channels defaults
   - cmd: conda config --add channels defaults

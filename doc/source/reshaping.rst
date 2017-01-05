@@ -650,10 +650,16 @@ handling of NaN:
    because of an ordering bug. See also
    `Here <https://github.com/numpy/numpy/issues/641>`__
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.factorize(x, sort=True)
-   np.unique(x, return_inverse=True)[::-1]
+    In [2]: pd.factorize(x, sort=True)
+    Out[2]:
+    (array([ 2,  2, -1,  3,  0,  1]),
+     Index([3.14, inf, u'A', u'B'], dtype='object'))
+
+    In [3]: np.unique(x, return_inverse=True)[::-1]
+    Out[3]: (array([3, 3, 0, 4, 1, 2]), array([nan, 3.14, inf, 'A', 'B'], dtype=object))
+
 
 .. note::
     If you just want to handle one column as a categorical variable (like R's factor),

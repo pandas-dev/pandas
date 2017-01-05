@@ -143,6 +143,19 @@ class TestSeriesOperators(TestData, tm.TestCase):
             expected = Series([-inf, nan, inf])
             assert_series_equal(result, expected)
 
+            # GH 8674
+            zero_array = np.array([0] * 5)
+            data = np.random.randn(5)
+            expected = pd.Series([0.] * 5)
+            result = zero_array / pd.Series(data)
+            assert_series_equal(result, expected)
+
+            result = pd.Series(zero_array) / data
+            assert_series_equal(result, expected)
+
+            result = pd.Series(zero_array) / pd.Series(data)
+            assert_series_equal(result, expected)
+
     def test_operators(self):
         def _check_op(series, other, op, pos_only=False,
                       check_dtype=True):

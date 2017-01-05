@@ -277,28 +277,6 @@ class TestFactorize(tm.TestCase):
         self.assertTrue(
             np.array_equal(pd.isnull(key), expected == na_sentinel))
 
-    def test_vector_resize(self):
-        # Test for memory errors after internal vector
-        # reallocations (pull request #7157)
-
-        def _test_vector_resize(htable, uniques, dtype, nvals):
-            vals = np.array(np.random.randn(1000), dtype=dtype)
-            # get_labels appends to the vector
-            htable.get_labels(vals[:nvals], uniques, 0, -1)
-            # to_array resizes the vector
-            uniques.to_array()
-            htable.get_labels(vals, uniques, 0, -1)
-
-        test_cases = [
-            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
-            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64'),
-            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64')]
-
-        for (tbl, vect, dtype) in test_cases:
-            # resizing to empty is a special case
-            _test_vector_resize(tbl(), vect(), dtype, 0)
-            _test_vector_resize(tbl(), vect(), dtype, 10)
-
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
         # Test not valid numpy versions older than 1.11
@@ -386,6 +364,11 @@ class TestUnique(tm.TestCase):
         result = algos.unique(arr)
         tm.assert_numpy_array_equal(result, expected)
         self.assertEqual(result.dtype, expected.dtype)
+
+    def test_uint64_overflow(self):
+        s = pd.Series([1, 2, 2**63, 2**63], dtype=np.uint64)
+        exp = np.array([1, 2, 2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(algos.unique(s), exp)
 
 
 class TestIsin(tm.TestCase):
@@ -694,7 +677,9 @@ class TestDuplicated(tm.TestCase):
                  np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
                            2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j]),
                  np.array(['a', 'b', 'a', 'e', 'c',
-                           'b', 'd', 'a', 'e', 'f'], dtype=object)]
+                           'b', 'd', 'a', 'e', 'f'], dtype=object),
+                 np.array([1, 2**63, 1, 3**5, 10,
+                           2**63, 39, 1, 3**5, 7], dtype=np.uint64)]
 
         exp_first = np.array([False, False, True, False, False,
                               True, False, True, True, False])
@@ -912,6 +897,52 @@ class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
     rtol = 1e-2
 
 
+class TestHashTable(tm.TestCase):
+
+    def test_lookup_nan(self):
+        xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
+        m = hashtable.Float64HashTable()
+        m.map_locations(xs)
+        self.assert_numpy_array_equal(m.lookup(xs),
+                                      np.arange(len(xs), dtype=np.int64))
+
+    def test_lookup_overflow(self):
+        xs = np.array([1, 2, 2**63], dtype=np.uint64)
+        m = hashtable.UInt64HashTable()
+        m.map_locations(xs)
+        self.assert_numpy_array_equal(m.lookup(xs),
+                                      np.arange(len(xs), dtype=np.int64))
+
+    def test_get_unique(self):
+        s = pd.Series([1, 2, 2**63, 2**63], dtype=np.uint64)
+        exp = np.array([1, 2, 2**63], dtype=np.uint64)
+        self.assert_numpy_array_equal(s.unique(), exp)
+
+    def test_vector_resize(self):
+        # Test for memory errors after internal vector
+        # reallocations (pull request #7157)
+
+        def _test_vector_resize(htable, uniques, dtype, nvals):
+            vals = np.array(np.random.randn(1000), dtype=dtype)
+            # get_labels appends to the vector
+            htable.get_labels(vals[:nvals], uniques, 0, -1)
+            # to_array resizes the vector
+            uniques.to_array()
+            htable.get_labels(vals, uniques, 0, -1)
+
+        test_cases = [
+            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
+            (hashtable.StringHashTable, hashtable.ObjectVector, 'object'),
+            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64'),
+            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64'),
+            (hashtable.UInt64HashTable, hashtable.UInt64Vector, 'uint64')]
+
+        for (tbl, vect, dtype) in test_cases:
+            # resizing to empty is a special case
+            _test_vector_resize(tbl(), vect(), dtype, 0)
+            _test_vector_resize(tbl(), vect(), dtype, 10)
+
+
 def test_quantile():
     s = Series(np.random.randn(100))
 
@@ -938,21 +969,44 @@ def test_unique_label_indices():
                                 check_dtype=False)
 
 
-def test_rank():
-    tm._skip_if_no_scipy()
-    from scipy.stats import rankdata
+class TestRank(tm.TestCase):
 
-    def _check(arr):
-        mask = ~np.isfinite(arr)
-        arr = arr.copy()
-        result = _algos.rank_1d_float64(arr)
-        arr[mask] = np.inf
-        exp = rankdata(arr)
-        exp[mask] = nan
-        assert_almost_equal(result, exp)
+    def test_scipy_compat(self):
+        tm._skip_if_no_scipy()
+        from scipy.stats import rankdata
 
-    _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
-    _check(np.array([4., nan, 5., 5., 5., nan, 1, 2, 4., nan]))
+        def _check(arr):
+            mask = ~np.isfinite(arr)
+            arr = arr.copy()
+            result = _algos.rank_1d_float64(arr)
+            arr[mask] = np.inf
+            exp = rankdata(arr)
+            exp[mask] = nan
+            assert_almost_equal(result, exp)
+
+        _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
+        _check(np.array([4., nan, 5., 5., 5., nan, 1, 2, 4., nan]))
+
+    def test_basic(self):
+        exp = np.array([1, 2], dtype=np.float64)
+
+        for dtype in np.typecodes['AllInteger']:
+            s = Series([1, 100], dtype=dtype)
+            tm.assert_numpy_array_equal(algos.rank(s), exp)
+
+    def test_uint64_overflow(self):
+        exp = np.array([1, 2], dtype=np.float64)
+
+        for dtype in [np.float64, np.uint64]:
+            s = Series([1, 2**63], dtype=dtype)
+            tm.assert_numpy_array_equal(algos.rank(s), exp)
+
+    def test_too_many_ndims(self):
+        arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
+        msg = "Array with ndim > 2 are not supported"
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            algos.rank(arr)
 
 
 def test_pad_backfill_object_segfault():
@@ -1127,6 +1181,167 @@ def test_ensure_platform_int():
 
     result = _algos.ensure_platform_int(arr)
     assert (result is arr)
+
+
+def test_int64_add_overflow():
+    # see gh-14068
+    msg = "Overflow in int64 addition"
+    m = np.iinfo(np.int64).max
+    n = np.iinfo(np.int64).min
+
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, m]), m)
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([n, n]), n)
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([n, n]), np.array([n, n]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, n]), np.array([n, n]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                   arr_mask=np.array([False, True]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                   b_mask=np.array([False, True]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                   arr_mask=np.array([False, True]),
+                                   b_mask=np.array([False, True]))
+    with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_produces_warning(RuntimeWarning):
+            algos.checked_add_with_arr(np.array([m, m]),
+                                       np.array([np.nan, m]))
+
+    # Check that the nan boolean arrays override whether or not
+    # the addition overflows. We don't check the result but just
+    # the fact that an OverflowError is not raised.
+    with tm.assertRaises(AssertionError):
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                       arr_mask=np.array([True, True]))
+    with tm.assertRaises(AssertionError):
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                       b_mask=np.array([True, True]))
+    with tm.assertRaises(AssertionError):
+        with tm.assertRaisesRegexp(OverflowError, msg):
+            algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
+                                       arr_mask=np.array([True, False]),
+                                       b_mask=np.array([False, True]))
+
+
+class TestMode(tm.TestCase):
+
+    def test_no_mode(self):
+        exp = Series([], dtype=np.float64)
+        tm.assert_series_equal(algos.mode([]), exp)
+
+        exp = Series([], dtype=np.int)
+        tm.assert_series_equal(algos.mode([1]), exp)
+
+        exp = Series([], dtype=np.object)
+        tm.assert_series_equal(algos.mode(['a', 'b', 'c']), exp)
+
+    def test_number_mode(self):
+        exp_single = [1]
+        data_single = [1] * 5 + [2] * 3
+
+        exp_multi = [1, 3]
+        data_multi = [1] * 5 + [2] * 3 + [3] * 5
+
+        for dt in np.typecodes['AllInteger'] + np.typecodes['Float']:
+            s = Series(data_single, dtype=dt)
+            exp = Series(exp_single, dtype=dt)
+            tm.assert_series_equal(algos.mode(s), exp)
+
+            s = Series(data_multi, dtype=dt)
+            exp = Series(exp_multi, dtype=dt)
+            tm.assert_series_equal(algos.mode(s), exp)
+
+    def test_strobj_mode(self):
+        exp = ['b']
+        data = ['a'] * 2 + ['b'] * 3
+
+        s = Series(data, dtype='c')
+        exp = Series(exp, dtype='c')
+        tm.assert_series_equal(algos.mode(s), exp)
+
+        exp = ['bar']
+        data = ['foo'] * 2 + ['bar'] * 3
+
+        for dt in [str, object]:
+            s = Series(data, dtype=dt)
+            exp = Series(exp, dtype=dt)
+            tm.assert_series_equal(algos.mode(s), exp)
+
+    def test_datelike_mode(self):
+        exp = Series([], dtype="M8[ns]")
+        s = Series(['2011-01-03', '2013-01-02',
+                    '1900-05-03'], dtype='M8[ns]')
+        tm.assert_series_equal(algos.mode(s), exp)
+
+        exp = Series(['2011-01-03', '2013-01-02'], dtype='M8[ns]')
+        s = Series(['2011-01-03', '2013-01-02', '1900-05-03',
+                    '2011-01-03', '2013-01-02'], dtype='M8[ns]')
+        tm.assert_series_equal(algos.mode(s), exp)
+
+    def test_timedelta_mode(self):
+        exp = Series([], dtype='timedelta64[ns]')
+        s = Series(['1 days', '-1 days', '0 days'],
+                   dtype='timedelta64[ns]')
+        tm.assert_series_equal(algos.mode(s), exp)
+
+        exp = Series(['2 min', '1 day'], dtype='timedelta64[ns]')
+        s = Series(['1 day', '1 day', '-1 day', '-1 day 2 min',
+                    '2 min', '2 min'], dtype='timedelta64[ns]')
+        tm.assert_series_equal(algos.mode(s), exp)
+
+    def test_mixed_dtype(self):
+        exp = Series(['foo'])
+        s = Series([1, 'foo', 'foo'])
+        tm.assert_series_equal(algos.mode(s), exp)
+
+    def test_uint64_overflow(self):
+        exp = Series([2**63], dtype=np.uint64)
+        s = Series([1, 2**63, 2**63], dtype=np.uint64)
+        tm.assert_series_equal(algos.mode(s), exp)
+
+        exp = Series([], dtype=np.uint64)
+        s = Series([1, 2**63], dtype=np.uint64)
+        tm.assert_series_equal(algos.mode(s), exp)
+
+    def test_categorical(self):
+        c = Categorical([1, 2])
+        exp = Series([], dtype=np.int64)
+        tm.assert_series_equal(algos.mode(c), exp)
+
+        c = Categorical([1, 'a', 'a'])
+        exp = Series(['a'], dtype=object)
+        tm.assert_series_equal(algos.mode(c), exp)
+
+        c = Categorical([1, 1, 2, 3, 3])
+        exp = Series([1, 3], dtype=np.int64)
+        tm.assert_series_equal(algos.mode(c), exp)
+
+    def test_index(self):
+        idx = Index([1, 2, 3])
+        exp = Series([], dtype=np.int64)
+        tm.assert_series_equal(algos.mode(idx), exp)
+
+        idx = Index([1, 'a', 'a'])
+        exp = Series(['a'], dtype=object)
+        tm.assert_series_equal(algos.mode(idx), exp)
+
+        idx = Index([1, 1, 2, 3, 3])
+        exp = Series([1, 3], dtype=np.int64)
+        tm.assert_series_equal(algos.mode(idx), exp)
+
+        exp = Series(['2 min', '1 day'], dtype='timedelta64[ns]')
+        idx = Index(['1 day', '1 day', '-1 day', '-1 day 2 min',
+                     '2 min', '2 min'], dtype='timedelta64[ns]')
+        tm.assert_series_equal(algos.mode(idx), exp)
 
 
 if __name__ == '__main__':

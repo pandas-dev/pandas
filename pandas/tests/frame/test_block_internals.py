@@ -142,7 +142,7 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
 
         df = DataFrame({'A': [2 ** 63]})
         result = df['A']
-        expected = Series(np.asarray([2 ** 63], np.object_), name='A')
+        expected = Series(np.asarray([2 ** 63], np.uint64), name='A')
         assert_series_equal(result, expected)
 
         df = DataFrame({'A': [datetime(2005, 1, 1), True]})

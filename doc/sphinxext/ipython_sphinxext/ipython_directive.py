@@ -786,7 +786,7 @@ class IPythonDirective(Directive):
             # EmbeddedSphinxShell is created, its interactive shell member
             # is the same for each instance.
 
-            if mplbackend:
+            if mplbackend and 'matplotlib.backends' not in sys.modules:
                 import matplotlib
                 # Repeated calls to use() will not hurt us since `mplbackend`
                 # is the same each time.

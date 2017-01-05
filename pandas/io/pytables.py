@@ -3429,9 +3429,8 @@ class Table(Fixed):
         j = len(self.index_axes)
 
         # check for column conflicts
-        if validate:
-            for a in self.axes:
-                a.maybe_set_size(min_itemsize=min_itemsize)
+        for a in self.axes:
+            a.maybe_set_size(min_itemsize=min_itemsize)
 
         # reindex by our non_index_axes & compute data_columns
         for a in self.non_index_axes:

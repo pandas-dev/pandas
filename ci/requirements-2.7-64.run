@@ -3,7 +3,7 @@ pytz
 numpy=1.10*
 xlwt
 numexpr
-pytables
+pytables==3.2.2
 matplotlib
 openpyxl
 xlrd
@@ -11,7 +11,7 @@ sqlalchemy
 lxml=3.2.1
 scipy
 xlsxwriter
-boto
+s3fs
 bottleneck
 html5lib
 beautiful-soup

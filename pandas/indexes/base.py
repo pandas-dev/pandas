@@ -1128,17 +1128,17 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def holds_integer(self):
         return self.inferred_type in ['integer', 'mixed-integer']
 
-    # validate / convert indexers
-    def _convert_scalar_indexer(self, key, kind=None):
-        """
-        convert a scalar indexer
+    _index_shared_docs['_convert_scalar_indexer'] = """
+        Convert a scalar indexer.
 
         Parameters
         ----------
         key : label of the slice bound
         kind : {'ix', 'loc', 'getitem', 'iloc'} or None
-        """
+    """
 
+    @Appender(_index_shared_docs['_convert_scalar_indexer'])
+    def _convert_scalar_indexer(self, key, kind=None):
         assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
 
         if kind == 'iloc':
@@ -1173,15 +1173,20 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         return key
 
-    def _convert_slice_indexer(self, key, kind=None):
-        """
-        convert a slice indexer. disallow floats in the start/stop/step
+    _index_shared_docs['_convert_slice_indexer'] = """
+        Convert a slice indexer.
+
+        By definition, these are labels unless 'iloc' is passed in.
+        Floats are not allowed as the start, step, or stop of the slice.
 
         Parameters
         ----------
         key : label of the slice bound
         kind : {'ix', 'loc', 'getitem', 'iloc'} or None
-        """
+    """
+
+    @Appender(_index_shared_docs['_convert_slice_indexer'])
+    def _convert_slice_indexer(self, key, kind=None):
         assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
 
         # if we are not a slice, then we are done
@@ -2102,9 +2107,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         return self._shallow_copy(values)
 
-    def get_loc(self, key, method=None, tolerance=None):
-        """
-        Get integer location for requested label
+    _index_shared_docs['get_loc'] = """
+        Get integer location for requested label.
 
         Parameters
         ----------
@@ -2125,7 +2129,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         Returns
         -------
         loc : int if unique index, possibly slice or mask if not
-        """
+    """
+
+    @Appender(_index_shared_docs['get_loc'])
+    def get_loc(self, key, method=None, tolerance=None):
         if method is None:
             if tolerance is not None:
                 raise ValueError('tolerance argument only valid if using pad, '
@@ -2427,8 +2434,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return result
 
     def map(self, mapper):
-        """
-        Apply mapper function to its values.
+        """Apply mapper function to an index.
 
         Parameters
         ----------
@@ -2437,9 +2443,21 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Returns
         -------
-        applied : array
+        applied : Union[Index, MultiIndex], inferred
+            The output of the mapping function applied to the index.
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
+
         """
-        return self._arrmap(self.values, mapper)
+        from .multi import MultiIndex
+        mapped_values = self._arrmap(self.values, mapper)
+        attributes = self._get_attributes_dict()
+        if mapped_values.size and isinstance(mapped_values[0], tuple):
+            return MultiIndex.from_tuples(mapped_values,
+                                          names=attributes.get('name'))
+
+        attributes['copy'] = False
+        return Index(mapped_values, **attributes)
 
     def isin(self, values, level=None):
         """
@@ -3036,8 +3054,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             self._invalid_indexer(form, key)
         return key
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
-        """
+    _index_shared_docs['_maybe_cast_slice_bound'] = """
         This function should be overloaded in subclasses that allow non-trivial
         casting on label-slice bounds, e.g. datetime-like indices allowing
         strings containing formatted datetimes.
@@ -3057,6 +3074,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         Value of `side` parameter should be validated in caller.
 
         """
+
+    @Appender(_index_shared_docs['_maybe_cast_slice_bound'])
+    def _maybe_cast_slice_bound(self, label, side, kind):
         assert kind in ['ix', 'loc', 'getitem', None]
 
         # We are a plain index here (sub-class override this method if they
@@ -3523,7 +3543,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             operator.sub, '__sub__', reversed=True)
         cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(
             operator.mul, '__mul__')
-        cls.__pow__ = cls.__rpow__ = _make_evaluate_binop(
+        cls.__rpow__ = _make_evaluate_binop(
+            operator.pow, '__pow__', reversed=True)
+        cls.__pow__ = _make_evaluate_binop(
             operator.pow, '__pow__')
         cls.__mod__ = _make_evaluate_binop(
             operator.mod, '__mod__')

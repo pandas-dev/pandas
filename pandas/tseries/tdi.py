@@ -20,8 +20,8 @@ from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import to_offset
+from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.base import _shared_docs
-from pandas.core.nanops import _checked_add_with_arr
 from pandas.indexes.base import _index_shared_docs
 import pandas.core.common as com
 import pandas.types.concat as _concat
@@ -347,7 +347,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         else:
             other = Timestamp(other)
             i8 = self.asi8
-            result = _checked_add_with_arr(i8, other.value)
+            result = checked_add_with_arr(i8, other.value)
             result = self._maybe_mask_results(result, fill_value=tslib.iNaT)
         return DatetimeIndex(result, name=self.name, copy=False)
 

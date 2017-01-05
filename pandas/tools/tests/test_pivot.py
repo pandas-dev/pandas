@@ -381,21 +381,26 @@ class TestPivotTable(tm.TestCase):
         df = df.set_index(['JOB', 'NAME', 'YEAR', 'MONTH'], drop=False,
                           append=False)
 
-        result = df.pivot_table(index=['JOB', 'NAME'],
-                                columns=['YEAR', 'MONTH'],
-                                values=['DAYS', 'SALARY'],
-                                aggfunc={'DAYS': 'mean', 'SALARY': 'sum'},
-                                margins=True)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.pivot_table(index=['JOB', 'NAME'],
+                                    columns=['YEAR', 'MONTH'],
+                                    values=['DAYS', 'SALARY'],
+                                    aggfunc={'DAYS': 'mean', 'SALARY': 'sum'},
+                                    margins=True)
 
-        expected = df.pivot_table(index=['JOB', 'NAME'],
-                                  columns=['YEAR', 'MONTH'], values=['DAYS'],
-                                  aggfunc='mean', margins=True)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = df.pivot_table(index=['JOB', 'NAME'],
+                                      columns=['YEAR', 'MONTH'],
+                                      values=['DAYS'],
+                                      aggfunc='mean', margins=True)
 
         tm.assert_frame_equal(result['DAYS'], expected['DAYS'])
 
-        expected = df.pivot_table(index=['JOB', 'NAME'],
-                                  columns=['YEAR', 'MONTH'], values=['SALARY'],
-                                  aggfunc='sum', margins=True)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = df.pivot_table(index=['JOB', 'NAME'],
+                                      columns=['YEAR', 'MONTH'],
+                                      values=['SALARY'],
+                                      aggfunc='sum', margins=True)
 
         tm.assert_frame_equal(result['SALARY'], expected['SALARY'])
 
@@ -1279,6 +1284,41 @@ class TestCrosstab(tm.TestCase):
         expected = pd.DataFrame(expected_data,
                                 index=expected_index,
                                 columns=expected_columns)
+        tm.assert_frame_equal(result, expected)
+
+    def test_crosstab_with_numpy_size(self):
+        # GH 4003
+        df = pd.DataFrame({'A': ['one', 'one', 'two', 'three'] * 6,
+                           'B': ['A', 'B', 'C'] * 8,
+                           'C': ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 4,
+                           'D': np.random.randn(24),
+                           'E': np.random.randn(24)})
+        result = pd.crosstab(index=[df['A'], df['B']],
+                             columns=[df['C']],
+                             margins=True,
+                             aggfunc=np.size,
+                             values=df['D'])
+        expected_index = pd.MultiIndex(levels=[['All', 'one', 'three', 'two'],
+                                               ['', 'A', 'B', 'C']],
+                                       labels=[[1, 1, 1, 2, 2, 2, 3, 3, 3, 0],
+                                               [1, 2, 3, 1, 2, 3, 1, 2, 3, 0]],
+                                       names=['A', 'B'])
+        expected_column = pd.Index(['bar', 'foo', 'All'],
+                                   dtype='object',
+                                   name='C')
+        expected_data = np.array([[2., 2., 4.],
+                                  [2., 2., 4.],
+                                  [2., 2., 4.],
+                                  [2., np.nan, 2.],
+                                  [np.nan, 2., 2.],
+                                  [2., np.nan, 2.],
+                                  [np.nan, 2., 2.],
+                                  [2., np.nan, 2.],
+                                  [np.nan, 2., 2.],
+                                  [12., 12., 24.]])
+        expected = pd.DataFrame(expected_data,
+                                index=expected_index,
+                                columns=expected_column)
         tm.assert_frame_equal(result, expected)
 
 

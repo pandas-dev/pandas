@@ -1293,14 +1293,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def _partial_date_slice(self, reso, parsed, use_lhs=True, use_rhs=True):
         is_monotonic = self.is_monotonic
-        if ((reso in ['day', 'hour', 'minute'] and
-             not (self._resolution < Resolution.get_reso(reso) or
-                  not is_monotonic)) or
-            (reso == 'second' and
-             not (self._resolution <= Resolution.RESO_SEC or
-                  not is_monotonic))):
+        if (is_monotonic and reso in ['day', 'hour', 'minute', 'second'] and
+                self._resolution >= Resolution.get_reso(reso)):
             # These resolution/monotonicity validations came from GH3931,
             # GH3452 and GH2369.
+
+            # See also GH14826
             raise KeyError
 
         if reso == 'microsecond':
@@ -2000,7 +1998,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Frequency strings can have multiples, e.g. '5H'
     tz : string or None
         Time zone name for returning localized DatetimeIndex, for example
-    Asia/Hong_Kong
+        Asia/Hong_Kong
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     name : str, default None
