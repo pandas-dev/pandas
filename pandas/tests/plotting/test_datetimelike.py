@@ -1272,16 +1272,49 @@ class TestTSPlot(TestPlotBase):
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         self.plt.plot(values)
 
-    def test_format_timedelta_ticks(self):
+    def test_format_timedelta_ticks_narrow(self):
         import matplotlib.pyplot as plt
-        rng = timedelta_range('0', periods=3, freq='ns')
+
+        expected_labels = [
+            '00:00:00.00000000{:d}'.format(i)
+            for i in range(10)]
+
+        rng = timedelta_range('0', periods=10, freq='ns')
         df = DataFrame(np.random.randn(len(rng), 3), rng)
-        ax = df.plot()
+        ax = df.plot(fontsize=2)
+        ax.get_figure().canvas.draw()
         plt.gcf().autofmt_xdate()
-        xaxis = ax.get_xaxis()
-        for l in xaxis.get_ticklabels():
-            if len(l.get_text()) > 0:
-                self.assertEqual(l.get_rotation(), 30)
+        labels = ax.get_xticklabels()
+        self.assertEqual(len(labels), len(expected_labels))
+        for l, l_expected in zip(labels, expected_labels):
+            self.assertEqual(l.get_text(), l_expected)
+            self.assertEqual(l.get_rotation(), 30)
+
+    def test_format_timedelta_ticks_wide(self):
+        import matplotlib.pyplot as plt
+
+        expected_labels = [
+            '00:00:00',
+            '1 days 03:46:40',
+            '2 days 07:33:20',
+            '3 days 11:20:00',
+            '4 days 15:06:40',
+            '5 days 18:53:20',
+            '6 days 22:40:00',
+            '8 days 02:26:40',
+            ''
+        ]
+
+        rng = timedelta_range('0', periods=10, freq='1 d')
+        df = DataFrame(np.random.randn(len(rng), 3), rng)
+        ax = df.plot(fontsize=2)
+        ax.get_figure().canvas.draw()
+        plt.gcf().autofmt_xdate()
+        labels = ax.get_xticklabels()
+        self.assertEqual(len(labels), len(expected_labels))
+        for l, l_expected in zip(labels, expected_labels):
+            self.assertEqual(l.get_text(), l_expected)
+            self.assertEqual(l.get_rotation(), 30)
 
     def test_timedelta_plot(self):
         # test issue #8711
