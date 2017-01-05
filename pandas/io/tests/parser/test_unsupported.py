@@ -51,11 +51,15 @@ class TestUnsupportedFeatures(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), engine='c', sep=r'\s')
         with tm.assertRaisesRegexp(ValueError, msg):
+            read_table(StringIO(data), engine='c', quotechar=chr(128))
+        with tm.assertRaisesRegexp(ValueError, msg):
             read_table(StringIO(data), engine='c', skipfooter=1)
 
         # specify C-unsupported options without python-unsupported options
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_table(StringIO(data), sep=None, delim_whitespace=False)
+        with tm.assert_produces_warning(parsers.ParserWarning):
+            read_table(StringIO(data), quotechar=chr(128))
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_table(StringIO(data), sep=r'\s')
         with tm.assert_produces_warning(parsers.ParserWarning):
