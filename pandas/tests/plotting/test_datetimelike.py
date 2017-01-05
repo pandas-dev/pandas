@@ -7,6 +7,7 @@ import numpy as np
 from pandas import Index, Series, DataFrame
 
 from pandas.tseries.index import date_range, bdate_range
+from pandas.tseries.tdi import timedelta_range
 from pandas.tseries.offsets import DateOffset
 from pandas.tseries.period import period_range, Period, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex
@@ -1270,6 +1271,22 @@ class TestTSPlot(TestPlotBase):
 
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         self.plt.plot(values)
+
+    def test_format_timedelta_ticks(self):
+        import matplotlib.pyplot as plt
+        rng = timedelta_range('0', periods=3, freq='ns')
+        df = DataFrame(np.random.randn(len(rng), 3), rng)
+        ax = df.plot()
+        plt.gcf().autofmt_xdate()
+        xaxis = ax.get_xaxis()
+        for l in xaxis.get_ticklabels():
+            if len(l.get_text()) > 0:
+                self.assertEqual(l.get_rotation(), 30)
+
+    def test_timedelta_plot(self):
+        # test issue #8711
+        s = Series(range(5), timedelta_range('1day', periods=5))
+        _check_plot_works(s.plot)
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

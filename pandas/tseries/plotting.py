@@ -280,7 +280,7 @@ def _maybe_convert_index(ax, data):
 # Patch methods for subplot. Only format_dateaxis is currently used.
 # Do we need the rest for convenience?
 
-def timeTicks(x, pos, n_decimals):
+def format_timedelta_ticks(x, pos, n_decimals):
     ''' Convert seconds to 'D days HH:MM:SS.F' '''
     s, ns = divmod(x, 1e9)
     m, s = divmod(s, 60)
@@ -306,6 +306,8 @@ def format_dateaxis(subplot, freq, index):
     """
 
     # handle index specific formatting
+    # Note: DatetimeIndex does not use this
+    # interface. DatetimeIndex uses matplotlib.date directly
     if isinstance(index, PeriodIndex):
 
         majlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
@@ -326,6 +328,10 @@ def format_dateaxis(subplot, freq, index):
         subplot.xaxis.set_major_formatter(majformatter)
         subplot.xaxis.set_minor_formatter(minformatter)
 
+        # x and y coord info
+        subplot.format_coord = lambda t, y: (
+            "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
+
     elif isinstance(index, TimedeltaIndex):
         from matplotlib import ticker
         (vmin, vmax) = tuple(subplot.xaxis.get_view_interval())
@@ -333,16 +339,9 @@ def format_dateaxis(subplot, freq, index):
         if n_decimals > 9:
             n_decimals = 9
         formatter = ticker.FuncFormatter(
-            lambda x, pos: timeTicks(x, pos, n_decimals))
+            lambda x, pos: format_timedelta_ticks(x, pos, n_decimals))
         subplot.xaxis.set_major_formatter(formatter)
     else:
         raise IOError('index type not supported')
-
-    # Note, DatetimeIndex does not use this
-    # interface. DatetimeIndex uses matplotlib.date directly
-
-    # x and y coord info
-    subplot.format_coord = lambda t, y: (
-        "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
 
     pylab.draw_if_interactive()

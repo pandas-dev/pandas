@@ -117,6 +117,7 @@ Other enhancements
 
 - ``.select_dtypes()`` now allows the string 'datetimetz' to generically select datetimes with tz (:issue:`14910`)
 
+- ``pd.TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
 
 .. _whatsnew_0200.api_breaking:
 
