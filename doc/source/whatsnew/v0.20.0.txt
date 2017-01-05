@@ -246,6 +246,7 @@ Other API Changes
 - ``DataFrame.applymap()`` with an empty ``DataFrame`` will return a copy of the empty ``DataFrame`` instead of a ``Series`` (:issue:`8222`)
 
 - ``pd.read_csv()`` will now issue a ``ParserWarning`` whenever there are conflicting values provided by the ``dialect`` parameter and the user (:issue:`14898`)
+- ``pd.read_csv()`` will now raise a ``ValueError`` for the C engine if the quote character is larger than than one byte (:issue:`11592`)
 
 .. _whatsnew_0200.deprecations:
 

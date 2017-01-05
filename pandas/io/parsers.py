@@ -841,6 +841,17 @@ class TextFileReader(BaseIterator):
                                       encoding=encoding)
                 engine = 'python'
 
+        quotechar = options['quotechar']
+        if (quotechar is not None and
+                isinstance(quotechar, (str, compat.text_type, bytes))):
+            if (len(quotechar) == 1 and ord(quotechar) > 127 and
+                    engine not in ('python', 'python-fwf')):
+                fallback_reason = ("ord(quotechar) > 127, meaning the "
+                                   "quotechar is larger than one byte, "
+                                   "and the 'c' engine does not support "
+                                   "such quotechars")
+                engine = 'python'
+
         if fallback_reason and engine_specified:
             raise ValueError(fallback_reason)
 
