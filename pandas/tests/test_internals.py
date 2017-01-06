@@ -859,6 +859,14 @@ class TestBlockManager(tm.TestCase):
         mgr = create_single_mgr('f8', num_rows=5)
         self.assertEqual(mgr.as_matrix().tolist(), [0., 1., 2., 3., 4.])
 
+    def test_validate_bool_args(self):
+        invalid_values = [1, "True", [1, 2, 3], 5.0]
+        bm1 = create_mgr('a,b,c: i8-1; d,e,f: i8-2')
+
+        for value in invalid_values:
+            with self.assertRaises(ValueError):
+                bm1.replace_list([1], [2], inplace=value)
+
 
 class TestIndexing(object):
     # Nosetests-style data-driven tests.

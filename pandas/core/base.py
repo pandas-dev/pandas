@@ -8,6 +8,7 @@ import numpy as np
 from pandas.types.missing import isnull
 from pandas.types.generic import ABCDataFrame, ABCSeries, ABCIndexClass
 from pandas.types.common import is_object_dtype, is_list_like, is_scalar
+from pandas.util.validators import validate_bool_kwarg
 
 from pandas.core import common as com
 import pandas.core.nanops as nanops
@@ -1178,6 +1179,7 @@ class IndexOpsMixin(object):
                                                    False: 'first'})
     @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
                 return self._shallow_copy()

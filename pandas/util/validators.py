@@ -215,3 +215,12 @@ def validate_args_and_kwargs(fname, args, kwargs,
 
     kwargs.update(args_dict)
     validate_kwargs(fname, kwargs, compat_args)
+
+
+def validate_bool_kwarg(value, arg_name):
+    """ Ensures that argument passed in arg_name is of type bool. """
+    if not (is_bool(value) or value is None):
+        raise ValueError('For argument "%s" expected type bool, '
+                         'received type %s.' %
+                         (arg_name, type(value).__name__))
+    return value

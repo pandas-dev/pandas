@@ -8,7 +8,8 @@ from uuid import uuid4
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
 from pandas.util.decorators import deprecate_kwarg
 from pandas.util.validators import (validate_args, validate_kwargs,
-                                    validate_args_and_kwargs)
+                                    validate_args_and_kwargs,
+                                    validate_bool_kwarg)
 
 import pandas.util.testing as tm
 
@@ -199,6 +200,22 @@ class TestValidateKwargs(tm.TestCase):
         compat_args['ba'] = 's'
         kwargs = dict(f=None, b=1)
         validate_kwargs(self.fname, kwargs, compat_args)
+
+    def test_validate_bool_kwarg(self):
+        arg_names = ['inplace', 'copy']
+        invalid_values = [1, "True", [1, 2, 3], 5.0]
+        valid_values = [True, False, None]
+
+        for name in arg_names:
+            for value in invalid_values:
+                with tm.assertRaisesRegexp(ValueError,
+                                           ("For argument \"%s\" expected "
+                                            "type bool, received type %s") %
+                                           (name, type(value).__name__)):
+                    validate_bool_kwarg(value, name)
+
+            for value in valid_values:
+                tm.assert_equal(validate_bool_kwarg(value, name), value)
 
 
 class TestValidateKwargsAndArgs(tm.TestCase):
