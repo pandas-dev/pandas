@@ -436,7 +436,7 @@ class TestStringMethods(tm.TestCase):
                     values = klass(data)
                     self.assertRaises(TypeError, values.str.replace, 'a', repl)
         
-        ## GH 15055, callable repl
+        ## GH 15055
         values = Series(['fooBAD__barBAD', NA])
 
         # test with callable
@@ -445,10 +445,20 @@ class TestStringMethods(tm.TestCase):
         exp = Series(['foObaD__baRbaD', NA])
         tm.assert_series_equal(result, exp)
 
-        # test with wrong type
-        repl = lambda m: m.group(0).swapcase()
-        result = values.str.replace('[a-z][A-Z]{2}', repl, n=2)
-        exp = Series(['foObaD__baRbaD', NA])
+        # test with wrong number of arguments
+        repl = lambda m, bad: None
+        re_msg = "^<lambda>\(\) missing 1 required positional argument: 'bad'$"
+        self.assertRaisesRegex(TypeError, re_msg, values.str.replace, 'a', repl)
+
+        repl = lambda: None
+        re_msg = '^<lambda>\(\) takes 0 positional arguments but 1 was given$'
+        self.assertRaisesRegex(TypeError, re_msg, values.str.replace, 'a', repl)
+
+        # test regex named groups
+        values = Series(['Foo Bar Baz', NA])
+        repl = lambda m: m.group('middle').swapcase()
+        result = values.str.replace(r"(?P<first>\w+) (?P<middle>\w+) (?P<last>\w+)", repl)
+        exp = Series(['bAR', NA])
         tm.assert_series_equal(result, exp)
 
     def test_repeat(self):
