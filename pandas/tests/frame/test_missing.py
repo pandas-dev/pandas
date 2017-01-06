@@ -208,7 +208,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         # empty frame (GH #2778)
         df = DataFrame(columns=['x'])
         for m in ['pad', 'backfill']:
-            df.x.fillna(method=m, inplace=1)
+            df.x.fillna(method=m, inplace=True)
             df.x.fillna(method=m)
 
         # with different dtype (GH3386)
