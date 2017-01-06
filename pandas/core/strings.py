@@ -167,7 +167,14 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         try:
             convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
-        except (TypeError, AttributeError):
+        except (TypeError, AttributeError) as e:
+            re_missing = (r'missing \d+ required (positional|keyword-only) '
+                           'arguments?')
+            re_takes = (r'takes (from)?\d+ (to \d+)?positional arguments? '
+                         'but \d+ (was|were) given')
+            if len(e.args) >= 1 and (re.search(re_missing, e.args[0]) 
+                                     or re.search(re_takes, e.args[0])):
+                raise e
 
             def g(x):
                 try:
