@@ -1917,6 +1917,8 @@ def test_more_than_one_expression_raises():
 
 def check_bool_ops_fails_on_scalars(gen, lhs, cmp, rhs, engine, parser):
     tm.skip_if_no_ne(engine)
+    if not pd._np_version_under1p11:
+        raise nose.SkipTest("numpy >= 1.11, bool_ops_fails_on_scalars")
     mid = gen[type(lhs)]()
     ex1 = 'lhs {0} mid {1} rhs'.format(cmp, cmp)
     ex2 = 'lhs {0} mid and mid {1} rhs'.format(cmp, cmp)
