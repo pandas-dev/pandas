@@ -1,5 +1,3 @@
-import nose
-
 import numpy as np
 from numpy.random import randn
 
@@ -2174,5 +2172,6 @@ bar2,12,13,14,15
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

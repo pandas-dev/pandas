@@ -183,5 +183,6 @@ class TestS3(tm.TestCase):
             read_csv('s3://cant_get_it/')
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

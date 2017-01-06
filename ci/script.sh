@@ -20,11 +20,23 @@ fi
 if [ "$BUILD_TEST" ]; then
     echo "We are not running nosetests as this is simply a build test."
 elif [ "$COVERAGE" ]; then
-    echo nosetests --exe -A "$NOSE_ARGS" pandas --with-coverage --with-xunit --xunit-file=/tmp/nosetests.xml
-    nosetests --exe -A "$NOSE_ARGS" pandas --with-coverage --cover-package=pandas --cover-tests --with-xunit --xunit-file=/tmp/nosetests.xml
+    echo pytest -s --cov=pandas --cov-report xml:/tmp/nosetests.xml $NOSE_ARGS pandas
+    pytest -s --cov=pandas --cov-report xml:/tmp/nosetests.xml $NOSE_ARGS pandas
 else
-    echo nosetests --exe -A "$NOSE_ARGS" pandas --doctest-tests --with-xunit --xunit-file=/tmp/nosetests.xml
-    nosetests --exe -A "$NOSE_ARGS" pandas --doctest-tests --with-xunit --xunit-file=/tmp/nosetests.xml
+    # XXX debugging
+    echo nosetests pandas/io/tests/test_stata.py
+    nosetests pandas/io/tests/test_stata.py
+
+    echo pytest $NOSE_ARGS pandas
+    pytest $NOSE_ARGS pandas # TODO: doctest
+
+    # XXX debugging
+    echo nosetests pandas/io/tests/test_stata.py
+    nosetests pandas/io/tests/test_stata.py
+    echo nosetests pandas/tools/tests/test_util.py
+    nosetests pandas/tools/tests/test_util.py
+    echo nosetests pandas/tseries/tests/test_timezones.py
+    nosetests pandas/tseries/tests/test_timezones.py
 fi
 
 RET="$?"

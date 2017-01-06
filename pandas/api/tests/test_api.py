@@ -135,7 +135,7 @@ class TestPDApi(Base, tm.TestCase):
 
 class TestApi(Base, tm.TestCase):
 
-    allowed = ['tests', 'types']
+    allowed = ['tests', 'types', 'test']
 
     def test_api(self):
 
@@ -229,6 +229,6 @@ class TestDatetools(tm.TestCase):
             pd.datetools.monthEnd
 
 if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

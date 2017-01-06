@@ -10,7 +10,6 @@ from pandas import compat
 
 import os
 import sys
-import nose
 
 from numpy import nan
 import numpy as np
@@ -404,5 +403,6 @@ def assert_array_dicts_equal(left, right):
         assert(np.array_equal(v, right[k]))
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

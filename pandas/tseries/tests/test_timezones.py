@@ -1,6 +1,5 @@
 # pylint: disable-msg=E1101,W0612
 from datetime import datetime, timedelta, tzinfo, date
-import nose
 
 import numpy as np
 import pytz
@@ -1687,5 +1686,6 @@ class TestTimeZones(tm.TestCase):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

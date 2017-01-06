@@ -1,8 +1,6 @@
 from pandas.compat import StringIO
 from datetime import date, datetime
 
-import nose
-
 import numpy as np
 
 from pandas import DataFrame, MultiIndex
@@ -152,5 +150,6 @@ date,time,prn,rxstatus
         assert_frame_equal(result, expected)
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

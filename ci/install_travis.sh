@@ -82,6 +82,7 @@ else
 
     # Useful for debugging any issues with conda
     conda info -a || exit 1
+
 fi
 
 # may have installation instructions for this build
@@ -91,10 +92,10 @@ if [ -e ${INSTALL} ]; then
 else
 
     # create new env
-    time conda create -n pandas python=$PYTHON_VERSION nose || exit 1
+    time conda create -n pandas python=$PYTHON_VERSION nose pytest || exit 1
 
     if [ "$COVERAGE" ]; then
-        pip install coverage
+        pip install coverage pytest-cov
     fi
     if [ "$LINT" ]; then
         conda install flake8

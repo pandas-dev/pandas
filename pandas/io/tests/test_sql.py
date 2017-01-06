@@ -236,7 +236,7 @@ class SQLAlchemyMixIn(MixInBase):
         pass
 
 
-class PandasSQLTest(unittest.TestCase):
+class PandasSQLTest(object):
     """
     Base class with common private methods for SQLAlchemy and fallback cases.
 
@@ -839,7 +839,7 @@ class _TestSQLApi(PandasSQLTest):
         df.to_sql('test_unicode', self.conn, index=False)
 
 
-class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
+class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
     """
     Test the public API as it would be used directly
 
@@ -1024,11 +1024,11 @@ class _EngineToConnMixin(object):
         super(_EngineToConnMixin, self).tearDown()
 
 
-class TestSQLApiConn(_EngineToConnMixin, TestSQLApi):
+class TestSQLApiConn(_EngineToConnMixin, TestSQLApi, unittest.TestCase):
     pass
 
 
-class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
+class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, unittest.TestCase):
     """
     Test the public sqlite connection fallback API
 
@@ -1875,34 +1875,39 @@ class _TestPostgreSQLAlchemy(object):
             tm.assert_frame_equal(res1, res2)
 
 
-class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
+class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy, unittest.TestCase):
     pass
 
 
-class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
+class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn,
+                           unittest.TestCase):
     pass
 
 
-class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
+class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy,
+                            unittest.TestCase):
     pass
 
 
-class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
+class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn,
+                                unittest.TestCase):
     pass
 
 
-class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy):
+class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy,
+                        unittest.TestCase):
     pass
 
 
-class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
+class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn,
+                            unittest.TestCase):
     pass
 
 
 # -----------------------------------------------------------------------------
 # -- Test Sqlite / MySQL fallback
 
-class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
+class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
     """
     Test the fallback mode against an in-memory sqlite database.
 
@@ -2661,5 +2666,6 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

@@ -4,8 +4,6 @@
 from datetime import datetime, timedelta
 import re
 
-import nose
-
 from numpy import nan as NA
 import numpy as np
 from numpy.random import randint
@@ -2681,5 +2679,6 @@ class TestStringMethods(tm.TestCase):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])

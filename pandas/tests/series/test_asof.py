@@ -1,7 +1,5 @@
 # coding=utf-8
 
-import nose
-
 import numpy as np
 
 from pandas import (offsets, Series, notnull,
@@ -154,5 +152,6 @@ class TestSeriesAsof(TestData, tm.TestCase):
             s.asof(s.index[0], subset='foo')
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+    import pytest
+
+    pytest.main([__file__, '-vvs', '-x', '--pdb'])
