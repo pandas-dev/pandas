@@ -7,7 +7,7 @@ class TestDataFrameValidate(TestCase):
     df = DataFrame({'a': [1, 2], 'b': [3, 4]})
 
     def test_validate_bool_args(self):
-        """ Tests for error handling related to boolean arguments. """
+        # Tests for error handling related to boolean arguments.
         invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:

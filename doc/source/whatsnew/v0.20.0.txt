@@ -129,7 +129,6 @@ Map on Index types now return other Index types
 
 -  ``map`` on an ``Index`` now returns an ``Index``, not a numpy array (:issue:`12766`)
 
-<<<<<<< HEAD
   .. ipython:: python
 
      idx = Index([1, 2])
