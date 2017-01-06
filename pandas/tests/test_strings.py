@@ -436,10 +436,19 @@ class TestStringMethods(tm.TestCase):
                     values = klass(data)
                     self.assertRaises(TypeError, values.str.replace, 'a', repl)
         
-        # GH 15055, callable repl
+        ## GH 15055, callable repl
+        values = Series(['fooBAD__barBAD', NA])
+
+        # test with callable
         repl = lambda m: m.group(0).swapcase()
         result = values.str.replace('[a-z][A-Z]{2}', repl, n=2)
-        exp = Series([u('foObaD__baRbaD'), NA])
+        exp = Series(['foObaD__baRbaD', NA])
+        tm.assert_series_equal(result, exp)
+
+        # test with wrong type
+        repl = lambda m: m.group(0).swapcase()
+        result = values.str.replace('[a-z][A-Z]{2}', repl, n=2)
+        exp = Series(['foObaD__baRbaD', NA])
         tm.assert_series_equal(result, exp)
 
     def test_repeat(self):
