@@ -427,7 +427,11 @@ int Object_npyObjectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value) {
 
     // only fill label array once, assumes all column labels are the same
     // for 2-dimensional arrays.
+#ifdef PYPY_VERSION
+    if (PyObject_GET_SIZE(npyarr->labels[labelidx]) <= npyarr->elcount) {
+#else
     if (PyList_GET_SIZE(npyarr->labels[labelidx]) <= npyarr->elcount) {
+#endif
         PyList_Append(npyarr->labels[labelidx], label);
     }
 
