@@ -829,10 +829,10 @@ class TestIndex(Base):
         exp = Index(range(24), name='hourly')
         tm.assert_index_equal(exp, date_index.map(lambda x: x.hour))
 
-    def test_map_with_series_all_indices(self):
+    def test_map_with_dict_and_series(self):
         expected = Index(['foo', 'bar', 'baz'])
         mapper = Series(expected.values, index=[0, 1, 2])
-        self.assert_index_equal(tm.makeIntIndex(3).map(mapper), expected)
+        tm.assert_index_equal(tm.makeIntIndex(3).map(mapper), expected)
 
         # GH 12766
         # special = []
@@ -842,30 +842,47 @@ class TestIndex(Base):
             orig_values = ['a', 'B', 1, 'a']
             new_values = ['one', 2, 3.0, 'one']
             cur_index = CategoricalIndex(orig_values, name='XXX')
+            expected = CategoricalIndex(new_values,
+                                        name='XXX', categories=[3.0, 2, 'one'])
+
             mapper = pd.Series(new_values[:-1], index=orig_values[:-1])
-            expected = CategoricalIndex(new_values, name='XXX')
             output = cur_index.map(mapper)
-            self.assert_numpy_array_equal(expected.values.get_values(), output.values.get_values())
-            self.assert_equal(expected.name, output.name)
+            # Order of categories in output can be different
+            tm.assert_index_equal(expected, output)
+
+            mapper = {o: n for o, n in
+                      zip(orig_values[:-1], new_values[:-1])}
+            output = cur_index.map(mapper)
+            # Order of categories in output can be different
+            tm.assert_index_equal(expected, output)
 
         for name in list(set(self.indices.keys()) - set(special)):
             cur_index = self.indices[name]
             expected = Index(np.arange(len(cur_index), 0, -1))
-            mapper = pd.Series(expected.values, index=cur_index)
-            print(name)
-            output = cur_index.map(mapper)
-            self.assert_index_equal(expected, cur_index.map(mapper))
+            mapper = pd.Series(expected, index=cur_index)
+            tm.assert_index_equal(expected, cur_index.map(mapper))
+
+            mapper = {o: n for o, n in
+                      zip(cur_index, expected)}
+            if mapper:
+                tm.assert_index_equal(expected, cur_index.map(mapper))
+            else:
+                # The expected index type is Int64Index
+                # but the output defaults to Float64
+                tm.assert_index_equal(Float64Index([]),
+                                      cur_index.map(mapper))
 
     def test_map_with_categorical_series(self):
         # GH 12756
         a = Index([1, 2, 3, 4])
-        b = Series(["even", "odd", "even", "odd"], dtype="category")
+        b = Series(["even", "odd", "even", "odd"],
+                   dtype="category")
         c = Series(["even", "odd", "even", "odd"])
 
         exp = CategoricalIndex(["odd", "even", "odd", np.nan])
-        self.assert_index_equal(a.map(b), exp)
+        tm.assert_index_equal(a.map(b), exp)
         exp = Index(["odd", "even", "odd", np.nan])
-        self.assert_index_equal(a.map(c), exp)
+        tm.assert_index_equal(a.map(c), exp)
 
     def test_map_with_non_function_missing_values(self):
         # GH 12756
@@ -873,10 +890,10 @@ class TestIndex(Base):
         input = Index([2, 1, 0])
 
         mapper = Series(['foo', 2., 'baz'], index=[0, 2, -1])
-        self.assert_index_equal(expected, input.map(mapper))
+        tm.assert_index_equal(expected, input.map(mapper))
 
         mapper = {0: 'foo', 2: 2.0, -1: 'baz'}
-        self.assert_index_equal(expected, input.map(mapper))
+        tm.assert_index_equal(expected, input.map(mapper))
 
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])

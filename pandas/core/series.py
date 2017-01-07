@@ -202,23 +202,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         index = Index(data)
                     else:
                         index = Index(_try_sort(data))
+
                 try:
-                    if isinstance(index, DatetimeIndex):
-                        if len(data):
-                            # coerce back to datetime objects for lookup
-                            data = _dict_compat(data)
-                            data = lib.fast_multiget(data,
-                                                     index.asobject.values,
-                                                     default=np.nan)
-                        else:
-                            data = np.nan
-                    # GH #12169
-                    elif isinstance(index, (PeriodIndex, TimedeltaIndex)):
-                        data = ([data.get(i, np.nan) for i in index]
-                                if data else np.nan)
-                    else:
-                        data = lib.fast_multiget(data, index.values,
-                                                 default=np.nan)
+                    data = index.get_values_from_dict(data)
                 except TypeError:
                     data = ([data.get(i, np.nan) for i in index]
                             if data else np.nan)

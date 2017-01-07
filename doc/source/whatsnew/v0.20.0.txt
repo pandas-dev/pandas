@@ -519,6 +519,7 @@ Other Enhancements
 - ``parallel_coordinates()`` has gained a ``sort_labels`` keyword argument that sorts class labels and the colors assigned to them (:issue:`15908`)
 - Options added to allow one to turn on/off using ``bottleneck`` and ``numexpr``, see :ref:`here <basics.accelerate>` (:issue:`16157`)
 - ``DataFrame.style.bar()`` now accepts two more options to further customize the bar chart. Bar alignment is set with ``align='left'|'mid'|'zero'``, the default is "left", which is backward compatible; You can now pass a list of ``color=[color_negative, color_positive]``. (:issue:`14757`)
+- ``Index.map`` can now accept series and dictionary input object (:issue:`12756`).
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 

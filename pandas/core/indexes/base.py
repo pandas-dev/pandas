@@ -2820,6 +2820,25 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
+    def get_values_from_dict(self, input_dict):
+        """Return the values of the input dictionary in the order the keys are
+        in the index. np.nan is returned for index values not in the
+        dictionary.
+
+        Parameters
+        ----------
+        input_dict : dict
+            The dictionary from which to extract the values
+
+        Returns
+        -------
+        Union[np.array, list]
+
+        """
+
+        return lib.fast_multiget(input_dict, self.values,
+                                 default=np.nan)
+
     def _maybe_promote(self, other):
         # A hack, but it works
         from pandas.core.indexes.datetimes import DatetimeIndex
@@ -2863,8 +2882,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        mapper : function, dict, or Series
-            Function to be applied.
+        mapper : Union[function, dict, Series]
+            Function to be applied or input correspondence object.
 
         Returns
         -------
@@ -2877,12 +2896,15 @@ class Index(IndexOpsMixin, PandasObject):
         from .multi import MultiIndex
 
         if isinstance(mapper, ABCSeries):
-            indexer = mapper.index.get_indexer(self._values)
+            indexer = mapper.index.get_indexer(self.values)
             mapped_values = algos.take_1d(mapper.values, indexer)
+        elif isinstance(mapper, dict):
+            idx = Index(mapper.keys())
+            data = idx.get_values_from_dict(mapper)
+            indexer = idx.get_indexer(self.values)
+            mapped_values = algos.take_1d(data, indexer)
         else:
-            if isinstance(mapper, dict):
-                mapper = mapper.get
-            mapped_values = self._arrmap(self._values, mapper)
+            mapped_values = self._arrmap(self.values, mapper)
 
         attributes = self._get_attributes_dict()
         if mapped_values.size and isinstance(mapped_values[0], tuple):

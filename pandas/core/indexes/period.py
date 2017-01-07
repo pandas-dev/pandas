@@ -800,6 +800,25 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             res = res.dropna()
         return res
 
+    def get_values_from_dict(self, input_dict):
+        """Return the values of the input dictionary in the order the keys are
+        in the index. np.nan is returned for index values not in the
+        dictionary.
+
+        Parameters
+        ----------
+        input_dict : dict
+            The dictionary from which to extract the values
+
+        Returns
+        -------
+        Union[np.array, list]
+
+        """
+
+        return np.array([input_dict.get(i, np.nan) for i in self.values]
+                        if input_dict else [np.nan])
+
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
