@@ -26,10 +26,13 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyBytes_GET_SIZE,
                       PyUnicode_GET_SIZE)
 
-try:
-    from cpython cimport PyString_GET_SIZE
-except ImportError:
+cdef extern from "Python.h":
+    int PY_MAJOR_VERSION
+
+if PY_MAJOR_VERSION >= 3:
     from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
+else:
+    from cpython cimport PyString_GET_SIZE
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
