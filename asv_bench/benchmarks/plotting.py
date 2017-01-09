@@ -20,6 +20,9 @@ class TimeseriesPlotting(object):
     def time_plot_regular(self):
         self.df.plot()
 
+    def time_plot_regular_compat(self):
+        self.df.plot(x_compat=True)
+
 
 class Misc(object):
     goal_time = 0.6

@@ -212,7 +212,7 @@ class DatetimeConverter(dates.DateConverter):
             try:
                 values = tools.to_datetime(values)
                 if isinstance(values, Index):
-                    values = values.map(_dt_to_float_ordinal)
+                    values = _dt_to_float_ordinal(values)
                 else:
                     values = [_dt_to_float_ordinal(x) for x in values]
             except Exception:
