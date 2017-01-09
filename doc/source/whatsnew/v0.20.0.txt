@@ -312,7 +312,7 @@ Bug Fixes
 
 - Bug in compat for passing long integers to ``Timestamp.replace`` (:issue:`15030`)
 
-
+- Bug in ``Series`` construction with a datetimetz (:issue:`14928`)
 
 
 - Bug in ``Series.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14721`)
