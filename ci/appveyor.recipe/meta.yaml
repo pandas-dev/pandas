@@ -1,6 +1,6 @@
 package:
     name: pandas
-    version: 0.18.1
+    version: 0.20.0
 
 build:
     number: {{environ.get('APPVEYOR_BUILD_NUMBER', 0)}}  # [win]

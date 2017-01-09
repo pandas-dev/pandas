@@ -1970,6 +1970,15 @@ def test_negate_lt_eq_le():
     for engine, parser in product(_engines, expr._parsers):
         yield check_negate_lt_eq_le, engine, parser
 
+class TestValidate(tm.TestCase):
+
+    def test_validate_bool_args(self):
+        invalid_values = [1, "True", [1,2,3], 5.0]
+
+        for value in invalid_values:
+            with self.assertRaises(ValueError):
+                pd.eval("2+2", inplace=value)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

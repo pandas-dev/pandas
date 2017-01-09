@@ -1,0 +1,13 @@
+python-dateutil
+pytz
+numpy
+openpyxl
+xlsxwriter
+xlrd
+#xlwt
+scipy
+feather-format
+numexpr
+pytables
+matplotlib
+blosc

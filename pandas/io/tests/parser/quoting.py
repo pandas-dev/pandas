@@ -149,5 +149,5 @@ class QuotingTests(object):
 
         # Compared to Python 3.x, Python 2.x does not handle unicode well.
         if PY3:
-            result = self.read_csv(StringIO(data), quotechar=u('\u0394'))
+            result = self.read_csv(StringIO(data), quotechar=u('\u0001'))
             tm.assert_frame_equal(result, expected)

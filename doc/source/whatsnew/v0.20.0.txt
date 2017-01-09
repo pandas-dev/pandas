@@ -246,6 +246,8 @@ Other API Changes
 - ``DataFrame.applymap()`` with an empty ``DataFrame`` will return a copy of the empty ``DataFrame`` instead of a ``Series`` (:issue:`8222`)
 
 - ``pd.read_csv()`` will now issue a ``ParserWarning`` whenever there are conflicting values provided by the ``dialect`` parameter and the user (:issue:`14898`)
+- ``pd.read_csv()`` will now raise a ``ValueError`` for the C engine if the quote character is larger than than one byte (:issue:`11592`)
+- ``inplace`` arguments now require a boolean value, else a ``ValueError`` is thrown (:issue:`14189`)
 
 .. _whatsnew_0200.deprecations:
 
@@ -281,6 +283,10 @@ Performance Improvements
 - Increased performance of ``pd.factorize()`` by releasing the GIL with ``object`` dtype when inferred as strings (:issue:`14859`)
 - Improved performance of timeseries plotting with an irregular DatetimeIndex
   (or with ``compat_x=True``) (:issue:`15073`).
+
+
+- When reading buffer object in ``read_sas()`` method without specified format, filepath string is inferred rather than buffer object.
+
 
 
 .. _whatsnew_0200.bug_fixes:

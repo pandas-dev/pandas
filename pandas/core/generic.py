@@ -52,6 +52,7 @@ from pandas.compat import (map, zip, lrange, string_types,
                            isidentifier, set_function_name)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util.validators import validate_bool_kwarg
 from pandas.core import config
 
 # goal is to be able to define the docs close to function, while still being
@@ -733,6 +734,7 @@ class NDFrame(PandasObject):
         1    2  5
         2    3  6
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
                                            is_dict_like(mapper))
         if non_mapper:
@@ -1950,6 +1952,7 @@ class NDFrame(PandasObject):
         -------
         dropped : type of caller
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
         axis, axis_ = self._get_axis(axis), axis
@@ -2099,6 +2102,7 @@ class NDFrame(PandasObject):
     @Appender(_shared_docs['sort_index'] % dict(axes="axes", klass="NDFrame"))
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True):
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
         labels = self._get_axis(axis)
@@ -2872,6 +2876,7 @@ class NDFrame(PandasObject):
         -------
         consolidated : type of caller
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
             self._consolidate_inplace()
         else:
@@ -3267,6 +3272,7 @@ class NDFrame(PandasObject):
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None):
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(value, (list, tuple)):
             raise TypeError('"value" parameter must be a scalar or dict, but '
                             'you passed a "{0}"'.format(type(value).__name__))
@@ -3479,6 +3485,7 @@ class NDFrame(PandasObject):
           and play with this method to gain intuition about how it works.
 
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
@@ -3714,6 +3721,7 @@ class NDFrame(PandasObject):
         """
         Interpolate values according to different methods.
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
 
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "
@@ -4627,6 +4635,7 @@ class NDFrame(PandasObject):
         Equivalent to public method `where`, except that `other` is not
         applied as a function even if callable. Used in __setitem__.
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
 
         cond = com._apply_if_callable(cond, self)
 
@@ -4894,6 +4903,7 @@ class NDFrame(PandasObject):
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
              try_cast=False, raise_on_error=True):
 
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         cond = com._apply_if_callable(cond, self)
 
         return self.where(~cond, other=other, inplace=inplace, axis=axis,

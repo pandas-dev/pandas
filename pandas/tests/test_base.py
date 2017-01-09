@@ -1050,6 +1050,13 @@ class TestIndexOps(Ops):
             index = np.searchsorted(o, max(o), sorter=range(len(o)))
             self.assertTrue(0 <= index <= len(o))
 
+    def test_validate_bool_args(self):
+        invalid_values = [1, "True", [1, 2, 3], 5.0]
+
+        for value in invalid_values:
+            with self.assertRaises(ValueError):
+                self.int_series.drop_duplicates(inplace=value)
+
 
 class TestTranspose(Ops):
     errmsg = "the 'axes' parameter is not supported"
