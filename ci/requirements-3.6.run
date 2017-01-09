@@ -2,3 +2,19 @@ python-dateutil
 pytz
 numpy
 scipy
+openpyxl
+xlsxwriter
+xlrd
+# xlwt (installed via pip)
+numexpr
+pytables
+# matplotlib (not avail on defaults ATM)
+lxml
+html5lib
+jinja2
+sqlalchemy
+pymysql
+# psycopg2 (not avail on defaults ATM)
+beautifulsoup4
+s3fs
+xarray
