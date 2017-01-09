@@ -282,6 +282,7 @@ Performance Improvements
 - Improved performance of ``pd.wide_to_long()`` (:issue:`14779`)
 - Increased performance of ``pd.factorize()`` by releasing the GIL with ``object`` dtype when inferred as strings (:issue:`14859`)
 
+- When reading buffer object in ``read_sas()`` method without specified format, filepath string is inferred rather than buffer object.
 
 
 .. _whatsnew_0200.bug_fixes:
