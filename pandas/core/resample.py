@@ -697,6 +697,10 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             obj = obj.copy()
+            if how == "size" and isinstance(obj, pd.DataFrame):
+                obj = obj.groupby(
+                    self.grouper, axis=self.axis).aggregate(how, **kwargs)
+
             obj.index.freq = self.freq
             return obj
 

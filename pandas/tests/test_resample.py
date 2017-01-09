@@ -848,6 +848,14 @@ class Base(object):
                 assert_frame_equal(result_agg, expected)
                 assert_frame_equal(result_how, expected)
 
+    def test_resample_empty_dataframe_with_size(self):
+        # GH 14962
+        df1 = pd.DataFrame(dict(a=range(100)),
+                           index=pd.date_range('1/1/2000', periods=100, freq="M"))
+        df2 = df1[df1.a < 0]
+        result = df2.resample("Q").size()
+        assertIsInstance(result, pd.Series)
+
 
 class TestDatetimeIndex(Base):
     _index_factory = lambda x: date_range
