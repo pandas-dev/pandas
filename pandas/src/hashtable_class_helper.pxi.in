@@ -85,7 +85,9 @@ cdef class {{name}}Vector:
         self.data.data = <{{arg}}*> self.ao.data
 
     def __dealloc__(self):
-        PyMem_Free(self.data)
+        if self.data is not NULL:
+            PyMem_Free(self.data)
+            self.data = NULL
 
     def __len__(self):
         return self.data.n
@@ -133,8 +135,11 @@ cdef class StringVector:
             self.data.data[i] = orig_data[i]
 
     def __dealloc__(self):
-        free(self.data.data)
-        PyMem_Free(self.data)
+        if self.data is not NULL:
+            if self.data.data is not NULL:
+                free(self.data.data)
+            PyMem_Free(self.data)
+            self.data = NULL
 
     def __len__(self):
         return self.data.n
@@ -223,7 +228,9 @@ cdef class {{name}}HashTable(HashTable):
         return self.table.size
 
     def __dealloc__(self):
-        kh_destroy_{{dtype}}(self.table)
+        if self.table is not NULL:
+            kh_destroy_{{dtype}}(self.table)
+            self.table = NULL
 
     def __contains__(self, object key):
         cdef khiter_t k
@@ -453,7 +460,9 @@ cdef class StringHashTable(HashTable):
             kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):
-        kh_destroy_str(self.table)
+        if self.table is not NULL:
+            kh_destroy_str(self.table)
+            self.table = NULL
 
     cpdef get_item(self, object val):
         cdef:
@@ -691,7 +700,8 @@ cdef class PyObjectHashTable(HashTable):
 
     def __dealloc__(self):
         if self.table is not NULL:
-            self.destroy()
+            kh_destroy_pymap(self.table)
+            self.table = NULL
 
     def __len__(self):
         return self.table.size
@@ -703,10 +713,6 @@ cdef class PyObjectHashTable(HashTable):
             key = na_sentinel
         k = kh_get_pymap(self.table, <PyObject*>key)
         return k != self.table.n_buckets
-
-    def destroy(self):
-        kh_destroy_pymap(self.table)
-        self.table = NULL
 
     cpdef get_item(self, object val):
         cdef khiter_t k
