@@ -37,22 +37,11 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(int(Series([1.])), 1)
         self.assertEqual(long(Series([1.])), 1)
 
-    def test_TimeSeries_deprecation(self):
-
-        # deprecation TimeSeries, #10890
-        with tm.assert_produces_warning(FutureWarning):
-            pd.TimeSeries(1, index=date_range('20130101', periods=3))
-
     def test_constructor(self):
-        # Recognize TimeSeries
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertTrue(self.ts.is_time_series)
         self.assertTrue(self.ts.index.is_all_dates)
 
         # Pass in Series
         derived = Series(self.ts)
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertTrue(derived.is_time_series)
         self.assertTrue(derived.index.is_all_dates)
 
         self.assertTrue(tm.equalContents(derived.index, self.ts.index))
@@ -64,11 +53,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(mixed.dtype, np.object_)
         self.assertIs(mixed[1], np.NaN)
 
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertFalse(self.empty.is_time_series)
         self.assertFalse(self.empty.index.is_all_dates)
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertFalse(Series({}).is_time_series)
         self.assertFalse(Series({}).index.is_all_dates)
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
