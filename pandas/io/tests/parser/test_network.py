@@ -30,8 +30,9 @@ class TestCompressedUrl(object):
         self.base_url = ('https://github.com/pandas-dev/pandas/raw/master/'
                          'pandas/io/tests/parser/data/salaries.csv')
 
+    @tm.network
     def test_compressed_urls(self):
-        """Test reading compressed tables from URL."""
+        # Test reading compressed tables from URL.
         msg = ('Test reading {}-compressed tables from URL: '
                'compression="{}", engine="{}"')
 
