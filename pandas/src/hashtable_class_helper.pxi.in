@@ -691,7 +691,11 @@ cdef class PyObjectHashTable(HashTable):
 
     def __dealloc__(self):
         if self.table is not NULL:
-            self.destroy()
+            # cython documentation -
+            # "don’t call any other methods of the object"
+            # self.destroy()
+            kh_destroy_pymap(self.table)
+            self.table = NULL
 
     def __len__(self):
         return self.table.size

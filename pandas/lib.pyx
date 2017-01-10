@@ -26,9 +26,9 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyBytes_GET_SIZE,
                       PyUnicode_GET_SIZE)
 
-try:
+IF PY_MAJOR_VERSION == 2:
     from cpython cimport PyString_GET_SIZE
-except ImportError:
+ELSE:
     from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
 
 cdef extern from "Python.h":

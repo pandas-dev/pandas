@@ -150,6 +150,12 @@ class build_ext(_build_ext):
                 with open(outfile, "w") as f:
                     f.write(pyxcontent)
 
+            # used in lib.pyx, assumes old_build_ext
+            if not self.cython_compile_time_env:
+                self.cython_compile_time_env = {}
+            major = sys.version_info.major
+            self.cython_compile_time_env['PY_MAJOR_VERSION'] = major
+
         numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
 
         for ext in self.extensions:
