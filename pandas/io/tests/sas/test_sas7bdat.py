@@ -51,6 +51,7 @@ class TestSAS7BDAT(tm.TestCase):
                                   iterator=True, encoding='utf-8')
                 df = rdr.read()
                 tm.assert_frame_equal(df, df0, check_exact=False)
+                rdr.close()
 
     def test_from_iterator(self):
         for j in 0, 1:
@@ -62,6 +63,7 @@ class TestSAS7BDAT(tm.TestCase):
                 tm.assert_frame_equal(df, df0.iloc[0:2, :])
                 df = rdr.read(3)
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
+                rdr.close()
 
     def test_iterator_loop(self):
         # github #13654
@@ -74,6 +76,7 @@ class TestSAS7BDAT(tm.TestCase):
                     for x in rdr:
                         y += x.shape[0]
                     self.assertTrue(y == rdr.row_count)
+                    rdr.close()
 
     def test_iterator_read_too_much(self):
         # github #14734
@@ -82,9 +85,12 @@ class TestSAS7BDAT(tm.TestCase):
         rdr = pd.read_sas(fname, format="sas7bdat",
                           iterator=True, encoding='utf-8')
         d1 = rdr.read(rdr.row_count + 20)
+        rdr.close()
+
         rdr = pd.read_sas(fname, iterator=True, encoding="utf-8")
         d2 = rdr.read(rdr.row_count + 20)
         tm.assert_frame_equal(d1, d2)
+        rdr.close()
 
 
 def test_encoding_options():
