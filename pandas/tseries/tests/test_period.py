@@ -2187,7 +2187,7 @@ class TestPeriodIndex(tm.TestCase):
         def assert_slices_equivalent(l_slc, i_slc):
             tm.assert_series_equal(ts[l_slc], ts.iloc[i_slc])
             tm.assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
-            tm.assert_series_equal(ts.ix[l_slc], ts.iloc[i_slc])
+            tm.assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
 
         assert_slices_equivalent(SLC[Period('2014-10')::-1], SLC[9::-1])
         assert_slices_equivalent(SLC['2014-10'::-1], SLC[9::-1])
@@ -2213,7 +2213,7 @@ class TestPeriodIndex(tm.TestCase):
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
                                 lambda: ts.loc[::0])
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts.ix[::0])
+                                lambda: ts.loc[::0])
 
     def test_contains(self):
         rng = period_range('2007-01', freq='M', periods=10)
@@ -2399,13 +2399,13 @@ class TestPeriodIndex(tm.TestCase):
         df = DataFrame(randn(10, 5), columns=rng)
 
         ts = df[rng[0]]
-        tm.assert_series_equal(ts, df.ix[:, 0])
+        tm.assert_series_equal(ts, df.iloc[:, 0])
 
         # GH # 1211
         repr(df)
 
         ts = df['1/1/2000']
-        tm.assert_series_equal(ts, df.ix[:, 0])
+        tm.assert_series_equal(ts, df.iloc[:, 0])
 
     def test_indexing(self):
 

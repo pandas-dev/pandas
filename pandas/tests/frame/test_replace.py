@@ -37,8 +37,9 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         self.assertRaises(TypeError, self.tsframe.replace, nan)
 
         # mixed type
-        self.mixed_frame.ix[5:20, 'foo'] = nan
-        self.mixed_frame.ix[-10:, 'A'] = nan
+        mf = self.mixed_frame
+        mf.iloc[5:20, mf.columns.get_loc('foo')] = nan
+        mf.iloc[-10:, mf.columns.get_loc('A')] = nan
 
         result = self.mixed_frame.replace(np.nan, 0)
         expected = self.mixed_frame.fillna(value=0)
@@ -639,8 +640,9 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         assert_series_equal(expec, res)
 
     def test_replace_mixed(self):
-        self.mixed_frame.ix[5:20, 'foo'] = nan
-        self.mixed_frame.ix[-10:, 'A'] = nan
+        mf = self.mixed_frame
+        mf.iloc[5:20, mf.columns.get_loc('foo')] = nan
+        mf.iloc[-10:, mf.columns.get_loc('A')] = nan
 
         result = self.mixed_frame.replace(np.nan, -18)
         expected = self.mixed_frame.fillna(value=-18)

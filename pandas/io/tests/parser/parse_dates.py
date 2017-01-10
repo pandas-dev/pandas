@@ -64,7 +64,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         self.assertNotIn('X3', df)
 
         d = datetime(1999, 1, 27, 19, 0)
-        self.assertEqual(df.ix[0, 'nominal'], d)
+        self.assertEqual(df.loc[0, 'nominal'], d)
 
         df = self.read_csv(StringIO(data), header=None,
                            date_parser=func,
@@ -96,7 +96,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         self.assertNotIn('X3', df)
 
         d = datetime(1999, 1, 27, 19, 0)
-        self.assertEqual(df.ix[0, 'X1_X2'], d)
+        self.assertEqual(df.loc[0, 'X1_X2'], d)
 
         df = self.read_csv(StringIO(data), header=None,
                            parse_dates=[[1, 2], [1, 3]], keep_date_col=True)

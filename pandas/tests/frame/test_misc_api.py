@@ -47,10 +47,10 @@ class SharedWithSparse(object):
         s = self.frame.pop('A')
         self.assertEqual(s.name, 'A')
 
-        s = self.frame.ix[:, 'B']
+        s = self.frame.loc[:, 'B']
         self.assertEqual(s.name, 'B')
 
-        s2 = s.ix[:]
+        s2 = s.loc[:]
         self.assertEqual(s2.name, 'B')
 
     def test_get_value(self):
@@ -105,8 +105,8 @@ class SharedWithSparse(object):
                 self.frame.join(self.frame, how=how)
 
     def test_join_index_more(self):
-        af = self.frame.ix[:, ['A', 'B']]
-        bf = self.frame.ix[::2, ['C', 'D']]
+        af = self.frame.loc[:, ['A', 'B']]
+        bf = self.frame.loc[::2, ['C', 'D']]
 
         expected = af.copy()
         expected['C'] = self.frame['C'][::2]
@@ -119,7 +119,7 @@ class SharedWithSparse(object):
         assert_frame_equal(result, expected[::2])
 
         result = bf.join(af, how='right')
-        assert_frame_equal(result, expected.ix[:, result.columns])
+        assert_frame_equal(result, expected.loc[:, result.columns])
 
     def test_join_index_series(self):
         df = self.frame.copy()
@@ -133,18 +133,18 @@ class SharedWithSparse(object):
         assertRaisesRegexp(ValueError, 'must have a name', df.join, s)
 
     def test_join_overlap(self):
-        df1 = self.frame.ix[:, ['A', 'B', 'C']]
-        df2 = self.frame.ix[:, ['B', 'C', 'D']]
+        df1 = self.frame.loc[:, ['A', 'B', 'C']]
+        df2 = self.frame.loc[:, ['B', 'C', 'D']]
 
         joined = df1.join(df2, lsuffix='_df1', rsuffix='_df2')
-        df1_suf = df1.ix[:, ['B', 'C']].add_suffix('_df1')
-        df2_suf = df2.ix[:, ['B', 'C']].add_suffix('_df2')
+        df1_suf = df1.loc[:, ['B', 'C']].add_suffix('_df1')
+        df2_suf = df2.loc[:, ['B', 'C']].add_suffix('_df2')
 
-        no_overlap = self.frame.ix[:, ['A', 'D']]
+        no_overlap = self.frame.loc[:, ['A', 'D']]
         expected = df1_suf.join(df2_suf).join(no_overlap)
 
         # column order not necessarily sorted
-        assert_frame_equal(joined, expected.ix[:, joined.columns])
+        assert_frame_equal(joined, expected.loc[:, joined.columns])
 
     def test_add_prefix_suffix(self):
         with_prefix = self.frame.add_prefix('foo#')
@@ -258,7 +258,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         for i, tup in enumerate(self.frame.itertuples()):
             s = Series(tup[1:])
             s.name = tup[0]
-            expected = self.frame.ix[i, :].reset_index(drop=True)
+            expected = self.frame.iloc[i, :].reset_index(drop=True)
             assert_series_equal(s, expected)
 
         df = DataFrame({'floats': np.random.randn(5),

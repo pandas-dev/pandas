@@ -4103,7 +4103,7 @@ class FrameSplitter(DataSplitter):
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:
-            return sdata._slice(slice_obj, axis=1)  # ix[:, slice_obj]
+            return sdata._slice(slice_obj, axis=1)  # .loc[:, slice_obj]
 
 
 class NDFrameSplitter(DataSplitter):

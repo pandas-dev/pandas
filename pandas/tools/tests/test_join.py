@@ -428,7 +428,7 @@ class TestJoin(tm.TestCase):
         self.assertTrue(joined.index.is_monotonic)
         assert_frame_equal(joined, expected)
 
-        # _assert_same_contents(expected, expected2.ix[:, expected.columns])
+        # _assert_same_contents(expected, expected2.loc[:, expected.columns])
 
     def test_join_hierarchical_mixed(self):
         # GH 2024
@@ -500,7 +500,7 @@ class TestJoin(tm.TestCase):
 
         result = result.reset_index()
 
-        assert_frame_equal(result, expected.ix[:, result.columns])
+        assert_frame_equal(result, expected.loc[:, result.columns])
 
         # GH 11519
         df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
@@ -597,9 +597,9 @@ class TestJoin(tm.TestCase):
     def test_join_many_mixed(self):
         df = DataFrame(np.random.randn(8, 4), columns=['A', 'B', 'C', 'D'])
         df['key'] = ['foo', 'bar'] * 4
-        df1 = df.ix[:, ['A', 'B']]
-        df2 = df.ix[:, ['C', 'D']]
-        df3 = df.ix[:, ['key']]
+        df1 = df.loc[:, ['A', 'B']]
+        df2 = df.loc[:, ['C', 'D']]
+        df3 = df.loc[:, ['key']]
 
         result = df1.join([df2, df3])
         assert_frame_equal(result, df)
@@ -637,8 +637,8 @@ class TestJoin(tm.TestCase):
         panel = tm.makePanel()
         tm.add_nans(panel)
 
-        p1 = panel.ix[:2, :10, :3]
-        p2 = panel.ix[2:, 5:, 2:]
+        p1 = panel.iloc[:2, :10, :3]
+        p2 = panel.iloc[2:, 5:, 2:]
 
         # left join
         result = p1.join(p2)
@@ -656,7 +656,7 @@ class TestJoin(tm.TestCase):
 
         # inner join
         result = p1.join(p2, how='inner')
-        expected = panel.ix[:, 5:10, 2:3]
+        expected = panel.iloc[:, 5:10, 2:3]
         tm.assert_panel_equal(result, expected)
 
         # outer join
@@ -671,16 +671,16 @@ class TestJoin(tm.TestCase):
         panel = tm.makePanel()
         tm.add_nans(panel)
 
-        p1 = panel.ix[['ItemA', 'ItemB', 'ItemC']]
-        p2 = panel.ix[['ItemB', 'ItemC']]
+        p1 = panel.loc[['ItemA', 'ItemB', 'ItemC']]
+        p2 = panel.loc[['ItemB', 'ItemC']]
 
         # Expected index is
         #
         # ItemA, ItemB_p1, ItemC_p1, ItemB_p2, ItemC_p2
         joined = p1.join(p2, lsuffix='_p1', rsuffix='_p2')
-        p1_suf = p1.ix[['ItemB', 'ItemC']].add_suffix('_p1')
-        p2_suf = p2.ix[['ItemB', 'ItemC']].add_suffix('_p2')
-        no_overlap = panel.ix[['ItemA']]
+        p1_suf = p1.loc[['ItemB', 'ItemC']].add_suffix('_p1')
+        p2_suf = p2.loc[['ItemB', 'ItemC']].add_suffix('_p2')
+        no_overlap = panel.loc[['ItemA']]
         expected = no_overlap.join(p1_suf.join(p2_suf))
         tm.assert_panel_equal(joined, expected)
 
@@ -689,12 +689,14 @@ class TestJoin(tm.TestCase):
         panel = tm.makePanel()
         tm.K = 4
 
-        panels = [panel.ix[:2], panel.ix[2:6], panel.ix[6:]]
+        panels = [panel.iloc[:2], panel.iloc[2:6], panel.iloc[6:]]
 
         joined = panels[0].join(panels[1:])
         tm.assert_panel_equal(joined, panel)
 
-        panels = [panel.ix[:2, :-5], panel.ix[2:6, 2:], panel.ix[6:, 5:-7]]
+        panels = [panel.iloc[:2, :-5],
+                  panel.iloc[2:6, 2:],
+                  panel.iloc[6:, 5:-7]]
 
         data_dict = {}
         for p in panels:
@@ -757,13 +759,13 @@ def _restrict_to_columns(group, columns, suffix):
              if c in columns or c.replace(suffix, '') in columns]
 
     # filter
-    group = group.ix[:, found]
+    group = group.loc[:, found]
 
     # get rid of suffixes, if any
     group = group.rename(columns=lambda x: x.replace(suffix, ''))
 
     # put in the right order...
-    group = group.ix[:, columns]
+    group = group.loc[:, columns]
 
     return group
 

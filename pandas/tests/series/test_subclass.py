@@ -22,7 +22,7 @@ class TestSeriesSubclassing(tm.TestCase):
         tm.assert_series_equal(res, exp)
         tm.assertIsInstance(res, tm.SubclassedSeries)
 
-        res = s.ix[['a', 'b']]
+        res = s.loc[['a', 'b']]
         exp = tm.SubclassedSeries([1, 2], index=list('ab'))
         tm.assert_series_equal(res, exp)
         tm.assertIsInstance(res, tm.SubclassedSeries)

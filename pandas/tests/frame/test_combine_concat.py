@@ -79,7 +79,7 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         df = DataFrame(np.random.randn(5, 4),
                        columns=['foo', 'bar', 'baz', 'qux'])
 
-        series = df.ix[4]
+        series = df.loc[4]
         with assertRaisesRegexp(ValueError, 'Indexes have overlapping values'):
             df.append(series, verify_integrity=True)
         series.name = None
@@ -99,10 +99,10 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         result = df.append(series[::-1][:3], ignore_index=True)
         expected = df.append(DataFrame({0: series[::-1][:3]}).T,
                              ignore_index=True)
-        assert_frame_equal(result, expected.ix[:, result.columns])
+        assert_frame_equal(result, expected.loc[:, result.columns])
 
         # can append when name set
-        row = df.ix[4]
+        row = df.loc[4]
         row.name = 5
         result = df.append(row)
         expected = df.append(df[-1:], ignore_index=True)
@@ -534,9 +534,9 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
         result = df.combine_first(other)
         assert_frame_equal(result, df)
 
-        df.ix[0, 'A'] = np.nan
+        df.loc[0, 'A'] = np.nan
         result = df.combine_first(other)
-        df.ix[0, 'A'] = 45
+        df.loc[0, 'A'] = 45
         assert_frame_equal(result, df)
 
         # doc example

@@ -562,8 +562,8 @@ class TestSparseDataFrameIndexing(tm.TestCase):
         tm.assert_sp_frame_equal(sparse[[True, False, True, True]],
                                  orig[[True, False, True, True]].to_sparse())
 
-        tm.assert_sp_frame_equal(sparse[[1, 2]],
-                                 orig[[1, 2]].to_sparse())
+        tm.assert_sp_frame_equal(sparse.iloc[[1, 2]],
+                                 orig.iloc[[1, 2]].to_sparse())
 
     def test_getitem_fill_value(self):
         orig = pd.DataFrame([[1, np.nan, 0],
@@ -589,9 +589,9 @@ class TestSparseDataFrameIndexing(tm.TestCase):
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(sparse[indexer], exp)
 
-        exp = orig[[1, 2]].to_sparse(fill_value=0)
+        exp = orig.iloc[[1, 2]].to_sparse(fill_value=0)
         exp._default_fill_value = np.nan
-        tm.assert_sp_frame_equal(sparse[[1, 2]], exp)
+        tm.assert_sp_frame_equal(sparse.iloc[[1, 2]], exp)
 
     def test_loc(self):
         orig = pd.DataFrame([[1, np.nan, np.nan],

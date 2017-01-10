@@ -111,7 +111,7 @@ class TestOLS(BaseTest):
 
         self._check_wls(X, Y, weights)
 
-        weights.ix[[5, 15]] = np.nan
+        weights.loc[[5, 15]] = np.nan
         Y[[2, 21]] = np.nan
         self._check_wls(X, Y, weights)
 
@@ -421,8 +421,8 @@ class TestOLSMisc(tm.TestCase):
         model._results
 
     def test_catch_regressor_overlap(self):
-        df1 = tm.makeTimeDataFrame().ix[:, ['A', 'B']]
-        df2 = tm.makeTimeDataFrame().ix[:, ['B', 'C', 'D']]
+        df1 = tm.makeTimeDataFrame().loc[:, ['A', 'B']]
+        df2 = tm.makeTimeDataFrame().loc[:, ['B', 'C', 'D']]
         y = tm.makeTimeSeries()
 
         data = {'foo': df1, 'bar': df2}
@@ -562,10 +562,10 @@ class TestPanelOLS(BaseTest):
         x = Panel({'x1': tm.makeTimeDataFrame(),
                    'x2': tm.makeTimeDataFrame()})
 
-        y.ix[[1, 7], 'A'] = np.nan
-        y.ix[[6, 15], 'B'] = np.nan
-        y.ix[[3, 20], 'C'] = np.nan
-        y.ix[[5, 11], 'D'] = np.nan
+        y.iloc[[1, 7], y.columns.get_loc('A')] = np.nan
+        y.iloc[[6, 15], y.columns.get_loc('B')] = np.nan
+        y.iloc[[3, 20], y.columns.get_loc('C')] = np.nan
+        y.iloc[[5, 11], y.columns.get_loc('D')] = np.nan
 
         stack_y = y.stack()
         stack_x = DataFrame(dict((k, v.stack())
@@ -615,7 +615,7 @@ class TestPanelOLS(BaseTest):
                           index=result._x.index, columns=['FE_B', 'x1', 'x2',
                                                           'intercept'],
                           dtype=float)
-        tm.assert_frame_equal(result._x, exp_x.ix[:, result._x.columns])
+        tm.assert_frame_equal(result._x, exp_x.loc[:, result._x.columns])
         # _check_non_raw_results(result)
 
     def testWithEntityEffectsAndDroppedDummies(self):
@@ -630,7 +630,7 @@ class TestPanelOLS(BaseTest):
                           index=result._x.index, columns=['FE_A', 'x1', 'x2',
                                                           'intercept'],
                           dtype=float)
-        tm.assert_frame_equal(result._x, exp_x.ix[:, result._x.columns])
+        tm.assert_frame_equal(result._x, exp_x.loc[:, result._x.columns])
         # _check_non_raw_results(result)
 
     def testWithXEffects(self):

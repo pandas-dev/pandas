@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from warnings import catch_warnings
 import numpy as np
 from pandas import Series, DataFrame, Index, Float64Index
 from pandas.util.testing import assert_series_equal, assert_almost_equal
@@ -77,7 +78,8 @@ class TestFloatIndexers(tm.TestCase):
                                       (lambda x: x, True)]:
 
                     def f():
-                        idxr(s)[3.0]
+                        with catch_warnings(record=True):
+                            idxr(s)[3.0]
 
                     # gettitem on a DataFrame is a KeyError as it is indexing
                     # via labels on the columns
@@ -131,7 +133,8 @@ class TestFloatIndexers(tm.TestCase):
                     for idxr in [lambda x: x.ix,
                                  lambda x: x]:
                         s2 = s.copy()
-                        idxr(s2)[3.0] = 0
+                        with catch_warnings(record=True):
+                            idxr(s2)[3.0] = 0
                         self.assertTrue(s2.index.is_object())
 
             # fallsback to position selection, series only
@@ -151,7 +154,8 @@ class TestFloatIndexers(tm.TestCase):
                      lambda x: x.iloc]:
 
             def f():
-                idxr(s2)[1.0]
+                with catch_warnings(record=True):
+                    idxr(s2)[1.0]
 
             self.assertRaises(TypeError, f)
 
@@ -167,7 +171,8 @@ class TestFloatIndexers(tm.TestCase):
                      lambda x: x]:
 
             def f():
-                idxr(s3)[1.0]
+                with catch_warnings(record=True):
+                    idxr(s3)[1.0]
 
             self.assertRaises(TypeError, f)
 
@@ -199,7 +204,8 @@ class TestFloatIndexers(tm.TestCase):
                                       (lambda x: x.loc, False),
                                       (lambda x: x, True)]:
 
-                    result = idxr(s)[3.0]
+                    with catch_warnings(record=True):
+                        result = idxr(s)[3.0]
                     self.check(result, s, 3, getitem)
 
                 # coerce to equal int
@@ -220,13 +226,14 @@ class TestFloatIndexers(tm.TestCase):
                                               index=range(len(s)), name=3)
 
                     s2 = s.copy()
-                    idxr(s2)[3.0] = 100
+                    with catch_warnings(record=True):
+                        idxr(s2)[3.0] = 100
 
-                    result = idxr(s2)[3.0]
-                    compare(result, expected)
+                        result = idxr(s2)[3.0]
+                        compare(result, expected)
 
-                    result = idxr(s2)[3]
-                    compare(result, expected)
+                        result = idxr(s2)[3]
+                        compare(result, expected)
 
                 # contains
                 # coerce to equal int
@@ -247,19 +254,23 @@ class TestFloatIndexers(tm.TestCase):
                                   (lambda x: x, True)]:
 
                 # getting
-                result = idxr(s)[indexer]
+                with catch_warnings(record=True):
+                    result = idxr(s)[indexer]
                 self.check(result, s, 3, getitem)
 
                 # setting
                 s2 = s.copy()
 
                 def f():
-                    idxr(s2)[indexer] = expected
-                result = idxr(s2)[indexer]
+                    with catch_warnings(record=True):
+                        idxr(s2)[indexer] = expected
+                with catch_warnings(record=True):
+                    result = idxr(s2)[indexer]
                 self.check(result, s, 3, getitem)
 
                 # random integer is a KeyError
-                self.assertRaises(KeyError, lambda: idxr(s)[3.5])
+                with catch_warnings(record=True):
+                    self.assertRaises(KeyError, lambda: idxr(s)[3.5])
 
             # contains
             self.assertTrue(3.0 in s)
@@ -308,7 +319,8 @@ class TestFloatIndexers(tm.TestCase):
                                  lambda x: x]:
 
                         def f():
-                            idxr(s)[l]
+                            with catch_warnings(record=True):
+                                idxr(s)[l]
                         self.assertRaises(TypeError, f)
 
                 # setitem
@@ -325,7 +337,8 @@ class TestFloatIndexers(tm.TestCase):
                                  lambda x: x.iloc,
                                  lambda x: x]:
                         def f():
-                            idxr(s)[l] = 0
+                            with catch_warnings(record=True):
+                                idxr(s)[l] = 0
                         self.assertRaises(TypeError, f)
 
     def test_slice_integer(self):
@@ -349,7 +362,8 @@ class TestFloatIndexers(tm.TestCase):
                 for idxr in [lambda x: x.loc,
                              lambda x: x.ix]:
 
-                    result = idxr(s)[l]
+                    with catch_warnings(record=True):
+                        result = idxr(s)[l]
 
                     # these are all label indexing
                     # except getitem which is positional
@@ -372,7 +386,8 @@ class TestFloatIndexers(tm.TestCase):
 
                 for idxr in [lambda x: x.loc,
                              lambda x: x.ix]:
-                    result = idxr(s)[l]
+                    with catch_warnings(record=True):
+                        result = idxr(s)[l]
 
                     # these are all label indexing
                     # except getitem which is positional
@@ -397,7 +412,8 @@ class TestFloatIndexers(tm.TestCase):
                 for idxr in [lambda x: x.loc,
                              lambda x: x.ix]:
 
-                    result = idxr(s)[l]
+                    with catch_warnings(record=True):
+                        result = idxr(s)[l]
                     if oob:
                         res = slice(0, 0)
                     else:
@@ -419,8 +435,9 @@ class TestFloatIndexers(tm.TestCase):
                 for idxr in [lambda x: x.loc,
                              lambda x: x.ix]:
                     sc = s.copy()
-                    idxr(sc)[l] = 0
-                    result = idxr(sc)[l].values.ravel()
+                    with catch_warnings(record=True):
+                        idxr(sc)[l] = 0
+                        result = idxr(sc)[l].values.ravel()
                     self.assertTrue((result == 0).all())
 
                 # positional indexing
@@ -467,7 +484,8 @@ class TestFloatIndexers(tm.TestCase):
                           slice(0, 1.0),
                           slice(0.0, 1.0)]:
 
-                    result = idxr(s)[l]
+                    with catch_warnings(record=True):
+                        result = idxr(s)[l]
                     indexer = slice(0, 2)
                     self.check(result, s, indexer, False)
 
@@ -495,7 +513,8 @@ class TestFloatIndexers(tm.TestCase):
                                (slice(0, 0.5), slice(0, 1)),
                                (slice(0.5, 1.5), slice(1, 2))]:
 
-                    result = idxr(s)[l]
+                    with catch_warnings(record=True):
+                        result = idxr(s)[l]
                     self.check(result, s, res, False)
 
                     # positional indexing
@@ -510,8 +529,9 @@ class TestFloatIndexers(tm.TestCase):
                           slice(3.0, 4.0)]:
 
                     sc = s.copy()
-                    idxr(sc)[l] = 0
-                    result = idxr(sc)[l].values.ravel()
+                    with catch_warnings(record=True):
+                        idxr(sc)[l] = 0
+                        result = idxr(sc)[l].values.ravel()
                     self.assertTrue((result == 0).all())
 
                     # positional indexing
@@ -537,15 +557,17 @@ class TestFloatIndexers(tm.TestCase):
                              lambda x: x]:
 
                     # getitem
-                    result = idxr(s)[l]
+                    with catch_warnings(record=True):
+                        result = idxr(s)[l]
                     if isinstance(s, Series):
                         self.assert_series_equal(result, expected)
                     else:
                         self.assert_frame_equal(result, expected)
                     # setitem
                     s2 = s.copy()
-                    idxr(s2)[l] = 0
-                    result = idxr(s2)[l].values.ravel()
+                    with catch_warnings(record=True):
+                        idxr(s2)[l] = 0
+                        result = idxr(s2)[l].values.ravel()
                     self.assertTrue((result == 0).all())
 
     def test_floating_index_doc_example(self):
@@ -553,7 +575,7 @@ class TestFloatIndexers(tm.TestCase):
         index = Index([1.5, 2, 3, 4.5, 5])
         s = Series(range(5), index=index)
         self.assertEqual(s[3], 2)
-        self.assertEqual(s.ix[3], 2)
+        self.assertEqual(s.loc[3], 2)
         self.assertEqual(s.loc[3], 2)
         self.assertEqual(s.iloc[3], 3)
 
@@ -565,7 +587,7 @@ class TestFloatIndexers(tm.TestCase):
 
         # label based slicing
         result1 = s[1.0:3.0]
-        result2 = s.ix[1.0:3.0]
+        result2 = s.loc[1.0:3.0]
         result3 = s.loc[1.0:3.0]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
@@ -573,13 +595,13 @@ class TestFloatIndexers(tm.TestCase):
         # exact indexing when found
         result1 = s[5.0]
         result2 = s.loc[5.0]
-        result3 = s.ix[5.0]
+        result3 = s.loc[5.0]
         self.assertEqual(result1, result2)
         self.assertEqual(result1, result3)
 
         result1 = s[5]
         result2 = s.loc[5]
-        result3 = s.ix[5]
+        result3 = s.loc[5]
         self.assertEqual(result1, result2)
         self.assertEqual(result1, result3)
 
@@ -589,7 +611,7 @@ class TestFloatIndexers(tm.TestCase):
 
         # scalar integers
         self.assertRaises(KeyError, lambda: s.loc[4])
-        self.assertRaises(KeyError, lambda: s.ix[4])
+        self.assertRaises(KeyError, lambda: s.loc[4])
         self.assertRaises(KeyError, lambda: s[4])
 
         # fancy floats/integers create the correct entry (as nan)
@@ -598,13 +620,13 @@ class TestFloatIndexers(tm.TestCase):
         for fancy_idx in [[5.0, 0.0], np.array([5.0, 0.0])]:  # float
             assert_series_equal(s[fancy_idx], expected)
             assert_series_equal(s.loc[fancy_idx], expected)
-            assert_series_equal(s.ix[fancy_idx], expected)
+            assert_series_equal(s.loc[fancy_idx], expected)
 
         expected = Series([2, 0], index=Index([5, 0], dtype='int64'))
         for fancy_idx in [[5, 0], np.array([5, 0])]:  # int
             assert_series_equal(s[fancy_idx], expected)
             assert_series_equal(s.loc[fancy_idx], expected)
-            assert_series_equal(s.ix[fancy_idx], expected)
+            assert_series_equal(s.loc[fancy_idx], expected)
 
         # all should return the same as we are slicing 'the same'
         result1 = s.loc[2:5]
@@ -624,17 +646,17 @@ class TestFloatIndexers(tm.TestCase):
         assert_series_equal(result1, result3)
         assert_series_equal(result1, result4)
 
-        result1 = s.ix[2:5]
-        result2 = s.ix[2.0:5.0]
-        result3 = s.ix[2.0:5]
-        result4 = s.ix[2.1:5]
+        result1 = s.loc[2:5]
+        result2 = s.loc[2.0:5.0]
+        result3 = s.loc[2.0:5]
+        result4 = s.loc[2.1:5]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, result4)
 
         # combined test
         result1 = s.loc[2:5]
-        result2 = s.ix[2:5]
+        result2 = s.loc[2:5]
         result3 = s[2:5]
 
         assert_series_equal(result1, result2)
@@ -643,7 +665,7 @@ class TestFloatIndexers(tm.TestCase):
         # list selection
         result1 = s[[0.0, 5, 10]]
         result2 = s.loc[[0.0, 5, 10]]
-        result3 = s.ix[[0.0, 5, 10]]
+        result3 = s.loc[[0.0, 5, 10]]
         result4 = s.iloc[[0, 2, 4]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
@@ -651,14 +673,14 @@ class TestFloatIndexers(tm.TestCase):
 
         result1 = s[[1.6, 5, 10]]
         result2 = s.loc[[1.6, 5, 10]]
-        result3 = s.ix[[1.6, 5, 10]]
+        result3 = s.loc[[1.6, 5, 10]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, Series(
             [np.nan, 2, 4], index=[1.6, 5, 10]))
 
         result1 = s[[0, 1, 2]]
-        result2 = s.ix[[0, 1, 2]]
+        result2 = s.loc[[0, 1, 2]]
         result3 = s.loc[[0, 1, 2]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
@@ -666,12 +688,12 @@ class TestFloatIndexers(tm.TestCase):
             [0.0, np.nan, np.nan], index=[0, 1, 2]))
 
         result1 = s.loc[[2.5, 5]]
-        result2 = s.ix[[2.5, 5]]
+        result2 = s.loc[[2.5, 5]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, Series([1, 2], index=[2.5, 5.0]))
 
         result1 = s[[2.5]]
-        result2 = s.ix[[2.5]]
+        result2 = s.loc[[2.5]]
         result3 = s.loc[[2.5]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
