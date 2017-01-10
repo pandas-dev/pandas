@@ -307,7 +307,7 @@ class TestPivotTable(tm.TestCase):
                                    check_names=False)
             self.assertEqual(col_margins.name, margins_col)
 
-            result = result.sortlevel()
+            result = result.sort_index()
             index_margins = result.ix[(margins_col, '')].iloc[:-1]
             expected_ix_margins = self.data.groupby(columns)[values_col].mean()
             tm.assert_series_equal(index_margins, expected_ix_margins,

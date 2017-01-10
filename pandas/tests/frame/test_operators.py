@@ -467,7 +467,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
         df = DataFrame(np.arange(27 * 3).reshape(27, 3),
                        index=index,
-                       columns=['value1', 'value2', 'value3']).sortlevel()
+                       columns=['value1', 'value2', 'value3']).sort_index()
 
         idx = pd.IndexSlice
         for op in ['add', 'sub', 'mul', 'div', 'truediv']:
@@ -479,7 +479,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             result = getattr(df, op)(x, level='third', axis=0)
 
             expected = pd.concat([opa(df.loc[idx[:, :, i], :], v)
-                                  for i, v in x.iteritems()]).sortlevel()
+                                  for i, v in x.iteritems()]).sort_index()
             assert_frame_equal(result, expected)
 
             x = Series([1.0, 10.0], ['two', 'three'])
@@ -487,7 +487,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
             expected = (pd.concat([opa(df.loc[idx[:, i], :], v)
                                    for i, v in x.iteritems()])
-                        .reindex_like(df).sortlevel())
+                        .reindex_like(df).sort_index())
             assert_frame_equal(result, expected)
 
         # GH9463 (alignment level of dataframe with series)
