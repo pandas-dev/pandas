@@ -323,7 +323,7 @@ colspecs : list of pairs (int, int) or 'infer'. optional
     fields of each line as half-open intervals (i.e.,  [from, to[ ).
     String value 'infer' can be used to instruct the parser to try
     detecting the column specifications from the first 100 rows of
-    the data (default='infer').
+    the data which are not being skipped via skiprows (default='infer').
 widths : list of ints. optional
     A list of field widths which can be used instead of 'colspecs' if
     the intervals are contiguous.
@@ -3034,13 +3034,13 @@ class FixedWidthReader(BaseIterator):
     A reader of fixed-width lines.
     """
 
-    def __init__(self, f, colspecs, delimiter, comment):
+    def __init__(self, f, colspecs, delimiter, comment, skiprows=None):
         self.f = f
         self.buffer = None
         self.delimiter = '\r\n' + delimiter if delimiter else '\n\r\t '
         self.comment = comment
         if colspecs == 'infer':
-            self.colspecs = self.detect_colspecs()
+            self.colspecs = self.detect_colspecs(skiprows=skiprows)
         else:
             self.colspecs = colspecs
 
@@ -3049,7 +3049,6 @@ class FixedWidthReader(BaseIterator):
                             "input was a %r" % type(colspecs).__name__)
 
         for colspec in self.colspecs:
-
             if not (isinstance(colspec, (tuple, list)) and
                     len(colspec) == 2 and
                     isinstance(colspec[0], (int, np.integer, type(None))) and
@@ -3057,20 +3056,50 @@ class FixedWidthReader(BaseIterator):
                 raise TypeError('Each column specification must be '
                                 '2 element tuple or list of integers')
 
-    def get_rows(self, n):
-        rows = []
-        for i, row in enumerate(self.f, 1):
-            rows.append(row)
-            if i >= n:
-                break
-        self.buffer = iter(rows)
-        return rows
+    def get_rows(self, n, skiprows=None):
+        """
+        Read rows from self.f, skipping as specified.
 
-    def detect_colspecs(self, n=100):
+        We distinguish buffer_rows (the first <= n lines)
+        from the rows returned to detect_colspecs because
+        it's simpler to leave the other locations with
+        skiprows logic alone than to modify them to deal
+        with the fact we skipped some rows here as well.
+
+        Parameters
+        ----------
+        n : int
+            Number of rows to read from self.f, not counting
+            rows that are skipped.
+        skiprows: set, optional
+            Indices of rows to skip.
+
+        Returns
+        -------
+        detect_rows : list of str
+            A list containing the rows to read.
+
+        """
+        if skiprows is None:
+            skiprows = set()
+        buffer_rows = []
+        detect_rows = []
+        for i, row in enumerate(self.f):
+            if i not in skiprows:
+                detect_rows.append(row)
+            buffer_rows.append(row)
+            if len(detect_rows) >= n:
+                break
+        self.buffer = iter(buffer_rows)
+        return detect_rows
+
+    def detect_colspecs(self, n=100, skiprows=None):
         # Regex escape the delimiters
         delimiters = ''.join([r'\%s' % x for x in self.delimiter])
         pattern = re.compile('([^%s]+)' % delimiters)
-        rows = self.get_rows(n)
+        rows = self.get_rows(n, skiprows)
+        if not rows:
+            raise EmptyDataError("No rows from which to infer column width")
         max_len = max(map(len, rows))
         mask = np.zeros(max_len + 1, dtype=int)
         if self.comment is not None:
@@ -3081,7 +3110,8 @@ class FixedWidthReader(BaseIterator):
         shifted = np.roll(mask, 1)
         shifted[0] = 0
         edges = np.where((mask ^ shifted) == 1)[0]
-        return list(zip(edges[::2], edges[1::2]))
+        edge_pairs = list(zip(edges[::2], edges[1::2]))
+        return edge_pairs
 
     def __next__(self):
         if self.buffer is not None:
@@ -3106,9 +3136,8 @@ class FixedWidthFieldParser(PythonParser):
     def __init__(self, f, **kwds):
         # Support iterators, convert to a list.
         self.colspecs = kwds.pop('colspecs')
-
         PythonParser.__init__(self, f, **kwds)
 
     def _make_reader(self, f):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter,
-                                     self.comment)
+                                     self.comment, self.skiprows)
