@@ -781,7 +781,7 @@ class Styler(object):
         low, high: float
             compress the range by these values.
         axis: int or str
-            1 or 'columns' for colunwise, 0 or 'index' for rowwise
+            1 or 'columns' for columnwise, 0 or 'index' for rowwise
         subset: IndexSlice
             a valid slice for ``data`` to limit the style application to
 
