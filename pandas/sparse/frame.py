@@ -816,7 +816,7 @@ def stack_sparse_frame(frame):
 
     lp = DataFrame(stacked_values.reshape((nobs, 1)), index=index,
                    columns=['foo'])
-    return lp.sortlevel(level=0)
+    return lp.sort_index(level=0)
 
 
 def homogenize(series_dict):

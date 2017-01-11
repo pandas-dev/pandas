@@ -3100,7 +3100,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
              ['foo', 'bar']],
             names=['A', 'B', 'C'])
         expected = DataFrame({'values': Series(
-            np.nan, index=exp_index)}).sortlevel()
+            np.nan, index=exp_index)}).sort_index()
         expected.iloc[[1, 2, 7, 8], 0] = [1, 2, 3, 4]
         result = gb.sum()
         tm.assert_frame_equal(result, expected)

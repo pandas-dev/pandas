@@ -3427,7 +3427,7 @@ class TestGroupBy(tm.TestCase):
         left = lg.sum()['values']
         right = rg.sum()['values']
 
-        exp_index, _ = left.index.sortlevel(0)
+        exp_index, _ = left.index.sortlevel()
         self.assert_index_equal(left.index, exp_index)
 
         exp_index, _ = right.index.sortlevel(0)
@@ -3708,7 +3708,7 @@ class TestGroupBy(tm.TestCase):
         exstd = grouped.agg(OrderedDict([['C', np.std], ['D', np.std]]))
 
         expected = concat([exmean, exstd], keys=['mean', 'std'], axis=1)
-        expected = expected.swaplevel(0, 1, axis=1).sortlevel(0, axis=1)
+        expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
 
         d = OrderedDict([['C', [np.mean, np.std]], ['D', [np.mean, np.std]]])
         result = grouped.aggregate(d)
@@ -4711,7 +4711,7 @@ class TestGroupBy(tm.TestCase):
             expected = df.groupby('user_id')[
                 'whole_cost'].resample(
                     freq).sum().dropna().reorder_levels(
-                        ['date', 'user_id']).sortlevel().astype('int64')
+                        ['date', 'user_id']).sort_index().astype('int64')
             expected.name = 'whole_cost'
 
             result1 = df.sort_index().groupby([pd.TimeGrouper(freq=freq),

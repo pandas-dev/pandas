@@ -947,7 +947,7 @@ class TestSparseHandlingMultiIndexes(tm.TestCase):
         micol = pd.MultiIndex.from_product(
             [['a', 'b', 'c'], ["1", "2"]], names=['col-foo', 'col-bar'])
         dense_multiindex_frame = pd.DataFrame(
-            index=miindex, columns=micol).sortlevel().sortlevel(axis=1)
+            index=miindex, columns=micol).sort_index().sort_index(axis=1)
         self.dense_multiindex_frame = dense_multiindex_frame.fillna(value=3.14)
 
     def test_to_sparse_preserve_multiindex_names_columns(self):

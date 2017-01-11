@@ -369,8 +369,8 @@ class TestJoin(tm.TestCase):
         df2 = DataFrame(data=np.random.randn(6), index=index2,
                         columns=['var Y'])
 
-        df1 = df1.sortlevel(0)
-        df2 = df2.sortlevel(0)
+        df1 = df1.sort_index(level=0)
+        df2 = df2.sort_index(level=0)
 
         joined = df1.join(df2, how='outer')
         ex_index = index1._tuple_index.union(index2._tuple_index)
@@ -379,10 +379,10 @@ class TestJoin(tm.TestCase):
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
 
-        df1 = df1.sortlevel(1)
-        df2 = df2.sortlevel(1)
+        df1 = df1.sort_index(level=1)
+        df2 = df2.sort_index(level=1)
 
-        joined = df1.join(df2, how='outer').sortlevel(0)
+        joined = df1.join(df2, how='outer').sort_index(level=0)
         ex_index = index1._tuple_index.union(index2._tuple_index)
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         expected.index.names = index1.names

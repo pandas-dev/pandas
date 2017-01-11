@@ -418,7 +418,6 @@ Reshaping, sorting
    Series.reorder_levels
    Series.sort_values
    Series.sort_index
-   Series.sortlevel
    Series.swaplevel
    Series.unstack
    Series.searchsorted
@@ -931,7 +930,6 @@ Reshaping, sorting, transposing
    DataFrame.reorder_levels
    DataFrame.sort_values
    DataFrame.sort_index
-   DataFrame.sortlevel
    DataFrame.nlargest
    DataFrame.nsmallest
    DataFrame.swaplevel

@@ -456,10 +456,6 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         f = lambda x: x.sort_index(inplace=True)
         _check_f(data.copy(), f)
 
-        # sortlevel
-        f = lambda x: x.sortlevel(0, inplace=True)
-        _check_f(data.set_index(['a', 'b']), f)
-
         # fillna
         f = lambda x: x.fillna(0, inplace=True)
         _check_f(data.copy(), f)

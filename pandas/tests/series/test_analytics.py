@@ -1595,21 +1595,21 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         expected = s.sort_values().head(3)
         assert_series_equal(result, expected)
 
-    def test_sortlevel(self):
+    def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         s = Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
 
-        res = s.sortlevel('A')
+        res = s.sort_index(level='A')
         assert_series_equal(backwards, res)
 
-        res = s.sortlevel(['A', 'B'])
+        res = s.sort_index(level=['A', 'B'])
         assert_series_equal(backwards, res)
 
-        res = s.sortlevel('A', sort_remaining=False)
+        res = s.sort_index(level='A', sort_remaining=False)
         assert_series_equal(s, res)
 
-        res = s.sortlevel(['A', 'B'], sort_remaining=False)
+        res = s.sort_index(level=['A', 'B'], sort_remaining=False)
         assert_series_equal(s, res)
 
     def test_apply_categorical(self):
@@ -1738,7 +1738,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series(np.random.randn(6), index=index)
         exp_index = MultiIndex(levels=[['one', 'two', 'three'], [0, 1]],
                                labels=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]])
-        expected = DataFrame({'bar': s.values}, index=exp_index).sortlevel(0)
+        expected = DataFrame({'bar': s.values},
+                             index=exp_index).sort_index(level=0)
         unstacked = s.unstack(0)
         assert_frame_equal(unstacked, expected)
 

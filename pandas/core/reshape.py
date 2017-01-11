@@ -375,7 +375,7 @@ def pivot_simple(index, columns, values):
 
     hindex = MultiIndex.from_arrays([index, columns])
     series = Series(values.ravel(), index=hindex)
-    series = series.sortlevel(0)
+    series = series.sort_index(level=0)
     return series.unstack()
 
 
@@ -596,7 +596,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         # which interferes with trying to sort based on the first
         # level
         level_to_sort = _convert_level_number(0, this.columns)
-        this = this.sortlevel(level_to_sort, axis=1)
+        this = this.sort_index(level=level_to_sort, axis=1)
 
     # tuple list excluding level for grouping columns
     if len(frame.columns.levels) > 2:

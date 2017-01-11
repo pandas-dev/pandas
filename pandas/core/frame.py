@@ -1274,7 +1274,7 @@ class DataFrame(NDFrame):
 
         # minor axis must be sorted
         if self.index.lexsort_depth < 2:
-            selfsorted = self.sortlevel(0)
+            selfsorted = self.sort_index(level=0)
         else:
             selfsorted = self
 
@@ -3337,6 +3337,8 @@ class DataFrame(NDFrame):
     def sortlevel(self, level=0, axis=0, ascending=True, inplace=False,
                   sort_remaining=True):
         """
+        DEPRECATED: use :meth:`DataFrame.sort_index`
+
         Sort multilevel index by chosen axis and primary level. Data will be
         lexicographically sorted by the chosen level followed by the other
         levels (in order)
@@ -3360,6 +3362,8 @@ class DataFrame(NDFrame):
         DataFrame.sort_index(level=...)
 
         """
+        warnings.warn("sortlevel is deprecated, use sort_index(level= ...)",
+                      FutureWarning, stacklevel=2)
         return self.sort_index(level=level, axis=axis, ascending=ascending,
                                inplace=inplace, sort_remaining=sort_remaining)
 
