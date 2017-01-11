@@ -75,7 +75,7 @@ _common_apply_whitelist = frozenset([
     'last', 'first',
     'head', 'tail', 'median',
     'mean', 'sum', 'min', 'max',
-    'cumsum', 'cumprod', 'cummin', 'cummax', 'cumcount',
+    'cumcount',
     'resample',
     'describe',
     'rank', 'quantile',
@@ -97,7 +97,8 @@ _series_apply_whitelist = \
 _dataframe_apply_whitelist = \
     _common_apply_whitelist | frozenset(['dtypes', 'corrwith'])
 
-_cython_transforms = frozenset(['cumprod', 'cumsum', 'shift'])
+_cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
+                                'cummin', 'cummax'])
 
 
 def _groupby_function(name, alias, npfunc, numeric_only=True,
@@ -1417,6 +1418,24 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
+    def cummin(self, axis=0):
+        """Cumulative min for each group"""
+        if axis != 0:
+            return self.apply(lambda x: np.minimum.accumulate(x, axis))
+
+        return self._cython_transform('cummin')
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def cummax(self, axis=0):
+        """Cumulative max for each group"""
+        if axis != 0:
+            return self.apply(lambda x: np.maximum.accumulate(x, axis))
+
+        return self._cython_transform('cummax')
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
     def shift(self, periods=1, freq=None, axis=0):
         """
         Shift each group by periods observations
@@ -1752,6 +1771,8 @@ class BaseGrouper(object):
         'transform': {
             'cumprod': 'group_cumprod',
             'cumsum': 'group_cumsum',
+            'cummin': 'group_cummin',
+            'cummax': 'group_cummax',
         }
     }
 
