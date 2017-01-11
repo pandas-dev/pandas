@@ -690,6 +690,3 @@ class groupby_transform_series2(object):
     def time_transform_dataframe(self):
         # GH 12737
         self.df_nans.groupby('key').transform('first')
-
-
-
