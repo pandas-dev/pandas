@@ -1563,3 +1563,4 @@ Bug Fixes
 - ``PeriodIndex`` can now accept ``list`` and ``array`` which contains ``pd.NaT`` (:issue:`13430`)
 - Bug in ``df.groupby`` where ``.median()`` returns arbitrary values if grouped dataframe contains empty bins (:issue:`13629`)
 - Bug in ``Index.copy()`` where ``name`` parameter was ignored (:issue:`14302`)
+- Bug in ``_downsample()``. Inconsistent return type on resample of empty DataFrame (:issue:`14962`)

@@ -773,8 +773,18 @@ class Base(object):
                 expected = s.copy()
                 expected.index = s.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
-                assert result.index.freq == expected.index.freq
-                assert_series_equal(result, expected, check_dtype=False)
+
+                self.assertEqual(result.index.freq, expected.index.freq)
+
+                if (method == 'size' and
+                    isinstance(result.index, PeriodIndex) and
+                        freq in ['M', 'D']):
+                    # GH12871 - TODO: name should propagate, but currently
+                    # doesn't on lower / same frequency with PeriodIndex
+                    assert_series_equal(result, expected, check_dtype=False)
+
+                else:
+                    assert_series_equal(result, expected, check_dtype=False)
 
     def test_resample_empty_dataframe(self):
         # GH13212
@@ -783,11 +793,11 @@ class Base(object):
 
         for freq in ['M', 'D', 'H']:
             # count retains dimensions too
-            methods = downsample_methods + ['count']
+            methods = downsample_methods + upsample_methods
             for method in methods:
                 result = getattr(f.resample(freq), method)()
 
-                expected = f.copy()
+                expected = pd.Series([])
                 expected.index = f.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
                 assert result.index.freq == expected.index.freq
@@ -850,11 +860,13 @@ class Base(object):
 
     def test_resample_empty_dataframe_with_size(self):
         # GH 14962
-        df1 = pd.DataFrame(dict(a=range(100)),
-                           index=pd.date_range('1/1/2000', periods=100, freq="M"))
-        df2 = df1[df1.a < 0]
-        result = df2.resample("Q").size()
-        assertIsInstance(result, pd.Series)
+        index = pd.DatetimeIndex([], freq='M')
+        df = pd.DataFrame([], index=index)
+
+        for freq in ['M', 'D', 'H']:
+            result = df.resample(freq).size()
+            expected = pd.Series([], index=index, dtype='int64')
+            assert_series_equal(result, expected)
 
 
 class TestDatetimeIndex(Base):

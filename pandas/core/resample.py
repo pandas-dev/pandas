@@ -697,12 +697,8 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             obj = obj.copy()
-            if how == "size" and isinstance(obj, pd.DataFrame):
-                obj = obj.groupby(
-                    self.grouper, axis=self.axis).aggregate(how, **kwargs)
-
             obj.index.freq = self.freq
-            return obj
+            return self._wrap_result(obj)
 
         # do we have a regular frequency
         if ax.freq is not None or ax.inferred_freq is not None:
@@ -773,6 +769,15 @@ class DatetimeIndexResampler(Resampler):
         # convert if needed
         if self.kind == 'period' and not isinstance(result.index, PeriodIndex):
             result.index = result.index.to_period(self.freq)
+
+        # Make consistent type of result. GH14962
+        if not len(self.ax):
+            grouper = BinGrouper([], result.index)
+            grouped = self._selected_obj.groupby(grouper)
+            result = pd.Series([],
+                               index=result.index,
+                               name=grouped.name,
+                               dtype='int64')
         return result
 
 
