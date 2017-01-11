@@ -1215,6 +1215,19 @@ You can elect to skip bad lines:
     0  1  2   3
     1  8  9  10
 
+You can also use the ``usecols`` parameter to eliminate extraneous column
+data that appear in some lines but not others:
+
+.. code-block:: ipython
+
+   In [30]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
+
+    Out[30]:
+       a  b   c
+    0  1  2   3
+    1  4  5   6
+    2  8  9  10
+
 .. _io.quoting:
 
 Quoting and Escape Characters

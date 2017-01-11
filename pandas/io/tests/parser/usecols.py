@@ -440,3 +440,28 @@ a,b,c
         expected = DataFrame()
         df = self.read_csv(StringIO(s), usecols=lambda x: False)
         tm.assert_frame_equal(df, expected)
+
+    def test_incomplete_first_row(self):
+        # see gh-6710
+        data = '1,2\n1,2,3'
+        names = ['a', 'b', 'c']
+        expected = DataFrame({'a': [1, 1],
+                              'c': [np.nan, 3]})
+
+        usecols = ['a', 'c']
+        df = self.read_csv(StringIO(data), names=names, usecols=usecols)
+        tm.assert_frame_equal(df, expected)
+
+        usecols = lambda x: x in ['a', 'c']
+        df = self.read_csv(StringIO(data), names=names, usecols=usecols)
+        tm.assert_frame_equal(df, expected)
+
+    def test_uneven_length_cols(self):
+        # see gh-8985
+        usecols = [0, 1, 2]
+        data = '19,29,39\n' * 2 + '10,20,30,40'
+        expected = DataFrame([[19, 29, 39],
+                              [19, 29, 39],
+                              [10, 20, 30]])
+        df = self.read_csv(StringIO(data), header=None, usecols=usecols)
+        tm.assert_frame_equal(df, expected)
