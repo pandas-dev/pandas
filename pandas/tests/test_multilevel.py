@@ -691,7 +691,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(result, expected)
 
     def test_getitem_slice_not_sorted(self):
-        df = self.frame.sortlevel(1).T
+        df = self.frame.sort_index(level=1).T
 
         # buglet with int typechecking
         result = df.ix[:, :np.int32(3)]
@@ -744,31 +744,31 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assertRaises(KeyError, df.ix.__getitem__,
                           (('a', 'foo'), slice(None, None)))
 
-    def test_sortlevel(self):
+    def test_sort_index_level(self):
         df = self.frame.copy()
         df.index = np.arange(len(df))
 
         # axis=1
 
         # series
-        a_sorted = self.frame['A'].sortlevel(0)
+        a_sorted = self.frame['A'].sort_index(level=0)
 
         # preserve names
         self.assertEqual(a_sorted.index.names, self.frame.index.names)
 
         # inplace
         rs = self.frame.copy()
-        rs.sortlevel(0, inplace=True)
-        assert_frame_equal(rs, self.frame.sortlevel(0))
+        rs.sort_index(level=0, inplace=True)
+        assert_frame_equal(rs, self.frame.sort_index(level=0))
 
-    def test_sortlevel_large_cardinality(self):
+    def test_sort_index_level_large_cardinality(self):
 
         # #2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
         df = DataFrame(np.random.randn(4000), index=index, dtype=np.int64)
 
         # it works!
-        result = df.sortlevel(0)
+        result = df.sort_index(level=0)
         self.assertTrue(result.index.lexsort_depth == 3)
 
         # #2684 (int32)
@@ -776,7 +776,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = DataFrame(np.random.randn(4000), index=index, dtype=np.int32)
 
         # it works!
-        result = df.sortlevel(0)
+        result = df.sort_index(level=0)
         self.assertTrue((result.dtypes.values == df.dtypes.values).all())
         self.assertTrue(result.index.lexsort_depth == 3)
 
@@ -803,25 +803,25 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         deleveled = self.series.reset_index(drop=True)
         tm.assertIsInstance(deleveled, Series)
 
-    def test_sortlevel_by_name(self):
+    def test_sort_index_level_by_name(self):
         self.frame.index.names = ['first', 'second']
-        result = self.frame.sortlevel(level='second')
-        expected = self.frame.sortlevel(level=1)
+        result = self.frame.sort_index(level='second')
+        expected = self.frame.sort_index(level=1)
         assert_frame_equal(result, expected)
 
-    def test_sortlevel_mixed(self):
-        sorted_before = self.frame.sortlevel(1)
+    def test_sort_index_level_mixed(self):
+        sorted_before = self.frame.sort_index(level=1)
 
         df = self.frame.copy()
         df['foo'] = 'bar'
-        sorted_after = df.sortlevel(1)
+        sorted_after = df.sort_index(level=1)
         assert_frame_equal(sorted_before, sorted_after.drop(['foo'], axis=1))
 
         dft = self.frame.T
-        sorted_before = dft.sortlevel(1, axis=1)
+        sorted_before = dft.sort_index(level=1, axis=1)
         dft['foo', 'three'] = 'bar'
 
-        sorted_after = dft.sortlevel(1, axis=1)
+        sorted_after = dft.sort_index(level=1, axis=1)
         assert_frame_equal(sorted_before.drop([('foo', 'three')], axis=1),
                            sorted_after.drop([('foo', 'three')], axis=1))
 
@@ -915,21 +915,21 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         restacked = unstacked.stack()
         assert_frame_equal(restacked, self.ymd)
 
-        unlexsorted = self.ymd.sortlevel(2)
+        unlexsorted = self.ymd.sort_index(level=2)
 
         unstacked = unlexsorted.unstack(2)
         restacked = unstacked.stack()
-        assert_frame_equal(restacked.sortlevel(0), self.ymd)
+        assert_frame_equal(restacked.sort_index(level=0), self.ymd)
 
         unlexsorted = unlexsorted[::-1]
         unstacked = unlexsorted.unstack(1)
         restacked = unstacked.stack().swaplevel(1, 2)
-        assert_frame_equal(restacked.sortlevel(0), self.ymd)
+        assert_frame_equal(restacked.sort_index(level=0), self.ymd)
 
         unlexsorted = unlexsorted.swaplevel(0, 1)
         unstacked = unlexsorted.unstack(0).swaplevel(0, 1, axis=1)
         restacked = unstacked.stack(0).swaplevel(1, 2)
-        assert_frame_equal(restacked.sortlevel(0), self.ymd)
+        assert_frame_equal(restacked.sort_index(level=0), self.ymd)
 
         # columns unsorted
         unstacked = self.ymd.unstack()
@@ -1025,7 +1025,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_stack_mixed_dtype(self):
         df = self.frame.T
         df['foo', 'four'] = 'foo'
-        df = df.sortlevel(1, axis=1)
+        df = df.sort_index(level=1, axis=1)
 
         stacked = df.stack()
         result = df['foo'].stack()
@@ -1084,7 +1084,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         restacked = unstacked.stack(['year', 'month'])
         restacked = restacked.swaplevel(0, 1).swaplevel(1, 2)
-        restacked = restacked.sortlevel(0)
+        restacked = restacked.sort_index(level=0)
 
         assert_frame_equal(restacked, self.ymd)
         self.assertEqual(restacked.index.names, self.ymd.index.names)
@@ -1421,7 +1421,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # but not if it's mixed-type
         df['foo', 'four'] = 'foo'
-        df = df.sortlevel(0, axis=1)
+        df = df.sort_index(level=0, axis=1)
 
         # this will work, but will raise/warn as its chained assignment
         def f():
@@ -1698,7 +1698,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # in theory should be inserting in a sorted space????
         self.frame.ix[('bar', 'three'), 'B'] = 0
-        self.assertEqual(self.frame.sortlevel().ix[('bar', 'three'), 'B'], 0)
+        self.assertEqual(self.frame.sort_index().ix[('bar', 'three'), 'B'], 0)
 
     # ---------------------------------------------------------------------
     # AMBIGUOUS CASES!
@@ -2147,7 +2147,7 @@ Thur,Lunch,Yes,51.51,17"""
                         ['bah', 'bam', 6.0, 6]],
                        columns=list('ABCD'))
         df = df.set_index(['A', 'B'])
-        df = df.sortlevel(0)
+        df = df.sort_index(level=0)
         expected = DataFrame([['foo', 'bar', 1.0, 1], ['foo', 'bar', 2.0, 2],
                               ['foo', 'bar', 5.0, 5]],
                              columns=list('ABCD')).set_index(['A', 'B'])
