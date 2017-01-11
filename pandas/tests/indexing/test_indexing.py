@@ -2104,7 +2104,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             tm.assert_frame_equal(df.ix[key], df.iloc[2:])
 
         # this is ok
-        df.sortlevel(inplace=True)
+        df.sort_index(inplace=True)
         res = df.ix[key]
         # col has float dtype, result should be Float64Index
         index = MultiIndex.from_arrays([[4.] * 3, [2012] * 3],
@@ -2137,7 +2137,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             [('a', 'foo'), ('a', 'bar'), ('b', 'hello'),
              ('b', 'world')], names=['lvl0', 'lvl1'])
         df = DataFrame(np.random.randn(4, 4), columns=columns)
-        df.sortlevel(axis=1, inplace=True)
+        df.sort_index(axis=1, inplace=True)
         result = df.xs('a', level='lvl0', axis=1)
         expected = df.iloc[:, 0:2].loc[:, 'a']
         tm.assert_frame_equal(result, expected)
@@ -2180,7 +2180,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame(
             np.arange(16, dtype='int64').reshape(
                 4, 4), index=index, columns=columns)
-        df = df.sortlevel(axis=0).sortlevel(axis=1)
+        df = df.sort_index(axis=0).sort_index(axis=1)
 
         # identity
         result = df.loc[(slice(None), slice(None)), :]
@@ -2249,7 +2249,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # not lexsorted
         self.assertEqual(df.index.lexsort_depth, 2)
-        df = df.sortlevel(level=1, axis=0)
+        df = df.sort_index(level=1, axis=0)
         self.assertEqual(df.index.lexsort_depth, 0)
         with tm.assertRaisesRegexp(
                 UnsortedIndexError,
@@ -2265,11 +2265,11 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                              B=['a', 'a', 'a', 'a'],
                              C=[1, 2, 1, 3],
                              D=[1, 2, 3, 4]))
-              .set_index(['A', 'B', 'C']).sortlevel())
+              .set_index(['A', 'B', 'C']).sort_index())
         self.assertFalse(df.index.is_unique)
         expected = (DataFrame(dict(A=['foo', 'foo'], B=['a', 'a'],
                                    C=[1, 1], D=[1, 3]))
-                    .set_index(['A', 'B', 'C']).sortlevel())
+                    .set_index(['A', 'B', 'C']).sort_index())
         result = df.loc[(slice(None), slice(None), 1), :]
         tm.assert_frame_equal(result, expected)
 
@@ -2281,11 +2281,11 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                              B=['a', 'a', 'a', 'a'],
                              C=[1, 2, 1, 2],
                              D=[1, 2, 3, 4]))
-              .set_index(['A', 'B', 'C']).sortlevel())
+              .set_index(['A', 'B', 'C']).sort_index())
         self.assertFalse(df.index.is_unique)
         expected = (DataFrame(dict(A=['foo', 'foo'], B=['a', 'a'],
                                    C=[1, 1], D=[1, 3]))
-                    .set_index(['A', 'B', 'C']).sortlevel())
+                    .set_index(['A', 'B', 'C']).sort_index())
         result = df.loc[(slice(None), slice(None), 1), :]
         self.assertFalse(result.index.is_unique)
         tm.assert_frame_equal(result, expected)
@@ -2357,7 +2357,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         df['DATE'] = pd.to_datetime(df['DATE'])
         df1 = df.set_index(['A', 'B', 'DATE'])
-        df1 = df1.sortlevel()
+        df1 = df1.sort_index()
 
         # A1 - Get all values under "A0" and "A1"
         result = df1.loc[(slice('A1')), :]
@@ -2440,7 +2440,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             df.loc['A1', (slice(None), 'foo')]
 
         self.assertRaises(UnsortedIndexError, f)
-        df = df.sortlevel(axis=1)
+        df = df.sort_index(axis=1)
 
         # slicing
         df.loc['A1', (slice(None), 'foo')]
@@ -2459,7 +2459,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame(np.arange(len(index) * len(columns), dtype='int64')
                        .reshape((len(index), len(columns))),
                        index=index,
-                       columns=columns).sortlevel().sortlevel(axis=1)
+                       columns=columns).sort_index().sort_index(axis=1)
 
         # axis 0
         result = df.loc(axis=0)['A1':'A3', :, ['C1', 'C3']]
@@ -2551,7 +2551,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df_orig = DataFrame(
             np.arange(16, dtype='int64').reshape(
                 4, 4), index=index, columns=columns)
-        df_orig = df_orig.sortlevel(axis=0).sortlevel(axis=1)
+        df_orig = df_orig.sort_index(axis=0).sort_index(axis=1)
 
         # identity
         df = df_orig.copy()
@@ -2764,12 +2764,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         idx = pd.MultiIndex.from_product([['A', 'B', 'C'],
                                           ['foo', 'bar', 'baz']],
                                          names=['one', 'two'])
-        s = pd.Series(np.arange(9, dtype='int64'), index=idx).sortlevel()
+        s = pd.Series(np.arange(9, dtype='int64'), index=idx).sort_index()
 
         exp_idx = pd.MultiIndex.from_product([['A'], ['foo', 'bar', 'baz']],
                                              names=['one', 'two'])
         expected = pd.Series(np.arange(3, dtype='int64'),
-                             index=exp_idx).sortlevel()
+                             index=exp_idx).sort_index()
 
         result = s.loc[['A']]
         tm.assert_series_equal(result, expected)
@@ -2786,7 +2786,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         idx = pd.IndexSlice
         expected = pd.Series([0, 3, 6], index=pd.MultiIndex.from_product(
-            [['A', 'B', 'C'], ['foo']], names=['one', 'two'])).sortlevel()
+            [['A', 'B', 'C'], ['foo']], names=['one', 'two'])).sort_index()
 
         result = s.loc[idx[:, ['foo']]]
         tm.assert_series_equal(result, expected)
@@ -2799,7 +2799,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                                                   ['alpha', 'beta']))
         df = DataFrame(
             np.random.randn(5, 6), index=range(5), columns=multi_index)
-        df = df.sortlevel(0, axis=1)
+        df = df.sort_index(level=0, axis=1)
 
         expected = DataFrame(index=range(5),
                              columns=multi_index.reindex([])[0])

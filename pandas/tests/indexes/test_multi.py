@@ -440,7 +440,7 @@ class TestMultiIndex(Base, tm.TestCase):
             np.random.randn(6, 4),
             columns=['one', 'two', 'three', 'four'],
             index=idx)
-        df = df.sortlevel()
+        df = df.sort_index()
         self.assertIsNone(df.is_copy)
         self.assertEqual(df.index.names, ('Name', 'Number'))
         df = df.set_value(('grethe', '4'), 'one', 99.34)

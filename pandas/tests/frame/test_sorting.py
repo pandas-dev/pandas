@@ -53,16 +53,6 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         mi = MultiIndex.from_tuples([[2, 1, 3], [1, 1, 1]], names=list('ABC'))
         df = DataFrame([[1, 2], [3, 4]], mi)
 
-        result = df.sort_index(level='A', sort_remaining=False)
-        expected = df.sortlevel('A', sort_remaining=False)
-        assert_frame_equal(result, expected)
-
-        # sort columns by specified level of multi-index
-        df = df.T
-        result = df.sort_index(level='A', axis=1, sort_remaining=False)
-        expected = df.sortlevel('A', axis=1, sort_remaining=False)
-        assert_frame_equal(result, expected)
-
         # MI sort, but no level: sort_level has no effect
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         df = DataFrame([[1, 2], [3, 4]], mi)
@@ -79,6 +69,8 @@ class TestDataFrameSorting(tm.TestCase, TestData):
             frame.sort(columns='A')
         with tm.assert_produces_warning(FutureWarning):
             frame.sort()
+        with tm.assert_produces_warning(FutureWarning):
+            frame.sortlevel()
 
     def test_sort_values(self):
         frame = DataFrame([[1, 1, 2], [3, 1, 0], [4, 5, 6]],
@@ -453,13 +445,13 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         result = df.sort_values(by=('a', 1))
         assert_frame_equal(result, expected)
 
-    def test_sortlevel(self):
+    def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         df = DataFrame([[1, 2], [3, 4]], mi)
-        res = df.sortlevel('A', sort_remaining=False)
+        res = df.sort_index(level='A', sort_remaining=False)
         assert_frame_equal(df, res)
 
-        res = df.sortlevel(['A', 'B'], sort_remaining=False)
+        res = df.sort_index(level=['A', 'B'], sort_remaining=False)
         assert_frame_equal(df, res)
 
     def test_sort_datetimes(self):
