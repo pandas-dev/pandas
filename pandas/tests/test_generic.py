@@ -135,8 +135,9 @@ class Generic(object):
 
         # inplace
         result = obj.copy()
-        result.relabel(**{axis: labels for axis in
-                          self._axes()}, inplace=True)
+        kwargs = {axis: labels for axis in self._axes()}
+        kwargs['inplace'] = True
+        result.relabel(**kwargs)
         self._compare(result, expected)
 
         for box in [np.array, Series, Index]:
