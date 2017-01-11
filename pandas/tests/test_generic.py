@@ -101,6 +101,49 @@ class Generic(object):
 
         # multiple axes at once
 
+    def test_relabel(self):
+        # GH 14829
+        idx = list('ABCD')
+        labels = list('abcd')
+
+        for axis in self._axes():
+            kwargs = {axis: idx}
+
+            obj = self._construct(4, **kwargs)
+            result = obj.relabel(**{axis: labels})
+            expected = obj.copy()
+            setattr(expected, axis, labels)
+            # relabel a single axis
+            self._compare(result, expected)
+
+            # length must match
+            with tm.assertRaises(ValueError):
+                obj.relabel(**{axis: list('abcde')})
+
+            with tm.assertRaises(TypeError):
+                obj.relabel(**{axis: 5})
+
+        # multiple axes
+        obj = self._construct(4)
+        expected = obj.copy()
+        for axis in self._axes():
+            setattr(expected, axis, labels)
+
+        result = obj.relabel(**{axis: labels for axis in
+                                self._axes()})
+        self._compare(result, expected)
+
+        # inplace
+        result = obj.copy()
+        result.relabel(**{axis: labels for axis in
+                          self._axes()}, inplace=True)
+        self._compare(result, expected)
+
+        for box in [np.array, Series, Index]:
+            result = obj.relabel(**{axis: box(labels) for axis in
+                                    self._axes()})
+            self._compare(result, expected)
+
     def test_rename_axis(self):
         idx = list('ABCD')
         # relabeling values passed into self.rename

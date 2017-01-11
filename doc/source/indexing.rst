@@ -1586,6 +1586,23 @@ If you create an index yourself, you can just assign it to the ``index`` field:
 
    data.index = index
 
+.. versionadded:: 0.20.0
+
+Alternatively, the :meth:`~DataFrame.relabel` can be used to assign new
+labels to an existing index on an object.
+
+.. ipython:: python
+   :suppress:
+   
+   data = data.reset_index()
+
+.. ipython:: python
+   
+   data
+   data.relabel(index=['a', 'b', 'c', 'd'])
+   data.relabel(columns=['q', 'w', 'r', 't'])
+
+
 .. _indexing.view_versus_copy:
 
 Returning a view versus a copy

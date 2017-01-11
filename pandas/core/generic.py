@@ -688,6 +688,92 @@ class NDFrame(PandasObject):
 
     rename.__doc__ = _shared_docs['rename']
 
+    _shared_docs['relabel'] = """
+        Assign new axes based on list-like labels
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        %(axes)s : list-like, optional
+            Labels to construct new axis from - number of labels
+            must match the length of the existing axis
+        copy : boolean, default True
+            Also copy underlying data
+        inplace : boolean, default False
+            Whether to return a new %(klass)s. If True then value of copy is
+            ignored.
+
+        Returns
+        -------
+        relabeled : %(klass)s (new object)
+
+        See Also
+        --------
+        pandas.NDFrame.rename
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s
+        0    1
+        1    2
+        2    3
+        dtype: int64
+        >>> s.relabel(index=[4, 5, 6])
+        4    1
+        5    2
+        6    3
+        dtype: int64
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df
+           A  B
+        0  1  4
+        1  2  5
+        2  3  6
+        >>> df.relabel(columns=['J', 'K'])
+           J  K
+        0  1  4
+        1  2  5
+        2  3  6
+        >>> df.relabel(columns=['J', 'K'], index=[2, 3, 4])
+           J  K
+        2  1  4
+        3  2  5
+        4  3  6
+        """
+
+    @Appender(_shared_docs['relabel'] % dict(axes='axes keywords for this'
+                                             ' object', klass='NDFrame'))
+    def relabel(self, *args, **kwargs):
+        axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
+        copy = kwargs.pop('copy', True)
+        inplace = kwargs.pop('inplace', False)
+
+        if kwargs:
+            raise TypeError('relabel() got an unexpected keyword '
+                            'argument "{0}"'.format(list(kwargs.keys())[0]))
+
+        if com._count_not_none(*axes.values()) == 0:
+            raise TypeError('must pass an index to relabel')
+
+        self._consolidate_inplace()
+        result = self if inplace else self.copy(deep=copy)
+
+        # start in the axis order to eliminate too many copies
+        for axis in lrange(self._AXIS_LEN):
+            v = axes.get(self._AXIS_NAMES[axis])
+            if v is None:
+                continue
+            baxis = self._get_block_manager_axis(axis)
+            result._set_axis(axis=baxis, labels=v)
+
+        if inplace:
+            self._update_inplace(result._data)
+        else:
+            return result.__finalize__(self)
+
     def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
         """
         Alter index and / or columns using input function or functions.

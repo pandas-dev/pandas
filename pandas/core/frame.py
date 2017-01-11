@@ -2802,6 +2802,11 @@ class DataFrame(NDFrame):
         return super(DataFrame, self).rename(index=index, columns=columns,
                                              **kwargs)
 
+    @Appender(_shared_docs['relabel'] % _shared_doc_kwargs)
+    def relabel(self, index=None, columns=None, copy=True, inplace=False):
+        return super(DataFrame, self).relabel(index=index, columns=columns,
+                                              copy=copy, inplace=inplace)
+
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):

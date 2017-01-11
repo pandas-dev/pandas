@@ -2364,6 +2364,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             return self._set_name(index, inplace=kwargs.get('inplace'))
         return super(Series, self).rename(index=index, **kwargs)
 
+    @Appender(generic._shared_docs['relabel'] % _shared_doc_kwargs)
+    def relabel(self, index=None, copy=True, inplace=False):
+        return super(Series, self).relabel(index=index, copy=copy,
+                                           inplace=inplace)
+
     @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
     def reindex(self, index=None, **kwargs):
         return super(Series, self).reindex(index=index, **kwargs)

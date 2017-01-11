@@ -1211,6 +1211,19 @@ for altering the ``Series.name`` attribute.
 
    s.rename("scalar-name")
 
+.. versionadded:: 0.20.0
+
+The :meth:`~DataFrame.relabel` method allows you to relabel an axis by
+assigning a new set labels, which must match the length of the original
+axis.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+   df
+   df.relabel(index=[5, 6], columns=['J', 'K'])
+
+
 .. _basics.rename_axis:
 
 The Panel class has a related :meth:`~Panel.rename_axis` class which can rename
