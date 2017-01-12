@@ -244,7 +244,7 @@ Other API Changes
 - ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
 - ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)
 - ``DataFrame.applymap()`` with an empty ``DataFrame`` will return a copy of the empty ``DataFrame`` instead of a ``Series`` (:issue:`8222`)
-
+- ``.loc`` has compat with ``.ix`` for accepting iterators, and NamedTuples (:issue:`15120`)
 - ``pd.read_csv()`` will now issue a ``ParserWarning`` whenever there are conflicting values provided by the ``dialect`` parameter and the user (:issue:`14898`)
 - ``pd.read_csv()`` will now raise a ``ValueError`` for the C engine if the quote character is larger than than one byte (:issue:`11592`)
 - ``inplace`` arguments now require a boolean value, else a ``ValueError`` is thrown (:issue:`14189`)
@@ -318,7 +318,7 @@ Bug Fixes
 - Bug in ``Series`` construction with a datetimetz (:issue:`14928`)
 
 - Bug in compat for passing long integers to ``Timestamp.replace`` (:issue:`15030`)
-
+- Bug in ``.loc`` that would not return the correct dtype for scalar access for a DataFrame (:issue:`11617`)
 
 
 

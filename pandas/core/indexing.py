@@ -9,6 +9,7 @@ from pandas.types.common import (is_integer_dtype,
                                  is_categorical_dtype,
                                  is_list_like,
                                  is_sequence,
+                                 is_iterator,
                                  is_scalar,
                                  is_sparse,
                                  _is_unorderable_exception,
@@ -1300,16 +1301,23 @@ class _LocationIndexer(_NDFrameIndexer):
     _exception = Exception
 
     def __getitem__(self, key):
-        if isinstance(key, tuple):
-            key = tuple(com._apply_if_callable(x, self.obj) for x in key)
-        else:
-            # scalar callable may return tuple
-            key = com._apply_if_callable(key, self.obj)
-
         if type(key) is tuple:
+            key = tuple(com._apply_if_callable(x, self.obj) for x in key)
+            try:
+                if self._is_scalar_access(key):
+                    return self._getitem_scalar(key)
+            except (KeyError, IndexError):
+                pass
             return self._getitem_tuple(key)
         else:
+            key = com._apply_if_callable(key, self.obj)
             return self._getitem_axis(key, axis=0)
+
+    def _is_scalar_access(self, key):
+        raise NotImplementedError()
+
+    def _getitem_scalar(self, key):
+        raise NotImplementedError()
 
     def _getitem_axis(self, key, axis=0):
         raise NotImplementedError()
@@ -1389,7 +1397,8 @@ class _LocIndexer(_LocationIndexer):
                 return True
 
             # TODO: don't check the entire key unless necessary
-            if len(key) and np.all(ax.get_indexer_for(key) < 0):
+            if (not is_iterator(key) and len(key) and
+                    np.all(ax.get_indexer_for(key) < 0)):
 
                 raise KeyError("None of [%s] are in the [%s]" %
                                (key, self.obj._get_axis_name(axis)))
@@ -1419,6 +1428,36 @@ class _LocIndexer(_LocationIndexer):
                 error()
 
         return True
+
+    def _is_scalar_access(self, key):
+        # this is a shortcut accessor to both .loc and .iloc
+        # that provide the equivalent access of .at and .iat
+        # a) avoid getting things via sections and (to minimize dtype changes)
+        # b) provide a performant path
+        if not hasattr(key, '__len__'):
+            return False
+
+        if len(key) != self.ndim:
+            return False
+
+        for i, k in enumerate(key):
+            if not is_scalar(k):
+                return False
+
+            ax = self.obj.axes[i]
+            if isinstance(ax, MultiIndex):
+                return False
+
+            if not ax.is_unique:
+                return False
+
+        return True
+
+    def _getitem_scalar(self, key):
+        # a fast-path to scalar access
+        # if not, raise
+        values = self.obj.get_value(*key)
+        return values
 
     def _get_partial_string_timestamp_match_key(self, key, labels):
         """Translate any partial string timestamp matches in key, returning the
@@ -1535,6 +1574,33 @@ class _iLocIndexer(_LocationIndexer):
 
     def _has_valid_setitem_indexer(self, indexer):
         self._has_valid_positional_setitem_indexer(indexer)
+
+    def _is_scalar_access(self, key):
+        # this is a shortcut accessor to both .loc and .iloc
+        # that provide the equivalent access of .at and .iat
+        # a) avoid getting things via sections and (to minimize dtype changes)
+        # b) provide a performant path
+        if not hasattr(key, '__len__'):
+            return False
+
+        if len(key) != self.ndim:
+            return False
+
+        for i, k in enumerate(key):
+            if not is_integer(k):
+                return False
+
+            ax = self.obj.axes[i]
+            if not ax.is_unique:
+                return False
+
+        return True
+
+    def _getitem_scalar(self, key):
+        # a fast-path to scalar access
+        # if not, raise
+        values = self.obj.get_value(*key, takeable=True)
+        return values
 
     def _is_valid_integer(self, key, axis):
         # return a boolean if we have a valid integer indexer
