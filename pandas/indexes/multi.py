@@ -20,7 +20,6 @@ from pandas.types.common import (_ensure_int64,
                                  is_object_dtype,
                                  is_iterator,
                                  is_list_like,
-                                 is_string_like,
                                  is_scalar)
 from pandas.types.missing import isnull, array_equivalent
 from pandas.core.common import (_values_from_object,
@@ -493,9 +492,8 @@ class MultiIndex(Index):
 
         # GH 15110
         # Don't allow a single string for names in a MultiIndex
-        if names is not None and is_string_like(names):
-            raise ValueError('Names should not be a single string for a '
-                             'MultiIndex.')
+        if names is not None and not is_list_like(names):
+            raise ValueError('Names should be list-like for a MultiIndex')
         names = list(names)
 
         if validate and level is not None and len(names) != len(level):
