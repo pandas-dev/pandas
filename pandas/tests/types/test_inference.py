@@ -22,6 +22,10 @@ from pandas.compat import u, PY2, lrange
 from pandas.types import inference
 from pandas.types.common import (is_timedelta64_dtype,
                                  is_timedelta64_ns_dtype,
+                                 is_datetime64_dtype,
+                                 is_datetime64_ns_dtype,
+                                 is_datetime64_any_dtype,
+                                 is_datetime64tz_dtype,
                                  is_number,
                                  is_integer,
                                  is_float,
@@ -804,6 +808,38 @@ class TestNumberScalar(tm.TestCase):
         self.assertFalse(is_float(timedelta(1000)))
         self.assertFalse(is_float(np.timedelta64(1, 'D')))
         self.assertFalse(is_float(Timedelta('1 days')))
+
+    def test_is_datetime_dtypes(self):
+
+        ts = pd.date_range('20130101', periods=3)
+        tsa = pd.date_range('20130101', periods=3, tz='US/Eastern')
+
+        self.assertTrue(is_datetime64_dtype('datetime64'))
+        self.assertTrue(is_datetime64_dtype('datetime64[ns]'))
+        self.assertTrue(is_datetime64_dtype(ts))
+        self.assertFalse(is_datetime64_dtype(tsa))
+
+        self.assertFalse(is_datetime64_ns_dtype('datetime64'))
+        self.assertTrue(is_datetime64_ns_dtype('datetime64[ns]'))
+        self.assertTrue(is_datetime64_ns_dtype(ts))
+        self.assertTrue(is_datetime64_ns_dtype(tsa))
+
+        self.assertTrue(is_datetime64_any_dtype('datetime64'))
+        self.assertTrue(is_datetime64_any_dtype('datetime64[ns]'))
+        self.assertTrue(is_datetime64_any_dtype(ts))
+        self.assertTrue(is_datetime64_any_dtype(tsa))
+
+        self.assertFalse(is_datetime64tz_dtype('datetime64'))
+        self.assertFalse(is_datetime64tz_dtype('datetime64[ns]'))
+        self.assertFalse(is_datetime64tz_dtype(ts))
+        self.assertTrue(is_datetime64tz_dtype(tsa))
+
+        for tz in ['US/Eastern', 'UTC']:
+            dtype = 'datetime64[ns, {}]'.format(tz)
+            self.assertFalse(is_datetime64_dtype(dtype))
+            self.assertTrue(is_datetime64tz_dtype(dtype))
+            self.assertTrue(is_datetime64_ns_dtype(dtype))
+            self.assertTrue(is_datetime64_any_dtype(dtype))
 
     def test_is_timedelta(self):
         self.assertTrue(is_timedelta64_dtype('timedelta64'))

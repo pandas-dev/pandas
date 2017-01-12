@@ -2404,7 +2404,7 @@ class TestToDatetime(tm.TestCase):
         i = pd.DatetimeIndex([
             '2000-01-01 08:00:00+00:00'
         ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
-        self.assertFalse(is_datetime64_ns_dtype(i))
+        self.assertTrue(is_datetime64_ns_dtype(i))
 
         # tz coerceion
         result = pd.to_datetime(i, errors='coerce')

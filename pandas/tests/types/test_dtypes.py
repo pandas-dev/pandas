@@ -11,7 +11,8 @@ from pandas.types.common import (is_categorical_dtype, is_categorical,
                                  is_datetime64tz_dtype, is_datetimetz,
                                  is_period_dtype, is_period,
                                  is_dtype_equal, is_datetime64_ns_dtype,
-                                 is_datetime64_dtype, is_string_dtype,
+                                 is_datetime64_dtype,
+                                 is_datetime64_any_dtype, is_string_dtype,
                                  _coerce_to_dtype)
 import pandas.util.testing as tm
 
@@ -132,8 +133,12 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
                          DatetimeTZDtype('ns', 'Asia/Tokyo'))
 
     def test_compat(self):
-        self.assertFalse(is_datetime64_ns_dtype(self.dtype))
-        self.assertFalse(is_datetime64_ns_dtype('datetime64[ns, US/Eastern]'))
+        self.assertTrue(is_datetime64tz_dtype(self.dtype))
+        self.assertTrue(is_datetime64tz_dtype('datetime64[ns, US/Eastern]'))
+        self.assertTrue(is_datetime64_any_dtype(self.dtype))
+        self.assertTrue(is_datetime64_any_dtype('datetime64[ns, US/Eastern]'))
+        self.assertTrue(is_datetime64_ns_dtype(self.dtype))
+        self.assertTrue(is_datetime64_ns_dtype('datetime64[ns, US/Eastern]'))
         self.assertFalse(is_datetime64_dtype(self.dtype))
         self.assertFalse(is_datetime64_dtype('datetime64[ns, US/Eastern]'))
 

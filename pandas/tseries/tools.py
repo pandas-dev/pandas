@@ -309,20 +309,20 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             arg = np.array(arg, dtype='O')
 
         # these are shortcutable
-        if is_datetime64_ns_dtype(arg):
+        if is_datetime64tz_dtype(arg):
+            if not isinstance(arg, DatetimeIndex):
+                return DatetimeIndex(arg, tz=tz, name=name)
+            if utc:
+                arg = arg.tz_convert(None).tz_localize('UTC')
+            return arg
+
+        elif is_datetime64_ns_dtype(arg):
             if box and not isinstance(arg, DatetimeIndex):
                 try:
                     return DatetimeIndex(arg, tz=tz, name=name)
                 except ValueError:
                     pass
 
-            return arg
-
-        elif is_datetime64tz_dtype(arg):
-            if not isinstance(arg, DatetimeIndex):
-                return DatetimeIndex(arg, tz=tz, name=name)
-            if utc:
-                arg = arg.tz_convert(None).tz_localize('UTC')
             return arg
 
         elif unit is not None:

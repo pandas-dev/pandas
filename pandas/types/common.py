@@ -187,8 +187,11 @@ def is_datetime64_ns_dtype(arr_or_dtype):
     try:
         tipo = _get_dtype(arr_or_dtype)
     except TypeError:
-        return False
-    return tipo == _NS_DTYPE
+        if is_datetime64tz_dtype(arr_or_dtype):
+            tipo = _get_dtype(arr_or_dtype.dtype)
+        else:
+            return False
+    return tipo == _NS_DTYPE or getattr(tipo, 'base', None) == _NS_DTYPE
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype):
