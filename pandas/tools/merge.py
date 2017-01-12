@@ -1627,10 +1627,10 @@ class _Concatenator(object):
             objs = clean_objs
             name = getattr(keys, 'name', None)
             # GH 14848
-            # Don't pass name when creating index (# GH 14252)
-            # So that if keys are tuples, name isn't checked
-            keys = Index(clean_keys)
-            keys.name = name
+            # If you already have an Index, no need
+            # to recreate it
+            if not isinstance(keys, Index):
+                keys = Index(clean_keys, name=name)
 
         if len(objs) == 0:
             raise ValueError('All objects passed were None')

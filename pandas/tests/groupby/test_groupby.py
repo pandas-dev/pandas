@@ -1490,18 +1490,18 @@ class TestGroupBy(tm.TestCase):
         for name, group in groupedT:
             assert_frame_equal(result[name], group.describe())
 
-    # GH #14848
     def test_frame_describe_tupleindex(self):
+
+        # GH 14848 - regression from 0.19.0 to 0.19.1
         df1 = DataFrame({'x': [1, 2, 3, 4, 5] * 3,
                          'y': [10, 20, 30, 40, 50] * 3,
                          'z': [100, 200, 300, 400, 500] * 3})
         df1['k'] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
         df2 = df1.rename(columns={'k': 'key'})
-        des1 = df1.groupby('k').describe()
-        des2 = df2.groupby('key').describe()
-        if len(des1) > 0:
-            des2.index.set_names(des1.index.names, inplace=True)
-        assert_frame_equal(des1, des2)
+        result = df1.groupby('k').describe()
+        expected = df2.groupby('key').describe()
+        expected.index.set_names(result.index.names, inplace=True)
+        assert_frame_equal(result, expected)
 
     def test_frame_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
