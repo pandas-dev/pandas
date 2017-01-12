@@ -93,6 +93,11 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         expected = self.frame.ix[:, ['A', 'B', 'C']]
         assert_frame_equal(result, expected)
 
+        idx = iter(['A', 'B', 'C'])
+        result = self.frame.loc[:, idx]
+        expected = self.frame.loc[:, ['A', 'B', 'C']]
+        assert_frame_equal(result, expected)
+
     def test_getitem_list(self):
         self.frame.columns.name = 'foo'
 
@@ -1667,6 +1672,24 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result = self.frame.ix[self.frame.index[5], 'E']
         self.assertTrue(is_integer(result))
 
+        result = self.frame.loc[self.frame.index[5], 'E']
+        self.assertTrue(is_integer(result))
+
+        # GH 11617
+        df = pd.DataFrame(dict(a=[1.23]))
+        df["b"] = 666
+
+        result = df.ix[0, "b"]
+        self.assertTrue(is_integer(result))
+        result = df.loc[0, "b"]
+        self.assertTrue(is_integer(result))
+
+        expected = Series([666], [0], name='b')
+        result = df.ix[[0], "b"]
+        assert_series_equal(result, expected)
+        result = df.loc[[0], "b"]
+        assert_series_equal(result, expected)
+
     def test_irow(self):
         df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2))
 
@@ -2159,7 +2182,11 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         index = Index([idx1, idx2],
                       name="composite_index", tupleize_cols=False)
         df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
+
         result = df.ix[IndexType("foo", "bar")]["A"]
+        self.assertEqual(result, 1)
+
+        result = df.loc[IndexType("foo", "bar")]["A"]
         self.assertEqual(result, 1)
 
     def test_boolean_indexing(self):
