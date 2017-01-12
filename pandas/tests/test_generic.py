@@ -138,6 +138,7 @@ class Generic(object):
         kwargs = {axis: labels for axis in self._axes()}
         kwargs['inplace'] = True
         result.relabel(**kwargs)
+
         self._compare(result, expected)
 
         for box in [np.array, Series, Index]:
@@ -1642,7 +1643,7 @@ for t in ['test_rename', 'test_rename_axis', 'test_get_numeric_data',
           'test_stat_unexpected_keyword', 'test_api_compat',
           'test_stat_non_defaults_args',
           'test_clip', 'test_truncate_out_of_bounds', 'test_numpy_clip',
-          'test_metadata_propagation']:
+          'test_metadata_propagation', 'test_relabel']:
 
     def f():
         def tester(self):

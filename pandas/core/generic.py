@@ -710,7 +710,9 @@ class NDFrame(PandasObject):
 
         See Also
         --------
-        pandas.NDFrame.rename
+        pandas.Series.rename
+        pandas.DataFrame.rename
+        pandas.Panel.rename
 
         Examples
         --------
