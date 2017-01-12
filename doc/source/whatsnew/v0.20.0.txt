@@ -351,6 +351,7 @@ Bug Fixes
 - Bug in converting object elements of array-like objects to unsigned 64-bit integers (:issue:`4471`, :issue:`14982`)
 - Bug in ``pd.pivot_table()`` where no error was raised when values argument was not in the columns (:issue:`14938`)
 
+- Bug in ``DataFrame.groupby().describe()`` when grouping on  ``Index`` containing tuples (:issue:`14848`)
 
 
 
