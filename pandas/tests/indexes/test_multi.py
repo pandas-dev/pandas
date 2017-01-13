@@ -2554,3 +2554,12 @@ class TestMultiIndex(Base, tm.TestCase):
 
         with assertRaises(KeyError):
             df.loc(axis=0)['q', :]
+
+    def test_tuples_with_name_string(self):
+        # GH 15110 and GH 14848
+
+        li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
+        with assertRaises(ValueError):
+            pd.Index(li, name='abc')
+        with assertRaises(ValueError):
+            pd.Index(li, name='a')
