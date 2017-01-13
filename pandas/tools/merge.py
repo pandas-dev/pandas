@@ -280,6 +280,8 @@ def merge_asof(left, right, on=None,
     search selects the row in the right DataFrame whose 'on' key is closest
     in absolute distance to the left's key.
 
+    .. versionadded:: "forward" and "nearest" added in 0.20.0
+
     Optionally match on equivalent keys with 'by' before searching with 'on'.
 
     .. versionadded:: 0.19.0
@@ -1010,12 +1012,13 @@ class _OrderedMerge(_MergeOperation):
         return result
 
 
-def _asof_function(on_type):
-    return getattr(_join, 'asof_join_%s' % on_type, None)
+def _asof_function(direction, on_type):
+    return getattr(_join, 'asof_join_%s_%s' % (direction, on_type), None)
 
 
-def _asof_by_function(on_type, by_type):
-    return getattr(_join, 'asof_join_%s_by_%s' % (on_type, by_type), None)
+def _asof_by_function(direction, on_type, by_type):
+    return getattr(_join, 'asof_join_%s_%s_by_%s' %
+                   (direction, on_type, by_type), None)
 
 
 _type_casters = {
@@ -1203,11 +1206,6 @@ class _AsOfMerge(_OrderedMerge):
             if tolerance is not None:
                 tolerance = tolerance.value
 
-        # enumeration for direction
-        direction_enum = {'backward': 0,
-                          'forward': 1,
-                          'nearest': 2}[self.direction]
-
         # a "by" parameter requires special handling
         if self.left_by is not None:
             if len(self.left_join_keys) > 2:
@@ -1226,23 +1224,21 @@ class _AsOfMerge(_OrderedMerge):
 
             # choose appropriate function by type
             on_type = _get_cython_type(left_values.dtype)
-            func = _asof_by_function(on_type, by_type)
+            func = _asof_by_function(self.direction, on_type, by_type)
             return func(left_values,
                         right_values,
                         left_by_values,
                         right_by_values,
                         self.allow_exact_matches,
-                        tolerance,
-                        direction_enum)
+                        tolerance)
         else:
             # choose appropriate function by type
             on_type = _get_cython_type(left_values.dtype)
-            func = _asof_function(on_type)
+            func = _asof_function(self.direction, on_type)
             return func(left_values,
                         right_values,
                         self.allow_exact_matches,
-                        tolerance,
-                        direction_enum)
+                        tolerance)
 
 
 def _get_multiindex_indexer(join_keys, index, sort):
