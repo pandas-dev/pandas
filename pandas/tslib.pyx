@@ -885,7 +885,12 @@ def _make_nan_func(func_name):
     f.__name__ = func_name
     return f
 
+
+# GH14940
+_round_methods = ['round', 'floor', 'ceil']
+
 _nat_methods = ['date', 'now', 'replace', 'to_pydatetime', 'today']
+_nat_methods.extend(_round_methods)
 
 _nan_methods = ['weekday', 'isoweekday', 'total_seconds']
 
@@ -895,7 +900,7 @@ _implemented_methods.extend(_nan_methods)
 
 for _method_name in _nat_methods:
     # not all methods exist in all versions of Python
-    if hasattr(NaTType, _method_name):
+    if hasattr(NaTType, _method_name) or _method_name in _round_methods:
         setattr(NaTType, _method_name, _make_nat_func(_method_name))
 
 for _method_name in _nan_methods:
