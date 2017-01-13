@@ -33,13 +33,15 @@ def asof_join_{{on_dtype}}_by_{{by_dtype}}(ndarray[{{on_dtype}}] left_values,
         ndarray[{{by_dtype}}] left_by_values,
         ndarray[{{by_dtype}}] right_by_values,
         bint allow_exact_matches=1,
-        tolerance=None):
+        tolerance=None,
+        int64_t direction_enum=0):
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
-        ndarray[int64_t] left_indexer, right_indexer
+        ndarray[int64_t] left_indexer, right_indexer, bli, bri, fli, fri
         bint has_tolerance = 0
         {{on_dtype}} tolerance_
+        {{on_dtype}} diff, bdiff, fdiff
         {{table_type}} hash_table
         {{by_dtype}} by_value
 
@@ -56,37 +58,94 @@ def asof_join_{{on_dtype}}_by_{{by_dtype}}(ndarray[{{on_dtype}}] left_values,
 
     hash_table = {{table_type}}(right_size)
 
-    right_pos = 0
-    for left_pos in range(left_size):
-        # restart right_pos if it went negative in a previous iteration
-        if right_pos < 0:
-            right_pos = 0
+    if direction_enum == 0:  #backward
+        right_pos = 0
+        for left_pos in range(left_size):
+            # restart right_pos if it went negative in a previous iteration
+            if right_pos < 0:
+                right_pos = 0
 
-        # find last position in right whose value is less than left's value
-        if allow_exact_matches:
-            while right_pos < right_size and\
-                right_values[right_pos] <= left_values[left_pos]:
-                hash_table.set_item(right_by_values[right_pos], right_pos)
-                right_pos += 1
-        else:
-            while right_pos < right_size and\
-                right_values[right_pos] < left_values[left_pos]:
-                hash_table.set_item(right_by_values[right_pos], right_pos)
-                right_pos += 1
-        right_pos -= 1
+            # find last position in right whose value is less than left's
+            if allow_exact_matches:
+                while right_pos < right_size and\
+                    right_values[right_pos] <= left_values[left_pos]:
+                    hash_table.set_item(right_by_values[right_pos], right_pos)
+                    right_pos += 1
+            else:
+                while right_pos < right_size and\
+                    right_values[right_pos] < left_values[left_pos]:
+                    hash_table.set_item(right_by_values[right_pos], right_pos)
+                    right_pos += 1
+            right_pos -= 1
 
-        # save positions as the desired index
-        by_value = left_by_values[left_pos]
-        found_right_pos = hash_table.get_item(by_value)\
-                          if by_value in hash_table else -1
-        left_indexer[left_pos] = left_pos
-        right_indexer[left_pos] = found_right_pos
+            # save positions as the desired index
+            by_value = left_by_values[left_pos]
+            found_right_pos = hash_table.get_item(by_value)\
+                              if by_value in hash_table else -1
+            left_indexer[left_pos] = left_pos
+            right_indexer[left_pos] = found_right_pos
 
-        # if needed, verify that tolerance is met
-        if has_tolerance and found_right_pos != -1:
-            diff = left_values[left_pos] - right_values[found_right_pos]
-            if diff > tolerance_:
-                right_indexer[left_pos] = -1
+            # if needed, verify that tolerance is met
+            if has_tolerance and found_right_pos != -1:
+                diff = left_values[left_pos] - right_values[found_right_pos]
+                if diff > tolerance_:
+                    right_indexer[left_pos] = -1
+    elif direction_enum == 1:  # forward
+        right_pos = right_size - 1
+        for left_pos in range(left_size - 1, -1, -1):
+            # restart right_pos if it went over in a previous iteration
+            if right_pos == right_size:
+                right_pos = right_size - 1
+
+            # find first position in right whose value is greater than left's
+            if allow_exact_matches:
+                while right_pos >= 0 and\
+                    right_values[right_pos] >= left_values[left_pos]:
+                    hash_table.set_item(right_by_values[right_pos], right_pos)
+                    right_pos -= 1
+            else:
+                while right_pos >= 0 and\
+                    right_values[right_pos] > left_values[left_pos]:
+                    hash_table.set_item(right_by_values[right_pos], right_pos)
+                    right_pos -= 1
+            right_pos += 1
+
+            # save positions as the desired index
+            by_value = left_by_values[left_pos]
+            found_right_pos = hash_table.get_item(by_value)\
+                              if by_value in hash_table else -1
+            left_indexer[left_pos] = left_pos
+            right_indexer[left_pos] = found_right_pos
+
+            # if needed, verify that tolerance is met
+            if has_tolerance and found_right_pos != -1:
+                diff = right_values[found_right_pos] - left_values[left_pos]
+                if diff > tolerance_:
+                    right_indexer[left_pos] = -1
+    else:  # nearest
+        # search both forward and backward
+        bli, bri = asof_join_{{on_dtype}}_by_{{by_dtype}}(left_values,
+                                                          right_values,
+                                                          left_by_values,
+                                                          right_by_values,
+                                                          allow_exact_matches,
+                                                          tolerance, 0)
+        fli, fri = asof_join_{{on_dtype}}_by_{{by_dtype}}(left_values,
+                                                          right_values,
+                                                          left_by_values,
+                                                          right_by_values,
+                                                          allow_exact_matches,
+                                                          tolerance, 1)
+
+        for i in range(len(bri)):
+            # choose timestamp from right with smaller difference
+            if bri[i] != -1 and fri[i] != -1:
+                bdiff = left_values[bli[i]] - right_values[bri[i]]
+                fdiff = right_values[fri[i]] - left_values[fli[i]]
+                right_indexer[i] = bri[i] if bdiff <= fdiff else fri[i]
+            else:
+                right_indexer[i] = bri[i] if bri[i] != -1 else fri[i]
+            left_indexer[i] = bli[i]
 
     return left_indexer, right_indexer
 
@@ -113,13 +172,15 @@ dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
 def asof_join_{{on_dtype}}(ndarray[{{on_dtype}}] left_values,
         ndarray[{{on_dtype}}] right_values,
         bint allow_exact_matches=1,
-        tolerance=None):
+        tolerance=None,
+        int64_t direction_enum=0):
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size
-        ndarray[int64_t] left_indexer, right_indexer
+        ndarray[int64_t] left_indexer, right_indexer, bli, bri, fli, fri
         bint has_tolerance = 0
         {{on_dtype}} tolerance_
+        {{on_dtype}} diff, bdiff, fdiff
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
@@ -132,32 +193,77 @@ def asof_join_{{on_dtype}}(ndarray[{{on_dtype}}] left_values,
     left_indexer = np.empty(left_size, dtype=np.int64)
     right_indexer = np.empty(left_size, dtype=np.int64)
 
-    right_pos = 0
-    for left_pos in range(left_size):
-        # restart right_pos if it went negative in a previous iteration
-        if right_pos < 0:
-            right_pos = 0
+    if direction_enum == 0:  # backward
+        right_pos = 0
+        for left_pos in range(left_size):
+            # restart right_pos if it went negative in a previous iteration
+            if right_pos < 0:
+                right_pos = 0
 
-        # find last position in right whose value is less than left's value
-        if allow_exact_matches:
-            while right_pos < right_size and\
-                right_values[right_pos] <= left_values[left_pos]:
-                right_pos += 1
-        else:
-            while right_pos < right_size and\
-                right_values[right_pos] < left_values[left_pos]:
-                right_pos += 1
-        right_pos -= 1
+            # find last position in right whose value is less than left's
+            if allow_exact_matches:
+                while right_pos < right_size and\
+                    right_values[right_pos] <= left_values[left_pos]:
+                    right_pos += 1
+            else:
+                while right_pos < right_size and\
+                    right_values[right_pos] < left_values[left_pos]:
+                    right_pos += 1
+            right_pos -= 1
 
-        # save positions as the desired index
-        left_indexer[left_pos] = left_pos
-        right_indexer[left_pos] = right_pos
+            # save positions as the desired index
+            left_indexer[left_pos] = left_pos
+            right_indexer[left_pos] = right_pos
 
-        # if needed, verify that tolerance is met
-        if has_tolerance and right_pos != -1:
-            diff = left_values[left_pos] - right_values[right_pos]
-            if diff > tolerance_:
-                right_indexer[left_pos] = -1
+            # if needed, verify that tolerance is met
+            if has_tolerance and right_pos != -1:
+                diff = left_values[left_pos] - right_values[right_pos]
+                if diff > tolerance_:
+                    right_indexer[left_pos] = -1
+    elif direction_enum == 1:  # forward
+        right_pos = right_size - 1
+        for left_pos in range(left_size - 1, -1, -1):
+            # restart right_pos if it went over in a previous iteration
+            if right_pos == right_size:
+                right_pos = right_size - 1
+
+            # find first position in right whose value is greater than left's
+            if allow_exact_matches:
+                while right_pos >= 0 and\
+                    right_values[right_pos] >= left_values[left_pos]:
+                    right_pos -= 1
+            else:
+                while right_pos >= 0 and\
+                    right_values[right_pos] > left_values[left_pos]:
+                    right_pos -= 1
+            right_pos += 1
+
+            # save positions as the desired index
+            left_indexer[left_pos] = left_pos
+            right_indexer[left_pos] = right_pos\
+                                      if right_pos != right_size else -1
+
+            # if needed, verify that tolerance is met
+            if has_tolerance and right_pos != right_size:
+                diff = right_values[right_pos] - left_values[left_pos]
+                if diff > tolerance_:
+                    right_indexer[left_pos] = -1
+    else:  # nearest
+        # search both forward and backward
+        bli, bri = asof_join_{{on_dtype}}(left_values, right_values,
+                                          allow_exact_matches, tolerance, 0)
+        fli, fri = asof_join_{{on_dtype}}(left_values, right_values,
+                                          allow_exact_matches, tolerance, 1)
+
+        for i in range(len(bri)):
+            # choose timestamp from right with smaller difference
+            if bri[i] != -1 and fri[i] != -1:
+                bdiff = left_values[bli[i]] - right_values[bri[i]]
+                fdiff = right_values[fri[i]] - left_values[fli[i]]
+                right_indexer[i] = bri[i] if bdiff <= fdiff else fri[i]
+            else:
+                right_indexer[i] = bri[i] if bri[i] != -1 else fri[i]
+            left_indexer[i] = bli[i]
 
     return left_indexer, right_indexer
 

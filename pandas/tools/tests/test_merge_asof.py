@@ -42,7 +42,12 @@ class TestAsOfMerge(tm.TestCase):
         right = pd.DataFrame({'a': [1, 2, 3, 6, 7],
                               'right_val': [1, 2, 3, 6, 7]})
 
-        pd.merge_asof(left, right, on='a')
+        expected = pd.DataFrame({'a': [1, 5, 10],
+                                 'left_val': ['a', 'b', 'c'],
+                                 'right_val': [1, 3, 7]})
+
+        result = pd.merge_asof(left, right, on='a')
+        assert_frame_equal(result, expected)
 
     def test_examples2(self):
         """ doc-string examples """
@@ -93,6 +98,38 @@ class TestAsOfMerge(tm.TestCase):
                       by='ticker',
                       tolerance=pd.Timedelta('10ms'),
                       allow_exact_matches=False)
+
+    def test_examples3(self):
+        """ doc-string examples """
+        # GH14887
+
+        left = pd.DataFrame({'a': [1, 5, 10],
+                             'left_val': ['a', 'b', 'c']})
+        right = pd.DataFrame({'a': [1, 2, 3, 6, 7],
+                              'right_val': [1, 2, 3, 6, 7]})
+
+        expected = pd.DataFrame({'a': [1, 5, 10],
+                                 'left_val': ['a', 'b', 'c'],
+                                 'right_val': [1, 6, np.nan]})
+
+        result = pd.merge_asof(left, right, on='a', direction='forward')
+        assert_frame_equal(result, expected)
+
+    def test_examples4(self):
+        """ doc-string examples """
+        # GH14887
+
+        left = pd.DataFrame({'a': [1, 5, 10],
+                             'left_val': ['a', 'b', 'c']})
+        right = pd.DataFrame({'a': [1, 2, 3, 6, 7],
+                              'right_val': [1, 2, 3, 6, 7]})
+
+        expected = pd.DataFrame({'a': [1, 5, 10],
+                                 'left_val': ['a', 'b', 'c'],
+                                 'right_val': [1, 6, 7]})
+
+        result = pd.merge_asof(left, right, on='a', direction='nearest')
+        assert_frame_equal(result, expected)
 
     def test_basic(self):
 
@@ -495,6 +532,38 @@ class TestAsOfMerge(tm.TestCase):
         expected = self.tolerance
         assert_frame_equal(result, expected)
 
+    def test_tolerance_forward(self):
+        # GH14887
+
+        left = pd.DataFrame({'a': [1, 5, 10],
+                             'left_val': ['a', 'b', 'c']})
+        right = pd.DataFrame({'a': [1, 2, 3, 7, 11],
+                              'right_val': [1, 2, 3, 7, 11]})
+
+        expected = pd.DataFrame({'a': [1, 5, 10],
+                                 'left_val': ['a', 'b', 'c'],
+                                 'right_val': [1, np.nan, 11]})
+
+        result = pd.merge_asof(left, right, on='a', direction='forward',
+                               tolerance=1)
+        assert_frame_equal(result, expected)
+
+    def test_tolerance_nearest(self):
+        # GH14887
+
+        left = pd.DataFrame({'a': [1, 5, 10],
+                             'left_val': ['a', 'b', 'c']})
+        right = pd.DataFrame({'a': [1, 2, 3, 7, 11],
+                              'right_val': [1, 2, 3, 7, 11]})
+
+        expected = pd.DataFrame({'a': [1, 5, 10],
+                                 'left_val': ['a', 'b', 'c'],
+                                 'right_val': [1, np.nan, 11]})
+
+        result = pd.merge_asof(left, right, on='a', direction='nearest',
+                               tolerance=1)
+        assert_frame_equal(result, expected)
+
     def test_tolerance_tz(self):
         # GH 14844
         left = pd.DataFrame(
@@ -525,6 +594,38 @@ class TestAsOfMerge(tm.TestCase):
                             by='ticker',
                             allow_exact_matches=False)
         expected = self.allow_exact_matches
+        assert_frame_equal(result, expected)
+
+    def test_allow_exact_matches_forward(self):
+        # GH14887
+
+        left = pd.DataFrame({'a': [1, 5, 10],
+                             'left_val': ['a', 'b', 'c']})
+        right = pd.DataFrame({'a': [1, 2, 3, 7, 11],
+                              'right_val': [1, 2, 3, 7, 11]})
+
+        expected = pd.DataFrame({'a': [1, 5, 10],
+                                 'left_val': ['a', 'b', 'c'],
+                                 'right_val': [2, 7, 11]})
+
+        result = pd.merge_asof(left, right, on='a', direction='forward',
+                               allow_exact_matches=False)
+        assert_frame_equal(result, expected)
+
+    def test_allow_exact_matches_nearest(self):
+        # GH14887
+
+        left = pd.DataFrame({'a': [1, 5, 10],
+                             'left_val': ['a', 'b', 'c']})
+        right = pd.DataFrame({'a': [1, 2, 3, 7, 11],
+                              'right_val': [1, 2, 3, 7, 11]})
+
+        expected = pd.DataFrame({'a': [1, 5, 10],
+                                 'left_val': ['a', 'b', 'c'],
+                                 'right_val': [2, 3, 11]})
+
+        result = pd.merge_asof(left, right, on='a', direction='nearest',
+                               allow_exact_matches=False)
         assert_frame_equal(result, expected)
 
     def test_allow_exact_matches_and_tolerance(self):
@@ -587,6 +688,76 @@ class TestAsOfMerge(tm.TestCase):
                                     '2016-07-15 13:30:00.030']),
             'username': ['bob', 'charlie'],
             'version': [np.nan, np.nan]})
+        assert_frame_equal(result, expected)
+
+    def test_allow_exact_matches_and_tolerance_forward(self):
+        # GH14887
+
+        left = pd.DataFrame({'a': [1, 5, 10],
+                             'left_val': ['a', 'b', 'c']})
+        right = pd.DataFrame({'a': [1, 3, 4, 6, 11],
+                              'right_val': [1, 3, 4, 6, 11]})
+
+        expected = pd.DataFrame({'a': [1, 5, 10],
+                                 'left_val': ['a', 'b', 'c'],
+                                 'right_val': [np.nan, 6, 11]})
+
+        result = pd.merge_asof(left, right, on='a', direction='forward',
+                               allow_exact_matches=False, tolerance=1)
+        assert_frame_equal(result, expected)
+
+    def test_allow_exact_matches_and_tolerance_nearest(self):
+        # GH14887
+
+        left = pd.DataFrame({'a': [1, 5, 10],
+                             'left_val': ['a', 'b', 'c']})
+        right = pd.DataFrame({'a': [1, 3, 4, 6, 11],
+                              'right_val': [1, 3, 4, 7, 11]})
+
+        expected = pd.DataFrame({'a': [1, 5, 10],
+                                 'left_val': ['a', 'b', 'c'],
+                                 'right_val': [np.nan, 4, 11]})
+
+        result = pd.merge_asof(left, right, on='a', direction='nearest',
+                               allow_exact_matches=False, tolerance=1)
+        assert_frame_equal(result, expected)
+
+    def test_forward_by(self):
+        # GH14887
+
+        left = pd.DataFrame({'a': [1, 5, 10, 12, 15],
+                             'b': ['X', 'X', 'Y', 'Z', 'Y'],
+                             'left_val': ['a', 'b', 'c', 'd', 'e']})
+        right = pd.DataFrame({'a': [1, 6, 11, 15, 16],
+                              'b': ['X', 'Z', 'Y', 'Z', 'Y'],
+                              'right_val': [1, 6, 11, 15, 16]})
+
+        expected = pd.DataFrame({'a': [1, 5, 10, 12, 15],
+                                 'b': ['X', 'X', 'Y', 'Z', 'Y'],
+                                 'left_val': ['a', 'b', 'c', 'd', 'e'],
+                                 'right_val': [1, np.nan, 11, 15, 16]})
+
+        result = pd.merge_asof(left, right, on='a', by='b',
+                               direction='forward')
+        assert_frame_equal(result, expected)
+
+    def test_nearest_by(self):
+        # GH14887
+
+        left = pd.DataFrame({'a': [1, 5, 10, 12, 15],
+                             'b': ['X', 'X', 'Z', 'Z', 'Y'],
+                             'left_val': ['a', 'b', 'c', 'd', 'e']})
+        right = pd.DataFrame({'a': [1, 6, 11, 15, 16],
+                              'b': ['X', 'Z', 'Z', 'Z', 'Y'],
+                              'right_val': [1, 6, 11, 15, 16]})
+
+        expected = pd.DataFrame({'a': [1, 5, 10, 12, 15],
+                                 'b': ['X', 'X', 'Z', 'Z', 'Y'],
+                                 'left_val': ['a', 'b', 'c', 'd', 'e'],
+                                 'right_val': [1, 1, 11, 11, 16]})
+
+        result = pd.merge_asof(left, right, on='a', by='b',
+                               direction='nearest')
         assert_frame_equal(result, expected)
 
     def test_by_int(self):
