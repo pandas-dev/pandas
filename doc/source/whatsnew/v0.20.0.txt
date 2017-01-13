@@ -366,3 +366,5 @@ Bug Fixes
 
 
 - Bug in ``pd.read_csv()`` for the C engine where ``usecols`` were being indexed incorrectly with ``parse_dates`` (:issue:`14792`)
+
+- Bug in ``Series.dt.round`` inconsistent behaviour on NAT's with different arguments (:issue:`14940`)

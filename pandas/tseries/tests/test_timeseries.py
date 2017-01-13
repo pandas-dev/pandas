@@ -4441,6 +4441,15 @@ class TestSeriesDatetime64(tm.TestCase):
         self.assertEqual(s.min(), exp)
         self.assertEqual(s.max(), exp)
 
+    def test_round_nat(self):
+        # GH14940
+        s = Series([pd.NaT])
+        expected = Series(pd.NaT)
+        for method in ["round", "floor", "ceil"]:
+            round_method = getattr(s.dt, method)
+            for freq in ["s", "5s", "min", "5min", "h", "5h"]:
+                assert_series_equal(round_method(freq), expected)
+
 
 class TestTimestamp(tm.TestCase):
     def test_class_ops_pytz(self):
