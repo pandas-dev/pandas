@@ -278,9 +278,9 @@ def merge_asof(left, right, on=None,
     left's key. A "forward" search selects the first row in the right DataFrame
     whose 'on' key is greater than or equal to the left's key. A "nearest"
     search selects the row in the right DataFrame whose 'on' key is closest
-    in absolute distance to the left's key.
-
-    .. versionadded:: "forward" and "nearest" added in 0.20.0
+    in absolute distance to the left's key. (The default is "backward" and is
+    the compatible in versions below 0.20.0. The direction parameter was added
+    in version 0.20.0 and introduces "forward" and "nearest".)
 
     Optionally match on equivalent keys with 'by' before searching with 'on'.
 
