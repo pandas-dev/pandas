@@ -971,6 +971,11 @@ class TestTimedeltas(tm.TestCase):
         s2 = s[0:1000]
         result = (s2 - s2.min()).sum()
 
+    def test_overflow_on_construction(self):
+        # xref https://github.com/statsmodels/statsmodels/issues/3374
+        value = pd.Timedelta('1day').value * 20169940
+        self.assertRaises(OverflowError, pd.Timedelta, value)
+
     def test_timedelta_ops_scalar(self):
         # GH 6808
         base = pd.to_datetime('20130101 09:01:12.123456')

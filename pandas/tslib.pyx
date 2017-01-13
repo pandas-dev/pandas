@@ -3125,7 +3125,7 @@ class Timedelta(_Timedelta):
         if not (is_integer_object(other) or is_float_object(other)):
             return NotImplemented
 
-        return Timedelta(other *self.value, unit='ns')
+        return Timedelta(other * self.value, unit='ns')
 
     __rmul__ = __mul__
 
