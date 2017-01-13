@@ -1626,11 +1626,7 @@ class _Concatenator(object):
                 clean_objs.append(v)
             objs = clean_objs
             name = getattr(keys, 'name', None)
-            # GH 14848
-            # If you already have an Index, no need
-            # to recreate it
-            if not isinstance(keys, Index):
-                keys = Index(clean_keys, name=name)
+            keys = Index(clean_keys, name=name)
 
         if len(objs) == 0:
             raise ValueError('All objects passed were None')
