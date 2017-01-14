@@ -281,7 +281,9 @@ def _maybe_convert_index(ax, data):
 # Do we need the rest for convenience?
 
 def format_timedelta_ticks(x, pos, n_decimals):
-    ''' Convert seconds to 'D days HH:MM:SS.F' '''
+    """
+    Convert seconds to 'D days HH:MM:SS.F'
+    """
     s, ns = divmod(x, 1e9)
     m, s = divmod(s, 60)
     h, m = divmod(m, 60)
@@ -342,6 +344,6 @@ def format_dateaxis(subplot, freq, index):
             lambda x, pos: format_timedelta_ticks(x, pos, n_decimals))
         subplot.xaxis.set_major_formatter(formatter)
     else:
-        raise IOError('index type not supported')
+        raise TypeError('index type not supported')
 
     pylab.draw_if_interactive()
