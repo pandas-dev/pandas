@@ -392,7 +392,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``.groupby(...).rolling(...)`` when the ``on`` is specified and using a ``DatetimeIndex`` (:issue:`15130`)
 
 
 
