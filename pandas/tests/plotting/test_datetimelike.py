@@ -1317,6 +1317,18 @@ class TestTSPlot(TestPlotBase):
         s = Series(range(5), timedelta_range('1day', periods=5))
         _check_plot_works(s.plot)
 
+        # test long period
+        index = timedelta_range('1 day 2 hr 30 min 10 s',
+                                periods=10, freq='1 d')
+        s = Series(np.random.randn(len(index)), index)
+        _check_plot_works(s.plot)
+
+        # test short period
+        index = timedelta_range('1 day 2 hr 30 min 10 s',
+                                periods=10, freq='1 ns')
+        s = Series(np.random.randn(len(index)), index)
+        _check_plot_works(s.plot)
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
