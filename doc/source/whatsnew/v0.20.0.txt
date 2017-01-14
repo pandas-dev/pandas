@@ -366,3 +366,4 @@ Bug Fixes
 
 
 - Bug in ``pd.read_csv()`` for the C engine where ``usecols`` were being indexed incorrectly with ``parse_dates`` (:issue:`14792`)
+- Bug in ``pd.DataFrame.to_records`` which failed with unicode caracters in column names (:issue:`11879`)
