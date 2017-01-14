@@ -12,6 +12,7 @@ import numpy as np
 import pandas.util.testing as tm
 
 from pandas import DataFrame
+from pandas.io.common import EmptyDataError
 from pandas.compat import StringIO, range, lrange
 
 
@@ -198,3 +199,27 @@ line 22",2
 
         df = self.read_csv(StringIO(data), skiprows=2)
         tm.assert_frame_equal(df, expected)
+
+    def test_skiprows_callable(self):
+        data = 'a\n1\n2\n3\n4\n5'
+
+        skiprows = lambda x: x % 2 == 0
+        expected = DataFrame({'1': [3, 5]})
+        df = self.read_csv(StringIO(data), skiprows=skiprows)
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame({'foo': [3, 5]})
+        df = self.read_csv(StringIO(data), skiprows=skiprows,
+                           header=0, names=['foo'])
+        tm.assert_frame_equal(df, expected)
+
+        skiprows = lambda x: True
+        msg = "No columns to parse from file"
+        with tm.assertRaisesRegexp(EmptyDataError, msg):
+            self.read_csv(StringIO(data), skiprows=skiprows)
+
+        # This is a bad callable and should raise.
+        msg = "by zero"
+        skiprows = lambda x: 1 / 0
+        with tm.assertRaisesRegexp(ZeroDivisionError, msg):
+            self.read_csv(StringIO(data), skiprows=skiprows)
