@@ -4453,6 +4453,15 @@ class TestSeriesDatetime64(tm.TestCase):
         self.assertEqual(s.min(), exp)
         self.assertEqual(s.max(), exp)
 
+    def test_round_nat(self):
+        # GH14940
+        s = Series([pd.NaT])
+        expected = Series(pd.NaT)
+        for method in ["round", "floor", "ceil"]:
+            round_method = getattr(s.dt, method)
+            for freq in ["s", "5s", "min", "5min", "h", "5h"]:
+                assert_series_equal(round_method(freq), expected)
+
 
 class TestTimestamp(tm.TestCase):
     def test_class_ops_pytz(self):
@@ -4860,6 +4869,15 @@ class TestTimestamp(tm.TestCase):
 
         self.assertFalse(pd.NaT.is_leap_year)
         self.assertIsInstance(pd.NaT.is_leap_year, bool)
+
+    def test_round_nat(self):
+        # GH14940
+        ts = Timestamp('nat')
+        print(dir(ts))
+        for method in ["round", "floor", "ceil"]:
+            round_method = getattr(ts, method)
+            for freq in ["s", "5s", "min", "5min", "h", "5h"]:
+                self.assertIs(round_method(freq), ts)
 
 
 class TestSlicing(tm.TestCase):
