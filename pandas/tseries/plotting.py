@@ -18,7 +18,8 @@ from pandas.formats.printing import pprint_thing
 import pandas.compat as compat
 
 from pandas.tseries.converter import (TimeSeries_DateLocator,
-                                      TimeSeries_DateFormatter)
+                                      TimeSeries_DateFormatter,
+                                      TimeSeries_TimedeltaFormatter)
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
@@ -335,14 +336,8 @@ def format_dateaxis(subplot, freq, index):
             "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
 
     elif isinstance(index, TimedeltaIndex):
-        from matplotlib import ticker
-        (vmin, vmax) = tuple(subplot.xaxis.get_view_interval())
-        n_decimals = int(np.ceil(np.log10(100 * 1e9 / (vmax - vmin))))
-        if n_decimals > 9:
-            n_decimals = 9
-        formatter = ticker.FuncFormatter(
-            lambda x, pos: format_timedelta_ticks(x, pos, n_decimals))
-        subplot.xaxis.set_major_formatter(formatter)
+        subplot.xaxis.set_major_formatter(
+            TimeSeries_TimedeltaFormatter())
     else:
         raise TypeError('index type not supported')
 
