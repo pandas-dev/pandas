@@ -178,6 +178,7 @@ cdef extern from "parser/tokenizer.h":
         int header_end # header row end
 
         void *skipset
+        PyObject *skipfunc
         int64_t skip_first_N_rows
         int skipfooter
         double (*converter)(const char *, char **, char, char, char, int) nogil
@@ -606,9 +607,11 @@ cdef class TextReader:
     cdef _make_skiprow_set(self):
         if isinstance(self.skiprows, (int, np.integer)):
             parser_set_skipfirstnrows(self.parser, self.skiprows)
-        else:
+        elif not callable(self.skiprows):
             for i in self.skiprows:
                 parser_add_skiprow(self.parser, i)
+        else:
+            self.parser.skipfunc = <PyObject *> self.skiprows
 
     cdef _setup_parser_source(self, source):
         cdef:
@@ -2115,18 +2118,33 @@ cdef kh_float64_t* kset_float64_from_list(values) except NULL:
 cdef raise_parser_error(object base, parser_t *parser):
     cdef:
         object old_exc
+        object exc_type
         PyObject *type
         PyObject *value
         PyObject *traceback
 
     if PyErr_Occurred():
-        PyErr_Fetch(&type, &value, &traceback);
-        Py_XDECREF(type)
+        PyErr_Fetch(&type, &value, &traceback)
         Py_XDECREF(traceback)
+
         if value != NULL:
             old_exc = <object> value
             Py_XDECREF(value)
-            raise old_exc
+
+            # PyErr_Fetch only returned the error message in *value,
+            # so the Exception class must be extracted from *type.
+            if isinstance(old_exc, compat.string_types):
+                if type != NULL:
+                    exc_type = <object> type
+                else:
+                    exc_type = ParserError
+
+                Py_XDECREF(type)
+                raise exc_type(old_exc)
+            else:
+                Py_XDECREF(type)
+                raise old_exc
+
     message = '%s. C error: ' % base
     if parser.error_msg != NULL:
         if PY3:
