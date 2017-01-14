@@ -49,7 +49,10 @@ from pandas.tools.concat import concat
 from pandas.tools.merge import (merge, ordered_merge,
                                 merge_ordered, merge_asof)
 from pandas.tools.pivot import pivot_table, crosstab
-from pandas.tools.plotting import scatter_matrix, plot_params
+
+# deprecated
+import pandas.tools.plotting
+from pandas.plotting import scatter_matrix, plot_params
 from pandas.tools.tile import cut, qcut
 from pandas.tools.util import to_numeric
 from pandas.core.reshape import melt
