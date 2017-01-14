@@ -356,6 +356,7 @@ Bug Fixes
 - Bug in ``DataFrame.groupby().describe()`` when grouping on ``Index`` containing tuples (:issue:`14848`)
 - Bug in creating a ``MultiIndex`` with tuples and not passing a list of names; this will now raise ``ValueError`` (:issue:`15110`)
 
+- Bug in catching an overflow in ``Timestamp`` + ``Timedelta/Offset`` operations (:issue:`15126`)
 
 
 

@@ -3312,13 +3312,25 @@ class TestDatetimeIndex(tm.TestCase):
                             assert_func(klass([x + op for x in s]), s + op)
                             assert_func(klass([x - op for x in s]), s - op)
                             assert_func(klass([op + x for x in s]), op + s)
-    # def test_add_timedelta64(self):
-    #     rng = date_range('1/1/2000', periods=5)
-    #     delta = rng.values[3] - rng.values[1]
 
-    #     result = rng + delta
-    #     expected = rng + timedelta(2)
-    #     self.assertTrue(result.equals(expected))
+    def test_overflow_offset(self):
+        # xref https://github.com/statsmodels/statsmodels/issues/3374
+        # ends up multiplying really large numbers which overflow
+
+        t = Timestamp('2017-01-13 00:00:00', freq='D')
+        offset = 20169940 * pd.offsets.Day(1)
+
+        def f():
+            t + offset
+        self.assertRaises(OverflowError, f)
+
+        def f():
+            offset + t
+        self.assertRaises(OverflowError, f)
+
+        def f():
+            t - offset
+        self.assertRaises(OverflowError, f)
 
     def test_get_duplicates(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',
