@@ -237,7 +237,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
                 if dtype is not None:
-                    data = data.astype(dtype=dtype, raise_on_error=False)
+                    data = data.astype(dtype=dtype, raise_on_error=False,
+                                       copy=copy)
                 elif copy:
                     data = data.copy()
             else:
