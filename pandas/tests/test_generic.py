@@ -853,13 +853,15 @@ class TestSeries(tm.TestCase, Generic):
         result = pd.Series().describe()
 
         self.assertEqual(result['count'], 0)
-        self.assertTrue(result.drop('count').isnull().all())
+        self.assertEqual(result['sum'], 0)
+        self.assertTrue(result.drop('count').drop("sum").isnull().all())
 
         nanSeries = Series([np.nan])
         nanSeries.name = 'NaN'
         result = nanSeries.describe()
         self.assertEqual(result['count'], 0)
-        self.assertTrue(result.drop('count').isnull().all())
+        self.assertEqual(result['sum'], 0)
+        self.assertTrue(result.drop('count').drop("sum").isnull().all())
 
     def test_describe_none(self):
         noneSeries = Series([None])
@@ -1051,28 +1053,29 @@ class TestDataFrame(tm.TestCase, Generic):
 
         # default
         result = df.describe().index
-        expected = Index(['count', 'mean', 'std', 'min', '25%', '50%', '75%',
-                          'max'],
+        expected = Index(['count', 'sum', 'mean', 'std', 'min', '25%', '50%',
+                          '75%', 'max'],
                          dtype='object')
         tm.assert_index_equal(result, expected)
 
         result = df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999,
                                           0.9995, 0.9999]).index
-        expected = Index(['count', 'mean', 'std', 'min', '0.01%', '0.05%',
-                          '0.1%', '50%', '99.9%', '99.95%', '99.99%', 'max'],
+        expected = Index(['count', 'sum', 'mean', 'std', 'min', '0.01%',
+                          '0.05%', '0.1%', '50%', '99.9%', '99.95%', '99.99%',
+                          'max'],
                          dtype='object')
         tm.assert_index_equal(result, expected)
 
         result = df.describe(percentiles=[0.00499, 0.005, 0.25, 0.50,
                                           0.75]).index
-        expected = Index(['count', 'mean', 'std', 'min', '0.499%', '0.5%',
-                          '25%', '50%', '75%', 'max'],
+        expected = Index(['count', 'sum', 'mean', 'std', 'min', '0.499%',
+                          '0.5%', '25%', '50%', '75%', 'max'],
                          dtype='object')
         tm.assert_index_equal(result, expected)
 
         result = df.describe(percentiles=[0.00499, 0.01001, 0.25, 0.50,
                                           0.75]).index
-        expected = Index(['count', 'mean', 'std', 'min', '0.5%', '1.0%',
+        expected = Index(['count', 'sum', 'mean', 'std', 'min', '0.5%', '1.0%',
                           '25%', '50%', '75%', 'max'],
                          dtype='object')
         tm.assert_index_equal(result, expected)
@@ -1119,7 +1122,7 @@ class TestDataFrame(tm.TestCase, Generic):
         desc = df[df[0] < 0].describe()  # works
         assert_series_equal(desc.xs('count'),
                             Series([0, 0], dtype=float, name='count'))
-        self.assertTrue(isnull(desc.ix[1:]).all().all())
+        self.assertTrue(isnull(desc.ix[2:]).all().all())
 
     def test_describe_objects(self):
         df = DataFrame({"C1": ['a', 'a', 'c'], "C2": ['d', 'd', 'f']})
@@ -1153,9 +1156,10 @@ class TestDataFrame(tm.TestCase, Generic):
         # mix of time, str, numeric
         df['C3'] = [2, 4, 6, 8, 2]
         result = df.describe()
-        expected = DataFrame({"C3": [5., 4.4, 2.607681, 2., 2., 4., 6., 8.]},
-                             index=['count', 'mean', 'std', 'min', '25%',
-                                    '50%', '75%', 'max'])
+        expected = DataFrame({"C3": [5., 22., 4.4, 2.607681, 2., 2., 4., 6.,
+                                     8.]},
+                             index=['count', 'sum', 'mean', 'std', 'min',
+                                    '25%', '50%', '75%', 'max'])
         assert_frame_equal(result, expected)
         assert_frame_equal(df.describe(), df[['C3']].describe())
 
@@ -1205,7 +1209,7 @@ class TestDataFrame(tm.TestCase, Generic):
         assert_frame_equal(desc, descN)
 
         desc = df.describe(percentiles=[], include='all')
-        cnt = Series(data=[4, 4, 6, 6, 6],
+        cnt = Series(data=[4, 4, 7, 7, 6],
                      index=['catA', 'catB', 'numC', 'numD', 'ts'])
         assert_series_equal(desc.count(), cnt)
         self.assertTrue('count' in desc.index)
@@ -1266,10 +1270,10 @@ class TestDataFrame(tm.TestCase, Generic):
                         'numD': np.arange(24.) + .5,
                         'ts': tm.makeTimeSeries()[:24].index})
         G = df.groupby('catA')
-        self.assertTrue(G.describe(include=['number']).shape == (16, 2))
-        self.assertTrue(G.describe(include=['number', 'object']).shape == (22,
+        self.assertTrue(G.describe(include=['number']).shape == (18, 2))
+        self.assertTrue(G.describe(include=['number', 'object']).shape == (24,
                                                                            3))
-        self.assertTrue(G.describe(include='all').shape == (26, 4))
+        self.assertTrue(G.describe(include='all').shape == (28, 4))
 
     def test_describe_multi_index_df_column_names(self):
         """ Test that column names persist after the describe operation."""

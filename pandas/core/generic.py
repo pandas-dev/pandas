@@ -5462,9 +5462,10 @@ class NDFrame(PandasObject):
         formatted_percentiles = format_percentiles(percentiles)
 
         def describe_numeric_1d(series):
-            stat_index = (['count', 'mean', 'std', 'min'] +
+            stat_index = (['count', 'sum', 'mean', 'std', 'min'] +
                           formatted_percentiles + ['max'])
-            d = ([series.count(), series.mean(), series.std(), series.min()] +
+            d = ([series.count(), series.sum(), series.mean(), series.std(),
+                  series.min()] +
                  [series.quantile(x) for x in percentiles] + [series.max()])
             return pd.Series(d, index=stat_index, name=series.name)
 
