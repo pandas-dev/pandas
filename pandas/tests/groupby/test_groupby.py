@@ -1490,6 +1490,19 @@ class TestGroupBy(tm.TestCase):
         for name, group in groupedT:
             assert_frame_equal(result[name], group.describe())
 
+    def test_frame_describe_tupleindex(self):
+
+        # GH 14848 - regression from 0.19.0 to 0.19.1
+        df1 = DataFrame({'x': [1, 2, 3, 4, 5] * 3,
+                         'y': [10, 20, 30, 40, 50] * 3,
+                         'z': [100, 200, 300, 400, 500] * 3})
+        df1['k'] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
+        df2 = df1.rename(columns={'k': 'key'})
+        result = df1.groupby('k').describe()
+        expected = df2.groupby('key').describe()
+        expected.index.set_names(result.index.names, inplace=True)
+        assert_frame_equal(result, expected)
+
     def test_frame_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
 
@@ -3427,7 +3440,7 @@ class TestGroupBy(tm.TestCase):
         left = lg.sum()['values']
         right = rg.sum()['values']
 
-        exp_index, _ = left.index.sortlevel(0)
+        exp_index, _ = left.index.sortlevel()
         self.assert_index_equal(left.index, exp_index)
 
         exp_index, _ = right.index.sortlevel(0)
@@ -3708,7 +3721,7 @@ class TestGroupBy(tm.TestCase):
         exstd = grouped.agg(OrderedDict([['C', np.std], ['D', np.std]]))
 
         expected = concat([exmean, exstd], keys=['mean', 'std'], axis=1)
-        expected = expected.swaplevel(0, 1, axis=1).sortlevel(0, axis=1)
+        expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
 
         d = OrderedDict([['C', [np.mean, np.std]], ['D', [np.mean, np.std]]])
         result = grouped.aggregate(d)
@@ -4711,7 +4724,7 @@ class TestGroupBy(tm.TestCase):
             expected = df.groupby('user_id')[
                 'whole_cost'].resample(
                     freq).sum().dropna().reorder_levels(
-                        ['date', 'user_id']).sortlevel().astype('int64')
+                        ['date', 'user_id']).sort_index().astype('int64')
             expected.name = 'whole_cost'
 
             result1 = df.sort_index().groupby([pd.TimeGrouper(freq=freq),
@@ -4977,10 +4990,6 @@ class TestGroupBy(tm.TestCase):
             'max',
             'head',
             'tail',
-            'cumsum',
-            'cumprod',
-            'cummin',
-            'cummax',
             'cumcount',
             'resample',
             'describe',
@@ -5018,10 +5027,6 @@ class TestGroupBy(tm.TestCase):
             'max',
             'head',
             'tail',
-            'cumsum',
-            'cumprod',
-            'cummin',
-            'cummax',
             'cumcount',
             'resample',
             'describe',
@@ -5776,6 +5781,92 @@ class TestGroupBy(tm.TestCase):
                                 columns=expected_column)
 
         assert_frame_equal(result, expected)
+
+    def test_cummin_cummax(self):
+        # GH 15048
+        num_types = [np.int32, np.int64, np.float32, np.float64]
+        num_mins = [np.iinfo(np.int32).min, np.iinfo(np.int64).min,
+                    np.finfo(np.float32).min, np.finfo(np.float64).min]
+        num_max = [np.iinfo(np.int32).max, np.iinfo(np.int64).max,
+                   np.finfo(np.float32).max, np.finfo(np.float64).max]
+        base_df = pd.DataFrame({'A': [1, 1, 1, 1, 2, 2, 2, 2],
+                                'B': [3, 4, 3, 2, 2, 3, 2, 1]})
+        expected_mins = [3, 3, 3, 2, 2, 2, 2, 1]
+        expected_maxs = [3, 4, 4, 4, 2, 3, 3, 3]
+
+        for dtype, min_val, max_val in zip(num_types, num_mins, num_max):
+            df = base_df.astype(dtype)
+
+            # cummin
+            expected = pd.DataFrame({'B': expected_mins}).astype(dtype)
+            result = df.groupby('A').cummin()
+            tm.assert_frame_equal(result, expected)
+            result = df.groupby('A').B.apply(lambda x: x.cummin()).to_frame()
+            tm.assert_frame_equal(result, expected)
+
+            # Test cummin w/ min value for dtype
+            df.loc[[2, 6], 'B'] = min_val
+            expected.loc[[2, 3, 6, 7], 'B'] = min_val
+            result = df.groupby('A').cummin()
+
+            # TODO: GH 15019
+            # overwriting NaNs
+            # tm.assert_frame_equal(result, expected)
+            expected = df.groupby('A').B.apply(lambda x: x.cummin()).to_frame()
+            # tm.assert_frame_equal(result, expected)
+
+            # cummax
+            expected = pd.DataFrame({'B': expected_maxs}).astype(dtype)
+            result = df.groupby('A').cummax()
+            tm.assert_frame_equal(result, expected)
+            result = df.groupby('A').B.apply(lambda x: x.cummax()).to_frame()
+            tm.assert_frame_equal(result, expected)
+
+            # Test cummax w/ max value for dtype
+            df.loc[[2, 6], 'B'] = max_val
+            expected.loc[[2, 3, 6, 7], 'B'] = max_val
+            result = df.groupby('A').cummax()
+
+            # TODO: GH 15019
+            # overwriting NaNs
+            # tm.assert_frame_equal(result, expected)
+
+            expected = df.groupby('A').B.apply(lambda x: x.cummax()).to_frame()
+            # tm.assert_frame_equal(result, expected)
+
+        # Test nan in some values
+        base_df.loc[[0, 2, 4, 6], 'B'] = np.nan
+        expected = pd.DataFrame({'B': [np.nan, 4, np.nan, 2,
+                                       np.nan, 3, np.nan, 1]})
+        result = base_df.groupby('A').cummin()
+        tm.assert_frame_equal(result, expected)
+        expected = (base_df.groupby('A')
+                           .B
+                           .apply(lambda x: x.cummin())
+                           .to_frame())
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame({'B': [np.nan, 4, np.nan, 4,
+                                       np.nan, 3, np.nan, 3]})
+        result = base_df.groupby('A').cummax()
+        tm.assert_frame_equal(result, expected)
+        expected = (base_df.groupby('A')
+                           .B
+                           .apply(lambda x: x.cummax())
+                           .to_frame())
+        tm.assert_frame_equal(result, expected)
+
+        # Test nan in entire column
+        base_df['B'] = np.nan
+        expected = pd.DataFrame({'B': [np.nan] * 8})
+        result = base_df.groupby('A').cummin()
+        tm.assert_frame_equal(expected, result)
+        result = base_df.groupby('A').B.apply(lambda x: x.cummin()).to_frame()
+        tm.assert_frame_equal(expected, result)
+        result = base_df.groupby('A').cummax()
+        tm.assert_frame_equal(expected, result)
+        result = base_df.groupby('A').B.apply(lambda x: x.cummax()).to_frame()
+        tm.assert_frame_equal(expected, result)
 
 
 def assert_fp_equal(a, b):

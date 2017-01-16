@@ -132,9 +132,13 @@ false_values : list, default None
     Values to consider as False
 skipinitialspace : boolean, default False
     Skip spaces after delimiter.
-skiprows : list-like or integer, default None
+skiprows : list-like or integer or callable, default None
     Line numbers to skip (0-indexed) or number of lines to skip (int)
-    at the start of the file
+    at the start of the file.
+
+    If callable, the callable function will be evaluated against the row
+    indices, returning True if the row should be skipped and False otherwise.
+    An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c')
 skip_footer : int, default 0
@@ -323,7 +327,7 @@ colspecs : list of pairs (int, int) or 'infer'. optional
     fields of each line as half-open intervals (i.e.,  [from, to[ ).
     String value 'infer' can be used to instruct the parser to try
     detecting the column specifications from the first 100 rows of
-    the data (default='infer').
+    the data which are not being skipped via skiprows (default='infer').
 widths : list of ints. optional
     A list of field widths which can be used instead of 'colspecs' if
     the intervals are contiguous.
@@ -841,6 +845,17 @@ class TextFileReader(BaseIterator):
                                       encoding=encoding)
                 engine = 'python'
 
+        quotechar = options['quotechar']
+        if (quotechar is not None and
+                isinstance(quotechar, (str, compat.text_type, bytes))):
+            if (len(quotechar) == 1 and ord(quotechar) > 127 and
+                    engine not in ('python', 'python-fwf')):
+                fallback_reason = ("ord(quotechar) > 127, meaning the "
+                                   "quotechar is larger than one byte, "
+                                   "and the 'c' engine does not support "
+                                   "such quotechars")
+                engine = 'python'
+
         if fallback_reason and engine_specified:
             raise ValueError(fallback_reason)
 
@@ -919,7 +934,10 @@ class TextFileReader(BaseIterator):
         if engine != 'c':
             if is_integer(skiprows):
                 skiprows = lrange(skiprows)
-            skiprows = set() if skiprows is None else set(skiprows)
+            if skiprows is None:
+                skiprows = set()
+            elif not callable(skiprows):
+                skiprows = set(skiprows)
 
         # put stuff back
         result['names'] = names
@@ -1840,6 +1858,11 @@ class PythonParser(ParserBase):
         self.memory_map = kwds['memory_map']
         self.skiprows = kwds['skiprows']
 
+        if callable(self.skiprows):
+            self.skipfunc = self.skiprows
+        else:
+            self.skipfunc = lambda x: x in self.skiprows
+
         self.skipfooter = kwds['skipfooter']
         self.delimiter = kwds['delimiter']
 
@@ -1995,7 +2018,7 @@ class PythonParser(ParserBase):
             # attempt to sniff the delimiter
             if sniff_sep:
                 line = f.readline()
-                while self.pos in self.skiprows:
+                while self.skipfunc(self.pos):
                     self.pos += 1
                     line = f.readline()
 
@@ -2284,11 +2307,12 @@ class PythonParser(ParserBase):
                     columns = [lrange(ncols)]
                 columns = self._handle_usecols(columns, columns[0])
             else:
-                if self.usecols is None or len(names) == num_original_columns:
+                if self.usecols is None or len(names) >= num_original_columns:
                     columns = self._handle_usecols([names], names)
                     num_original_columns = len(names)
                 else:
-                    if self.usecols and len(names) != len(self.usecols):
+                    if (not callable(self.usecols) and
+                            len(names) != len(self.usecols)):
                         raise ValueError(
                             'Number of passed names did not match number of '
                             'header fields in the file'
@@ -2402,7 +2426,7 @@ class PythonParser(ParserBase):
 
     def _next_line(self):
         if isinstance(self.data, list):
-            while self.pos in self.skiprows:
+            while self.skipfunc(self.pos):
                 self.pos += 1
 
             while True:
@@ -2421,7 +2445,7 @@ class PythonParser(ParserBase):
                 except IndexError:
                     raise StopIteration
         else:
-            while self.pos in self.skiprows:
+            while self.skipfunc(self.pos):
                 self.pos += 1
                 next(self.data)
 
@@ -2673,7 +2697,7 @@ class PythonParser(ParserBase):
                 # Check for stop rows. n.b.: self.skiprows is a set.
                 if self.skiprows:
                     new_rows = [row for i, row in enumerate(new_rows)
-                                if i + self.pos not in self.skiprows]
+                                if not self.skipfunc(i + self.pos)]
 
                 lines.extend(new_rows)
                 self.pos = new_pos
@@ -2701,7 +2725,7 @@ class PythonParser(ParserBase):
                 except StopIteration:
                     if self.skiprows:
                         new_rows = [row for i, row in enumerate(new_rows)
-                                    if self.pos + i not in self.skiprows]
+                                    if not self.skipfunc(i + self.pos)]
                     lines.extend(new_rows)
                     if len(lines) == 0:
                         raise
@@ -3023,13 +3047,13 @@ class FixedWidthReader(BaseIterator):
     A reader of fixed-width lines.
     """
 
-    def __init__(self, f, colspecs, delimiter, comment):
+    def __init__(self, f, colspecs, delimiter, comment, skiprows=None):
         self.f = f
         self.buffer = None
         self.delimiter = '\r\n' + delimiter if delimiter else '\n\r\t '
         self.comment = comment
         if colspecs == 'infer':
-            self.colspecs = self.detect_colspecs()
+            self.colspecs = self.detect_colspecs(skiprows=skiprows)
         else:
             self.colspecs = colspecs
 
@@ -3038,7 +3062,6 @@ class FixedWidthReader(BaseIterator):
                             "input was a %r" % type(colspecs).__name__)
 
         for colspec in self.colspecs:
-
             if not (isinstance(colspec, (tuple, list)) and
                     len(colspec) == 2 and
                     isinstance(colspec[0], (int, np.integer, type(None))) and
@@ -3046,20 +3069,50 @@ class FixedWidthReader(BaseIterator):
                 raise TypeError('Each column specification must be '
                                 '2 element tuple or list of integers')
 
-    def get_rows(self, n):
-        rows = []
-        for i, row in enumerate(self.f, 1):
-            rows.append(row)
-            if i >= n:
-                break
-        self.buffer = iter(rows)
-        return rows
+    def get_rows(self, n, skiprows=None):
+        """
+        Read rows from self.f, skipping as specified.
 
-    def detect_colspecs(self, n=100):
+        We distinguish buffer_rows (the first <= n lines)
+        from the rows returned to detect_colspecs because
+        it's simpler to leave the other locations with
+        skiprows logic alone than to modify them to deal
+        with the fact we skipped some rows here as well.
+
+        Parameters
+        ----------
+        n : int
+            Number of rows to read from self.f, not counting
+            rows that are skipped.
+        skiprows: set, optional
+            Indices of rows to skip.
+
+        Returns
+        -------
+        detect_rows : list of str
+            A list containing the rows to read.
+
+        """
+        if skiprows is None:
+            skiprows = set()
+        buffer_rows = []
+        detect_rows = []
+        for i, row in enumerate(self.f):
+            if i not in skiprows:
+                detect_rows.append(row)
+            buffer_rows.append(row)
+            if len(detect_rows) >= n:
+                break
+        self.buffer = iter(buffer_rows)
+        return detect_rows
+
+    def detect_colspecs(self, n=100, skiprows=None):
         # Regex escape the delimiters
         delimiters = ''.join([r'\%s' % x for x in self.delimiter])
         pattern = re.compile('([^%s]+)' % delimiters)
-        rows = self.get_rows(n)
+        rows = self.get_rows(n, skiprows)
+        if not rows:
+            raise EmptyDataError("No rows from which to infer column width")
         max_len = max(map(len, rows))
         mask = np.zeros(max_len + 1, dtype=int)
         if self.comment is not None:
@@ -3070,7 +3123,8 @@ class FixedWidthReader(BaseIterator):
         shifted = np.roll(mask, 1)
         shifted[0] = 0
         edges = np.where((mask ^ shifted) == 1)[0]
-        return list(zip(edges[::2], edges[1::2]))
+        edge_pairs = list(zip(edges[::2], edges[1::2]))
+        return edge_pairs
 
     def __next__(self):
         if self.buffer is not None:
@@ -3095,9 +3149,8 @@ class FixedWidthFieldParser(PythonParser):
     def __init__(self, f, **kwds):
         # Support iterators, convert to a list.
         self.colspecs = kwds.pop('colspecs')
-
         PythonParser.__init__(self, f, **kwds)
 
     def _make_reader(self, f):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter,
-                                     self.comment)
+                                     self.comment, self.skiprows)

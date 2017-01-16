@@ -16,7 +16,7 @@ import pandas.util.testing as tm
 from pandas import DataFrame
 from pandas import compat
 from pandas.compat import StringIO, BytesIO
-from pandas.io.parsers import read_csv, read_fwf
+from pandas.io.parsers import read_csv, read_fwf, EmptyDataError
 
 
 class TestFwfParsing(tm.TestCase):
@@ -248,83 +248,83 @@ MyColumn
 
     def test_full_file(self):
         # File with all values
-        test = '''index                             A    B    C
+        test = """index                             A    B    C
 2000-01-03T00:00:00  0.980268513777    3  foo
 2000-01-04T00:00:00  1.04791624281    -4  bar
 2000-01-05T00:00:00  0.498580885705   73  baz
 2000-01-06T00:00:00  1.12020151869     1  foo
 2000-01-07T00:00:00  0.487094399463    0  bar
 2000-01-10T00:00:00  0.836648671666    2  baz
-2000-01-11T00:00:00  0.157160753327   34  foo'''
+2000-01-11T00:00:00  0.157160753327   34  foo"""
         colspecs = ((0, 19), (21, 35), (38, 40), (42, 45))
         expected = read_fwf(StringIO(test), colspecs=colspecs)
         tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
 
     def test_full_file_with_missing(self):
         # File with missing values
-        test = '''index                             A    B    C
+        test = """index                             A    B    C
 2000-01-03T00:00:00  0.980268513777    3  foo
 2000-01-04T00:00:00  1.04791624281    -4  bar
                      0.498580885705   73  baz
 2000-01-06T00:00:00  1.12020151869     1  foo
 2000-01-07T00:00:00                    0  bar
 2000-01-10T00:00:00  0.836648671666    2  baz
-                                      34'''
+                                      34"""
         colspecs = ((0, 19), (21, 35), (38, 40), (42, 45))
         expected = read_fwf(StringIO(test), colspecs=colspecs)
         tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
 
     def test_full_file_with_spaces(self):
         # File with spaces in columns
-        test = '''
+        test = """
 Account                 Name  Balance     CreditLimit   AccountCreated
 101     Keanu Reeves          9315.45     10000.00           1/17/1998
 312     Gerard Butler         90.00       1000.00             8/6/2003
 868     Jennifer Love Hewitt  0           17000.00           5/25/1985
 761     Jada Pinkett-Smith    49654.87    100000.00          12/5/2006
 317     Bill Murray           789.65      5000.00             2/5/2007
-'''.strip('\r\n')
+""".strip('\r\n')
         colspecs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
         expected = read_fwf(StringIO(test), colspecs=colspecs)
         tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
 
     def test_full_file_with_spaces_and_missing(self):
         # File with spaces and missing values in columsn
-        test = '''
+        test = """
 Account               Name    Balance     CreditLimit   AccountCreated
 101                           10000.00                       1/17/1998
 312     Gerard Butler         90.00       1000.00             8/6/2003
 868                                                          5/25/1985
 761     Jada Pinkett-Smith    49654.87    100000.00          12/5/2006
 317     Bill Murray           789.65
-'''.strip('\r\n')
+""".strip('\r\n')
         colspecs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
         expected = read_fwf(StringIO(test), colspecs=colspecs)
         tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
 
     def test_messed_up_data(self):
         # Completely messed up file
-        test = '''
+        test = """
    Account          Name             Balance     Credit Limit   Account Created
        101                           10000.00                       1/17/1998
        312     Gerard Butler         90.00       1000.00
 
        761     Jada Pinkett-Smith    49654.87    100000.00          12/5/2006
   317          Bill Murray           789.65
-'''.strip('\r\n')
+""".strip('\r\n')
         colspecs = ((2, 10), (15, 33), (37, 45), (49, 61), (64, 79))
         expected = read_fwf(StringIO(test), colspecs=colspecs)
         tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
 
     def test_multiple_delimiters(self):
-        test = r'''
+        test = r"""
 col1~~~~~col2  col3++++++++++++++++++col4
 ~~22.....11.0+++foo~~~~~~~~~~Keanu Reeves
   33+++122.33\\\bar.........Gerard Butler
 ++44~~~~12.01   baz~~Jennifer Love Hewitt
 ~~55       11+++foo++++Jada Pinkett-Smith
 ..66++++++.03~~~bar           Bill Murray
-'''.strip('\r\n')
+""".strip('\r\n')
         colspecs = ((0, 4), (7, 13), (15, 19), (21, 41))
         expected = read_fwf(StringIO(test), colspecs=colspecs,
                             delimiter=' +~.\\')
@@ -335,11 +335,11 @@ col1~~~~~col2  col3++++++++++++++++++col4
         if not compat.PY3:
             raise nose.SkipTest(
                 'Bytes-related test - only needs to work on Python 3')
-        test = '''
+        test = """
 שלום שלום
 ום   שלל
 של   ום
-'''.strip('\r\n')
+""".strip('\r\n')
         expected = read_fwf(BytesIO(test.encode('utf8')),
                             colspecs=[(0, 4), (5, 9)],
                             header=None, encoding='utf8')
@@ -347,10 +347,10 @@ col1~~~~~col2  col3++++++++++++++++++col4
             BytesIO(test.encode('utf8')), header=None, encoding='utf8'))
 
     def test_dtype(self):
-        data = ''' a    b    c
+        data = """ a    b    c
 1    2    3.2
 3    4    5.2
-'''
+"""
         colspecs = [(0, 5), (5, 10), (10, None)]
         result = pd.read_fwf(StringIO(data), colspecs=colspecs)
         expected = pd.DataFrame({
@@ -365,3 +365,41 @@ col1~~~~~col2  col3++++++++++++++++++col4
         result = pd.read_fwf(StringIO(data), colspecs=colspecs,
                              dtype={'a': 'float64', 'b': str, 'c': 'int32'})
         tm.assert_frame_equal(result, expected)
+
+    def test_skiprows_inference(self):
+        # GH11256
+        test = """
+Text contained in the file header
+
+DataCol1   DataCol2
+     0.0        1.0
+   101.6      956.1
+""".strip()
+        expected = read_csv(StringIO(test), skiprows=2,
+                            delim_whitespace=True)
+        tm.assert_frame_equal(expected, read_fwf(
+            StringIO(test), skiprows=2))
+
+    def test_skiprows_by_index_inference(self):
+        test = """
+To be skipped
+Not  To  Be  Skipped
+Once more to be skipped
+123  34   8      123
+456  78   9      456
+""".strip()
+
+        expected = read_csv(StringIO(test), skiprows=[0, 2],
+                            delim_whitespace=True)
+        tm.assert_frame_equal(expected, read_fwf(
+            StringIO(test), skiprows=[0, 2]))
+
+    def test_skiprows_inference_empty(self):
+        test = """
+AA   BBB  C
+12   345  6
+78   901  2
+""".strip()
+
+        with tm.assertRaises(EmptyDataError):
+            read_fwf(StringIO(test), skiprows=3)

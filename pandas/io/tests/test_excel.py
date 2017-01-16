@@ -448,6 +448,7 @@ class ReadingTestsBase(SharedItems):
 
     # GH 12292 : error when read one empty column from excel file
     def test_read_one_empty_col_no_header(self):
+        _skip_if_no_xlwt()
         df = pd.DataFrame(
             [["", 1, 100],
              ["", 2, 200],
@@ -504,6 +505,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(actual_header_zero, expected_header_zero)
 
     def test_set_column_names_in_parameter(self):
+        _skip_if_no_xlwt()
         # GH 12870 : pass down column names associated with
         # keyword argument names
         refdf = pd.DataFrame([[1, 'foo'], [2, 'bar'],

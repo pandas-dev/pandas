@@ -2404,7 +2404,7 @@ class TestToDatetime(tm.TestCase):
         i = pd.DatetimeIndex([
             '2000-01-01 08:00:00+00:00'
         ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
-        self.assertFalse(is_datetime64_ns_dtype(i))
+        self.assertTrue(is_datetime64_ns_dtype(i))
 
         # tz coerceion
         result = pd.to_datetime(i, errors='coerce')
@@ -3312,13 +3312,25 @@ class TestDatetimeIndex(tm.TestCase):
                             assert_func(klass([x + op for x in s]), s + op)
                             assert_func(klass([x - op for x in s]), s - op)
                             assert_func(klass([op + x for x in s]), op + s)
-    # def test_add_timedelta64(self):
-    #     rng = date_range('1/1/2000', periods=5)
-    #     delta = rng.values[3] - rng.values[1]
 
-    #     result = rng + delta
-    #     expected = rng + timedelta(2)
-    #     self.assertTrue(result.equals(expected))
+    def test_overflow_offset(self):
+        # xref https://github.com/statsmodels/statsmodels/issues/3374
+        # ends up multiplying really large numbers which overflow
+
+        t = Timestamp('2017-01-13 00:00:00', freq='D')
+        offset = 20169940 * pd.offsets.Day(1)
+
+        def f():
+            t + offset
+        self.assertRaises(OverflowError, f)
+
+        def f():
+            offset + t
+        self.assertRaises(OverflowError, f)
+
+        def f():
+            t - offset
+        self.assertRaises(OverflowError, f)
 
     def test_get_duplicates(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',
@@ -4441,6 +4453,15 @@ class TestSeriesDatetime64(tm.TestCase):
         self.assertEqual(s.min(), exp)
         self.assertEqual(s.max(), exp)
 
+    def test_round_nat(self):
+        # GH14940
+        s = Series([pd.NaT])
+        expected = Series(pd.NaT)
+        for method in ["round", "floor", "ceil"]:
+            round_method = getattr(s.dt, method)
+            for freq in ["s", "5s", "min", "5min", "h", "5h"]:
+                assert_series_equal(round_method(freq), expected)
+
 
 class TestTimestamp(tm.TestCase):
     def test_class_ops_pytz(self):
@@ -4848,6 +4869,15 @@ class TestTimestamp(tm.TestCase):
 
         self.assertFalse(pd.NaT.is_leap_year)
         self.assertIsInstance(pd.NaT.is_leap_year, bool)
+
+    def test_round_nat(self):
+        # GH14940
+        ts = Timestamp('nat')
+        print(dir(ts))
+        for method in ["round", "floor", "ceil"]:
+            round_method = getattr(ts, method)
+            for freq in ["s", "5s", "min", "5min", "h", "5h"]:
+                self.assertIs(round_method(freq), ts)
 
 
 class TestSlicing(tm.TestCase):

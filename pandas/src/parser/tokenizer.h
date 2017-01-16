@@ -198,6 +198,7 @@ typedef struct parser_t {
     int header_end;    // header row end
 
     void *skipset;
+    PyObject *skipfunc;
     int64_t skip_first_N_rows;
     int skip_footer;
     double (*converter)(const char *, char **, char, char, char, int);

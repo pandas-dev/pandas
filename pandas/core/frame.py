@@ -23,8 +23,7 @@ from numpy import nan as NA
 import numpy as np
 import numpy.ma as ma
 
-from pandas.types.cast import (_maybe_upcast,
-                               _infer_dtype_from_scalar,
+from pandas.types.cast import (_maybe_upcast, _infer_dtype_from_scalar,
                                _possibly_cast_to_datetime,
                                _possibly_infer_to_datetimelike,
                                _possibly_convert_platform,
@@ -79,6 +78,7 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.util.decorators import deprecate_kwarg, Appender, Substitution
+from pandas.util.validators import validate_bool_kwarg
 
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
@@ -1274,7 +1274,7 @@ class DataFrame(NDFrame):
 
         # minor axis must be sorted
         if self.index.lexsort_depth < 2:
-            selfsorted = self.sortlevel(0)
+            selfsorted = self.sort_index(level=0)
         else:
             selfsorted = self
 
@@ -2164,6 +2164,7 @@ class DataFrame(NDFrame):
         >>> df.query('a > b')
         >>> df[df.a > df.b]  # same result as the previous expression
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(expr, compat.string_types):
             msg = "expr must be a string to be evaluated, {0} given"
             raise ValueError(msg.format(type(expr)))
@@ -2230,6 +2231,7 @@ class DataFrame(NDFrame):
         >>> df.eval('a + b')
         >>> df.eval('c = a + b')
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         resolvers = kwargs.pop('resolvers', None)
         kwargs['level'] = kwargs.pop('level', 0) + 1
         if resolvers is None:
@@ -2843,6 +2845,7 @@ class DataFrame(NDFrame):
         -------
         dataframe : DataFrame
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(keys, list):
             keys = [keys]
 
@@ -2935,6 +2938,7 @@ class DataFrame(NDFrame):
         -------
         resetted : DataFrame
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
             new_obj = self
         else:
@@ -3039,6 +3043,7 @@ class DataFrame(NDFrame):
         -------
         dropped : DataFrame
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(axis, (tuple, list)):
             result = self
             for ax in axis:
@@ -3102,6 +3107,7 @@ class DataFrame(NDFrame):
         -------
         deduplicated : DataFrame
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
@@ -3163,7 +3169,7 @@ class DataFrame(NDFrame):
     @Appender(_shared_docs['sort_values'] % _shared_doc_kwargs)
     def sort_values(self, by, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
-
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
         other_axis = 0 if axis == 1 else 1
 
@@ -3274,7 +3280,7 @@ class DataFrame(NDFrame):
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True,
                    by=None):
-
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         # 10726
         if by is not None:
             warnings.warn("by argument to sort_index is deprecated, pls use "
@@ -3331,6 +3337,8 @@ class DataFrame(NDFrame):
     def sortlevel(self, level=0, axis=0, ascending=True, inplace=False,
                   sort_remaining=True):
         """
+        DEPRECATED: use :meth:`DataFrame.sort_index`
+
         Sort multilevel index by chosen axis and primary level. Data will be
         lexicographically sorted by the chosen level followed by the other
         levels (in order)
@@ -3354,6 +3362,8 @@ class DataFrame(NDFrame):
         DataFrame.sort_index(level=...)
 
         """
+        warnings.warn("sortlevel is deprecated, use sort_index(level= ...)",
+                      FutureWarning, stacklevel=2)
         return self.sort_index(level=level, axis=axis, ascending=ascending,
                                inplace=inplace, sort_remaining=sort_remaining)
 

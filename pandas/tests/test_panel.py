@@ -2370,10 +2370,10 @@ class TestLongPanel(tm.TestCase):
         def is_sorted(arr):
             return (arr[1:] > arr[:-1]).any()
 
-        sorted_minor = self.panel.sortlevel(level=1)
+        sorted_minor = self.panel.sort_index(level=1)
         self.assertTrue(is_sorted(sorted_minor.index.labels[1]))
 
-        sorted_major = sorted_minor.sortlevel(level=0)
+        sorted_major = sorted_minor.sort_index(level=0)
         self.assertTrue(is_sorted(sorted_major.index.labels[0]))
 
     def test_to_string(self):

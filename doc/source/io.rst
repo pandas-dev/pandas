@@ -187,6 +187,16 @@ skipinitialspace : boolean, default ``False``
 skiprows : list-like or integer, default ``None``
   Line numbers to skip (0-indexed) or number of lines to skip (int) at the start
   of the file.
+
+  If callable, the callable function will be evaluated against the row
+  indices, returning True if the row should be skipped and False otherwise:
+
+  .. ipython:: python
+
+     data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
+     pd.read_csv(StringIO(data))
+     pd.read_csv(StringIO(data), skiprows=lambda x: x % 2 != 0)
+
 skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
 skip_footer : int, default ``0``
@@ -643,6 +653,15 @@ file, either using the column names, position numbers or a callable:
     pd.read_csv(StringIO(data), usecols=['b', 'd'])
     pd.read_csv(StringIO(data), usecols=[0, 2, 3])
     pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ['A', 'C'])
+
+The ``usecols`` argument can also be used to specify which columns not to
+use in the final result:
+
+.. ipython:: python
+   pd.read_csv(StringIO(data), usecols=lambda x: x not in ['a', 'c'])
+
+In this case, the callable is specifying that we exclude the "a" and "c"
+columns from the output.
 
 Comments and Empty Lines
 ''''''''''''''''''''''''
@@ -1205,6 +1224,19 @@ You can elect to skip bad lines:
        a  b   c
     0  1  2   3
     1  8  9  10
+
+You can also use the ``usecols`` parameter to eliminate extraneous column
+data that appear in some lines but not others:
+
+.. code-block:: ipython
+
+   In [30]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
+
+    Out[30]:
+       a  b   c
+    0  1  2   3
+    1  4  5   6
+    2  8  9  10
 
 .. _io.quoting:
 

@@ -792,8 +792,8 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
         resid = DataFrame(yv[:, None] - Xb, index=y.index, columns=['resid'])
 
         if cluster_axis == 1:
-            x = x.swaplevel(0, 1).sortlevel(0)
-            resid = resid.swaplevel(0, 1).sortlevel(0)
+            x = x.swaplevel(0, 1).sort_index(level=0)
+            resid = resid.swaplevel(0, 1).sort_index(level=0)
 
         m = _group_agg(x.values * resid.values, x.index._bounds,
                        lambda x: np.sum(x, axis=0))

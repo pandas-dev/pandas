@@ -1694,6 +1694,41 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # GH 12766: Return an index not an array
         tm.assert_index_equal(result, Index(np.array([1] * 5, dtype=np.int64)))
 
+    def test_validate_inplace(self):
+        cat = Categorical(['A','B','B','C','A'])
+        invalid_values = [1, "True", [1,2,3], 5.0]
+
+        for value in invalid_values:
+            with self.assertRaises(ValueError):
+                cat.set_ordered(value=True, inplace=value)
+
+            with self.assertRaises(ValueError):
+                cat.as_ordered(inplace=value)
+
+            with self.assertRaises(ValueError):
+                cat.as_unordered(inplace=value)
+
+            with self.assertRaises(ValueError):
+                cat.set_categories(['X','Y','Z'], rename=True, inplace=value)
+
+            with self.assertRaises(ValueError):
+                cat.rename_categories(['X','Y','Z'], inplace=value)
+
+            with self.assertRaises(ValueError):
+                cat.reorder_categories(['X','Y','Z'], ordered=True, inplace=value)
+
+            with self.assertRaises(ValueError):
+                cat.add_categories(new_categories=['D','E','F'], inplace=value)
+
+            with self.assertRaises(ValueError):
+                cat.remove_categories(removals=['D','E','F'], inplace=value)
+
+            with self.assertRaises(ValueError):
+                cat.remove_unused_categories(inplace=value)
+
+            with self.assertRaises(ValueError):
+                cat.sort_values(inplace=value)
+
 
 class TestCategoricalAsBlock(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -3065,7 +3100,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
              ['foo', 'bar']],
             names=['A', 'B', 'C'])
         expected = DataFrame({'values': Series(
-            np.nan, index=exp_index)}).sortlevel()
+            np.nan, index=exp_index)}).sort_index()
         expected.iloc[[1, 2, 7, 8], 0] = [1, 2, 3, 4]
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
