@@ -4,7 +4,7 @@ data hash pandas / numpy objects
 
 import numpy as np
 from pandas import _hash, Series, factorize, Categorical, Index
-from pandas.lib import infer_dtype
+from pandas.lib import is_bool_array
 from pandas.types.generic import ABCIndexClass, ABCSeries, ABCDataFrame
 from pandas.types.common import is_categorical_dtype
 
@@ -68,7 +68,7 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None):
     return h
 
 
-def hash_array(vals, encoding='utf8', hash_key=None):
+def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
     """
     Given a 1d array, return an array of deterministic integers.
 
@@ -80,6 +80,9 @@ def hash_array(vals, encoding='utf8', hash_key=None):
     encoding : string, default 'utf8'
         encoding for data & key when strings
     hash_key : string key to encode, default to _default_hash_key
+    categorize : bool, default True
+        Whether to first categorize object arrays before hashing. This is more
+        efficient when the array contains duplicate values.
 
     Returns
     -------
@@ -87,46 +90,46 @@ def hash_array(vals, encoding='utf8', hash_key=None):
 
     """
 
-    # work with cagegoricals as ints. (This check is above the complex
-    # check so that we don't ask numpy if categorical is a subdtype of
-    # complex, as it will choke.
     if hash_key is None:
         hash_key = _default_hash_key
 
+    # For categoricals, we hash the categories, then remap the codes to the
+    # hash values. (This check is above the complex check so that we don't ask
+    # numpy if categorical is a subdtype of complex, as it will choke.
     if is_categorical_dtype(vals.dtype):
-        vals = vals.codes
+        cat_hashed = hash_array(vals.categories.values, encoding, hash_key,
+                                categorize=False).astype(np.uint64, copy=False)
+        # Since `cat_hashed` is already distributed in the space of uint64s,
+        # we can just return after remapping the codes here
+        c = Series(vals)
+        return c.cat.rename_categories(cat_hashed).values.astype(np.uint64)
 
     # we'll be working with everything as 64-bit values, so handle this
     # 128-bit value early
     if np.issubdtype(vals.dtype, np.complex128):
         return hash_array(vals.real) + 23 * hash_array(vals.imag)
 
-    # MAIN LOGIC:
-    inferred = infer_dtype(vals)
-
     # First, turn whatever array this is into unsigned 64-bit ints, if we can
     # manage it.
-    if inferred == 'boolean':
+    if is_bool_array(vals):
         vals = vals.astype('u8')
-
-    if (np.issubdtype(vals.dtype, np.datetime64) or
-       np.issubdtype(vals.dtype, np.timedelta64) or
-       np.issubdtype(vals.dtype, np.number)) and vals.dtype.itemsize <= 8:
-
+    elif (np.issubdtype(vals.dtype, np.datetime64) or
+          np.issubdtype(vals.dtype, np.timedelta64) or
+          np.issubdtype(vals.dtype, np.number)) and vals.dtype.itemsize <= 8:
         vals = vals.view('u{}'.format(vals.dtype.itemsize)).astype('u8')
     else:
-
-        # its MUCH faster to categorize object dtypes, then hash and rename
-        codes, categories = factorize(vals, sort=False)
-        categories = Index(categories)
-        c = Series(Categorical(codes, categories,
-                               ordered=False, fastpath=True))
-        vals = _hash.hash_object_array(categories.values,
-                                       hash_key,
-                                       encoding)
-
-        # rename & extract
-        vals = c.cat.rename_categories(Index(vals)).astype(np.uint64).values
+        # With repeated values, its MUCH faster to categorize object dtypes,
+        # then hash and rename categories. We allow skipping the categorization
+        # when the values are known/likely to be unique.
+        if categorize:
+            codes, categories = factorize(vals, sort=False)
+            c = Series(Categorical(codes, Index(categories),
+                                   ordered=False, fastpath=True))
+            vals = _hash.hash_object_array(categories, hash_key, encoding)
+            # rename & extract
+            vals = c.cat.rename_categories(vals).values.astype(np.uint64)
+        else:
+            vals = _hash.hash_object_array(vals, hash_key, encoding)
 
     # Then, redistribute these 64-bit ints within the space of 64-bit ints
     vals ^= vals >> 30

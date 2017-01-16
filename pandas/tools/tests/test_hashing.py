@@ -90,6 +90,20 @@ class TestHashing(tm.TestCase):
             # these are by-definition the same with
             # or w/o the index as the data is empty
 
+    def test_categorical_consistency(self):
+        # Check that categoricals hash consistent with their values, not codes
+        # This should work for categoricals of any dtype
+        for data in [['a', 'b', 'c', 'd'], [1000, 2000, 3000, 4000]]:
+            s1 = Series(data)
+            s2 = s1.astype('category').cat.set_categories(data)
+            s3 = s2.cat.set_categories(list(reversed(data)))
+            # These should all hash identically
+            h1 = hash_pandas_object(s1)
+            h2 = hash_pandas_object(s2)
+            h3 = hash_pandas_object(s3)
+            tm.assert_series_equal(h1, h2)
+            tm.assert_series_equal(h1, h3)
+
     def test_errors(self):
 
         for obj in [pd.Timestamp('20130101'), tm.makePanel()]:
