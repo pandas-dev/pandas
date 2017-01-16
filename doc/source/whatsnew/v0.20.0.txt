@@ -343,6 +343,9 @@ Deprecations
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+- The ``pandas.rpy`` module is removed. Similar functionality can be accessed
+  through the `rpy2 <https://rpy2.readthedocs.io/>`__ project.
+  See the :ref:`R interfacing docs <rpy>` for more details.
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
 
 
