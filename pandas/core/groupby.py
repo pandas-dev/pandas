@@ -18,13 +18,13 @@ from pandas.types.common import (is_numeric_dtype,
                                  is_timedelta64_dtype, is_datetime64_dtype,
                                  is_categorical_dtype,
                                  is_datetimelike,
-                                 is_datetime_or_timedelta_dtype,
                                  is_datetime64_any_dtype,
                                  is_bool, is_integer_dtype,
                                  is_complex_dtype,
                                  is_bool_dtype,
                                  is_scalar,
                                  is_list_like,
+                                 needs_i8_conversion,
                                  _ensure_float64,
                                  _ensure_platform_int,
                                  _ensure_int64,
@@ -1876,15 +1876,21 @@ class BaseGrouper(object):
                                           "supported for the 'how' argument")
             out_shape = (self.ngroups,) + values.shape[1:]
 
+        is_datetimelike = needs_i8_conversion(values.dtype)
         is_numeric = is_numeric_dtype(values.dtype)
 
-        if is_datetime_or_timedelta_dtype(values.dtype):
+        if is_datetimelike:
             values = values.view('int64')
             is_numeric = True
         elif is_bool_dtype(values.dtype):
             values = _ensure_float64(values)
         elif is_integer_dtype(values):
-            values = values.astype('int64', copy=False)
+            # we use iNaT for the missing value on ints
+            # so pre-convert to guard this condition
+            if (values == tslib.iNaT).any():
+                values = _ensure_float64(values)
+            else:
+                values = values.astype('int64', copy=False)
         elif is_numeric and not is_complex_dtype(values):
             values = _ensure_float64(values)
         else:
@@ -1913,20 +1919,20 @@ class BaseGrouper(object):
                                  fill_value=np.nan)
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(
-                result, counts, values, labels, func, is_numeric)
+                result, counts, values, labels, func, is_numeric,
+                is_datetimelike)
         elif kind == 'transform':
             result = _maybe_fill(np.empty_like(values, dtype=out_dtype),
                                  fill_value=np.nan)
 
-            # temporary storange for running-total type tranforms
-            accum = np.empty(out_shape, dtype=out_dtype)
             result = self._transform(
-                result, accum, values, labels, func, is_numeric)
+                result, values, labels, func, is_numeric, is_datetimelike)
 
         if is_integer_dtype(result):
-            if len(result[result == tslib.iNaT]) > 0:
+            mask = result == tslib.iNaT
+            if mask.any():
                 result = result.astype('float64')
-                result[result == tslib.iNaT] = np.nan
+                result[mask] = np.nan
 
         if kind == 'aggregate' and \
            self._filter_empty_groups and not counts.all():
@@ -1962,7 +1968,7 @@ class BaseGrouper(object):
         return self._cython_operation('transform', values, how, axis)
 
     def _aggregate(self, result, counts, values, comp_ids, agg_func,
-                   is_numeric):
+                   is_numeric, is_datetimelike):
         if values.ndim > 3:
             # punting for now
             raise NotImplementedError("number of dimensions is currently "
@@ -1977,8 +1983,9 @@ class BaseGrouper(object):
 
         return result
 
-    def _transform(self, result, accum, values, comp_ids, transform_func,
-                   is_numeric):
+    def _transform(self, result, values, comp_ids, transform_func,
+                   is_numeric, is_datetimelike):
+
         comp_ids, _, ngroups = self.group_info
         if values.ndim > 3:
             # punting for now
@@ -1989,9 +1996,9 @@ class BaseGrouper(object):
 
                 chunk = chunk.squeeze()
                 transform_func(result[:, :, i], values,
-                               comp_ids, accum)
+                               comp_ids, is_datetimelike)
         else:
-            transform_func(result, values, comp_ids, accum)
+            transform_func(result, values, comp_ids, is_datetimelike)
 
         return result
 
