@@ -8,10 +8,9 @@ RET=0
 
 if [ "$LINT" ]; then
 
-    # pandas/rpy is deprecated and will be removed.
     # pandas/src is C code, so no need to search there.
     echo "Linting  *.py"
-    flake8 pandas --filename=*.py --exclude pandas/rpy,pandas/src
+    flake8 pandas --filename=*.py --exclude pandas/src
     if [ $? -ne "0" ]; then
         RET=1
     fi
