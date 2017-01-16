@@ -24,8 +24,8 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             default_handler=None, lines=False):
 
     if lines and orient != 'records':
-            raise ValueError(
-                "'lines' keyword only valid when 'orient' is records")
+        raise ValueError(
+            "'lines' keyword only valid when 'orient' is records")
 
     if isinstance(obj, Series):
         s = SeriesWriter(
@@ -726,8 +726,8 @@ def nested_to_record(ds, prefix="", level=0):
 def json_normalize(data, record_path=None, meta=None,
                    meta_prefix=None,
                    record_prefix=None,
-                   errors='raise'):
-
+                   errors='raise',
+                   sep='.'):
     """
     "Normalize" semi-structured JSON data into a flat table
 
@@ -749,6 +749,12 @@ def json_normalize(data, record_path=None, meta=None,
         always present
         * raise : will raise KeyError if keys listed in meta are not
         always present
+
+        .. versionadded:: 0.20.0
+
+    sep : string, default '.'
+        Nested records will generate names separated by sep (separator),
+        e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
 
         .. versionadded:: 0.20.0
 
@@ -828,7 +834,9 @@ def json_normalize(data, record_path=None, meta=None,
     lengths = []
 
     meta_vals = defaultdict(list)
-    meta_keys = ['.'.join(val) for val in meta]
+    if not isinstance(sep, compat.string_types):
+        sep = str(sep)
+    meta_keys = [sep.join(val) for val in meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
         if len(path) > 1:
