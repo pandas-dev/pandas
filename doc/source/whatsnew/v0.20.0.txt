@@ -358,7 +358,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``pd.merge_asof()`` where ``left_index``/``right_index`` together caused a failure when ``tolerance`` was specified (:issue:`15135`)
 
 
 
