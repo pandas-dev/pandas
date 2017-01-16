@@ -181,7 +181,11 @@ cdef extern from "parser/tokenizer.h":
         PyObject *skipfunc
         int64_t skip_first_N_rows
         int skipfooter
-        double (*converter)(const char *, char **, char, char, char, int) nogil
+        # pick one, depending on whether the converter requires GIL
+        double (*double_converter_nogil)(const char *, char **,
+                                         char, char, char, int) nogil
+        double (*double_converter_withgil)(const char *, char **,
+                                           char, char, char, int)
 
         #  error handling
         char *warn_msg
@@ -482,11 +486,14 @@ cdef class TextReader:
 
         self.verbose = verbose
         self.low_memory = low_memory
-        self.parser.converter = xstrtod
+        self.parser.double_converter_nogil = xstrtod
+        self.parser.double_converter_withgil = NULL
         if float_precision == 'high':
-            self.parser.converter = precise_xstrtod
-        elif float_precision == 'round_trip':
-            self.parser.converter = round_trip
+            self.parser.double_converter_nogil = precise_xstrtod
+            self.parser.double_converter_withgil = NULL
+        elif float_precision == 'round_trip':  # avoid gh-15140
+            self.parser.double_converter_nogil = NULL
+            self.parser.double_converter_withgil = round_trip
 
         # encoding
         if encoding is not None:
@@ -1699,8 +1706,19 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
     result = np.empty(lines, dtype=np.float64)
     data = <double *> result.data
     na_fset = kset_float64_from_list(na_flist)
-    with nogil:
-        error = _try_double_nogil(parser, col, line_start, line_end,
+    if parser.double_converter_nogil != NULL:  # if it can run without the GIL
+        with nogil:
+            error = _try_double_nogil(parser, parser.double_converter_nogil,
+                                      col, line_start, line_end,
+                                      na_filter, na_hashset, use_na_flist,
+                                      na_fset, NA, data, &na_count)
+    else:
+        assert parser.double_converter_withgil != NULL
+        error = _try_double_nogil(parser, <double (*)(
+                                      const char *, char **,
+                                      char, char, char, int)
+                                  nogil>parser.double_converter_withgil,
+                                  col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
                                   na_fset, NA, data, &na_count)
     kh_destroy_float64(na_fset)
@@ -1708,8 +1726,11 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
         return None, None
     return result, na_count
 
-cdef inline int _try_double_nogil(parser_t *parser, int col,
-                                  int line_start, int line_end,
+cdef inline int _try_double_nogil(parser_t *parser,
+                                  double (*double_converter)(
+                                      const char *, char **, char,
+                                      char, char, int) nogil,
+                                  int col, int line_start, int line_end,
                                   bint na_filter, kh_str_t *na_hashset,
                                   bint use_na_flist,
                                   const kh_float64_t *na_flist,
@@ -1739,7 +1760,7 @@ cdef inline int _try_double_nogil(parser_t *parser, int col,
                 na_count[0] += 1
                 data[0] = NA
             else:
-                data[0] = parser.converter(word, &p_end, parser.decimal,
+                data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands, 1)
                 if errno != 0 or p_end[0] or p_end == word:
                     if (strcasecmp(word, cinf) == 0 or
@@ -1760,7 +1781,7 @@ cdef inline int _try_double_nogil(parser_t *parser, int col,
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[0] = parser.converter(word, &p_end, parser.decimal,
+            data[0] = double_converter(word, &p_end, parser.decimal,
                                        parser.sci, parser.thousands, 1)
             if errno != 0 or p_end[0] or p_end == word:
                 if (strcasecmp(word, cinf) == 0 or

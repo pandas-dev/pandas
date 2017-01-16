@@ -437,3 +437,5 @@ Bug Fixes
 
 - Bug in ``Series.dt.round`` inconsistent behaviour on NAT's with different arguments (:issue:`14940`)
 - Bug in ``.read_json()`` for Python 2 where ``lines=True`` and contents contain non-ascii unicode characters (:issue:`15132`)
+
+- Bug in ``pd.read_csv()`` with ``float_precision='round_trip'`` which caused a segfault when a text entry is parsed (:issue:`15140`)
