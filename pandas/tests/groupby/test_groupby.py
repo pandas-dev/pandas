@@ -772,6 +772,31 @@ class TestGroupBy(tm.TestCase):
                            'int64': 1}).sort_values()
         assert_series_equal(result, expected)
 
+    def test_groupby_aggregate_item_by_item(self):
+        def test_df():
+            s = pd.DataFrame(np.array([[13, 14, 15, 16]]),
+                             index=[0],
+                             columns=['b', 'c', 'd', 'e'])
+            a1 = [s, s, datetime.strptime('2016-12-28', "%Y-%m-%d"), 'asdf', 2]
+            a2 = [s, s, datetime.strptime('2016-12-28', "%Y-%m-%d"), 'asdf', 6]
+            num = np.array([a1, a2])
+            columns = ['b', 'c', 'd', 'e', 'f']
+            idx = [x for x in xrange(0, len(num))]
+            return pd.DataFrame(num, index=idx, columns=columns)
+        c = [test_df().sort_values(['d', 'e', 'f']),
+             test_df().sort_values(['d', 'e', 'f'])]
+        df = pd.concat(c)
+        df = df[["e", "a"]].copy().reset_index(drop=True)
+        df["e_idx"] = df["e"]
+        what = [0, 0.5, 0.5, 1]
+
+        def x():
+            df.groupby(["e_idx", "e"])["a"].quantile(what)
+        self.assertRaisesRegexp(ValueError,
+                                "'SeriesGroupBy' object "
+                                "has no attribute '_aggregate_item_by_item'",
+                                x)
+
     def test_groupby_return_type(self):
 
         # GH2893, return a reduced type

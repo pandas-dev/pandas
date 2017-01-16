@@ -589,8 +589,8 @@ class _GroupBy(PandasObject, SelectionMixin):
                     try:
                         return self._aggregate_item_by_item(name,
                                                             *args, **kwargs)
-                    except (AttributeError):
-                        raise ValueError
+                    except (AttributeError) as e:
+                        raise ValueError(e)
 
         return wrapper
 

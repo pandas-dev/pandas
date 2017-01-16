@@ -327,7 +327,7 @@ Bug Fixes
 - Bug in ``Series.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14721`)
 - Bug in ``pd.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14915`)
 
-
+- Bug in ``_GroupBy`` where a ``ValueError`` is raised without a message. (:issue:`15082`)
 
 
 - Bug in ``Series.iloc`` where a ``Categorical`` object for list-like indexes input was returned, where a ``Series`` was expected. (:issue:`14580`)
