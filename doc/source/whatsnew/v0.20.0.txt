@@ -360,7 +360,7 @@ Bug Fixes
 - Bug in catching an overflow in ``Timestamp`` + ``Timedelta/Offset`` operations (:issue:`15126`)
 
 
-
+- Bug in ``pd.merge_asof()`` where ``left_index``/``right_index`` together caused a failure when ``tolerance`` was specified (:issue:`15135`)
 
 
 
