@@ -27,6 +27,7 @@ dtypes = [('float64', 'float64_t', 'np.float64', True, True),
           ('object', 'object', 'object', True, False),
           ('int32', 'int32_t', 'np.int32', False, True),
           ('int64', 'int64_t', 'np.int64', False, True),
+          ('uint64', 'uint64_t', 'np.uint64', False, True),
           ('bool', 'uint8_t', 'np.bool', False, True)]
 
 def get_dispatch(dtypes):

@@ -1573,6 +1573,10 @@ def makeIntIndex(k=10, name=None):
     return Index(lrange(k), name=name)
 
 
+def makeUIntIndex(k=10, name=None):
+    return Index([2**63 + i for i in lrange(k)], name=name)
+
+
 def makeRangeIndex(k=10, name=None):
     return RangeIndex(0, k, 1, name=name)
 

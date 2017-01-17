@@ -5,8 +5,8 @@ from pandas.compat import PY3
 
 import numpy as np
 
-from pandas import (Series, Index, Float64Index, Int64Index, RangeIndex,
-                    MultiIndex, CategoricalIndex, DatetimeIndex,
+from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
+                    RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, notnull)
 from pandas.types.common import needs_i8_conversion
 from pandas.util.testing import assertRaisesRegexp
@@ -470,10 +470,11 @@ class Base(object):
         expected = i
         tm.assert_index_equal(result, expected)
 
-        i2 = i.copy()
-        i2 = pd.Index([np.nan, np.nan] + i[2:].tolist())
-        result = i.where(notnull(i2))
-        expected = i2
+        _nan = i._na_value
+        cond = [False] + [True] * len(i[1:])
+        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
+
+        result = i.where(cond)
         tm.assert_index_equal(result, expected)
 
     def test_setops_errorcases(self):
@@ -660,6 +661,12 @@ class Base(object):
             self.assertFalse(idx.equals(list(idx)))
             self.assertFalse(idx.equals(np.array(idx)))
 
+            # Cannot pass in non-int64 dtype to RangeIndex
+            if not isinstance(idx, RangeIndex):
+                same_values = Index(idx, dtype=object)
+                self.assertTrue(idx.equals(same_values))
+                self.assertTrue(same_values.equals(idx))
+
             if idx.nlevels == 1:
                 # do not test MultiIndex
                 self.assertFalse(idx.equals(pd.Series(idx)))
@@ -744,7 +751,7 @@ class Base(object):
                     with tm.assertRaises(Exception):
                         with np.errstate(all='ignore'):
                             func(idx)
-                elif isinstance(idx, (Float64Index, Int64Index)):
+                elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
                     # coerces to float (e.g. np.sin)
                     with np.errstate(all='ignore'):
                         result = func(idx)
@@ -765,7 +772,7 @@ class Base(object):
                     # raise TypeError or ValueError (PeriodIndex)
                     with tm.assertRaises(Exception):
                         func(idx)
-                elif isinstance(idx, (Float64Index, Int64Index)):
+                elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
                     # results in bool array
                     result = func(idx)
                     exp = func(idx.values)
@@ -798,7 +805,7 @@ class Base(object):
                     continue
                 elif isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
                     values[1] = pd.tslib.iNaT
-                elif isinstance(index, Int64Index):
+                elif isinstance(index, (Int64Index, UInt64Index)):
                     continue
                 else:
                     values[1] = np.nan
@@ -838,7 +845,7 @@ class Base(object):
 
                 if isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
                     values[1] = pd.tslib.iNaT
-                elif isinstance(index, Int64Index):
+                elif isinstance(index, (Int64Index, UInt64Index)):
                     continue
                 else:
                     values[1] = np.nan

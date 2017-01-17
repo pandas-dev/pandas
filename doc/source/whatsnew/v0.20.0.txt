@@ -91,6 +91,25 @@ support for bz2 compression in the python 2 c-engine improved (:issue:`14874`).
    df = pd.read_table(url, compression='bz2')  # explicitly specify compression
    df.head(2)
 
+.. _whatsnew_0200.enhancements.uint64_support:
+
+Pandas has significantly improved support for operations involving unsigned,
+or purely non-negative, integers. Previously, handling these integers would
+result in improper rounding or data-type casting, leading to incorrect results.
+Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937`)
+
+.. ipython:: python
+
+   idx = pd.UInt64Index([1, 2, 3])
+   df = pd.DataFrame({'A': ['a', 'b', 'c']}, index=idx)
+   df.index
+
+- Bug in converting object elements of array-like objects to unsigned 64-bit integers (:issue:`4471`, :issue:`14982`)
+- Bug in ``Series.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14721`)
+- Bug in ``DataFrame`` construction in which unsigned 64-bit integer elements were being converted to objects (:issue:`14881`)
+- Bug in ``pd.read_csv()`` in which unsigned 64-bit integer elements were being improperly converted to the wrong data types (:issue:`14983`)
+- Bug in ``pd.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14915`)
+
 .. _whatsnew_0200.enhancements.other:
 
 Other enhancements
@@ -298,8 +317,6 @@ Bug Fixes
 
 - Bug in ``Index`` power operations with reversed operands (:issue:`14973`)
 - Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
-- Bug in ``DataFrame`` construction in which unsigned 64-bit integer elements were being converted to objects (:issue:`14881`)
-- Bug in ``pd.read_csv()`` in which unsigned 64-bit integer elements were being improperly converted to the wrong data types (:issue:`14983`)
 - Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
 - Bug in ``DataFrame(..).apply(to_numeric)`` when values are of type decimal.Decimal. (:issue:`14827`)
 - Bug in ``describe()`` when passing a numpy array which does not contain the median to the ``percentiles`` keyword argument (:issue:`14908`)
@@ -324,8 +341,6 @@ Bug Fixes
 
 
 
-- Bug in ``Series.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14721`)
-- Bug in ``pd.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14915`)
 
 
 
@@ -350,7 +365,6 @@ Bug Fixes
 
 
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
-- Bug in converting object elements of array-like objects to unsigned 64-bit integers (:issue:`4471`, :issue:`14982`)
 - Bug in ``pd.pivot_table()`` where no error was raised when values argument was not in the columns (:issue:`14938`)
 - Bug in ``.to_json()`` where ``lines=True`` and contents (keys or values) contain escaped characters (:issue:`15096`)
 

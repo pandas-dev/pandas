@@ -860,15 +860,20 @@ class _NDFrameIndexer(object):
             return labels[key]
         else:
             if isinstance(key, Index):
-                # want Index objects to pass through untouched
-                keyarr = key
+                keyarr = labels._convert_index_indexer(key)
             else:
                 # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
 
-            if is_integer_dtype(keyarr) and not labels.is_integer():
-                keyarr = _ensure_platform_int(keyarr)
-                return labels.take(keyarr)
+            if is_integer_dtype(keyarr):
+                # Cast the indexer to uint64 if possible so
+                # that the values returned from indexing are
+                # also uint64.
+                keyarr = labels._convert_arr_indexer(keyarr)
+
+                if not labels.is_integer():
+                    keyarr = _ensure_platform_int(keyarr)
+                    return labels.take(keyarr)
 
             return keyarr
 
@@ -1044,11 +1049,10 @@ class _NDFrameIndexer(object):
             return self.obj.take(inds, axis=axis, convert=False)
         else:
             if isinstance(key, Index):
-                # want Index objects to pass through untouched
-                keyarr = key
+                keyarr = labels._convert_index_indexer(key)
             else:
-                # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
+                keyarr = labels._convert_arr_indexer(keyarr)
 
             if is_categorical_dtype(labels):
                 keyarr = labels._shallow_copy(keyarr)

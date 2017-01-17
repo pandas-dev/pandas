@@ -12,7 +12,8 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 {{py:
 
 # table_type, by_dtype
-by_dtypes = [('PyObjectHashTable', 'object'), ('Int64HashTable', 'int64_t')]
+by_dtypes = [('PyObjectHashTable', 'object'), ('Int64HashTable', 'int64_t'),
+             ('UInt64HashTable', 'uint64_t')]
 
 # on_dtype
 on_dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',

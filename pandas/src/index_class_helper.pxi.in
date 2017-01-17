@@ -12,6 +12,7 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 # name, dtype, ctype
 dtypes = [('Float64', 'float64', 'float64_t'),
+          ('UInt64', 'uint64', 'uint64_t'),
           ('Int64', 'int64', 'int64_t'),
           ('Object', 'object', 'object')]
 }}

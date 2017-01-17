@@ -20,7 +20,7 @@ import pandas.core.common as com
 from pandas import option_context
 from pandas.core.indexing import _non_reducing_slice, _maybe_numeric_slice
 from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
-                             MultiIndex, Timestamp, Timedelta)
+                             MultiIndex, Timestamp, Timedelta, UInt64Index)
 from pandas.formats.printing import pprint_thing
 from pandas import concat
 from pandas.core.common import PerformanceWarning, UnsortedIndexError
@@ -100,7 +100,8 @@ class TestIndexing(tm.TestCase):
     _multiprocess_can_split_ = True
 
     _objs = set(['series', 'frame', 'panel'])
-    _typs = set(['ints', 'labels', 'mixed', 'ts', 'floats', 'empty', 'ts_rev'])
+    _typs = set(['ints', 'uints', 'labels', 'mixed',
+                 'ts', 'floats', 'empty', 'ts_rev'])
 
     def setUp(self):
 
@@ -115,6 +116,16 @@ class TestIndexing(tm.TestCase):
                                 items=lrange(0, 8, 2),
                                 major_axis=lrange(0, 12, 3),
                                 minor_axis=lrange(0, 16, 4))
+
+        self.series_uints = Series(np.random.rand(4),
+                                   index=UInt64Index(lrange(0, 8, 2)))
+        self.frame_uints = DataFrame(np.random.randn(4, 4),
+                                     index=UInt64Index(lrange(0, 8, 2)),
+                                     columns=UInt64Index(lrange(0, 12, 3)))
+        self.panel_uints = Panel(np.random.rand(4, 4, 4),
+                                 items=UInt64Index(lrange(0, 8, 2)),
+                                 major_axis=UInt64Index(lrange(0, 12, 3)),
+                                 minor_axis=UInt64Index(lrange(0, 16, 4)))
 
         self.series_labels = Series(np.random.randn(4), index=list('abcd'))
         self.frame_labels = DataFrame(np.random.randn(4, 4),
@@ -197,10 +208,6 @@ class TestIndexing(tm.TestCase):
                     pprint_thing(v)
 
             try:
-                # if (name == 'bool' and t == 'empty' and o == 'series' and
-                #         method1 == 'loc'):
-                #    import pdb; pdb.set_trace()
-
                 rs = getattr(obj, method1).__getitem__(_axify(obj, k1, a))
 
                 try:
@@ -209,6 +216,8 @@ class TestIndexing(tm.TestCase):
                     result = 'no comp'
                     _print(result)
                     return
+
+                detail = None
 
                 try:
                     if is_scalar(rs) and is_scalar(xp):
@@ -220,7 +229,8 @@ class TestIndexing(tm.TestCase):
                     elif xp.ndim == 3:
                         tm.assert_panel_equal(rs, xp)
                     result = 'ok'
-                except (AssertionError):
+                except AssertionError as e:
+                    detail = str(e)
                     result = 'fail'
 
                 # reverse the checks
@@ -228,10 +238,9 @@ class TestIndexing(tm.TestCase):
                     if result == 'fail':
                         result = 'ok (fail)'
 
-                if not result.startswith('ok'):
-                    raise AssertionError(_print(result))
-
                 _print(result)
+                if not result.startswith('ok'):
+                    raise AssertionError(detail)
 
             except AssertionError:
                 raise
@@ -309,16 +318,17 @@ class TestIndexing(tm.TestCase):
             d = getattr(self, o)
 
             # iat
-            _check(d['ints'], 'iat', values=True)
+            for f in [d['ints'], d['uints']]:
+                _check(f, 'iat', values=True)
+
             for f in [d['labels'], d['ts'], d['floats']]:
                 if f is not None:
                     self.assertRaises(ValueError, self.check_values, f, 'iat')
 
             # at
-            _check(d['ints'], 'at')
-            _check(d['labels'], 'at')
-            _check(d['ts'], 'at')
-            _check(d['floats'], 'at')
+            for f in [d['ints'], d['uints'], d['labels'],
+                      d['ts'], d['floats']]:
+                _check(f, 'at')
 
     def test_at_and_iat_set(self):
         def _check(f, func, values=False):
@@ -334,16 +344,18 @@ class TestIndexing(tm.TestCase):
 
             d = getattr(self, t)
 
-            _check(d['ints'], 'iat', values=True)
+            # iat
+            for f in [d['ints'], d['uints']]:
+                _check(f, 'iat', values=True)
+
             for f in [d['labels'], d['ts'], d['floats']]:
                 if f is not None:
                     self.assertRaises(ValueError, _check, f, 'iat')
 
             # at
-            _check(d['ints'], 'at')
-            _check(d['labels'], 'at')
-            _check(d['ts'], 'at')
-            _check(d['floats'], 'at')
+            for f in [d['ints'], d['uints'], d['labels'],
+                      d['ts'], d['floats']]:
+                _check(f, 'at')
 
     def test_at_iat_coercion(self):
 
@@ -508,7 +520,7 @@ class TestIndexing(tm.TestCase):
 
         # integer
         self.check_result('integer', 'iloc', 2, 'ix',
-                          {0: 4, 1: 6, 2: 8}, typs=['ints'])
+                          {0: 4, 1: 6, 2: 8}, typs=['ints', 'uints'])
         self.check_result('integer', 'iloc', 2, 'indexer', 2,
                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
                           fails=IndexError)
@@ -517,7 +529,7 @@ class TestIndexing(tm.TestCase):
 
         # neg integer
         self.check_result('neg int', 'iloc', -1, 'ix',
-                          {0: 6, 1: 9, 2: 12}, typs=['ints'])
+                          {0: 6, 1: 9, 2: 12}, typs=['ints', 'uints'])
         self.check_result('neg int', 'iloc', -1, 'indexer', -1,
                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
                           fails=IndexError)
@@ -527,9 +539,9 @@ class TestIndexing(tm.TestCase):
         # list of ints
         self.check_result('list int', 'iloc', [0, 1, 2], 'ix',
                           {0: [0, 2, 4], 1: [0, 3, 6], 2: [0, 4, 8]},
-                          typs=['ints'])
+                          typs=['ints', 'uints'])
         self.check_result('list int', 'iloc', [2], 'ix',
-                          {0: [4], 1: [6], 2: [8]}, typs=['ints'])
+                          {0: [4], 1: [6], 2: [8]}, typs=['ints', 'uints'])
         self.check_result('list int', 'iloc', [0, 1, 2], 'indexer', [0, 1, 2],
                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
                           fails=IndexError)
@@ -539,9 +551,9 @@ class TestIndexing(tm.TestCase):
         self.check_result('array int', 'iloc', np.array([0, 1, 2]), 'ix',
                           {0: [0, 2, 4],
                            1: [0, 3, 6],
-                           2: [0, 4, 8]}, typs=['ints'])
+                           2: [0, 4, 8]}, typs=['ints', 'uints'])
         self.check_result('array int', 'iloc', np.array([2]), 'ix',
-                          {0: [4], 1: [6], 2: [8]}, typs=['ints'])
+                          {0: [4], 1: [6], 2: [8]}, typs=['ints', 'uints'])
         self.check_result('array int', 'iloc', np.array([0, 1, 2]), 'indexer',
                           [0, 1, 2],
                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
@@ -579,7 +591,7 @@ class TestIndexing(tm.TestCase):
         # no dups in panel (bug?)
         self.check_result('list int (dups)', 'iloc', [0, 1, 1, 3], 'ix',
                           {0: [0, 2, 2, 6], 1: [0, 3, 3, 9]},
-                          objs=['series', 'frame'], typs=['ints'])
+                          objs=['series', 'frame'], typs=['ints', 'uints'])
 
         # GH 6766
         df1 = DataFrame([{'A': None, 'B': 1}, {'A': 2, 'B': 2}])
@@ -601,13 +613,13 @@ class TestIndexing(tm.TestCase):
         s = Series(index=lrange(1, 4))
         self.check_result('array like', 'iloc', s.index, 'ix',
                           {0: [2, 4, 6], 1: [3, 6, 9], 2: [4, 8, 12]},
-                          typs=['ints'])
+                          typs=['ints', 'uints'])
 
     def test_iloc_getitem_bool(self):
 
         # boolean indexers
         b = [True, False, True, False, ]
-        self.check_result('bool', 'iloc', b, 'ix', b, typs=['ints'])
+        self.check_result('bool', 'iloc', b, 'ix', b, typs=['ints', 'uints'])
         self.check_result('bool', 'iloc', b, 'ix', b,
                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
                           fails=IndexError)
@@ -617,7 +629,7 @@ class TestIndexing(tm.TestCase):
         # slices
         self.check_result('slice', 'iloc', slice(1, 3), 'ix',
                           {0: [2, 4], 1: [3, 6], 2: [4, 8]},
-                          typs=['ints'])
+                          typs=['ints', 'uints'])
         self.check_result('slice', 'iloc', slice(1, 3), 'indexer',
                           slice(1, 3),
                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
@@ -1124,14 +1136,14 @@ class TestIndexing(tm.TestCase):
     def test_loc_getitem_int(self):
 
         # int label
-        self.check_result('int label', 'loc', 2, 'ix', 2, typs=['ints'],
-                          axes=0)
-        self.check_result('int label', 'loc', 3, 'ix', 3, typs=['ints'],
-                          axes=1)
-        self.check_result('int label', 'loc', 4, 'ix', 4, typs=['ints'],
-                          axes=2)
-        self.check_result('int label', 'loc', 2, 'ix', 2, typs=['label'],
-                          fails=KeyError)
+        self.check_result('int label', 'loc', 2, 'ix', 2,
+                          typs=['ints', 'uints'], axes=0)
+        self.check_result('int label', 'loc', 3, 'ix', 3,
+                          typs=['ints', 'uints'], axes=1)
+        self.check_result('int label', 'loc', 4, 'ix', 4,
+                          typs=['ints', 'uints'], axes=2)
+        self.check_result('int label', 'loc', 2, 'ix', 2,
+                          typs=['label'], fails=KeyError)
 
     def test_loc_getitem_label(self):
 
@@ -1150,12 +1162,12 @@ class TestIndexing(tm.TestCase):
 
         # out of range label
         self.check_result('label range', 'loc', 'f', 'ix', 'f',
-                          typs=['ints', 'labels', 'mixed', 'ts'],
+                          typs=['ints', 'uints', 'labels', 'mixed', 'ts'],
                           fails=KeyError)
         self.check_result('label range', 'loc', 'f', 'ix', 'f',
                           typs=['floats'], fails=TypeError)
         self.check_result('label range', 'loc', 20, 'ix', 20,
-                          typs=['ints', 'mixed'], fails=KeyError)
+                          typs=['ints', 'uints', 'mixed'], fails=KeyError)
         self.check_result('label range', 'loc', 20, 'ix', 20,
                           typs=['labels'], fails=TypeError)
         self.check_result('label range', 'loc', 20, 'ix', 20, typs=['ts'],
@@ -1167,11 +1179,11 @@ class TestIndexing(tm.TestCase):
 
         # list of labels
         self.check_result('list lbl', 'loc', [0, 2, 4], 'ix', [0, 2, 4],
-                          typs=['ints'], axes=0)
+                          typs=['ints', 'uints'], axes=0)
         self.check_result('list lbl', 'loc', [3, 6, 9], 'ix', [3, 6, 9],
-                          typs=['ints'], axes=1)
+                          typs=['ints', 'uints'], axes=1)
         self.check_result('list lbl', 'loc', [4, 8, 12], 'ix', [4, 8, 12],
-                          typs=['ints'], axes=2)
+                          typs=['ints', 'uints'], axes=2)
         self.check_result('list lbl', 'loc', ['a', 'b', 'd'], 'ix',
                           ['a', 'b', 'd'], typs=['labels'], axes=0)
         self.check_result('list lbl', 'loc', ['A', 'B', 'C'], 'ix',
@@ -1188,27 +1200,27 @@ class TestIndexing(tm.TestCase):
         self.check_result('list lbl', 'loc', [0, 1, 2], 'indexer', [0, 1, 2],
                           typs=['empty'], fails=KeyError)
         self.check_result('list lbl', 'loc', [0, 2, 3], 'ix', [0, 2, 3],
-                          typs=['ints'], axes=0, fails=KeyError)
+                          typs=['ints', 'uints'], axes=0, fails=KeyError)
         self.check_result('list lbl', 'loc', [3, 6, 7], 'ix', [3, 6, 7],
-                          typs=['ints'], axes=1, fails=KeyError)
+                          typs=['ints', 'uints'], axes=1, fails=KeyError)
         self.check_result('list lbl', 'loc', [4, 8, 10], 'ix', [4, 8, 10],
-                          typs=['ints'], axes=2, fails=KeyError)
+                          typs=['ints', 'uints'], axes=2, fails=KeyError)
 
     def test_loc_getitem_label_list_fails(self):
         # fails
         self.check_result('list lbl', 'loc', [20, 30, 40], 'ix', [20, 30, 40],
-                          typs=['ints'], axes=1, fails=KeyError)
+                          typs=['ints', 'uints'], axes=1, fails=KeyError)
         self.check_result('list lbl', 'loc', [20, 30, 40], 'ix', [20, 30, 40],
-                          typs=['ints'], axes=2, fails=KeyError)
+                          typs=['ints', 'uints'], axes=2, fails=KeyError)
 
     def test_loc_getitem_label_array_like(self):
         # array like
         self.check_result('array like', 'loc', Series(index=[0, 2, 4]).index,
-                          'ix', [0, 2, 4], typs=['ints'], axes=0)
+                          'ix', [0, 2, 4], typs=['ints', 'uints'], axes=0)
         self.check_result('array like', 'loc', Series(index=[3, 6, 9]).index,
-                          'ix', [3, 6, 9], typs=['ints'], axes=1)
+                          'ix', [3, 6, 9], typs=['ints', 'uints'], axes=1)
         self.check_result('array like', 'loc', Series(index=[4, 8, 12]).index,
-                          'ix', [4, 8, 12], typs=['ints'], axes=2)
+                          'ix', [4, 8, 12], typs=['ints', 'uints'], axes=2)
 
     def test_loc_getitem_series(self):
         # GH14730
@@ -1236,7 +1248,8 @@ class TestIndexing(tm.TestCase):
         # boolean indexers
         b = [True, False, True, False]
         self.check_result('bool', 'loc', b, 'ix', b,
-                          typs=['ints', 'labels', 'mixed', 'ts', 'floats'])
+                          typs=['ints', 'uints', 'labels',
+                                'mixed', 'ts', 'floats'])
         self.check_result('bool', 'loc', b, 'ix', b, typs=['empty'],
                           fails=KeyError)
 
@@ -1244,11 +1257,11 @@ class TestIndexing(tm.TestCase):
 
         # ok
         self.check_result('int slice2', 'loc', slice(2, 4), 'ix', [2, 4],
-                          typs=['ints'], axes=0)
+                          typs=['ints', 'uints'], axes=0)
         self.check_result('int slice2', 'loc', slice(3, 6), 'ix', [3, 6],
-                          typs=['ints'], axes=1)
+                          typs=['ints', 'uints'], axes=1)
         self.check_result('int slice2', 'loc', slice(4, 8), 'ix', [4, 8],
-                          typs=['ints'], axes=2)
+                          typs=['ints', 'uints'], axes=2)
 
         # GH 3053
         # loc should treat integer slices like label slices
