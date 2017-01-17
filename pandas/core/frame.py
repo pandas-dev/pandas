@@ -2844,6 +2844,11 @@ class DataFrame(NDFrame):
         Returns
         -------
         dataframe : DataFrame
+
+        See Also
+        --------
+        DataFrame.rename
+
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(keys, list):

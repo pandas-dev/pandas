@@ -1538,6 +1538,30 @@ class TestDataFrame(tm.TestCase, Generic):
                            expected,
                            check_index_type=False)
 
+    def test_rename_list_like(self):
+        # GH 14829
+        df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]}, columns=['a', 'b'])
+
+        expected = df.copy()
+        expected.columns = ['J', 'K']
+        result = df.rename(columns=['J', 'K'])
+        assert_frame_equal(result, expected)
+
+        expected.index = ['a', 'b']
+        for box in [list, np.array, Index]:
+            result = df.rename(columns=box(['J', 'K']), index=box(['a', 'b']))
+            assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.rename(columns=['J', 'K'], index=['a', 'b'], inplace=True)
+        assert_frame_equal(result, expected)
+
+        with tm.assertRaises(ValueError):
+            df.rename(index=[1, 3, 3])
+
+        with tm.assertRaises(TypeError):
+            df.rename(index=1)
+
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel

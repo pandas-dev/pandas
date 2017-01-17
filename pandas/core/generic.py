@@ -582,7 +582,7 @@ class NDFrame(PandasObject):
         ----------
         %(axes)s : scalar, list-like, dict-like or function, optional
             Scalar or list-like will alter the ``Series.name`` attribute,
-            and raise on DataFrame or Panel.
+            for DataFrame list-like will form new values for the axes,
             dict-like or functions are transformations to apply to
             that axis' values
         copy : boolean, default True
@@ -636,6 +636,11 @@ class NDFrame(PandasObject):
         0  1  4
         1  2  5
         2  3  6
+        >>> df.rename(index=['a', 'b', 'c'], columns=[1, 2])
+           1  2
+        a  1  4
+        b  2  5
+        c  3  6
         """
 
     @Appender(_shared_docs['rename'] % dict(axes='axes keywords for this'
@@ -673,13 +678,17 @@ class NDFrame(PandasObject):
         # start in the axis order to eliminate too many copies
         for axis in lrange(self._AXIS_LEN):
             v = axes.get(self._AXIS_NAMES[axis])
+            baxis = self._get_block_manager_axis(axis)
             if v is None:
                 continue
-            f = _get_rename_function(v)
 
-            baxis = self._get_block_manager_axis(axis)
-            result._data = result._data.rename_axis(f, axis=baxis, copy=copy)
-            result._clear_item_cache()
+            f = _get_rename_function(v)
+            if is_list_like(f) and not callable(f):
+                result._set_axis(axis=baxis, labels=v)
+            else:
+                result._data = result._data.rename_axis(f, axis=baxis,
+                                                        copy=copy)
+                result._clear_item_cache()
 
         if inplace:
             self._update_inplace(result._data)
