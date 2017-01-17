@@ -12,7 +12,8 @@ from pandas.types.common import is_categorical_dtype
 _default_hash_key = '0123456789123456'
 
 
-def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None):
+def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
+                       categorize=True):
     """
     Return a data hash of the Index/Series/DataFrame
 
@@ -25,6 +26,11 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None):
     encoding : string, default 'utf8'
         encoding for data & key when strings
     hash_key : string key to encode, default to _default_hash_key
+    categorize : bool, default True
+        Whether to first categorize object arrays before hashing. This is more
+        efficient when the array contains duplicate values.
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -39,33 +45,46 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None):
         return np.add(h, hashed_to_add, h)
 
     if isinstance(obj, ABCIndexClass):
-        h = hash_array(obj.values, encoding, hash_key).astype('uint64')
+        h = hash_array(obj.values, encoding, hash_key,
+                       categorize).astype('uint64')
         h = Series(h, index=obj, dtype='uint64')
     elif isinstance(obj, ABCSeries):
-        h = hash_array(obj.values, encoding, hash_key).astype('uint64')
+        h = hash_array(obj.values, encoding, hash_key,
+                       categorize).astype('uint64')
         if index:
             h = adder(h, hash_pandas_object(obj.index,
                                             index=False,
                                             encoding=encoding,
-                                            hash_key=hash_key).values)
+                                            hash_key=hash_key,
+                                            categorize=categorize).values)
         h = Series(h, index=obj.index, dtype='uint64')
     elif isinstance(obj, ABCDataFrame):
         cols = obj.iteritems()
         first_series = next(cols)[1]
         h = hash_array(first_series.values, encoding,
-                       hash_key).astype('uint64')
+                       hash_key, categorize).astype('uint64')
         for _, col in cols:
-            h = adder(h, hash_array(col.values, encoding, hash_key))
+            h = adder(h, hash_array(col.values, encoding, hash_key,
+                                    categorize))
         if index:
             h = adder(h, hash_pandas_object(obj.index,
                                             index=False,
                                             encoding=encoding,
-                                            hash_key=hash_key).values)
+                                            hash_key=hash_key,
+                                            categorize=categorize).values)
 
         h = Series(h, index=obj.index, dtype='uint64')
     else:
         raise TypeError("Unexpected type for hashing %s" % type(obj))
     return h
+
+
+def _hash_categorical(c, encoding, hash_key):
+    """Hash a Categorical by hashing its categories, and then mapping the codes
+    to the hashes"""
+    cat_hashed = hash_array(c.categories.values, encoding, hash_key,
+                            categorize=False).astype(np.uint64, copy=False)
+    return c.rename_categories(cat_hashed).astype(np.uint64)
 
 
 def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
@@ -84,6 +103,8 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
 
+        .. versionadded:: 0.20.0
+
     Returns
     -------
     1d uint64 numpy array of hash values, same length as the vals
@@ -97,12 +118,7 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
     # hash values. (This check is above the complex check so that we don't ask
     # numpy if categorical is a subdtype of complex, as it will choke.
     if is_categorical_dtype(vals.dtype):
-        cat_hashed = hash_array(vals.categories.values, encoding, hash_key,
-                                categorize=False).astype(np.uint64, copy=False)
-        # Since `cat_hashed` is already distributed in the space of uint64s,
-        # we can just return after remapping the codes here
-        c = Series(vals)
-        return c.cat.rename_categories(cat_hashed).values.astype(np.uint64)
+        return _hash_categorical(vals, encoding, hash_key)
 
     # we'll be working with everything as 64-bit values, so handle this
     # 128-bit value early
@@ -123,11 +139,9 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
         # when the values are known/likely to be unique.
         if categorize:
             codes, categories = factorize(vals, sort=False)
-            c = Series(Categorical(codes, Index(categories),
-                                   ordered=False, fastpath=True))
-            vals = _hash.hash_object_array(categories, hash_key, encoding)
-            # rename & extract
-            vals = c.cat.rename_categories(vals).values.astype(np.uint64)
+            cat = Categorical(codes, Index(categories),
+                              ordered=False, fastpath=True)
+            return _hash_categorical(cat, encoding, hash_key)
         else:
             vals = _hash.hash_object_array(vals, hash_key, encoding)
 
