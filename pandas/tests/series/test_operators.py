@@ -1224,6 +1224,8 @@ class TestSeriesOperators(TestData, tm.TestCase):
         for v in [np.nan]:
             self.assertRaises(TypeError, lambda: t & v)
 
+
+
     def test_comparison_flex_basic(self):
         left = pd.Series(np.random.randn(10))
         right = pd.Series(np.random.randn(10))
@@ -1293,6 +1295,19 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
         exp = pd.Series([True, True, False, False], index=list('abcd'))
         assert_series_equal(left.gt(right, fill_value=0), exp)
+
+    def test_return_dtypes_bool_op_costant(self):
+        # gh15115
+        s = pd.Series([1, 3, 2], index=range(3))
+        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
+            f = getattr(s, op)
+            self.assertFalse(f(2).dtypes, np.dtype('bool'))
+
+        # empty Series
+        empty = s.iloc[:0]
+        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
+            f = getattr(empty, op)
+            self.assertFalse(f(2).dtypes, np.dtype('bool'))
 
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types
