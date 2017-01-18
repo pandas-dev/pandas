@@ -2710,6 +2710,9 @@ class Tick(SingleConstructorOffset):
             return self.apply(other)
         except ApplyTypeError:
             return NotImplemented
+        except OverflowError:
+            raise OverflowError("the add operation between {} and {} "
+                                "will overflow".format(self, other))
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
@@ -2748,14 +2751,26 @@ class Tick(SingleConstructorOffset):
 
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
-        if isinstance(other, (datetime, np.datetime64, date)):
+        if isinstance(other, Timestamp):
+
+            # GH 15126
+            # in order to avoid a recursive
+            # call of __add__ and __radd__ if there is
+            # an exception, when we call using the + operator,
+            # we directly call the known method
+            result = other.__add__(self)
+            if result == NotImplemented:
+                raise OverflowError
+            return result
+        elif isinstance(other, (datetime, np.datetime64, date)):
             return as_timestamp(other) + self
+
         if isinstance(other, timedelta):
             return other + self.delta
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
-        else:
-            raise ApplyTypeError('Unhandled type: %s' % type(other).__name__)
+
+        raise ApplyTypeError('Unhandled type: %s' % type(other).__name__)
 
     _prefix = 'undefined'
 

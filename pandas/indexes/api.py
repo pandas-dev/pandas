@@ -4,7 +4,7 @@ from pandas.indexes.base import (Index, _new_Index,  # noqa
 from pandas.indexes.category import CategoricalIndex  # noqa
 from pandas.indexes.multi import MultiIndex  # noqa
 from pandas.indexes.numeric import (NumericIndex, Float64Index,  # noqa
-                                    Int64Index)
+                                    Int64Index, UInt64Index)
 from pandas.indexes.range import RangeIndex  # noqa
 
 import pandas.core.common as com
@@ -13,7 +13,7 @@ import pandas.lib as lib
 # TODO: there are many places that rely on these private methods existing in
 # pandas.core.index
 __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
-           'CategoricalIndex', 'RangeIndex',
+           'CategoricalIndex', 'RangeIndex', 'UInt64Index',
            'InvalidIndexError',
            '_new_Index',
            '_ensure_index', '_get_na_value', '_get_combined_index',

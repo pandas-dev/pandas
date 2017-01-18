@@ -518,6 +518,19 @@ class TestAsOfMerge(tm.TestCase):
              'value2': list("BCDEE")})
         assert_frame_equal(result, expected)
 
+    def test_index_tolerance(self):
+        # GH 15135
+        expected = self.tolerance.set_index('time')
+        trades = self.trades.set_index('time')
+        quotes = self.quotes.set_index('time')
+
+        result = pd.merge_asof(trades, quotes,
+                               left_index=True,
+                               right_index=True,
+                               by='ticker',
+                               tolerance=pd.Timedelta('1day'))
+        assert_frame_equal(result, expected)
+
     def test_allow_exact_matches(self):
 
         result = merge_asof(self.trades, self.quotes,

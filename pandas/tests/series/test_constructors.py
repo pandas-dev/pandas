@@ -251,6 +251,22 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         s = Series(np.array([1., 1., np.nan]), copy=True, dtype='i8')
         self.assertEqual(s.dtype, np.dtype('f8'))
 
+    def test_constructor_copy(self):
+        # GH15125
+        # test dtype parameter has no side effects on copy=True
+        for data in [[1.], np.array([1.])]:
+            x = Series(data)
+            y = pd.Series(x, copy=True, dtype=float)
+
+            # copy=True maintains original data in Series
+            tm.assert_series_equal(x, y)
+
+            # changes to origin of copy does not affect the copy
+            x[0] = 2.
+            self.assertFalse(x.equals(y))
+            self.assertEqual(x[0], 2.)
+            self.assertEqual(y[0], 1.)
+
     def test_constructor_pass_none(self):
         s = Series(None, index=lrange(5))
         self.assertEqual(s.dtype, np.float64)
