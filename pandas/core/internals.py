@@ -3236,7 +3236,7 @@ class BlockManager(PandasObject):
             return _possibly_compare(values, getattr(s, 'asm8', s),
                                      operator.eq)
 
-        def _cast(block, scalar):
+        def _cast_scalar(block, scalar):
             dtype, val = _infer_dtype_from_scalar(scalar, pandas_dtype=True)
             if not is_dtype_equal(block.dtype, dtype):
                 dtype = _find_common_type([block.dtype, dtype])
@@ -3268,7 +3268,7 @@ class BlockManager(PandasObject):
                         # particular block
                         m = masks[i][b.mgr_locs.indexer]
                         if m.any():
-                            b, val = _cast(b, d)
+                            b, val = _cast_scalar(b, d)
                             new_rb.extend(b.putmask(m, val, inplace=True))
                         else:
                             new_rb.append(b)
