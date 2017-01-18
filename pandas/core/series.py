@@ -2309,8 +2309,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             return self._constructor(mapped,
                                      index=self.index).__finalize__(self)
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+    def _reduce(self, op, name, axis=0, skipna=True, weights=None,
+                numeric_only=None, filter_type=None, **kwds):
         """
         perform a reduction operation
 
@@ -2318,6 +2318,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         otherwise delegate to the object
 
         """
+        if weights is not None:
+            from pandas.tools import weightby
+            _, weights = weightby.weightby(self, weights=weights, axis=axis)
+            kwds['weights'] = weights
+
         delegate = self._values
         if isinstance(delegate, np.ndarray):
             # Validate that 'axis' is consistent with Series's single axis.
@@ -2325,6 +2330,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             if numeric_only:
                 raise NotImplementedError('Series.{0} does not implement '
                                           'numeric_only.'.format(name))
+
             with np.errstate(all='ignore'):
                 return op(delegate, skipna=skipna, **kwds)
 

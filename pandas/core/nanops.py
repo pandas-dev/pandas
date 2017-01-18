@@ -23,7 +23,7 @@ from pandas.types.cast import _int64_max, _maybe_upcast_putmask
 from pandas.types.missing import isnull, notnull
 
 from pandas.core.common import _values_from_object
-
+from pandas.tools import weightby
 
 class disallow(object):
     def __init__(self, *dtypes):
@@ -71,11 +71,14 @@ class bottleneck_switch(object):
             bn_func = None
 
         @functools.wraps(alt)
-        def f(values, axis=None, skipna=True, **kwds):
+        def f(values, axis=None, skipna=True, weights=None, **kwds):
             if len(self.kwargs) > 0:
                 for k, v in compat.iteritems(self.kwargs):
                     if k not in kwds:
                         kwds[k] = v
+
+            if weights is not None:
+                kwds['weights'] = weights
             try:
                 if self.zero_value is not None and values.size == 0:
                     if values.ndim == 1:
@@ -91,7 +94,7 @@ class bottleneck_switch(object):
                         result.fill(0)
                         return result
 
-                if (_USE_BOTTLENECK and skipna and
+                if (_USE_BOTTLENECK and skipna and weights is None and
                         _bn_ok_dtype(values.dtype, bn_name)):
                     result = bn_func(values, axis=axis, **kwds)
 
@@ -101,7 +104,8 @@ class bottleneck_switch(object):
                         result = alt(values, axis=axis, skipna=skipna, **kwds)
                 else:
                     result = alt(values, axis=axis, skipna=skipna, **kwds)
-            except Exception:
+            except Exception as e:
+
                 try:
                     result = alt(values, axis=axis, skipna=skipna, **kwds)
                 except ValueError as e:
@@ -169,11 +173,29 @@ def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
                 return tslib.iNaT
 
 
-def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
-                isfinite=False, copy=True):
-    """ utility to get the values view, mask, dtype
+def _get_values(values, skipna,
+                fill_value=None, fill_value_typ=None,
+                isfinite=False, weights=None, axis=None,
+                copy=True):
+    """
+    utility to get the values view, mask, dtype
     if necessary copy and mask using the specified fill_value
-    copy = True will force the copy
+    and adjust for weights
+
+    Parameters
+    ----------
+    values : ndarray
+    skipna : boolean
+    fill_value : value, default None
+        value to fillna
+    fill_value_typ : value, default None
+        dtype of the fillvalue
+    isfinite : boolean, default False
+    weights : ndarray, optional
+        normalized ndarray, same length as the axis
+    axis : axis to broadcast, default None
+    copy : boolean, default True
+        True will force the copy
     """
     values = _values_from_object(values)
     if isfinite:
@@ -181,6 +203,8 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     else:
         mask = isnull(values)
 
+    # weights
+    values = weightby.weight(values, weights)
     dtype = values.dtype
     dtype_ok = _na_ok_dtype(dtype)
 
@@ -267,13 +291,16 @@ def nanall(values, axis=None, skipna=True):
 
 @disallow('M8')
 @bottleneck_switch(zero_value=0)
-def nansum(values, axis=None, skipna=True):
-    values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
+def nansum(values, axis=None, skipna=True, weights=None):
+    values, mask, dtype, dtype_max = _get_values(values, skipna,
+                                                 0, weights=weights,
+                                                 axis=axis)
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
         dtype_sum = dtype
     elif is_timedelta64_dtype(dtype):
         dtype_sum = np.float64
+
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask)
 
@@ -282,8 +309,10 @@ def nansum(values, axis=None, skipna=True):
 
 @disallow('M8')
 @bottleneck_switch()
-def nanmean(values, axis=None, skipna=True):
-    values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
+def nanmean(values, axis=None, skipna=True, weights=None):
+    values, mask, dtype, dtype_max = _get_values(values, skipna,
+                                                 0, weights=weights,
+                                                 axis=axis)
 
     dtype_sum = dtype_max
     dtype_count = np.float64
@@ -368,14 +397,14 @@ def _get_counts_nanvar(mask, axis, ddof, dtype=float):
 
 @disallow('M8')
 @bottleneck_switch(ddof=1)
-def nanstd(values, axis=None, skipna=True, ddof=1):
+def nanstd(values, axis=None, skipna=True, ddof=1, weights=None):
     result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof))
     return _wrap_results(result, values.dtype)
 
 
 @disallow('M8')
 @bottleneck_switch(ddof=1)
-def nanvar(values, axis=None, skipna=True, ddof=1):
+def nanvar(values, axis=None, skipna=True, ddof=1, weights=None):
 
     dtype = values.dtype
     mask = isnull(values)
@@ -414,7 +443,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 
 
 @disallow('M8', 'm8')
-def nansem(values, axis=None, skipna=True, ddof=1):
+def nansem(values, axis=None, skipna=True, ddof=1, weights=None):
     var = nanvar(values, axis, skipna, ddof=ddof)
 
     mask = isnull(values)
@@ -476,7 +505,7 @@ def nanargmin(values, axis=None, skipna=True):
 
 
 @disallow('M8', 'm8')
-def nanskew(values, axis=None, skipna=True):
+def nanskew(values, axis=None, skipna=True, weights=None):
     """ Compute the sample skewness.
 
     The statistic computed here is the adjusted Fisher-Pearson standardized
@@ -531,7 +560,7 @@ def nanskew(values, axis=None, skipna=True):
 
 
 @disallow('M8', 'm8')
-def nankurt(values, axis=None, skipna=True):
+def nankurt(values, axis=None, skipna=True, weights=None):
     """ Compute the sample skewness.
 
     The statistic computed here is the adjusted Fisher-Pearson standardized
