@@ -173,8 +173,8 @@ class TestTimeSeriesDuplicates(tm.TestCase):
             self.assertIn(timestamp, df.index)
 
             # it works!
-            df.ix[timestamp]
-            self.assertTrue(len(df.ix[[timestamp]]) > 0)
+            df.loc[timestamp]
+            self.assertTrue(len(df.loc[[timestamp]]) > 0)
         finally:
             _index._SIZE_CUTOFF = old_cutoff
 
@@ -1373,7 +1373,7 @@ class TestTimeSeries(tm.TestCase):
         df = DataFrame(np.random.randn(len(rng), 3), index=rng)
 
         result = ts[time(9, 30)]
-        result_df = df.ix[time(9, 30)]
+        result_df = df.loc[time(9, 30)]
         expected = ts[(rng.hour == 9) & (rng.minute == 30)]
         exp_df = df[(rng.hour == 9) & (rng.minute == 30)]
 
@@ -1382,8 +1382,8 @@ class TestTimeSeries(tm.TestCase):
         assert_series_equal(result, expected)
         tm.assert_frame_equal(result_df, exp_df)
 
-        chunk = df.ix['1/4/2000':]
-        result = chunk.ix[time(9, 30)]
+        chunk = df.loc['1/4/2000':]
+        result = chunk.loc[time(9, 30)]
         expected = result_df[-1:]
         tm.assert_frame_equal(result, expected)
 
@@ -1412,8 +1412,8 @@ class TestTimeSeries(tm.TestCase):
         expected = ts.at_time(time(9, 30))
         assert_frame_equal(result, expected)
 
-        result = ts.ix[time(9, 30)]
-        expected = ts.ix[(rng.hour == 9) & (rng.minute == 30)]
+        result = ts.loc[time(9, 30)]
+        expected = ts.loc[(rng.hour == 9) & (rng.minute == 30)]
 
         assert_frame_equal(result, expected)
 
@@ -3192,7 +3192,7 @@ class TestDatetimeIndex(tm.TestCase):
         df = DataFrame(np.random.randn(10, 4),
                        index=date_range('1/1/2000', periods=10))
 
-        result = df.ix['1/3/2000']
+        result = df.loc['1/3/2000']
         self.assertEqual(result.name, df.index[2])
 
         result = df.T['1/3/2000']
@@ -3916,7 +3916,7 @@ class TestDatetimeIndex(tm.TestCase):
         def assert_slices_equivalent(l_slc, i_slc):
             assert_series_equal(ts[l_slc], ts.iloc[i_slc])
             assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
-            assert_series_equal(ts.ix[l_slc], ts.iloc[i_slc])
+            assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
 
         assert_slices_equivalent(SLC[Timestamp('2014-10-01')::-1], SLC[9::-1])
         assert_slices_equivalent(SLC['2014-10-01'::-1], SLC[9::-1])
@@ -3943,7 +3943,7 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
                                 lambda: ts.loc[::0])
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts.ix[::0])
+                                lambda: ts.loc[::0])
 
     def test_slice_bounds_empty(self):
         # GH 14354
@@ -4313,7 +4313,7 @@ class TestDatetime64(tm.TestCase):
         times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10)
                  for i in range(100000)]
         s = Series(lrange(100000), times)
-        s.ix[datetime(1900, 1, 1):datetime(2100, 1, 1)]
+        s.loc[datetime(1900, 1, 1):datetime(2100, 1, 1)]
 
     def test_slicing_datetimes(self):
 
@@ -4323,17 +4323,17 @@ class TestDatetime64(tm.TestCase):
         df = DataFrame(np.arange(4., dtype='float64'),
                        index=[datetime(2001, 1, i, 10, 00)
                               for i in [1, 2, 3, 4]])
-        result = df.ix[datetime(2001, 1, 1, 10):]
+        result = df.loc[datetime(2001, 1, 1, 10):]
         assert_frame_equal(result, df)
-        result = df.ix[:datetime(2001, 1, 4, 10)]
+        result = df.loc[:datetime(2001, 1, 4, 10)]
         assert_frame_equal(result, df)
-        result = df.ix[datetime(2001, 1, 1, 10):datetime(2001, 1, 4, 10)]
+        result = df.loc[datetime(2001, 1, 1, 10):datetime(2001, 1, 4, 10)]
         assert_frame_equal(result, df)
 
-        result = df.ix[datetime(2001, 1, 1, 11):]
+        result = df.loc[datetime(2001, 1, 1, 11):]
         expected = df.iloc[1:]
         assert_frame_equal(result, expected)
-        result = df.ix['20010101 11':]
+        result = df.loc['20010101 11':]
         assert_frame_equal(result, expected)
 
         # duplicates
@@ -4341,17 +4341,17 @@ class TestDatetime64(tm.TestCase):
                           index=[datetime(2001, 1, i, 10, 00)
                                  for i in [1, 2, 2, 3, 4]])
 
-        result = df.ix[datetime(2001, 1, 1, 10):]
+        result = df.loc[datetime(2001, 1, 1, 10):]
         assert_frame_equal(result, df)
-        result = df.ix[:datetime(2001, 1, 4, 10)]
+        result = df.loc[:datetime(2001, 1, 4, 10)]
         assert_frame_equal(result, df)
-        result = df.ix[datetime(2001, 1, 1, 10):datetime(2001, 1, 4, 10)]
+        result = df.loc[datetime(2001, 1, 1, 10):datetime(2001, 1, 4, 10)]
         assert_frame_equal(result, df)
 
-        result = df.ix[datetime(2001, 1, 1, 11):]
+        result = df.loc[datetime(2001, 1, 1, 11):]
         expected = df.iloc[1:]
         assert_frame_equal(result, expected)
-        result = df.ix['20010101 11':]
+        result = df.loc['20010101 11':]
         assert_frame_equal(result, expected)
 
 
@@ -4890,7 +4890,7 @@ class TestSlicing(tm.TestCase):
         assert_series_equal(result, expected)
 
         df = DataFrame(np.random.rand(len(dti), 5), index=dti)
-        result = df.ix['2005']
+        result = df.loc['2005']
         expected = df[df.index.year == 2005]
         assert_frame_equal(result, expected)
 
@@ -4907,7 +4907,7 @@ class TestSlicing(tm.TestCase):
         self.assertEqual(len(s['2001Q1']), 90)
 
         df = DataFrame(np.random.rand(len(dti), 5), index=dti)
-        self.assertEqual(len(df.ix['1Q01']), 90)
+        self.assertEqual(len(df.loc['1Q01']), 90)
 
     def test_slice_month(self):
         dti = DatetimeIndex(freq='D', start=datetime(2005, 1, 1), periods=500)
@@ -4915,7 +4915,7 @@ class TestSlicing(tm.TestCase):
         self.assertEqual(len(s['2005-11']), 30)
 
         df = DataFrame(np.random.rand(len(dti), 5), index=dti)
-        self.assertEqual(len(df.ix['2005-11']), 30)
+        self.assertEqual(len(df.loc['2005-11']), 30)
 
         assert_series_equal(s['2005-11'], s['11-2005'])
 
@@ -4945,7 +4945,7 @@ class TestSlicing(tm.TestCase):
         s = Series(np.arange(len(rng)), index=rng)
 
         result = s['2005-1-31']
-        assert_series_equal(result, s.ix[:24])
+        assert_series_equal(result, s.iloc[:24])
 
         self.assertRaises(Exception, s.__getitem__, '2004-12-31 00')
 
@@ -4955,12 +4955,12 @@ class TestSlicing(tm.TestCase):
         s = Series(np.arange(len(rng)), index=rng)
 
         result = s['2005-1-1']
-        assert_series_equal(result, s.ix[:60 * 4])
+        assert_series_equal(result, s.iloc[:60 * 4])
 
         result = s['2005-1-1 20']
-        assert_series_equal(result, s.ix[:60])
+        assert_series_equal(result, s.iloc[:60])
 
-        self.assertEqual(s['2005-1-1 20:00'], s.ix[0])
+        self.assertEqual(s['2005-1-1 20:00'], s.iloc[0])
         self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:15')
 
     def test_partial_slice_minutely(self):
@@ -4969,12 +4969,12 @@ class TestSlicing(tm.TestCase):
         s = Series(np.arange(len(rng)), index=rng)
 
         result = s['2005-1-1 23:59']
-        assert_series_equal(result, s.ix[:60])
+        assert_series_equal(result, s.iloc[:60])
 
         result = s['2005-1-1']
-        assert_series_equal(result, s.ix[:60])
+        assert_series_equal(result, s.iloc[:60])
 
-        self.assertEqual(s[Timestamp('2005-1-1 23:59:00')], s.ix[0])
+        self.assertEqual(s[Timestamp('2005-1-1 23:59:00')], s.iloc[0])
         self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:00:00')
 
     def test_partial_slice_second_precision(self):
@@ -5104,8 +5104,8 @@ class TestSlicing(tm.TestCase):
         assert_series_equal(result, expected)
 
         df2 = pd.DataFrame(s)
-        expected = df2.ix['2000-1-4']
-        result = df2.ix[pd.Timestamp('2000-1-4')]
+        expected = df2.xs('2000-1-4')
+        result = df2.loc[pd.Timestamp('2000-1-4')]
         assert_frame_equal(result, expected)
 
     def test_date_range_normalize(self):
@@ -5283,10 +5283,10 @@ class TestSlicing(tm.TestCase):
                                 r"Timestamp\('2014-01-10 00:00:00'\)",
                                 lambda: nonmonotonic[timestamp:])
 
-        assert_series_equal(nonmonotonic.ix['2014-01-10':], expected)
+        assert_series_equal(nonmonotonic.loc['2014-01-10':], expected)
         self.assertRaisesRegexp(KeyError,
                                 r"Timestamp\('2014-01-10 00:00:00'\)",
-                                lambda: nonmonotonic.ix[timestamp:])
+                                lambda: nonmonotonic.loc[timestamp:])
 
 
 class TimeConversionFormats(tm.TestCase):

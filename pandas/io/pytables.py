@@ -1043,7 +1043,7 @@ class HDFStore(StringMixin):
             valid_index = next(idxs)
             for index in idxs:
                 valid_index = valid_index.intersection(index)
-            value = value.ix[valid_index]
+            value = value.loc[valid_index]
 
         # append
         for k, v in d.items():
@@ -3579,8 +3579,8 @@ class Table(Fixed):
                                 filt = filt.union(Index(self.levels))
 
                             takers = op(axis_values, filt)
-                            return obj.ix._getitem_axis(takers,
-                                                        axis=axis_number)
+                            return obj.loc._getitem_axis(takers,
+                                                         axis=axis_number)
 
                         # this might be the name of a file IN an axis
                         elif field in axis_values:
@@ -3593,8 +3593,8 @@ class Table(Fixed):
                             if isinstance(obj, DataFrame):
                                 axis_number = 1 - axis_number
                             takers = op(values, filt)
-                            return obj.ix._getitem_axis(takers,
-                                                        axis=axis_number)
+                            return obj.loc._getitem_axis(takers,
+                                                         axis=axis_number)
 
                     raise ValueError(
                         "cannot find the field [%s] for filtering!" % field)

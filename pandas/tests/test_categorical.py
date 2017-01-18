@@ -3367,23 +3367,23 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # ix
         # frame
-        # res_df = df.ix["j":"k",[0,1]] # doesn't work?
-        res_df = df.ix["j":"k", :]
+        # res_df = df.loc["j":"k",[0,1]] # doesn't work?
+        res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
         self.assertTrue(is_categorical_dtype(res_df["cats"]))
 
         # row
-        res_row = df.ix["j", :]
+        res_row = df.loc["j", :]
         tm.assert_series_equal(res_row, exp_row)
         tm.assertIsInstance(res_row["cats"], compat.string_types)
 
         # col
-        res_col = df.ix[:, "cats"]
+        res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
         self.assertTrue(is_categorical_dtype(res_col))
 
         # single value
-        res_val = df.ix["j", 0]
+        res_val = df.loc["j", df.columns[0]]
         self.assertEqual(res_val, exp_val)
 
         # iat
@@ -3456,7 +3456,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                           index=['h', 'i', 'j'], name='cats')
         tm.assert_series_equal(result, expected)
 
-        result = df.ix["h":"j", 0:1]
+        result = df.loc["h":"j", df.columns[0:1]]
         expected = DataFrame({'cats': Categorical(['a', 'b', 'b'],
                                                   categories=['a', 'b', 'c'])},
                              index=['h', 'i', 'j'])
@@ -3657,73 +3657,73 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         with tm.assertRaises(ValueError):
             df.loc["j":"k", "cats"] = ["c", "c"]
 
-        #  ix
+        #  loc
         # ##############
         #   - assign a single value -> exp_single_cats_value
         df = orig.copy()
-        df.ix["j", 0] = "b"
+        df.loc["j", df.columns[0]] = "b"
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         df = orig.copy()
-        df.ix[df.index == "j", 0] = "b"
+        df.loc[df.index == "j", df.columns[0]] = "b"
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
         def f():
             df = orig.copy()
-            df.ix["j", 0] = "c"
+            df.loc["j", df.columns[0]] = "c"
 
         self.assertRaises(ValueError, f)
 
         #   - assign a complete row (mixed values) -> exp_single_row
         df = orig.copy()
-        df.ix["j", :] = ["b", 2]
+        df.loc["j", :] = ["b", 2]
         tm.assert_frame_equal(df, exp_single_row)
 
         #   - assign a complete row (mixed values) not in categories set
         def f():
             df = orig.copy()
-            df.ix["j", :] = ["c", 2]
+            df.loc["j", :] = ["c", 2]
 
         self.assertRaises(ValueError, f)
 
         #   - assign multiple rows (mixed values) -> exp_multi_row
         df = orig.copy()
-        df.ix["j":"k", :] = [["b", 2], ["b", 2]]
+        df.loc["j":"k", :] = [["b", 2], ["b", 2]]
         tm.assert_frame_equal(df, exp_multi_row)
 
         def f():
             df = orig.copy()
-            df.ix["j":"k", :] = [["c", 2], ["c", 2]]
+            df.loc["j":"k", :] = [["c", 2], ["c", 2]]
 
         self.assertRaises(ValueError, f)
 
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
         df = orig.copy()
-        df.ix["j":"k", 0] = pd.Categorical(["b", "b"], categories=["a", "b"])
+        df.loc["j":"k", df.columns[0]] = pd.Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
         with tm.assertRaises(ValueError):
             # different categories -> not sure if this should fail or pass
             df = orig.copy()
-            df.ix["j":"k", 0] = pd.Categorical(
+            df.loc["j":"k", df.columns[0]] = pd.Categorical(
                 ["b", "b"], categories=["a", "b", "c"])
 
         with tm.assertRaises(ValueError):
             # different values
             df = orig.copy()
-            df.ix["j":"k", 0] = pd.Categorical(["c", "c"],
-                                               categories=["a", "b", "c"])
+            df.loc["j":"k", df.columns[0]] = pd.Categorical(
+                ["c", "c"], categories=["a", "b", "c"])
 
         # assign a part of a column with dtype != categorical ->
         # exp_parts_cats_col
         df = orig.copy()
-        df.ix["j":"k", 0] = ["b", "b"]
+        df.loc["j":"k", df.columns[0]] = ["b", "b"]
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
         with tm.assertRaises(ValueError):
-            df.ix["j":"k", 0] = ["c", "c"]
+            df.loc["j":"k", df.columns[0]] = ["c", "c"]
 
         # iat
         df = orig.copy()

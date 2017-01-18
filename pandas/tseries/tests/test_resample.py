@@ -110,7 +110,7 @@ class TestResampleAPI(tm.TestCase):
         r = self.series.resample('H')
         self.assertRaises(ValueError, lambda: r.iloc[0])
         self.assertRaises(ValueError, lambda: r.iat[0])
-        self.assertRaises(ValueError, lambda: r.ix[0])
+        self.assertRaises(ValueError, lambda: r.loc[0])
         self.assertRaises(ValueError, lambda: r.loc[
             Timestamp('2013-01-01 00:00:00', offset='H')])
         self.assertRaises(ValueError, lambda: r.at[
@@ -1410,13 +1410,13 @@ class TestDatetimeIndex(Base, tm.TestCase):
         resampled = ts.resample('5min', closed='right',
                                 label='right').ohlc()
 
-        self.assertTrue((resampled.ix['1/1/2000 00:00'] == ts[0]).all())
+        self.assertTrue((resampled.loc['1/1/2000 00:00'] == ts[0]).all())
 
         exp = _ohlc(ts[1:31])
-        self.assertTrue((resampled.ix['1/1/2000 00:05'] == exp).all())
+        self.assertTrue((resampled.loc['1/1/2000 00:05'] == exp).all())
 
         exp = _ohlc(ts['1/1/2000 5:55:01':])
-        self.assertTrue((resampled.ix['1/1/2000 6:00:00'] == exp).all())
+        self.assertTrue((resampled.loc['1/1/2000 6:00:00'] == exp).all())
 
     def test_downsample_non_unique(self):
         rng = date_range('1/1/2000', '2/29/2000')
@@ -2495,7 +2495,7 @@ class TestPeriodIndex(Base, tm.TestCase):
         subset = s[:'2012-01-04 06:55']
 
         result = subset.resample('10min').apply(len)
-        expected = s.resample('10min').apply(len).ix[result.index]
+        expected = s.resample('10min').apply(len).loc[result.index]
         assert_series_equal(result, expected)
 
     def test_resample_weekly_all_na(self):
