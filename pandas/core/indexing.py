@@ -1,5 +1,6 @@
 # pylint: disable=W0223
 
+import warnings
 import numpy as np
 from pandas.compat import range, zip
 import pandas.compat as compat
@@ -119,8 +120,12 @@ class _NDFrameIndexer(object):
             except Exception:
                 pass
 
-        if isinstance(key, tuple) and not self.ndim < len(key):
-            return self._convert_tuple(key, is_setter=True)
+        if isinstance(key, tuple):
+            try:
+                return self._convert_tuple(key, is_setter=True)
+            except IndexingError:
+                pass
+
         if isinstance(key, range):
             return self._convert_range(key, is_setter=True)
 
@@ -182,6 +187,8 @@ class _NDFrameIndexer(object):
                     keyidx.append(slice(None))
         else:
             for i, k in enumerate(key):
+                if i >= self.obj.ndim:
+                    raise IndexingError('Too many indexers')
                 idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
                 keyidx.append(idx)
         return tuple(keyidx)
@@ -1284,6 +1291,20 @@ class _IXIndexer(_NDFrameIndexer):
 
     """
 
+    def __init__(self, obj, name):
+
+        _ix_deprecation_warning = """
+.ix is deprecated. Please use
+.loc for label based indexing or
+.iloc for positional indexing
+
+See the documentation here:
+http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate_ix"""
+
+        warnings.warn(_ix_deprecation_warning,
+                      DeprecationWarning, stacklevel=3)
+        super(_IXIndexer, self).__init__(obj, name)
+
     def _has_valid_type(self, key, axis):
         if isinstance(key, slice):
             return True
@@ -1619,11 +1640,17 @@ class _iLocIndexer(_LocationIndexer):
         # return a boolean if we are a valid list-like (e.g. that we don't
         # have out-of-bounds values)
 
+        # a tuple should already have been caught by this point
+        # so don't treat a tuple as a valid indexer
+        if isinstance(key, tuple):
+            raise IndexingError('Too many indexers')
+
         # coerce the key to not exceed the maximum size of the index
         arr = np.array(key)
         ax = self.obj._get_axis(axis)
         l = len(ax)
-        if len(arr) and (arr.max() >= l or arr.min() < -l):
+        if (hasattr(arr, '__len__') and len(arr) and
+                (arr.max() >= l or arr.min() < -l)):
             raise IndexError("positional indexers are out-of-bounds")
 
         return True

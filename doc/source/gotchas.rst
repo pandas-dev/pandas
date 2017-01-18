@@ -221,7 +221,7 @@ Label-based indexing with integer axis labels is a thorny topic. It has been
 discussed heavily on mailing lists and among various members of the scientific
 Python community. In pandas, our general viewpoint is that labels matter more
 than integer locations. Therefore, with an integer axis index *only*
-label-based indexing is possible with the standard tools like ``.ix``. The
+label-based indexing is possible with the standard tools like ``.loc``. The
 following code will generate exceptions:
 
 .. code-block:: python
@@ -230,7 +230,7 @@ following code will generate exceptions:
    s[-1]
    df = pd.DataFrame(np.random.randn(5, 4))
    df
-   df.ix[-2:]
+   df.loc[-2:]
 
 This deliberate decision was made to prevent ambiguities and subtle bugs (many
 users reported finding bugs when the API change was made to stop "falling back"
@@ -305,7 +305,7 @@ index can be somewhat complicated. For example, the following does not work:
 
 ::
 
-    s.ix['c':'e'+1]
+    s.loc['c':'e'+1]
 
 A very common use case is to limit a time series to start and end at two
 specific dates. To enable this, we made the design design to make label-based
@@ -313,7 +313,7 @@ slicing include both endpoints:
 
 .. ipython:: python
 
-    s.ix['c':'e']
+    s.loc['c':'e']
 
 This is most definitely a "practicality beats purity" sort of thing, but it is
 something to watch out for if you expect label-based slicing to behave exactly
@@ -321,58 +321,6 @@ in the way that standard Python integer slicing works.
 
 Miscellaneous indexing gotchas
 ------------------------------
-
-Reindex versus ix gotchas
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Many users will find themselves using the ``ix`` indexing capabilities as a
-concise means of selecting data from a pandas object:
-
-.. ipython:: python
-
-   df = pd.DataFrame(np.random.randn(6, 4), columns=['one', 'two', 'three', 'four'],
-                     index=list('abcdef'))
-   df
-   df.ix[['b', 'c', 'e']]
-
-This is, of course, completely equivalent *in this case* to using the
-``reindex`` method:
-
-.. ipython:: python
-
-   df.reindex(['b', 'c', 'e'])
-
-Some might conclude that ``ix`` and ``reindex`` are 100% equivalent based on
-this. This is indeed true **except in the case of integer indexing**. For
-example, the above operation could alternately have been expressed as:
-
-.. ipython:: python
-
-   df.ix[[1, 2, 4]]
-
-If you pass ``[1, 2, 4]`` to ``reindex`` you will get another thing entirely:
-
-.. ipython:: python
-
-   df.reindex([1, 2, 4])
-
-So it's important to remember that ``reindex`` is **strict label indexing
-only**. This can lead to some potentially surprising results in pathological
-cases where an index contains, say, both integers and strings:
-
-.. ipython:: python
-
-   s = pd.Series([1, 2, 3], index=['a', 0, 1])
-   s
-   s.ix[[0, 1]]
-   s.reindex([0, 1])
-
-Because the index in this case does not contain solely integers, ``ix`` falls
-back on integer indexing. By contrast, ``reindex`` only looks for the values
-passed in the index, thus finding the integers ``0`` and ``1``. While it would
-be possible to insert some logic to check whether a passed sequence is all
-contained in the index, that logic would exact a very high cost in large data
-sets.
 
 Reindex potentially changes underlying Series dtype
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

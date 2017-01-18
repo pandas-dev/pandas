@@ -40,7 +40,7 @@ date, time, a, b
         df = read_table(StringIO(data), sep=',', header=0,
                         parse_dates=datecols, date_parser=conv.parse_date_time)
         self.assertIn('date_time', df)
-        self.assertEqual(df.date_time.ix[0], datetime(2001, 1, 5, 10, 0, 0))
+        self.assertEqual(df.date_time.loc[0], datetime(2001, 1, 5, 10, 0, 0))
 
         data = ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
                 "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
@@ -65,7 +65,7 @@ date, time, a, b
                         parse_dates=datecols,
                         date_parser=conv.parse_date_fields)
         self.assertIn('ymd', df)
-        self.assertEqual(df.ymd.ix[0], datetime(2001, 1, 10))
+        self.assertEqual(df.ymd.loc[0], datetime(2001, 1, 10))
 
     def test_datetime_six_col(self):
         result = conv.parse_all_fields(self.years, self.months, self.days,
@@ -82,7 +82,7 @@ year, month, day, hour, minute, second, a, b
                         parse_dates=datecols,
                         date_parser=conv.parse_all_fields)
         self.assertIn('ymdHMS', df)
-        self.assertEqual(df.ymdHMS.ix[0], datetime(2001, 1, 5, 10, 0, 0))
+        self.assertEqual(df.ymdHMS.loc[0], datetime(2001, 1, 5, 10, 0, 0))
 
     def test_datetime_fractional_seconds(self):
         data = """\
@@ -95,10 +95,10 @@ year, month, day, hour, minute, second, a, b
                         parse_dates=datecols,
                         date_parser=conv.parse_all_fields)
         self.assertIn('ymdHMS', df)
-        self.assertEqual(df.ymdHMS.ix[0], datetime(2001, 1, 5, 10, 0, 0,
-                                                   microsecond=123456))
-        self.assertEqual(df.ymdHMS.ix[1], datetime(2001, 1, 5, 10, 0, 0,
-                                                   microsecond=500000))
+        self.assertEqual(df.ymdHMS.loc[0], datetime(2001, 1, 5, 10, 0, 0,
+                                                    microsecond=123456))
+        self.assertEqual(df.ymdHMS.loc[1], datetime(2001, 1, 5, 10, 0, 0,
+                                                    microsecond=500000))
 
     def test_generic(self):
         data = "year, month, day, a\n 2001, 01, 10, 10.\n 2001, 02, 1, 11."
@@ -108,7 +108,7 @@ year, month, day, hour, minute, second, a, b
                         parse_dates=datecols,
                         date_parser=dateconverter)
         self.assertIn('ym', df)
-        self.assertEqual(df.ym.ix[0], date(2001, 1, 1))
+        self.assertEqual(df.ym.loc[0], date(2001, 1, 1))
 
     def test_dateparser_resolution_if_not_ns(self):
         # issue 10245
