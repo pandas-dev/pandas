@@ -83,7 +83,7 @@ class TestPDApi(Base, tm.TestCase):
              'pivot', 'pivot_table', 'plot_params', 'qcut',
              'scatter_matrix',
              'show_versions', 'timedelta_range', 'unique',
-             'value_counts', 'wide_to_long']
+             'value_counts', 'wide_to_long', 'X']
 
     # top-level option funcs
     funcs_option = ['reset_option', 'describe_option', 'get_option',
