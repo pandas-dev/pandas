@@ -1224,8 +1224,6 @@ class TestSeriesOperators(TestData, tm.TestCase):
         for v in [np.nan]:
             self.assertRaises(TypeError, lambda: t & v)
 
-
-
     def test_comparison_flex_basic(self):
         left = pd.Series(np.random.randn(10))
         right = pd.Series(np.random.randn(10))
