@@ -329,6 +329,23 @@ class Resampler(_GroupBy):
     agg = aggregate
     apply = aggregate
 
+    def quantile(self, arg, *args, **kwargs):
+        """
+        quantile method on resample - `resample(..).quantile(..)`
+        is a short-cut to `resample.agg(lambda x: x.quantile(0.75))`
+        Parameters
+        ----------
+        arg : lambda function
+
+        Examples
+        --------
+        >>> resampled.quantile(0.75)
+
+        Returns
+        -------
+        """
+        return self.agg(lambda x: x.quantile(arg), *args, **kwargs)
+
     def transform(self, arg, *args, **kwargs):
         """
         Call function producing a like-indexed Series on each group and return

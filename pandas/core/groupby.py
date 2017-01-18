@@ -1027,6 +1027,22 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
+    def quantile(self, *args, **kwargs):
+        """
+        Compute quantile of groups, excluding missing values
+        """
+        nv.validate_groupby_func('quantile', args, kwargs)
+        try:
+            return self._cython_agg_general('quantile')
+        except GroupByError:
+            raise
+        except Exception:  # pragma: no cover
+            self._set_group_selection()
+            f = lambda x: x.quantile(axis=self.axis)
+            return self._python_agg_general(f)
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
     def median(self):
         """
         Compute median of groups, excluding missing values
