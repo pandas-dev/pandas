@@ -273,14 +273,20 @@ def merge_asof(left, right, on=None,
 
     Both DataFrames must be sorted by the key.
 
-    For each row in the left DataFrame, a "backward" search selects the last
-    row in the right DataFrame whose 'on' key is less than or equal to the
-    left's key. A "forward" search selects the first row in the right DataFrame
-    whose 'on' key is greater than or equal to the left's key. A "nearest"
-    search selects the row in the right DataFrame whose 'on' key is closest
-    in absolute distance to the left's key. (The default is "backward" and is
-    the compatible in versions below 0.20.0. The direction parameter was added
-    in version 0.20.0 and introduces "forward" and "nearest".)
+    For each row in the left DataFrame:
+
+      - A "backward" search selects the last row in the right DataFrame whose
+        'on' key is less than or equal to the left's key.
+
+      - A "forward" search selects the first row in the right DataFrame whose
+        'on' key is greater than or equal to the left's key.
+
+      - A "nearest" search selects the row in the right DataFrame whose 'on'
+        key is closest in absolute distance to the left's key.
+
+    The default is "backward" and is the compatible in versions below 0.20.0.
+    The direction parameter was added in version 0.20.0 and introduces
+    "forward" and "nearest".
 
     Optionally match on equivalent keys with 'by' before searching with 'on'.
 
