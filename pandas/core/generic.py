@@ -1809,18 +1809,12 @@ class NDFrame(PandasObject):
             loc, new_ax = labels.get_loc_level(key, level=level,
                                                drop_level=drop_level)
 
-            # convert to a label indexer if needed
-            if isinstance(loc, slice):
-                lev_num = labels._get_level_number(level)
-                if labels.levels[lev_num].inferred_type == 'integer':
-                    loc = labels[loc]
-
             # create the tuple of the indexer
             indexer = [slice(None)] * self.ndim
             indexer[axis] = loc
             indexer = tuple(indexer)
 
-            result = self.ix[indexer]
+            result = self.iloc[indexer]
             setattr(result, result._get_axis_name(axis), new_ax)
             return result
 
@@ -1983,7 +1977,7 @@ class NDFrame(PandasObject):
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
 
-            result = self.ix[tuple(slicer)]
+            result = self.loc[tuple(slicer)]
 
         if inplace:
             self._update_inplace(result)
@@ -4332,8 +4326,9 @@ class NDFrame(PandasObject):
         if not offset.isAnchored() and hasattr(offset, '_inc'):
             if end_date in self.index:
                 end = self.index.searchsorted(end_date, side='left')
+                return self.iloc[:end]
 
-        return self.ix[:end]
+        return self.loc[:end]
 
     def last(self, offset):
         """
@@ -4364,7 +4359,7 @@ class NDFrame(PandasObject):
 
         start_date = start = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side='right')
-        return self.ix[start:]
+        return self.iloc[start:]
 
     def rank(self, axis=0, method='average', numeric_only=None,
              na_option='keep', ascending=True, pct=False):
@@ -5078,7 +5073,7 @@ class NDFrame(PandasObject):
 
         slicer = [slice(None, None)] * self._AXIS_LEN
         slicer[axis] = slice(before, after)
-        result = self.ix[tuple(slicer)]
+        result = self.loc[tuple(slicer)]
 
         if isinstance(ax, MultiIndex):
             setattr(result, self._get_axis_name(axis),

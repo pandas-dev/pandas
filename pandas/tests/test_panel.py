@@ -140,8 +140,8 @@ class SafeForLongAndSparse(object):
             obj = self.panel
 
             # # set some NAs
-            # obj.ix[5:10] = np.nan
-            # obj.ix[15:20, -2:] = np.nan
+            # obj.loc[5:10] = np.nan
+            # obj.loc[15:20, -2:] = np.nan
 
         f = getattr(obj, name)
 
@@ -358,7 +358,7 @@ class SafeForSparse(object):
                   items=['ItemA', 'ItemB', 'ItemC'],
                   major_axis=pd.date_range('20130101', periods=4),
                   minor_axis=list('ABCDE'))
-        d = p.sum(axis=1).ix[0]
+        d = p.sum(axis=1).iloc[0]
         ops = ['add', 'sub', 'mul', 'truediv', 'floordiv', 'div', 'mod', 'pow']
         for op in ops:
             with self.assertRaises(NotImplementedError):
@@ -491,7 +491,7 @@ class CheckIndexing(object):
         self.assertEqual(self.panel['ItemP'].values.dtype, np.bool_)
 
         self.assertRaises(TypeError, self.panel.__setitem__, 'foo',
-                          self.panel.ix[['ItemP']])
+                          self.panel.loc[['ItemP']])
 
         # bad shape
         p = Panel(np.random.randn(4, 3, 2))
@@ -591,25 +591,25 @@ class CheckIndexing(object):
         cols = ['D', 'C', 'F']
 
         # all 3 specified
-        assert_panel_equal(p.ix[items, dates, cols],
+        assert_panel_equal(p.loc[items, dates, cols],
                            p.reindex(items=items, major=dates, minor=cols))
 
         # 2 specified
-        assert_panel_equal(p.ix[:, dates, cols],
+        assert_panel_equal(p.loc[:, dates, cols],
                            p.reindex(major=dates, minor=cols))
 
-        assert_panel_equal(p.ix[items, :, cols],
+        assert_panel_equal(p.loc[items, :, cols],
                            p.reindex(items=items, minor=cols))
 
-        assert_panel_equal(p.ix[items, dates, :],
+        assert_panel_equal(p.loc[items, dates, :],
                            p.reindex(items=items, major=dates))
 
         # only 1
-        assert_panel_equal(p.ix[items, :, :], p.reindex(items=items))
+        assert_panel_equal(p.loc[items, :, :], p.reindex(items=items))
 
-        assert_panel_equal(p.ix[:, dates, :], p.reindex(major=dates))
+        assert_panel_equal(p.loc[:, dates, :], p.reindex(major=dates))
 
-        assert_panel_equal(p.ix[:, :, cols], p.reindex(minor=cols))
+        assert_panel_equal(p.loc[:, :, cols], p.reindex(minor=cols))
 
     def test_getitem_fancy_slice(self):
         pass
@@ -618,8 +618,8 @@ class CheckIndexing(object):
         p = self.panel
 
         # #1603
-        result = p.ix[:, -1, :]
-        expected = p.ix[:, p.major_axis[-1], :]
+        result = p.iloc[:, -1, :]
+        expected = p.loc[:, p.major_axis[-1], :]
         assert_frame_equal(result, expected)
 
     def test_getitem_fancy_xs(self):
@@ -631,22 +631,22 @@ class CheckIndexing(object):
 
         # get DataFrame
         # item
-        assert_frame_equal(p.ix[item], p[item])
-        assert_frame_equal(p.ix[item, :], p[item])
-        assert_frame_equal(p.ix[item, :, :], p[item])
+        assert_frame_equal(p.loc[item], p[item])
+        assert_frame_equal(p.loc[item, :], p[item])
+        assert_frame_equal(p.loc[item, :, :], p[item])
 
         # major axis, axis=1
-        assert_frame_equal(p.ix[:, date], p.major_xs(date))
-        assert_frame_equal(p.ix[:, date, :], p.major_xs(date))
+        assert_frame_equal(p.loc[:, date], p.major_xs(date))
+        assert_frame_equal(p.loc[:, date, :], p.major_xs(date))
 
         # minor axis, axis=2
-        assert_frame_equal(p.ix[:, :, 'C'], p.minor_xs('C'))
+        assert_frame_equal(p.loc[:, :, 'C'], p.minor_xs('C'))
 
         # get Series
-        assert_series_equal(p.ix[item, date], p[item].ix[date])
-        assert_series_equal(p.ix[item, date, :], p[item].ix[date])
-        assert_series_equal(p.ix[item, :, col], p[item][col])
-        assert_series_equal(p.ix[:, date, col], p.major_xs(date).ix[col])
+        assert_series_equal(p.loc[item, date], p[item].loc[date])
+        assert_series_equal(p.loc[item, date, :], p[item].loc[date])
+        assert_series_equal(p.loc[item, :, col], p[item][col])
+        assert_series_equal(p.loc[:, date, col], p.major_xs(date).loc[col])
 
     def test_getitem_fancy_xs_check_view(self):
         item = 'ItemB'
@@ -685,9 +685,9 @@ class CheckIndexing(object):
         b = DataFrame(np.random.randn(2, 3), index=[111, 333],
                       columns=[1, 2, 3])
 
-        a.ix[:, 22, [111, 333]] = b
+        a.loc[:, 22, [111, 333]] = b
 
-        assert_frame_equal(a.ix[:, 22, [111, 333]], b)
+        assert_frame_equal(a.loc[:, 22, [111, 333]], b)
 
     def test_ix_align(self):
         from pandas import Series
@@ -696,28 +696,28 @@ class CheckIndexing(object):
         df_orig = Panel(np.random.randn(3, 10, 2))
         df = df_orig.copy()
 
-        df.ix[0, :, 0] = b
-        assert_series_equal(df.ix[0, :, 0].reindex(b.index), b)
+        df.loc[0, :, 0] = b
+        assert_series_equal(df.loc[0, :, 0].reindex(b.index), b)
 
         df = df_orig.swapaxes(0, 1)
-        df.ix[:, 0, 0] = b
-        assert_series_equal(df.ix[:, 0, 0].reindex(b.index), b)
+        df.loc[:, 0, 0] = b
+        assert_series_equal(df.loc[:, 0, 0].reindex(b.index), b)
 
         df = df_orig.swapaxes(1, 2)
-        df.ix[0, 0, :] = b
-        assert_series_equal(df.ix[0, 0, :].reindex(b.index), b)
+        df.loc[0, 0, :] = b
+        assert_series_equal(df.loc[0, 0, :].reindex(b.index), b)
 
     def test_ix_frame_align(self):
         p_orig = tm.makePanel()
-        df = p_orig.ix[0].copy()
+        df = p_orig.iloc[0].copy()
         assert_frame_equal(p_orig['ItemA'], df)
 
         p = p_orig.copy()
-        p.ix[0, :, :] = df
+        p.iloc[0, :, :] = df
         assert_panel_equal(p, p_orig)
 
         p = p_orig.copy()
-        p.ix[0] = df
+        p.iloc[0] = df
         assert_panel_equal(p, p_orig)
 
         p = p_orig.copy()
@@ -741,8 +741,8 @@ class CheckIndexing(object):
         assert_panel_equal(p, p_orig)
 
         p = p_orig.copy()
-        p.ix[0, [0, 1, 3, 5], -2:] = df
-        out = p.ix[0, [0, 1, 3, 5], -2:]
+        p.iloc[0, [0, 1, 3, 5], -2:] = df
+        out = p.iloc[0, [0, 1, 3, 5], -2:]
         assert_frame_equal(out, df.iloc[[0, 1, 3, 5], [2, 3]])
 
         # GH3830, panel assignent by values/frame
@@ -773,10 +773,10 @@ class CheckIndexing(object):
 
     def _check_view(self, indexer, comp):
         cp = self.panel.copy()
-        obj = cp.ix[indexer]
+        obj = cp.loc[indexer]
         obj.values[:] = 0
         self.assertTrue((obj.values == 0).all())
-        comp(cp.ix[indexer].reindex_like(obj), obj)
+        comp(cp.loc[indexer].reindex_like(obj), obj)
 
     def test_logical_with_nas(self):
         d = Panel({'ItemA': {'a': [np.nan, False]},
@@ -1757,7 +1757,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                               [0, 1, 2, 3, 4, 5, 2, 3, 4, 5]])
 
         panel = df.to_panel()
-        self.assertTrue(isnull(panel[0].ix[1, [0, 1]]).all())
+        self.assertTrue(isnull(panel[0].loc[1, [0, 1]]).all())
 
     def test_to_panel_duplicates(self):
         # #2441
@@ -1900,7 +1900,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         assert_panel_equal(shifted, panel.tshift(1))
         assert_panel_equal(unshifted, inferred_ts)
 
-        no_freq = panel.ix[:, [0, 5, 7], :]
+        no_freq = panel.iloc[:, [0, 5, 7], :]
         self.assertRaises(ValueError, no_freq.tshift)
 
     def test_pct_change(self):
@@ -2000,7 +2000,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                    major_axis=np.arange(5),
                    minor_axis=np.arange(5))
         f1 = wp['a']
-        f2 = wp.ix['a']
+        f2 = wp.loc['a']
         assert_panel_equal(f1, f2)
 
         self.assertTrue((f1.items == [1, 2]).all())
@@ -2099,10 +2099,10 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
     def test_dropna(self):
         p = Panel(np.random.randn(4, 5, 6), major_axis=list('abcde'))
-        p.ix[:, ['b', 'd'], 0] = np.nan
+        p.loc[:, ['b', 'd'], 0] = np.nan
 
         result = p.dropna(axis=1)
-        exp = p.ix[:, ['a', 'c', 'e'], :]
+        exp = p.loc[:, ['a', 'c', 'e'], :]
         assert_panel_equal(result, exp)
         inp = p.copy()
         inp.dropna(axis=1, inplace=True)
@@ -2111,24 +2111,24 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         result = p.dropna(axis=1, how='all')
         assert_panel_equal(result, p)
 
-        p.ix[:, ['b', 'd'], :] = np.nan
+        p.loc[:, ['b', 'd'], :] = np.nan
         result = p.dropna(axis=1, how='all')
-        exp = p.ix[:, ['a', 'c', 'e'], :]
+        exp = p.loc[:, ['a', 'c', 'e'], :]
         assert_panel_equal(result, exp)
 
         p = Panel(np.random.randn(4, 5, 6), items=list('abcd'))
-        p.ix[['b'], :, 0] = np.nan
+        p.loc[['b'], :, 0] = np.nan
 
         result = p.dropna()
-        exp = p.ix[['a', 'c', 'd']]
+        exp = p.loc[['a', 'c', 'd']]
         assert_panel_equal(result, exp)
 
         result = p.dropna(how='all')
         assert_panel_equal(result, p)
 
-        p.ix['b'] = np.nan
+        p.loc['b'] = np.nan
         result = p.dropna(how='all')
-        exp = p.ix[['a', 'c', 'd']]
+        exp = p.loc[['a', 'c', 'd']]
         assert_panel_equal(result, exp)
 
     def test_drop(self):
@@ -2334,7 +2334,7 @@ class TestLongPanel(tm.TestCase):
         expected = DataFrame.add(self.panel, s, axis=0)
         assert_frame_equal(result, expected)
 
-        s = self.panel.ix[5]
+        s = self.panel.iloc[5]
         result = self.panel + s
         expected = DataFrame.add(self.panel, s, axis=1)
         assert_frame_equal(result, expected)

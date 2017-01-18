@@ -1033,7 +1033,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         rng = date_range('1/1/1990', periods=5)
         iseries = Series(np.arange(5), rng) + 1
-        iseries.ix[4] = np.nan
+        iseries.iloc[4] = np.nan
         exp = iseries / 4.0
         iranks = iseries.rank(pct=True)
         assert_series_equal(iranks, exp)

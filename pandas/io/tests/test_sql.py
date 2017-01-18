@@ -2140,7 +2140,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
     def test_write_row_by_row(self):
 
         frame = tm.makeTimeDataFrame()
-        frame.ix[0, 0] = np.nan
+        frame.iloc[0, 0] = np.nan
         create_sql = sql.get_schema(frame, 'test')
         cur = self.conn.cursor()
         cur.execute(create_sql)
@@ -2165,7 +2165,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         cur.execute(create_sql)
         ins = "INSERT INTO test VALUES (?, ?, ?, ?)"
 
-        row = frame.ix[0]
+        row = frame.iloc[0]
         sql.execute(ins, self.conn, params=tuple(row))
         self.conn.commit()
 
@@ -2430,7 +2430,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
 
         _skip_if_no_pymysql()
         frame = tm.makeTimeDataFrame()
-        frame.ix[0, 0] = np.nan
+        frame.iloc[0, 0] = np.nan
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = sql.get_schema(frame, 'test')
         cur = self.conn.cursor()
@@ -2474,7 +2474,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         cur.execute(create_sql)
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
 
-        row = frame.ix[0].values.tolist()
+        row = frame.iloc[0].values.tolist()
         sql.execute(ins, self.conn, params=tuple(row))
         self.conn.commit()
 

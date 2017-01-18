@@ -94,8 +94,8 @@ class TestPanelnd(tm.TestCase):
             p5d = Panel5D(dict(C1=p4d))
 
             # slice back to 4d
-            results = p5d.ix['C1', :, :, 0:3, :]
-            expected = p4d.ix[:, :, 0:3, :]
+            results = p5d.iloc[p5d.cool1.get_loc('C1'), :, :, 0:3, :]
+            expected = p4d.iloc[:, :, 0:3, :]
             assert_panel_equal(results['L1'], expected['L1'])
 
             # test a transpose

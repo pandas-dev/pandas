@@ -217,7 +217,7 @@ calling ``sort_index``, of course). Here is a more complex example:
                                        ('one', 'two')],
                                       names=['first', 'second'])
    df = pd.DataFrame(np.random.randn(8, 4), index=index, columns=columns)
-   df2 = df.ix[[0, 1, 2, 4, 5, 7]]
+   df2 = df.iloc[[0, 1, 2, 4, 5, 7]]
    df2
 
 As mentioned above, ``stack`` can be called with a ``level`` argument to select

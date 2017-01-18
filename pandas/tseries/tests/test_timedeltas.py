@@ -1914,7 +1914,7 @@ class TestSlicing(tm.TestCase):
         def assert_slices_equivalent(l_slc, i_slc):
             assert_series_equal(ts[l_slc], ts.iloc[i_slc])
             assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
-            assert_series_equal(ts.ix[l_slc], ts.iloc[i_slc])
+            assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
 
         assert_slices_equivalent(SLC[Timedelta(hours=7)::-1], SLC[7::-1])
         assert_slices_equivalent(SLC['7 hours'::-1], SLC[7::-1])
@@ -1939,7 +1939,7 @@ class TestSlicing(tm.TestCase):
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
                                 lambda: ts.loc[::0])
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts.ix[::0])
+                                lambda: ts.loc[::0])
 
     def test_tdi_ops_attributes(self):
         rng = timedelta_range('2 days', periods=5, freq='2D', name='x')

@@ -450,7 +450,7 @@ def _unstack_frame(obj, level, fill_value=None):
 
         result = DataFrame(BlockManager(new_blocks, new_axes))
         mask_frame = DataFrame(BlockManager(mask_blocks, new_axes))
-        return result.ix[:, mask_frame.sum(0) > 0]
+        return result.loc[:, mask_frame.sum(0) > 0]
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level,
                                value_columns=obj.columns,
@@ -625,12 +625,12 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             drop_cols.append(key)
             continue
         elif slice_len != levsize:
-            chunk = this.ix[:, this.columns[loc]]
+            chunk = this.loc[:, this.columns[loc]]
             chunk.columns = level_vals.take(chunk.columns.labels[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
             if frame._is_mixed_type:
-                value_slice = this.ix[:, this.columns[loc]].values
+                value_slice = this.loc[:, this.columns[loc]].values
             else:
                 value_slice = this.values[:, loc]
 
@@ -771,7 +771,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     if value_vars is not None:
         if not isinstance(value_vars, (tuple, list, np.ndarray)):
             value_vars = [value_vars]
-        frame = frame.ix[:, id_vars + value_vars]
+        frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()
 

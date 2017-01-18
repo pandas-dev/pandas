@@ -272,7 +272,7 @@ class Panel(NDFrame):
             return self._getitem_multilevel(key)
         if not (is_list_like(key) or isinstance(key, slice)):
             return super(Panel, self).__getitem__(key)
-        return self.ix[key]
+        return self.loc[key]
 
     def _getitem_multilevel(self, key):
         info = self._info_axis

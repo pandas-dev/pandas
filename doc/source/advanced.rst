@@ -230,7 +230,7 @@ of tuples:
 Advanced indexing with hierarchical index
 -----------------------------------------
 
-Syntactically integrating ``MultiIndex`` in advanced indexing with ``.loc/.ix`` is a
+Syntactically integrating ``MultiIndex`` in advanced indexing with ``.loc`` is a
 bit challenging, but we've made every effort to do so. for example the
 following works as you would expect:
 
@@ -258,7 +258,7 @@ Passing a list of labels or tuples works similar to reindexing:
 
 .. ipython:: python
 
-   df.ix[[('bar', 'two'), ('qux', 'one')]]
+   df.loc[[('bar', 'two'), ('qux', 'one')]]
 
 .. _advanced.mi_slicers:
 
@@ -604,7 +604,7 @@ intended to work on boolean indices and may return unexpected results.
 
    ser = pd.Series(np.random.randn(10))
    ser.take([False, False, True, True])
-   ser.ix[[0, 1]]
+   ser.iloc[[0, 1]]
 
 Finally, as a small note on performance, because the ``take`` method handles
 a narrower range of inputs, it can offer performance that is a good deal
@@ -620,7 +620,7 @@ faster than fancy indexing.
    timeit arr.take(indexer, axis=0)
 
    ser = pd.Series(arr[:, 0])
-   timeit ser.ix[indexer]
+   timeit ser.iloc[indexer]
    timeit ser.take(indexer)
 
 .. _indexing.index_types:
@@ -661,7 +661,7 @@ Setting the index, will create create a ``CategoricalIndex``
    df2 = df.set_index('B')
    df2.index
 
-Indexing with ``__getitem__/.iloc/.loc/.ix`` works similarly to an ``Index`` with duplicates.
+Indexing with ``__getitem__/.iloc/.loc`` works similarly to an ``Index`` with duplicates.
 The indexers MUST be in the category or the operation will raise.
 
 .. ipython:: python
@@ -759,14 +759,12 @@ same.
    sf = pd.Series(range(5), index=indexf)
    sf
 
-Scalar selection for ``[],.ix,.loc`` will always be label based. An integer will match an equal float index (e.g. ``3`` is equivalent to ``3.0``)
+Scalar selection for ``[],.loc`` will always be label based. An integer will match an equal float index (e.g. ``3`` is equivalent to ``3.0``)
 
 .. ipython:: python
 
    sf[3]
    sf[3.0]
-   sf.ix[3]
-   sf.ix[3.0]
    sf.loc[3]
    sf.loc[3.0]
 
@@ -783,7 +781,6 @@ Slicing is ALWAYS on the values of the index, for ``[],ix,loc`` and ALWAYS posit
 .. ipython:: python
 
    sf[2:4]
-   sf.ix[2:4]
    sf.loc[2:4]
    sf.iloc[2:4]
 
@@ -813,14 +810,6 @@ In non-float indexes, slicing using floats will raise a ``TypeError``
       In [3]: pd.Series(range(5)).iloc[3.0]
       TypeError: cannot do positional indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [3.0] of <type 'float'>
 
-   Further the treatment of ``.ix`` with a float indexer on a non-float index, will be label based, and thus coerce the index.
-
-   .. ipython:: python
-
-      s2 = pd.Series([1, 2, 3], index=list('abc'))
-      s2
-      s2.ix[1.0] = 10
-      s2
 
 Here is a typical use-case for using this type of indexing. Imagine that you have a somewhat
 irregular timedelta-like indexing scheme, but the data is recorded as floats. This could for

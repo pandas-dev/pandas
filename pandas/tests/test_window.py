@@ -2190,7 +2190,7 @@ class TestMomentsConsistency(Base):
             return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
 
         panel = get_result(self.frame)
-        actual = panel.ix[:, 1, 5]
+        actual = panel.loc[:, 1, 5]
         expected = get_result(self.frame[1], self.frame[5])
         tm.assert_series_equal(actual, expected, check_names=False)
         self.assertEqual(actual.name, 5)

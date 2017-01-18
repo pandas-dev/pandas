@@ -72,13 +72,13 @@ class TestMerge(tm.TestCase):
                         right_index=True, how='left', sort=False)
         merged2 = merge(right, left, right_on='key',
                         left_index=True, how='right', sort=False)
-        assert_frame_equal(merged1, merged2.ix[:, merged1.columns])
+        assert_frame_equal(merged1, merged2.loc[:, merged1.columns])
 
         merged1 = merge(left, right, left_on='key',
                         right_index=True, how='left', sort=True)
         merged2 = merge(right, left, right_on='key',
                         left_index=True, how='right', sort=True)
-        assert_frame_equal(merged1, merged2.ix[:, merged1.columns])
+        assert_frame_equal(merged1, merged2.loc[:, merged1.columns])
 
     def test_merge_index_singlekey_inner(self):
         left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
@@ -89,13 +89,13 @@ class TestMerge(tm.TestCase):
         # inner join
         result = merge(left, right, left_on='key', right_index=True,
                        how='inner')
-        expected = left.join(right, on='key').ix[result.index]
+        expected = left.join(right, on='key').loc[result.index]
         assert_frame_equal(result, expected)
 
         result = merge(right, left, right_on='key', left_index=True,
                        how='inner')
-        expected = left.join(right, on='key').ix[result.index]
-        assert_frame_equal(result, expected.ix[:, result.columns])
+        expected = left.join(right, on='key').loc[result.index]
+        assert_frame_equal(result, expected.loc[:, result.columns])
 
     def test_merge_misspecified(self):
         self.assertRaises(ValueError, merge, self.left, self.right,
@@ -763,11 +763,11 @@ class TestMergeMulti(tm.TestCase):
                                             columns=self.to_join.columns))
 
         # TODO: columns aren't in the same order yet
-        assert_frame_equal(joined, expected.ix[:, joined.columns])
+        assert_frame_equal(joined, expected.loc[:, joined.columns])
 
         left = self.data.join(self.to_join, on=['key1', 'key2'], sort=True)
-        right = expected.ix[:, joined.columns].sort_values(['key1', 'key2'],
-                                                           kind='mergesort')
+        right = expected.loc[:, joined.columns].sort_values(['key1', 'key2'],
+                                                            kind='mergesort')
         assert_frame_equal(left, right)
 
     def test_left_join_multi_index(self):
@@ -840,7 +840,7 @@ class TestMergeMulti(tm.TestCase):
                                          left_index=True, how='right',
                                          sort=sort)
 
-            merged2 = merged2.ix[:, merged1.columns]
+            merged2 = merged2.loc[:, merged1.columns]
             assert_frame_equal(merged1, merged2)
 
     def test_compress_group_combinations(self):
@@ -904,7 +904,7 @@ class TestMergeMulti(tm.TestCase):
         # do a right join for an extra test
         joined = merge(right, left, left_index=True,
                        right_on=['k1', 'k2'], how='right')
-        tm.assert_frame_equal(joined.ix[:, expected.columns], expected)
+        tm.assert_frame_equal(joined.loc[:, expected.columns], expected)
 
     def test_left_join_index_multi_match_multiindex(self):
         left = DataFrame([

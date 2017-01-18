@@ -822,7 +822,7 @@ class TestBlockManager(tm.TestCase):
     def test_missing_unicode_key(self):
         df = DataFrame({"a": [1]})
         try:
-            df.ix[:, u("\u05d0")]  # should not raise UnicodeEncodeError
+            df.loc[:, u("\u05d0")]  # should not raise UnicodeEncodeError
         except KeyError:
             pass  # this is the expected exception
 

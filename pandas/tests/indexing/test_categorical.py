@@ -190,22 +190,22 @@ class TestCategoricalIndex(tm.TestCase):
         cdf.index = pd.CategoricalIndex(df.index)
         cdf.columns = pd.CategoricalIndex(df.columns)
 
-        expect = pd.Series(df.ix['A', :], index=cdf.columns, name='A')
-        assert_series_equal(cdf.ix['A', :], expect)
+        expect = pd.Series(df.loc['A', :], index=cdf.columns, name='A')
+        assert_series_equal(cdf.loc['A', :], expect)
 
-        expect = pd.Series(df.ix[:, 'X'], index=cdf.index, name='X')
-        assert_series_equal(cdf.ix[:, 'X'], expect)
+        expect = pd.Series(df.loc[:, 'X'], index=cdf.index, name='X')
+        assert_series_equal(cdf.loc[:, 'X'], expect)
 
         exp_index = pd.CategoricalIndex(list('AB'), categories=['A', 'B', 'C'])
-        expect = pd.DataFrame(df.ix[['A', 'B'], :], columns=cdf.columns,
+        expect = pd.DataFrame(df.loc[['A', 'B'], :], columns=cdf.columns,
                               index=exp_index)
-        assert_frame_equal(cdf.ix[['A', 'B'], :], expect)
+        assert_frame_equal(cdf.loc[['A', 'B'], :], expect)
 
         exp_columns = pd.CategoricalIndex(list('XY'),
                                           categories=['X', 'Y', 'Z'])
-        expect = pd.DataFrame(df.ix[:, ['X', 'Y']], index=cdf.index,
+        expect = pd.DataFrame(df.loc[:, ['X', 'Y']], index=cdf.index,
                               columns=exp_columns)
-        assert_frame_equal(cdf.ix[:, ['X', 'Y']], expect)
+        assert_frame_equal(cdf.loc[:, ['X', 'Y']], expect)
 
         # non-unique
         df = pd.DataFrame(np.random.randn(3, 3),
@@ -215,22 +215,22 @@ class TestCategoricalIndex(tm.TestCase):
         cdf.columns = pd.CategoricalIndex(df.columns)
 
         exp_index = pd.CategoricalIndex(list('AA'), categories=['A', 'B'])
-        expect = pd.DataFrame(df.ix['A', :], columns=cdf.columns,
+        expect = pd.DataFrame(df.loc['A', :], columns=cdf.columns,
                               index=exp_index)
-        assert_frame_equal(cdf.ix['A', :], expect)
+        assert_frame_equal(cdf.loc['A', :], expect)
 
         exp_columns = pd.CategoricalIndex(list('XX'), categories=['X', 'Y'])
-        expect = pd.DataFrame(df.ix[:, 'X'], index=cdf.index,
+        expect = pd.DataFrame(df.loc[:, 'X'], index=cdf.index,
                               columns=exp_columns)
-        assert_frame_equal(cdf.ix[:, 'X'], expect)
+        assert_frame_equal(cdf.loc[:, 'X'], expect)
 
-        expect = pd.DataFrame(df.ix[['A', 'B'], :], columns=cdf.columns,
+        expect = pd.DataFrame(df.loc[['A', 'B'], :], columns=cdf.columns,
                               index=pd.CategoricalIndex(list('AAB')))
-        assert_frame_equal(cdf.ix[['A', 'B'], :], expect)
+        assert_frame_equal(cdf.loc[['A', 'B'], :], expect)
 
-        expect = pd.DataFrame(df.ix[:, ['X', 'Y']], index=cdf.index,
+        expect = pd.DataFrame(df.loc[:, ['X', 'Y']], index=cdf.index,
                               columns=pd.CategoricalIndex(list('XXY')))
-        assert_frame_equal(cdf.ix[:, ['X', 'Y']], expect)
+        assert_frame_equal(cdf.loc[:, ['X', 'Y']], expect)
 
     def test_read_only_source(self):
         # GH 10043

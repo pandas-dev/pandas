@@ -1820,7 +1820,7 @@ class TestMultiIndex(Base, tm.TestCase):
                          pd.MultiIndex.from_tuples(idx[:-2]))
 
         left.loc[('test', 17)] = 11
-        left.ix[('test', 18)] = 12
+        left.loc[('test', 18)] = 12
 
         right = pd.Series(np.linspace(0, 12, 13),
                           pd.MultiIndex.from_tuples(idx))

@@ -96,8 +96,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
     def test_constructor_dtype_list_data(self):
         df = DataFrame([[1, '2'],
                         [None, 'a']], dtype=object)
-        self.assertIsNone(df.ix[1, 0])
-        self.assertEqual(df.ix[0, 1], '2')
+        self.assertIsNone(df.loc[1, 0])
+        self.assertEqual(df.loc[0, 1], '2')
 
     def test_constructor_list_frames(self):
 
@@ -1147,7 +1147,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # pass some columns
         recons = DataFrame.from_items(items, columns=['C', 'B', 'A'])
-        tm.assert_frame_equal(recons, self.frame.ix[:, ['C', 'B', 'A']])
+        tm.assert_frame_equal(recons, self.frame.loc[:, ['C', 'B', 'A']])
 
         # orient='index'
 
@@ -1186,7 +1186,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
     def test_constructor_mix_series_nonseries(self):
         df = DataFrame({'A': self.frame['A'],
                         'B': list(self.frame['B'])}, columns=['A', 'B'])
-        tm.assert_frame_equal(df, self.frame.ix[:, ['A', 'B']])
+        tm.assert_frame_equal(df, self.frame.loc[:, ['A', 'B']])
 
         with tm.assertRaisesRegexp(ValueError, 'does not match index length'):
             DataFrame({'A': self.frame['A'], 'B': list(self.frame['B'])[:-2]})

@@ -136,7 +136,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df.to_string()
 
     def test_eng_float_formatter(self):
-        self.frame.ix[5] = 0
+        self.frame.loc[5] = 0
 
         fmt.set_eng_float_format()
         repr(self.frame)
@@ -1884,7 +1884,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         # all-nan in mi
         df2 = df.copy()
-        df2.ix[:, 'id2'] = np.nan
+        df2.loc[:, 'id2'] = np.nan
         y = df2.set_index('id2')
         result = y.to_string()
         expected = u(
@@ -1893,7 +1893,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         # partial nan in mi
         df2 = df.copy()
-        df2.ix[:, 'id2'] = np.nan
+        df2.loc[:, 'id2'] = np.nan
         y = df2.set_index(['id2', 'id3'])
         result = y.to_string()
         expected = u(
@@ -3715,7 +3715,7 @@ class TestSeriesFormatting(tm.TestCase):
         df = DataFrame({'A': [1, 2], 'B': ['2012-01-01', '2012-01-02']})
         df['B'] = pd.to_datetime(df.B)
 
-        result = repr(df.ix[0])
+        result = repr(df.loc[0])
         self.assertTrue('2012-01-01' in result)
 
     def test_period(self):

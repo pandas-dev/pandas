@@ -107,7 +107,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assert_series_equal(res, exp)
         tm.assertIsInstance(res, tm.SubclassedSeries)
 
-        res = df.ix[:, 'Z']
+        res = df.loc[:, 'Z']
         exp = tm.SubclassedSeries([7, 8, 9], index=list('abc'), name='Z')
         tm.assert_series_equal(res, exp)
         tm.assertIsInstance(res, tm.SubclassedSeries)
@@ -122,7 +122,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assert_series_equal(res, exp)
         tm.assertIsInstance(res, tm.SubclassedSeries)
 
-        res = df.ix['c', :]
+        res = df.loc['c', :]
         exp = tm.SubclassedSeries([3, 6, 9], index=list('XYZ'), name='c')
         tm.assert_series_equal(res, exp)
         tm.assertIsInstance(res, tm.SubclassedSeries)

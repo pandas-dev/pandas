@@ -531,8 +531,8 @@ class TestSparse(TestPackers):
     def test_sparse_frame(self):
 
         s = tm.makeDataFrame()
-        s.ix[3:5, 1:3] = np.nan
-        s.ix[8:10, -2] = np.nan
+        s.loc[3:5, 1:3] = np.nan
+        s.loc[8:10, -2] = np.nan
         ss = s.to_sparse()
 
         self._check_roundtrip(ss, tm.assert_frame_equal,

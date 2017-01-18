@@ -180,14 +180,14 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         x = Series(np.random.randn(10000), name='a')
         y = Series(np.random.randn(10000), name='b')
         x2 = x.astype(float)
-        x2.ix[:9998] = np.NaN
+        x2.loc[:9998] = np.NaN
         # TODO: x_sparse is unused...fix
         x_sparse = x2.to_sparse(fill_value=np.NaN)  # noqa
 
         # Currently fails too with weird ufunc error
         # df1 = SparseDataFrame([x_sparse, y])
 
-        y.ix[:9998] = 0
+        y.loc[:9998] = 0
         # TODO: y_sparse is unsused...fix
         y_sparse = y.to_sparse(fill_value=0)  # noqa
         # without sparse value raises error
@@ -232,7 +232,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_dtypes(self):
         df = DataFrame(np.random.randn(10000, 4))
-        df.ix[:9998] = np.nan
+        df.loc[:9998] = np.nan
         sdf = df.to_sparse()
 
         result = sdf.get_dtype_counts()
@@ -248,7 +248,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_str(self):
         df = DataFrame(np.random.randn(10000, 4))
-        df.ix[:9998] = np.nan
+        df.loc[:9998] = np.nan
 
         sdf = df.to_sparse()
         str(sdf)
@@ -364,7 +364,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                 _compare_to_dense(s, frame, s, frame.to_dense(), op)
 
         # it works!
-        result = self.frame + self.frame.ix[:, ['A', 'B']]  # noqa
+        result = self.frame + self.frame.loc[:, ['A', 'B']]  # noqa
 
     def test_op_corners(self):
         empty = self.empty + self.empty
@@ -427,12 +427,12 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_fancy_index_misc(self):
         # axis = 0
-        sliced = self.frame.ix[-2:, :]
+        sliced = self.frame.iloc[-2:, :]
         expected = self.frame.reindex(index=self.frame.index[-2:])
         tm.assert_sp_frame_equal(sliced, expected)
 
         # axis = 1
-        sliced = self.frame.ix[:, -2:]
+        sliced = self.frame.iloc[:, -2:]
         expected = self.frame.reindex(columns=self.frame.columns[-2:])
         tm.assert_sp_frame_equal(sliced, expected)
 
@@ -556,10 +556,10 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         appended = a.append(b)
         tm.assert_sp_frame_equal(appended, self.frame, exact_indices=False)
 
-        a = self.frame.ix[:5, :3]
-        b = self.frame.ix[5:]
+        a = self.frame.iloc[:5, :3]
+        b = self.frame.iloc[5:]
         appended = a.append(b)
-        tm.assert_sp_frame_equal(appended.ix[:, :3], self.frame.ix[:, :3],
+        tm.assert_sp_frame_equal(appended.iloc[:, :3], self.frame.iloc[:, :3],
                                  exact_indices=False)
 
     def test_apply(self):
@@ -721,12 +721,12 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         desc = self.frame.describe()  # noqa
 
     def test_join(self):
-        left = self.frame.ix[:, ['A', 'B']]
-        right = self.frame.ix[:, ['C', 'D']]
+        left = self.frame.loc[:, ['A', 'B']]
+        right = self.frame.loc[:, ['C', 'D']]
         joined = left.join(right)
         tm.assert_sp_frame_equal(joined, self.frame, exact_indices=False)
 
-        right = self.frame.ix[:, ['B', 'D']]
+        right = self.frame.loc[:, ['B', 'D']]
         self.assertRaises(Exception, left.join, right)
 
         with tm.assertRaisesRegexp(ValueError,

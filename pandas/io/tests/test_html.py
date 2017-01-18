@@ -144,7 +144,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         df2 = self.read_html(self.spam_data, 'Unit')
         assert_framelist_equal(df1, df2)
 
-        self.assertEqual(df1[0].ix[0, 0], 'Proximates')
+        self.assertEqual(df1[0].iloc[0, 0], 'Proximates')
         self.assertEqual(df1[0].columns[0], 'Nutrient')
 
     def test_spam_with_types(self):
@@ -152,7 +152,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         df2 = self.read_html(self.spam_data, 'Unit')
         assert_framelist_equal(df1, df2)
 
-        self.assertEqual(df1[0].ix[0, 0], 'Proximates')
+        self.assertEqual(df1[0].iloc[0, 0], 'Proximates')
         self.assertEqual(df1[0].columns[0], 'Nutrient')
 
     def test_spam_no_match(self):

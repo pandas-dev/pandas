@@ -368,7 +368,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         s = Series(dates)
         self.assertEqual(s.dtype, 'M8[ns]')
 
-        s.ix[0] = np.nan
+        s.iloc[0] = np.nan
         self.assertEqual(s.dtype, 'M8[ns]')
 
         # invalid astypes
@@ -581,8 +581,8 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         d = {pidx[0]: 0, pidx[1]: 1}
         result = Series(d, index=pidx)
         expected = Series(np.nan, pidx)
-        expected.ix[0] = 0
-        expected.ix[1] = 1
+        expected.iloc[0] = 0
+        expected.iloc[1] = 1
         assert_series_equal(result, expected)
 
     def test_constructor_dict_multiindex(self):

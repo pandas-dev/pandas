@@ -273,7 +273,7 @@ class TestTSPlot(TestPlotBase):
         idx = date_range('2012-6-22 21:59:51', freq='S', periods=100)
         df = DataFrame(np.random.randn(len(idx), 2), idx)
 
-        irreg = df.ix[[0, 1, 3, 4]]
+        irreg = df.iloc[[0, 1, 3, 4]]
         ax = irreg.plot()
         diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
 

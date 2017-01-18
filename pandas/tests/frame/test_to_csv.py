@@ -646,10 +646,10 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                           index=df_float.index, columns=create_cols('date'))
 
         # add in some nans
-        df_float.ix[30:50, 1:3] = np.nan
+        df_float.loc[30:50, 1:3] = np.nan
 
         # ## this is a bug in read_csv right now ####
-        # df_dt.ix[30:50,1:3] = np.nan
+        # df_dt.loc[30:50,1:3] = np.nan
 
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 

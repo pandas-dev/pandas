@@ -70,7 +70,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
         expected = Series(np.nan, index=self.frame.columns)
         assert_series_equal(result, expected)
 
-        no_cols = self.frame.ix[:, []]
+        no_cols = self.frame.loc[:, []]
         result = no_cols.apply(lambda x: x.mean(), axis=1)
         expected = Series(np.nan, index=self.frame.index)
         assert_series_equal(result, expected)
@@ -224,7 +224,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
         assert_frame_equal(result, self.frame)
 
     def test_apply_reduce_Series(self):
-        self.frame.ix[::2, 'A'] = np.nan
+        self.frame.loc[::2, 'A'] = np.nan
         expected = self.frame.mean(1)
         result = self.frame.apply(np.mean, axis=1)
         assert_series_equal(result, expected)

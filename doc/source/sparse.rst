@@ -45,7 +45,7 @@ large, mostly NA DataFrame:
 .. ipython:: python
 
    df = pd.DataFrame(randn(10000, 4))
-   df.ix[:9998] = np.nan
+   df.iloc[:9998] = np.nan
    sdf = df.to_sparse()
    sdf
    sdf.density

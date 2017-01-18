@@ -1400,7 +1400,7 @@ returned object:
 
    df = pd.read_csv("data/mindex_ex.csv", index_col=[0,1])
    df
-   df.ix[1978]
+   df.iloc[1978]
 
 .. _io.multi_index_columns:
 
@@ -3280,7 +3280,7 @@ defaults to `nan`.
                               'bool' : True,
                               'datetime64' : pd.Timestamp('20010102')},
                             index=list(range(8)))
-    df_mixed.ix[3:5,['A', 'B', 'string', 'datetime64']] = np.nan
+    df_mixed.loc[df_mixed.index[3:5], ['A', 'B', 'string', 'datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = {'values': 50})
     df_mixed1 = store.select('df_mixed')
@@ -3560,10 +3560,10 @@ be data_columns
 
    df_dc = df.copy()
    df_dc['string'] = 'foo'
-   df_dc.ix[4:6,'string'] = np.nan
-   df_dc.ix[7:9,'string'] = 'bar'
+   df_dc.loc[df_dc.index[4:6], 'string'] = np.nan
+   df_dc.loc[df_dc.index[7:9], 'string'] = 'bar'
    df_dc['string2'] = 'cool'
-   df_dc.ix[1:3,['B','C']] = 1.0
+   df_dc.loc[df_dc.index[1:3], ['B','C']] = 1.0
    df_dc
 
    # on-disk operations
@@ -3727,7 +3727,7 @@ results.
    df_mt = pd.DataFrame(randn(8, 6), index=pd.date_range('1/1/2000', periods=8),
                                      columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
-   df_mt.ix[1, ('A', 'B')] = np.nan
+   df_mt.loc[df_mt.index[1], ('A', 'B')] = np.nan
 
    # you can also create the tables individually
    store.append_to_multiple({'df1_mt': ['A', 'B'], 'df2_mt': None },
@@ -4686,7 +4686,7 @@ destination DataFrame as well as a preferred column order as follows:
 
 
 Starting with 0.20.0, you can specify the query config as parameter to use additional options of your job.
-For more information about query configuration parameters see 
+For more information about query configuration parameters see
 `here <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__.
 
 .. code-block:: python

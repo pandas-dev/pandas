@@ -482,7 +482,7 @@ Pivot tables:
 Data munging
 ------------
 
-The optimized pandas data access methods  ``.loc``, ``.iloc``, ``.ix`` ``.at``, and ``.iat``,
+The optimized pandas data access methods  ``.loc``, ``.iloc``, ``.at``, and ``.iat``,
 work as normal. The only difference is the return type (for getting) and
 that only values already in `categories` can be assigned.
 
@@ -501,7 +501,6 @@ the ``category`` dtype is preserved.
     df.iloc[2:4,:]
     df.iloc[2:4,:].dtypes
     df.loc["h":"j","cats"]
-    df.ix["h":"j",0:1]
     df[df["cats"] == "b"]
 
 An example where the category type is not preserved is if you take one single row: the

@@ -336,7 +336,7 @@ class TestStata(tm.TestCase):
         # 9795
         np.random.seed(423)
         df = pd.DataFrame(np.random.randn(5, 4), columns=list('abcd'))
-        df.ix[2, 'a':'c'] = np.nan
+        df.loc[2, 'a':'c'] = np.nan
         df_copy = df.copy()
         with tm.ensure_clean() as path:
             df.to_stata(path, write_index=False)

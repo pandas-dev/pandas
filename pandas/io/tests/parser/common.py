@@ -275,7 +275,7 @@ c,4,5
                                 pd.Index(['A', 'B', 'C', 'D', 'E']))
         self.assertIsInstance(df.index[0],
                               (datetime, np.datetime64, Timestamp))
-        self.assertEqual(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype,
+        self.assertEqual(df.loc[:, ['A', 'B', 'C', 'D']].values.dtype,
                          np.float64)
         tm.assert_frame_equal(df, df2)
 
@@ -666,7 +666,7 @@ bar"""
         # it's 33 columns
         result = self.read_csv(sfile, names=lrange(33), na_values=['-9999.0'],
                                header=None, skipinitialspace=True)
-        self.assertTrue(pd.isnull(result.ix[0, 29]))
+        self.assertTrue(pd.isnull(result.iloc[0, 29]))
 
     def test_utf16_bom_skiprows(self):
         # #2298

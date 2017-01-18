@@ -54,11 +54,11 @@ class TestOrderedMerge(tm.TestCase):
                               'rvalue': [nan, 1, 2, 3, 3, 4] * 2})
         expected['group'] = ['a'] * 6 + ['b'] * 6
 
-        assert_frame_equal(result, expected.ix[:, result.columns])
+        assert_frame_equal(result, expected.loc[:, result.columns])
 
         result2 = merge_ordered(self.right, left, on='key', right_by='group',
                                 fill_method='ffill')
-        assert_frame_equal(result, result2.ix[:, result.columns])
+        assert_frame_equal(result, result2.loc[:, result.columns])
 
         result = merge_ordered(left, self.right, on='key', left_by='group')
         self.assertTrue(result['group'].notnull().all())

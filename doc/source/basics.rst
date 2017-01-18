@@ -145,7 +145,7 @@ either match on the *index* or *columns* via the **axis** keyword:
                       'two' : pd.Series(np.random.randn(4), index=['a', 'b', 'c', 'd']),
                       'three' : pd.Series(np.random.randn(3), index=['b', 'c', 'd'])})
    df
-   row = df.ix[1]
+   row = df.iloc[1]
    column = df['two']
 
    df.sub(row, axis='columns')
@@ -556,7 +556,7 @@ course):
     series[::2] = np.nan
     series.describe()
     frame = pd.DataFrame(np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
-    frame.ix[::2] = np.nan
+    frame.iloc[::2] = np.nan
     frame.describe()
 
 You can select specific percentiles to include in the output:
@@ -1081,7 +1081,7 @@ objects either on the DataFrame's index or columns using the ``axis`` argument:
 
 .. ipython:: python
 
-   df.align(df2.ix[0], axis=1)
+   df.align(df2.iloc[0], axis=1)
 
 .. _basics.reindex_fill:
 
