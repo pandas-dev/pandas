@@ -693,6 +693,24 @@ class Base(object):
         expected = frame.reindex(new_index)
         assert_frame_equal(result, expected)
 
+    def test_asfreq_fill_value(self):
+        # test for fill value during resampling, issue 3715
+
+        s = self.create_series()
+
+        result = s.resample('1H').asfreq()
+        new_index = self.create_index(s.index[0], s.index[-1], freq='1H')
+        expected = s.reindex(new_index)
+        assert_series_equal(result, expected)
+
+        frame = s.to_frame('value')
+        frame.iloc[1] = None
+        result = frame.resample('1H').asfreq(fill_value=4.0)
+        new_index = self.create_index(frame.index[0],
+                                      frame.index[-1], freq='1H')
+        expected = frame.reindex(new_index, fill_value=4.0)
+        assert_frame_equal(result, expected)
+
     def test_resample_interpolate(self):
         # # 12925
         df = self.create_series().to_frame('value')
@@ -2157,6 +2175,25 @@ class TestPeriodIndex(Base, tm.TestCase):
                                closed='left')
         expected = frame.to_timestamp().reindex(new_index).to_period()
         result = frame.resample('1H').asfreq()
+        assert_frame_equal(result, expected)
+
+    def test_asfreq_fill_value(self):
+        # test for fill value during resampling, issue 3715
+
+        s = self.create_series()
+        new_index = date_range(s.index[0].to_timestamp(how='start'),
+                               (s.index[-1]).to_timestamp(how='start'),
+                               freq='1H')
+        expected = s.to_timestamp().reindex(new_index, fill_value=4.0)
+        result = s.resample('1H', kind='timestamp').asfreq(fill_value=4.0)
+        assert_series_equal(result, expected)
+
+        frame = s.to_frame('value')
+        new_index = date_range(frame.index[0].to_timestamp(how='start'),
+                               (frame.index[-1]).to_timestamp(how='start'),
+                               freq='1H')
+        expected = frame.to_timestamp().reindex(new_index, fill_value=3.0)
+        result = frame.resample('1H', kind='timestamp').asfreq(fill_value=3.0)
         assert_frame_equal(result, expected)
 
     def test_selection(self):

@@ -133,9 +133,8 @@ Other enhancements
 - ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
 - ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
-
 - ``.select_dtypes()`` now allows the string 'datetimetz' to generically select datetimes with tz (:issue:`14910`)
-
+- ``DataFrame.asfreq()`` now accepts a ``fill_value`` option to fill missing values during resampling (:issue:`3715`).
 
 .. _whatsnew_0200.api_breaking:
 
