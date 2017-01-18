@@ -110,6 +110,7 @@ Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937
 - Bug in ``DataFrame`` construction in which unsigned 64-bit integer elements were being converted to objects (:issue:`14881`)
 - Bug in ``pd.read_csv()`` in which unsigned 64-bit integer elements were being improperly converted to the wrong data types (:issue:`14983`)
 - Bug in ``pd.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14915`)
+- Bug in ``pd.value_counts()`` in which unsigned 64-bit integers were being erroneously truncated in the output (:issue:`14934`)
 
 .. _whatsnew_0200.enhancements.other:
 
