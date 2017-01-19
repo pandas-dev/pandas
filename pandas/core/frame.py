@@ -962,7 +962,7 @@ class DataFrame(NDFrame):
             in the result (any names not found in the data will become all-NA
             columns)
         coerce_float : boolean, default False
-            Attempt to convert values to non-string, non-numeric objects (like
+            Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
 
         Returns
