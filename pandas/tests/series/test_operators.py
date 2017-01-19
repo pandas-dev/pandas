@@ -1297,15 +1297,16 @@ class TestSeriesOperators(TestData, tm.TestCase):
     def test_return_dtypes_bool_op_costant(self):
         # gh15115
         s = pd.Series([1, 3, 2], index=range(3))
+        const = 2
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            f = getattr(s, op)
-            self.assertFalse(f(2).dtypes, np.dtype('bool'))
+            result = getattr(s, op)(const).get_dtype_counts()
+            self.assert_series_equal(result, Series([1], ['bool']))
 
         # empty Series
         empty = s.iloc[:0]
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            f = getattr(empty, op)
-            self.assertFalse(f(2).dtypes, np.dtype('bool'))
+            result = getattr(empty, op)(const).get_dtype_counts()
+            self.assert_series_equal(result, Series([1], ['bool']))
 
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types

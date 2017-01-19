@@ -362,4 +362,4 @@ Bug Fixes
 
 
 - Bug in ``pd.read_csv()`` for the C engine where ``usecols`` were being indexed incorrectly with ``parse_dates`` (:issue:`14792`)
-- Not boolean Series returned by comparison methods (e.g., ``lt``, ``gt``, ...) against a constant for an empty DataFrame (:issue:`15077`)
+- Incorrect dtyped ``Series`` was returned by comparison methods (e.g., ``lt``, ``gt``, ...) against a constant for an empty ``DataFrame`` (:issue:`15077`)
