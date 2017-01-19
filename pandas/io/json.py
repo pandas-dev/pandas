@@ -274,7 +274,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         # If given a json lines file, we break the string into lines, add
         # commas and put it in a json list to make a valid json object.
         lines = list(StringIO(json.strip()))
-        json = u'[' + u','.join(lines) + u']'
+        json = '[' + ','.join(lines) + ']'
 
     obj = None
     if typ == 'frame':

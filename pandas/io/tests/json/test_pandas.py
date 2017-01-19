@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 import nose
 from pandas.compat import range, lrange, StringIO, OrderedDict
@@ -958,6 +959,25 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH9180
         result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_read_jsonl_unicode_chars(self):
+        # GH15132: non-ascii unicode characters
+        # \u201d == RIGHT DOUBLE QUOTATION MARK
+
+        # simulate file handle
+        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
+        json = StringIO(json)
+        result = read_json(json, lines=True)
+        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+                             columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+        # simulate string
+        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
+        result = read_json(json, lines=True)
+        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+                             columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
     def test_to_jsonl(self):
