@@ -36,7 +36,7 @@ Highlights include:
    .. ipython:: python
 
       df = DataFrame(dict(A = np.array(['foo','bar','bah','foo','bar'])))
-      df.ix[0,'A'] = np.nan
+      df.loc[0,'A'] = np.nan
       df
 
 Output Formatting Enhancements
@@ -121,7 +121,7 @@ API changes
 
   .. ipython:: python
       :okwarning:
-      
+
       df = DataFrame({'col':['foo', 0, np.nan]})
       df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
       df.equals(df2)
