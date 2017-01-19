@@ -1400,7 +1400,7 @@ returned object:
 
    df = pd.read_csv("data/mindex_ex.csv", index_col=[0,1])
    df
-   df.iloc[1978]
+   df.loc[1978]
 
 .. _io.multi_index_columns:
 
