@@ -67,6 +67,26 @@ class TestGroupByCategorical(tm.TestCase):
              'E': np.random.randn(11),
              'F': np.random.randn(11)})
 
+    def test_level_groupby_get_group(self):
+        # GH15155
+        df = DataFrame(data=np.arange(2, 22, 2),
+                       index=MultiIndex(
+                           levels=[pd.CategoricalIndex(["a", "b"]), range(10)],
+                           labels=[[0] * 5 + [1] * 5, range(10)],
+                           names=["Index1", "Index2"]))
+        g = df.groupby(level=["Index1"])
+
+        # expected should equal test.loc[["a"]]
+        # GH15166
+        expected = DataFrame(data=np.arange(2, 12, 2),
+                             index=pd.MultiIndex(levels=[pd.CategoricalIndex(
+                                 ["a", "b"]), range(5)],
+            labels=[[0] * 5, range(5)],
+            names=["Index1", "Index2"]))
+        result = g.get_group('a')
+
+        assert_frame_equal(result, expected)
+
     def test_apply_use_categorical_name(self):
         from pandas import qcut
         cats = qcut(self.df.C, 4)
