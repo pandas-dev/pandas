@@ -810,7 +810,7 @@ next). This enables some operations to be carried out rather succinctly:
    tsdf = pd.DataFrame(np.random.randn(1000, 3),
                        index=pd.date_range('1/1/2000', periods=1000),
                        columns=['A', 'B', 'C'])
-   tsdf.ix[::2] = np.nan
+   tsdf.iloc[::2] = np.nan
    grouped = tsdf.groupby(lambda x: x.year)
    grouped.fillna(method='pad')
 
