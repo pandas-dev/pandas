@@ -570,7 +570,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
         # Unaligned
         def _check_unaligned_frame(meth, op, df, other):
-            part_o = other.ix[3:, 1:].copy()
+            part_o = other.loc[3:, 1:].copy()
             rs = meth(part_o)
             xp = op(df, part_o.reindex(index=df.index, columns=df.columns))
             assert_frame_equal(rs, xp)
@@ -635,19 +635,19 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         _test_seq(df, idx_ser.values, col_ser.values)
 
         # NA
-        df.ix[0, 0] = np.nan
+        df.loc[0, 0] = np.nan
         rs = df.eq(df)
-        self.assertFalse(rs.ix[0, 0])
+        self.assertFalse(rs.loc[0, 0])
         rs = df.ne(df)
-        self.assertTrue(rs.ix[0, 0])
+        self.assertTrue(rs.loc[0, 0])
         rs = df.gt(df)
-        self.assertFalse(rs.ix[0, 0])
+        self.assertFalse(rs.loc[0, 0])
         rs = df.lt(df)
-        self.assertFalse(rs.ix[0, 0])
+        self.assertFalse(rs.loc[0, 0])
         rs = df.ge(df)
-        self.assertFalse(rs.ix[0, 0])
+        self.assertFalse(rs.loc[0, 0])
         rs = df.le(df)
-        self.assertFalse(rs.ix[0, 0])
+        self.assertFalse(rs.loc[0, 0])
 
         # complex
         arr = np.array([np.nan, 1, 6, np.nan])
@@ -957,12 +957,12 @@ class TestDataFrameOperators(tm.TestCase, TestData):
     def test_string_comparison(self):
         df = DataFrame([{"a": 1, "b": "foo"}, {"a": 2, "b": "bar"}])
         mask_a = df.a > 1
-        assert_frame_equal(df[mask_a], df.ix[1:1, :])
-        assert_frame_equal(df[-mask_a], df.ix[0:0, :])
+        assert_frame_equal(df[mask_a], df.loc[1:1, :])
+        assert_frame_equal(df[-mask_a], df.loc[0:0, :])
 
         mask_b = df.b == "foo"
-        assert_frame_equal(df[mask_b], df.ix[0:0, :])
-        assert_frame_equal(df[-mask_b], df.ix[1:1, :])
+        assert_frame_equal(df[mask_b], df.loc[0:0, :])
+        assert_frame_equal(df[-mask_b], df.loc[1:1, :])
 
     def test_float_none_comparison(self):
         df = DataFrame(np.random.randn(8, 3), index=lrange(8),
@@ -1110,17 +1110,18 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
     def test_combine_generic(self):
         df1 = self.frame
-        df2 = self.frame.ix[:-5, ['A', 'B', 'C']]
+        df2 = self.frame.loc[self.frame.index[:-5], ['A', 'B', 'C']]
 
         combined = df1.combine(df2, np.add)
         combined2 = df2.combine(df1, np.add)
         self.assertTrue(combined['D'].isnull().all())
         self.assertTrue(combined2['D'].isnull().all())
 
-        chunk = combined.ix[:-5, ['A', 'B', 'C']]
-        chunk2 = combined2.ix[:-5, ['A', 'B', 'C']]
+        chunk = combined.loc[combined.index[:-5], ['A', 'B', 'C']]
+        chunk2 = combined2.loc[combined2.index[:-5], ['A', 'B', 'C']]
 
-        exp = self.frame.ix[:-5, ['A', 'B', 'C']].reindex_like(chunk) * 2
+        exp = self.frame.loc[self.frame.index[:-5],
+                             ['A', 'B', 'C']].reindex_like(chunk) * 2
         assert_frame_equal(chunk, exp)
         assert_frame_equal(chunk2, exp)
 

@@ -426,7 +426,7 @@ class TestHDFStore(Base, tm.TestCase):
             df['timestamp2'] = Timestamp('20010103')
             df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
             df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
-            df.ix[3:6, ['obj1']] = np.nan
+            df.loc[3:6, ['obj1']] = np.nan
             df = df.consolidate()._convert(datetime=True)
 
             warnings.filterwarnings('ignore', category=PerformanceWarning)
@@ -770,7 +770,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['timestamp2'] = Timestamp('20010103')
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
-        df.ix[3:6, ['obj1']] = np.nan
+        df.loc[3:6, ['obj1']] = np.nan
         df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
@@ -815,8 +815,8 @@ class TestHDFStore(Base, tm.TestCase):
             # panel
             wp = tm.makePanel()
             _maybe_remove(store, 'wp1')
-            store.append('wp1', wp.ix[:, :10, :])
-            store.append('wp1', wp.ix[:, 10:, :])
+            store.append('wp1', wp.iloc[:, :10, :])
+            store.append('wp1', wp.iloc[:, 10:, :])
             assert_panel_equal(store['wp1'], wp)
 
             # ndim
@@ -824,15 +824,15 @@ class TestHDFStore(Base, tm.TestCase):
                                             check_stacklevel=False):
                 p4d = tm.makePanel4D()
                 _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.ix[:, :, :10, :])
-                store.append('p4d', p4d.ix[:, :, 10:, :])
+                store.append('p4d', p4d.iloc[:, :, :10, :])
+                store.append('p4d', p4d.iloc[:, :, 10:, :])
                 assert_panel4d_equal(store['p4d'], p4d)
 
                 # test using axis labels
                 _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.ix[:, :, :10, :], axes=[
+                store.append('p4d', p4d.iloc[:, :, :10, :], axes=[
                     'items', 'major_axis', 'minor_axis'])
-                store.append('p4d', p4d.ix[:, :, 10:, :], axes=[
+                store.append('p4d', p4d.iloc[:, :, 10:, :], axes=[
                     'items', 'major_axis', 'minor_axis'])
                 assert_panel4d_equal(store['p4d'], p4d)
 
@@ -847,16 +847,16 @@ class TestHDFStore(Base, tm.TestCase):
 
             # test using differt order of items on the non-index axes
             _maybe_remove(store, 'wp1')
-            wp_append1 = wp.ix[:, :10, :]
+            wp_append1 = wp.iloc[:, :10, :]
             store.append('wp1', wp_append1)
-            wp_append2 = wp.ix[:, 10:, :].reindex(items=wp.items[::-1])
+            wp_append2 = wp.iloc[:, 10:, :].reindex(items=wp.items[::-1])
             store.append('wp1', wp_append2)
             assert_panel_equal(store['wp1'], wp)
 
             # dtype issues - mizxed type in a single object column
             df = DataFrame(data=[[1, 2], [0, 1], [1, 2], [0, 0]])
             df['mixed_column'] = 'testing'
-            df.ix[2, 'mixed_column'] = np.nan
+            df.loc[2, 'mixed_column'] = np.nan
             _maybe_remove(store, 'df')
             store.append('df', df)
             tm.assert_frame_equal(store['df'], df)
@@ -1040,14 +1040,14 @@ class TestHDFStore(Base, tm.TestCase):
                            index=np.arange(20))
             # some nans
             _maybe_remove(store, 'df1')
-            df.ix[0:15, ['A1', 'B', 'D', 'E']] = np.nan
+            df.loc[0:15, ['A1', 'B', 'D', 'E']] = np.nan
             store.append('df1', df[:10])
             store.append('df1', df[10:])
             tm.assert_frame_equal(store['df1'], df)
 
             # first column
             df1 = df.copy()
-            df1.ix[:, 'A1'] = np.nan
+            df1.loc[:, 'A1'] = np.nan
             _maybe_remove(store, 'df1')
             store.append('df1', df1[:10])
             store.append('df1', df1[10:])
@@ -1055,7 +1055,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             # 2nd column
             df2 = df.copy()
-            df2.ix[:, 'A2'] = np.nan
+            df2.loc[:, 'A2'] = np.nan
             _maybe_remove(store, 'df2')
             store.append('df2', df2[:10])
             store.append('df2', df2[10:])
@@ -1063,7 +1063,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             # datetimes
             df3 = df.copy()
-            df3.ix[:, 'E'] = np.nan
+            df3.loc[:, 'E'] = np.nan
             _maybe_remove(store, 'df3')
             store.append('df3', df3[:10])
             store.append('df3', df3[10:])
@@ -1076,7 +1076,7 @@ class TestHDFStore(Base, tm.TestCase):
             df = DataFrame({'A1': np.random.randn(20),
                             'A2': np.random.randn(20)},
                            index=np.arange(20))
-            df.ix[0:15, :] = np.nan
+            df.loc[0:15, :] = np.nan
 
             # nan some entire rows (dropna=True)
             _maybe_remove(store, 'df')
@@ -1109,7 +1109,7 @@ class TestHDFStore(Base, tm.TestCase):
                             'B': 'foo', 'C': 'bar'},
                            index=np.arange(20))
 
-            df.ix[0:15, :] = np.nan
+            df.loc[0:15, :] = np.nan
 
             _maybe_remove(store, 'df')
             store.append('df', df[:10], dropna=True)
@@ -1130,7 +1130,7 @@ class TestHDFStore(Base, tm.TestCase):
                             'E': datetime.datetime(2001, 1, 2, 0, 0)},
                            index=np.arange(20))
 
-            df.ix[0:15, :] = np.nan
+            df.loc[0:15, :] = np.nan
 
             _maybe_remove(store, 'df')
             store.append('df', df[:10], dropna=True)
@@ -1173,8 +1173,8 @@ class TestHDFStore(Base, tm.TestCase):
             # column oriented
             df = tm.makeTimeDataFrame()
             _maybe_remove(store, 'df1')
-            store.append('df1', df.ix[:, :2], axes=['columns'])
-            store.append('df1', df.ix[:, 2:])
+            store.append('df1', df.iloc[:, :2], axes=['columns'])
+            store.append('df1', df.iloc[:, 2:])
             tm.assert_frame_equal(store['df1'], df)
 
             result = store.select('df1', 'columns=A')
@@ -1250,37 +1250,37 @@ class TestHDFStore(Base, tm.TestCase):
                 indexers = ['items', 'major_axis', 'minor_axis']
 
                 _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.ix[:, :, :10, :], axes=indexers)
-                store.append('p4d', p4d.ix[:, :, 10:, :])
+                store.append('p4d', p4d.iloc[:, :, :10, :], axes=indexers)
+                store.append('p4d', p4d.iloc[:, :, 10:, :])
                 assert_panel4d_equal(store.select('p4d'), p4d)
                 check_indexers('p4d', indexers)
 
                 # same as above, but try to append with differnt axes
                 _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.ix[:, :, :10, :], axes=indexers)
-                store.append('p4d', p4d.ix[:, :, 10:, :], axes=[
+                store.append('p4d', p4d.iloc[:, :, :10, :], axes=indexers)
+                store.append('p4d', p4d.iloc[:, :, 10:, :], axes=[
                     'labels', 'items', 'major_axis'])
                 assert_panel4d_equal(store.select('p4d'), p4d)
                 check_indexers('p4d', indexers)
 
                 # pass incorrect number of axes
                 _maybe_remove(store, 'p4d')
-                self.assertRaises(ValueError, store.append, 'p4d', p4d.ix[
+                self.assertRaises(ValueError, store.append, 'p4d', p4d.iloc[
                     :, :, :10, :], axes=['major_axis', 'minor_axis'])
 
                 # different than default indexables #1
                 indexers = ['labels', 'major_axis', 'minor_axis']
                 _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.ix[:, :, :10, :], axes=indexers)
-                store.append('p4d', p4d.ix[:, :, 10:, :])
+                store.append('p4d', p4d.iloc[:, :, :10, :], axes=indexers)
+                store.append('p4d', p4d.iloc[:, :, 10:, :])
                 assert_panel4d_equal(store['p4d'], p4d)
                 check_indexers('p4d', indexers)
 
                 # different than default indexables #2
                 indexers = ['major_axis', 'labels', 'minor_axis']
                 _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.ix[:, :, :10, :], axes=indexers)
-                store.append('p4d', p4d.ix[:, :, 10:, :])
+                store.append('p4d', p4d.iloc[:, :, :10, :], axes=indexers)
+                store.append('p4d', p4d.iloc[:, :, 10:, :])
                 assert_panel4d_equal(store['p4d'], p4d)
                 check_indexers('p4d', indexers)
 
@@ -1392,11 +1392,11 @@ class TestHDFStore(Base, tm.TestCase):
             _maybe_remove(store, 'df')
             df = tm.makeTimeDataFrame()
             df['string'] = 'foo'
-            df.ix[1:4, 'string'] = np.nan
+            df.loc[1:4, 'string'] = np.nan
             df['string2'] = 'bar'
-            df.ix[4:8, 'string2'] = np.nan
+            df.loc[4:8, 'string2'] = np.nan
             df['string3'] = 'bah'
-            df.ix[1:, 'string3'] = np.nan
+            df.loc[1:, 'string3'] = np.nan
             store.append('df', df)
             result = store.select('df')
             tm.assert_frame_equal(result, df)
@@ -1466,7 +1466,7 @@ class TestHDFStore(Base, tm.TestCase):
 
         with ensure_clean_store(self.path) as store:
             df = tm.makeTimeDataFrame()
-            df.loc[:, 'B'].iloc[0] = 1.
+            df.iloc[0, df.columns.get_loc('B')] = 1.
             _maybe_remove(store, 'df')
             store.append('df', df[:2], data_columns=['B'])
             store.append('df', df[2:])
@@ -1533,14 +1533,18 @@ class TestHDFStore(Base, tm.TestCase):
         with ensure_clean_store(self.path) as store:
             # multiple data columns
             df_new = df.copy()
-            df_new.ix[0, 'A'] = 1.
-            df_new.ix[0, 'B'] = -1.
+            df_new.iloc[0, df_new.columns.get_loc('A')] = 1.
+            df_new.iloc[0, df_new.columns.get_loc('B')] = -1.
             df_new['string'] = 'foo'
-            df_new.loc[1:4, 'string'] = np.nan
-            df_new.loc[5:6, 'string'] = 'bar'
+
+            sl = df_new.columns.get_loc('string')
+            df_new.iloc[1:4, sl] = np.nan
+            df_new.iloc[5:6, sl] = 'bar'
+
             df_new['string2'] = 'foo'
-            df_new.loc[2:5, 'string2'] = np.nan
-            df_new.loc[7:8, 'string2'] = 'bar'
+            sl = df_new.columns.get_loc('string2')
+            df_new.iloc[2:5, sl] = np.nan
+            df_new.iloc[7:8, sl] = 'bar'
             _maybe_remove(store, 'df')
             store.append(
                 'df', df_new, data_columns=['A', 'B', 'string', 'string2'])
@@ -1561,12 +1565,12 @@ class TestHDFStore(Base, tm.TestCase):
             # doc example
             df_dc = df.copy()
             df_dc['string'] = 'foo'
-            df_dc.ix[4:6, 'string'] = np.nan
-            df_dc.ix[7:9, 'string'] = 'bar'
+            df_dc.loc[4:6, 'string'] = np.nan
+            df_dc.loc[7:9, 'string'] = 'bar'
             df_dc['string2'] = 'cool'
             df_dc['datetime'] = Timestamp('20010102')
             df_dc = df_dc._convert(datetime=True)
-            df_dc.ix[3:5, ['A', 'B', 'datetime']] = np.nan
+            df_dc.loc[3:5, ['A', 'B', 'datetime']] = np.nan
 
             _maybe_remove(store, 'df_dc')
             store.append('df_dc', df_dc,
@@ -1590,9 +1594,9 @@ class TestHDFStore(Base, tm.TestCase):
             df_dc = DataFrame(np.random.randn(8, 3), index=index,
                               columns=['A', 'B', 'C'])
             df_dc['string'] = 'foo'
-            df_dc.ix[4:6, 'string'] = np.nan
-            df_dc.ix[7:9, 'string'] = 'bar'
-            df_dc.ix[:, ['B', 'C']] = df_dc.ix[:, ['B', 'C']].abs()
+            df_dc.loc[4:6, 'string'] = np.nan
+            df_dc.loc[7:9, 'string'] = 'bar'
+            df_dc.loc[:, ['B', 'C']] = df_dc.loc[:, ['B', 'C']].abs()
             df_dc['string2'] = 'cool'
 
             # on-disk operations
@@ -1695,8 +1699,9 @@ class TestHDFStore(Base, tm.TestCase):
     def test_append_diff_item_order(self):
 
         wp = tm.makePanel()
-        wp1 = wp.ix[:, :10, :]
-        wp2 = wp.ix[['ItemC', 'ItemB', 'ItemA'], 10:, :]
+        wp1 = wp.iloc[:, :10, :]
+        wp2 = wp.iloc[wp.items.get_indexer(['ItemC', 'ItemB', 'ItemA']),
+                      10:, :]
 
         with ensure_clean_store(self.path) as store:
             store.put('panel', wp1, format='table')
@@ -2080,7 +2085,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['timestamp2'] = Timestamp('20010103')
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
-        df.ix[3:6, ['obj1']] = np.nan
+        df.loc[3:6, ['obj1']] = np.nan
         df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
@@ -2177,7 +2182,7 @@ class TestHDFStore(Base, tm.TestCase):
         df = DataFrame(dict(A=Timestamp('20130101'), B=[Timestamp(
             '20130101') + timedelta(days=i, seconds=10) for i in range(10)]))
         df['C'] = df['A'] - df['B']
-        df.ix[3:5, 'C'] = np.nan
+        df.loc[3:5, 'C'] = np.nan
 
         with ensure_clean_store(self.path) as store:
 
@@ -2439,7 +2444,7 @@ class TestHDFStore(Base, tm.TestCase):
 
                 df = tm.makeTimeDataFrame()
                 df['string'] = 'foo'
-                df.ix[0:4, 'string'] = 'bar'
+                df.loc[0:4, 'string'] = 'bar'
                 wp = tm.makePanel()
 
                 p4d = tm.makePanel4D()
@@ -2726,7 +2731,7 @@ class TestHDFStore(Base, tm.TestCase):
     def test_sparse_series(self):
 
         s = tm.makeStringSeries()
-        s[3:5] = np.nan
+        s.iloc[3:5] = np.nan
         ss = s.to_sparse()
         self._check_roundtrip(ss, tm.assert_series_equal,
                               check_series_type=True)
@@ -2742,8 +2747,8 @@ class TestHDFStore(Base, tm.TestCase):
     def test_sparse_frame(self):
 
         s = tm.makeDataFrame()
-        s.ix[3:5, 1:3] = np.nan
-        s.ix[8:10, -2] = np.nan
+        s.iloc[3:5, 1:3] = np.nan
+        s.iloc[8:10, -2] = np.nan
         ss = s.to_sparse()
 
         self._check_double_roundtrip(ss, tm.assert_frame_equal,
@@ -3199,7 +3204,7 @@ class TestHDFStore(Base, tm.TestCase):
             # bool columns (GH #2849)
             df = DataFrame(np.random.randn(5, 2), columns=['A', 'B'])
             df['object'] = 'foo'
-            df.ix[4:5, 'object'] = 'bar'
+            df.loc[4:5, 'object'] = 'bar'
             df['boolv'] = df['A'] > 0
             _maybe_remove(store, 'df')
             store.append('df', df, data_columns=True)
@@ -3718,11 +3723,11 @@ class TestHDFStore(Base, tm.TestCase):
             crit3 = ('columns=A')
 
             result = store.select('frame', [crit1, crit2])
-            expected = df.ix[date:, ['A', 'D']]
+            expected = df.loc[date:, ['A', 'D']]
             tm.assert_frame_equal(result, expected)
 
             result = store.select('frame', [crit3])
-            expected = df.ix[:, ['A']]
+            expected = df.loc[:, ['A']]
             tm.assert_frame_equal(result, expected)
 
             # invalid terms
@@ -3881,7 +3886,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             # test string ==/!=
             df['x'] = 'none'
-            df.ix[2:7, 'x'] = ''
+            df.loc[2:7, 'x'] = ''
 
             store.append('df', df, data_columns=['x'])
 
@@ -3908,7 +3913,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             # int ==/!=
             df['int'] = 1
-            df.ix[2:7, 'int'] = 2
+            df.loc[2:7, 'int'] = 2
 
             store.append('df3', df, data_columns=['int'])
 
@@ -3954,7 +3959,7 @@ class TestHDFStore(Base, tm.TestCase):
             # a data column with NaNs, result excludes the NaNs
             df3 = df.copy()
             df3['string'] = 'foo'
-            df3.ix[4:6, 'string'] = np.nan
+            df3.loc[4:6, 'string'] = np.nan
             store.append('df3', df3, data_columns=['string'])
             result = store.select_column('df3', 'string')
             tm.assert_almost_equal(result.values, df3['string'].values)
@@ -4005,13 +4010,13 @@ class TestHDFStore(Base, tm.TestCase):
             c = store.select_as_coordinates('df', ['index<3'])
             assert((c.values == np.arange(3)).all())
             result = store.select('df', where=c)
-            expected = df.ix[0:2, :]
+            expected = df.loc[0:2, :]
             tm.assert_frame_equal(result, expected)
 
             c = store.select_as_coordinates('df', ['index>=3', 'index<=4'])
             assert((c.values == np.arange(2) + 3).all())
             result = store.select('df', where=c)
-            expected = df.ix[3:4, :]
+            expected = df.loc[3:4, :]
             tm.assert_frame_equal(result, expected)
             self.assertIsInstance(c, Index)
 
@@ -4113,7 +4118,7 @@ class TestHDFStore(Base, tm.TestCase):
     def test_append_to_multiple_dropna(self):
         df1 = tm.makeTimeDataFrame()
         df2 = tm.makeTimeDataFrame().rename(columns=lambda x: "%s_2" % x)
-        df1.ix[1, ['A', 'B']] = np.nan
+        df1.iloc[1, df1.columns.get_indexer(['A', 'B'])] = np.nan
         df = concat([df1, df2], axis=1)
 
         with ensure_clean_store(self.path) as store:
@@ -4226,14 +4231,14 @@ class TestHDFStore(Base, tm.TestCase):
 
             result = store.select(
                 'df', [Term("columns=['A']")], start=0, stop=5)
-            expected = df.ix[0:4, ['A']]
+            expected = df.loc[0:4, ['A']]
             tm.assert_frame_equal(result, expected)
 
             # out of range
             result = store.select(
                 'df', [Term("columns=['A']")], start=30, stop=40)
             self.assertTrue(len(result) == 0)
-            expected = df.ix[30:40, ['A']]
+            expected = df.loc[30:40, ['A']]
             tm.assert_frame_equal(result, expected)
 
     def test_start_stop_fixed(self):
@@ -4275,8 +4280,8 @@ class TestHDFStore(Base, tm.TestCase):
 
             # sparse; not implemented
             df = tm.makeDataFrame()
-            df.ix[3:5, 1:3] = np.nan
-            df.ix[8:10, -2] = np.nan
+            df.iloc[3:5, 1:3] = np.nan
+            df.iloc[8:10, -2] = np.nan
             dfs = df.to_sparse()
             store.put('dfs', dfs)
             with self.assertRaises(NotImplementedError):
@@ -4293,11 +4298,11 @@ class TestHDFStore(Base, tm.TestCase):
 
             crit = Term('columns=df.columns[:75]')
             result = store.select('frame', [crit])
-            tm.assert_frame_equal(result, df.ix[:, df.columns[:75]])
+            tm.assert_frame_equal(result, df.loc[:, df.columns[:75]])
 
             crit = Term('columns=df.columns[:75:2]')
             result = store.select('frame', [crit])
-            tm.assert_frame_equal(result, df.ix[:, df.columns[:75:2]])
+            tm.assert_frame_equal(result, df.loc[:, df.columns[:75:2]])
 
     def _check_roundtrip(self, obj, comparator, compression=False, **kwargs):
 

@@ -214,7 +214,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex)
     coerce_float : boolean, default True
-        Attempt to convert values to non-string, non-numeric objects (like
+        Attempt to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates
@@ -289,7 +289,7 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex)
     coerce_float : boolean, default True
-        Attempt to convert values to non-string, non-numeric objects (like
+        Attempt to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
     params : list, tuple or dict, optional, default: None
         List of parameters to pass to execute method.  The syntax used
@@ -348,7 +348,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex)
     coerce_float : boolean, default True
-        Attempt to convert values to non-string, non-numeric objects (like
+        Attempt to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
     params : list, tuple or dict, optional, default: None
         List of parameters to pass to execute method.  The syntax used
@@ -986,7 +986,7 @@ class SQLDatabase(PandasSQL):
         index_col : string, optional, default: None
             Column to set as index
         coerce_float : boolean, default True
-            Attempt to convert values to non-string, non-numeric objects
+            Attempt to convert values of non-string, non-numeric objects
             (like decimal.Decimal) to floating point. This can result in
             loss of precision.
         parse_dates : list or dict, default: None
@@ -1048,7 +1048,7 @@ class SQLDatabase(PandasSQL):
         index_col : string, optional, default: None
             Column name to use as index for the returned DataFrame object.
         coerce_float : boolean, default True
-            Attempt to convert values to non-string, non-numeric objects (like
+            Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
         params : list, tuple or dict, optional, default: None
             List of parameters to pass to execute method.  The syntax used

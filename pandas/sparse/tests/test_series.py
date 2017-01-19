@@ -295,8 +295,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         data = 5
         sp = SparseSeries(data, np.arange(100))
         sp = sp.reindex(np.arange(200))
-        self.assertTrue((sp.ix[:99] == data).all())
-        self.assertTrue(isnull(sp.ix[100:]).all())
+        self.assertTrue((sp.loc[:99] == data).all())
+        self.assertTrue(isnull(sp.loc[100:]).all())
 
         data = np.nan
         sp = SparseSeries(data, np.arange(100))

@@ -84,8 +84,8 @@ in order to have a valid result.
 .. ipython:: python
 
    frame = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
-   frame.ix[:5, 'a'] = np.nan
-   frame.ix[5:10, 'b'] = np.nan
+   frame.loc[frame.index[:5], 'a'] = np.nan
+   frame.loc[frame.index[5:10], 'b'] = np.nan
 
    frame.cov()
 
@@ -120,7 +120,7 @@ All of these are currently computed using pairwise complete observations.
 .. ipython:: python
 
    frame = pd.DataFrame(np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
-   frame.ix[::2] = np.nan
+   frame.iloc[::2] = np.nan
 
    # Series with Series
    frame['a'].corr(frame['b'])
@@ -137,8 +137,8 @@ Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
 .. ipython:: python
 
    frame = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
-   frame.ix[:5, 'a'] = np.nan
-   frame.ix[5:10, 'b'] = np.nan
+   frame.loc[frame.index[:5], 'a'] = np.nan
+   frame.loc[frame.index[5:10], 'b'] = np.nan
 
    frame.corr()
 

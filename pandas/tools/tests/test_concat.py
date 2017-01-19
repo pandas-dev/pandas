@@ -785,8 +785,8 @@ class TestAppend(ConcatenateBase):
                         'floats': np.random.randn(10),
                         'strings': ['foo', 'bar'] * 5})
 
-        a = df[:5].ix[:, ['bools', 'ints', 'floats']]
-        b = df[5:].ix[:, ['strings', 'ints', 'floats']]
+        a = df[:5].loc[:, ['bools', 'ints', 'floats']]
+        b = df[5:].loc[:, ['strings', 'ints', 'floats']]
 
         appended = a.append(b)
         self.assertTrue(isnull(appended['strings'][0:4]).all())
@@ -802,7 +802,7 @@ class TestAppend(ConcatenateBase):
         chunks[-1] = chunks[-1].copy()
         chunks[-1]['foo'] = 'bar'
         result = chunks[0].append(chunks[1:])
-        tm.assert_frame_equal(result.ix[:, self.frame.columns], self.frame)
+        tm.assert_frame_equal(result.loc[:, self.frame.columns], self.frame)
         self.assertTrue((result['foo'][15:] == 'bar').all())
         self.assertTrue(result['foo'][:15].isnull().all())
 
@@ -929,7 +929,7 @@ class TestConcatenate(ConcatenateBase):
 
     def test_concat_keys_specific_levels(self):
         df = DataFrame(np.random.randn(10, 4))
-        pieces = [df.ix[:, [0, 1]], df.ix[:, [2]], df.ix[:, [3]]]
+        pieces = [df.iloc[:, [0, 1]], df.iloc[:, [2]], df.iloc[:, [3]]]
         level = ['three', 'two', 'one', 'zero']
         result = concat(pieces, axis=1, keys=['one', 'two', 'three'],
                         levels=[level],
@@ -1024,8 +1024,8 @@ class TestConcatenate(ConcatenateBase):
         result = concat([frame, frame], keys=[0, 1], names=['iteration'])
 
         self.assertEqual(result.index.names, ('iteration',) + index.names)
-        tm.assert_frame_equal(result.ix[0], frame)
-        tm.assert_frame_equal(result.ix[1], frame)
+        tm.assert_frame_equal(result.loc[0], frame)
+        tm.assert_frame_equal(result.loc[1], frame)
         self.assertEqual(result.index.nlevels, 3)
 
     def test_concat_multiindex_with_tz(self):
@@ -1202,7 +1202,7 @@ class TestConcatenate(ConcatenateBase):
         frames = [baz, empty, empty, df[5:]]
         concatted = concat(frames, axis=0)
 
-        expected = df.ix[:, ['a', 'b', 'c', 'd', 'foo']]
+        expected = df.loc[:, ['a', 'b', 'c', 'd', 'foo']]
         expected['foo'] = expected['foo'].astype('O')
         expected.loc[0:4, 'foo'] = 'bar'
 
@@ -1326,28 +1326,28 @@ class TestConcatenate(ConcatenateBase):
     def test_panel_concat_other_axes(self):
         panel = tm.makePanel()
 
-        p1 = panel.ix[:, :5, :]
-        p2 = panel.ix[:, 5:, :]
+        p1 = panel.iloc[:, :5, :]
+        p2 = panel.iloc[:, 5:, :]
 
         result = concat([p1, p2], axis=1)
         tm.assert_panel_equal(result, panel)
 
-        p1 = panel.ix[:, :, :2]
-        p2 = panel.ix[:, :, 2:]
+        p1 = panel.iloc[:, :, :2]
+        p2 = panel.iloc[:, :, 2:]
 
         result = concat([p1, p2], axis=2)
         tm.assert_panel_equal(result, panel)
 
         # if things are a bit misbehaved
-        p1 = panel.ix[:2, :, :2]
-        p2 = panel.ix[:, :, 2:]
+        p1 = panel.iloc[:2, :, :2]
+        p2 = panel.iloc[:, :, 2:]
         p1['ItemC'] = 'baz'
 
         result = concat([p1, p2], axis=2)
 
         expected = panel.copy()
         expected['ItemC'] = expected['ItemC'].astype('O')
-        expected.ix['ItemC', :, :2] = 'baz'
+        expected.loc['ItemC', :, :2] = 'baz'
         tm.assert_panel_equal(result, expected)
 
     def test_panel_concat_buglet(self):
@@ -1379,14 +1379,14 @@ class TestConcatenate(ConcatenateBase):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             p4d = tm.makePanel4D()
 
-            p1 = p4d.ix[:, :, :5, :]
-            p2 = p4d.ix[:, :, 5:, :]
+            p1 = p4d.iloc[:, :, :5, :]
+            p2 = p4d.iloc[:, :, 5:, :]
 
             result = concat([p1, p2], axis=2)
             tm.assert_panel4d_equal(result, p4d)
 
-            p1 = p4d.ix[:, :, :, :2]
-            p2 = p4d.ix[:, :, :, 2:]
+            p1 = p4d.iloc[:, :, :, :2]
+            p2 = p4d.iloc[:, :, :, 2:]
 
             result = concat([p1, p2], axis=3)
             tm.assert_panel4d_equal(result, p4d)
@@ -1396,15 +1396,15 @@ class TestConcatenate(ConcatenateBase):
             p4d = tm.makePanel4D()
 
             # if things are a bit misbehaved
-            p1 = p4d.ix[:, :2, :, :2]
-            p2 = p4d.ix[:, :, :, 2:]
+            p1 = p4d.iloc[:, :2, :, :2]
+            p2 = p4d.iloc[:, :, :, 2:]
             p1['L5'] = 'baz'
 
             result = concat([p1, p2], axis=3)
 
             p2['L5'] = np.nan
             expected = concat([p1, p2], axis=3)
-            expected = expected.ix[result.labels]
+            expected = expected.loc[result.labels]
 
             tm.assert_panel4d_equal(result, expected)
 

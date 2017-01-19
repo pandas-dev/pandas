@@ -229,7 +229,7 @@ class TestStringMethods(tm.TestCase):
         # na
         values = Series(['om', 'foo', np.nan])
         res = values.str.contains('foo', na="foo")
-        self.assertEqual(res.ix[2], "foo")
+        self.assertEqual(res.loc[2], "foo")
 
     def test_startswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])

@@ -185,7 +185,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # pass a slice
         result = s.iloc[slice(1, 3)]
-        expected = s.ix[2:4]
+        expected = s.loc[2:4]
         assert_series_equal(result, expected)
 
         # test slice is a view
@@ -330,10 +330,10 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         # ts[mask_shifted]
         # ts[mask_shifted] = 1
 
-        self.assertRaises(Exception, ts.ix.__getitem__, mask_shifted)
-        self.assertRaises(Exception, ts.ix.__setitem__, mask_shifted, 1)
-        # ts.ix[mask_shifted]
-        # ts.ix[mask_shifted] = 2
+        self.assertRaises(Exception, ts.loc.__getitem__, mask_shifted)
+        self.assertRaises(Exception, ts.loc.__setitem__, mask_shifted, 1)
+        # ts.loc[mask_shifted]
+        # ts.loc[mask_shifted] = 2
 
     def test_getitem_setitem_slice_integers(self):
         s = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
@@ -358,8 +358,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         # caused bug without test
         s = Series([1, 2, 3], ['a', 'b', 'c'])
 
-        self.assertEqual(s.ix[0], s['a'])
-        s.ix[0] = 5
+        self.assertEqual(s.iloc[0], s['a'])
+        s.iloc[0] = 5
         self.assertAlmostEqual(s['a'], 5)
 
     def test_getitem_box_float64(self):
@@ -369,7 +369,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
     def test_getitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
         self.assertRaises(KeyError, s.__getitem__, 1)
-        self.assertRaises(KeyError, s.ix.__getitem__, 1)
+        self.assertRaises(KeyError, s.loc.__getitem__, 1)
 
     def test_getitem_unordered_dup(self):
         obj = Series(lrange(5), index=['c', 'a', 'a', 'b', 'b'])
@@ -378,10 +378,10 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_getitem_dups_with_missing(self):
 
-        # breaks reindex, so need to use .ix internally
+        # breaks reindex, so need to use .loc internally
         # GH 4246
         s = Series([1, 2, 3, 4], ['foo', 'bar', 'foo', 'bah'])
-        expected = s.ix[['foo', 'bar', 'bah', 'bam']]
+        expected = s.loc[['foo', 'bar', 'bah', 'bam']]
         result = s[['foo', 'bar', 'bah', 'bam']]
         assert_series_equal(result, expected)
 
@@ -419,7 +419,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert_series_equal(s2, expected)
 
         s2 = s.copy()
-        s2.ix[1] = 5
+        s2.loc[1] = 5
         expected = s.append(Series([5], index=[1]))
         assert_series_equal(s2, expected)
 
@@ -428,7 +428,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s = Series(['a', 'b', 'c'], index=[0, 0.5, 1])
         tmp = s.copy()
 
-        s.ix[1] = 'zoo'
+        s.loc[1] = 'zoo'
         tmp.iloc[2] = 'zoo'
 
         assert_series_equal(s, tmp)
@@ -490,14 +490,14 @@ class TestSeriesIndexing(TestData, tm.TestCase):
     def test_slice_floats2(self):
         s = Series(np.random.rand(10), index=np.arange(10, 20, dtype=float))
 
-        self.assertEqual(len(s.ix[12.0:]), 8)
-        self.assertEqual(len(s.ix[12.5:]), 7)
+        self.assertEqual(len(s.loc[12.0:]), 8)
+        self.assertEqual(len(s.loc[12.5:]), 7)
 
         i = np.arange(10, 20, dtype=float)
         i[2] = 12.2
         s.index = i
-        self.assertEqual(len(s.ix[12.0:]), 8)
-        self.assertEqual(len(s.ix[12.5:]), 7)
+        self.assertEqual(len(s.loc[12.0:]), 8)
+        self.assertEqual(len(s.loc[12.5:]), 7)
 
     def test_slice_float64(self):
 
@@ -635,7 +635,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
         result = self.ts[indices[0]:indices[2]]
-        expected = self.ts.ix[indices[0]:indices[2]]
+        expected = self.ts.loc[indices[0]:indices[2]]
         assert_series_equal(result, expected)
 
         # integer indexes, be careful
@@ -668,13 +668,13 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         cp = self.ts.copy()
         exp = self.ts.copy()
         cp[indices] = 0
-        exp.ix[indices] = 0
+        exp.loc[indices] = 0
         assert_series_equal(cp, exp)
 
         cp = self.ts.copy()
         exp = self.ts.copy()
         cp[indices[0]:indices[2]] = 0
-        exp.ix[indices[0]:indices[2]] = 0
+        exp.loc[indices[0]:indices[2]] = 0
         assert_series_equal(cp, exp)
 
         # integer indexes, be careful
@@ -685,13 +685,13 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         cp = s.copy()
         exp = s.copy()
         s[inds] = 0
-        s.ix[inds] = 0
+        s.loc[inds] = 0
         assert_series_equal(cp, exp)
 
         cp = s.copy()
         exp = s.copy()
         s[arr_inds] = 0
-        s.ix[arr_inds] = 0
+        s.loc[arr_inds] = 0
         assert_series_equal(cp, exp)
 
         inds_notfound = [0, 4, 5, 6]
@@ -719,48 +719,48 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         result = s2['a']
         self.assertEqual(result, expected)
 
-    def test_ix_getitem(self):
+    def test_loc_getitem(self):
         inds = self.series.index[[3, 4, 7]]
-        assert_series_equal(self.series.ix[inds], self.series.reindex(inds))
-        assert_series_equal(self.series.ix[5::2], self.series[5::2])
+        assert_series_equal(self.series.loc[inds], self.series.reindex(inds))
+        assert_series_equal(self.series.iloc[5::2], self.series[5::2])
 
         # slice with indices
         d1, d2 = self.ts.index[[5, 15]]
-        result = self.ts.ix[d1:d2]
+        result = self.ts.loc[d1:d2]
         expected = self.ts.truncate(d1, d2)
         assert_series_equal(result, expected)
 
         # boolean
         mask = self.series > self.series.median()
-        assert_series_equal(self.series.ix[mask], self.series[mask])
+        assert_series_equal(self.series.loc[mask], self.series[mask])
 
         # ask for index value
-        self.assertEqual(self.ts.ix[d1], self.ts[d1])
-        self.assertEqual(self.ts.ix[d2], self.ts[d2])
+        self.assertEqual(self.ts.loc[d1], self.ts[d1])
+        self.assertEqual(self.ts.loc[d2], self.ts[d2])
 
-    def test_ix_getitem_not_monotonic(self):
+    def test_loc_getitem_not_monotonic(self):
         d1, d2 = self.ts.index[[5, 15]]
 
         ts2 = self.ts[::2][[1, 2, 0]]
 
-        self.assertRaises(KeyError, ts2.ix.__getitem__, slice(d1, d2))
-        self.assertRaises(KeyError, ts2.ix.__setitem__, slice(d1, d2), 0)
+        self.assertRaises(KeyError, ts2.loc.__getitem__, slice(d1, d2))
+        self.assertRaises(KeyError, ts2.loc.__setitem__, slice(d1, d2), 0)
 
-    def test_ix_getitem_setitem_integer_slice_keyerrors(self):
+    def test_loc_getitem_setitem_integer_slice_keyerrors(self):
         s = Series(np.random.randn(10), index=lrange(0, 20, 2))
 
         # this is OK
         cp = s.copy()
-        cp.ix[4:10] = 0
-        self.assertTrue((cp.ix[4:10] == 0).all())
+        cp.iloc[4:10] = 0
+        self.assertTrue((cp.iloc[4:10] == 0).all())
 
         # so is this
         cp = s.copy()
-        cp.ix[3:11] = 0
-        self.assertTrue((cp.ix[3:11] == 0).values.all())
+        cp.iloc[3:11] = 0
+        self.assertTrue((cp.iloc[3:11] == 0).values.all())
 
-        result = s.ix[4:10]
-        result2 = s.ix[3:11]
+        result = s.iloc[2:6]
+        result2 = s.loc[3:11]
         expected = s.reindex([4, 6, 8, 10])
 
         assert_series_equal(result, expected)
@@ -768,12 +768,12 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # non-monotonic, raise KeyError
         s2 = s.iloc[lrange(5) + lrange(5, 10)[::-1]]
-        self.assertRaises(KeyError, s2.ix.__getitem__, slice(3, 11))
-        self.assertRaises(KeyError, s2.ix.__setitem__, slice(3, 11), 0)
+        self.assertRaises(KeyError, s2.loc.__getitem__, slice(3, 11))
+        self.assertRaises(KeyError, s2.loc.__setitem__, slice(3, 11), 0)
 
-    def test_ix_getitem_iterator(self):
+    def test_loc_getitem_iterator(self):
         idx = iter(self.series.index[:10])
-        result = self.series.ix[idx]
+        result = self.series.loc[idx]
         assert_series_equal(result, self.series[:10])
 
     def test_setitem_with_tz(self):
@@ -883,7 +883,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert_series_equal(rs, expected)
 
         expected = s2.abs()
-        expected.ix[0] = s2[0]
+        expected.iloc[0] = s2[0]
         rs = s2.where(cond[:3], -s2)
         assert_series_equal(rs, expected)
 
@@ -1228,25 +1228,25 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         inds = self.series.index[[3, 4, 7]]
 
         result = self.series.copy()
-        result.ix[inds] = 5
+        result.loc[inds] = 5
 
         expected = self.series.copy()
         expected[[3, 4, 7]] = 5
         assert_series_equal(result, expected)
 
-        result.ix[5:10] = 10
+        result.iloc[5:10] = 10
         expected[5:10] = 10
         assert_series_equal(result, expected)
 
         # set slice with indices
         d1, d2 = self.series.index[[5, 15]]
-        result.ix[d1:d2] = 6
+        result.loc[d1:d2] = 6
         expected[5:16] = 6  # because it's inclusive
         assert_series_equal(result, expected)
 
         # set index value
-        self.series.ix[d1] = 4
-        self.series.ix[d2] = 6
+        self.series.loc[d1] = 4
+        self.series.loc[d2] = 6
         self.assertEqual(self.series[d1], 4)
         self.assertEqual(self.series[d2], 6)
 
@@ -1295,15 +1295,15 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         mask = self.series > self.series.median()
 
         result = self.series.copy()
-        result.ix[mask] = 0
+        result.loc[mask] = 0
         expected = self.series
         expected[mask] = 0
         assert_series_equal(result, expected)
 
     def test_ix_setitem_corner(self):
         inds = list(self.series.index[[5, 8, 12]])
-        self.series.ix[inds] = 5
-        self.assertRaises(Exception, self.series.ix.__setitem__,
+        self.series.loc[inds] = 5
+        self.assertRaises(Exception, self.series.loc.__setitem__,
                           inds + ['foo'], 5)
 
     def test_get_set_boolean_different_order(self):
@@ -1494,7 +1494,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         result = s.drop('bc', errors='ignore')
         assert_series_equal(result, s)
         result = s.drop(['a', 'd'], errors='ignore')
-        expected = s.ix[1:]
+        expected = s.iloc[1:]
         assert_series_equal(result, expected)
 
         # bad axis
@@ -1943,7 +1943,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s = Series(np.random.randn(len(index)), index=index, name='sth')
 
         result = s['foo']
-        result2 = s.ix['foo']
+        result2 = s.loc['foo']
         self.assertEqual(result.name, s.name)
         self.assertEqual(result2.name, s.name)
 

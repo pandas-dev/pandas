@@ -156,8 +156,8 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         unshifted = shifted.shift(-1)
         self.assert_index_equal(shifted.index, ps.index)
         self.assert_index_equal(unshifted.index, ps.index)
-        tm.assert_numpy_array_equal(unshifted.ix[:, 0].valid().values,
-                                    ps.ix[:-1, 0].values)
+        tm.assert_numpy_array_equal(unshifted.iloc[:, 0].valid().values,
+                                    ps.iloc[:-1, 0].values)
 
         shifted2 = ps.shift(1, 'B')
         shifted3 = ps.shift(1, offsets.BDay())
@@ -244,7 +244,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         assert_frame_equal(shifted, self.tsframe.tshift(1))
         assert_frame_equal(unshifted, inferred_ts)
 
-        no_freq = self.tsframe.ix[[0, 5, 7], :]
+        no_freq = self.tsframe.iloc[[0, 5, 7], :]
         self.assertRaises(ValueError, no_freq.tshift)
 
     def test_truncate(self):

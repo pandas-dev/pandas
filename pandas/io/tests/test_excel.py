@@ -276,12 +276,12 @@ class ReadingTestsBase(SharedItems):
 
         df3 = read_excel(excel, 0, index_col=0, skipfooter=1)
         df4 = read_excel(excel, 0, index_col=0, skip_footer=1)
-        tm.assert_frame_equal(df3, df1.ix[:-1])
+        tm.assert_frame_equal(df3, df1.iloc[:-1])
         tm.assert_frame_equal(df3, df4)
 
         df3 = excel.parse(0, index_col=0, skipfooter=1)
         df4 = excel.parse(0, index_col=0, skip_footer=1)
-        tm.assert_frame_equal(df3, df1.ix[:-1])
+        tm.assert_frame_equal(df3, df1.iloc[:-1])
         tm.assert_frame_equal(df3, df4)
 
         import xlrd
@@ -302,7 +302,7 @@ class ReadingTestsBase(SharedItems):
                                skipfooter=1)
         df4 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                skip_footer=1)
-        tm.assert_frame_equal(df3, df1.ix[:-1])
+        tm.assert_frame_equal(df3, df1.iloc[:-1])
         tm.assert_frame_equal(df3, df4)
 
     def test_reader_special_dtypes(self):
@@ -328,7 +328,7 @@ class ReadingTestsBase(SharedItems):
         # if not coercing number, then int comes in as float
         float_expected = expected.copy()
         float_expected["IntCol"] = float_expected["IntCol"].astype(float)
-        float_expected.loc[1, "Str2Col"] = 3.0
+        float_expected.loc[float_expected.index[1], "Str2Col"] = 3.0
         actual = self.get_exceldf(basename, 'Sheet1', convert_float=False)
         tm.assert_frame_equal(actual, float_expected)
 
@@ -1670,15 +1670,15 @@ class ExcelWriterBase(SharedItems):
                     # no nans
                     for r in range(len(res.index)):
                         for c in range(len(res.columns)):
-                            self.assertTrue(res.ix[r, c] is not np.nan)
+                            self.assertTrue(res.iloc[r, c] is not np.nan)
 
         res = roundtrip(DataFrame([0]))
         self.assertEqual(res.shape, (1, 1))
-        self.assertTrue(res.ix[0, 0] is not np.nan)
+        self.assertTrue(res.iloc[0, 0] is not np.nan)
 
         res = roundtrip(DataFrame([0]), False, None)
         self.assertEqual(res.shape, (1, 2))
-        self.assertTrue(res.ix[0, 0] is not np.nan)
+        self.assertTrue(res.iloc[0, 0] is not np.nan)
 
     def test_excel_010_hemstring_raises_NotImplementedError(self):
         # This test was failing only for j>1 and header=False,

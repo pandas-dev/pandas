@@ -685,7 +685,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 try:
                     # handle the dup indexing case (GH 4246)
                     if isinstance(key, (list, tuple)):
-                        return self.ix[key]
+                        return self.loc[key]
 
                     return self.reindex(key)
                 except Exception:

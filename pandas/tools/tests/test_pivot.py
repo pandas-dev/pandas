@@ -301,14 +301,15 @@ class TestPivotTable(tm.TestCase):
         def _check_output(result, values_col, index=['A', 'B'],
                           columns=['C'],
                           margins_col='All'):
-            col_margins = result.ix[:-1, margins_col]
+            col_margins = result.loc[result.index[:-1], margins_col]
             expected_col_margins = self.data.groupby(index)[values_col].mean()
             tm.assert_series_equal(col_margins, expected_col_margins,
                                    check_names=False)
             self.assertEqual(col_margins.name, margins_col)
 
             result = result.sort_index()
-            index_margins = result.ix[(margins_col, '')].iloc[:-1]
+            index_margins = result.loc[(margins_col, '')].iloc[:-1]
+
             expected_ix_margins = self.data.groupby(columns)[values_col].mean()
             tm.assert_series_equal(index_margins, expected_ix_margins,
                                    check_names=False)
@@ -987,7 +988,7 @@ class TestCrosstab(tm.TestCase):
 
         tm.assert_series_equal(all_cols, exp_cols)
 
-        all_rows = result.ix['All']
+        all_rows = result.loc['All']
         exp_rows = df.groupby(['b', 'c']).size().astype('i8')
         exp_rows = exp_rows.append(Series([len(df)], index=[('All', '')]))
         exp_rows.name = 'All'
