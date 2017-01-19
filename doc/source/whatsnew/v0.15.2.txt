@@ -35,7 +35,7 @@ API changes
     df.loc[(1, 'z')]
 
     # lexically sorting
-    df2 = df.sortlevel()
+    df2 = df.sort_index()
     df2
     df2.index.lexsort_depth
     df2.loc[(1,'z')]

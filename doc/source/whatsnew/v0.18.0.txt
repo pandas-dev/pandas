@@ -448,7 +448,7 @@ New Behavior:
                      columns=list('abc'),
                      index=[[4,4,8], [8,10,12]])
    df
-   df.ix[4, 'c'] = np.array([0., 1.])
+   df.loc[4, 'c'] = np.array([0., 1.])
    df
 
 .. _whatsnew_0180.enhancements.xarray:
@@ -1115,7 +1115,6 @@ Other indexers will coerce to a like integer for both getting and setting. The `
 
    s[5.0]
    s.loc[5.0]
-   s.ix[5.0]
 
 and setting
 
@@ -1127,30 +1126,31 @@ and setting
    s_copy = s.copy()
    s_copy.loc[5.0] = 10
    s_copy
-   s_copy = s.copy()
-   s_copy.ix[5.0] = 10
-   s_copy
 
 Positional setting with ``.ix`` and a float indexer will ADD this value to the index, rather than previously setting the value by position.
 
-.. ipython:: python
+.. code-block:: python
 
-   s2.ix[1.0] = 10
-   s2
+   In [3]: s2.ix[1.0] = 10
+   In [4]: s2
+   Out[4]:
+   a       1
+   b       2
+   c       3
+   1.0    10
+   dtype: int64
 
 Slicing will also coerce integer-like floats to integers for a non-``Float64Index``.
 
 .. ipython:: python
 
    s.loc[5.0:6]
-   s.ix[5.0:6]
 
 Note that for floats that are NOT coercible to ints, the label based bounds will be excluded
 
 .. ipython:: python
 
    s.loc[5.1:6]
-   s.ix[5.1:6]
 
 Float indexing on a ``Float64Index`` is unchanged.
 

@@ -36,7 +36,7 @@ New features
 
         df = DataFrame(np.random.randn(6, 3), columns=['A', 'B', 'C'])
 
-        df.ix[2:4] = np.nan
+        df.loc[2:4] = np.nan
 
         df.rank()
 

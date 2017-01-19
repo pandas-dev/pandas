@@ -705,7 +705,7 @@ Other notable API changes:
      s = Series(np.arange(3,dtype='int64'),
                 index=MultiIndex.from_product([['A'],['foo','bar','baz']],
                                               names=['one','two'])
-               ).sortlevel()
+               ).sort_index()
      s
      try:
         s.loc[['D']]

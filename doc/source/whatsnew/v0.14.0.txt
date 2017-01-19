@@ -516,7 +516,7 @@ See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :is
                                       names=['lvl0', 'lvl1'])
    df = DataFrame(np.arange(len(index)*len(columns)).reshape((len(index),len(columns))),
                   index=index,
-                  columns=columns).sortlevel().sortlevel(axis=1)
+                  columns=columns).sort_index().sort_index(axis=1)
    df
 
 Basic multi-index slicing using slices, lists, and labels.

@@ -190,7 +190,7 @@ Furthermore ``datetime64[ns]`` columns are created by default, when passed datet
    df.get_dtype_counts()
 
    # use the traditional nan, which is mapped to NaT internally
-   df.ix[2:4,['A','timestamp']] = np.nan
+   df.loc[df.index[2:4], ['A','timestamp']] = np.nan
    df
 
 Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`` to ``np.nan``
