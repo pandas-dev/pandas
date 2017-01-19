@@ -1129,7 +1129,11 @@ class _AsOfMerge(_OrderedMerge):
         # validate tolerance; must be a Timedelta if we have a DTI
         if self.tolerance is not None:
 
-            lt = left_join_keys[-1]
+            if self.left_index:
+                lt = self.left.index
+            else:
+                lt = left_join_keys[-1]
+
             msg = "incompatible tolerance, must be compat " \
                   "with type {0}".format(type(lt))
 

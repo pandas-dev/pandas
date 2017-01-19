@@ -93,6 +93,11 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         expected = self.frame.ix[:, ['A', 'B', 'C']]
         assert_frame_equal(result, expected)
 
+        idx = iter(['A', 'B', 'C'])
+        result = self.frame.loc[:, idx]
+        expected = self.frame.loc[:, ['A', 'B', 'C']]
+        assert_frame_equal(result, expected)
+
     def test_getitem_list(self):
         self.frame.columns.name = 'foo'
 
@@ -1667,6 +1672,24 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result = self.frame.ix[self.frame.index[5], 'E']
         self.assertTrue(is_integer(result))
 
+        result = self.frame.loc[self.frame.index[5], 'E']
+        self.assertTrue(is_integer(result))
+
+        # GH 11617
+        df = pd.DataFrame(dict(a=[1.23]))
+        df["b"] = 666
+
+        result = df.ix[0, "b"]
+        self.assertTrue(is_integer(result))
+        result = df.loc[0, "b"]
+        self.assertTrue(is_integer(result))
+
+        expected = Series([666], [0], name='b')
+        result = df.ix[[0], "b"]
+        assert_series_equal(result, expected)
+        result = df.loc[[0], "b"]
+        assert_series_equal(result, expected)
+
     def test_irow(self):
         df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2))
 
@@ -2159,7 +2182,11 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         index = Index([idx1, idx2],
                       name="composite_index", tupleize_cols=False)
         df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
+
         result = df.ix[IndexType("foo", "bar")]["A"]
+        self.assertEqual(result, 1)
+
+        result = df.loc[IndexType("foo", "bar")]["A"]
         self.assertEqual(result, 1)
 
     def test_boolean_indexing(self):
@@ -2762,7 +2789,63 @@ class TestDataFrameIndexingDatetimeWithTZ(tm.TestCase, TestData):
         result = df.reset_index()
         self.assertTrue(result['foo'].dtype, 'M8[ns, US/Eastern')
 
-        result = result.set_index('foo')
+        df = result.set_index('foo')
+        tm.assert_index_equal(df.index, idx)
+
+    def test_transpose(self):
+
+        result = self.df.T
+        expected = DataFrame(self.df.values.T)
+        expected.index = ['A', 'B']
+        assert_frame_equal(result, expected)
+
+
+class TestDataFrameIndexingUInt64(tm.TestCase, TestData):
+
+    _multiprocess_can_split_ = True
+
+    def setUp(self):
+        self.ir = Index(np.arange(3), dtype=np.uint64)
+        self.idx = Index([2**63, 2**63 + 5, 2**63 + 10], name='foo')
+
+        self.df = DataFrame({'A': self.idx, 'B': self.ir})
+
+    def test_setitem(self):
+
+        df = self.df
+        idx = self.idx
+
+        # setitem
+        df['C'] = idx
+        assert_series_equal(df['C'], Series(idx, name='C'))
+
+        df['D'] = 'foo'
+        df['D'] = idx
+        assert_series_equal(df['D'], Series(idx, name='D'))
+        del df['D']
+
+        # With NaN: because uint64 has no NaN element,
+        # the column should be cast to object.
+        df2 = df.copy()
+        df2.iloc[1, 1] = pd.NaT
+        df2.iloc[1, 2] = pd.NaT
+        result = df2['B']
+        assert_series_equal(notnull(result), Series(
+            [True, False, True], name='B'))
+        assert_series_equal(df2.dtypes, Series([np.dtype('uint64'),
+                                                np.dtype('O'), np.dtype('O')],
+                                               index=['A', 'B', 'C']))
+
+    def test_set_reset(self):
+
+        idx = self.idx
+
+        # set/reset
+        df = DataFrame({'A': [0, 1, 2]}, index=idx)
+        result = df.reset_index()
+        self.assertEqual(result['foo'].dtype, np.dtype('uint64'))
+
+        df = result.set_index('foo')
         tm.assert_index_equal(df.index, idx)
 
     def test_transpose(self):

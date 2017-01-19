@@ -3,10 +3,10 @@ from datetime import datetime, date
 import nose
 
 import numpy as np
-from pandas import Timestamp, Period
+from pandas import Timestamp, Period, Index
 from pandas.compat import u
 import pandas.util.testing as tm
-from pandas.tseries.offsets import Second, Milli, Micro
+from pandas.tseries.offsets import Second, Milli, Micro, Day
 from pandas.compat.numpy import np_datetime64_compat
 
 try:
@@ -61,6 +61,25 @@ class TestDateTimeConverter(tm.TestCase):
             np_datetime64_compat('2012-01-01 00:00:00+0000'),
             np_datetime64_compat('2012-01-02 00:00:00+0000')]), None, None)
         self.assertEqual(rs[0], xp)
+
+        # we have a tz-aware date (constructed to that when we turn to utc it
+        # is the same as our sample)
+        ts = (Timestamp('2012-01-01')
+              .tz_localize('UTC')
+              .tz_convert('US/Eastern')
+              )
+        rs = self.dtc.convert(ts, None, None)
+        self.assertEqual(rs, xp)
+
+        rs = self.dtc.convert(ts.to_pydatetime(), None, None)
+        self.assertEqual(rs, xp)
+
+        rs = self.dtc.convert(Index([ts - Day(1), ts]), None, None)
+        self.assertEqual(rs[1], xp)
+
+        rs = self.dtc.convert(Index([ts - Day(1), ts]).to_pydatetime(),
+                              None, None)
+        self.assertEqual(rs[1], xp)
 
     def test_conversion_float(self):
         decimals = 9

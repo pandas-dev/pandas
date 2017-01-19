@@ -490,6 +490,10 @@ class MultiIndex(Index):
         that it only acts on copies
         """
 
+        # GH 15110
+        # Don't allow a single string for names in a MultiIndex
+        if names is not None and not is_list_like(names):
+            raise ValueError('Names should be list-like for a MultiIndex')
         names = list(names)
 
         if validate and level is not None and len(names) != len(level):

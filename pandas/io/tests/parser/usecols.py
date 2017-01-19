@@ -465,3 +465,13 @@ a,b,c
                               [10, 20, 30]])
         df = self.read_csv(StringIO(data), header=None, usecols=usecols)
         tm.assert_frame_equal(df, expected)
+
+        # see gh-9549
+        usecols = ['A', 'B', 'C']
+        data = ('A,B,C\n1,2,3\n3,4,5\n1,2,4,5,1,6\n'
+                '1,2,3,,,1,\n1,2,3\n5,6,7')
+        expected = DataFrame({'A': [1, 3, 1, 1, 1, 5],
+                              'B': [2, 4, 2, 2, 2, 6],
+                              'C': [3, 5, 4, 3, 3, 7]})
+        df = self.read_csv(StringIO(data), usecols=usecols)
+        tm.assert_frame_equal(df, expected)
