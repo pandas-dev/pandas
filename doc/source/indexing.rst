@@ -586,7 +586,7 @@ Using ``.loc``. Here we will select the appropriate indexes from the index, then
 
 .. ipython:: python
 
-  dfd.loc[df.index[[0, 2]], 'A']
+  dfd.loc[dfd.index[[0, 2]], 'A']
 
 This can also be expressed using ``.iloc``, by explicitly getting locations on the indexers, and using
 *positional* indexing to select things.
