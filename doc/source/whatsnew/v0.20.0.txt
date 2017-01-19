@@ -10,7 +10,7 @@ users upgrade to this version.
 Highlights include:
 
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
-- The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew.api_breaking.deprecate_ix>`
+- The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
@@ -144,8 +144,7 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-.. _whatsnew.api_breaking.deprecate_ix
+.. _whatsnew_0200.api_breaking.deprecate_ix
 
 Deprecate .ix
 ^^^^^^^^^^^^^
@@ -158,7 +157,7 @@ The recommended methods of indexing are:
 - ``.loc`` if you want to *label* index
 - ``.iloc`` if you want to *positionally* index.
 
-Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some examples of how to convert code `here <http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate_ix>`_
+Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some examples of how to convert code :ref:`here <indexing.deprecate_ix>`.
 
 
 .. ipython:: python
@@ -192,7 +191,7 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
 
-.. _whatsnew.api_breaking.index_map
+.. _whatsnew_0200.api_breaking.index_map
 
 Map on Index types now return other Index types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
