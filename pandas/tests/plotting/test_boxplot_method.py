@@ -158,6 +158,11 @@ class TestDataFramePlots(TestPlotBase):
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type='axes')
 
+    def test_fontsize(self):
+        df = DataFrame({"a": [1, 2, 3, 4, 5, 6]})
+        self._check_ticks_props(df.boxplot("a", fontsize=16),
+                                xlabelsize=16, ylabelsize=16)
+
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
@@ -368,6 +373,11 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             # pass different number of axes from required
             with tm.assert_produces_warning(UserWarning):
                 axes = df.groupby('classroom').boxplot(ax=axes)
+
+    def test_fontsize(self):
+        df = DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]})
+        self._check_ticks_props(df.boxplot("a", by="b", fontsize=16),
+                                xlabelsize=16, ylabelsize=16)
 
 
 if __name__ == '__main__':

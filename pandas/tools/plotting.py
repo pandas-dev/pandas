@@ -2768,10 +2768,12 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         keys = [pprint_thing(x) for x in keys]
         values = [remove_na(v) for v in values]
         bp = ax.boxplot(values, **kwds)
+        if fontsize is not None:
+            ax.tick_params(axis='both', labelsize=fontsize)
         if kwds.get('vert', 1):
-            ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+            ax.set_xticklabels(keys, rotation=rot)
         else:
-            ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
+            ax.set_yticklabels(keys, rotation=rot)
         maybe_color_bp(bp)
 
         # Return axes in multiplot case, maybe revisit later # 985
