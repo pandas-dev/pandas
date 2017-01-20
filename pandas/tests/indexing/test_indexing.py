@@ -16,14 +16,14 @@ from numpy.random import randn
 import numpy as np
 
 import pandas as pd
-import pandas.core.common as com
+import pandas.api.exceptions as excp
 from pandas import option_context
 from pandas.core.indexing import _non_reducing_slice, _maybe_numeric_slice
 from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
                              MultiIndex, Timestamp, Timedelta)
 from pandas.formats.printing import pprint_thing
 from pandas import concat
-from pandas.core.common import PerformanceWarning, UnsortedIndexError
+from pandas.api.exceptions import PerformanceWarning, UnsortedIndexError
 
 import pandas.util.testing as tm
 from pandas import date_range
@@ -4636,12 +4636,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def f():
             df['A'][0] = -5
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         def f():
             df['A'][1] = np.nan
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
         self.assertIsNone(df['A'].is_copy)
 
         # using a copy (the chain), fails
@@ -4651,7 +4651,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def f():
             df.loc[0]['A'] = -5
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         # doc example
         df = DataFrame({'a': ['one', 'one', 'two', 'three',
@@ -4666,7 +4666,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             indexer = df.a.str.startswith('o')
             df[indexer]['c'] = 42
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         expected = DataFrame({'A': [111, 'bbb', 'ccc'], 'B': [1, 2, 3]})
         df = DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
@@ -4674,12 +4674,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def f():
             df['A'][0] = 111
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         def f():
             df.loc[0]['A'] = 111
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         df.loc[0, 'A'] = 111
         tm.assert_frame_equal(df, expected)
@@ -4768,7 +4768,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def f():
             zed['eyes']['right'].fillna(value=555, inplace=True)
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         df = DataFrame(np.random.randn(10, 4))
         s = df.iloc[:, 0].sort_values()
@@ -4793,7 +4793,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def f():
             df.iloc[0:5]['group'] = 'a'
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         # mixed type setting
         # same dtype & changing dtype
@@ -4805,17 +4805,17 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def f():
             df.ix[2]['D'] = 'foo'
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         def f():
             df.ix[2]['C'] = 'foo'
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         def f():
             df['C'][2] = 'foo'
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
     def test_setting_with_copy_bug(self):
 
@@ -4828,7 +4828,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def f():
             df[['c']][mask] = df[['b']][mask]
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         # invalid warning as we are returning a new object
         # GH 8730
@@ -4845,7 +4845,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         with option_context('chained_assignment', 'warn'):
             df = DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
             with tm.assert_produces_warning(
-                    expected_warning=com.SettingWithCopyWarning):
+                    expected_warning=excp.SettingWithCopyWarning):
                 df.loc[0]['A'] = 111
 
     def test_float64index_slicing_bug(self):

@@ -27,11 +27,11 @@ from pandas.types.common import (_coerce_to_dtype,
 from pandas.types.cast import _maybe_promote, _maybe_upcast_putmask
 from pandas.types.missing import isnull, notnull
 from pandas.types.generic import ABCSeries, ABCPanel
-
+from pandas.api.exceptions import SettingWithCopyError, AbstractMethodError
 from pandas.core.common import (_values_from_object,
-                                _maybe_box_datetimelike,
-                                SettingWithCopyError, SettingWithCopyWarning,
-                                AbstractMethodError)
+                                _maybe_box_datetimelike)
+
+from pandas.api.exceptions import SettingWithCopyWarning
 
 from pandas.core.base import PandasObject
 from pandas.core.index import (Index, MultiIndex, _ensure_index,

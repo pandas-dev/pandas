@@ -13,7 +13,7 @@ from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
 from pandas.types.common import is_float_dtype, is_integer_dtype
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assertRaisesRegexp)
-import pandas.core.common as com
+import pandas.api.exceptions as excp
 import pandas.util.testing as tm
 from pandas.compat import (range, lrange, StringIO, lzip, u, product as
                            cart_product, zip)
@@ -544,7 +544,7 @@ class TestMultiLevel(tm.TestCase):
         def f(x):
             x[:] = 10
 
-        self.assertRaises(com.SettingWithCopyError, f, result)
+        self.assertRaises(excp.SettingWithCopyError, f, result)
 
     def test_xs_level_multiple(self):
         from pandas import read_table
@@ -568,7 +568,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         def f(x):
             x[:] = 10
 
-        self.assertRaises(com.SettingWithCopyError, f, result)
+        self.assertRaises(excp.SettingWithCopyError, f, result)
 
         # GH2107
         dates = lrange(20111201, 20111205)
@@ -1428,7 +1428,7 @@ Thur,Lunch,Yes,51.51,17"""
             df['foo']['one'] = 2
             return df
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
 
         try:
             df = f()

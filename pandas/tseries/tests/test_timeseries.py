@@ -26,7 +26,7 @@ from pandas import (
     NaT, timedelta_range, Timedelta, _np_version_under1p8, concat)
 from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
 from pandas.compat.numpy import np_datetime64_compat
-from pandas.core.common import PerformanceWarning
+from pandas.api.exceptions import PerformanceWarning
 from pandas.tslib import iNaT
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, assert_almost_equal,

@@ -32,8 +32,8 @@ from pandas.types.common import (is_numeric_dtype,
                                  _ensure_float)
 from pandas.types.cast import _possibly_downcast_to_dtype
 from pandas.types.missing import isnull, notnull, _maybe_fill
-
-from pandas.core.common import _values_from_object, AbstractMethodError
+from pandas.api.exceptions import AbstractMethodError
+from pandas.core.common import _values_from_object
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.categorical import Categorical

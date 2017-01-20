@@ -16,7 +16,7 @@ import pandas.lib as lib
 from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
-from pandas.core.common import AbstractMethodError
+from pandas.api.exceptions import AbstractMethodError
 from pandas.formats.printing import pprint_thing
 
 _shared_docs = dict()

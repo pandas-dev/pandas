@@ -13,7 +13,7 @@ from distutils.version import StrictVersion
 from pandas import compat
 from pandas.core.api import DataFrame
 from pandas.tools.merge import concat
-from pandas.core.common import PandasError
+from pandas.api.exceptions import PandasError
 from pandas.compat import lzip, bytes_to_str
 
 

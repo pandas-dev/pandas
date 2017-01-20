@@ -16,7 +16,7 @@ import pandas.stats.moments as mom
 import pandas.core.window as rwindow
 import pandas.tseries.offsets as offsets
 from pandas.core.base import SpecificationError
-from pandas.core.common import UnsupportedFunctionCall
+from pandas.api.exceptions import UnsupportedFunctionCall
 import pandas.util.testing as tm
 from pandas.compat import range, zip, PY3
 

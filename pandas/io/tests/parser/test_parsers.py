@@ -6,7 +6,7 @@ import nose
 import pandas.util.testing as tm
 
 from pandas import read_csv, read_table
-from pandas.core.common import AbstractMethodError
+from pandas.api.exceptions import AbstractMethodError
 
 from .common import ParserTests
 from .header import HeaderTests

@@ -20,8 +20,8 @@ from pandas.types.missing import isnull, notnull
 
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 from pandas.core.base import PandasObject
-
-from pandas.core.common import AbstractMethodError, _try_sort
+from pandas.api.exceptions import AbstractMethodError
+from pandas.core.common import _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series, remove_na

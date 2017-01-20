@@ -9,7 +9,7 @@ from contextlib import contextmanager, closing
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
 from pandas.formats.printing import pprint_thing
-from pandas.core.common import AbstractMethodError
+from pandas.api.exceptions import AbstractMethodError
 from pandas.types.common import is_number
 
 try:

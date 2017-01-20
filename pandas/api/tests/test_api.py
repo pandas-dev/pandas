@@ -3,6 +3,8 @@
 import numpy as np
 
 import pandas as pd
+import pandas.core.common
+from pandas.api import exceptions
 from pandas.core import common as com
 from pandas import api
 from pandas.api import types
@@ -135,7 +137,7 @@ class TestPDApi(Base, tm.TestCase):
 
 class TestApi(Base, tm.TestCase):
 
-    allowed = ['tests', 'types']
+    allowed = ['exceptions', 'tests', 'types']
 
     def test_api(self):
 
@@ -215,6 +217,50 @@ class TestTypes(Base, tm.TestCase):
                   'ensure_float']:
             self.assertRaises(AttributeError, lambda: getattr(com, t))
 
+    def test_exceptions_deprecated_in_commom_core(self):
+        # see issue #14800. Exceptions deprecated & moved from
+        # pandas.common.core to pandas.api.exceptions
+
+        class _ConcreteClass:
+            pass
+
+        moved_exceptions = ('AmbiguousIndexError', 'PandasError',
+                            'PerformanceWarning', 'SettingWithCopyError',
+                            'SettingWithCopyWarning',
+                            'UnsupportedFunctionCall',
+                            'UnsortedIndexError')
+
+        for moved_exception in moved_exceptions:
+            with tm.assert_produces_warning(DeprecationWarning):
+                getattr(pandas.core.common, moved_exception)()
+
+        with tm.assert_produces_warning(DeprecationWarning):
+            pandas.core.common.AbstractMethodError(_ConcreteClass())
+
+        with self.assertRaises(exceptions.AbstractMethodError):
+            raise exceptions.AbstractMethodError(_ConcreteClass())
+
+        with self.assertRaises(exceptions.AmbiguousIndexError):
+            raise exceptions.AmbiguousIndexError()
+
+        with self.assertRaises(exceptions.PandasError):
+            raise exceptions.PandasError()
+
+        with self.assertRaises(exceptions.PerformanceWarning):
+            raise exceptions.PerformanceWarning()
+
+        with self.assertRaises(exceptions.SettingWithCopyError):
+            raise exceptions.SettingWithCopyError()
+
+        with self.assertRaises(exceptions.SettingWithCopyWarning):
+            raise exceptions.SettingWithCopyWarning()
+
+        with self.assertRaises(exceptions.UnsupportedFunctionCall):
+            raise exceptions.UnsupportedFunctionCall()
+
+        with self.assertRaises(exceptions.UnsortedIndexError):
+            raise exceptions.UnsortedIndexError()
+
 
 class TestDatetools(tm.TestCase):
 
@@ -227,6 +273,7 @@ class TestDatetools(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.datetools.monthEnd
+
 
 if __name__ == '__main__':
     import nose

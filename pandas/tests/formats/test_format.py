@@ -36,7 +36,6 @@ from pandas import DataFrame, Series, Index, Timestamp, MultiIndex, date_range, 
 
 import pandas.formats.format as fmt
 import pandas.util.testing as tm
-import pandas.core.common as com
 import pandas.formats.printing as printing
 from pandas.util.terminal import get_terminal_size
 import pandas as pd

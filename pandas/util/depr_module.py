@@ -1,8 +1,9 @@
 """
-This module houses a utility class for mocking deprecated modules.
-It is for internal use only and should not be used beyond this purpose.
+This module houses utilities mocking deprecated enties.
+They are for internal use only and should not be used beyond this purpose.
 """
 
+import sys
 import warnings
 import importlib
 
@@ -62,3 +63,44 @@ class _DeprecatedModule(object):
             warnings.filterwarnings('ignore', category=FutureWarning)
             deprmodule = importlib.import_module(self.deprmod)
             return deprmodule
+
+
+def _add_proxies(old_mod_name, new_mod_name, entities):
+    """ Mock entities moved between modules
+
+    Parameters
+    ----------
+    old_mod_name : module that used to contain the entity implementation
+    new_mod_name : module contains the implementations of the entities
+    entities : iterable of the names of the mocked entities
+
+    The mechanics are as follows:
+
+    1. Physically move the entity from 'old_mod_name' to 'new_mod_name'
+    2. Add the name of the above entity to the 'entities' iterable
+    3. Repeat the (1-2) for each entity you want to move
+
+    Invoking the moved entity from 'old_mod_name' will act as proxy to the
+    actual entity in 'new_mod_name'. If warnings are enabled a deprecation
+    warning will be issued.
+    """
+
+    def create_proxy(entity):
+
+        def wrapper(*args, **kwargs):
+            warnings.warn("{old}.{entity} has been deprecated. Use "
+                          "{new}.{entity} instead.".format(entity=entity,
+                                                           old=old_mod_name,
+                                                           new=new_mod_name),
+                          DeprecationWarning, stacklevel=2)
+
+            return getattr(new_mod, entity)(*args, **kwargs)
+
+        return wrapper
+
+    importlib.import_module(new_mod_name)
+    old_mod = sys.modules[old_mod_name]
+    new_mod = sys.modules[new_mod_name]
+
+    for entity in entities:
+        setattr(old_mod, entity, create_proxy(entity))

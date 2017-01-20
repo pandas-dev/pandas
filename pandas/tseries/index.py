@@ -25,8 +25,8 @@ from pandas.types.dtypes import DatetimeTZDtype
 from pandas.types.missing import isnull
 
 import pandas.types.concat as _concat
-from pandas.core.common import (_values_from_object, _maybe_box,
-                                PerformanceWarning)
+from pandas.api.exceptions import PerformanceWarning
+from pandas.core.common import _values_from_object, _maybe_box
 
 from pandas.core.index import Index, Int64Index, Float64Index
 from pandas.indexes.base import _index_shared_docs

@@ -10,8 +10,8 @@ from pandas.tslib import iNaT
 from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
+from pandas.api.exceptions import AbstractMethodError
 from pandas.io.common import get_filepath_or_buffer, _get_handle
-from pandas.core.common import AbstractMethodError
 from pandas.formats.printing import pprint_thing
 
 loads = _json.loads

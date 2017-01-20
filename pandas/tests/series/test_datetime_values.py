@@ -12,7 +12,7 @@ from pandas import (Index, Series, DataFrame, bdate_range,
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
-import pandas.core.common as com
+import pandas.api.exceptions as excp
 
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
@@ -270,7 +270,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             def f():
                 s.dt.hour[0] = 5
 
-            self.assertRaises(com.SettingWithCopyError, f)
+            self.assertRaises(excp.SettingWithCopyError, f)
 
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673

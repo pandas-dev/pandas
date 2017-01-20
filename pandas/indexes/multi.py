@@ -22,11 +22,10 @@ from pandas.types.common import (_ensure_int64,
                                  is_list_like,
                                  is_scalar)
 from pandas.types.missing import isnull, array_equivalent
+from pandas.api.exceptions import PerformanceWarning, UnsortedIndexError
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,
-                                is_null_slice,
-                                PerformanceWarning,
-                                UnsortedIndexError)
+                                is_null_slice)
 
 
 from pandas.core.base import FrozenList

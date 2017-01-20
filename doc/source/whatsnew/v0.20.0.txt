@@ -265,6 +265,23 @@ Deprecations
 - ``DataFrame.astype()`` has deprecated the ``raise_on_error`` parameter in favor of ``errors`` (:issue:`14878`)
 - ``Series.sortlevel`` and ``DataFrame.sortlevel`` have been deprecated in favor of ``Series.sort_index`` and ``DataFrame.sort_index`` (:issue:`15099`)
 
+.. _whatsnew_0200.moved
+
+Moved
+^^^^^
+
+The following exceptions have been relocated from ``pandas.core.common`` to ``pandas.api.exceptions``:
+
+- ``AbstractMethodError``
+- ``AmbiguousIndexError``
+- ``PandasError``
+- ``PerformanceWarning``
+- ``SettingWithCopyError``
+- ``SettingWithCopyWarning``
+- ``UnsupportedFunctionCall``
+- ``UnsortedIndexError``
+
+Raising any of the above exceptions, imported from ``pandas.core.common``, will show a ``DeprecationWarning`` (:issue:`14800`)
 
 .. _whatsnew_0200.prior_deprecations:
 

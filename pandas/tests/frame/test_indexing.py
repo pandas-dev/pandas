@@ -11,7 +11,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-import pandas.core.common as com
+import pandas.api.exceptions as excp
 from pandas import (DataFrame, Index, Series, notnull, isnull,
                     MultiIndex, DatetimeIndex, Timestamp,
                     date_range)
@@ -446,7 +446,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         def f():
             smaller['col10'] = ['1', '2']
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
         self.assertEqual(smaller['col10'].dtype, np.object_)
         self.assertTrue((smaller['col10'] == ['1', '2']).all())
 
@@ -913,7 +913,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         def f():
             sliced['C'] = 4.
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
         self.assertTrue((self.frame['C'] == 4).all())
 
     def test_fancy_setitem_int_labels(self):
@@ -1714,7 +1714,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         # setting it makes it raise/warn
         def f():
             result[2] = 0.
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
         exp_col = df[2].copy()
         exp_col[4:8] = 0.
         assert_series_equal(df[2], exp_col)
@@ -1749,7 +1749,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         # and that we are setting a copy
         def f():
             result[8] = 0.
-        self.assertRaises(com.SettingWithCopyError, f)
+        self.assertRaises(excp.SettingWithCopyError, f)
         self.assertTrue((df[8] == 0).all())
 
         # list of integers

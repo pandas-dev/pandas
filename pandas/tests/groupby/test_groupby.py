@@ -7,9 +7,9 @@ from numpy import nan
 
 from pandas.types.common import _ensure_platform_int
 from pandas import date_range, bdate_range, Timestamp, isnull
+from pandas.api.exceptions import UnsupportedFunctionCall
 from pandas.core.index import Index, MultiIndex, CategoricalIndex
 from pandas.core.api import Categorical, DataFrame
-from pandas.core.common import UnsupportedFunctionCall
 from pandas.core.groupby import (SpecificationError, DataError, _nargsort,
                                  _lexsort_indexer)
 from pandas.core.series import Series
@@ -24,6 +24,7 @@ from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict
 from functools import partial
+import pandas.api.exceptions as excp
 import pandas.core.common as com
 import numpy as np
 
@@ -4319,7 +4320,7 @@ class TestGroupBy(tm.TestCase):
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
 
         expected = lexsorted_df.groupby('a').mean()
-        with tm.assert_produces_warning(com.PerformanceWarning):
+        with tm.assert_produces_warning(excp.PerformanceWarning):
             result = not_lexsorted_df.groupby('a').mean()
         tm.assert_frame_equal(expected, result)
 

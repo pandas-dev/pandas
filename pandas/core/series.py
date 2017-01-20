@@ -32,14 +32,13 @@ from pandas.types.cast import (_maybe_upcast, _infer_dtype_from_scalar,
                                _possibly_convert_platform,
                                _possibly_cast_to_datetime, _possibly_castable)
 from pandas.types.missing import isnull, notnull
-
+from pandas.api.exceptions import SettingWithCopyError
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
                                 _asarray_tuplesafe,
                                 _values_from_object,
                                 _try_sort,
                                 _maybe_match_name,
-                                SettingWithCopyError,
                                 _maybe_box_datetimelike,
                                 _dict_compat)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,

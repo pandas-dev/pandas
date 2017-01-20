@@ -17,7 +17,7 @@ from pandas.types.generic import (ABCIndex, ABCSeries,
 from pandas.types.missing import isnull
 from pandas.core import common as com, algorithms
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.common import AbstractMethodError
+from pandas.api.exceptions import AbstractMethodError
 
 import pandas.formats.printing as printing
 import pandas.tslib as tslib

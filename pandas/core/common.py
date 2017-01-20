@@ -20,6 +20,8 @@ from pandas.types.missing import isnull
 from pandas.api import types
 from pandas.types import common
 
+from pandas.util.depr_module import _add_proxies
+
 # back-compat of public API
 # deprecate these functions
 m = sys.modules['pandas.core.common']
@@ -63,6 +65,20 @@ for t in ['is_datetime_arraylike',
 
     setattr(m, t, outer(t))
 
+# Relocate exceptions, see #14800
+_moved_exceptions = ('AbstractMethodError',
+                     'AmbiguousIndexError',
+                     'PandasError',
+                     'PerformanceWarning',
+                     'SettingWithCopyError',
+                     'SettingWithCopyWarning',
+                     'UnsupportedFunctionCall',
+                     'UnsortedIndexError')
+
+_add_proxies(old_mod_name='pandas.core.common',
+             new_mod_name='pandas.api.exceptions',
+             entities=_moved_exceptions)
+
 
 # deprecate array_equivalent
 
@@ -71,53 +87,6 @@ def array_equivalent(*args, **kwargs):
                   "is no longer public API", DeprecationWarning, stacklevel=2)
     from pandas.types import missing
     return missing.array_equivalent(*args, **kwargs)
-
-
-class PandasError(Exception):
-    pass
-
-
-class PerformanceWarning(Warning):
-    pass
-
-
-class SettingWithCopyError(ValueError):
-    pass
-
-
-class SettingWithCopyWarning(Warning):
-    pass
-
-
-class AmbiguousIndexError(PandasError, KeyError):
-    pass
-
-
-class UnsupportedFunctionCall(ValueError):
-    pass
-
-
-class UnsortedIndexError(KeyError):
-    """ Error raised when attempting to get a slice of a MultiIndex
-    and the index has not been lexsorted. Subclass of `KeyError`.
-
-    .. versionadded:: 0.20.0
-
-    """
-    pass
-
-
-class AbstractMethodError(NotImplementedError):
-    """Raise this error instead of NotImplementedError for abstract methods
-    while keeping compatibility with Python 2 and Python 3.
-    """
-
-    def __init__(self, class_instance):
-        self.class_instance = class_instance
-
-    def __str__(self):
-        return ("This method must be defined in the concrete class of %s" %
-                self.class_instance.__class__.__name__)
 
 
 def flatten(l):

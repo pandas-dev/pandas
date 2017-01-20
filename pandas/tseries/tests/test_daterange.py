@@ -11,7 +11,7 @@ from pandas.tseries.offsets import (BDay, BMonthEnd, CDay, MonthEnd,
                                     generate_range, DateOffset, Minute)
 from pandas.tseries.index import cdate_range, bdate_range, date_range
 
-from pandas.core import common as com
+from pandas.api import exceptions
 from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
 
@@ -669,7 +669,7 @@ class TestCustomDateRange(tm.TestCase):
         self.assertEqual(shifted[0], self.rng[0])
         self.assertEqual(shifted.offset, self.rng.offset)
 
-        with tm.assert_produces_warning(com.PerformanceWarning):
+        with tm.assert_produces_warning(exceptions.PerformanceWarning):
             rng = date_range(START, END, freq=BMonthEnd())
             shifted = rng.shift(1, freq=CDay())
             self.assertEqual(shifted[0], rng[0] + CDay())

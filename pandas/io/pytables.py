@@ -35,7 +35,8 @@ from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas.core.base import StringMixin
 from pandas.formats.printing import adjoin, pprint_thing
-from pandas.core.common import _asarray_tuplesafe, PerformanceWarning
+from pandas.api.exceptions import PerformanceWarning
+from pandas.core.common import _asarray_tuplesafe
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical, _factorize_from_iterables
 from pandas.core.internals import (BlockManager, make_block,

@@ -16,7 +16,7 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp)
 
-from pandas.core.common import PerformanceWarning
+from pandas.api.exceptions import PerformanceWarning
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData

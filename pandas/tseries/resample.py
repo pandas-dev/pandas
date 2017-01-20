@@ -14,6 +14,7 @@ from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
+import pandas.api.exceptions as excp
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 
@@ -197,7 +198,7 @@ class Resampler(_GroupBy):
     def __getitem__(self, key):
         try:
             return super(Resampler, self).__getitem__(key)
-        except (KeyError, com.AbstractMethodError):
+        except (KeyError, excp.AbstractMethodError):
 
             # compat for deprecated
             if isinstance(self.obj, com.ABCSeries):
