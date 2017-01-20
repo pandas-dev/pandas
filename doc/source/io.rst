@@ -357,94 +357,6 @@ warn_bad_lines : boolean, default ``True``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
   each "bad line" will be output (only valid with C parser).
 
-.. ipython:: python
-   :suppress:
-
-   f = open('foo.csv','w')
-   f.write('date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5')
-   f.close()
-
-Consider a typical CSV file containing, in this case, some time series data:
-
-.. ipython:: python
-
-   print(open('foo.csv').read())
-
-The default for `read_csv` is to create a DataFrame with simple numbered rows:
-
-.. ipython:: python
-
-   pd.read_csv('foo.csv')
-
-In the case of indexed data, you can pass the column number or column name you
-wish to use as the index:
-
-.. ipython:: python
-
-   pd.read_csv('foo.csv', index_col=0)
-
-.. ipython:: python
-
-   pd.read_csv('foo.csv', index_col='date')
-
-You can also use a list of columns to create a hierarchical index:
-
-.. ipython:: python
-
-   pd.read_csv('foo.csv', index_col=[0, 'A'])
-
-.. _io.dialect:
-
-The ``dialect`` keyword gives greater flexibility in specifying the file format.
-By default it uses the Excel dialect but you can specify either the dialect name
-or a :class:`python:csv.Dialect` instance.
-
-.. ipython:: python
-   :suppress:
-
-   data = ('label1,label2,label3\n'
-           'index1,"a,c,e\n'
-           'index2,b,d,f')
-
-Suppose you had data with unenclosed quotes:
-
-.. ipython:: python
-
-   print(data)
-
-By default, ``read_csv`` uses the Excel dialect and treats the double quote as
-the quote character, which causes it to fail when it finds a newline before it
-finds the closing double quote.
-
-We can get around this using ``dialect``
-
-.. ipython:: python
-
-   dia = csv.excel()
-   dia.quoting = csv.QUOTE_NONE
-   pd.read_csv(StringIO(data), dialect=dia)
-
-All of the dialect options can be specified separately by keyword arguments:
-
-.. ipython:: python
-
-    data = 'a,b,c~1,2,3~4,5,6'
-    pd.read_csv(StringIO(data), lineterminator='~')
-
-Another common dialect option is ``skipinitialspace``, to skip any whitespace
-after a delimiter:
-
-.. ipython:: python
-
-   data = 'a, b, c\n1, 2, 3\n4, 5, 6'
-   print(data)
-   pd.read_csv(StringIO(data), skipinitialspace=True)
-
-The parsers make every attempt to "do the right thing" and not be very
-fragile. Type inference is a pretty big deal. So if a column can be coerced to
-integer dtype without altering the contents, it will do so. Any non-numeric
-columns will come through as object dtype as with the rest of pandas objects.
-
 .. _io.dtypes:
 
 Specifying column data types
@@ -1237,6 +1149,61 @@ data that appear in some lines but not others:
     0  1  2   3
     1  4  5   6
     2  8  9  10
+
+.. _io.dialect:
+
+Dialect
+'''''''
+
+The ``dialect`` keyword gives greater flexibility in specifying the file format.
+By default it uses the Excel dialect but you can specify either the dialect name
+or a :class:`python:csv.Dialect` instance.
+
+.. ipython:: python
+   :suppress:
+
+   data = ('label1,label2,label3\n'
+           'index1,"a,c,e\n'
+           'index2,b,d,f')
+
+Suppose you had data with unenclosed quotes:
+
+.. ipython:: python
+
+   print(data)
+
+By default, ``read_csv`` uses the Excel dialect and treats the double quote as
+the quote character, which causes it to fail when it finds a newline before it
+finds the closing double quote.
+
+We can get around this using ``dialect``
+
+.. ipython:: python
+
+   dia = csv.excel()
+   dia.quoting = csv.QUOTE_NONE
+   pd.read_csv(StringIO(data), dialect=dia)
+
+All of the dialect options can be specified separately by keyword arguments:
+
+.. ipython:: python
+
+    data = 'a,b,c~1,2,3~4,5,6'
+    pd.read_csv(StringIO(data), lineterminator='~')
+
+Another common dialect option is ``skipinitialspace``, to skip any whitespace
+after a delimiter:
+
+.. ipython:: python
+
+   data = 'a, b, c\n1, 2, 3\n4, 5, 6'
+   print(data)
+   pd.read_csv(StringIO(data), skipinitialspace=True)
+
+The parsers make every attempt to "do the right thing" and not be very
+fragile. Type inference is a pretty big deal. So if a column can be coerced to
+integer dtype without altering the contents, it will do so. Any non-numeric
+columns will come through as object dtype as with the rest of pandas objects.
 
 .. _io.quoting:
 
