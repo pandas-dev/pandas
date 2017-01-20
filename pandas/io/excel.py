@@ -911,7 +911,7 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
 
         for cell in cells:
             colletter = get_column_letter(startcol + cell.col + 1)
-            xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
+            xcell = wks.cell(row=startrow + cell.row + 1, column=colletter)
             xcell.value = _conv_value(cell.val)
             style_kwargs = {}
 
@@ -952,7 +952,7 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
                                 # Ignore first cell. It is already handled.
                                 continue
                             colletter = get_column_letter(col)
-                            xcell = wks.cell("%s%s" % (colletter, row))
+                            xcell = wks.cell(row=row, column=colletter)
                             xcell.style = xcell.style.copy(**style_kwargs)
 
     @classmethod
@@ -1317,10 +1317,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
             self.sheets[sheet_name] = wks
 
         for cell in cells:
-            xcell = wks.cell(
-                row=startrow + cell.row + 1,
-                column=startcol + cell.col + 1
-            )
+            xcell = wks.cell(row=startrow + cell.row + 1, column=startcol + cell.col + 1)
             xcell.value = _conv_value(cell.val)
 
             style_kwargs = {}
@@ -1358,7 +1355,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
                             if row == first_row and col == first_col:
                                 # Ignore first cell. It is already handled.
                                 continue
-                            xcell = wks.cell(column=col, row=row)
+                            xcell = wks.cell(row=row, column=col)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
 

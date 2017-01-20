@@ -1979,6 +1979,7 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
         self.assertEqual(kw['protection'], protection)
 
     def test_write_cells_merge_styled(self):
+        import warnings
         from pandas.formats.format import ExcelCell
         from openpyxl import styles
 
@@ -2001,13 +2002,14 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
         ]
 
         with ensure_clean('.xlsx') as path:
+            warnings.simplefilter('error', UserWarning)
             writer = _Openpyxl20Writer(path)
             writer.write_cells(initial_cells, sheet_name=sheet_name)
             writer.write_cells(merge_cells, sheet_name=sheet_name)
 
             wks = writer.sheets[sheet_name]
-            xcell_b1 = wks.cell('B1')
-            xcell_a2 = wks.cell('A2')
+            xcell_b1 = wks['B1']
+            xcell_a2 = wks['A2']
             self.assertEqual(xcell_b1.style, openpyxl_sty_merged)
             self.assertEqual(xcell_a2.style, openpyxl_sty_merged)
 
@@ -2091,7 +2093,8 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
     def test_write_cells_merge_styled(self):
         if not openpyxl_compat.is_compat(major_ver=2):
             raise nose.SkipTest('incompatiable openpyxl version')
-
+        
+        import warnings
         from pandas.formats.format import ExcelCell
 
         sheet_name = 'merge_styled'
@@ -2113,13 +2116,14 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
         ]
 
         with ensure_clean('.xlsx') as path:
+            warnings.simplefilter('error', UserWarning)
             writer = _Openpyxl22Writer(path)
             writer.write_cells(initial_cells, sheet_name=sheet_name)
             writer.write_cells(merge_cells, sheet_name=sheet_name)
 
             wks = writer.sheets[sheet_name]
-            xcell_b1 = wks.cell('B1')
-            xcell_a2 = wks.cell('A2')
+            xcell_b1 = wks['B1']
+            xcell_a2 = wks['A2']
             self.assertEqual(xcell_b1.font, openpyxl_sty_merged)
             self.assertEqual(xcell_a2.font, openpyxl_sty_merged)
 
@@ -2215,9 +2219,9 @@ class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
             read_workbook = openpyxl.load_workbook(path)
             read_worksheet = read_workbook.get_sheet_by_name(name='Sheet1')
 
-            # Get the number format from the cell. This method is backward
-            # compatible with older versions of openpyxl.
-            cell = read_worksheet.cell('B2')
+            # Get the number format from the cell. This method is current
+            # with openpyxl latest release.
+            cell = read_worksheet['B2']
 
             try:
                 read_num_format = cell.number_format
