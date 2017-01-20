@@ -1773,11 +1773,9 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing) {
-#if PY_VERSION_HEX >= 0x02070000
-    return PyOS_string_to_double(p, q, 0);
-#else
-    return strtod(p, q);
-#endif
+    double r = PyOS_string_to_double(p, q, 0);
+    PyErr_Clear();
+    return r;
 }
 
 // End of xstrtod code

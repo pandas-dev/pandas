@@ -388,3 +388,10 @@ No,No,No"""
         df = self.read_csv(StringIO(test_input), sep='\t', nrows=1010)
 
         self.assertTrue(df.size == 1010 * 10)
+
+    def test_float_precision_round_trip_with_text(self):
+        # gh-15140 - This should not segfault on Python 2.7+
+        df = self.read_csv(StringIO('a'),
+                           float_precision='round_trip',
+                           header=None)
+        tm.assert_frame_equal(df, DataFrame({0: ['a']}))
