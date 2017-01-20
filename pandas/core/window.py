@@ -1025,19 +1025,8 @@ class Rolling(_Rolling_and_Expanding):
         if (self.is_datetimelike and
                 isinstance(self.window, (compat.string_types, DateOffset))):
 
-            # must be monotonic for on
-            if not self._on.is_monotonic:
-                formatted = self.on or 'index'
-                raise ValueError("{0} must be "
-                                 "monotonic".format(formatted))
-
-            from pandas.tseries.frequencies import to_offset
-            try:
-                freq = to_offset(self.window)
-            except (TypeError, ValueError):
-                raise ValueError("passed window {0} in not "
-                                 "compat with a datetimelike "
-                                 "index".format(self.window))
+            self._validate_monotonic()
+            freq = self._validate_freq()
 
             # we don't allow center
             if self.center:
@@ -1057,6 +1046,23 @@ class Rolling(_Rolling_and_Expanding):
             raise ValueError("window must be an integer")
         elif self.window < 0:
             raise ValueError("window must be non-negative")
+
+    def _validate_monotonic(self):
+        """ validate on is monotonic """
+        if not self._on.is_monotonic:
+            formatted = self.on or 'index'
+            raise ValueError("{0} must be "
+                             "monotonic".format(formatted))
+
+    def _validate_freq(self):
+        """ validate & return our freq """
+        from pandas.tseries.frequencies import to_offset
+        try:
+            return to_offset(self.window)
+        except (TypeError, ValueError):
+            raise ValueError("passed window {0} in not "
+                             "compat with a datetimelike "
+                             "index".format(self.window))
 
     @Substitution(name='rolling')
     @Appender(SelectionMixin._see_also_template)
@@ -1174,6 +1180,25 @@ class RollingGroupby(_GroupByMixin, Rolling):
     @property
     def _constructor(self):
         return Rolling
+
+    def _gotitem(self, key, ndim, subset=None):
+
+        # we are setting the index on the actual object
+        # here so our index is carried thru to the selected obj
+        # when we do the splitting for the groupby
+        if self.on is not None:
+            self._groupby.obj = self._groupby.obj.set_index(self._on)
+            self.on = None
+        return super(RollingGroupby, self)._gotitem(key, ndim, subset=subset)
+
+    def _validate_monotonic(self):
+        """
+        validate that on is monotonic;
+        we don't care for groupby.rolling
+        because we have already validated at a higher
+        level
+        """
+        pass
 
 
 class Expanding(_Rolling_and_Expanding):
