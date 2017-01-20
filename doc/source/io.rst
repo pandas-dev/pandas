@@ -419,6 +419,7 @@ finds the closing double quote.
 We can get around this using ``dialect``
 
 .. ipython:: python
+   :okwarning:
 
    dia = csv.excel()
    dia.quoting = csv.QUOTE_NONE
