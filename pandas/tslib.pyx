@@ -2966,6 +2966,56 @@ class Timedelta(_Timedelta):
         """
         return 1e-9 *self.value
 
+    def isoformat(self):
+        """
+        Format Timedelta as ISO 8601 Duration like
+        `P[n]Y[n]M[n]DT[n]H[n]M[n]S`, where the `[n]`s are replaced by the
+        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        formatted : str
+
+        Notes
+        -----
+        The longest component is days, whose value may be larger than
+        365.
+        Every component is always included, even if its value is 0.
+        Pandas uses nanosecond precision, so up to 9 decimal places may
+        be included in the seconds component.
+        Trailing 0's are removed from the seconds component after the decimal.
+        We do not 0 pad components, so it's `...T5H...`, not `...T05H...`
+
+        Examples
+        --------
+        >>> td = pd.Timedelta(days=6, minutes=50, seconds=3,
+        ...                   milliseconds=10, microseconds=10, nanoseconds=12)
+        >>> td.isoformat()
+        'P6DT0H50M3.010010012S'
+        >>> pd.Timedelta(hours=1, seconds=10).isoformat()
+        'P0DT0H0M10S'
+        >>> pd.Timedelta(hours=1, seconds=10).isoformat()
+        'P0DT0H0M10S'
+        >>> pd.Timedelta(days=500.5).isoformat()
+        'P500DT12H0MS'
+
+        See Also
+        --------
+        Timestamp.isoformat
+        """
+        components = self.components
+        seconds = '{}.{:0>3}{:0>3}{:0>3}'.format(components.seconds,
+                                                 components.milliseconds,
+                                                 components.microseconds,
+                                                 components.nanoseconds)
+        # Trim unnecessary 0s, 1.000000000 -> 1
+        seconds = seconds.rstrip('0').rstrip('.')
+        tpl = 'P{td.days}DT{td.hours}H{td.minutes}M{seconds}S'.format(
+            td=components, seconds=seconds)
+        return tpl
+
     def __setstate__(self, state):
         (value) = state
         self.value = value
