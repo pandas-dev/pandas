@@ -671,6 +671,22 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         exp = DataFrame({'col': [False, True, False]})
         assert_frame_equal(result, exp)
 
+    def test_return_dtypes_bool_op_costant(self):
+        # GH15077
+        df = DataFrame({'x': [1, 2, 3], 'y': [1., 2., 3.]})
+        const = 2
+
+        # not empty DataFrame
+        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
+            result = getattr(df, op)(const).get_dtype_counts()
+            self.assert_series_equal(result, Series([2], ['bool']))
+
+        # empty DataFrame
+        empty = df.iloc[:0]
+        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
+            result = getattr(empty, op)(const).get_dtype_counts()
+            self.assert_series_equal(result, Series([2], ['bool']))
+
     def test_dti_tz_convert_to_utc(self):
         base = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
                                  '2011-01-03'], tz='UTC')
