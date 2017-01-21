@@ -3997,7 +3997,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return self._wrap_agged_blocks(data.items, list(blk))
 
 
-from pandas.tools.plotting import boxplot_frame_groupby  # noqa
+from pandas.plotting.core import boxplot_frame_groupby  # noqa
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
 
 

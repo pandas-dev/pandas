@@ -46,7 +46,15 @@ from pandas.computation.api import *
 from pandas.tools.merge import (merge, concat, ordered_merge,
                                 merge_ordered, merge_asof)
 from pandas.tools.pivot import pivot_table, crosstab
-from pandas.tools.plotting import scatter_matrix, plot_params
+
+# deprecate tools.plotting, and scatter_matrix on the top namespace
+import pandas.tools.plotting
+from pandas.plotting import plot_params
+# do not import deprecate to top namespace
+scatter_matrix = pandas.util.decorators.deprecate(
+    'pandas.scatter_matrix', pandas.plotting.scatter_matrix,
+    'pandas.plotting.scatter_matrix')
+
 from pandas.tools.tile import cut, qcut
 from pandas.tools.util import to_numeric
 from pandas.core.reshape import melt

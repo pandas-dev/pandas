@@ -11,6 +11,7 @@ Highlights include:
 
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
+- The ``pandas.tools.plotting`` module has been deprecated, moved to ``pandas.plotting``. See :ref:`here <whatsnew_0200.api_breaking.plotting>` (:issue:`12548`)
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
@@ -193,6 +194,31 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
 
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
+
+.. _whatsnew_0200.api_breaking.deprecate_plotting
+
+Deprecate .plotting
+^^^^^^^^^^^^^^^^^^^
+
+``pandas.tools.plotting`` module has been deprecated, moving directory under the
+top namespace ``pandas.plotting``. All the public plotting functions should be available
+from ``pandas.plotting``.
+
+Also, ``scatter_matrix`` function imported directly under ``pandas`` namespace is also deprecated.
+Users shoud use ``pandas.plotting.scatter_matrix`` instead.
+
+Previous script:
+
+.. code-block:: python
+
+   pd.tools.plotting.scatter_matrix(df)
+   pd.scatter_matrix(df)
+
+Should be changed to:
+
+.. code-block:: python
+
+    pd.plotting.scatter_matrix(df)
 
 .. _whatsnew_0200.api_breaking.index_map
 

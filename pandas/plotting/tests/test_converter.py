@@ -10,7 +10,7 @@ from pandas.tseries.offsets import Second, Milli, Micro, Day
 from pandas.compat.numpy import np_datetime64_compat
 
 try:
-    import pandas.tseries.converter as converter
+    import pandas.plotting.converter as converter
 except ImportError:
     raise nose.SkipTest("no pandas.tseries.converter, skipping")
 

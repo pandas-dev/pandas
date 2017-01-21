@@ -257,7 +257,7 @@ def mpl_style_cb(key):
                   stacklevel=5)
 
     import sys
-    from pandas.tools.plotting import mpl_stylesheet
+    from pandas.plotting.style import mpl_stylesheet
     global style_backup
 
     val = cf.get_option(key)

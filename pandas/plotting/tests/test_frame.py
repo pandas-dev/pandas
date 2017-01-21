@@ -20,8 +20,8 @@ from pandas.core.config import set_option
 import numpy as np
 from numpy.random import rand, randn
 
-import pandas.tools.plotting as plotting
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
+import pandas.plotting as plotting
+from pandas.plotting.tests.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
@@ -1967,7 +1967,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_kind_both_ways(self):
         df = DataFrame({'x': [1, 2, 3]})
-        for kind in plotting._common_kinds:
+        for kind in plotting.core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
             df.plot(kind=kind)
@@ -1978,7 +1978,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_all_invalid_plot_data(self):
         df = DataFrame(list('abcd'))
-        for kind in plotting._common_kinds:
+        for kind in plotting.core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
             with tm.assertRaises(TypeError):
@@ -1989,7 +1989,7 @@ class TestDataFramePlots(TestPlotBase):
         with tm.RNGContext(42):
             df = DataFrame(randn(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = 'a'
-            for kind in plotting._common_kinds:
+            for kind in plotting.core._common_kinds:
                 if not _ok_for_gaussian_kde(kind):
                     continue
                 with tm.assertRaises(TypeError):
@@ -2442,7 +2442,7 @@ class TestDataFramePlots(TestPlotBase):
         import gc
 
         results = {}
-        for kind in plotting._plot_klass.keys():
+        for kind in plotting.core._plot_klass.keys():
             if not _ok_for_gaussian_kde(kind):
                 continue
             args = {}
@@ -2641,7 +2641,7 @@ class TestDataFramePlots(TestPlotBase):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
         self._check_grid_settings(
             DataFrame({'a': [1, 2, 3], 'b': [2, 3, 4]}),
-            plotting._dataframe_kinds, kws={'x': 'a', 'y': 'b'})
+            plotting.core._dataframe_kinds, kws={'x': 'a', 'y': 'b'})
 
     def test_option_mpl_style(self):
         with tm.assert_produces_warning(FutureWarning,
