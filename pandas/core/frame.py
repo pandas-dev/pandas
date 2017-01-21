@@ -90,7 +90,7 @@ import pandas.core.nanops as nanops
 import pandas.core.ops as ops
 import pandas.formats.format as fmt
 from pandas.formats.printing import pprint_thing
-import pandas.plotting.plotting as gfx
+import pandas.plotting.core as gfx
 
 from pandas._libs import lib, algos as libalgos
 

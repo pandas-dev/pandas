@@ -14,9 +14,9 @@ import numpy as np
 from numpy import random
 from numpy.random import randn
 
-import pandas.tools.plotting as plotting
+import pandas.plotting as plotting
 
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
+from pandas.plotting.tests.common import (TestPlotBase, _check_plot_works)
 
 
 """ Test cases for .boxplot method """

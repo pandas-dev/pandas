@@ -73,7 +73,8 @@ class TestPlotBase(tm.TestCase):
         self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
         # common test data
         from pandas import read_csv
-        path = os.path.join(os.path.dirname(curpath()), 'data', 'iris.csv')
+        base = os.path.join(os.path.dirname(curpath()), os.pardir)
+        path = os.path.join(base, 'tests', 'data', 'iris.csv')
         self.iris = read_csv(path)
 
         n = 100

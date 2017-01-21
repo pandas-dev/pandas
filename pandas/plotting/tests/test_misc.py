@@ -11,8 +11,8 @@ import numpy as np
 from numpy import random
 from numpy.random import randn
 
-import pandas.tools.plotting as plotting
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
+import pandas.plotting as plotting
+from pandas.plotting.tests.common import (TestPlotBase, _check_plot_works,
                                           _ok_for_gaussian_kde)
 
 
@@ -29,7 +29,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @slow
     def test_autocorrelation_plot(self):
-        from pandas.tools.plotting import autocorrelation_plot
+        from pandas.plotting import autocorrelation_plot
         _check_plot_works(autocorrelation_plot, series=self.ts)
         _check_plot_works(autocorrelation_plot, series=self.ts.values)
 
@@ -38,13 +38,13 @@ class TestSeriesPlots(TestPlotBase):
 
     @slow
     def test_lag_plot(self):
-        from pandas.tools.plotting import lag_plot
+        from pandas.plotting import lag_plot
         _check_plot_works(lag_plot, series=self.ts)
         _check_plot_works(lag_plot, series=self.ts, lag=5)
 
     @slow
     def test_bootstrap_plot(self):
-        from pandas.tools.plotting import bootstrap_plot
+        from pandas.plotting import bootstrap_plot
         _check_plot_works(bootstrap_plot, series=self.ts, size=10)
 
 
@@ -130,7 +130,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_andrews_curves(self):
-        from pandas.tools.plotting import andrews_curves
+        from pandas.plotting import andrews_curves
         from matplotlib import cm
 
         df = self.iris
@@ -195,7 +195,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_parallel_coordinates(self):
-        from pandas.tools.plotting import parallel_coordinates
+        from pandas.plotting import parallel_coordinates
         from matplotlib import cm
 
         df = self.iris
@@ -263,7 +263,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_radviz(self):
-        from pandas.tools.plotting import radviz
+        from pandas.plotting import radviz
         from matplotlib import cm
 
         df = self.iris
