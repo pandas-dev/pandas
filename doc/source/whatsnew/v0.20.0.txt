@@ -21,6 +21,7 @@ Highlights include:
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
+- The ``pandas.tools.plotting`` module has been deprecated, moved to ``pandas.plotting``. See :ref:`here <whatsnew_0200.api_breaking.plotting>` (:issue:`12548`)
 
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
@@ -555,6 +556,32 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
 .. ipython:: python
 
   df.iloc[[0, 2], df.columns.get_loc('A')]
+
+
+.. _whatsnew_0200.api_breaking.deprecate_plotting
+
+Deprecate .plotting
+^^^^^^^^^^^^^^^^^^^
+
+``pandas.tools.plotting`` module has been deprecated, moving directory under the
+top namespace ``pandas.plotting``. All the public plotting functions should be available
+from ``pandas.plotting``.
+
+Also, ``scatter_matrix`` function imported directly under ``pandas`` namespace is also deprecated.
+Users shoud use ``pandas.plotting.scatter_matrix`` instead.
+
+Previous script:
+
+.. code-block:: python
+
+   pd.tools.plotting.scatter_matrix(df)
+   pd.scatter_matrix(df)
+
+Should be changed to:
+
+.. code-block:: python
+
+    pd.plotting.scatter_matrix(df)
 
 
 .. _whatsnew_0200.api_breaking.deprecate_panel:
