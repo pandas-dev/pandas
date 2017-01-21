@@ -557,12 +557,17 @@ IX Indexer is Deprecated
 
 .. warning::
 
-  Starting in 0.20.0, the ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc``
-and ``.loc`` indexers. ``.ix`` offers a lot of magic on the inference of what the user wants to
-do. To wit, ``.ix`` can decide to index *positionally* OR via *labels*. This has caused
-quite a bit of user confusion over the years.
+   Starting in 0.20.0, the ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc``
+   and ``.loc`` indexers.
+
+``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide
+to index *positionally* OR via *labels* depending on the data type of the index. This has caused quite a
+bit of user confusion over the years.
 
 The recommended methods of indexing are:
+
+- ``.loc`` if you want to *label* index
+- ``.iloc`` if you want to *positionally* index.
 
 .. ipython:: python
 

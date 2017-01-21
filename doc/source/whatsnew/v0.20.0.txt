@@ -133,10 +133,13 @@ Other enhancements
 - The ``skiprows`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`10882`)
 - ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
 - ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
+- ``Timedelta.isoformat`` method added for formatting Timedeltas as an `ISO 8601 duration`_. See the :ref:`Timedelta docs <timedeltas.isoformat>` (:issue:`15136`)
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 
 - ``.select_dtypes()`` now allows the string 'datetimetz' to generically select datetimes with tz (:issue:`14910`)
 - ``pd.merge_asof()`` gained the option ``direction='backward'|'forward'|'nearest'`` (:issue:`14887`)
+
+.. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
 
 .. _whatsnew_0200.api_breaking:
@@ -149,7 +152,7 @@ Backwards incompatible API changes
 Deprecate .ix
 ^^^^^^^^^^^^^
 
-The ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc`` and ``.loc`` indexers. ``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide to index *positionally* OR via *labels*. This has caused quite a bit of user confusion over the years. The full indexing documentation are :ref:`here <indexing>`. (:issue:`14218`)
+The ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc`` and ``.loc`` indexers. ``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide to index *positionally* OR via *labels*, depending on the data type of the index. This has caused quite a bit of user confusion over the years. The full indexing documentation are :ref:`here <indexing>`. (:issue:`14218`)
 
 
 The recommended methods of indexing are:
@@ -388,10 +391,11 @@ Bug Fixes
 
 - Bug in compat for passing long integers to ``Timestamp.replace`` (:issue:`15030`)
 - Bug in ``.loc`` that would not return the correct dtype for scalar access for a DataFrame (:issue:`11617`)
+- Bug in ``GroupBy.get_group()`` failing with a categorical grouper (:issue:`15155`)
 
 
 
-
+- Bug in ``.groupby(...).rolling(...)`` when ``on`` is specified and using a ``DatetimeIndex`` (:issue:`15130`)
 
 
 
@@ -435,4 +439,10 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` for the C engine where ``usecols`` were being indexed incorrectly with ``parse_dates`` (:issue:`14792`)
 - Incorrect dtyped ``Series`` was returned by comparison methods (e.g., ``lt``, ``gt``, ...) against a constant for an empty ``DataFrame`` (:issue:`15077`)
 - Bug in ``Series.dt.round`` inconsistent behaviour on NAT's with different arguments (:issue:`14940`)
+
+
 - Bug in ``.read_json()`` for Python 2 where ``lines=True`` and contents contain non-ascii unicode characters (:issue:`15132`)
+
+- Bug in ``pd.read_csv()`` with ``float_precision='round_trip'`` which caused a segfault when a text entry is parsed (:issue:`15140`)
+
+- Bug in ``DataFrame.boxplot`` where ``fontsize`` was not applied to the tick labels on both axes (:issue:`15108`)
