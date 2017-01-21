@@ -745,6 +745,7 @@ def json_normalize(data, record_path=None, meta=None,
         path to records is ['foo', 'bar']
     meta_prefix : string, default None
     errors : {'raise', 'ignore'}, default 'raise'
+
         * ignore : will ignore KeyError if keys listed in meta are not
         always present
         * raise : will raise KeyError if keys listed in meta are not

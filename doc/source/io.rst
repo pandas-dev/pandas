@@ -37,9 +37,9 @@ object.
     * :ref:`read_feather<io.feather>`
     * :ref:`read_sql<io.sql>`
     * :ref:`read_json<io.json_reader>`
-    * :ref:`read_msgpack<io.msgpack>` (experimental)
+    * :ref:`read_msgpack<io.msgpack>`
     * :ref:`read_html<io.read_html>`
-    * :ref:`read_gbq<io.bigquery_reader>` (experimental)
+    * :ref:`read_gbq<io.bigquery_reader>`
     * :ref:`read_stata<io.stata_reader>`
     * :ref:`read_sas<io.sas_reader>`
     * :ref:`read_clipboard<io.clipboard>`
@@ -53,9 +53,9 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * :ref:`to_feather<io.feather>`
     * :ref:`to_sql<io.sql>`
     * :ref:`to_json<io.json_writer>`
-    * :ref:`to_msgpack<io.msgpack>` (experimental)
+    * :ref:`to_msgpack<io.msgpack>`
     * :ref:`to_html<io.html>`
-    * :ref:`to_gbq<io.bigquery_writer>` (experimental)
+    * :ref:`to_gbq<io.bigquery_writer>`
     * :ref:`to_stata<io.stata_writer>`
     * :ref:`to_clipboard<io.clipboard>`
     * :ref:`to_pickle<io.pickle>`
@@ -428,8 +428,8 @@ worth trying.
         :okwarning:
 
         df = pd.DataFrame({'col_1': list(range(500000)) + ['a', 'b'] + list(range(500000))})
-        df.to_csv('foo')
-        mixed_df = pd.read_csv('foo')
+        df.to_csv('foo.csv')
+        mixed_df = pd.read_csv('foo.csv')
         mixed_df['col_1'].apply(type).value_counts()
         mixed_df['col_1'].dtype
 
@@ -437,6 +437,11 @@ worth trying.
    of the column, and ``str`` for others due to the mixed dtypes from the
    data that was read in. It is important to note that the overall column will be
    marked with a ``dtype`` of ``object``, which is used for columns with mixed dtypes.
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('foo.csv')
 
 .. _io.categorical:
 
@@ -570,6 +575,7 @@ The ``usecols`` argument can also be used to specify which columns not to
 use in the final result:
 
 .. ipython:: python
+
    pd.read_csv(StringIO(data), usecols=lambda x: x not in ['a', 'c'])
 
 In this case, the callable is specifying that we exclude the "a" and "c"
@@ -729,6 +735,13 @@ to allow users to specify a variety of columns and date/time formats to turn the
 input text data into ``datetime`` objects.
 
 The simplest case is to just pass in ``parse_dates=True``:
+
+.. ipython:: python
+   :suppress:
+
+   f = open('foo.csv','w')
+   f.write('date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5')
+   f.close()
 
 .. ipython:: python
 
@@ -2826,8 +2839,8 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. _io.msgpack:
 
-msgpack (experimental)
-----------------------
+msgpack
+-------
 
 .. versionadded:: 0.13.0
 
@@ -4547,8 +4560,8 @@ And then issue the following queries:
 
 .. _io.bigquery:
 
-Google BigQuery (Experimental)
-------------------------------
+Google BigQuery
+---------------
 
 .. versionadded:: 0.13.0
 
