@@ -210,16 +210,22 @@ class TestApi(Base):
     def test_count_nonnumeric_types(self):
         # GH12541
         df_inf = DataFrame({'x': [1, 2, 3], 'y': [1., 2., np.Inf]})
-        df_date = DataFrame({'x': [1, 2, 3], 'y': pd.date_range('20130101',periods=3)})
+        df_date = DataFrame({'x': [1, 2, 3], 
+                            'y': pd.date_range('20130101',periods=3)})
         df_inf_date = DataFrame({'x': [1, 2, 3], 'y': [1., 2., np.Inf], 
                                  'z': pd.date_range('20170101',periods=3)})
 
-        expected_1 = DataFrame([[1,1],[2,2],[2,2]], columns=['x','y'], dtype=float)
-        expected_2 = DataFrame([[1,1,1],[2,2,2],[2,2,2]], columns=['x','y','z'], dtype=float)
+        expected_1 = DataFrame([[1,1],[2,2],[2,2]], 
+                                columns=['x','y'], dtype=float)
+        expected_2 = DataFrame([[1,1,1],[2,2,2],[2,2,2]], 
+                                columns=['x','y','z'], dtype=float)
 
-        self.assert_frame_equal(df_inf.rolling(window=2).count(), expected_1)
-        self.assert_frame_equal(df_date.rolling(window=2).count(), expected_1)
-        self.assert_frame_equal(df_inf_date.rolling(window=2).count(), expected_2)
+        self.assert_frame_equal(df_inf.rolling(window=2).count(), 
+                                expected_1)
+        self.assert_frame_equal(df_date.rolling(window=2).count(), 
+                                expected_1)
+        self.assert_frame_equal(df_inf_date.rolling(window=2).count(), 
+                                expected_2)
 
     def test_window_with_args(self):
         tm._skip_if_no_scipy()
