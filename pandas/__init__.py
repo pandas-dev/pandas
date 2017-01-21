@@ -47,9 +47,13 @@ from pandas.tools.merge import (merge, concat, ordered_merge,
                                 merge_ordered, merge_asof)
 from pandas.tools.pivot import pivot_table, crosstab
 
-# deprecated
+# deprecate tools.plotting, and directly imported scatter_matrix
 import pandas.tools.plotting
-from pandas.plotting import scatter_matrix, plot_params
+from pandas.plotting import plot_params
+from pandas.util.decorators import deprecate
+scatter_matrix = deprecate('pandas.scatter_matrix', pandas.plotting.scatter_matrix,
+                           'pandas.plotting.scatter_matrix')
+
 from pandas.tools.tile import cut, qcut
 from pandas.tools.util import to_numeric
 from pandas.core.reshape import melt

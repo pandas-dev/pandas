@@ -7,7 +7,7 @@ import pandas.util.testing as tm
 
 import numpy as np
 
-from pandas.tests.plotting.common import TestPlotBase
+from pandas.plotting.tests.common import TestPlotBase
 
 
 """ Test cases for GroupBy.plot """

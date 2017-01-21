@@ -131,7 +131,7 @@ def _replot_ax(ax, freq, kwargs):
 
             # for tsplot
             if isinstance(plotf, compat.string_types):
-                from pandas.plotting.plotting import _plot_klass
+                from pandas.plotting.core import _plot_klass
                 plotf = _plot_klass[plotf]._plot
 
             lines.append(plotf(ax, series.index._mpl_repr(),

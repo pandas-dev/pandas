@@ -2997,7 +2997,7 @@ class TimeSeries(Series):
 # ----------------------------------------------------------------------
 # Add plotting methods to Series
 
-import pandas.plotting.plotting as _gfx  # noqa
+import pandas.plotting.core as _gfx  # noqa
 
 Series.plot = base.AccessorProperty(_gfx.SeriesPlotMethods,
                                     _gfx.SeriesPlotMethods)
