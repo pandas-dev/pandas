@@ -788,9 +788,15 @@ class _Openpyxl1Writer(ExcelWriter):
 
         # Create workbook object with default optimized_write=True.
         self.book = Workbook()
+
         # Openpyxl 1.6.1 adds a dummy sheet. We remove it.
         if self.book.worksheets:
-            self.book.remove_sheet(self.book.worksheets[0])
+            try:
+                self.book.remove(self.book.worksheets[0])
+            except AttributeError:
+
+                # compat
+                self.book.remove_sheet(self.book.worksheets[0])
 
     def save(self):
         """
@@ -911,7 +917,7 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
 
         for cell in cells:
             colletter = get_column_letter(startcol + cell.col + 1)
-            xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
+            xcell = wks["%s%s" % (colletter, startrow + cell.row + 1)]
             xcell.value = _conv_value(cell.val)
             style_kwargs = {}
 
@@ -952,7 +958,7 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
                                 # Ignore first cell. It is already handled.
                                 continue
                             colletter = get_column_letter(col)
-                            xcell = wks.cell("%s%s" % (colletter, row))
+                            xcell = wks["%s%s" % (colletter, row)]
                             xcell.style = xcell.style.copy(**style_kwargs)
 
     @classmethod
