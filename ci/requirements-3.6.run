@@ -5,10 +5,10 @@ scipy
 openpyxl
 xlsxwriter
 xlrd
-# xlwt (installed via pip)
+xlwt
 numexpr
 pytables
-# matplotlib (not avail on defaults ATM)
+matplotlib
 lxml
 html5lib
 jinja2
