@@ -41,8 +41,8 @@ def asof_join_backward_{{on_dtype}}_by_{{by_dtype}}(
         Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
         ndarray[int64_t] left_indexer, right_indexer
         bint has_tolerance = 0
-        {{on_dtype}} tolerance_
-        {{on_dtype}} diff
+        {{on_dtype}} tolerance_ = 0
+        {{on_dtype}} diff = 0
         {{table_type}} hash_table
         {{by_dtype}} by_value
 
@@ -106,8 +106,8 @@ def asof_join_forward_{{on_dtype}}_by_{{by_dtype}}(
         Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
         ndarray[int64_t] left_indexer, right_indexer
         bint has_tolerance = 0
-        {{on_dtype}} tolerance_
-        {{on_dtype}} diff
+        {{on_dtype}} tolerance_ = 0
+        {{on_dtype}} diff = 0
         {{table_type}} hash_table
         {{by_dtype}} by_value
 
@@ -236,8 +236,8 @@ def asof_join_backward_{{on_dtype}}(
         Py_ssize_t left_pos, right_pos, left_size, right_size
         ndarray[int64_t] left_indexer, right_indexer
         bint has_tolerance = 0
-        {{on_dtype}} tolerance_
-        {{on_dtype}} diff
+        {{on_dtype}} tolerance_ = 0
+        {{on_dtype}} diff = 0
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
@@ -290,8 +290,8 @@ def asof_join_forward_{{on_dtype}}(
         Py_ssize_t left_pos, right_pos, left_size, right_size
         ndarray[int64_t] left_indexer, right_indexer
         bint has_tolerance = 0
-        {{on_dtype}} tolerance_
-        {{on_dtype}} diff
+        {{on_dtype}} tolerance_ = 0
+        {{on_dtype}} diff = 0
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
@@ -371,4 +371,3 @@ def asof_join_nearest_{{on_dtype}}(
     return left_indexer, right_indexer
 
 {{endfor}}
-
