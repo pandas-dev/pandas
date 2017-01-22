@@ -436,6 +436,7 @@ class TestStringMethods(tm.TestCase):
                     values = klass(data)
                     self.assertRaises(TypeError, values.str.replace, 'a', repl)
         
+    def test_replace_callable(self):
         ## GH 15055
         values = Series(['fooBAD__barBAD', NA])
 
@@ -448,16 +449,19 @@ class TestStringMethods(tm.TestCase):
         # test with wrong number of arguments
         repl = lambda m, bad: None
         re_msg = "^<lambda>\(\) missing 1 required positional argument: 'bad'$"
-        self.assertRaisesRegex(TypeError, re_msg, values.str.replace, 'a', repl)
+        with tm.assertRaisesRegexp(TypeError, re_msg):
+            values.str.replace('a', repl)
 
         repl = lambda: None
         re_msg = '^<lambda>\(\) takes 0 positional arguments but 1 was given$'
-        self.assertRaisesRegex(TypeError, re_msg, values.str.replace, 'a', repl)
+        with tm.assertRaisesRegexp(TypeError, re_msg):
+            values.str.replace('a', repl)
 
         # test regex named groups
         values = Series(['Foo Bar Baz', NA])
+        pat = r"(?P<first>\w+) (?P<middle>\w+) (?P<last>\w+)"
         repl = lambda m: m.group('middle').swapcase()
-        result = values.str.replace(r"(?P<first>\w+) (?P<middle>\w+) (?P<last>\w+)", repl)
+        result = values.str.replace(pat, repl)
         exp = Series(['bAR', NA])
         tm.assert_series_equal(result, exp)
 
