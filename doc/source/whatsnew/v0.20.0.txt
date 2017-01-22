@@ -119,6 +119,9 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - ``Series.sort_index`` accepts parameters ``kind`` and ``na_position`` (:issue:`13589`, :issue:`14444`)
 
+- ``DataFrame`` has gained a ``nunique()`` method as short-cut for ``.apply(lambda x: x.nunique())`` (counting the distinct values over an axis) (:issue:`14336`).
+- New ``DataFrame.groupby().nunique()`` method as short-cut for ``.apply(lambda g: g.apply(lambda x: x.nunique()))`` (counting the distinct values for all columns within each group) (:issue:`14336`).
+
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
 - Multiple offset aliases with decimal points are now supported (e.g. '0.5min' is parsed as '30s') (:issue:`8419`)
 

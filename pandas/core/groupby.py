@@ -3996,6 +3996,54 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         return self._wrap_agged_blocks(data.items, list(blk))
 
+    def nunique(self, dropna=True):
+        """
+        Return DataFrame with number of distinct observations per group for
+        each column.
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include NaN in the counts.
+
+        Returns
+        -------
+        nunique: DataFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'id': ['spam', 'egg', 'egg', 'spam',
+        ...                           'ham', 'ham'],
+        ...                    'value1': [1, 5, 5, 2, 5, 5],
+        ...                    'value2': list('abbaxy')})
+        >>> df
+             id  value1 value2
+        0  spam       1      a
+        1   egg       5      b
+        2   egg       5      b
+        3  spam       2      a
+        4   ham       5      x
+        5   ham       5      y
+
+        >>> df.groupby('id').nunique()
+            id  value1  value2
+        id
+        egg    1       1       1
+        ham    1       1       2
+        spam   1       2       1
+
+        # check for rows with the same id but conflicting values
+        >>> df.groupby('id').filter(lambda g: (g.nunique() > 1).any())
+             id  value1 value2
+        0  spam       1      a
+        3  spam       2      a
+        4   ham       5      x
+        5   ham       5      y
+        """
+        return self.apply(lambda g: g.apply(Series.nunique, dropna=dropna))
+
 
 from pandas.tools.plotting import boxplot_frame_groupby  # noqa
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
