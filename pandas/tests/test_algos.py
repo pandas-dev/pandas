@@ -287,6 +287,23 @@ class TestFactorize(tm.TestCase):
 
         self.assertRaises(TypeError, algos.factorize, x17[::-1], sort=True)
 
+    def test_uint64_factorize(self):
+        data = np.array([2**63, 1, 2**63], dtype=np.uint64)
+        exp_labels = np.array([0, 1, 0], dtype=np.intp)
+        exp_uniques = np.array([2**63, 1], dtype=np.uint64)
+
+        labels, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(labels, exp_labels)
+        tm.assert_numpy_array_equal(uniques, exp_uniques)
+
+        data = np.array([2**63, -1, 2**63], dtype=object)
+        exp_labels = np.array([0, 1, 0], dtype=np.intp)
+        exp_uniques = np.array([2**63, -1], dtype=object)
+
+        labels, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(labels, exp_labels)
+        tm.assert_numpy_array_equal(uniques, exp_uniques)
+
 
 class TestUnique(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -625,6 +642,19 @@ class TestValueCounts(tm.TestCase):
             expected = Series([0.5, 0.5],
                               index=Series([2.0, 1.0], dtype=t))
             tm.assert_series_equal(result, expected)
+
+    def test_value_counts_uint64(self):
+        arr = np.array([2**63], dtype=np.uint64)
+        expected = Series([1], index=[2**63])
+        result = algos.value_counts(arr)
+
+        tm.assert_series_equal(result, expected)
+
+        arr = np.array([-1, 2**63], dtype=object)
+        expected = Series([1, 1], index=[-1, 2**63])
+        result = algos.value_counts(arr)
+
+        tm.assert_series_equal(result, expected)
 
 
 class TestDuplicated(tm.TestCase):

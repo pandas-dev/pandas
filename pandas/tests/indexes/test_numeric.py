@@ -919,6 +919,10 @@ class TestUInt64Index(NumericInt, tm.TestCase):
         res = Index([1, 2**63])
         tm.assert_index_equal(res, idx)
 
+        idx = Index([-1, 2**63], dtype=object)
+        res = Index(np.array([-1, 2**63], dtype=object))
+        tm.assert_index_equal(res, idx)
+
     def test_get_indexer(self):
         target = UInt64Index(np.arange(10).astype('uint64') * 5 + 2**63)
         indexer = self.index.get_indexer(target)

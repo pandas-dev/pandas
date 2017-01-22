@@ -366,9 +366,6 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     if isinstance(values, Index):
         uniques = values._shallow_copy(uniques, name=None)
     elif isinstance(values, Series):
-        # TODO: This constructor is bugged for uint's, especially
-        # np.uint64 due to overflow. Test this for uint behavior
-        # once constructor has been fixed.
         uniques = Index(uniques)
     return labels, uniques
 
@@ -477,9 +474,12 @@ def _value_counts_arraylike(values, dropna=True):
         if is_period_type:
             keys = PeriodIndex._simple_new(keys, freq=freq)
 
-    elif is_integer_dtype(dtype):
+    elif is_signed_integer_dtype(dtype):
         values = _ensure_int64(values)
         keys, counts = htable.value_count_int64(values, dropna)
+    elif is_unsigned_integer_dtype(dtype):
+        values = _ensure_uint64(values)
+        keys, counts = htable.value_count_uint64(values, dropna)
     elif is_float_dtype(dtype):
         values = _ensure_float64(values)
         keys, counts = htable.value_count_float64(values, dropna)

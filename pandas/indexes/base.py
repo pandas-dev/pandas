@@ -202,28 +202,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                         elif inferred in ['floating', 'mixed-integer-float']:
 
                             # If we are actually all equal to integers,
-                            # then coerce to integer
-                            from .numeric import (Int64Index, UInt64Index,
-                                                  Float64Index)
+                            # then coerce to integer.
                             try:
-                                res = data.astype('i8', copy=False)
-                                if (res == data).all():
-                                    return Int64Index(res, copy=copy,
-                                                      name=name)
-                            except (OverflowError, TypeError, ValueError):
+                                return cls._try_convert_to_int_index(
+                                    data, copy, name)
+                            except ValueError:
                                 pass
 
-                            # Conversion to int64 failed (possibly due to
-                            # overflow), so let's try now with uint64.
-                            try:
-                                res = data.astype('u8', copy=False)
-                                if (res == data).all():
-                                    return UInt64Index(res, copy=copy,
-                                                       name=name)
-                            except (TypeError, ValueError):
-                                pass
-
-                            # return an actual float index
+                            # Return an actual float index.
+                            from .numeric import Float64Index
                             return Float64Index(data, copy=copy, dtype=dtype,
                                                 name=name)
 
@@ -270,13 +257,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if dtype is None:
                 inferred = lib.infer_dtype(subarr)
                 if inferred == 'integer':
-                    from .numeric import Int64Index, UInt64Index
                     try:
-                        return Int64Index(subarr.astype('i8'), copy=copy,
-                                          name=name)
-                    except OverflowError:
-                        return UInt64Index(subarr.astype('u8'), copy=copy,
-                                           name=name)
+                        return cls._try_convert_to_int_index(
+                            subarr, copy, name)
+                    except ValueError:
+                        pass
+
+                    return Index(subarr, copy=copy,
+                                 dtype=object, name=name)
                 elif inferred in ['floating', 'mixed-integer-float']:
                     from .numeric import Float64Index
                     return Float64Index(subarr, copy=copy, name=name)
@@ -597,6 +585,46 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return self._values.ravel(order=order)
 
     # construction helpers
+    @classmethod
+    def _try_convert_to_int_index(cls, data, copy, name):
+        """
+        Attempt to convert an array of data into an integer index.
+
+        Parameters
+        ----------
+        data : The data to convert.
+        copy : Whether to copy the data or not.
+        name : The name of the index returned.
+
+        Returns
+        -------
+        int_index : data converted to either an Int64Index or a
+                    UInt64Index
+
+        Raises
+        ------
+        ValueError if the conversion was not successful.
+        """
+
+        from .numeric import Int64Index, UInt64Index
+        try:
+            res = data.astype('i8', copy=False)
+            if (res == data).all():
+                return Int64Index(res, copy=copy, name=name)
+        except (OverflowError, TypeError, ValueError):
+            pass
+
+        # Conversion to int64 failed (possibly due to
+        # overflow), so let's try now with uint64.
+        try:
+            res = data.astype('u8', copy=False)
+            if (res == data).all():
+                return UInt64Index(res, copy=copy, name=name)
+        except (TypeError, ValueError):
+            pass
+
+        raise ValueError
+
     @classmethod
     def _scalar_data_error(cls, data):
         raise TypeError('{0}(...) must be called with a collection of some '
