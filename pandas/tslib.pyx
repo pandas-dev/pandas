@@ -1945,7 +1945,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
                                           object freq):
     cdef:
         object ret
-        int year, quarter, month, mnum, date_len
+        int year, quarter = -1, month, mnum, date_len
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     assert util.is_string_object(date_string)
