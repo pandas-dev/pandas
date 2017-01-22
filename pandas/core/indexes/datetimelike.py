@@ -697,6 +697,14 @@ class DatetimeIndexOpsMixin(object):
     def _add_delta(self, other):
         return NotImplemented
 
+    @Appender(_index_shared_docs['_get_values_from_dict'])
+    def _get_values_from_dict(self, data):
+        if len(data):
+            return np.array([data.get(i, np.nan)
+                             for i in self.asobject.values])
+
+        return np.array([np.nan])
+
     def _add_delta_td(self, other):
         # add a delta of a timedeltalike
         # return the i8 result view

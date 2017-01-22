@@ -204,7 +204,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         index = Index(_try_sort(data))
 
                 try:
-                    data = index.get_values_from_dict(data)
+                    data = index._get_values_from_dict(data)
                 except TypeError:
                     data = ([data.get(i, np.nan) for i in index]
                             if data else np.nan)

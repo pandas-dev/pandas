@@ -830,33 +830,17 @@ class TestIndex(Base):
         tm.assert_index_equal(exp, date_index.map(lambda x: x.hour))
 
     def test_map_with_dict_and_series(self):
+        # GH 12756
         expected = Index(['foo', 'bar', 'baz'])
         mapper = Series(expected.values, index=[0, 1, 2])
-        tm.assert_index_equal(tm.makeIntIndex(3).map(mapper), expected)
+        result = tm.makeIntIndex(3).map(mapper)
+        tm.assert_index_equal(result, expected)
 
-        # GH 12766
-        # special = []
-        special = ['catIndex']
+        for name in self.indices.keys():
+            if name == 'catIndex':
+                # Tested in test_categorical
+                continue
 
-        for name in special:
-            orig_values = ['a', 'B', 1, 'a']
-            new_values = ['one', 2, 3.0, 'one']
-            cur_index = CategoricalIndex(orig_values, name='XXX')
-            expected = CategoricalIndex(new_values,
-                                        name='XXX', categories=[3.0, 2, 'one'])
-
-            mapper = pd.Series(new_values[:-1], index=orig_values[:-1])
-            output = cur_index.map(mapper)
-            # Order of categories in output can be different
-            tm.assert_index_equal(expected, output)
-
-            mapper = {o: n for o, n in
-                      zip(orig_values[:-1], new_values[:-1])}
-            output = cur_index.map(mapper)
-            # Order of categories in output can be different
-            tm.assert_index_equal(expected, output)
-
-        for name in list(set(self.indices.keys()) - set(special)):
             cur_index = self.indices[name]
             expected = Index(np.arange(len(cur_index), 0, -1))
             mapper = pd.Series(expected, index=cur_index)
@@ -864,25 +848,13 @@ class TestIndex(Base):
 
             mapper = {o: n for o, n in
                       zip(cur_index, expected)}
+            # If the mapper is empty the expected index type is Int64Index
+            # but the output defaults to Float64 so I treat it independently
             if mapper:
                 tm.assert_index_equal(expected, cur_index.map(mapper))
             else:
-                # The expected index type is Int64Index
-                # but the output defaults to Float64
                 tm.assert_index_equal(Float64Index([]),
                                       cur_index.map(mapper))
-
-    def test_map_with_categorical_series(self):
-        # GH 12756
-        a = Index([1, 2, 3, 4])
-        b = Series(["even", "odd", "even", "odd"],
-                   dtype="category")
-        c = Series(["even", "odd", "even", "odd"])
-
-        exp = CategoricalIndex(["odd", "even", "odd", np.nan])
-        tm.assert_index_equal(a.map(b), exp)
-        exp = Index(["odd", "even", "odd", np.nan])
-        tm.assert_index_equal(a.map(c), exp)
 
     def test_map_with_non_function_missing_values(self):
         # GH 12756

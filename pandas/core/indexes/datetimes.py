@@ -1409,29 +1409,16 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                         key, tz=self.tz)
         return _maybe_box(self, values, series, key)
 
-    def get_values_from_dict(self, input_dict):
-        """Return the values of the input dictionary in the order the keys are
-        in the index. np.nan is returned for index values not in the
-        dictionary.
-
-        Parameters
-        ----------
-        input_dict : dict
-            The dictionary from which to extract the values
-
-        Returns
-        -------
-        Union[np.array, list]
-
-        """
-        if len(input_dict):
+    @Appender(_index_shared_docs['_get_values_from_dict'])
+    def _get_values_from_dict(self, data):
+        if len(data):
             # coerce back to datetime objects for lookup
-            input_dict = com._dict_compat(input_dict)
-            return lib.fast_multiget(input_dict,
+            data = com._dict_compat(data)
+            return lib.fast_multiget(data,
                                      self.asobject.values,
                                      default=np.nan)
-        else:
-            return np.nan
+
+        return np.array([np.nan])
 
     def get_loc(self, key, method=None, tolerance=None):
         """

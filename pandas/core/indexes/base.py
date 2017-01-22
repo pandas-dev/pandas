@@ -2820,23 +2820,25 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
-    def get_values_from_dict(self, input_dict):
-        """Return the values of the input dictionary in the order the keys are
+    _index_shared_docs['_get_values_from_dict'] = """
+        Return the values of the input dictionary in the order the keys are
         in the index. np.nan is returned for index values not in the
         dictionary.
 
         Parameters
         ----------
-        input_dict : dict
+        data : dict
             The dictionary from which to extract the values
 
         Returns
         -------
-        Union[np.array, list]
+        np.array
 
         """
 
-        return lib.fast_multiget(input_dict, self.values,
+    @Appender(_index_shared_docs['_get_values_from_dict'])
+    def _get_values_from_dict(self, data):
+        return lib.fast_multiget(data, self.values,
                                  default=np.nan)
 
     def _maybe_promote(self, other):
@@ -2882,8 +2884,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        mapper : Union[function, dict, Series]
+        mapper : {callable, dict, Series}
             Function to be applied or input correspondence object.
+            dict and Series support new in 0.20.0.
 
         Returns
         -------
@@ -2900,7 +2903,7 @@ class Index(IndexOpsMixin, PandasObject):
             mapped_values = algos.take_1d(mapper.values, indexer)
         elif isinstance(mapper, dict):
             idx = Index(mapper.keys())
-            data = idx.get_values_from_dict(mapper)
+            data = idx._get_values_from_dict(mapper)
             indexer = idx.get_indexer(self.values)
             mapped_values = algos.take_1d(data, indexer)
         else:
