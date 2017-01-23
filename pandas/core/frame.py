@@ -4036,6 +4036,42 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Function application
 
+    def _gotitem(self, key, ndim, subset=None):
+        """
+        sub-classes to define
+        return a sliced object
+
+        Parameters
+        ----------
+        key : string / list of selections
+        ndim : 1,2
+            requested ndim of result
+        subset : object, default None
+            subset to act on
+        """
+        if subset is None:
+            subset = self
+
+        # TODO: _shallow_copy(subset)?
+        return self[key]
+
+    @Appender(_shared_docs['aggregate'] % _shared_doc_kwargs)
+    def aggregate(self, func, axis=0, *args, **kwargs):
+        axis = self._get_axis_number(axis)
+
+        # TODO: flipped axis
+        result = None
+        if axis == 0:
+            try:
+                result, how = self._aggregate(func, axis=0, *args, **kwargs)
+            except TypeError:
+                pass
+        if result is None:
+            return self.apply(func, axis=axis, args=args, **kwargs)
+        return result
+
+    agg = aggregate
+
     def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
               args=(), **kwds):
         """
@@ -4091,21 +4127,34 @@ class DataFrame(NDFrame):
         See also
         --------
         DataFrame.applymap: For elementwise operations
+        DataFrame.agg: only perform aggregating type operations
+        DataFrame.transform: only perform transformating type operations
 
         Returns
         -------
         applied : Series or DataFrame
         """
         axis = self._get_axis_number(axis)
-        if kwds or args and not isinstance(func, np.ufunc):
+        ignore_failures = kwds.pop('ignore_failures', False)
 
+        # dispatch to agg
+        if axis == 0 and isinstance(func, (list, dict)):
+            return self.aggregate(func, axis=axis, *args, **kwds)
+
+        if len(self.columns) == 0 and len(self.index) == 0:
+            return self._apply_empty_result(func, axis, reduce, *args, **kwds)
+
+        # if we are a string, try to dispatch
+        if isinstance(func, compat.string_types):
+            if axis:
+                kwds['axis'] = axis
+            return getattr(self, func)(*args, **kwds)
+
+        if kwds or args and not isinstance(func, np.ufunc):
             def f(x):
                 return func(x, *args, **kwds)
         else:
             f = func
-
-        if len(self.columns) == 0 and len(self.index) == 0:
-            return self._apply_empty_result(func, axis, reduce, *args, **kwds)
 
         if isinstance(f, np.ufunc):
             with np.errstate(all='ignore'):
@@ -4123,7 +4172,10 @@ class DataFrame(NDFrame):
                 else:
                     if reduce is None:
                         reduce = True
-                    return self._apply_standard(f, axis, reduce=reduce)
+                    return self._apply_standard(
+                        f, axis,
+                        reduce=reduce,
+                        ignore_failures=ignore_failures)
             else:
                 return self._apply_broadcast(f, axis)
 
@@ -4901,11 +4953,14 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+    def _reduce(self, op, name, axis=0, skipna=True, weights=None,
+                numeric_only=None, filter_type=None, **kwds):
         axis = self._get_axis_number(axis)
 
         def f(x):
+            if weights is not None:
+                kwds['weights'] = weights
+
             return op(x, axis=axis, skipna=skipna, **kwds)
 
         labels = self._get_agg_axis(axis)
@@ -4927,7 +4982,13 @@ class DataFrame(NDFrame):
                         # this can end up with a non-reduction
                         # but not always. if the types are mixed
                         # with datelike then need to make sure a series
-                        result = self.apply(f, reduce=False)
+
+                        # we only end up here if we have not specified
+                        # numeric_only and yet we have tried a
+                        # column-by-column reduction, where we have mixed type.
+                        # So let's just do what we can
+                        result = self.apply(f, reduce=False,
+                                            ignore_failures=True)
                         if result.ndim == self.ndim:
                             result = result.iloc[0]
                         return result

@@ -313,6 +313,8 @@ Function application, GroupBy & Window
    :toctree: generated/
 
    Series.apply
+   Series.aggregate
+   Series.transform
    Series.map
    Series.groupby
    Series.rolling
@@ -830,6 +832,8 @@ Function application, GroupBy & Window
 
    DataFrame.apply
    DataFrame.applymap
+   DataFrame.aggregate
+   DataFrame.transform
    DataFrame.groupby
    DataFrame.rolling
    DataFrame.expanding

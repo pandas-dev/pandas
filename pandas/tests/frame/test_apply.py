@@ -108,6 +108,17 @@ class TestDataFrameApply(tm.TestCase, TestData):
         rs = df.T.apply(lambda s: s[0], axis=0)
         assert_series_equal(rs, xp)
 
+    def test_with_string_args(self):
+
+        for arg in ['sum', 'mean', 'min', 'max', 'std']:
+            result = self.frame.apply(arg)
+            expected = getattr(self.frame, arg)()
+            tm.assert_series_equal(result, expected)
+
+            result = self.frame.apply(arg, axis=1)
+            expected = getattr(self.frame, arg)(axis=1)
+            tm.assert_series_equal(result, expected)
+
     def test_apply_broadcast(self):
         broadcasted = self.frame.apply(np.mean, broadcast=True)
         agged = self.frame.apply(np.mean)
@@ -448,3 +459,161 @@ class TestDataFrameApply(tm.TestCase, TestData):
         df = DataFrame({'dt': ['a', 'b', 'c', 'a']}, dtype='category')
         result = df.apply(lambda x: x)
         assert_frame_equal(result, df)
+
+
+def zip_frames(*frames):
+    """
+    take a list of frames, zip the columns together for each
+    assume that these all have the first frame columns
+
+    return a new frame
+    """
+    columns = frames[0].columns
+    zipped = [f[c] for c in columns for f in frames]
+    return pd.concat(zipped, axis=1)
+
+
+class TestDataFrameAggregate(tm.TestCase, TestData):
+
+    _multiprocess_can_split_ = True
+
+    def test_agg_transform(self):
+
+        with np.errstate(all='ignore'):
+
+            f_sqrt = np.sqrt(self.frame)
+            f_abs = np.abs(self.frame)
+
+            # ufunc
+            result = self.frame.transform(np.sqrt)
+            expected = f_sqrt.copy()
+            assert_frame_equal(result, expected)
+
+            result = self.frame.apply(np.sqrt)
+            assert_frame_equal(result, expected)
+
+            result = self.frame.transform(np.sqrt)
+            assert_frame_equal(result, expected)
+
+            # list-like
+            result = self.frame.apply([np.sqrt])
+            expected = f_sqrt.copy()
+            expected.columns = pd.MultiIndex.from_product(
+                [self.frame.columns, ['sqrt']])
+            assert_frame_equal(result, expected)
+
+            result = self.frame.transform([np.sqrt])
+            assert_frame_equal(result, expected)
+
+            # multiple items in list
+            # these are in the order as if we are applying both
+            # functions per series and then concatting
+            expected = zip_frames(f_sqrt, f_abs)
+            expected.columns = pd.MultiIndex.from_product(
+                [self.frame.columns, ['sqrt', 'absolute']])
+            result = self.frame.apply([np.sqrt, np.abs])
+            assert_frame_equal(result, expected)
+
+            result = self.frame.transform(['sqrt', np.abs])
+            assert_frame_equal(result, expected)
+
+    def test_transform_and_agg_err(self):
+        # cannot both transform and agg
+        def f():
+            self.frame.transform(['max', 'min'])
+        self.assertRaises(ValueError, f)
+
+        def f():
+            with np.errstate(all='ignore'):
+                self.frame.agg(['max', 'sqrt'])
+        self.assertRaises(ValueError, f)
+
+        def f():
+            with np.errstate(all='ignore'):
+                self.frame.transform(['max', 'sqrt'])
+        self.assertRaises(ValueError, f)
+
+        df = pd.DataFrame({'A': range(5), 'B': 5})
+
+        def f():
+            with np.errstate(all='ignore'):
+                df.agg({'A': ['abs', 'sum'], 'B': ['mean', 'max']})
+
+    def test_demo(self):
+        # demonstration tests
+        df = pd.DataFrame({'A': range(5), 'B': 5})
+
+        result = df.agg(['min', 'max'])
+        expected = DataFrame({'A': [0, 4], 'B': [5, 5]},
+                             columns=['A', 'B'],
+                             index=['min', 'max'])
+        tm.assert_frame_equal(result, expected)
+
+        result = df.agg({'A': ['min', 'max'], 'B': ['sum', 'max']})
+        expected = DataFrame({'A': [4.0, 0.0, np.nan],
+                              'B': [5.0, np.nan, 25.0]},
+                             columns=['A', 'B'],
+                             index=['max', 'min', 'sum'])
+        tm.assert_frame_equal(result.reindex_like(expected), expected)
+
+    def test_agg_reduce(self):
+        # all reducers
+        expected = zip_frames(self.frame.mean().to_frame(),
+                              self.frame.max().to_frame(),
+                              self.frame.sum().to_frame()).T
+        expected.index = ['mean', 'max', 'sum']
+        result = self.frame.agg(['mean', 'max', 'sum'])
+        assert_frame_equal(result, expected)
+
+        # dict input with scalars
+        result = self.frame.agg({'A': 'mean', 'B': 'sum'})
+        expected = Series([self.frame.A.mean(), self.frame.B.sum()],
+                          index=['A', 'B'])
+        assert_series_equal(result.reindex_like(expected), expected)
+
+        # dict input with lists
+        result = self.frame.agg({'A': ['mean'], 'B': ['sum']})
+        expected = DataFrame({'A': Series([self.frame.A.mean()],
+                                          index=['mean']),
+                              'B': Series([self.frame.B.sum()],
+                                          index=['sum'])})
+        assert_frame_equal(result.reindex_like(expected), expected)
+
+        # dict input with lists with multiple
+        result = self.frame.agg({'A': ['mean', 'sum'],
+                                 'B': ['sum', 'max']})
+        expected = DataFrame({'A': Series([self.frame.A.mean(),
+                                           self.frame.A.sum()],
+                                          index=['mean', 'sum']),
+                              'B': Series([self.frame.B.sum(),
+                                           self.frame.B.max()],
+                                          index=['sum', 'max'])})
+        assert_frame_equal(result.reindex_like(expected), expected)
+
+    def test_nuiscance_columns(self):
+
+        # GH 15015
+        df = DataFrame({'A': [1, 2, 3],
+                        'B': [1., 2., 3.],
+                        'C': ['foo', 'bar', 'baz'],
+                        'D': pd.date_range('20130101', periods=3)})
+
+        result = df.agg('min')
+        expected = Series([1, 1., 'bar', pd.Timestamp('20130101')],
+                          index=df.columns)
+        assert_series_equal(result, expected)
+
+        result = df.agg(['min'])
+        expected = DataFrame([[1, 1., 'bar', pd.Timestamp('20130101')]],
+                             index=['min'], columns=df.columns)
+        assert_frame_equal(result, expected)
+
+        result = df.agg('sum')
+        expected = Series([6, 6., 'foobarbaz'],
+                          index=['A', 'B', 'C'])
+        assert_series_equal(result, expected)
+
+        result = df.agg(['sum'])
+        expected = DataFrame([[6, 6., 'foobarbaz']],
+                             index=['sum'], columns=['A', 'B', 'C'])
+        assert_frame_equal(result, expected)

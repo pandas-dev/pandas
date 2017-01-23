@@ -44,6 +44,23 @@ def _possibly_convert_platform(values):
     return values
 
 
+def _is_nested_object(obj):
+    """
+    return a boolean if we have a nested object, e.g. a Series with 1 or
+    more Series elements
+
+    This may not be necessarily be performant.
+
+    """
+
+    if isinstance(obj, ABCSeries) and is_object_dtype(obj):
+
+        if any(isinstance(v, ABCSeries) for v in obj.values):
+            return True
+
+    return False
+
+
 def _possibly_downcast_to_dtype(result, dtype):
     """ try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32

@@ -2188,6 +2188,49 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return self._constructor(new_values,
                                  index=self.index).__finalize__(self)
 
+    def _gotitem(self, key, ndim, subset=None):
+        """
+        sub-classes to define
+        return a sliced object
+
+        Parameters
+        ----------
+        key : string / list of selections
+        ndim : 1,2
+            requested ndim of result
+        subset : object, default None
+            subset to act on
+        """
+        return self
+
+    @Appender(generic._shared_docs['aggregate'] % _shared_doc_kwargs)
+    def aggregate(self, func, axis=0, *args, **kwargs):
+        axis = self._get_axis_number(axis)
+        result, how = self._aggregate(func, *args, **kwargs)
+        if result is None:
+
+            # we can be called from an inner function which
+            # passes this meta-data
+            kwargs.pop('_axis', None)
+            kwargs.pop('_level', None)
+
+            # try a regular apply, this evaluates lambdas
+            # row-by-row; however if the lambda is expected a Series
+            # expression, e.g.: lambda x: x-x.quantile(0.25)
+            # this will fail, so we can try a vectorized evaluation
+
+            # we cannot FIRST try the vectorized evaluation, becuase
+            # then .agg and .apply would have different semantics if the
+            # operation is actually defined on the Series, e.g. str
+            try:
+                result = self.apply(func, *args, **kwargs)
+            except (ValueError, AttributeError, TypeError):
+                result = func(self, *args, **kwargs)
+
+        return result
+
+    agg = aggregate
+
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
         Invoke function on values of Series. Can be ufunc (a NumPy function
@@ -2211,6 +2254,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         See also
         --------
         Series.map: For element-wise operations
+        Series.agg: only perform aggregating type operations
+        Series.transform: only perform transformating type operations
 
         Examples
         --------
@@ -2287,6 +2332,15 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             return self._constructor(dtype=self.dtype,
                                      index=self.index).__finalize__(self)
 
+        # dispatch to agg
+        if isinstance(func, (list, dict)):
+            return self.aggregate(func, *args, **kwds)
+
+        # if we are a string, try to dispatch
+        if isinstance(func, compat.string_types):
+            return self._try_aggregate_string_function(func, *args, **kwds)
+
+        # handle ufuncs and lambdas
         if kwds or args and not isinstance(func, np.ufunc):
             f = lambda x: func(x, *args, **kwds)
         else:
@@ -2296,6 +2350,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             if isinstance(f, np.ufunc):
                 return f(self)
 
+            # row-wise access
             if is_extension_type(self.dtype):
                 mapped = self._values.map(f)
             else:
@@ -2309,8 +2364,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             return self._constructor(mapped,
                                      index=self.index).__finalize__(self)
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+    def _reduce(self, op, name, axis=0, skipna=True, weights=None,
+                numeric_only=None, filter_type=None, **kwds):
         """
         perform a reduction operation
 
@@ -2325,11 +2380,15 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             if numeric_only:
                 raise NotImplementedError('Series.{0} does not implement '
                                           'numeric_only.'.format(name))
+
+            if weights is not None:
+                kwds['weights'] = weights
+
             with np.errstate(all='ignore'):
                 return op(delegate, skipna=skipna, **kwds)
 
         return delegate._reduce(op=op, name=name, axis=axis, skipna=skipna,
-                                numeric_only=numeric_only,
+                                weights=weights, numeric_only=numeric_only,
                                 filter_type=filter_type, **kwds)
 
     def _reindex_indexer(self, new_index, indexer, copy):

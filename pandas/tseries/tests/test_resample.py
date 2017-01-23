@@ -1832,10 +1832,12 @@ class TestDatetimeIndex(Base, tm.TestCase):
         tm.assert_series_equal(result['foo'], foo_exp)
         tm.assert_series_equal(result['bar'], bar_exp)
 
+        # this is a MI Series, so comparing the names of the results
+        # doesn't make sense
         result = ts.resample('M').aggregate({'foo': lambda x: x.mean(),
                                              'bar': lambda x: x.std(ddof=1)})
-        tm.assert_series_equal(result['foo'], foo_exp)
-        tm.assert_series_equal(result['bar'], bar_exp)
+        tm.assert_series_equal(result['foo'], foo_exp, check_names=False)
+        tm.assert_series_equal(result['bar'], bar_exp, check_names=False)
 
     def test_resample_unequal_times(self):
         # #1772

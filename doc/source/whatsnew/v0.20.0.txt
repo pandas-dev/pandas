@@ -9,6 +9,8 @@ users upgrade to this version.
 
 Highlights include:
 
+- new ``.agg()`` API for Series/DataFrame similar to the groupby-rolling-resample API's, see :ref:`here <whatsnew_0200.enhancements.agg>`
+- Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
 
@@ -23,9 +25,73 @@ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
-- Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
+.. _whatsnew_0200.enhancements.agg:
 
+``agg`` API
+^^^^^^^^^^^
 
+Series & DataFrame have been enhanced to support the aggregation API. This is an already familiar API that
+is supported for groupby, windows operations, and resampling. This allows one to express, possibly multiple
+aggregation operations in a single concise way by using ``.agg()`` and ``.transform()``. The
+full documentation is :ref:`here <basics.aggregate>`` (:issue:`1623`)
+
+Here is a sample
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+                    index=pd.date_range('1/1/2000', periods=10))
+   df.iloc[3:7] = np.nan
+   df
+
+One can operate using string function names, callables, lists, or dictionaries of these.
+
+Using a single function is equivalent to ``.apply``.
+
+.. ipython:: python
+
+   df.agg('sum')
+
+Multiple functions in lists.
+
+.. ipython:: python
+
+   df.agg(['sum', 'min'])
+
+Dictionaries to provide the ability to selective calculation.
+
+.. ipython:: python
+
+   df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
+
+When operating on a Series, passing a dictionry allows one to rename multiple
+function aggregates; this will return a MultiIndexed Series. The outer level
+are the keys, the inner are the names of the functions.
+
+.. ipython:: python
+
+   df.A.agg({'foo':['sum', 'min'], 'bar' : ['count','max']})
+
+The API also supports a ``.transform()`` function to provide for broadcasting results.
+
+.. ipython:: python
+
+   df.transform(['abs', lambda x: x-x.min()])
+
+When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
+aggregations. This is similiar to how groupby ``.agg`` works. (:issue:`15015`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 2, 3],
+                      'B': [1., 2., 3.],
+                      'C': ['foo', 'bar', 'baz'],
+                      'D': pd.date_range('20130101', periods=3)})
+   df.dtypes
+
+.. ipython:: python
+
+   df.agg(['min', 'sum'])
 
 .. _whatsnew_0200.enhancements.dataio_dtype:
 
