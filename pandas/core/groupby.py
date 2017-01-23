@@ -2203,7 +2203,6 @@ class BinGrouper(BaseGrouper):
     # cython aggregation
 
     _cython_functions = copy.deepcopy(BaseGrouper._cython_functions)
-    _cython_functions['aggregate'].pop('median')
 
 
 class Grouping(object):

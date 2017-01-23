@@ -2931,6 +2931,21 @@ class TestResamplerGrouper(tm.TestCase):
         self.assertEqual(result.index.nlevels, 2)
         tm.assert_index_equal(result.index.levels[0], expected)
 
+    def test_median_duplicate_columns(self):
+        # GH 14233
+
+        df = pd.DataFrame(np.array([[i + j for i in range(20)]
+                                    for j in [0, 100, 1000]])
+                          .T, columns=list('aaa'),
+                          index=pd.date_range('2012-01-01',
+                                              periods=20, freq='s'))
+        df2 = df.copy()
+        df2.columns = ['a', 'b', 'c']
+        expected = df2.resample('5s').median()
+        result = df.resample('5s').median()
+        expected.columns = result.columns
+        assert_frame_equal(result, expected)
+
 
 class TestTimeGrouper(tm.TestCase):
     def setUp(self):
