@@ -446,15 +446,23 @@ class TestStringMethods(tm.TestCase):
         exp = Series(['foObaD__baRbaD', NA])
         tm.assert_series_equal(result, exp)
 
-        # test with wrong number of arguments
-        repl = lambda m, bad: None
-        re_msg = "^<lambda>\(\) missing 1 required positional argument: 'bad'$"
-        with tm.assertRaisesRegexp(TypeError, re_msg):
-            values.str.replace('a', repl)
+        # test with wrong number of arguments, raising an error
+        if compat.PY2:
+            p_err = r'takes (no|(exactly|at (least|most)) ?\d+) arguments?'
+        else:
+            p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
+                     r'(?(3)required )positional arguments?')
 
         repl = lambda: None
-        re_msg = '^<lambda>\(\) takes 0 positional arguments but 1 was given$'
-        with tm.assertRaisesRegexp(TypeError, re_msg):
+        with tm.assertRaisesRegexp(TypeError, p_err):
+            values.str.replace('a', repl)
+
+        repl = lambda m, x: None
+        with tm.assertRaisesRegexp(TypeError, p_err):
+            values.str.replace('a', repl)
+
+        repl = lambda m, x, y=None: None
+        with tm.assertRaisesRegexp(TypeError, p_err):
             values.str.replace('a', repl)
 
         # test regex named groups
