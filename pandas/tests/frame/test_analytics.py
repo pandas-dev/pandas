@@ -16,6 +16,7 @@ from pandas import (compat, isnull, notnull, DataFrame, Series,
                     MultiIndex, date_range, Timestamp)
 import pandas as pd
 import pandas.core.nanops as nanops
+import pandas.core.algorithms as algorithms
 import pandas.formats.printing as printing
 
 import pandas.util.testing as tm
@@ -410,6 +411,21 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         result = df.count()
         expected = Series(0, index=[])
         tm.assert_series_equal(result, expected)
+
+    def test_nunique(self):
+        f = lambda s: len(algorithms.unique1d(s.dropna()))
+        self._check_stat_op('nunique', f, has_skipna=False,
+                            check_dtype=False, check_dates=True)
+
+        df = DataFrame({'A': [1, 1, 1],
+                        'B': [1, 2, 3],
+                        'C': [1, np.nan, 3]})
+        tm.assert_series_equal(df.nunique(), Series({'A': 1, 'B': 3, 'C': 2}))
+        tm.assert_series_equal(df.nunique(dropna=False),
+                               Series({'A': 1, 'B': 3, 'C': 3}))
+        tm.assert_series_equal(df.nunique(axis=1), Series({0: 1, 1: 2, 2: 2}))
+        tm.assert_series_equal(df.nunique(axis=1, dropna=False),
+                               Series({0: 1, 1: 3, 2: 2}))
 
     def test_sum(self):
         self._check_stat_op('sum', np.sum, has_numeric_only=True)
