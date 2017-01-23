@@ -170,12 +170,9 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
             # The user may want to be warned by this, instead of getting NaN
-            re_missing = (r'missing \d+ required (positional|keyword-only) '
-                           'arguments?')
-            re_takes = (r'takes (from)?\d+ (to \d+)?positional arguments? '
-                         'but \d+ (was|were) given')
-            if len(e.args) >= 1 and (re.search(re_missing, e.args[0]) 
-                                     or re.search(re_takes, e.args[0])):
+            re_error = (r'(takes|(missing)) (no|(exactly )?\d+) '
+                        r'(?(2)required )(positional )?arguments?')
+            if len(e.args) >= 1 and re.search(re_error, e.args[0]):
                 raise e
 
             def g(x):
