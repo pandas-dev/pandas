@@ -370,6 +370,10 @@ Performance Improvements
 - When reading buffer object in ``read_sas()`` method without specified format, filepath string is inferred rather than buffer object.
 
 
+- Improve performance of ``pd.core.groupby.GroupBy.apply`` when the applied
+  function used the ``.name`` attribute of the group DataFrame (:issue:`15062`).
+
+
 
 .. _whatsnew_0200.bug_fixes:
 
