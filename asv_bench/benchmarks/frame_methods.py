@@ -434,6 +434,20 @@ class frame_from_records_generator(object):
 
 
 #-----------------------------------------------------------------------------
+# nunique
+
+class frame_nunique(object):
+
+    def setup(self):
+        self.data = np.random.randn(10000, 1000)
+        self.df = DataFrame(self.data)
+
+    def time_frame_nunique(self):
+        self.df.nunique()
+
+
+
+#-----------------------------------------------------------------------------
 # duplicated
 
 class frame_duplicated(object):

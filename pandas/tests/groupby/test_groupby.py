@@ -2938,6 +2938,34 @@ class TestGroupBy(tm.TestCase):
             result = df.groupby(['c', 'd']).count()
             tm.assert_frame_equal(result, expected)
 
+    def test_nunique(self):
+        df = DataFrame({
+            'A': list('abbacc'),
+            'B': list('abxacc'),
+            'C': list('abbacx'),
+        })
+
+        expected = DataFrame({'A': [1] * 3, 'B': [1, 2, 1], 'C': [1, 1, 2]})
+        result = df.groupby('A', as_index=False).nunique()
+        tm.assert_frame_equal(result, expected)
+
+        # as_index
+        expected.index = list('abc')
+        expected.index.name = 'A'
+        result = df.groupby('A').nunique()
+        tm.assert_frame_equal(result, expected)
+
+        # with na
+        result = df.replace({'x': None}).groupby('A').nunique(dropna=False)
+        tm.assert_frame_equal(result, expected)
+
+        # dropna
+        expected = DataFrame({'A': [1] * 3, 'B': [1] * 3, 'C': [1] * 3},
+                             index=list('abc'))
+        expected.index.name = 'A'
+        result = df.replace({'x': None}).groupby('A').nunique()
+        tm.assert_frame_equal(result, expected)
+
     def test_non_cython_api(self):
 
         # GH5610
@@ -5281,11 +5309,11 @@ class TestGroupBy(tm.TestCase):
              'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
              'mean', 'median', 'min', 'name', 'ngroups', 'nth', 'ohlc', 'plot',
              'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
-             'head', 'irow', 'describe', 'cummax', 'quantile', 'rank',
-             'cumprod', 'tail', 'resample', 'cummin', 'fillna', 'cumsum',
-             'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill', 'take',
-             'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith', 'cov',
-             'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
+             'nunique', 'head', 'irow', 'describe', 'cummax', 'quantile',
+             'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
+             'cumsum', 'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill',
+             'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
+             'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
              'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding'])
         self.assertEqual(results, expected)
 
