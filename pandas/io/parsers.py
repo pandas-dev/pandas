@@ -1392,7 +1392,7 @@ class ParserBase(object):
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    mask = lib.ismember(values, na_values).view(np.uint8)
+                    mask = lib.ismember(values, col_na_values).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(
