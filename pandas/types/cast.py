@@ -350,9 +350,6 @@ def _infer_dtype_from_scalar(val, pandas_dtype=False):
         else:
             if pandas_dtype:
                 dtype = DatetimeTZDtype(unit='ns', tz=val.tz)
-                # ToDo: This localization is not needed if
-                # DatetimeTZBlock doesn't localize internal values
-                val = val.tz_localize(None)
             else:
                 # return datetimetz as object
                 return np.object_, val
@@ -381,9 +378,7 @@ def _infer_dtype_from_scalar(val, pandas_dtype=False):
         dtype = np.complex_
 
     elif pandas_dtype:
-        # to do use util
-        from pandas.tseries.period import Period
-        if isinstance(val, Period):
+        if lib.is_period(val):
             dtype = PeriodDtype(freq=val.freq)
             val = val.ordinal
 
