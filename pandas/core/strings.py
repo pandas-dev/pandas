@@ -310,8 +310,8 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     pat : string
         Character sequence or regular expression
     repl : string or callable
-        Replacement string or a callable. The callable is passed the regex 
-        match object and must return a replacement string to be used. 
+        Replacement string or a callable. The callable is passed the regex
+        match object and must return a replacement string to be used.
         See :func:`re.sub`.
 
     .. versionadded:: 0.20.0
@@ -329,7 +329,7 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
     Examples
     --------
-    When ``repl`` is a string, every ``pat`` is replaced as with 
+    When ``repl`` is a string, every ``pat`` is replaced as with
     :meth:`str.replace`. NaN value(s) in the Series are left as is.
 
     >>> Series(['foo', 'fuz', np.nan]).str.replace('f', 'b')
@@ -338,8 +338,8 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     2    NaN
     dtype: object
 
-    When ``repl`` is a callable, it is called on every ``pat`` using 
-    :func:`re.sub`. The callable should expect one positional argument 
+    When ``repl`` is a callable, it is called on every ``pat`` using
+    :func:`re.sub`. The callable should expect one positional argument
     (a regex object) and return a string.
 
     To get the idea:

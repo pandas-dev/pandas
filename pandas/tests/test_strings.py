@@ -435,9 +435,9 @@ class TestStringMethods(tm.TestCase):
                 for data in (['a', 'b', None], ['a', 'b', 'c', 'ad']):
                     values = klass(data)
                     self.assertRaises(TypeError, values.str.replace, 'a', repl)
-        
+
     def test_replace_callable(self):
-        ## GH 15055
+        # GH 15055
         values = Series(['fooBAD__barBAD', NA])
 
         # test with callable
