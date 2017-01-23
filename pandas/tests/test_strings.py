@@ -436,6 +436,43 @@ class TestStringMethods(tm.TestCase):
                     values = klass(data)
                     self.assertRaises(TypeError, values.str.replace, 'a', repl)
 
+    def test_replace_callable(self):
+        # GH 15055
+        values = Series(['fooBAD__barBAD', NA])
+
+        # test with callable
+        repl = lambda m: m.group(0).swapcase()
+        result = values.str.replace('[a-z][A-Z]{2}', repl, n=2)
+        exp = Series(['foObaD__baRbaD', NA])
+        tm.assert_series_equal(result, exp)
+
+        # test with wrong number of arguments, raising an error
+        if compat.PY2:
+            p_err = r'takes (no|(exactly|at (least|most)) ?\d+) arguments?'
+        else:
+            p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
+                     r'(?(3)required )positional arguments?')
+
+        repl = lambda: None
+        with tm.assertRaisesRegexp(TypeError, p_err):
+            values.str.replace('a', repl)
+
+        repl = lambda m, x: None
+        with tm.assertRaisesRegexp(TypeError, p_err):
+            values.str.replace('a', repl)
+
+        repl = lambda m, x, y=None: None
+        with tm.assertRaisesRegexp(TypeError, p_err):
+            values.str.replace('a', repl)
+
+        # test regex named groups
+        values = Series(['Foo Bar Baz', NA])
+        pat = r"(?P<first>\w+) (?P<middle>\w+) (?P<last>\w+)"
+        repl = lambda m: m.group('middle').swapcase()
+        result = values.str.replace(pat, repl)
+        exp = Series(['bAR', NA])
+        tm.assert_series_equal(result, exp)
+
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
 
