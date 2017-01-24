@@ -113,7 +113,7 @@ pandas objects provide intercompatibility between ``NaT`` and ``NaN``.
    df2 = df.copy()
    df2['timestamp'] = pd.Timestamp('20120101')
    df2
-   df2.ix[['a','c','h'],['one','timestamp']] = np.nan
+   df2.loc[['a','c','h'],['one','timestamp']] = np.nan
    df2
    df2.get_dtype_counts()
 
@@ -155,9 +155,9 @@ objects.
 .. ipython:: python
    :suppress:
 
-   df = df2.ix[:, ['one', 'two', 'three']]
-   a = df2.ix[:5, ['one', 'two']].fillna(method='pad')
-   b = df2.ix[:5, ['one', 'two', 'three']]
+   df = df2.loc[:, ['one', 'two', 'three']]
+   a = df2.loc[df2.index[:5], ['one', 'two']].fillna(method='pad')
+   b = df2.loc[df2.index[:5], ['one', 'two', 'three']]
 
 .. ipython:: python
 
@@ -237,7 +237,7 @@ we can use the `limit` keyword:
 .. ipython:: python
    :suppress:
 
-   df.ix[2:4, :] = np.nan
+   df.iloc[2:4, :] = np.nan
 
 .. ipython:: python
 

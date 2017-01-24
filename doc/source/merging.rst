@@ -132,7 +132,7 @@ means that we can now do stuff like select out each chunk by key:
 
 .. ipython:: python
 
-   result.ix['y']
+   result.loc['y']
 
 It's not a stretch to see how this can be very useful. More detail on this
 functionality below.
@@ -692,7 +692,7 @@ either the left or right tables, the values in the joined table will be
    p.plot([left, right], result,
           labels=['left', 'right'], vertical=False);
    plt.close('all');
-   
+
 Here is another example with duplicate join keys in DataFrames:
 
 .. ipython:: python
@@ -710,10 +710,10 @@ Here is another example with duplicate join keys in DataFrames:
    p.plot([left, right], result,
           labels=['left', 'right'], vertical=False);
    plt.close('all');
-   
+
 .. warning::
 
-  Joining / merging on duplicate keys can cause a returned frame that is the multiplication of the row dimensions, 
+  Joining / merging on duplicate keys can cause a returned frame that is the multiplication of the row dimensions,
   may result in memory overflow. It is the user' s responsibility to manage duplicate values in keys before joining large DataFrames.
 
 .. _merging.indicator:

@@ -30,7 +30,7 @@ class TestPDApi(Base, tm.TestCase):
 
     # these are optionally imported based on testing
     # & need to be ignored
-    ignored = ['tests', 'rpy', 'locale']
+    ignored = ['tests', 'locale']
 
     # top-level sub-packages
     lib = ['api', 'compat', 'computation', 'core',
@@ -53,7 +53,7 @@ class TestPDApi(Base, tm.TestCase):
     classes = ['Categorical', 'CategoricalIndex', 'DataFrame', 'DateOffset',
                'DatetimeIndex', 'ExcelFile', 'ExcelWriter', 'Float64Index',
                'Grouper', 'HDFStore', 'Index', 'Int64Index', 'MultiIndex',
-               'Period', 'PeriodIndex', 'RangeIndex',
+               'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
                'Series', 'SparseArray', 'SparseDataFrame',
                'SparseSeries', 'TimeGrouper', 'Timedelta',
                'TimedeltaIndex', 'Timestamp']

@@ -274,7 +274,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         # If given a json lines file, we break the string into lines, add
         # commas and put it in a json list to make a valid json object.
         lines = list(StringIO(json.strip()))
-        json = u'[' + u','.join(lines) + u']'
+        json = '[' + ','.join(lines) + ']'
 
     obj = None
     if typ == 'frame':
@@ -745,6 +745,7 @@ def json_normalize(data, record_path=None, meta=None,
         path to records is ['foo', 'bar']
     meta_prefix : string, default None
     errors : {'raise', 'ignore'}, default 'raise'
+
         * ignore : will ignore KeyError if keys listed in meta are not
         always present
         * raise : will raise KeyError if keys listed in meta are not

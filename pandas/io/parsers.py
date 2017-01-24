@@ -132,9 +132,13 @@ false_values : list, default None
     Values to consider as False
 skipinitialspace : boolean, default False
     Skip spaces after delimiter.
-skiprows : list-like or integer, default None
+skiprows : list-like or integer or callable, default None
     Line numbers to skip (0-indexed) or number of lines to skip (int)
-    at the start of the file
+    at the start of the file.
+
+    If callable, the callable function will be evaluated against the row
+    indices, returning True if the row should be skipped and False otherwise.
+    An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c')
 skip_footer : int, default 0
@@ -144,7 +148,8 @@ nrows : int, default None
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values.  By default the following values are interpreted as
-    NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70) + """'`.
+    NaN: '""" + fill("', '".join(sorted(_NA_VALUES)),
+                     70, subsequent_indent="    ") + """'`.
 keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to.
@@ -930,7 +935,10 @@ class TextFileReader(BaseIterator):
         if engine != 'c':
             if is_integer(skiprows):
                 skiprows = lrange(skiprows)
-            skiprows = set() if skiprows is None else set(skiprows)
+            if skiprows is None:
+                skiprows = set()
+            elif not callable(skiprows):
+                skiprows = set(skiprows)
 
         # put stuff back
         result['names'] = names
@@ -1851,6 +1859,11 @@ class PythonParser(ParserBase):
         self.memory_map = kwds['memory_map']
         self.skiprows = kwds['skiprows']
 
+        if callable(self.skiprows):
+            self.skipfunc = self.skiprows
+        else:
+            self.skipfunc = lambda x: x in self.skiprows
+
         self.skipfooter = kwds['skipfooter']
         self.delimiter = kwds['delimiter']
 
@@ -2006,7 +2019,7 @@ class PythonParser(ParserBase):
             # attempt to sniff the delimiter
             if sniff_sep:
                 line = f.readline()
-                while self.pos in self.skiprows:
+                while self.skipfunc(self.pos):
                     self.pos += 1
                     line = f.readline()
 
@@ -2414,7 +2427,7 @@ class PythonParser(ParserBase):
 
     def _next_line(self):
         if isinstance(self.data, list):
-            while self.pos in self.skiprows:
+            while self.skipfunc(self.pos):
                 self.pos += 1
 
             while True:
@@ -2433,7 +2446,7 @@ class PythonParser(ParserBase):
                 except IndexError:
                     raise StopIteration
         else:
-            while self.pos in self.skiprows:
+            while self.skipfunc(self.pos):
                 self.pos += 1
                 next(self.data)
 
@@ -2685,7 +2698,7 @@ class PythonParser(ParserBase):
                 # Check for stop rows. n.b.: self.skiprows is a set.
                 if self.skiprows:
                     new_rows = [row for i, row in enumerate(new_rows)
-                                if i + self.pos not in self.skiprows]
+                                if not self.skipfunc(i + self.pos)]
 
                 lines.extend(new_rows)
                 self.pos = new_pos
@@ -2713,7 +2726,7 @@ class PythonParser(ParserBase):
                 except StopIteration:
                     if self.skiprows:
                         new_rows = [row for i, row in enumerate(new_rows)
-                                    if self.pos + i not in self.skiprows]
+                                    if not self.skipfunc(i + self.pos)]
                     lines.extend(new_rows)
                     if len(lines) == 0:
                         raise

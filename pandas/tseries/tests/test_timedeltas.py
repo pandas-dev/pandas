@@ -971,6 +971,11 @@ class TestTimedeltas(tm.TestCase):
         s2 = s[0:1000]
         result = (s2 - s2.min()).sum()
 
+    def test_overflow_on_construction(self):
+        # xref https://github.com/statsmodels/statsmodels/issues/3374
+        value = pd.Timedelta('1day').value * 20169940
+        self.assertRaises(OverflowError, pd.Timedelta, value)
+
     def test_timedelta_ops_scalar(self):
         # GH 6808
         base = pd.to_datetime('20130101 09:01:12.123456')
@@ -1341,6 +1346,45 @@ class TestTimedeltaIndex(tm.TestCase):
         result = s.dt.components
         self.assertFalse(result.iloc[0].isnull().all())
         self.assertTrue(result.iloc[1].isnull().all())
+
+    def test_isoformat(self):
+        td = Timedelta(days=6, minutes=50, seconds=3,
+                       milliseconds=10, microseconds=10, nanoseconds=12)
+        expected = 'P6DT0H50M3.010010012S'
+        result = td.isoformat()
+        self.assertEqual(result, expected)
+
+        td = Timedelta(days=4, hours=12, minutes=30, seconds=5)
+        result = td.isoformat()
+        expected = 'P4DT12H30M5S'
+        self.assertEqual(result, expected)
+
+        td = Timedelta(nanoseconds=123)
+        result = td.isoformat()
+        expected = 'P0DT0H0M0.000000123S'
+        self.assertEqual(result, expected)
+
+        # trim nano
+        td = Timedelta(microseconds=10)
+        result = td.isoformat()
+        expected = 'P0DT0H0M0.00001S'
+        self.assertEqual(result, expected)
+
+        # trim micro
+        td = Timedelta(milliseconds=1)
+        result = td.isoformat()
+        expected = 'P0DT0H0M0.001S'
+        self.assertEqual(result, expected)
+
+        # NaT
+        result = Timedelta('NaT').isoformat()
+        expected = 'NaT'
+        self.assertEqual(result, expected)
+
+        # don't strip every 0
+        result = Timedelta(minutes=1).isoformat()
+        expected = 'P0DT0H1M0S'
+        self.assertEqual(result, expected)
 
     def test_constructor(self):
         expected = TimedeltaIndex(['1 days', '1 days 00:00:05', '2 days',
@@ -1909,7 +1953,7 @@ class TestSlicing(tm.TestCase):
         def assert_slices_equivalent(l_slc, i_slc):
             assert_series_equal(ts[l_slc], ts.iloc[i_slc])
             assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
-            assert_series_equal(ts.ix[l_slc], ts.iloc[i_slc])
+            assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
 
         assert_slices_equivalent(SLC[Timedelta(hours=7)::-1], SLC[7::-1])
         assert_slices_equivalent(SLC['7 hours'::-1], SLC[7::-1])
@@ -1934,7 +1978,7 @@ class TestSlicing(tm.TestCase):
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
                                 lambda: ts.loc[::0])
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts.ix[::0])
+                                lambda: ts.loc[::0])
 
     def test_tdi_ops_attributes(self):
         rng = timedelta_range('2 days', periods=5, freq='2D', name='x')

@@ -51,8 +51,8 @@ perform queries on a table, by passing a list to ``data_columns``
    df = DataFrame(randn(8, 3), index=date_range('1/1/2000', periods=8),
               columns=['A', 'B', 'C'])
    df['string'] = 'foo'
-   df.ix[4:6,'string'] = np.nan
-   df.ix[7:9,'string'] = 'bar'
+   df.loc[df.index[4:6], 'string'] = np.nan
+   df.loc[df.index[7:9], 'string'] = 'bar'
    df['string2'] = 'cool'
    df
 
@@ -78,7 +78,7 @@ You can now store ``datetime64`` in data columns
 
     df_mixed               = df.copy()
     df_mixed['datetime64'] = Timestamp('20010102')
-    df_mixed.ix[3:4,['A','B']] = np.nan
+    df_mixed.loc[df_mixed.index[3:4], ['A','B']] = np.nan
 
     store.append('df_mixed', df_mixed)
     df_mixed1 = store.select('df_mixed')
@@ -208,4 +208,3 @@ combined result, by using ``where`` on a selector table.
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
-

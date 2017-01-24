@@ -23,7 +23,7 @@ class TestFrameAsof(TestData, tm.TestCase):
     def test_basic(self):
 
         df = self.df.copy()
-        df.ix[15:30, 'A'] = np.nan
+        df.loc[15:30, 'A'] = np.nan
         dates = date_range('1/1/1990', periods=self.N * 3,
                            freq='25s')
 
@@ -46,7 +46,7 @@ class TestFrameAsof(TestData, tm.TestCase):
         rng = date_range('1/1/1990', periods=N, freq='53s')
         df = DataFrame({'A': np.arange(N), 'B': np.arange(N)},
                        index=rng)
-        df.ix[4:8, 'A'] = np.nan
+        df.loc[4:8, 'A'] = np.nan
         dates = date_range('1/1/1990', periods=N * 3,
                            freq='25s')
 

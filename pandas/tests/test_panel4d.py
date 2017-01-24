@@ -116,8 +116,8 @@ class SafeForLongAndSparse(object):
             obj = self.panel4d
 
             # # set some NAs
-            # obj.ix[5:10] = np.nan
-            # obj.ix[15:20, -2:] = np.nan
+            # obj.loc[5:10] = np.nan
+            # obj.loc[15:20, -2:] = np.nan
 
         f = getattr(obj, name)
 
@@ -531,33 +531,33 @@ class CheckIndexing(object):
             cols = ['D', 'C', 'F']
 
             # all 4 specified
-            assert_panel4d_equal(panel4d.ix[labels, items, dates, cols],
+            assert_panel4d_equal(panel4d.loc[labels, items, dates, cols],
                                  panel4d.reindex(labels=labels, items=items,
                                                  major=dates, minor=cols))
 
             # 3 specified
-            assert_panel4d_equal(panel4d.ix[:, items, dates, cols],
+            assert_panel4d_equal(panel4d.loc[:, items, dates, cols],
                                  panel4d.reindex(items=items, major=dates,
                                                  minor=cols))
 
             # 2 specified
-            assert_panel4d_equal(panel4d.ix[:, :, dates, cols],
+            assert_panel4d_equal(panel4d.loc[:, :, dates, cols],
                                  panel4d.reindex(major=dates, minor=cols))
 
-            assert_panel4d_equal(panel4d.ix[:, items, :, cols],
+            assert_panel4d_equal(panel4d.loc[:, items, :, cols],
                                  panel4d.reindex(items=items, minor=cols))
 
-            assert_panel4d_equal(panel4d.ix[:, items, dates, :],
+            assert_panel4d_equal(panel4d.loc[:, items, dates, :],
                                  panel4d.reindex(items=items, major=dates))
 
             # only 1
-            assert_panel4d_equal(panel4d.ix[:, items, :, :],
+            assert_panel4d_equal(panel4d.loc[:, items, :, :],
                                  panel4d.reindex(items=items))
 
-            assert_panel4d_equal(panel4d.ix[:, :, dates, :],
+            assert_panel4d_equal(panel4d.loc[:, :, dates, :],
                                  panel4d.reindex(major=dates))
 
-            assert_panel4d_equal(panel4d.ix[:, :, :, cols],
+            assert_panel4d_equal(panel4d.loc[:, :, :, cols],
                                  panel4d.reindex(minor=cols))
 
     def test_getitem_fancy_slice(self):
@@ -693,12 +693,13 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             l1 = self.panel4d['l1']
             l2 = self.panel4d['l2']
 
-            d = {'A': l1, 'B': l2.ix[['ItemB'], :, :]}
+            d = {'A': l1, 'B': l2.loc[['ItemB'], :, :]}
             panel4d = Panel4D(d)
 
             assert_panel_equal(panel4d['A'], self.panel4d['l1'])
-            assert_frame_equal(panel4d.ix['B', 'ItemB', :, :],
-                               self.panel4d.ix['l2', ['ItemB'], :, :]['ItemB'])
+            assert_frame_equal(panel4d.loc['B', 'ItemB', :, :],
+                               self.panel4d.loc['l2', ['ItemB'],
+                                                :, :]['ItemB'])
 
     def test_constructor_dict_mixed(self):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -807,8 +808,8 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             larger = smaller.reindex(major=self.panel4d.major_axis,
                                      method='pad')
 
-            assert_panel_equal(larger.ix[:, :, self.panel4d.major_axis[1], :],
-                               smaller.ix[:, :, smaller_major[0], :])
+            assert_panel_equal(larger.loc[:, :, self.panel4d.major_axis[1], :],
+                               smaller.loc[:, :, smaller_major[0], :])
 
             # don't necessarily copy
             result = self.panel4d.reindex(

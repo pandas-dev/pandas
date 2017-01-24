@@ -237,7 +237,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
                 if dtype is not None:
-                    data = data.astype(dtype=dtype, raise_on_error=False)
+                    data = data.astype(dtype=dtype, raise_on_error=False,
+                                       copy=copy)
                 elif copy:
                     data = data.copy()
             else:
@@ -684,7 +685,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 try:
                     # handle the dup indexing case (GH 4246)
                     if isinstance(key, (list, tuple)):
-                        return self.ix[key]
+                        return self.loc[key]
 
                     return self.reindex(key)
                 except Exception:

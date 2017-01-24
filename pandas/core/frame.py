@@ -962,7 +962,7 @@ class DataFrame(NDFrame):
             in the result (any names not found in the data will become all-NA
             columns)
         coerce_float : boolean, default False
-            Attempt to convert values to non-string, non-numeric objects (like
+            Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
 
         Returns
@@ -1961,7 +1961,7 @@ class DataFrame(NDFrame):
             if isinstance(i, slice):
                 # need to return view
                 lab_slice = slice(label[0], label[-1])
-                return self.ix[:, lab_slice]
+                return self.loc[:, lab_slice]
             else:
                 if isinstance(label, Index):
                     return self.take(i, axis=1, convert=True)
@@ -2056,7 +2056,7 @@ class DataFrame(NDFrame):
             indexer = key.nonzero()[0]
             return self.take(indexer, axis=0, convert=False)
         else:
-            indexer = self.ix._convert_to_indexer(key, axis=1)
+            indexer = self.loc._convert_to_indexer(key, axis=1)
             return self.take(indexer, axis=1, convert=True)
 
     def _getitem_multilevel(self, key):
@@ -2389,7 +2389,7 @@ class DataFrame(NDFrame):
 
     def _setitem_slice(self, key, value):
         self._check_setitem_copy()
-        self.ix._setitem_with_indexer(key, value)
+        self.loc._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -2400,7 +2400,7 @@ class DataFrame(NDFrame):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
-            self.ix._setitem_with_indexer(indexer, value)
+            self.loc._setitem_with_indexer(indexer, value)
         else:
             if isinstance(value, DataFrame):
                 if len(value.columns) != len(key):
@@ -2408,9 +2408,9 @@ class DataFrame(NDFrame):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
-                indexer = self.ix._convert_to_indexer(key, axis=1)
+                indexer = self.loc._convert_to_indexer(key, axis=1)
                 self._check_setitem_copy()
-                self.ix._setitem_with_indexer((slice(None), indexer), value)
+                self.loc._setitem_with_indexer((slice(None), indexer), value)
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
@@ -3595,9 +3595,6 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _combine_const(self, other, func, raise_on_error=True):
-        if self.empty:
-            return self
-
         new_data = self._data.eval(func=func, other=other,
                                    raise_on_error=raise_on_error)
         return self._constructor(new_data)
@@ -4403,7 +4400,7 @@ class DataFrame(NDFrame):
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):
             other = DataFrame(other)
             if (self.columns.get_indexer(other.columns) >= 0).all():
-                other = other.ix[:, self.columns]
+                other = other.loc[:, self.columns]
 
         from pandas.tools.merge import concat
         if isinstance(other, (list, tuple)):
@@ -4978,6 +4975,37 @@ class DataFrame(NDFrame):
                     result = _coerce_to_dtypes(result, self.dtypes)
 
         return Series(result, index=labels)
+
+    def nunique(self, axis=0, dropna=True):
+        """
+        Return Series with number of distinct observations over requested
+        axis.
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+        dropna : boolean, default True
+            Don't include NaN in the counts.
+
+        Returns
+        -------
+        nunique : Series
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 1, 1]})
+        >>> df.nunique()
+        A    3
+        B    1
+
+        >>> df.nunique(axis=1)
+        0    1
+        1    2
+        2    2
+        """
+        return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
     def idxmin(self, axis=0, skipna=True):
         """

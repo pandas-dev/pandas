@@ -37,9 +37,9 @@ object.
     * :ref:`read_feather<io.feather>`
     * :ref:`read_sql<io.sql>`
     * :ref:`read_json<io.json_reader>`
-    * :ref:`read_msgpack<io.msgpack>` (experimental)
+    * :ref:`read_msgpack<io.msgpack>`
     * :ref:`read_html<io.read_html>`
-    * :ref:`read_gbq<io.bigquery_reader>` (experimental)
+    * :ref:`read_gbq<io.bigquery_reader>`
     * :ref:`read_stata<io.stata_reader>`
     * :ref:`read_sas<io.sas_reader>`
     * :ref:`read_clipboard<io.clipboard>`
@@ -53,9 +53,9 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * :ref:`to_feather<io.feather>`
     * :ref:`to_sql<io.sql>`
     * :ref:`to_json<io.json_writer>`
-    * :ref:`to_msgpack<io.msgpack>` (experimental)
+    * :ref:`to_msgpack<io.msgpack>`
     * :ref:`to_html<io.html>`
-    * :ref:`to_gbq<io.bigquery_writer>` (experimental)
+    * :ref:`to_gbq<io.bigquery_writer>`
     * :ref:`to_stata<io.stata_writer>`
     * :ref:`to_clipboard<io.clipboard>`
     * :ref:`to_pickle<io.pickle>`
@@ -187,6 +187,16 @@ skipinitialspace : boolean, default ``False``
 skiprows : list-like or integer, default ``None``
   Line numbers to skip (0-indexed) or number of lines to skip (int) at the start
   of the file.
+
+  If callable, the callable function will be evaluated against the row
+  indices, returning True if the row should be skipped and False otherwise:
+
+  .. ipython:: python
+
+     data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
+     pd.read_csv(StringIO(data))
+     pd.read_csv(StringIO(data), skiprows=lambda x: x % 2 != 0)
+
 skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
 skip_footer : int, default ``0``
@@ -347,94 +357,6 @@ warn_bad_lines : boolean, default ``True``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
   each "bad line" will be output (only valid with C parser).
 
-.. ipython:: python
-   :suppress:
-
-   f = open('foo.csv','w')
-   f.write('date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5')
-   f.close()
-
-Consider a typical CSV file containing, in this case, some time series data:
-
-.. ipython:: python
-
-   print(open('foo.csv').read())
-
-The default for `read_csv` is to create a DataFrame with simple numbered rows:
-
-.. ipython:: python
-
-   pd.read_csv('foo.csv')
-
-In the case of indexed data, you can pass the column number or column name you
-wish to use as the index:
-
-.. ipython:: python
-
-   pd.read_csv('foo.csv', index_col=0)
-
-.. ipython:: python
-
-   pd.read_csv('foo.csv', index_col='date')
-
-You can also use a list of columns to create a hierarchical index:
-
-.. ipython:: python
-
-   pd.read_csv('foo.csv', index_col=[0, 'A'])
-
-.. _io.dialect:
-
-The ``dialect`` keyword gives greater flexibility in specifying the file format.
-By default it uses the Excel dialect but you can specify either the dialect name
-or a :class:`python:csv.Dialect` instance.
-
-.. ipython:: python
-   :suppress:
-
-   data = ('label1,label2,label3\n'
-           'index1,"a,c,e\n'
-           'index2,b,d,f')
-
-Suppose you had data with unenclosed quotes:
-
-.. ipython:: python
-
-   print(data)
-
-By default, ``read_csv`` uses the Excel dialect and treats the double quote as
-the quote character, which causes it to fail when it finds a newline before it
-finds the closing double quote.
-
-We can get around this using ``dialect``
-
-.. ipython:: python
-
-   dia = csv.excel()
-   dia.quoting = csv.QUOTE_NONE
-   pd.read_csv(StringIO(data), dialect=dia)
-
-All of the dialect options can be specified separately by keyword arguments:
-
-.. ipython:: python
-
-    data = 'a,b,c~1,2,3~4,5,6'
-    pd.read_csv(StringIO(data), lineterminator='~')
-
-Another common dialect option is ``skipinitialspace``, to skip any whitespace
-after a delimiter:
-
-.. ipython:: python
-
-   data = 'a, b, c\n1, 2, 3\n4, 5, 6'
-   print(data)
-   pd.read_csv(StringIO(data), skipinitialspace=True)
-
-The parsers make every attempt to "do the right thing" and not be very
-fragile. Type inference is a pretty big deal. So if a column can be coerced to
-integer dtype without altering the contents, it will do so. Any non-numeric
-columns will come through as object dtype as with the rest of pandas objects.
-
 .. _io.dtypes:
 
 Specifying column data types
@@ -506,8 +428,8 @@ worth trying.
         :okwarning:
 
         df = pd.DataFrame({'col_1': list(range(500000)) + ['a', 'b'] + list(range(500000))})
-        df.to_csv('foo')
-        mixed_df = pd.read_csv('foo')
+        df.to_csv('foo.csv')
+        mixed_df = pd.read_csv('foo.csv')
         mixed_df['col_1'].apply(type).value_counts()
         mixed_df['col_1'].dtype
 
@@ -515,6 +437,11 @@ worth trying.
    of the column, and ``str`` for others due to the mixed dtypes from the
    data that was read in. It is important to note that the overall column will be
    marked with a ``dtype`` of ``object``, which is used for columns with mixed dtypes.
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('foo.csv')
 
 .. _io.categorical:
 
@@ -648,6 +575,7 @@ The ``usecols`` argument can also be used to specify which columns not to
 use in the final result:
 
 .. ipython:: python
+
    pd.read_csv(StringIO(data), usecols=lambda x: x not in ['a', 'c'])
 
 In this case, the callable is specifying that we exclude the "a" and "c"
@@ -807,6 +735,13 @@ to allow users to specify a variety of columns and date/time formats to turn the
 input text data into ``datetime`` objects.
 
 The simplest case is to just pass in ``parse_dates=True``:
+
+.. ipython:: python
+   :suppress:
+
+   f = open('foo.csv','w')
+   f.write('date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5')
+   f.close()
 
 .. ipython:: python
 
@@ -1228,6 +1163,62 @@ data that appear in some lines but not others:
     1  4  5   6
     2  8  9  10
 
+.. _io.dialect:
+
+Dialect
+'''''''
+
+The ``dialect`` keyword gives greater flexibility in specifying the file format.
+By default it uses the Excel dialect but you can specify either the dialect name
+or a :class:`python:csv.Dialect` instance.
+
+.. ipython:: python
+   :suppress:
+
+   data = ('label1,label2,label3\n'
+           'index1,"a,c,e\n'
+           'index2,b,d,f')
+
+Suppose you had data with unenclosed quotes:
+
+.. ipython:: python
+
+   print(data)
+
+By default, ``read_csv`` uses the Excel dialect and treats the double quote as
+the quote character, which causes it to fail when it finds a newline before it
+finds the closing double quote.
+
+We can get around this using ``dialect``
+
+.. ipython:: python
+   :okwarning:
+
+   dia = csv.excel()
+   dia.quoting = csv.QUOTE_NONE
+   pd.read_csv(StringIO(data), dialect=dia)
+
+All of the dialect options can be specified separately by keyword arguments:
+
+.. ipython:: python
+
+    data = 'a,b,c~1,2,3~4,5,6'
+    pd.read_csv(StringIO(data), lineterminator='~')
+
+Another common dialect option is ``skipinitialspace``, to skip any whitespace
+after a delimiter:
+
+.. ipython:: python
+
+   data = 'a, b, c\n1, 2, 3\n4, 5, 6'
+   print(data)
+   pd.read_csv(StringIO(data), skipinitialspace=True)
+
+The parsers make every attempt to "do the right thing" and not be very
+fragile. Type inference is a pretty big deal. So if a column can be coerced to
+integer dtype without altering the contents, it will do so. Any non-numeric
+columns will come through as object dtype as with the rest of pandas objects.
+
 .. _io.quoting:
 
 Quoting and Escape Characters
@@ -1390,7 +1381,7 @@ returned object:
 
    df = pd.read_csv("data/mindex_ex.csv", index_col=[0,1])
    df
-   df.ix[1978]
+   df.loc[1978]
 
 .. _io.multi_index_columns:
 
@@ -2848,8 +2839,8 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. _io.msgpack:
 
-msgpack (experimental)
-----------------------
+msgpack
+-------
 
 .. versionadded:: 0.13.0
 
@@ -3270,7 +3261,7 @@ defaults to `nan`.
                               'bool' : True,
                               'datetime64' : pd.Timestamp('20010102')},
                             index=list(range(8)))
-    df_mixed.ix[3:5,['A', 'B', 'string', 'datetime64']] = np.nan
+    df_mixed.loc[df_mixed.index[3:5], ['A', 'B', 'string', 'datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = {'values': 50})
     df_mixed1 = store.select('df_mixed')
@@ -3550,10 +3541,10 @@ be data_columns
 
    df_dc = df.copy()
    df_dc['string'] = 'foo'
-   df_dc.ix[4:6,'string'] = np.nan
-   df_dc.ix[7:9,'string'] = 'bar'
+   df_dc.loc[df_dc.index[4:6], 'string'] = np.nan
+   df_dc.loc[df_dc.index[7:9], 'string'] = 'bar'
    df_dc['string2'] = 'cool'
-   df_dc.ix[1:3,['B','C']] = 1.0
+   df_dc.loc[df_dc.index[1:3], ['B','C']] = 1.0
    df_dc
 
    # on-disk operations
@@ -3717,7 +3708,7 @@ results.
    df_mt = pd.DataFrame(randn(8, 6), index=pd.date_range('1/1/2000', periods=8),
                                      columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
-   df_mt.ix[1, ('A', 'B')] = np.nan
+   df_mt.loc[df_mt.index[1], ('A', 'B')] = np.nan
 
    # you can also create the tables individually
    store.append_to_multiple({'df1_mt': ['A', 'B'], 'df2_mt': None },
@@ -4569,8 +4560,8 @@ And then issue the following queries:
 
 .. _io.bigquery:
 
-Google BigQuery (Experimental)
-------------------------------
+Google BigQuery
+---------------
 
 .. versionadded:: 0.13.0
 
@@ -4676,7 +4667,7 @@ destination DataFrame as well as a preferred column order as follows:
 
 
 Starting with 0.20.0, you can specify the query config as parameter to use additional options of your job.
-For more information about query configuration parameters see 
+For more information about query configuration parameters see
 `here <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__.
 
 .. code-block:: python

@@ -61,6 +61,8 @@ See the :ref:`MultiIndex / Advanced Indexing <advanced>` for ``MultiIndex`` and 
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
+.. _indexing.choice:
+
 Different Choices for Indexing
 ------------------------------
 
@@ -104,24 +106,13 @@ of multi-axis indexing.
 
   See more at :ref:`Selection by Position <indexing.integer>`
 
-- ``.ix`` supports mixed integer and label based access. It is primarily label
-  based, but will fall back to integer positional access unless the corresponding
-  axis is of integer type. ``.ix`` is the most general and will
-  support any of the inputs in ``.loc`` and ``.iloc``. ``.ix`` also supports floating point
-  label schemes. ``.ix`` is exceptionally useful when dealing with mixed positional
-  and label based hierarchical indexes.
-
-  However, when an axis is integer based, ONLY
-  label based access and not positional access is supported.
-  Thus, in such cases, it's usually better to be explicit and use ``.iloc`` or ``.loc``.
-
   See more at :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
   Hierarchical <advanced.advanced_hierarchical>`.
 
-- ``.loc``, ``.iloc``, ``.ix`` and also ``[]`` indexing can accept a ``callable`` as indexer. See more at :ref:`Selection By Callable <indexing.callable>`.
+- ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer. See more at :ref:`Selection By Callable <indexing.callable>`.
 
 Getting values from an object with multi-axes selection uses the following
-notation (using ``.loc`` as an example, but applies to ``.iloc`` and ``.ix`` as
+notation (using ``.loc`` as an example, but applies to ``.iloc`` as
 well). Any of the axes accessors may be the null slice ``:``. Axes left out of
 the specification are assumed to be ``:``. (e.g. ``p.loc['a']`` is equiv to
 ``p.loc['a', :, :]``)
@@ -193,7 +184,7 @@ columns.
 
 .. warning::
 
-   pandas aligns all AXES when setting ``Series`` and ``DataFrame`` from ``.loc``, ``.iloc`` and ``.ix``.
+   pandas aligns all AXES when setting ``Series`` and ``DataFrame`` from ``.loc``, and ``.iloc``.
 
    This will **not** modify ``df`` because the column alignment is before value assignment.
 
@@ -526,7 +517,7 @@ Selection By Callable
 
 .. versionadded:: 0.18.1
 
-``.loc``, ``.iloc``, ``.ix`` and also ``[]`` indexing can accept a ``callable`` as indexer.
+``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer.
 The ``callable`` must be a function with one argument (the calling Series, DataFrame or Panel) and that returns valid output for indexing.
 
 .. ipython:: python
@@ -558,6 +549,63 @@ without using temporary variable.
    bb = pd.read_csv('data/baseball.csv', index_col='id')
    (bb.groupby(['year', 'team']).sum()
       .loc[lambda df: df.r > 100])
+
+.. _indexing.deprecate_ix:
+
+IX Indexer is Deprecated
+------------------------
+
+.. warning::
+
+   Starting in 0.20.0, the ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc``
+   and ``.loc`` indexers.
+
+``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide
+to index *positionally* OR via *labels* depending on the data type of the index. This has caused quite a
+bit of user confusion over the years.
+
+The recommended methods of indexing are:
+
+- ``.loc`` if you want to *label* index
+- ``.iloc`` if you want to *positionally* index.
+
+.. ipython:: python
+
+  dfd = pd.DataFrame({'A': [1, 2, 3],
+                      'B': [4, 5, 6]},
+                     index=list('abc'))
+
+  dfd
+
+Previous Behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
+
+.. code-block:: ipython
+
+  In [3]: dfd.ix[[0, 2], 'A']
+  Out[3]:
+  a    1
+  c    3
+  Name: A, dtype: int64
+
+Using ``.loc``. Here we will select the appropriate indexes from the index, then use *label* indexing.
+
+.. ipython:: python
+
+  dfd.loc[dfd.index[[0, 2]], 'A']
+
+This can also be expressed using ``.iloc``, by explicitly getting locations on the indexers, and using
+*positional* indexing to select things.
+
+.. ipython:: python
+
+  dfd.iloc[[0, 2], dfd.columns.get_loc('A')]
+
+For getting *multiple* indexers, using ``.get_indexer``
+
+.. ipython:: python
+
+  dfd.iloc[[0, 2], dfd.columns.get_indexer(['A', 'B'])]
+
 
 .. _indexing.basics.partial_setting:
 
@@ -641,7 +689,7 @@ Setting With Enlargement
 
 .. versionadded:: 0.13
 
-The ``.loc/.ix/[]`` operations can perform enlargement when setting a non-existant key for that axis.
+The ``.loc/[]`` operations can perform enlargement when setting a non-existant key for that axis.
 
 In the ``Series`` case this is effectively an appending operation
 
@@ -906,7 +954,7 @@ without creating a copy:
 
 Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame),
 such that partial selection with setting is possible. This is analogous to
-partial setting via ``.ix`` (but on the contents rather than the axis labels)
+partial setting via ``.loc`` (but on the contents rather than the axis labels)
 
 .. ipython:: python
 
@@ -1716,7 +1764,7 @@ A chained assignment can also crop up in setting in a mixed dtype frame.
 
 .. note::
 
-   These setting rules apply to all of ``.loc/.iloc/.ix``
+   These setting rules apply to all of ``.loc/.iloc``
 
 This is the correct access method
 

@@ -1119,7 +1119,7 @@ class TestDataFrame(tm.TestCase, Generic):
         desc = df[df[0] < 0].describe()  # works
         assert_series_equal(desc.xs('count'),
                             Series([0, 0], dtype=float, name='count'))
-        self.assertTrue(isnull(desc.ix[1:]).all().all())
+        self.assertTrue(isnull(desc.iloc[1:]).all().all())
 
     def test_describe_objects(self):
         df = DataFrame({"C1": ['a', 'a', 'c'], "C2": ['d', 'd', 'f']})
@@ -1751,7 +1751,7 @@ class TestNDFrame(tm.TestCase):
         tm.assert_frame_equal(p.squeeze(), p['ItemA'])
 
         p = tm.makePanel().reindex(items=['ItemA'], minor_axis=['A'])
-        tm.assert_series_equal(p.squeeze(), p.ix['ItemA', :, 'A'])
+        tm.assert_series_equal(p.squeeze(), p.loc['ItemA', :, 'A'])
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             p4d = tm.makePanel4D().reindex(labels=['label1'])
@@ -1759,7 +1759,7 @@ class TestNDFrame(tm.TestCase):
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             p4d = tm.makePanel4D().reindex(labels=['label1'], items=['ItemA'])
-            tm.assert_frame_equal(p4d.squeeze(), p4d.ix['label1', 'ItemA'])
+            tm.assert_frame_equal(p4d.squeeze(), p4d.loc['label1', 'ItemA'])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = pd.Series([], name='five')
@@ -1915,7 +1915,7 @@ class TestNDFrame(tm.TestCase):
         df1['end'] = date_range('2000-1-1', periods=10, freq='D')
         df1['diff'] = df1['end'] - df1['start']
         df1['bool'] = (np.arange(10) % 3 == 0)
-        df1.ix[::2] = nan
+        df1.loc[::2] = nan
         df2 = df1.copy()
         self.assertTrue(df1['text'].equals(df2['text']))
         self.assertTrue(df1['start'].equals(df2['start']))

@@ -136,7 +136,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df.to_string()
 
     def test_eng_float_formatter(self):
-        self.frame.ix[5] = 0
+        self.frame.loc[5] = 0
 
         fmt.set_eng_float_format()
         repr(self.frame)
@@ -1214,6 +1214,554 @@ class TestDataFrameFormatting(tm.TestCase):
 
         self.assertEqual(result, expected)
 
+    def test_to_html_multiindex_odd_even_truncate(self):
+        # GH 14882 - Issue on truncation with odd length DataFrame
+        mi = MultiIndex.from_product([[100, 200, 300],
+                                      [10, 20, 30],
+                                      [1, 2, 3, 4, 5, 6, 7]],
+                                     names=['a','b','c'])
+        df = DataFrame({'n' : range(len(mi))}, index = mi)
+        result = df.to_html(max_rows=60)
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th></th>
+      <th>n</th>
+    </tr>
+    <tr>
+      <th>a</th>
+      <th>b</th>
+      <th>c</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="21" valign="top">100</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">20</th>
+      <th>1</th>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>10</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>11</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>12</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>13</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>14</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>15</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>16</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>18</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>19</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>20</td>
+    </tr>
+    <tr>
+      <th rowspan="19" valign="top">200</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>21</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>22</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>23</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>24</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>25</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>26</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>27</td>
+    </tr>
+    <tr>
+      <th rowspan="5" valign="top">20</th>
+      <th>1</th>
+      <td>28</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>29</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>33</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>34</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>35</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>36</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>37</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>38</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>39</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>40</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>41</td>
+    </tr>
+    <tr>
+      <th rowspan="21" valign="top">300</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>42</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>43</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>44</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>45</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>46</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>47</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>48</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">20</th>
+      <th>1</th>
+      <td>49</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>50</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>51</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>52</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>53</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>54</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>55</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>56</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>57</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>58</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>59</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>60</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>61</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>62</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(result, expected)
+
+        # Test that ... appears in a middle level
+        result = df.to_html(max_rows=56)
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th></th>
+      <th>n</th>
+    </tr>
+    <tr>
+      <th>a</th>
+      <th>b</th>
+      <th>c</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="21" valign="top">100</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">20</th>
+      <th>1</th>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>10</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>11</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>12</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>13</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>14</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>15</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>16</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>18</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>19</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>20</td>
+    </tr>
+    <tr>
+      <th rowspan="15" valign="top">200</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>21</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>22</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>23</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>24</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>25</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>26</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>27</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <th>...</th>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>35</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>36</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>37</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>38</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>39</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>40</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>41</td>
+    </tr>
+    <tr>
+      <th rowspan="21" valign="top">300</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>42</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>43</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>44</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>45</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>46</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>47</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>48</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">20</th>
+      <th>1</th>
+      <td>49</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>50</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>51</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>52</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>53</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>54</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>55</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>56</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>57</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>58</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>59</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>60</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>61</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>62</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(result, expected)
+
     def test_to_html_index_formatter(self):
         df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], columns=['foo', None],
                        index=lrange(4))
@@ -1884,7 +2432,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         # all-nan in mi
         df2 = df.copy()
-        df2.ix[:, 'id2'] = np.nan
+        df2.loc[:, 'id2'] = np.nan
         y = df2.set_index('id2')
         result = y.to_string()
         expected = u(
@@ -1893,7 +2441,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         # partial nan in mi
         df2 = df.copy()
-        df2.ix[:, 'id2'] = np.nan
+        df2.loc[:, 'id2'] = np.nan
         y = df2.set_index(['id2', 'id3'])
         result = y.to_string()
         expected = u(
@@ -3715,7 +4263,7 @@ class TestSeriesFormatting(tm.TestCase):
         df = DataFrame({'A': [1, 2], 'B': ['2012-01-01', '2012-01-02']})
         df['B'] = pd.to_datetime(df.B)
 
-        result = repr(df.ix[0])
+        result = repr(df.loc[0])
         self.assertTrue('2012-01-01' in result)
 
     def test_period(self):

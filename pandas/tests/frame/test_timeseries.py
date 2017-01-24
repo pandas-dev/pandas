@@ -156,8 +156,8 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         unshifted = shifted.shift(-1)
         self.assert_index_equal(shifted.index, ps.index)
         self.assert_index_equal(unshifted.index, ps.index)
-        tm.assert_numpy_array_equal(unshifted.ix[:, 0].valid().values,
-                                    ps.ix[:-1, 0].values)
+        tm.assert_numpy_array_equal(unshifted.iloc[:, 0].valid().values,
+                                    ps.iloc[:-1, 0].values)
 
         shifted2 = ps.shift(1, 'B')
         shifted3 = ps.shift(1, offsets.BDay())
@@ -244,7 +244,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         assert_frame_equal(shifted, self.tsframe.tshift(1))
         assert_frame_equal(unshifted, inferred_ts)
 
-        no_freq = self.tsframe.ix[[0, 5, 7], :]
+        no_freq = self.tsframe.iloc[[0, 5, 7], :]
         self.assertRaises(ValueError, no_freq.tshift)
 
     def test_truncate(self):
@@ -322,6 +322,26 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
         ts = df['A'].asfreq('B')
         tm.assertIsInstance(ts.index, DatetimeIndex)
+
+    def test_asfreq_fillvalue(self):
+        # test for fill value during upsampling, related to issue 3715
+
+        # setup
+        rng = pd.date_range('1/1/2016', periods=10, freq='2S')
+        ts = pd.Series(np.arange(len(rng)), index=rng)
+        df = pd.DataFrame({'one': ts})
+
+        # insert pre-existing missing value
+        df.loc['2016-01-01 00:00:08', 'one'] = None
+
+        actual_df = df.asfreq(freq='1S', fill_value=9.0)
+        expected_df = df.asfreq(freq='1S').fillna(9.0)
+        expected_df.loc['2016-01-01 00:00:08', 'one'] = None
+        assert_frame_equal(expected_df, actual_df)
+
+        expected_series = ts.asfreq(freq='1S').fillna(9.0)
+        actual_series = ts.asfreq(freq='1S', fill_value=9.0)
+        assert_series_equal(expected_series, actual_series)
 
     def test_first_last_valid(self):
         N = len(self.frame.index)

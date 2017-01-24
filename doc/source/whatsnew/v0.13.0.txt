@@ -274,7 +274,6 @@ Float64Index API Change
   .. ipython:: python
 
      s[3]
-     s.ix[3]
      s.loc[3]
 
   The only positional indexing is via ``iloc``
@@ -290,7 +289,6 @@ Float64Index API Change
   .. ipython:: python
 
      s[2:4]
-     s.ix[2:4]
      s.loc[2:4]
      s.iloc[2:4]
 

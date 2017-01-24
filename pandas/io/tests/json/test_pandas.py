@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 import nose
 from pandas.compat import range, lrange, StringIO, OrderedDict
@@ -438,9 +439,9 @@ class TestPandasContainer(tm.TestCase):
             columns=['A', 'B', 'C', 'D'],
             index=pd.date_range('2000-01-03', '2000-01-07'))
         df['date'] = pd.Timestamp('19920106 18:21:32.12')
-        df.ix[3, 'date'] = pd.Timestamp('20130101')
+        df.iloc[3, df.columns.get_loc('date')] = pd.Timestamp('20130101')
         df['modified'] = df['date']
-        df.ix[1, 'modified'] = pd.NaT
+        df.iloc[1, df.columns.get_loc('modified')] = pd.NaT
 
         v12_json = os.path.join(self.dirpath, 'tsframe_v012.json')
         df_unser = pd.read_json(v12_json)
@@ -650,8 +651,8 @@ class TestPandasContainer(tm.TestCase):
 
         def test_w_date(date, date_unit=None):
             df['date'] = Timestamp(date)
-            df.ix[1, 'date'] = pd.NaT
-            df.ix[5, 'date'] = pd.NaT
+            df.iloc[1, df.columns.get_loc('date')] = pd.NaT
+            df.iloc[5, df.columns.get_loc('date')] = pd.NaT
             if date_unit:
                 json = df.to_json(date_format='iso', date_unit=date_unit)
             else:
@@ -671,8 +672,8 @@ class TestPandasContainer(tm.TestCase):
     def test_date_format_series(self):
         def test_w_date(date, date_unit=None):
             ts = Series(Timestamp(date), index=self.ts.index)
-            ts.ix[1] = pd.NaT
-            ts.ix[5] = pd.NaT
+            ts.iloc[1] = pd.NaT
+            ts.iloc[5] = pd.NaT
             if date_unit:
                 json = ts.to_json(date_format='iso', date_unit=date_unit)
             else:
@@ -693,9 +694,10 @@ class TestPandasContainer(tm.TestCase):
     def test_date_unit(self):
         df = self.tsframe.copy()
         df['date'] = Timestamp('20130101 20:43:42')
-        df.ix[1, 'date'] = Timestamp('19710101 20:43:42')
-        df.ix[2, 'date'] = Timestamp('21460101 20:43:42')
-        df.ix[4, 'date'] = pd.NaT
+        dl = df.columns.get_loc('date')
+        df.iloc[1, dl] = Timestamp('19710101 20:43:42')
+        df.iloc[2, dl] = Timestamp('21460101 20:43:42')
+        df.iloc[4, dl] = pd.NaT
 
         for unit in ('s', 'ms', 'us', 'ns'):
             json = df.to_json(date_format='epoch', date_unit=unit)
@@ -894,14 +896,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         df = pd.DataFrame(np.random.randn(10, 4))
-        df.ix[:8] = np.nan
+        df.loc[:8] = np.nan
 
         sdf = df.to_sparse()
         expected = df.to_json()
         self.assertEqual(expected, sdf.to_json())
 
         s = pd.Series(np.random.randn(10))
-        s.ix[:8] = np.nan
+        s.loc[:8] = np.nan
         ss = s.to_sparse()
 
         expected = s.to_json()
@@ -959,6 +961,25 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
+    def test_read_jsonl_unicode_chars(self):
+        # GH15132: non-ascii unicode characters
+        # \u201d == RIGHT DOUBLE QUOTATION MARK
+
+        # simulate file handle
+        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
+        json = StringIO(json)
+        result = read_json(json, lines=True)
+        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+                             columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+        # simulate string
+        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
+        result = read_json(json, lines=True)
+        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+                             columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
     def test_to_jsonl(self):
         # GH9180
         df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
@@ -969,6 +990,15 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=['a', 'b'])
         result = df.to_json(orient="records", lines=True)
         expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
+        self.assertEqual(result, expected)
+        assert_frame_equal(pd.read_json(result, lines=True), df)
+
+        # GH15096: escaped characters in columns and data
+        df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]],
+                       columns=["a\\", 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = ('{"a\\\\":"foo\\\\","b":"bar"}\n'
+                    '{"a\\\\":"foo\\"","b":"bar"}')
         self.assertEqual(result, expected)
         assert_frame_equal(pd.read_json(result, lines=True), df)
 

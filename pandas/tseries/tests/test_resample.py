@@ -110,7 +110,7 @@ class TestResampleAPI(tm.TestCase):
         r = self.series.resample('H')
         self.assertRaises(ValueError, lambda: r.iloc[0])
         self.assertRaises(ValueError, lambda: r.iat[0])
-        self.assertRaises(ValueError, lambda: r.ix[0])
+        self.assertRaises(ValueError, lambda: r.loc[0])
         self.assertRaises(ValueError, lambda: r.loc[
             Timestamp('2013-01-01 00:00:00', offset='H')])
         self.assertRaises(ValueError, lambda: r.at[
@@ -691,6 +691,24 @@ class Base(object):
         new_index = self.create_index(frame.index[0],
                                       frame.index[-1], freq='1H')
         expected = frame.reindex(new_index)
+        assert_frame_equal(result, expected)
+
+    def test_asfreq_fill_value(self):
+        # test for fill value during resampling, issue 3715
+
+        s = self.create_series()
+
+        result = s.resample('1H').asfreq()
+        new_index = self.create_index(s.index[0], s.index[-1], freq='1H')
+        expected = s.reindex(new_index)
+        assert_series_equal(result, expected)
+
+        frame = s.to_frame('value')
+        frame.iloc[1] = None
+        result = frame.resample('1H').asfreq(fill_value=4.0)
+        new_index = self.create_index(frame.index[0],
+                                      frame.index[-1], freq='1H')
+        expected = frame.reindex(new_index, fill_value=4.0)
         assert_frame_equal(result, expected)
 
     def test_resample_interpolate(self):
@@ -1410,13 +1428,13 @@ class TestDatetimeIndex(Base, tm.TestCase):
         resampled = ts.resample('5min', closed='right',
                                 label='right').ohlc()
 
-        self.assertTrue((resampled.ix['1/1/2000 00:00'] == ts[0]).all())
+        self.assertTrue((resampled.loc['1/1/2000 00:00'] == ts[0]).all())
 
         exp = _ohlc(ts[1:31])
-        self.assertTrue((resampled.ix['1/1/2000 00:05'] == exp).all())
+        self.assertTrue((resampled.loc['1/1/2000 00:05'] == exp).all())
 
         exp = _ohlc(ts['1/1/2000 5:55:01':])
-        self.assertTrue((resampled.ix['1/1/2000 6:00:00'] == exp).all())
+        self.assertTrue((resampled.loc['1/1/2000 6:00:00'] == exp).all())
 
     def test_downsample_non_unique(self):
         rng = date_range('1/1/2000', '2/29/2000')
@@ -2159,6 +2177,25 @@ class TestPeriodIndex(Base, tm.TestCase):
         result = frame.resample('1H').asfreq()
         assert_frame_equal(result, expected)
 
+    def test_asfreq_fill_value(self):
+        # test for fill value during resampling, issue 3715
+
+        s = self.create_series()
+        new_index = date_range(s.index[0].to_timestamp(how='start'),
+                               (s.index[-1]).to_timestamp(how='start'),
+                               freq='1H')
+        expected = s.to_timestamp().reindex(new_index, fill_value=4.0)
+        result = s.resample('1H', kind='timestamp').asfreq(fill_value=4.0)
+        assert_series_equal(result, expected)
+
+        frame = s.to_frame('value')
+        new_index = date_range(frame.index[0].to_timestamp(how='start'),
+                               (frame.index[-1]).to_timestamp(how='start'),
+                               freq='1H')
+        expected = frame.to_timestamp().reindex(new_index, fill_value=3.0)
+        result = frame.resample('1H', kind='timestamp').asfreq(fill_value=3.0)
+        assert_frame_equal(result, expected)
+
     def test_selection(self):
         index = self.create_series().index
         # This is a bug, these should be implemented
@@ -2495,7 +2532,7 @@ class TestPeriodIndex(Base, tm.TestCase):
         subset = s[:'2012-01-04 06:55']
 
         result = subset.resample('10min').apply(len)
-        expected = s.resample('10min').apply(len).ix[result.index]
+        expected = s.resample('10min').apply(len).loc[result.index]
         assert_series_equal(result, expected)
 
     def test_resample_weekly_all_na(self):

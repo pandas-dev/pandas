@@ -255,6 +255,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
     def ordered(self):
         return self._data.ordered
 
+    def _reverse_indexer(self):
+        return self._data._reverse_indexer()
+
     def __contains__(self, key):
         hash(key)
         return key in self.values

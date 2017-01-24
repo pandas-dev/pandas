@@ -124,6 +124,7 @@ void parser_set_default_options(parser_t *self) {
     self->thousands = '\0';
 
     self->skipset = NULL;
+    self->skipfunc = NULL;
     self->skip_first_N_rows = -1;
     self->skip_footer = 0;
 }
@@ -679,7 +680,27 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     }
 
 int skip_this_line(parser_t *self, int64_t rownum) {
-    if (self->skipset != NULL) {
+    int should_skip;
+    PyObject *result;
+    PyGILState_STATE state;
+
+    if (self->skipfunc != NULL) {
+        state = PyGILState_Ensure();
+        result = PyObject_CallFunction(self->skipfunc, "i", rownum);
+
+        // Error occurred. It will be processed
+        // and caught at the Cython level.
+        if (result == NULL) {
+            should_skip = -1;
+        } else {
+            should_skip = PyObject_IsTrue(result);
+        }
+
+        Py_XDECREF(result);
+        PyGILState_Release(state);
+
+        return should_skip;
+    } else if (self->skipset != NULL) {
         return (kh_get_int64((kh_int64_t *)self->skipset, self->file_lines) !=
                 ((kh_int64_t *)self->skipset)->n_buckets);
     } else {
@@ -689,6 +710,7 @@ int skip_this_line(parser_t *self, int64_t rownum) {
 
 int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
     int i, slen;
+    int should_skip;
     long maxstreamsize;
     char c;
     char *stream;
@@ -818,7 +840,11 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
 
             case START_RECORD:
                 // start of record
-                if (skip_this_line(self, self->file_lines)) {
+                should_skip = skip_this_line(self, self->file_lines);
+
+                if (should_skip == -1) {
+                    goto parsingerror;
+                } else if (should_skip) {
                     if (IS_QUOTE(c)) {
                         self->state = IN_QUOTED_FIELD_IN_SKIP_LINE;
                     } else {
@@ -1747,11 +1773,9 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing) {
-#if PY_VERSION_HEX >= 0x02070000
-    return PyOS_string_to_double(p, q, 0);
-#else
-    return strtod(p, q);
-#endif
+    double r = PyOS_string_to_double(p, q, 0);
+    PyErr_Clear();
+    return r;
 }
 
 // End of xstrtod code

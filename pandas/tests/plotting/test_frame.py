@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding: utf-8
 
 import nose
@@ -700,7 +699,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.patches[::5], facecolors=rgba_colors)
         tm.close()
 
-        ax = df.ix[:, [0]].plot.bar(color='DodgerBlue')
+        ax = df.loc[:, [0]].plot.bar(color='DodgerBlue')
         self._check_colors([ax.patches[0]], facecolors=['DodgerBlue'])
         tm.close()
 
@@ -1595,7 +1594,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
-        ax = df.ix[:, [0]].plot(color='DodgerBlue')
+        ax = df.loc[:, [0]].plot(color='DodgerBlue')
         self._check_colors(ax.lines, linecolors=['DodgerBlue'])
 
         ax = df.plot(color='red')
@@ -1682,7 +1681,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
-        axes = df.ix[:, [0]].plot(color='DodgerBlue', subplots=True)
+        axes = df.loc[:, [0]].plot(color='DodgerBlue', subplots=True)
         self._check_colors(axes[0].lines, linecolors=['DodgerBlue'])
 
         # single character style
@@ -1785,7 +1784,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.patches[::10], facecolors=rgba_colors)
         tm.close()
 
-        ax = df.ix[:, [0]].plot.hist(color='DodgerBlue')
+        ax = df.loc[:, [0]].plot.hist(color='DodgerBlue')
         self._check_colors([ax.patches[0]], facecolors=['DodgerBlue'])
 
         ax = df.plot(kind='hist', color='green')
@@ -1857,8 +1856,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
-        axes = df.ix[:, [0]].plot(kind='kde', color='DodgerBlue',
-                                  subplots=True)
+        axes = df.loc[:, [0]].plot(kind='kde', color='DodgerBlue',
+                                   subplots=True)
         self._check_colors(axes[0].lines, linecolors=['DodgerBlue'])
 
         # single character style

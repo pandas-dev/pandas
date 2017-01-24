@@ -19,6 +19,7 @@ from pandas.types.common import (is_numeric_dtype,
                                  is_categorical_dtype,
                                  is_datetimelike,
                                  is_datetime_or_timedelta_dtype,
+                                 is_datetime64_any_dtype,
                                  is_bool, is_integer_dtype,
                                  is_complex_dtype,
                                  is_bool_dtype,
@@ -109,10 +110,12 @@ def _groupby_function(name, alias, npfunc, numeric_only=True,
     @Substitution(name='groupby', f=name)
     @Appender(_doc_template)
     @Appender(_local_template)
-    def f(self):
+    def f(self, **kwargs):
+        if 'numeric_only' not in kwargs:
+            kwargs['numeric_only'] = numeric_only
         self._set_group_selection()
         try:
-            return self._cython_agg_general(alias, numeric_only=numeric_only)
+            return self._cython_agg_general(alias, alt=npfunc, **kwargs)
         except AssertionError as e:
             raise SpecificationError(str(e))
         except Exception:
@@ -127,7 +130,9 @@ def _groupby_function(name, alias, npfunc, numeric_only=True,
 
 
 def _first_compat(x, axis=0):
+
     def _first(x):
+
         x = np.asarray(x)
         x = x[notnull(x)]
         if len(x) == 0:
@@ -142,6 +147,7 @@ def _first_compat(x, axis=0):
 
 def _last_compat(x, axis=0):
     def _last(x):
+
         x = np.asarray(x)
         x = x[notnull(x)]
         if len(x) == 0:
@@ -775,7 +781,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         return result
 
     def _cython_transform(self, how, numeric_only=True):
-        output = {}
+        output = collections.OrderedDict()
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
@@ -783,6 +789,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
             try:
                 result, names = self.grouper.transform(obj.values, how)
+            except NotImplementedError:
+                continue
             except AssertionError as e:
                 raise GroupByError(str(e))
             output[name] = self._try_cast(result, obj)
@@ -792,7 +800,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         return self._wrap_transformed_output(output, names)
 
-    def _cython_agg_general(self, how, numeric_only=True):
+    def _cython_agg_general(self, how, alt=None, numeric_only=True):
         output = {}
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -1015,26 +1023,26 @@ class GroupBy(_GroupBy):
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        nv.validate_groupby_func('mean', args, kwargs)
+        nv.validate_groupby_func('mean', args, kwargs, ['numeric_only'])
         try:
-            return self._cython_agg_general('mean')
+            return self._cython_agg_general('mean', **kwargs)
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
             self._set_group_selection()
-            f = lambda x: x.mean(axis=self.axis)
+            f = lambda x: x.mean(axis=self.axis, **kwargs)
             return self._python_agg_general(f)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def median(self):
+    def median(self, **kwargs):
         """
         Compute median of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
         try:
-            return self._cython_agg_general('median')
+            return self._cython_agg_general('median', **kwargs)
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
@@ -1044,7 +1052,7 @@ class GroupBy(_GroupBy):
             def f(x):
                 if isinstance(x, np.ndarray):
                     x = Series(x)
-                return x.median(axis=self.axis)
+                return x.median(axis=self.axis, **kwargs)
             return self._python_agg_general(f)
 
     @Substitution(name='groupby')
@@ -1063,7 +1071,7 @@ class GroupBy(_GroupBy):
 
         # TODO: implement at Cython level?
         nv.validate_groupby_func('std', args, kwargs)
-        return np.sqrt(self.var(ddof=ddof))
+        return np.sqrt(self.var(ddof=ddof, **kwargs))
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1080,10 +1088,10 @@ class GroupBy(_GroupBy):
         """
         nv.validate_groupby_func('var', args, kwargs)
         if ddof == 1:
-            return self._cython_agg_general('var')
+            return self._cython_agg_general('var', **kwargs)
         else:
             self._set_group_selection()
-            f = lambda x: x.var(ddof=ddof)
+            f = lambda x: x.var(ddof=ddof, **kwargs)
             return self._python_agg_general(f)
 
     @Substitution(name='groupby')
@@ -1400,39 +1408,39 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def cumprod(self, axis=0, *args, **kwargs):
         """Cumulative product for each group"""
-        nv.validate_groupby_func('cumprod', args, kwargs)
+        nv.validate_groupby_func('cumprod', args, kwargs, ['numeric_only'])
         if axis != 0:
-            return self.apply(lambda x: x.cumprod(axis=axis))
+            return self.apply(lambda x: x.cumprod(axis=axis, **kwargs))
 
-        return self._cython_transform('cumprod')
+        return self._cython_transform('cumprod', **kwargs)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def cumsum(self, axis=0, *args, **kwargs):
         """Cumulative sum for each group"""
-        nv.validate_groupby_func('cumsum', args, kwargs)
+        nv.validate_groupby_func('cumsum', args, kwargs, ['numeric_only'])
         if axis != 0:
-            return self.apply(lambda x: x.cumsum(axis=axis))
+            return self.apply(lambda x: x.cumsum(axis=axis, **kwargs))
 
-        return self._cython_transform('cumsum')
+        return self._cython_transform('cumsum', **kwargs)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def cummin(self, axis=0):
+    def cummin(self, axis=0, **kwargs):
         """Cumulative min for each group"""
         if axis != 0:
             return self.apply(lambda x: np.minimum.accumulate(x, axis))
 
-        return self._cython_transform('cummin')
+        return self._cython_transform('cummin', **kwargs)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def cummax(self, axis=0):
+    def cummax(self, axis=0, **kwargs):
         """Cumulative max for each group"""
         if axis != 0:
             return self.apply(lambda x: np.maximum.accumulate(x, axis))
 
-        return self._cython_transform('cummax')
+        return self._cython_transform('cummax', **kwargs)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1827,6 +1835,28 @@ class BaseGrouper(object):
 
     def _cython_operation(self, kind, values, how, axis):
         assert kind in ['transform', 'aggregate']
+
+        # can we do this operation with our cython functions
+        # if not raise NotImplementedError
+
+        # we raise NotImplemented if this is an invalid operation
+        # entirely, e.g. adding datetimes
+
+        # categoricals are only 1d, so we
+        # are not setup for dim transforming
+        if is_categorical_dtype(values):
+            raise NotImplementedError(
+                "categoricals are not support in cython ops ATM")
+        elif is_datetime64_any_dtype(values):
+            if how in ['add', 'prod', 'cumsum', 'cumprod']:
+                raise NotImplementedError(
+                    "datetime64 type does not support {} "
+                    "operations".format(how))
+        elif is_timedelta64_dtype(values):
+            if how in ['prod', 'cumprod']:
+                raise NotImplementedError(
+                    "timedelta64 type does not support {} "
+                    "operations".format(how))
 
         arity = self._cython_arity.get(how, 1)
 
@@ -3155,9 +3185,9 @@ class NDFrameGroupBy(GroupBy):
                 continue
             yield val, slicer(val)
 
-    def _cython_agg_general(self, how, numeric_only=True):
+    def _cython_agg_general(self, how, alt=None, numeric_only=True):
         new_items, new_blocks = self._cython_agg_blocks(
-            how, numeric_only=numeric_only)
+            how, alt=alt, numeric_only=numeric_only)
         return self._wrap_agged_blocks(new_items, new_blocks)
 
     def _wrap_agged_blocks(self, items, blocks):
@@ -3183,29 +3213,75 @@ class NDFrameGroupBy(GroupBy):
 
     _block_agg_axis = 0
 
-    def _cython_agg_blocks(self, how, numeric_only=True):
-        data, agg_axis = self._get_data_to_aggregate()
+    def _cython_agg_blocks(self, how, alt=None, numeric_only=True):
+        # TODO: the actual managing of mgr_locs is a PITA
+        # here, it should happen via BlockManager.combine
 
-        new_blocks = []
+        data, agg_axis = self._get_data_to_aggregate()
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
+        new_blocks = []
+        new_items = []
+        deleted_items = []
         for block in data.blocks:
 
-            result, _ = self.grouper.aggregate(
-                block.values, how, axis=agg_axis)
+            locs = block.mgr_locs.as_array
+            try:
+                result, _ = self.grouper.aggregate(
+                    block.values, how, axis=agg_axis)
+            except NotImplementedError:
+                # generally if we have numeric_only=False
+                # and non-applicable functions
+                # try to python agg
+
+                if alt is None:
+                    # we cannot perform the operation
+                    # in an alternate way, exclude the block
+                    deleted_items.append(locs)
+                    continue
+
+                # call our grouper again with only this block
+                obj = self.obj[data.items[locs]]
+                s = groupby(obj, self.grouper)
+                result = s.aggregate(lambda x: alt(x, axis=self.axis))
+                result = result._data.blocks[0]
 
             # see if we can cast the block back to the original dtype
             result = block._try_coerce_and_cast_result(result)
 
-            newb = make_block(result, placement=block.mgr_locs)
+            new_items.append(locs)
+            newb = block.make_block_same_class(result)
             new_blocks.append(newb)
 
         if len(new_blocks) == 0:
             raise DataError('No numeric types to aggregate')
 
-        return data.items, new_blocks
+        # reset the locs in the blocks to correspond to our
+        # current ordering
+        indexer = np.concatenate(new_items)
+        new_items = data.items.take(np.sort(indexer))
+
+        if len(deleted_items):
+
+            # we need to adjust the indexer to account for the
+            # items we have removed
+            # really should be done in internals :<
+
+            deleted = np.concatenate(deleted_items)
+            ai = np.arange(len(data))
+            mask = np.zeros(len(data))
+            mask[deleted] = 1
+            indexer = (ai - mask.cumsum())[indexer]
+
+        offset = 0
+        for b in new_blocks:
+            l = len(b.mgr_locs)
+            b.mgr_locs = indexer[offset:(offset + l)]
+            offset += l
+
+        return new_items, new_blocks
 
     def _get_data_to_aggregate(self):
         obj = self._obj_with_exclusions
@@ -3920,6 +3996,54 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         return self._wrap_agged_blocks(data.items, list(blk))
 
+    def nunique(self, dropna=True):
+        """
+        Return DataFrame with number of distinct observations per group for
+        each column.
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include NaN in the counts.
+
+        Returns
+        -------
+        nunique: DataFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'id': ['spam', 'egg', 'egg', 'spam',
+        ...                           'ham', 'ham'],
+        ...                    'value1': [1, 5, 5, 2, 5, 5],
+        ...                    'value2': list('abbaxy')})
+        >>> df
+             id  value1 value2
+        0  spam       1      a
+        1   egg       5      b
+        2   egg       5      b
+        3  spam       2      a
+        4   ham       5      x
+        5   ham       5      y
+
+        >>> df.groupby('id').nunique()
+            id  value1  value2
+        id
+        egg    1       1       1
+        ham    1       1       2
+        spam   1       2       1
+
+        # check for rows with the same id but conflicting values
+        >>> df.groupby('id').filter(lambda g: (g.nunique() > 1).any())
+             id  value1 value2
+        0  spam       1      a
+        3  spam       2      a
+        4   ham       5      x
+        5   ham       5      y
+        """
+        return self.apply(lambda g: g.apply(Series.nunique, dropna=dropna))
+
 
 from pandas.tools.plotting import boxplot_frame_groupby  # noqa
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
@@ -4103,7 +4227,7 @@ class FrameSplitter(DataSplitter):
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:
-            return sdata._slice(slice_obj, axis=1)  # ix[:, slice_obj]
+            return sdata._slice(slice_obj, axis=1)  # .loc[:, slice_obj]
 
 
 class NDFrameSplitter(DataSplitter):

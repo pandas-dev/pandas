@@ -1809,18 +1809,12 @@ class NDFrame(PandasObject):
             loc, new_ax = labels.get_loc_level(key, level=level,
                                                drop_level=drop_level)
 
-            # convert to a label indexer if needed
-            if isinstance(loc, slice):
-                lev_num = labels._get_level_number(level)
-                if labels.levels[lev_num].inferred_type == 'integer':
-                    loc = labels[loc]
-
             # create the tuple of the indexer
             indexer = [slice(None)] * self.ndim
             indexer[axis] = loc
             indexer = tuple(indexer)
 
-            result = self.ix[indexer]
+            result = self.iloc[indexer]
             setattr(result, result._get_axis_name(axis), new_ax)
             return result
 
@@ -1983,7 +1977,7 @@ class NDFrame(PandasObject):
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
 
-            result = self.ix[tuple(slicer)]
+            result = self.loc[tuple(slicer)]
 
         if inplace:
             self._update_inplace(result)
@@ -4072,11 +4066,16 @@ class NDFrame(PandasObject):
                        sort=sort, group_keys=group_keys, squeeze=squeeze,
                        **kwargs)
 
-    def asfreq(self, freq, method=None, how=None, normalize=False):
+    def asfreq(self, freq, method=None, how=None, normalize=False,
+               fill_value=None):
         """
         Convert TimeSeries to specified frequency.
 
         Optionally provide filling method to pad/backfill missing values.
+
+        Returns the original data conformed to a new index with the specified
+        frequency. ``resample`` is more appropriate if an operation, such as
+        summarization, is necessary to represent the data at the new frequency.
 
         Parameters
         ----------
@@ -4092,10 +4091,70 @@ class NDFrame(PandasObject):
             For PeriodIndex only, see PeriodIndex.asfreq
         normalize : bool, default False
             Whether to reset output index to midnight
+        fill_value: scalar, optional
+            Value to use for missing values, applied during upsampling (note
+            this does not fill NaNs that already were present).
+
+            .. versionadded:: 0.20.0
 
         Returns
         -------
         converted : type of caller
+
+        Examples
+        --------
+
+        Start by creating a series with 4 one minute timestamps.
+
+        >>> index = pd.date_range('1/1/2000', periods=4, freq='T')
+        >>> series = pd.Series([0.0, None, 2.0, 3.0], index=index)
+        >>> df = pd.DataFrame({'s':series})
+        >>> df
+                               s
+        2000-01-01 00:00:00    0.0
+        2000-01-01 00:01:00    NaN
+        2000-01-01 00:02:00    2.0
+        2000-01-01 00:03:00    3.0
+
+        Upsample the series into 30 second bins.
+
+        >>> df.asfreq(freq='30S')
+                               s
+        2000-01-01 00:00:00    0.0
+        2000-01-01 00:00:30    NaN
+        2000-01-01 00:01:00    NaN
+        2000-01-01 00:01:30    NaN
+        2000-01-01 00:02:00    2.0
+        2000-01-01 00:02:30    NaN
+        2000-01-01 00:03:00    3.0
+
+        Upsample again, providing a ``fill value``.
+
+        >>> df.asfreq(freq='30S', fill_value=9.0)
+                               s
+        2000-01-01 00:00:00    0.0
+        2000-01-01 00:00:30    9.0
+        2000-01-01 00:01:00    NaN
+        2000-01-01 00:01:30    9.0
+        2000-01-01 00:02:00    2.0
+        2000-01-01 00:02:30    9.0
+        2000-01-01 00:03:00    3.0
+
+        Upsample again, providing a ``method``.
+
+        >>> df.asfreq(freq='30S', method='bfill')
+                               s
+        2000-01-01 00:00:00    0.0
+        2000-01-01 00:00:30    NaN
+        2000-01-01 00:01:00    NaN
+        2000-01-01 00:01:30    2.0
+        2000-01-01 00:02:00    2.0
+        2000-01-01 00:02:30    3.0
+        2000-01-01 00:03:00    3.0
+
+        See Also
+        --------
+        reindex
 
         Notes
         -----
@@ -4103,7 +4162,8 @@ class NDFrame(PandasObject):
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
         """
         from pandas.tseries.resample import asfreq
-        return asfreq(self, freq, method=method, how=how, normalize=normalize)
+        return asfreq(self, freq, method=method, how=how, normalize=normalize,
+                      fill_value=fill_value)
 
     def at_time(self, time, asof=False):
         """
@@ -4183,9 +4243,6 @@ class NDFrame(PandasObject):
             resampling.  Level must be datetime-like.
 
             .. versionadded:: 0.19.0
-
-        Notes
-        -----
 
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -4332,8 +4389,9 @@ class NDFrame(PandasObject):
         if not offset.isAnchored() and hasattr(offset, '_inc'):
             if end_date in self.index:
                 end = self.index.searchsorted(end_date, side='left')
+                return self.iloc[:end]
 
-        return self.ix[:end]
+        return self.loc[:end]
 
     def last(self, offset):
         """
@@ -4364,7 +4422,7 @@ class NDFrame(PandasObject):
 
         start_date = start = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side='right')
-        return self.ix[start:]
+        return self.iloc[start:]
 
     def rank(self, axis=0, method='average', numeric_only=None,
              na_option='keep', ascending=True, pct=False):
@@ -5078,7 +5136,7 @@ class NDFrame(PandasObject):
 
         slicer = [slice(None, None)] * self._AXIS_LEN
         slicer[axis] = slice(before, after)
-        result = self.ix[tuple(slicer)]
+        result = self.loc[tuple(slicer)]
 
         if isinstance(ax, MultiIndex):
             setattr(result, self._get_axis_name(axis),

@@ -130,7 +130,7 @@ class TestGroupByFilter(tm.TestCase):
         grouper = df['A'].apply(lambda x: x % 2)
         grouped = df.groupby(grouper)
         assert_frame_equal(
-            grouped.filter(lambda x: x['A'].sum() > 1000), df.ix[[]])
+            grouped.filter(lambda x: x['A'].sum() > 1000), df.loc[[]])
 
     def test_filter_out_no_groups(self):
         s = pd.Series([1, 3, 20, 5, 22, 24, 7])
@@ -278,7 +278,7 @@ class TestGroupByFilter(tm.TestCase):
         assert_frame_equal(actual, expected)
 
         actual = grouped.filter(lambda x: len(x) > 4)
-        expected = df.ix[[]]
+        expected = df.loc[[]]
         assert_frame_equal(actual, expected)
 
         # Series have always worked properly, but we'll test anyway.

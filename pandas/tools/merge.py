@@ -266,16 +266,29 @@ def merge_asof(left, right, on=None,
                by=None, left_by=None, right_by=None,
                suffixes=('_x', '_y'),
                tolerance=None,
-               allow_exact_matches=True):
+               allow_exact_matches=True,
+               direction='backward'):
     """Perform an asof merge. This is similar to a left-join except that we
     match on nearest key rather than equal keys.
 
-    For each row in the left DataFrame, we select the last row in the right
-    DataFrame whose 'on' key is less than or equal to the left's key. Both
-    DataFrames must be sorted by the key.
+    Both DataFrames must be sorted by the key.
 
-    Optionally match on equivalent keys with 'by' before searching for nearest
-    match with 'on'.
+    For each row in the left DataFrame:
+
+      - A "backward" search selects the last row in the right DataFrame whose
+        'on' key is less than or equal to the left's key.
+
+      - A "forward" search selects the first row in the right DataFrame whose
+        'on' key is greater than or equal to the left's key.
+
+      - A "nearest" search selects the row in the right DataFrame whose 'on'
+        key is closest in absolute distance to the left's key.
+
+    The default is "backward" and is the compatible in versions below 0.20.0.
+    The direction parameter was added in version 0.20.0 and introduces
+    "forward" and "nearest".
+
+    Optionally match on equivalent keys with 'by' before searching with 'on'.
 
     .. versionadded:: 0.19.0
 
@@ -323,9 +336,14 @@ def merge_asof(left, right, on=None,
     allow_exact_matches : boolean, default True
 
         - If True, allow matching the same 'on' value
-          (i.e. less-than-or-equal-to)
+          (i.e. less-than-or-equal-to / greater-than-or-equal-to)
         - If False, don't match the same 'on' value
-          (i.e., stricly less-than)
+          (i.e., stricly less-than / strictly greater-than)
+
+    direction : 'backward' (default), 'forward', or 'nearest'
+        Whether to search for prior, subsequent, or closest matches.
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -359,17 +377,17 @@ def merge_asof(left, right, on=None,
     1   5        b        3.0
     2  10        c        7.0
 
-    For this example, we can achieve a similar result thru
-    ``pd.merge_ordered()``, though its not nearly as performant.
-
-    >>> (pd.merge_ordered(left, right, on='a')
-    ...    .ffill()
-    ...    .drop_duplicates(['left_val'])
-    ... )
+    >>> pd.merge_asof(left, right, on='a', direction='forward')
         a left_val  right_val
     0   1        a        1.0
-    3   5        b        3.0
-    6  10        c        7.0
+    1   5        b        6.0
+    2  10        c        NaN
+
+    >>> pd.merge_asof(left, right, on='a', direction='nearest')
+        a left_val  right_val
+    0   1        a          1
+    1   5        b          6
+    2  10        c          7
 
     We can use indexed DataFrames as well.
 
@@ -467,7 +485,8 @@ def merge_asof(left, right, on=None,
                     by=by, left_by=left_by, right_by=right_by,
                     suffixes=suffixes,
                     how='asof', tolerance=tolerance,
-                    allow_exact_matches=allow_exact_matches)
+                    allow_exact_matches=allow_exact_matches,
+                    direction=direction)
     return op.get_result()
 
 
@@ -999,12 +1018,13 @@ class _OrderedMerge(_MergeOperation):
         return result
 
 
-def _asof_function(on_type):
-    return getattr(_join, 'asof_join_%s' % on_type, None)
+def _asof_function(direction, on_type):
+    return getattr(_join, 'asof_join_%s_%s' % (direction, on_type), None)
 
 
-def _asof_by_function(on_type, by_type):
-    return getattr(_join, 'asof_join_%s_by_%s' % (on_type, by_type), None)
+def _asof_by_function(direction, on_type, by_type):
+    return getattr(_join, 'asof_join_%s_%s_by_%s' %
+                   (direction, on_type, by_type), None)
 
 
 _type_casters = {
@@ -1056,13 +1076,15 @@ class _AsOfMerge(_OrderedMerge):
                  axis=1, suffixes=('_x', '_y'), copy=True,
                  fill_method=None,
                  how='asof', tolerance=None,
-                 allow_exact_matches=True):
+                 allow_exact_matches=True,
+                 direction='backward'):
 
         self.by = by
         self.left_by = left_by
         self.right_by = right_by
         self.tolerance = tolerance
         self.allow_exact_matches = allow_exact_matches
+        self.direction = direction
 
         _OrderedMerge.__init__(self, left, right, on=on, left_on=left_on,
                                right_on=right_on, left_index=left_index,
@@ -1108,6 +1130,10 @@ class _AsOfMerge(_OrderedMerge):
             self.left_on = self.left_by + list(self.left_on)
             self.right_on = self.right_by + list(self.right_on)
 
+        # check 'direction' is valid
+        if self.direction not in ['backward', 'forward', 'nearest']:
+            raise MergeError('direction invalid: ' + self.direction)
+
     @property
     def _asof_key(self):
         """ This is our asof key, the 'on' """
@@ -1129,7 +1155,11 @@ class _AsOfMerge(_OrderedMerge):
         # validate tolerance; must be a Timedelta if we have a DTI
         if self.tolerance is not None:
 
-            lt = left_join_keys[-1]
+            if self.left_index:
+                lt = self.left.index
+            else:
+                lt = left_join_keys[-1]
+
             msg = "incompatible tolerance, must be compat " \
                   "with type {0}".format(type(lt))
 
@@ -1204,7 +1234,7 @@ class _AsOfMerge(_OrderedMerge):
 
             # choose appropriate function by type
             on_type = _get_cython_type(left_values.dtype)
-            func = _asof_by_function(on_type, by_type)
+            func = _asof_by_function(self.direction, on_type, by_type)
             return func(left_values,
                         right_values,
                         left_by_values,
@@ -1214,7 +1244,7 @@ class _AsOfMerge(_OrderedMerge):
         else:
             # choose appropriate function by type
             on_type = _get_cython_type(left_values.dtype)
-            func = _asof_function(on_type)
+            func = _asof_function(self.direction, on_type)
             return func(left_values,
                         right_values,
                         self.allow_exact_matches,

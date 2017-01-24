@@ -39,10 +39,10 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         # issue casting an index then set_index
         df = DataFrame({'A': [1.1, 2.2, 3.3], 'B': [5.0, 6.1, 7.2]},
                        index=[2010, 2011, 2012])
-        expected = df.ix[2010]
+        expected = df.loc[2010]
         new_index = df.index.astype(np.int32)
         df.index = new_index
-        result = df.ix[2010]
+        result = df.loc[2010]
         assert_series_equal(result, expected)
 
     def test_set_index2(self):
@@ -58,7 +58,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
         index = Index(df['C'], name='C')
 
-        expected = df.ix[:, ['A', 'B', 'D', 'E']]
+        expected = df.loc[:, ['A', 'B', 'D', 'E']]
         expected.index = index
 
         expected_nodrop = df.copy()
@@ -86,7 +86,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
         index = MultiIndex.from_arrays([df['A'], df['B']], names=['A', 'B'])
 
-        expected = df.ix[:, ['C', 'D', 'E']]
+        expected = df.loc[:, ['C', 'D', 'E']]
         expected.index = index
 
         expected_nodrop = df.copy()
@@ -301,8 +301,8 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
         df = DataFrame(np.random.randn(3, 3), columns=columns)
         rs = df.set_index(df.columns[0])
-        xp = df.ix[:, 1:]
-        xp.index = df.ix[:, 0].values
+        xp = df.iloc[:, 1:]
+        xp.index = df.iloc[:, 0].values
         xp.index.names = [df.columns[0]]
         assert_frame_equal(rs, xp)
 

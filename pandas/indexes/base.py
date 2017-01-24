@@ -27,6 +27,8 @@ from pandas.types.common import (_ensure_int64,
                                  is_object_dtype,
                                  is_categorical_dtype,
                                  is_bool_dtype,
+                                 is_signed_integer_dtype,
+                                 is_unsigned_integer_dtype,
                                  is_integer_dtype, is_float_dtype,
                                  is_datetime64_any_dtype,
                                  is_timedelta64_dtype,
@@ -199,18 +201,16 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                             data = np.array(data, copy=copy, dtype=dtype)
                         elif inferred in ['floating', 'mixed-integer-float']:
 
-                            # if we are actually all equal to integers
-                            # then coerce to integer
-                            from .numeric import Int64Index, Float64Index
+                            # If we are actually all equal to integers,
+                            # then coerce to integer.
                             try:
-                                res = data.astype('i8')
-                                if (res == data).all():
-                                    return Int64Index(res, copy=copy,
-                                                      name=name)
-                            except (TypeError, ValueError):
+                                return cls._try_convert_to_int_index(
+                                    data, copy, name)
+                            except ValueError:
                                 pass
 
-                            # return an actual float index
+                            # Return an actual float index.
+                            from .numeric import Float64Index
                             return Float64Index(data, copy=copy, dtype=dtype,
                                                 name=name)
 
@@ -235,10 +235,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                                IncompatibleFrequency)
             if isinstance(data, PeriodIndex):
                 return PeriodIndex(data, copy=copy, name=name, **kwargs)
-            if issubclass(data.dtype.type, np.integer):
+            if is_signed_integer_dtype(data.dtype):
                 from .numeric import Int64Index
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)
-            elif issubclass(data.dtype.type, np.floating):
+            elif is_unsigned_integer_dtype(data.dtype):
+                from .numeric import UInt64Index
+                return UInt64Index(data, copy=copy, dtype=dtype, name=name)
+            elif is_float_dtype(data.dtype):
                 from .numeric import Float64Index
                 return Float64Index(data, copy=copy, dtype=dtype, name=name)
             elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
@@ -254,9 +257,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if dtype is None:
                 inferred = lib.infer_dtype(subarr)
                 if inferred == 'integer':
-                    from .numeric import Int64Index
-                    return Int64Index(subarr.astype('i8'), copy=copy,
-                                      name=name)
+                    try:
+                        return cls._try_convert_to_int_index(
+                            subarr, copy, name)
+                    except ValueError:
+                        pass
+
+                    return Index(subarr, copy=copy,
+                                 dtype=object, name=name)
                 elif inferred in ['floating', 'mixed-integer-float']:
                     from .numeric import Float64Index
                     return Float64Index(subarr, copy=copy, name=name)
@@ -577,6 +585,46 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return self._values.ravel(order=order)
 
     # construction helpers
+    @classmethod
+    def _try_convert_to_int_index(cls, data, copy, name):
+        """
+        Attempt to convert an array of data into an integer index.
+
+        Parameters
+        ----------
+        data : The data to convert.
+        copy : Whether to copy the data or not.
+        name : The name of the index returned.
+
+        Returns
+        -------
+        int_index : data converted to either an Int64Index or a
+                    UInt64Index
+
+        Raises
+        ------
+        ValueError if the conversion was not successful.
+        """
+
+        from .numeric import Int64Index, UInt64Index
+        try:
+            res = data.astype('i8', copy=False)
+            if (res == data).all():
+                return Int64Index(res, copy=copy, name=name)
+        except (OverflowError, TypeError, ValueError):
+            pass
+
+        # Conversion to int64 failed (possibly due to
+        # overflow), so let's try now with uint64.
+        try:
+            res = data.astype('u8', copy=False)
+            if (res == data).all():
+                return UInt64Index(res, copy=copy, name=name)
+        except (TypeError, ValueError):
+            pass
+
+        raise ValueError
+
     @classmethod
     def _scalar_data_error(cls, data):
         raise TypeError('{0}(...) must be called with a collection of some '
@@ -1252,6 +1300,40 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     raise
 
         return indexer
+
+    _index_shared_docs['_convert_arr_indexer'] = """
+        Convert an array-like indexer to the appropriate dtype.
+
+        Parameters
+        ----------
+        keyarr : array-like
+            Indexer to convert.
+
+        Returns
+        -------
+        converted_keyarr : array-like
+    """
+
+    @Appender(_index_shared_docs['_convert_arr_indexer'])
+    def _convert_arr_indexer(self, keyarr):
+        return keyarr
+
+    _index_shared_docs['_convert_index_indexer'] = """
+        Convert an Index indexer to the appropriate dtype.
+
+        Parameters
+        ----------
+        keyarr : Index (or sub-class)
+            Indexer to convert.
+
+        Returns
+        -------
+        converted_keyarr : Index (or sub-class)
+    """
+
+    @Appender(_index_shared_docs['_convert_index_indexer'])
+    def _convert_index_indexer(self, keyarr):
+        return keyarr
 
     def _convert_list_indexer(self, keyarr, kind=None):
         """
@@ -3489,7 +3571,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 raise ValueError("cannot evaluate a numeric op with "
                                  "unequal lengths")
             other = _values_from_object(other)
-            if other.dtype.kind not in ['f', 'i']:
+            if other.dtype.kind not in ['f', 'i', 'u']:
                 raise TypeError("cannot evaluate a numeric op "
                                 "with a non-numeric dtype")
         elif isinstance(other, (DateOffset, np.timedelta64,
