@@ -362,3 +362,7 @@ Bug Fixes
 
 
 - Bug in ``pd.read_csv()`` for the C engine where ``usecols`` were being indexed incorrectly with ``parse_dates`` (:issue:`14792`)
+
+
+
+- Bug in window function ``count`` not counting ``np.Inf`` (:issue:`12541`)

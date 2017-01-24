@@ -209,23 +209,35 @@ class TestApi(Base):
 
     def test_count_nonnumeric_types(self):
         # GH12541
-        df_inf = DataFrame({'x': [1, 2, 3], 'y': [1., 2., np.Inf]})
-        df_date = DataFrame({'x': [1, 2, 3], 
-                            'y': pd.date_range('20130101',periods=3)})
-        df_inf_date = DataFrame({'x': [1, 2, 3], 'y': [1., 2., np.Inf], 
-                                 'z': pd.date_range('20170101',periods=3)})
+        cols = ['int', 'float', 'string', 'datetime', 'timedelta',
+                'fl_inf', 'fl_nan', 'str_nan', 'dt_nat']
 
-        expected_1 = DataFrame([[1,1],[2,2],[2,2]], 
-                                columns=['x','y'], dtype=float)
-        expected_2 = DataFrame([[1,1,1],[2,2,2],[2,2,2]], 
-                                columns=['x','y','z'], dtype=float)
+        df = DataFrame(
+            {'int': [1, 2, 3],
+             'float': [4., 5., 6.],
+             'string': list('abc'),
+             'datetime': pd.date_range('20170101', periods=3),
+             'timedelta': pd.timedelta_range('1 s', periods=3, freq='s'),
+             'fl_inf': [1., 2., np.Inf],
+             'fl_nan': [1., 2., np.NaN],
+             'str_nan': ['aa', 'bb', np.NaN],
+             'dt_nat': [pd.Timestamp('20170101'), pd.Timestamp('20170203'),
+                        pd.Timestamp(None)]},
+            columns=cols)
 
-        self.assert_frame_equal(df_inf.rolling(window=2).count(), 
-                                expected_1)
-        self.assert_frame_equal(df_date.rolling(window=2).count(), 
-                                expected_1)
-        self.assert_frame_equal(df_inf_date.rolling(window=2).count(), 
-                                expected_2)
+        expected = DataFrame(
+            {'int': [1., 2., 2.],
+             'float': [1., 2., 2.],
+             'string': [1., 2., 2.],
+             'datetime': [1., 2., 2.],
+             'timedelta': [1., 2., 2.],
+             'fl_inf': [1., 2., 2.],
+             'fl_nan': [1., 2., 1.],
+             'str_nan': [1., 2., 1.],
+             'dt_nat': [1., 2., 1.]},
+            columns=cols)
+
+        self.assert_frame_equal(df.rolling(window=2).count(), expected)
 
     def test_window_with_args(self):
         tm._skip_if_no_scipy()
