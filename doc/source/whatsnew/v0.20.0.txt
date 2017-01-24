@@ -447,7 +447,7 @@ Bug Fixes
 
 
 - Bug in ``Series`` constructor when both ``copy=True`` and ``dtype`` arguments are provided (:issue:`15125`)
-- Bug in ``pd.read_csv()`` for the C engine where ``usecols`` were being indexed incorrectly with ``parse_dates`` (:issue:`14792`)
+- Bug in ``pd.read_csv()`` for the C engine where ``usecols`` were being indexed incorrectly with ``parse_dates`` (:issue:`14792
 - Incorrect dtyped ``Series`` was returned by comparison methods (e.g., ``lt``, ``gt``, ...) against a constant for an empty ``DataFrame`` (:issue:`15077`)
 - Bug in ``Series.dt.round`` inconsistent behaviour on NAT's with different arguments (:issue:`14940`)
 
@@ -465,3 +465,5 @@ Bug Fixes
 
 
 - Bug in ``DataFrame.boxplot`` where ``fontsize`` was not applied to the tick labels on both axes (:issue:`15108`)
+
+- Bug in window function ``count`` not counting ``np.Inf`` (:issue:`12541`)
