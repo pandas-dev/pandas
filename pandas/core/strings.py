@@ -318,7 +318,8 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
         match object and must return a replacement string to be used.
         See :func:`re.sub`.
 
-    .. versionadded:: 0.20.0
+        .. versionadded:: 0.20.0
+            `repl` also accepts a callable.
 
     n : int, default -1 (all)
         Number of replacements to make from start
@@ -333,22 +334,22 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
     Examples
     --------
-    When ``repl`` is a string, every ``pat`` is replaced as with
+    When `repl` is a string, every `pat` is replaced as with
     :meth:`str.replace`. NaN value(s) in the Series are left as is.
 
-    >>> Series(['foo', 'fuz', np.nan]).str.replace('f', 'b')
+    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', 'b')
     0    boo
     1    buz
     2    NaN
     dtype: object
 
-    When ``repl`` is a callable, it is called on every ``pat`` using
+    When `repl` is a callable, it is called on every `pat` using
     :func:`re.sub`. The callable should expect one positional argument
     (a regex object) and return a string.
 
     To get the idea:
 
-    >>> Series(['foo', 'fuz', np.nan]).str.replace('f', repr)
+    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr)
     0    <_sre.SRE_Match object; span=(0, 1), match='f'>oo
     1    <_sre.SRE_Match object; span=(0, 1), match='f'>uz
     2                                                  NaN
@@ -357,19 +358,19 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     Reverse every lowercase alphabetic word:
 
     >>> repl = lambda m: m.group(0)[::-1]
-    >>> Series(['foo 123', 'bar baz', np.nan]).str.replace(r'[a-z]+', repl)
+    >>> pd.Series(['foo 123', 'bar baz', np.nan]).str.replace(r'[a-z]+', repl)
     0    oof 123
     1    rab zab
     2        NaN
     dtype: object
 
-    Using regex groups:
+    Using regex groups (extract second group and swap case):
 
     >>> pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
     >>> repl = lambda m: m.group('two').swapcase()
-    >>> Series(['Foo Bar Baz', np.nan]).str.replace(pat, repl)
-    0    bAR
-    1    NaN
+    >>> pd.Series(['One Two Three', 'Foo Bar Baz']).str.replace(pat, repl)
+    0    tWO
+    1    bAR
     dtype: object
     """
 
