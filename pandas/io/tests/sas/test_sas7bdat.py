@@ -142,3 +142,13 @@ def test_airline():
     df0 = pd.read_csv(fname)
     df0 = df0.astype(np.float64)
     tm.assert_frame_equal(df, df0, check_exact=False)
+
+
+def test_date_time():
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "dt.sas7bdat")
+    df = pd.read_sas(fname)
+    di = pd.to_datetime(["1960-05-03", "1993-10-19", "2014-10-04",
+                         "1960-01-02 10:17:36"])
+    df0 = pd.DataFrame(di, index=("D1", "D2", "D3", "DT")).T
+    tm.assert_frame_equal(df, df0)
