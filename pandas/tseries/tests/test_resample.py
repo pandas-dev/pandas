@@ -2934,9 +2934,8 @@ class TestResamplerGrouper(tm.TestCase):
     def test_median_duplicate_columns(self):
         # GH 14233
 
-        df = pd.DataFrame(np.array([[i + j for i in range(20)]
-                                    for j in [0, 100, 1000]])
-                          .T, columns=list('aaa'),
+        df = pd.DataFrame(np.random.randn(20, 3),
+                          columns=list('aaa'),
                           index=pd.date_range('2012-01-01',
                                               periods=20, freq='s'))
         df2 = df.copy()
