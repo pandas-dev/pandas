@@ -34,7 +34,9 @@ from pandas.types.common import (is_numeric_dtype,
 from pandas.types.cast import _possibly_downcast_to_dtype
 from pandas.types.missing import isnull, notnull, _maybe_fill
 
-from pandas.core.common import _values_from_object, AbstractMethodError
+from pandas.core.common import (_values_from_object, AbstractMethodError,
+                                _default_index)
+
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.categorical import Categorical
@@ -4042,7 +4044,24 @@ class DataFrameGroupBy(NDFrameGroupBy):
         4   ham       5      x
         5   ham       5      y
         """
-        return self.apply(lambda g: g.apply(Series.nunique, dropna=dropna))
+
+        obj = self._selected_obj
+
+        def groupby_series(obj, col=None):
+            return SeriesGroupBy(obj,
+                                 selection=col,
+                                 grouper=self.grouper).nunique(dropna=dropna)
+
+        if isinstance(obj, Series):
+            results = groupby_series(obj)
+        else:
+            from pandas.tools.merge import concat
+            results = [groupby_series(obj[col], col) for col in obj.columns]
+            results = concat(results, axis=1)
+
+        if not self.as_index:
+            results.index = _default_index(len(results))
+        return results
 
 
 from pandas.tools.plotting import boxplot_frame_groupby  # noqa
