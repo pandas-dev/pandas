@@ -1348,6 +1348,43 @@ class TestMultiIndex(Base, tm.TestCase):
 
         warnings.filters = warn_filters
 
+    def test_to_frame(self):
+        tuples = [(1, 'one'), (1, 'two'), (2, 'one'), (2, 'two')]
+
+        index = MultiIndex.from_tuples(tuples)
+        result = index.to_frame(index=False)
+        expected = DataFrame(tuples)
+        tm.assert_frame_equal(result, expected)
+
+        result = index.to_frame()
+        expected.index = index
+        tm.assert_frame_equal(result, expected)
+
+        tuples = [(1, 'one'), (1, 'two'), (2, 'one'), (2, 'two')]
+        index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+        result = index.to_frame(index=False)
+        expected = DataFrame(tuples)
+        expected.columns = ['first', 'second']
+        tm.assert_frame_equal(result, expected)
+
+        result = index.to_frame()
+        expected.index = index
+        tm.assert_frame_equal(result, expected)
+
+        index = MultiIndex.from_product([range(5),
+                                         pd.date_range('20130101', periods=3)])
+        result = index.to_frame(index=False)
+        expected = DataFrame(
+            {0: np.repeat(np.arange(5, dtype='int64'), 3),
+             1: np.tile(pd.date_range('20130101', periods=3), 5)})
+        tm.assert_frame_equal(result, expected)
+
+        index = MultiIndex.from_product([range(5),
+                                         pd.date_range('20130101', periods=3)])
+        result = index.to_frame()
+        expected.index = index
+        tm.assert_frame_equal(result, expected)
+
     def test_to_hierarchical(self):
         index = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'), (
             2, 'two')])
