@@ -592,9 +592,9 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     TRACE(                                                                    \
         ("PUSH_CHAR: Pushing %c, slen= %d, stream_cap=%zu, stream_len=%zu\n", \
          c, slen, self->stream_cap, self->stream_len))                        \
-    if (slen >= maxstreamsize) {                                              \
-        TRACE(("PUSH_CHAR: ERROR!!! slen(%d) >= maxstreamsize(%d)\n", slen,   \
-               maxstreamsize))                                                \
+    if (slen >= self->stream_cap) {                                           \
+        TRACE(("PUSH_CHAR: ERROR!!! slen(%d) >= stream_cap(%d)\n", slen,      \
+               self->stream_cap))                                             \
         int bufsize = 100;                                                    \
         self->error_msg = (char *)malloc(bufsize);                            \
         snprintf(self->error_msg, bufsize,                                    \
@@ -711,7 +711,6 @@ int skip_this_line(parser_t *self, int64_t rownum) {
 int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
     int i, slen;
     int should_skip;
-    long maxstreamsize;
     char c;
     char *stream;
     char *buf = self->data + self->datapos;
@@ -723,7 +722,6 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
 
     stream = self->stream + self->stream_len;
     slen = self->stream_len;
-    maxstreamsize = self->stream_cap;
 
     TRACE(("%s\n", buf));
 
