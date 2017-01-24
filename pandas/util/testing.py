@@ -404,6 +404,14 @@ def _skip_if_has_locale():
         import nose
         raise nose.SkipTest("Specific locale is set {0}".format(lang))
 
+
+def _skip_if_not_us_locale():
+    import locale
+    lang, _ = locale.getlocale()
+    if lang != 'en_US':
+        import nose
+        raise nose.SkipTest("Specific locale is set {0}".format(lang))
+
 # -----------------------------------------------------------------------------
 # locale utilities
 

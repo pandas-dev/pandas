@@ -5492,7 +5492,9 @@ class TestToDatetimeInferFormat(tm.TestCase):
 
 
 class TestGuessDatetimeFormat(tm.TestCase):
+
     def test_guess_datetime_format_with_parseable_formats(self):
+        tm._skip_if_not_us_locale()
         dt_string_to_format = (('20111230', '%Y%m%d'),
                                ('2011-12-30', '%Y-%m-%d'),
                                ('30-12-2011', '%d-%m-%Y'),
@@ -5567,6 +5569,7 @@ class TestGuessDatetimeFormat(tm.TestCase):
             )
 
     def test_guess_datetime_format_for_array(self):
+        tm._skip_if_not_us_locale()
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
 
