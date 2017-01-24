@@ -762,17 +762,7 @@ class _Rolling_and_Expanding(_Rolling):
 
         results = []
         for b in blocks:
-
-            if needs_i8_conversion(b.values):
-                result = b.notnull().astype(int)
-            else:
-                try:
-                    result = np.isfinite(b).astype(float)
-                except TypeError:
-                    result = np.isfinite(b.astype(float)).astype(float)
-
-                result[pd.isnull(result)] = 0
-
+            result = b.notnull().astype(int)
             result = self._constructor(result, window=window, min_periods=0,
                                        center=self.center).sum()
             results.append(result)

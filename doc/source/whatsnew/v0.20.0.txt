@@ -432,6 +432,7 @@ Bug Fixes
 - Bug in ``pd.pivot_table()`` where no error was raised when values argument was not in the columns (:issue:`14938`)
 
 - Bug in ``.to_json()`` where ``lines=True`` and contents (keys or values) contain escaped characters (:issue:`15096`)
+- Bug in ``.rolling/expanding()`` functions where ``count()`` was not counting ``np.Inf``, nor handling ``object`` dtypes (:issue:`12541`)
 
 - Bug in ``DataFrame.groupby().describe()`` when grouping on ``Index`` containing tuples (:issue:`14848`)
 - Bug in creating a ``MultiIndex`` with tuples and not passing a list of names; this will now raise ``ValueError`` (:issue:`15110`)
