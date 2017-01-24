@@ -272,8 +272,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        if not getattr(values, 'dtype', None):
-            values = np.array(values, copy=False)
+        values = np.array(values, copy=False)
         if values.dtype == np.object_:
             values = tslib.array_to_timedelta64(values)
         if values.dtype != _TD_DTYPE:
