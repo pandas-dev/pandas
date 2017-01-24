@@ -2,6 +2,7 @@
 from __future__ import print_function
 import nose
 
+from string import ascii_lowercase
 from datetime import datetime
 from numpy import nan
 
@@ -1807,22 +1808,22 @@ class TestGroupBy(tm.TestCase):
             assert_frame_equal(left, right)
 
     def test_series_groupby_nunique(self):
-        from itertools import product
-        from string import ascii_lowercase
 
-        def check_nunique(df, keys):
-            for sort, dropna in product((False, True), repeat=2):
-                gr = df.groupby(keys, sort=sort)
+        def check_nunique(df, keys, as_index=True):
+            for sort, dropna in cart_product((False, True), repeat=2):
+                gr = df.groupby(keys, as_index=as_index, sort=sort)
                 left = gr['julie'].nunique(dropna=dropna)
 
-                gr = df.groupby(keys, sort=sort)
+                gr = df.groupby(keys, as_index=as_index, sort=sort)
                 right = gr['julie'].apply(Series.nunique, dropna=dropna)
+                if not as_index:
+                    right = right.reset_index(drop=True)
 
-                assert_series_equal(left, right)
+                assert_series_equal(left, right, check_names=False)
 
         days = date_range('2015-08-23', periods=10)
 
-        for n, m in product(10 ** np.arange(2, 6), (10, 100, 1000)):
+        for n, m in cart_product(10 ** np.arange(2, 6), (10, 100, 1000)):
             frame = DataFrame({
                 'jim': np.random.choice(
                     list(ascii_lowercase), n),
@@ -1841,6 +1842,8 @@ class TestGroupBy(tm.TestCase):
 
             check_nunique(frame, ['jim'])
             check_nunique(frame, ['jim', 'joe'])
+            check_nunique(frame, ['jim'], as_index=False)
+            check_nunique(frame, ['jim', 'joe'], as_index=False)
 
     def test_series_groupby_value_counts(self):
         from itertools import product
