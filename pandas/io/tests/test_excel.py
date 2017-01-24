@@ -449,6 +449,8 @@ class ReadingTestsBase(SharedItems):
     # GH 12292 : error when read one empty column from excel file
     def test_read_one_empty_col_no_header(self):
         _skip_if_no_xlwt()
+        _skip_if_no_openpyxl()
+
         df = pd.DataFrame(
             [["", 1, 100],
              ["", 2, 200],
@@ -506,6 +508,8 @@ class ReadingTestsBase(SharedItems):
 
     def test_set_column_names_in_parameter(self):
         _skip_if_no_xlwt()
+        _skip_if_no_openpyxl()
+
         # GH 12870 : pass down column names associated with
         # keyword argument names
         refdf = pd.DataFrame([[1, 'foo'], [2, 'bar'],
@@ -1798,7 +1802,8 @@ class ExcelWriterBase(SharedItems):
 
         bio = BytesIO()
         df = DataFrame(np.random.randn(10, 2))
-        writer = ExcelWriter(bio)
+        # pass engine explicitly as there is no file path to infer from
+        writer = ExcelWriter(bio, engine=self.engine_name)
         df.to_excel(writer)
         writer.save()
         bio.seek(0)
