@@ -209,8 +209,8 @@ class TestApi(Base):
 
     def test_count_nonnumeric_types(self):
         # GH12541
-        cols = ['int', 'float', 'string', 'datetime', 'timedelta',
-                'fl_inf', 'fl_nan', 'str_nan', 'dt_nat']
+        cols = ['int', 'float', 'string', 'datetime', 'timedelta', 'periods',
+                'fl_inf', 'fl_nan', 'str_nan', 'dt_nat', 'periods_nat']
 
         df = DataFrame(
             {'int': [1, 2, 3],
@@ -218,11 +218,15 @@ class TestApi(Base):
              'string': list('abc'),
              'datetime': pd.date_range('20170101', periods=3),
              'timedelta': pd.timedelta_range('1 s', periods=3, freq='s'),
+             'periods': [pd.Period('2012-01'), pd.Period('2012-02'), 
+                         pd.Period('2012-03')],
              'fl_inf': [1., 2., np.Inf],
              'fl_nan': [1., 2., np.NaN],
              'str_nan': ['aa', 'bb', np.NaN],
              'dt_nat': [pd.Timestamp('20170101'), pd.Timestamp('20170203'),
-                        pd.Timestamp(None)]},
+                        pd.Timestamp(None)],
+             'periods_nat': [pd.Period('2012-01'), pd.Period('2012-02'), 
+                         pd.Period(None)]},
             columns=cols)
 
         expected = DataFrame(
@@ -231,10 +235,12 @@ class TestApi(Base):
              'string': [1., 2., 2.],
              'datetime': [1., 2., 2.],
              'timedelta': [1., 2., 2.],
+             'periods': [1., 2., 2.],
              'fl_inf': [1., 2., 2.],
              'fl_nan': [1., 2., 1.],
              'str_nan': [1., 2., 1.],
-             'dt_nat': [1., 2., 1.]},
+             'dt_nat': [1., 2., 1.],
+             'periods_nat': [1., 2., 1.]},
             columns=cols)
 
         self.assert_frame_equal(df.rolling(window=2).count(), expected)
