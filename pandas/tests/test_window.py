@@ -226,7 +226,7 @@ class TestApi(Base):
              'dt_nat': [pd.Timestamp('20170101'), pd.Timestamp('20170203'),
                         pd.Timestamp(None)],
              'periods_nat': [pd.Period('2012-01'), pd.Period('2012-02'),
-                         pd.Period(None)]},
+                             pd.Period(None)]},
             columns=cols)
 
         expected = DataFrame(
