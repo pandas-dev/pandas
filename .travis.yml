@@ -132,6 +132,7 @@ matrix:
       env:
         - PYTHON_VERSION=3.4
         - JOB_NAME: "34_nslow"
+        - LOCALE_OVERRIDE="zh_CN.UTF-8"
         - NOSE_ARGS="not slow and not disabled"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
@@ -141,6 +142,7 @@ matrix:
         apt:
           packages:
           - xsel
+          - language-pack-zh-hans
 #    In allow_failures
     - python: 3.4
       env:
@@ -229,6 +231,7 @@ matrix:
         env:
           - PYTHON_VERSION=3.4
           - JOB_NAME: "34_nslow"
+          - LOCALE_OVERRIDE="zh_CN.UTF-8"
           - NOSE_ARGS="not slow and not disabled"
           - FULL_DEPS=true
           - CLIPBOARD=xsel
@@ -238,6 +241,7 @@ matrix:
           apt:
             packages:
             - xsel
+            - language-pack-zh-hans
       - python: 3.5
         env:
           - PYTHON_VERSION=3.5
