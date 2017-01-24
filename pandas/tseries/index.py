@@ -557,7 +557,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if we are passed a non-dtype compat, then coerce using the constructor
         """
 
-        if not getattr(values, 'dtype', None):
+        if getattr(values, 'dtype', None) is None:
             # empty, but with dtype compat
             if values is None:
                 values = np.empty(0, dtype=_NS_DTYPE)
