@@ -274,7 +274,7 @@ class GDataReader(OAuthDataReader):
         if index_col is None and dimensions is not None:
             if isinstance(dimensions, compat.string_types):
                 dimensions = [dimensions]
-            index_col = _clean_index(list(dimensions), parse_dates)
+            index_col = _clean_index(list(dimensions), parse_dates).tolist()
 
         def _read(start, result_size):
             query = self.create_query(profile_id, metrics, start_date,
@@ -407,7 +407,6 @@ def _get_match(obj_store, name, id, **kwargs):
     id_ok = lambda item: id is not None and item.get('id') == id
     key_ok = lambda item: key is not None and item.get(key) == val
 
-    match = None
     if obj_store.get('items'):
         # TODO look up gapi for faster lookup
         for item in obj_store.get('items'):
