@@ -579,12 +579,12 @@ def get_dispatch(dtypes):
 
 {{for name, c_type, dtype in get_dispatch(dtypes)}}
 
-cpdef ensure_{{name}}(object arr):
+cpdef ensure_{{name}}(object arr, copy=True):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_{{c_type}}:
             return arr
         else:
-            return arr.astype(np.{{dtype}})
+            return arr.astype(np.{{dtype}}, copy=copy)
     else:
         return np.array(arr, dtype=np.{{dtype}})
 
