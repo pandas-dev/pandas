@@ -1,17 +1,32 @@
 """
 data hash pandas / numpy objects
 """
+import itertools
 
 import numpy as np
 from pandas import _hash, Series, factorize, Categorical, Index, MultiIndex
 from pandas.lib import is_bool_array
 from pandas.types.generic import ABCIndexClass, ABCSeries, ABCDataFrame
 from pandas.types.common import (is_categorical_dtype, is_numeric_dtype,
-                                 is_datetime64_dtype, is_timedelta64_dtype,
-                                 is_object_dtype)
+                                 is_datetime64_dtype, is_timedelta64_dtype)
 
 # 16 byte long hashing key
 _default_hash_key = '0123456789123456'
+
+
+def _combine_hash_arrays(arrays, num_items):
+    first = next(arrays)
+    arrays = itertools.chain([first], arrays)
+
+    mult = np.zeros_like(first) + np.uint64(1000003)
+    out = np.zeros_like(first) + np.uint64(0x345678)
+    for i, a in enumerate(arrays):
+        inverse_i = num_items - i
+        out = (out ^ a) * mult
+        mult += np.uint64(82520 + inverse_i + inverse_i)
+    assert i + 1 == num_items, 'Fed in wrong num_items'
+    out += np.uint64(97531)
+    return out
 
 
 def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
@@ -42,10 +57,6 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
     if hash_key is None:
         hash_key = _default_hash_key
 
-    def adder(h, hashed_to_add):
-        h = np.multiply(h, np.uint(3), h)
-        return np.add(h, hashed_to_add, h)
-
     if isinstance(obj, MultiIndex):
         return _hash_tuples(obj, encoding, hash_key)
 
@@ -57,26 +68,28 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
         h = hash_array(obj.values, encoding, hash_key,
                        categorize).astype('uint64')
         if index:
-            h = adder(h, hash_pandas_object(obj.index,
-                                            index=False,
-                                            encoding=encoding,
-                                            hash_key=hash_key,
-                                            categorize=categorize).values)
+            h = _combine_hash_arrays(iter([
+                h,
+                hash_pandas_object(obj.index,
+                                   index=False,
+                                   encoding=encoding,
+                                   hash_key=hash_key,
+                                   categorize=categorize).values]),
+                2)
         h = Series(h, index=obj.index, dtype='uint64')
     elif isinstance(obj, ABCDataFrame):
-        cols = obj.iteritems()
-        first_series = next(cols)[1]
-        h = hash_array(first_series.values, encoding,
-                       hash_key, categorize).astype('uint64')
-        for _, col in cols:
-            h = adder(h, hash_array(col.values, encoding, hash_key,
-                                    categorize))
+        hashes = (hash_array(series.values) for _, series in obj.iteritems())
+        num_items = len(obj.columns)
         if index:
-            h = adder(h, hash_pandas_object(obj.index,
-                                            index=False,
-                                            encoding=encoding,
-                                            hash_key=hash_key,
-                                            categorize=categorize).values)
+            index_hash_generator = (hash_pandas_object(obj.index,
+                                                       index=False,
+                                                       encoding=encoding,
+                                                       hash_key=hash_key,
+                                                       categorize=categorize).values  # noqa
+                                    for _ in [None])
+            num_items += 1
+            hashes = itertools.chain(hashes, index_hash_generator)
+        h = _combine_hash_arrays(hashes, num_items)
 
         h = Series(h, index=obj.index, dtype='uint64')
     else:
@@ -103,7 +116,7 @@ def _hash_tuples(vals, encoding, hash_key):
         vals = MultiIndex.from_tuples(vals)
 
     # efficiently turn us into a DataFrame and hash
-    return hash_pandas_object(vals.to_dataframe(index=False),
+    return hash_pandas_object(vals.to_frame(index=False),
                               index=False, encoding=encoding,
                               hash_key=hash_key, categorize=False)
 

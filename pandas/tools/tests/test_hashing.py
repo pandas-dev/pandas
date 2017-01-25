@@ -62,7 +62,8 @@ class TestHashing(tm.TestCase):
         self.assert_numpy_array_equal(result, expected)
 
     def test_multiindex_unique(self):
-        mi = MultiIndex.from_tuples([(118, 472), (236, 118), (51, 204), (102, 51)])
+        mi = MultiIndex.from_tuples([(118, 472), (236, 118),
+                                     (51, 204), (102, 51)])
         self.assertTrue(mi.is_unique)
         result = hash_pandas_object(mi)
         self.assertTrue(result.is_unique)
