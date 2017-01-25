@@ -954,17 +954,24 @@ in the way that standard Python integer slicing works.
 Indexing potentially changes underlying Series dtype
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The use of ``reindex_like`` can potentially change the dtype of a ``Series``.
+The different indexing operation can potentially change the dtype of a ``Series``.
 
 .. ipython:: python
 
-   series = pd.Series([1, 2, 3])
-   x = pd.Series([True])
-   x.dtype
-   x = pd.Series([True]).reindex_like(series)
-   x.dtype
+   series1 = pd.Series([1, 2, 3])
+   series1.dtype
+   res = series1[[0,4]]
+   res.dtype
+   res
 
-This is because ``reindex_like`` silently inserts ``NaNs`` and the ``dtype``
+.. ipython:: python
+   series2 = pd.Series([True])
+   series2.dtype
+   res = series2.reindex_like(series1)
+   res.dtype
+   res
+
+This is because the (re)indexing operations above silently inserts ``NaNs`` and the ``dtype``
 changes accordingly.  This can cause some issues when using ``numpy`` ``ufuncs``
 such as ``numpy.logical_and``.
 
