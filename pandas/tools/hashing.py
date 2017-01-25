@@ -16,6 +16,7 @@ _default_hash_key = '0123456789123456'
 
 
 def _combine_hash_arrays(arrays, num_items):
+    "Should be the same as CPython's tupleobject.c"
     first = next(arrays)
     arrays = itertools.chain([first], arrays)
 
@@ -23,7 +24,8 @@ def _combine_hash_arrays(arrays, num_items):
     out = np.zeros_like(first) + np.uint64(0x345678)
     for i, a in enumerate(arrays):
         inverse_i = num_items - i
-        out = (out ^ a) * mult
+        out ^= a
+        out *= mult
         mult += np.uint64(82520 + inverse_i + inverse_i)
     assert i + 1 == num_items, 'Fed in wrong num_items'
     out += np.uint64(97531)
@@ -70,15 +72,17 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
         h = hash_array(obj.values, encoding, hash_key,
                        categorize).astype('uint64', copy=False)
         if index:
-            h = _combine_hash_arrays(iter([
-                h,
-                hash_pandas_object(obj.index,
-                                   index=False,
-                                   encoding=encoding,
-                                   hash_key=hash_key,
-                                   categorize=categorize).values]),
-                2)
+            index_iter = (hash_pandas_object(obj.index,
+                                             index=False,
+                                             encoding=encoding,
+                                             hash_key=hash_key,
+                                             categorize=categorize).values
+                          for _ in [None])
+            arrays = itertools.chain([h], index_iter)
+            h = _combine_hash_arrays(arrays, 2)
+
         h = Series(h, index=obj.index, dtype='uint64', copy=False)
+
     elif isinstance(obj, ABCDataFrame):
         hashes = (hash_array(series.values) for _, series in obj.iteritems())
         num_items = len(obj.columns)
