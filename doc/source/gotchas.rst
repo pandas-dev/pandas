@@ -1,18 +1,92 @@
 .. currentmodule:: pandas
 .. _gotchas:
 
+********************************
+Frequently Asked Questions (FAQ)
+********************************
+
 .. ipython:: python
    :suppress:
 
    import numpy as np
+   np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    import pandas as pd
-   pd.options.display.max_rows=15
+   pd.options.display.max_rows = 15
+   import matplotlib
+   matplotlib.style.use('ggplot')
+   import matplotlib.pyplot as plt
+   plt.close('all')
 
+.. _df-memory-usage:
 
-*******************
-Caveats and Gotchas
-*******************
+DataFrame memory usage
+----------------------
+As of pandas version 0.15.0, the memory usage of a dataframe (including
+the index) is shown when accessing the ``info`` method of a dataframe. A
+configuration option, ``display.memory_usage`` (see :ref:`options`),
+specifies if the dataframe's memory usage will be displayed when
+invoking the ``df.info()`` method.
+
+For example, the memory usage of the dataframe below is shown
+when calling ``df.info()``:
+
+.. ipython:: python
+
+    dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
+              'complex128', 'object', 'bool']
+    n = 5000
+    data = dict([ (t, np.random.randint(100, size=n).astype(t))
+                    for t in dtypes])
+    df = pd.DataFrame(data)
+    df['categorical'] = df['object'].astype('category')
+
+    df.info()
+
+The ``+`` symbol indicates that the true memory usage could be higher, because
+pandas does not count the memory used by values in columns with
+``dtype=object``.
+
+.. versionadded:: 0.17.1
+
+Passing ``memory_usage='deep'`` will enable a more accurate memory usage report,
+that accounts for the full usage of the contained objects. This is optional
+as it can be expensive to do this deeper introspection.
+
+.. ipython:: python
+
+   df.info(memory_usage='deep')
+
+By default the display option is set to ``True`` but can be explicitly
+overridden by passing the ``memory_usage`` argument when invoking ``df.info()``.
+
+The memory usage of each column can be found by calling the ``memory_usage``
+method. This returns a Series with an index represented by column names
+and memory usage of each column shown in bytes. For the dataframe above,
+the memory usage of each column and the total memory usage of the
+dataframe can be found with the memory_usage method:
+
+.. ipython:: python
+
+    df.memory_usage()
+
+    # total memory usage of dataframe
+    df.memory_usage().sum()
+
+By default the memory usage of the dataframe's index is shown in the
+returned Series, the memory usage of the index can be suppressed by passing
+the ``index=False`` argument:
+
+.. ipython:: python
+
+    df.memory_usage(index=False)
+
+The memory usage displayed by the ``info`` method utilizes the
+``memory_usage`` method to determine the memory usage of a dataframe
+while also formatting the output in human-readable units (base-2
+representation; i.e., 1KB = 1024 bytes).
+
+See also :ref:`Categorical Memory Usage <categorical.memory>`.
 
 .. _gotchas.truth:
 
@@ -214,175 +288,6 @@ and traded integer ``NA`` capability for a much simpler approach of using a
 special value in float and object arrays to denote ``NA``, and promoting
 integer arrays to floating when NAs must be introduced.
 
-Integer indexing
-----------------
-
-Label-based indexing with integer axis labels is a thorny topic. It has been
-discussed heavily on mailing lists and among various members of the scientific
-Python community. In pandas, our general viewpoint is that labels matter more
-than integer locations. Therefore, with an integer axis index *only*
-label-based indexing is possible with the standard tools like ``.loc``. The
-following code will generate exceptions:
-
-.. code-block:: python
-
-   s = pd.Series(range(5))
-   s[-1]
-   df = pd.DataFrame(np.random.randn(5, 4))
-   df
-   df.loc[-2:]
-
-This deliberate decision was made to prevent ambiguities and subtle bugs (many
-users reported finding bugs when the API change was made to stop "falling back"
-on position-based indexing).
-
-Label-based slicing conventions
--------------------------------
-
-Non-monotonic indexes require exact matches
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If the index of a ``Series`` or ``DataFrame`` is monotonically increasing or decreasing, then the bounds
-of a label-based slice can be outside the range of the index, much like slice indexing a
-normal Python ``list``. Monotonicity of an index can be tested with the ``is_monotonic_increasing`` and
-``is_monotonic_decreasing`` attributes.
-
-.. ipython:: python
-
-    df = pd.DataFrame(index=[2,3,3,4,5], columns=['data'], data=list(range(5)))
-    df.index.is_monotonic_increasing
-
-    # no rows 0 or 1, but still returns rows 2, 3 (both of them), and 4:
-    df.loc[0:4, :]
-
-    # slice is are outside the index, so empty DataFrame is returned
-    df.loc[13:15, :]
-
-On the other hand, if the index is not monotonic, then both slice bounds must be
-*unique* members of the index.
-
-.. ipython:: python
-
-    df = pd.DataFrame(index=[2,3,1,4,3,5], columns=['data'], data=list(range(6)))
-    df.index.is_monotonic_increasing
-
-    # OK because 2 and 4 are in the index
-    df.loc[2:4, :]
-
-.. code-block:: python
-
-    # 0 is not in the index
-    In [9]: df.loc[0:4, :]
-    KeyError: 0
-
-    # 3 is not a unique label
-    In [11]: df.loc[2:3, :]
-    KeyError: 'Cannot get right slice bound for non-unique label: 3'
-
-
-Endpoints are inclusive
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Compared with standard Python sequence slicing in which the slice endpoint is
-not inclusive, label-based slicing in pandas **is inclusive**. The primary
-reason for this is that it is often not possible to easily determine the
-"successor" or next element after a particular label in an index. For example,
-consider the following Series:
-
-.. ipython:: python
-
-   s = pd.Series(np.random.randn(6), index=list('abcdef'))
-   s
-
-Suppose we wished to slice from ``c`` to ``e``, using integers this would be
-
-.. ipython:: python
-
-   s[2:5]
-
-However, if you only had ``c`` and ``e``, determining the next element in the
-index can be somewhat complicated. For example, the following does not work:
-
-::
-
-    s.loc['c':'e'+1]
-
-A very common use case is to limit a time series to start and end at two
-specific dates. To enable this, we made the design design to make label-based
-slicing include both endpoints:
-
-.. ipython:: python
-
-    s.loc['c':'e']
-
-This is most definitely a "practicality beats purity" sort of thing, but it is
-something to watch out for if you expect label-based slicing to behave exactly
-in the way that standard Python integer slicing works.
-
-Miscellaneous indexing gotchas
-------------------------------
-
-Reindex potentially changes underlying Series dtype
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The use of ``reindex_like`` can potentially change the dtype of a ``Series``.
-
-.. ipython:: python
-
-   series = pd.Series([1, 2, 3])
-   x = pd.Series([True])
-   x.dtype
-   x = pd.Series([True]).reindex_like(series)
-   x.dtype
-
-This is because ``reindex_like`` silently inserts ``NaNs`` and the ``dtype``
-changes accordingly.  This can cause some issues when using ``numpy`` ``ufuncs``
-such as ``numpy.logical_and``.
-
-See the `this old issue <https://github.com/pandas-dev/pandas/issues/2388>`__ for a more
-detailed discussion.
-
-Parsing Dates from Text Files
------------------------------
-
-When parsing multiple text file columns into a single date column, the new date
-column is prepended to the data and then `index_col` specification is indexed off
-of the new set of columns rather than the original ones:
-
-.. ipython:: python
-   :suppress:
-
-   data =  ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
-            "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
-            "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
-            "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
-            "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
-            "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
-
-   with open('tmp.csv', 'w') as fh:
-       fh.write(data)
-
-.. ipython:: python
-
-   print(open('tmp.csv').read())
-
-   date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
-   df = pd.read_csv('tmp.csv', header=None,
-                    parse_dates=date_spec,
-                    keep_date_col=True,
-                    index_col=0)
-
-   # index_col=0 refers to the combined column "nominal" and not the original
-   # first column of 'KORD' strings
-
-   df
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove('tmp.csv')
-
 
 Differences with NumPy
 ----------------------
@@ -402,78 +307,6 @@ where the data copying occurs.
 
 See `this link <http://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
 for more information.
-
-.. _html-gotchas:
-
-HTML Table Parsing
-------------------
-There are some versioning issues surrounding the libraries that are used to
-parse HTML tables in the top-level pandas io function ``read_html``.
-
-**Issues with** |lxml|_
-
-   * Benefits
-
-     * |lxml|_ is very fast
-
-     * |lxml|_ requires Cython to install correctly.
-
-   * Drawbacks
-
-     * |lxml|_ does *not* make any guarantees about the results of its parse
-       *unless* it is given |svm|_.
-
-     * In light of the above, we have chosen to allow you, the user, to use the
-       |lxml|_ backend, but **this backend will use** |html5lib|_ if |lxml|_
-       fails to parse
-
-     * It is therefore *highly recommended* that you install both
-       |BeautifulSoup4|_ and |html5lib|_, so that you will still get a valid
-       result (provided everything else is valid) even if |lxml|_ fails.
-
-**Issues with** |BeautifulSoup4|_ **using** |lxml|_ **as a backend**
-
-   * The above issues hold here as well since |BeautifulSoup4|_ is essentially
-     just a wrapper around a parser backend.
-
-**Issues with** |BeautifulSoup4|_ **using** |html5lib|_ **as a backend**
-
-   * Benefits
-
-     * |html5lib|_ is far more lenient than |lxml|_ and consequently deals
-       with *real-life markup* in a much saner way rather than just, e.g.,
-       dropping an element without notifying you.
-
-     * |html5lib|_ *generates valid HTML5 markup from invalid markup
-       automatically*. This is extremely important for parsing HTML tables,
-       since it guarantees a valid document. However, that does NOT mean that
-       it is "correct", since the process of fixing markup does not have a
-       single definition.
-
-     * |html5lib|_ is pure Python and requires no additional build steps beyond
-       its own installation.
-
-   * Drawbacks
-
-     * The biggest drawback to using |html5lib|_ is that it is slow as
-       molasses.  However consider the fact that many tables on the web are not
-       big enough for the parsing algorithm runtime to matter. It is more
-       likely that the bottleneck will be in the process of reading the raw
-       text from the URL over the web, i.e., IO (input-output). For very large
-       tables, this might not be true.
-
-
-.. |svm| replace:: **strictly valid markup**
-.. _svm: http://validator.w3.org/docs/help.html#validation_basics
-
-.. |html5lib| replace:: **html5lib**
-.. _html5lib: https://github.com/html5lib/html5lib-python
-
-.. |BeautifulSoup4| replace:: **BeautifulSoup4**
-.. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
-
-.. |lxml| replace:: **lxml**
-.. _lxml: http://lxml.de
 
 
 Byte-Ordering Issues
