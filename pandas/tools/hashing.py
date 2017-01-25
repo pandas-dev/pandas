@@ -3,11 +3,12 @@ data hash pandas / numpy objects
 """
 
 import numpy as np
-from pandas import _hash, Series, factorize, Categorical, Index
+from pandas import _hash, Series, factorize, Categorical, Index, MultiIndex
 from pandas.lib import is_bool_array
 from pandas.types.generic import ABCIndexClass, ABCSeries, ABCDataFrame
 from pandas.types.common import (is_categorical_dtype, is_numeric_dtype,
-                                 is_datetime64_dtype, is_timedelta64_dtype)
+                                 is_datetime64_dtype, is_timedelta64_dtype,
+                                 is_object_dtype)
 
 # 16 byte long hashing key
 _default_hash_key = '0123456789123456'
@@ -45,6 +46,9 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
         h = np.multiply(h, np.uint(3), h)
         return np.add(h, hashed_to_add, h)
 
+    if isinstance(obj, MultiIndex):
+        return _hash_tuples(obj, encoding, hash_key)
+
     if isinstance(obj, ABCIndexClass):
         h = hash_array(obj.values, encoding, hash_key,
                        categorize).astype('uint64')
@@ -78,6 +82,30 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
     else:
         raise TypeError("Unexpected type for hashing %s" % type(obj))
     return h
+
+
+def _hash_tuples(vals, encoding, hash_key):
+    """
+    Hash an MultiIndex / array_of_tuples efficiently
+
+    Parameters
+    ----------
+    vals : MultiIndex or ndarray of tuples
+    encoding : string, default 'utf8'
+    hash_key : string key to encode, default to _default_hash_key
+
+    Returns
+    -------
+    ndarray of hashed values array, same size as len(c)
+    """
+
+    if not isinstance(vals, MultiIndex):
+        vals = MultiIndex.from_tuples(vals)
+
+    # efficiently turn us into a DataFrame and hash
+    return hash_pandas_object(vals.to_dataframe(index=False),
+                              index=False, encoding=encoding,
+                              hash_key=hash_key, categorize=False)
 
 
 def _hash_categorical(c, encoding, hash_key):
@@ -126,6 +154,10 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
 
     if hash_key is None:
         hash_key = _default_hash_key
+
+    if isinstance(vals, list) and len(vals) and isinstance(vals[0], tuple):
+        # we hash an list of tuples similar to a MultiIndex
+        return _hash_tuples(vals, encoding, hash_key).values
 
     # For categoricals, we hash the categories, then remap the codes to the
     # hash values. (This check is above the complex check so that we don't ask

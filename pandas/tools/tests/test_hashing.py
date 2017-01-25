@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from pandas import DataFrame, Series, Index
+from pandas import DataFrame, Series, Index, MultiIndex
 from pandas.tools.hashing import hash_array, hash_pandas_object
 import pandas.util.testing as tm
 
@@ -55,6 +55,18 @@ class TestHashing(tm.TestCase):
             b = hash_pandas_object(obj, index=False)
             self.assertFalse((a == b).all())
 
+    def test_hash_list_tuples(self):
+        tups = [(1, 'one'), (1, 'two'), (2, 'one')]
+        result = hash_array(tups)
+        expected = hash_pandas_object(MultiIndex.from_tuples(tups)).values
+        self.assert_numpy_array_equal(result, expected)
+
+    def test_multiindex_unique(self):
+        mi = MultiIndex.from_tuples([(118, 472), (236, 118), (51, 204), (102, 51)])
+        self.assertTrue(mi.is_unique)
+        result = hash_pandas_object(mi)
+        self.assertTrue(result.is_unique)
+
     def test_hash_pandas_object(self):
 
         for obj in [Series([1, 2, 3]),
@@ -72,7 +84,11 @@ class TestHashing(tm.TestCase):
                     tm.makeMixedDataFrame(),
                     tm.makeTimeDataFrame(),
                     tm.makeTimeSeries(),
-                    tm.makeTimedeltaIndex()]:
+                    tm.makeTimedeltaIndex(),
+                    MultiIndex.from_product(
+                        [range(5),
+                         ['foo', 'bar', 'baz'],
+                         pd.date_range('20130101', periods=2)])]:
             self.check_equal(obj)
             self.check_not_equal_with_index(obj)
 
@@ -135,14 +151,6 @@ class TestHashing(tm.TestCase):
 
         # mixed objects are not supported
         obj = Series(['1', 2, 3])
-
-        def f():
-            hash_pandas_object(obj)
-        self.assertRaises(TypeError, f)
-
-        # MultiIndex are represented as tuples
-        obj = Series([1, 2, 3], index=pd.MultiIndex.from_tuples(
-            [('a', 1), ('a', 2), ('b', 1)]))
 
         def f():
             hash_pandas_object(obj)
