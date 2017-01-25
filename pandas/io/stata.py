@@ -2157,9 +2157,15 @@ class StataWriter(StataParser):
             time_stamp = datetime.datetime.now()
         elif not isinstance(time_stamp, datetime.datetime):
             raise ValueError("time_stamp should be datetime type")
-        self._file.write(
-            self._null_terminate(time_stamp.strftime("%d %b %Y %H:%M"))
-        )
+        # GH #13856
+        # Avoid locale-specific month conversion
+        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
+                  'Sep', 'Oct', 'Nov', 'Dec']
+        month_lookup = {i + 1: month for i, month in enumerate(months)}
+        ts = (time_stamp.strftime("%d ") +
+              month_lookup[time_stamp.month] +
+              time_stamp.strftime(" %Y %H:%M"))
+        self._file.write(self._null_terminate(ts))
 
     def _write_descriptors(self, typlist=None, varlist=None, srtlist=None,
                            fmtlist=None, lbllist=None):
