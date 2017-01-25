@@ -399,6 +399,9 @@ class TestOLSMisc(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             expected = ols(y=y, x={'x': x})
         assert_series_equal(model.beta, expected.beta)
+        
+        # Test predict using a series
+        assert_series_equal(model.y_predict, model.predict(x=x))
 
         # GH 5233/5250
         assert_series_equal(model.y_predict, model.predict(x=x))
