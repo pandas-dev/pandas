@@ -5,6 +5,7 @@ import itertools
 
 import numpy as np
 from pandas import _hash, Series, factorize, Categorical, Index, MultiIndex
+import pandas.core.algorithms as algos
 from pandas.lib import is_bool_array
 from pandas.types.generic import ABCIndexClass, ABCSeries, ABCDataFrame
 from pandas.types.common import (is_categorical_dtype, is_numeric_dtype,
@@ -58,15 +59,16 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
         hash_key = _default_hash_key
 
     if isinstance(obj, MultiIndex):
-        return _hash_tuples(obj, encoding, hash_key)
+        return Series(hash_tuples(obj, encoding, hash_key),
+                      dtype='uint64', copy=False)
 
     if isinstance(obj, ABCIndexClass):
         h = hash_array(obj.values, encoding, hash_key,
-                       categorize).astype('uint64')
-        h = Series(h, index=obj, dtype='uint64')
+                       categorize).astype('uint64', copy=False)
+        h = Series(h, index=obj, dtype='uint64', copy=False)
     elif isinstance(obj, ABCSeries):
         h = hash_array(obj.values, encoding, hash_key,
-                       categorize).astype('uint64')
+                       categorize).astype('uint64', copy=False)
         if index:
             h = _combine_hash_arrays(iter([
                 h,
@@ -76,7 +78,7 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
                                    hash_key=hash_key,
                                    categorize=categorize).values]),
                 2)
-        h = Series(h, index=obj.index, dtype='uint64')
+        h = Series(h, index=obj.index, dtype='uint64', copy=False)
     elif isinstance(obj, ABCDataFrame):
         hashes = (hash_array(series.values) for _, series in obj.iteritems())
         num_items = len(obj.columns)
@@ -91,34 +93,81 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
             hashes = itertools.chain(hashes, index_hash_generator)
         h = _combine_hash_arrays(hashes, num_items)
 
-        h = Series(h, index=obj.index, dtype='uint64')
+        h = Series(h, index=obj.index, dtype='uint64', copy=False)
     else:
         raise TypeError("Unexpected type for hashing %s" % type(obj))
     return h
 
 
-def _hash_tuples(vals, encoding, hash_key):
+def _hash_lists(vals, encoding='utf8', hash_key=None):
+    """
+
+    Parameters
+    ----------
+    vals : list of ndarrays
+    encoding : string, default 'utf8'
+        encoding for data & key when strings
+    hash_key : string key to encode, default to _default_hash_key
+
+    Returns
+    -------
+    1d uint64 numpy array of hash values, same length as the vals[0]
+    """
+
+    if not isinstance(vals, list):
+        raise TypeError("only can accept lists")
+
+    if not len(vals):
+        raise ValueError("must pass a non-zero length vals")
+
+    if not isinstance(vals[0], np.ndarray):
+        raise ValueError("must pass a ndarray")
+
+    hashes = (hash_array(l, encoding=encoding, hash_key=hash_key)
+              for l in vals)
+    h = _combine_hash_arrays(hashes, len(vals))
+    return h
+
+
+def hash_tuples(vals, encoding='utf8', hash_key=None):
     """
     Hash an MultiIndex / array_of_tuples efficiently
 
     Parameters
     ----------
-    vals : MultiIndex or ndarray of tuples
+    vals : MultiIndex, ndarray of tuples, or single tuple
     encoding : string, default 'utf8'
     hash_key : string key to encode, default to _default_hash_key
 
     Returns
     -------
-    ndarray of hashed values array, same size as len(c)
+    ndarray of hashed values array
     """
+
+    is_tuple = False
+    if isinstance(vals, tuple):
+        vals = [vals]
+        is_tuple = True
 
     if not isinstance(vals, MultiIndex):
         vals = MultiIndex.from_tuples(vals)
 
-    # efficiently turn us into a DataFrame and hash
-    return hash_pandas_object(vals.to_frame(index=False),
-                              index=False, encoding=encoding,
-                              hash_key=hash_key, categorize=False)
+    # create a list-of-ndarrays & hash
+    def get_level_values(num):
+        unique = vals.levels[num]  # .values
+        labels = vals.labels[num]
+        filled = algos.take_1d(unique.values, labels,
+                               fill_value=unique._na_value)
+        return filled
+
+    vals = [get_level_values(level)
+            for level in range(vals.nlevels)]
+
+    result = _hash_lists(vals, encoding=encoding, hash_key=hash_key)
+    if is_tuple:
+        result = result[0]
+
+    return result
 
 
 def _hash_categorical(c, encoding, hash_key):
@@ -138,7 +187,7 @@ def _hash_categorical(c, encoding, hash_key):
     """
     cat_hashed = hash_array(c.categories.values, encoding, hash_key,
                             categorize=False).astype(np.uint64, copy=False)
-    return c.rename_categories(cat_hashed).astype(np.uint64)
+    return c.rename_categories(cat_hashed).astype(np.uint64, copy=False)
 
 
 def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
@@ -168,10 +217,6 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
     if hash_key is None:
         hash_key = _default_hash_key
 
-    if isinstance(vals, list) and len(vals) and isinstance(vals[0], tuple):
-        # we hash an list of tuples similar to a MultiIndex
-        return _hash_tuples(vals, encoding, hash_key).values
-
     # For categoricals, we hash the categories, then remap the codes to the
     # hash values. (This check is above the complex check so that we don't ask
     # numpy if categorical is a subdtype of complex, as it will choke.
@@ -187,9 +232,10 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
     # manage it.
     if is_bool_array(vals):
         vals = vals.astype('u8')
-    elif ((is_datetime64_dtype(vals) or
-           is_timedelta64_dtype(vals) or
-           is_numeric_dtype(vals)) and vals.dtype.itemsize <= 8):
+    elif (is_datetime64_dtype(vals) or
+          is_timedelta64_dtype(vals)):
+        vals = vals.view('i8').astype('u8', copy=False)
+    elif (is_numeric_dtype(vals) and vals.dtype.itemsize <= 8):
         vals = vals.view('u{}'.format(vals.dtype.itemsize)).astype('u8')
     else:
         # With repeated values, its MUCH faster to categorize object dtypes,

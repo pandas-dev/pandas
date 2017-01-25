@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import DataFrame, Series, Index, MultiIndex
-from pandas.tools.hashing import hash_array, hash_pandas_object
+from pandas.tools.hashing import hash_array, hash_tuples, hash_pandas_object
 import pandas.util.testing as tm
 
 
@@ -55,11 +55,14 @@ class TestHashing(tm.TestCase):
             b = hash_pandas_object(obj, index=False)
             self.assertFalse((a == b).all())
 
-    def test_hash_list_tuples(self):
+    def test_hash_tuples(self):
         tups = [(1, 'one'), (1, 'two'), (2, 'one')]
-        result = hash_array(tups)
+        result = hash_tuples(tups)
         expected = hash_pandas_object(MultiIndex.from_tuples(tups)).values
         self.assert_numpy_array_equal(result, expected)
+
+        result = hash_tuples(tups[0])
+        self.assertEqual(result, expected[0])
 
     def test_multiindex_unique(self):
         mi = MultiIndex.from_tuples([(118, 472), (236, 118),
