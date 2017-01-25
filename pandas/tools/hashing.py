@@ -1,6 +1,7 @@
 """
 data hash pandas / numpy objects
 """
+import itertools
 
 import numpy as np
 from pandas import _hash, Series, factorize, Categorical, Index
@@ -12,6 +13,22 @@ from pandas.types.common import (is_categorical_dtype, is_numeric_dtype,
 # 16 byte long hashing key
 _default_hash_key = '0123456789123456'
 
+
+def _combine_hash_arrays(arrays, num_items):
+    "Should be the same as CPython's tupleobject.c"
+    first = next(arrays)
+    arrays = itertools.chain([first], arrays)
+
+    mult = np.zeros_like(first) + np.uint64(1000003)
+    out = np.zeros_like(first) + np.uint64(0x345678)
+    for i, a in enumerate(arrays):
+        inverse_i = num_items - i
+        out ^= a
+        out *= mult
+        mult += np.uint64(82520 + inverse_i + inverse_i)
+    assert i+1 == num_items, 'Fed in wrong num_items'
+    out += np.uint64(97531)
+    return out
 
 def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
                        categorize=True):
@@ -41,10 +58,6 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
     if hash_key is None:
         hash_key = _default_hash_key
 
-    def adder(h, hashed_to_add):
-        h = np.multiply(h, np.uint(3), h)
-        return np.add(h, hashed_to_add, h)
-
     if isinstance(obj, ABCIndexClass):
         h = hash_array(obj.values, encoding, hash_key,
                        categorize).astype('uint64')
@@ -53,26 +66,29 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
         h = hash_array(obj.values, encoding, hash_key,
                        categorize).astype('uint64')
         if index:
-            h = adder(h, hash_pandas_object(obj.index,
-                                            index=False,
-                                            encoding=encoding,
-                                            hash_key=hash_key,
-                                            categorize=categorize).values)
+            index_iter = (hash_pandas_object(obj.index,
+                                             index=False,
+                                             encoding=encoding,
+                                             hash_key=hash_key,
+                                             categorize=categorize).values
+                          for _ in [None])
+            arrays = itertools.chain([h], index_iter)
+            h = _combine_hash_arrays(arrays, 2)
+
         h = Series(h, index=obj.index, dtype='uint64')
     elif isinstance(obj, ABCDataFrame):
-        cols = obj.iteritems()
-        first_series = next(cols)[1]
-        h = hash_array(first_series.values, encoding,
-                       hash_key, categorize).astype('uint64')
-        for _, col in cols:
-            h = adder(h, hash_array(col.values, encoding, hash_key,
-                                    categorize))
+        hashes = (hash_array(series.values) for _, series in obj.iteritems())
+        num_items = len(obj.columns)
         if index:
-            h = adder(h, hash_pandas_object(obj.index,
-                                            index=False,
-                                            encoding=encoding,
-                                            hash_key=hash_key,
-                                            categorize=categorize).values)
+            index_hash_generator = (hash_pandas_object(obj.index,
+                                                       index=False,
+                                                       encoding=encoding,
+                                                       hash_key=hash_key,
+                                                       categorize=categorize).values
+                                    for _ in [None])
+            num_items += 1
+            hashes = itertools.chain(hashes, index_hash_generator)
+        h = _combine_hash_arrays(hashes, num_items)
 
         h = Series(h, index=obj.index, dtype='uint64')
     else:
