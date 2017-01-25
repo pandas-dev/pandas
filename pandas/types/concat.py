@@ -208,7 +208,7 @@ def _concat_categorical(to_concat, axis=0):
     return _concat_asobject(to_concat)
 
 
-def union_categoricals(to_union, sort_categories=False):
+def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     """
     Combine list-like of Categorical-like, unioning categories. All
     categories must have the same dtype.
@@ -222,6 +222,9 @@ def union_categoricals(to_union, sort_categories=False):
     sort_categories : boolean, default False
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
+    ignore_order: boolean, default False
+        If true, ordered categories will be ignored.  Results in
+        an unordered categorical.
 
     Returns
     -------
@@ -264,7 +267,7 @@ def union_categoricals(to_union, sort_categories=False):
         ordered = first.ordered
         new_codes = np.concatenate([c.codes for c in to_union])
 
-        if sort_categories and ordered:
+        if sort_categories and not ignore_order and ordered:
             raise TypeError("Cannot use sort_categories=True with "
                             "ordered Categoricals")
 
@@ -272,7 +275,7 @@ def union_categoricals(to_union, sort_categories=False):
             categories = categories.sort_values()
             indexer = categories.get_indexer(first.categories)
             new_codes = take_1d(indexer, new_codes, fill_value=-1)
-    elif all(not c.ordered for c in to_union):
+    elif ignore_order | all(not c.ordered for c in to_union):
         # different categories - union and recode
         cats = first.categories.append([c.categories for c in to_union[1:]])
         categories = Index(cats.unique())
@@ -296,6 +299,9 @@ def union_categoricals(to_union, sort_categories=False):
             raise TypeError(msg)
         else:
             raise TypeError('Categorical.ordered must be the same')
+
+    if ignore_order:
+        ordered = False
 
     return Categorical(new_codes, categories=categories, ordered=ordered,
                        fastpath=True)

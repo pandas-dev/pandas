@@ -1662,6 +1662,39 @@ class TestConcatenate(ConcatenateBase):
         with tm.assertRaisesRegexp(TypeError, msg):
             union_categoricals([c1, c2])
 
+    def test_union_categoricals_ignore_order(self):
+        c1 = Categorical([1, 2, 3], ordered=True)
+        c2 = Categorical([1, 2, 3], ordered=False)
+
+        res = union_categoricals([c1, c2], ignore_order=True)
+        exp = Categorical([1, 2, 3, 1, 2, 3])
+        tm.assert_categorical_equal(res, exp)
+
+        res = union_categoricals([c1, c1], ignore_order=True)
+        exp = Categorical([1, 2, 3, 1, 2, 3], ordered=False)
+        tm.assert_categorical_equal(res, exp)
+
+        c1 = Categorical([1, 2, 3, np.nan], ordered=True)
+        c2 = Categorical([3, 2], categories=[1, 2, 3], ordered=True)
+
+        res = union_categoricals([c1, c2], ignore_order=True)
+        exp = Categorical([1, 2, 3, np.nan, 3, 2], ordered=False)
+        tm.assert_categorical_equal(res, exp)
+
+        c1 = Categorical([1, 2, 3], ordered=True)
+        c2 = Categorical([1, 2, 3], categories=[3, 2, 1], ordered=True)
+
+        res = union_categoricals([c1, c2], ignore_order=True)
+        exp = Categorical([1, 2, 3, 1, 2, 3])
+        tm.assert_categorical_equal(res, exp)
+
+        c1 = Categorical([1, 2, 3], categories=[3, 2, 1], ordered=True)
+        c2 = Categorical([1, 2, 3], ordered=True)
+
+        res = union_categoricals([c1, c2], ignore_order=True, sort_categories=True)
+        exp = Categorical([1, 2, 3, 1, 2, 3], categories=[1, 2, 3])
+        tm.assert_categorical_equal(res, exp)
+
     def test_union_categoricals_sort(self):
         # GH 13846
         c1 = Categorical(['x', 'y', 'z'])
