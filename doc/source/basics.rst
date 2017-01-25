@@ -1889,7 +1889,7 @@ gotchas
 
 Performing selection operations on ``integer`` type data can easily upcast the data to ``floating``.
 The dtype of the input data will be preserved in cases where ``nans`` are not introduced (starting in 0.11.0)
-See also :ref:`integer na gotchas <gotchas.intna>`
+See also :ref:`Support for integer ``NA`` <gotchas.intna>`
 
 .. ipython:: python
 
