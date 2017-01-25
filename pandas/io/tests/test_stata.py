@@ -484,9 +484,7 @@ class TestStata(tm.TestCase):
                               data_label=data_label)
 
             with StataReader(path) as reader:
-                parsed_time_stamp = dt.datetime.strptime(
-                    reader.time_stamp, ('%d %b %Y %H:%M'))
-                assert parsed_time_stamp == time_stamp
+                assert reader.time_stamp == '29 Feb 2000 14:21'
                 assert reader.data_label == data_label
 
     def test_numeric_column_names(self):
