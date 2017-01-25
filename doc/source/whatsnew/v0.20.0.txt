@@ -131,7 +131,7 @@ Other enhancements
 - New ``UnsortedIndexError`` (subclass of ``KeyError``) raised when indexing/slicing into an
   unsorted MultiIndex (:issue:`11897`). This allows differentiation between errors due to lack
   of sorting or an incorrect key. See :ref:`here <advanced.unsorted>`
-
+- ``MultiIndex`` has gained a ``.to_frame()`` method to convert to a ``DataFrame`` (:issue:`12397`)
 - ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (:issue:`14714`, :issue:`14798`)
 - ``pd.qcut`` has gained the ``duplicates='raise'|'drop'`` option to control whether to raise on duplicated edges (:issue:`7751`)
 - ``Series`` provides a ``to_excel`` method to output Excel files (:issue:`8825`)

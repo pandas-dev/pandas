@@ -827,6 +827,30 @@ class MultiIndex(Index):
         """ convert to object if we are a categorical """
         return self.set_levels([i._to_safe_for_reshape() for i in self.levels])
 
+    def to_frame(self, index=True):
+        """
+        Create a DataFrame with the columns the levels of the MultiIndex
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        index : boolean, default True
+            return this MultiIndex as the index
+
+        Returns
+        -------
+        DataFrame
+        """
+
+        from pandas import DataFrame
+        result = DataFrame({(name or level): self.get_level_values(level)
+                            for name, level in
+                            zip(self.names, range(len(self.levels)))})
+        if index:
+            result.index = self
+        return result
+
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
         Return a MultiIndex reshaped to conform to the
