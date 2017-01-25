@@ -5507,13 +5507,13 @@ class TestGroupBy(tm.TestCase):
         ops = [(pd.algos.group_cumprod_float64, np.cumproduct, [np.float64]),
                (pd.algos.group_cumsum, np.cumsum, dtypes)]
 
+        is_datetimelike = False
         for pd_op, np_op, dtypes in ops:
             for dtype in dtypes:
                 data = np.array([[1], [2], [3], [4]], dtype=dtype)
                 ans = np.zeros_like(data)
-                accum = np.array([[0]], dtype=dtype)
                 labels = np.array([0, 0, 0, 0], dtype=np.int64)
-                pd_op(ans, data, labels, accum)
+                pd_op(ans, data, labels, is_datetimelike)
                 self.assert_numpy_array_equal(np_op(data), ans[:, 0],
                                               check_dtype=False)
 
@@ -5521,25 +5521,24 @@ class TestGroupBy(tm.TestCase):
         labels = np.array([0, 0, 0, 0, 0], dtype=np.int64)
 
         data = np.array([[1], [2], [3], [np.nan], [4]], dtype='float64')
-        accum = np.array([[0.0]])
         actual = np.zeros_like(data)
         actual.fill(np.nan)
-        pd.algos.group_cumprod_float64(actual, data, labels, accum)
+        pd.algos.group_cumprod_float64(actual, data, labels, is_datetimelike)
         expected = np.array([1, 2, 6, np.nan, 24], dtype='float64')
         self.assert_numpy_array_equal(actual[:, 0], expected)
 
-        accum = np.array([[0.0]])
         actual = np.zeros_like(data)
         actual.fill(np.nan)
-        pd.algos.group_cumsum(actual, data, labels, accum)
+        pd.algos.group_cumsum(actual, data, labels, is_datetimelike)
         expected = np.array([1, 3, 6, np.nan, 10], dtype='float64')
         self.assert_numpy_array_equal(actual[:, 0], expected)
 
         # timedelta
+        is_datetimelike = True
         data = np.array([np.timedelta64(1, 'ns')] * 5, dtype='m8[ns]')[:, None]
-        accum = np.array([[0]], dtype='int64')
         actual = np.zeros_like(data, dtype='int64')
-        pd.algos.group_cumsum(actual, data.view('int64'), labels, accum)
+        pd.algos.group_cumsum(actual, data.view('int64'), labels,
+                              is_datetimelike)
         expected = np.array([np.timedelta64(1, 'ns'), np.timedelta64(
             2, 'ns'), np.timedelta64(3, 'ns'), np.timedelta64(4, 'ns'),
             np.timedelta64(5, 'ns')])
@@ -5965,12 +5964,9 @@ class TestGroupBy(tm.TestCase):
             df.loc[[2, 6], 'B'] = min_val
             expected.loc[[2, 3, 6, 7], 'B'] = min_val
             result = df.groupby('A').cummin()
-
-            # TODO: GH 15019
-            # overwriting NaNs
-            # tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
             expected = df.groupby('A').B.apply(lambda x: x.cummin()).to_frame()
-            # tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             # cummax
             expected = pd.DataFrame({'B': expected_maxs}).astype(dtype)
@@ -5983,13 +5979,9 @@ class TestGroupBy(tm.TestCase):
             df.loc[[2, 6], 'B'] = max_val
             expected.loc[[2, 3, 6, 7], 'B'] = max_val
             result = df.groupby('A').cummax()
-
-            # TODO: GH 15019
-            # overwriting NaNs
-            # tm.assert_frame_equal(result, expected)
-
+            tm.assert_frame_equal(result, expected)
             expected = df.groupby('A').B.apply(lambda x: x.cummax()).to_frame()
-            # tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
         # Test nan in some values
         base_df.loc[[0, 2, 4, 6], 'B'] = np.nan
