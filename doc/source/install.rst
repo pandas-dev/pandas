@@ -294,16 +294,12 @@ Optional Dependencies
        `lxml`_ or `html5lib`_ or both.
        :func:`~pandas.read_html` will **not** work with *only*
        `BeautifulSoup4`_ installed.
-     * You are highly encouraged to read :ref:`HTML Table Parsing <faq.html>`.
+     * You are highly encouraged to read :ref:`HTML Table Parsing gotchas <gotchas.html>`.
        It explains issues surrounding the installation and
        usage of the above three libraries.
-       Additionally, if you're using `Anaconda`_ you should definitely
-       read.
      * You may need to install an older version of `BeautifulSoup4`_:
        Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and 32-bit
        Ubuntu/Debian
-     * Additionally, if you're using `Anaconda`_ you should definitely
-       read :ref:`the gotchas about HTML parsing libraries <html-gotchas>`
 
   .. note::
 
@@ -320,7 +316,6 @@ Optional Dependencies
 .. _html5lib: https://github.com/html5lib/html5lib-python
 .. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
 .. _lxml: http://lxml.de
-.. _Anaconda: https://store.continuum.io/cshop/anaconda
 
 .. note::
 

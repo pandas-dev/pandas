@@ -1,5 +1,5 @@
 .. currentmodule:: pandas
-.. _faq:
+.. _gotchas:
 
 ********************************
 Frequently Asked Questions (FAQ)
@@ -88,7 +88,7 @@ representation; i.e., 1KB = 1024 bytes).
 
 See also :ref:`Categorical Memory Usage <categorical.memory>`.
 
-.. _faq.truth:
+.. _gotchas.truth:
 
 Using If/Truth Statements with pandas
 -------------------------------------
@@ -208,7 +208,7 @@ detect NA values.
 However, it comes with it a couple of trade-offs which I most certainly have
 not ignored.
 
-.. _faq.intna:
+.. _gotchas.intna:
 
 Support for integer ``NA``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -308,7 +308,7 @@ where the data copying occurs.
 See `this link <http://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
 for more information.
 
-.. _faq.html:
+.. _gotchas.html:
 
 HTML Table Parsing
 ------------------

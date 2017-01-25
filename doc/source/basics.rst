@@ -313,7 +313,7 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
        ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
-See :ref:`FAQ<faq.truth>` for a more detailed discussion.
+See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 
 .. _basics.equals:
 
@@ -1889,7 +1889,7 @@ gotchas
 
 Performing selection operations on ``integer`` type data can easily upcast the data to ``floating``.
 The dtype of the input data will be preserved in cases where ``nans`` are not introduced (starting in 0.11.0)
-See also :ref:`Support for integer ``NA`` <faq.intna>`
+See also :ref:`Support for integer ``NA`` <gotchas.intna>`
 
 .. ipython:: python
 
