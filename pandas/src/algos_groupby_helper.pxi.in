@@ -574,16 +574,18 @@ def group_min_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_cummin_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                           ndarray[{{dest_type2}}, ndim=2] values,
                           ndarray[int64_t] labels,
-                          ndarray[{{dest_type2}}, ndim=2] accum):
+                          bint is_datetimelike):
     """
     Only transforms on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, size
         {{dest_type2}} val, min_val = 0
+        ndarray[{{dest_type2}}, ndim=2] accum
         int64_t lab
 
     N, K = (<object> values).shape
+    accum = np.empty_like(values)
     accum.fill({{inf_val}})
 
     with nogil:
@@ -600,7 +602,7 @@ def group_cummin_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                     accum[lab, j] = min_val
                     out[i, j] = accum[lab, j]
                 # val = nan
-                else:
+                elif is_datetimelike:
                     out[i, j] = {{nan_val}}
 
 
@@ -609,16 +611,18 @@ def group_cummin_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                           ndarray[{{dest_type2}}, ndim=2] values,
                           ndarray[int64_t] labels,
-                          ndarray[{{dest_type2}}, ndim=2] accum):
+                          bint is_datetimelike):
     """
     Only transforms on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, size
         {{dest_type2}} val, max_val = 0
+        ndarray[{{dest_type2}}, ndim=2] accum
         int64_t lab
 
     N, K = (<object> values).shape
+    accum = np.empty_like(values)
     accum.fill(-{{inf_val}})
 
     with nogil:
@@ -635,7 +639,7 @@ def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                     accum[lab, j] = max_val
                     out[i, j] = accum[lab, j]
                 # val = nan
-                else:
+                elif is_datetimelike:
                     out[i, j] = {{nan_val}}
 
 {{endfor}}
@@ -682,17 +686,18 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
 def group_cumprod_float64(float64_t[:, :] out,
                           float64_t[:, :] values,
                           int64_t[:] labels,
-                          float64_t[:, :] accum):
+                          bint is_datetimelike):
     """
     Only transforms on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, size
         float64_t val
+        float64_t[:, :] accum
         int64_t lab
 
     N, K = (<object> values).shape
-    accum = np.ones_like(accum)
+    accum = np.ones_like(values)
 
     with nogil:
         for i in range(N):
@@ -712,17 +717,18 @@ def group_cumprod_float64(float64_t[:, :] out,
 def group_cumsum(numeric[:, :] out,
                  numeric[:, :] values,
                  int64_t[:] labels,
-                 numeric[:, :] accum):
+                 is_datetimelike):
     """
     Only transforms on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, size
         numeric val
+        numeric[:, :] accum
         int64_t lab
 
     N, K = (<object> values).shape
-    accum = np.zeros_like(accum)
+    accum = np.zeros_like(values)
 
     with nogil:
         for i in range(N):
