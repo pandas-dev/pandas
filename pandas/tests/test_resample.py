@@ -796,14 +796,21 @@ class Base(object):
             methods = downsample_methods + upsample_methods
             for method in methods:
                 result = getattr(f.resample(freq), method)()
-
-                expected = pd.Series([])
+                if method != 'size':
+                    expected = f.copy()
+                    assert_equal = assert_frame_equal
+                else:
+                    # GH14962
+                    expected = Series([])
+                    assert_equal = assert_series_equal
+                
                 expected.index = f.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
                 assert result.index.freq == expected.index.freq
                 assert_frame_equal(result, expected, check_dtype=False)
 
             # test size for GH13212 (currently stays as df)
+
 
     def test_resample_empty_dtypes(self):
 
@@ -857,16 +864,6 @@ class Base(object):
             else:
                 assert_frame_equal(result_agg, expected)
                 assert_frame_equal(result_how, expected)
-
-    def test_resample_empty_dataframe_with_size(self):
-        # GH 14962
-        index = pd.DatetimeIndex([], freq='M')
-        df = pd.DataFrame([], index=index)
-
-        for freq in ['M', 'D', 'H']:
-            result = df.resample(freq).size()
-            expected = pd.Series([], index=index, dtype='int64')
-            assert_series_equal(result, expected)
 
 
 class TestDatetimeIndex(Base):
