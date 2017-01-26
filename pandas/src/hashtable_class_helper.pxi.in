@@ -203,6 +203,7 @@ cdef class ObjectVector:
 
 
 cdef class HashTable:
+
     pass
 
 {{py:
@@ -236,6 +237,12 @@ cdef class {{name}}HashTable(HashTable):
         cdef khiter_t k
         k = kh_get_{{dtype}}(self.table, key)
         return k != self.table.n_buckets
+
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
+                                       sizeof(size_t) + # vals
+                                       sizeof(uint32_t)) # flags
 
     cpdef get_item(self, {{dtype}}_t val):
         cdef khiter_t k
@@ -463,6 +470,12 @@ cdef class StringHashTable(HashTable):
         if self.table is not NULL:
             kh_destroy_str(self.table)
             self.table = NULL
+
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof(char *) + # keys
+                                       sizeof(ssize_t) + # vals
+                                       sizeof(uint32_t)) # flags
 
     cpdef get_item(self, object val):
         cdef:
@@ -713,6 +726,12 @@ cdef class PyObjectHashTable(HashTable):
             key = na_sentinel
         k = kh_get_pymap(self.table, <PyObject*>key)
         return k != self.table.n_buckets
+
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof(PyObject *) + # keys
+                                       sizeof(size_t) + # vals
+                                       sizeof(uint32_t)) # flags
 
     cpdef get_item(self, object val):
         cdef khiter_t k
