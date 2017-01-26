@@ -115,36 +115,6 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
     return h
 
 
-def _hash_lists(vals, encoding='utf8', hash_key=None):
-    """
-
-    Parameters
-    ----------
-    vals : list of ndarrays
-    encoding : string, default 'utf8'
-        encoding for data & key when strings
-    hash_key : string key to encode, default to _default_hash_key
-
-    Returns
-    -------
-    1d uint64 numpy array of hash values, same length as the vals[0]
-    """
-
-    if not isinstance(vals, list):
-        raise TypeError("only can accept lists")
-
-    if not len(vals):
-        raise ValueError("must pass a non-zero length vals")
-
-    if not isinstance(vals[0], np.ndarray):
-        raise ValueError("must pass a ndarray")
-
-    hashes = (hash_array(l, encoding=encoding, hash_key=hash_key)
-              for l in vals)
-    h = _combine_hash_arrays(hashes, len(vals))
-    return h
-
-
 def hash_tuples(vals, encoding='utf8', hash_key=None):
     """
     Hash an MultiIndex / list-of-tuples efficiently
@@ -172,22 +142,25 @@ def hash_tuples(vals, encoding='utf8', hash_key=None):
     if not isinstance(vals, MultiIndex):
         vals = MultiIndex.from_tuples(vals)
 
-    # create a list-of-ndarrays & hash
+    # create a list-of-ndarrays
     def get_level_values(num):
         unique = vals.levels[num]  # .values
         labels = vals.labels[num]
-        filled = algos.take_1d(unique.values, labels,
+        filled = algos.take_1d(unique._values, labels,
                                fill_value=unique._na_value)
         return filled
 
     vals = [get_level_values(level)
             for level in range(vals.nlevels)]
 
-    result = _hash_lists(vals, encoding=encoding, hash_key=hash_key)
+    # hash the list-of-ndarrays
+    hashes = (hash_array(l, encoding=encoding, hash_key=hash_key)
+              for l in vals)
+    h = _combine_hash_arrays(hashes, len(vals))
     if is_tuple:
-        result = result[0]
+        h = h[0]
 
-    return result
+    return h
 
 
 def _hash_categorical(c, encoding, hash_key):

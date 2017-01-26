@@ -102,10 +102,17 @@ class TestHashing(tm.TestCase):
                     tm.makeTimeDataFrame(),
                     tm.makeTimeSeries(),
                     tm.makeTimedeltaIndex(),
+                    tm.makePeriodIndex(),
+                    Series(tm.makePeriodIndex()),
+                    Series(pd.date_range('20130101',
+                                         periods=3, tz='US/Eastern')),
                     MultiIndex.from_product(
                         [range(5),
                          ['foo', 'bar', 'baz'],
-                         pd.date_range('20130101', periods=2)])]:
+                         pd.date_range('20130101', periods=2)]),
+                    MultiIndex.from_product(
+                        [pd.CategoricalIndex(list('aabc')),
+                         range(3)])]:
             self.check_equal(obj)
             self.check_not_equal_with_index(obj)
 
