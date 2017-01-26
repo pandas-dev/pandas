@@ -70,6 +70,7 @@ class TestFrameAsof(TestData, tm.TestCase):
 
     def test_missing(self):
         # GH 15118
+        # no match found - `where` value before earliest date in index
         N = 10
         rng = date_range('1/1/1990', periods=N, freq='53s')
         df = DataFrame({'A': np.arange(N), 'B': np.arange(N)},
