@@ -53,7 +53,8 @@ class TestHashing(tm.TestCase):
         if not isinstance(obj, Index):
             a = hash_pandas_object(obj, index=True)
             b = hash_pandas_object(obj, index=False)
-            self.assertFalse((a == b).all())
+            if len(obj):
+                self.assertFalse((a == b).all())
 
     def test_hash_tuples(self):
         tups = [(1, 'one'), (1, 'two'), (2, 'one')]
@@ -63,6 +64,11 @@ class TestHashing(tm.TestCase):
 
         result = hash_tuples(tups[0])
         self.assertEqual(result, expected[0])
+
+    def test_hash_tuples_err(self):
+
+        for val in [5, 'foo', pd.Timestamp('20130101')]:
+            self.assertRaises(TypeError, hash_tuples, val)
 
     def test_multiindex_unique(self):
         mi = MultiIndex.from_tuples([(118, 472), (236, 118),
@@ -81,9 +87,11 @@ class TestHashing(tm.TestCase):
                     Series(['a', np.nan, 'c']),
                     Series(['a', None, 'c']),
                     Series([True, False, True]),
+                    Series(),
                     Index([1, 2, 3]),
                     Index([True, False, True]),
                     DataFrame({'x': ['a', 'b', 'c'], 'y': [1, 2, 3]}),
+                    DataFrame(),
                     tm.makeMissingDataframe(),
                     tm.makeMixedDataFrame(),
                     tm.makeTimeDataFrame(),
