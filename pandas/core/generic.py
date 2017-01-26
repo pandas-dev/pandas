@@ -3783,7 +3783,8 @@ class NDFrame(PandasObject):
 
         .. versionadded:: 0.19.0 For DataFrame
 
-        If there is no good value, NaN is returned.
+        If there is no good value, NaN is returned for a Series
+        a Series of NaN values for a DataFrame
 
         Parameters
         ----------
@@ -3839,6 +3840,9 @@ class NDFrame(PandasObject):
                 start = start.ordinal
 
             if where < start:
+                if not is_series:
+                    from pandas import Series
+                    return Series(index=self.columns, name=where)
                 return np.nan
 
             # It's always much faster to use a *while* loop here for
