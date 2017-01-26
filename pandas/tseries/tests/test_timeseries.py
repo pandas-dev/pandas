@@ -1,4 +1,5 @@
 # pylint: disable-msg=E1101,W0612
+import locale
 import calendar
 import operator
 import sys
@@ -5369,7 +5370,12 @@ class TimeConversionFormats(tm.TestCase):
         assert_series_equal(result, expected)
 
     def test_to_datetime_format_microsecond(self):
-        val = '01-Apr-2011 00:00:01.978'
+
+        # these are locale dependent
+        lang, _ = locale.getlocale()
+        month_abbr = calendar.month_abbr[4]
+        val = '01-{}-2011 00:00:01.978'.format(month_abbr)
+
         format = '%d-%b-%Y %H:%M:%S.%f'
         result = to_datetime(val, format=format)
         exp = datetime.strptime(val, format)
