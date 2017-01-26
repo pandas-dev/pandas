@@ -380,6 +380,7 @@ Bug Fixes
 
 - Bug in ``Index`` power operations with reversed operands (:issue:`14973`)
 - Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
+- Bug in ``TimedeltaIndex`` raising a ``ValueError`` when boolean indexing with ``loc`` (:issue:`14946`)
 - Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
 - Bug in ``DataFrame(..).apply(to_numeric)`` when values are of type decimal.Decimal. (:issue:`14827`)
 - Bug in ``describe()`` when passing a numpy array which does not contain the median to the ``percentiles`` keyword argument (:issue:`14908`)
