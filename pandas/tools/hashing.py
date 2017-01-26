@@ -149,6 +149,8 @@ def hash_tuples(vals, encoding='utf8', hash_key=None):
     """
     Hash an MultiIndex / list-of-tuples efficiently
 
+    .. versionadded:: 0.20.0
+
     Parameters
     ----------
     vals : MultiIndex, list-of-tuples, or single tuple
@@ -265,7 +267,13 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
                               ordered=False, fastpath=True)
             return _hash_categorical(cat, encoding, hash_key)
 
-        vals = _hash.hash_object_array(vals, hash_key, encoding)
+        try:
+            vals = _hash.hash_object_array(vals, hash_key, encoding)
+        except TypeError:
+
+            # we have mixed types
+            vals = _hash.hash_object_array(vals.astype(str).astype(object),
+                                           hash_key, encoding)
 
     # Then, redistribute these 64-bit ints within the space of 64-bit ints
     vals ^= vals >> 30

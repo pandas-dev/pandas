@@ -36,6 +36,11 @@ class TestHashing(tm.TestCase):
             a = s.values
             tm.assert_numpy_array_equal(hash_array(a), hash_array(a))
 
+    def test_hash_array_mixed(self):
+        for data in [np.array([3, 4, 'All']),
+                     np.array([3, 4, 'All'], dtype=object)]:
+            tm.assert_numpy_array_equal(hash_array(data), hash_array(data))
+
     def check_equal(self, obj, **kwargs):
         a = hash_pandas_object(obj, **kwargs)
         b = hash_pandas_object(obj, **kwargs)
@@ -158,15 +163,6 @@ class TestHashing(tm.TestCase):
         def f():
             hash_pandas_object(Series(list('abc')), hash_key='foo')
         self.assertRaises(ValueError, f)
-
-    def test_unsupported_objects(self):
-
-        # mixed objects are not supported
-        obj = Series(['1', 2, 3])
-
-        def f():
-            hash_pandas_object(obj)
-        self.assertRaises(TypeError, f)
 
     def test_alread_encoded(self):
         # if already encoded then ok
