@@ -223,8 +223,8 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
     ignore_order: boolean, default False
-        If true, ordered categories will be ignored.  Results in
-        an unordered categorical.
+        If true, the ordered attribute of the Categoricals will be ignored.
+        Results in an unordered categorical.
 
     Returns
     -------
@@ -238,7 +238,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         - all inputs are ordered and their categories are not identical
         - sort_categories=True and Categoricals are ordered
     ValueError
-        Emmpty list of categoricals passed
+        Empty list of categoricals passed
     """
     from pandas import Index, Categorical, CategoricalIndex, Series
 
@@ -275,7 +275,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
             categories = categories.sort_values()
             indexer = categories.get_indexer(first.categories)
             new_codes = take_1d(indexer, new_codes, fill_value=-1)
-    elif ignore_order | all(not c.ordered for c in to_union):
+    elif ignore_order or all(not c.ordered for c in to_union):
         # different categories - union and recode
         cats = first.categories.append([c.categories for c in to_union[1:]])
         categories = Index(cats.unique())
