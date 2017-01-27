@@ -650,7 +650,9 @@ class Timestamp(_Timestamp):
 
     astimezone = tz_convert
 
-    def replace(self, **kwds):
+    def replace(self, year=None, month=None, day=None, 
+                hour=None, minute=None, second=None, microsecond=None, nanosecond=None,
+                tzinfo=None)
         """
         implements datetime.replace, handles nanoseconds
 
@@ -675,10 +677,10 @@ class Timestamp(_Timestamp):
             _TSObject ts
 
         # set to naive if needed
-        tzinfo = self.tzinfo
+        _tzinfo = self.tzinfo
         value = self.value
-        if tzinfo is not None:
-            value = tz_convert_single(value, 'UTC', tzinfo)
+        if _tzinfo is not None:
+            value = tz_convert_single(value, 'UTC', _tzinfo)
 
         # setup components
         pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
@@ -692,27 +694,24 @@ class Timestamp(_Timestamp):
                                  "{v} for {k}".format(v=type(v), k=k))
             return v
 
-        for k, v in kwds.items():
-            if k == 'year':
-                dts.year = validate(k, v)
-            elif k == 'month':
-                dts.month = validate(k, v)
-            elif k == 'day':
-                dts.day = validate(k, v)
-            elif k == 'hour':
-                dts.hour = validate(k, v)
-            elif k == 'minute':
-                dts.min = validate(k, v)
-            elif k == 'second':
-                dts.sec = validate(k, v)
-            elif k == 'microsecond':
-                dts.us = validate(k, v)
-            elif k == 'nanosecond':
-                dts.ps = validate(k, v) * 1000
-            elif k == 'tzinfo':
-                tzinfo = v
-            else:
-                raise ValueError("invalid name {} passed".format(k))
+        if year is not None:
+            dts.year = validate('year', year)
+        if month is not None:
+            dts.month = validate('month', month)
+        if day is not None:
+            dts.day = validate('day', day)
+        if hour is not None:
+            dts.hour = validate('hour', hour)
+        if minute is not None:
+            dts.min = validate('minute', minute)
+        if second is not None:
+            dts.sec = validate('second', second)
+        if microsecond is not None:
+            dts.us = validate('microsecond', microsecond)
+        if nanosecond is not None:
+            dts.ps = validate('nanosecond', nanosecond) * 1000
+        if tzinfo is not None:
+            _tzinfo = tzinfo
 
         # reconstruct & check bounds
         value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
@@ -720,10 +719,10 @@ class Timestamp(_Timestamp):
             _check_dts_bounds(&dts)
 
         # set tz if needed
-        if tzinfo is not None:
-            value = tz_convert_single(value, tzinfo, 'UTC')
+        if _tzinfo is not None:
+            value = tz_convert_single(value, _tzinfo, 'UTC')
 
-        result = create_timestamp_from_ts(value, dts, tzinfo, self.freq)
+        result = create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
 
         return result
 
