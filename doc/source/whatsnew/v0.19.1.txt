@@ -23,6 +23,13 @@ Performance Improvements
 - Improved performance in ``.to_json()`` when ``lines=True`` (:issue:`14408`)
 - Improved performance in certain types of `loc` indexing with a MultiIndex (:issue:`14551`).
 
+.. _whatsnew_0191.new_features:
+
+New features
+~~~~~~~~~~~~
+- Add checks to assure that left_index and right_index are of type bool
+
+
 
 .. _whatsnew_0191.bug_fixes:
 
