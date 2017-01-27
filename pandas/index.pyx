@@ -203,6 +203,15 @@ cdef class IndexEngine:
 
         return result
 
+    def sizeof(self, deep=False):
+        """ return the sizeof our mapping """
+        if not self.is_mapping_populated:
+            return 0
+        return self.mapping.sizeof(deep=deep)
+
+    def __sizeof__(self):
+        return self.sizeof()
+
     property is_unique:
 
         def __get__(self):
