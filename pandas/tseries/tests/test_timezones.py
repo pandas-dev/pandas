@@ -1198,7 +1198,7 @@ class TestTimeZones(tm.TestCase):
         # error
         def f():
             dt.replace(foo=5)
-        self.assertRaises(ValueError, f)
+        self.assertRaises(TypeError, f)
 
         def f():
             dt.replace(hour=0.1)
