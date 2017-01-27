@@ -760,6 +760,17 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         html_df = read_html(html_data, keep_default_na=True)[0]
         tm.assert_frame_equal(expected_df, html_df)
 
+    def test_multiple_header_rows(self):
+        expected_df = DataFrame(data=[("Hillary", 68, "D"),
+                                      ("Bernie", 74, "D"),
+                                      ("Donald", 69, "R")])
+        expected_df.columns = [["Unnamed: 0_level_0", "Age", "Party"],
+                               ["Name", "Unnamed: 1_level_1",
+                                "Unnamed: 2_level_1"]]
+        html = expected_df.to_html(index=False)
+        html_df = read_html(html, )[0]
+        tm.assert_frame_equal(expected_df, html_df)
+
 
 def _lang_enc(filename):
     return os.path.splitext(os.path.basename(filename))[0].split('_')
@@ -868,6 +879,17 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
     def test_computer_sales_page(self):
         data = os.path.join(DATA_PATH, 'computer_sales_page.html')
         self.read_html(data, header=[0, 1])
+
+    def test_multiple_header_rows(self):
+        expected_df = DataFrame(data=[("Hillary", 68, "D"),
+                                      ("Bernie", 74, "D"),
+                                      ("Donald", 69, "R")])
+        expected_df.columns = [["Unnamed: 0_level_0", "Age", "Party"],
+                               ["Name", "Unnamed: 1_level_1",
+                                "Unnamed: 2_level_1"]]
+        html = expected_df.to_html(index=False)
+        html_df = read_html(html, )[0]
+        tm.assert_frame_equal(expected_df, html_df)
 
 
 def test_invalid_flavor():
