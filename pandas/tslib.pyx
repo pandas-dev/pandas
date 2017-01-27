@@ -652,18 +652,21 @@ class Timestamp(_Timestamp):
 
     def replace(self, year=None, month=None, day=None, 
                 hour=None, minute=None, second=None, microsecond=None, nanosecond=None,
-                tzinfo=None)
+                tzinfo=None):
         """
         implements datetime.replace, handles nanoseconds
 
         Parameters
         ----------
-        kwargs: key-value dict
-
-        accepted keywords are:
-        year, month, day, hour, minute, second, microsecond, nanosecond, tzinfo
-
-        values must be integer, or for tzinfo, a tz-convertible
+        year : int, optional
+        month : int, optional
+        day : int, optional
+        hour : int, optional
+        minute : int, optional
+        second : int, optional
+        microsecond : int, optional
+        nanosecond: int, optional
+        tzinfo : tz-convertible, optional
 
         Returns
         -------
@@ -673,7 +676,7 @@ class Timestamp(_Timestamp):
         cdef:
             pandas_datetimestruct dts
             int64_t value
-            object tzinfo, result, k, v
+            object _tzinfo, result, k, v
             _TSObject ts
 
         # set to naive if needed
