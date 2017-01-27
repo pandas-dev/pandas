@@ -1067,6 +1067,7 @@ class IndexOpsMixin(object):
         v = self.values.nbytes
         if deep and is_object_dtype(self):
             v += lib.memory_usage_of_objects(self.values)
+
         return v
 
     def factorize(self, sort=False, na_sentinel=-1):
