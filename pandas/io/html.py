@@ -627,7 +627,7 @@ def _data_to_frame(**kwargs):
     header = kwargs.pop('header')
     kwargs['skiprows'] = _get_skiprows(kwargs['skiprows'])
     if head:
-        rows = range(len(head))
+        rows = lrange(len(head))
         body = head + body
         if header is None:  # special case when a table has <th> elements
             header = 0 if rows == [0] else rows
@@ -637,7 +637,6 @@ def _data_to_frame(**kwargs):
 
     # fill out elements of body that are "ragged"
     _expand_elements(body)
-
     tp = TextParser(body, header=header, **kwargs)
     df = tp.read()
     return df
