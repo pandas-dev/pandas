@@ -650,7 +650,7 @@ class Timestamp(_Timestamp):
 
     astimezone = tz_convert
 
-    def replace(self, year=None, month=None, day=None, 
+    def replace(self, year=None, month=None, day=None,
                 hour=None, minute=None, second=None, microsecond=None, nanosecond=None,
                 tzinfo=None):
         """
