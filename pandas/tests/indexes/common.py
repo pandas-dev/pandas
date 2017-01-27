@@ -366,6 +366,26 @@ class Base(object):
         for ind in self.indices.values():
             self.assertEqual(ind.tolist(), list(ind))
 
+    def test_memory_usage(self):
+        for name, index in compat.iteritems(self.indices):
+            result = index.memory_usage()
+            if len(index):
+                index.get_loc(index[0])
+                result2 = index.memory_usage()
+                result3 = index.memory_usage(deep=True)
+
+                # RangeIndex doesn't use a hashtable engine
+                if not isinstance(index, RangeIndex):
+                    self.assertTrue(result2 > result)
+
+                if index.inferred_type == 'object':
+                    self.assertTrue(result3 > result2)
+
+            else:
+
+                # we report 0 for no-length
+                self.assertEqual(result, 0)
+
     def test_argsort(self):
         for k, ind in self.indices.items():
 
