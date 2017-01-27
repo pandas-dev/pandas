@@ -1858,6 +1858,8 @@ class DataCol(IndexCol):
             return self.set_atom_datetime64(block)
         elif block.is_timedelta:
             return self.set_atom_timedelta64(block)
+        elif block.is_period:
+            return self.set_atom_period(block, info=info)
         elif block.is_complex:
             return self.set_atom_complex(block)
 
@@ -2030,6 +2032,22 @@ class DataCol(IndexCol):
         if values is None:
             values = block.values.view('i8')
         self.set_data(values, 'timedelta64')
+
+    def get_atom_period(self, block):
+        return _tables().Int64Col(shape=block.shape[0])
+
+    def set_atom_period(self, block, info, values=None):
+        if values is None:
+            values = block.values
+        values = values.asi8.reshape(block.shape)
+
+        # store a converted timezone
+        self.freq = str(block.values.freq)
+        self.update_info(info)
+
+        self.kind = 'period'
+        self.typ = self.get_atom_period(block)
+        self.set_data(values, 'period')
 
     @property
     def shape(self):

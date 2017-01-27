@@ -193,7 +193,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'object')
+        self.assertEqual(s.dtype, 'period[M]')
         for res, exp in zip(s, vals):
             self.assertIsInstance(res, pd.Period)
             self.assertEqual(res, exp)

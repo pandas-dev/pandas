@@ -34,7 +34,6 @@ def get_dtype_kinds(l):
 
     typs = set()
     for arr in l:
-
         dtype = arr.dtype
         if is_categorical_dtype(dtype):
             typ = 'category'
@@ -48,12 +47,12 @@ def get_dtype_kinds(l):
             typ = 'datetime'
         elif is_timedelta64_dtype(dtype):
             typ = 'timedelta'
+        elif is_period_dtype(dtype):
+            typ = str(arr.dtype)
         elif is_object_dtype(dtype):
             typ = 'object'
         elif is_bool_dtype(dtype):
             typ = 'bool'
-        elif is_period_dtype(dtype):
-            typ = str(arr.dtype)
         else:
             typ = dtype.kind
         typs.add(typ)
@@ -334,7 +333,8 @@ def _concat_datetime(to_concat, axis=0, typs=None):
             shape = x.shape
             x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
             x = x.reshape(shape)
-
+        elif is_period_dtype(x):
+            x = x.asobject
         if axis == 1:
             x = np.atleast_2d(x)
         return x
@@ -364,10 +364,13 @@ def _concat_datetime(to_concat, axis=0, typs=None):
             return new_values.view(_TD_DTYPE)
 
         elif _contains_period:
-            # PeriodIndex must be handled by PeriodIndex,
-            # Thus can't meet this condition ATM
-            # Must be changed when we adding PeriodDtype
-            raise NotImplementedError
+            # when to_concat has different freq, len(typs) > 1.
+            # thus no need to care
+            # we require ALL of the same freq for period
+            freqs = set([x.freq for x in to_concat])
+            from pandas.tseries.period import PeriodIndex
+            return PeriodIndex(np.concatenate([x.asi8 for x in to_concat]),
+                               freq=list(freqs)[0])
 
     # need to coerce to object
     to_concat = [convert_to_pydatetime(x, axis) for x in to_concat]

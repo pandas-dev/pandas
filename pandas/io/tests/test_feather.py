@@ -84,7 +84,7 @@ class TestFeather(tm.TestCase):
 
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
-        self.check_error_on_write(df, ValueError)
+        self.check_error_on_write(df, feather.FeatherError)
 
         # non-strings
         df = pd.DataFrame({'a': ['a', 1, 2.0]})

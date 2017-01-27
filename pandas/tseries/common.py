@@ -5,10 +5,10 @@ datetimelike delegation
 import numpy as np
 
 from pandas.types.common import (_NS_DTYPE, _TD_DTYPE,
-                                 is_period_arraylike,
                                  is_datetime_arraylike, is_integer_dtype,
                                  is_datetime64_dtype, is_datetime64tz_dtype,
                                  is_timedelta64_dtype, is_categorical_dtype,
+                                 is_period_arraylike, is_period_dtype,
                                  is_list_like)
 
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
@@ -35,7 +35,7 @@ def is_datetimelike(data):
 def maybe_to_datetimelike(data, copy=False):
     """
     return a DelegatedClass of a Series that is datetimelike
-      (e.g. datetime64[ns],timedelta64[ns] dtype or a Series of Periods)
+      (e.g. datetime64[ns],timedelta64[ns] or period dtype)
     raise TypeError if this is not possible.
 
     Parameters
@@ -54,7 +54,6 @@ def maybe_to_datetimelike(data, copy=False):
     if not isinstance(data, Series):
         raise TypeError("cannot convert an object of type {0} to a "
                         "datetimelike index".format(type(data)))
-
     index = data.index
     name = data.name
     orig = data if is_categorical_dtype(data) else None
@@ -72,6 +71,9 @@ def maybe_to_datetimelike(data, copy=False):
         return TimedeltaProperties(TimedeltaIndex(data, copy=copy,
                                                   freq='infer'), index,
                                    name=name, orig=orig)
+    elif is_period_dtype(data.dtype):
+        return PeriodProperties(PeriodIndex(data, copy=copy), index,
+                                name=data.name)
     else:
         if is_period_arraylike(data):
             return PeriodProperties(PeriodIndex(data, copy=copy), index,

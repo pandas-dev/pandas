@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas.core.base import PandasObject
 
-from pandas.types.dtypes import DatetimeTZDtype, CategoricalDtype
+from pandas.types.dtypes import DatetimeTZDtype, PeriodDtype, CategoricalDtype
 from pandas.types.common import (_TD_DTYPE, _NS_DTYPE,
                                  _ensure_int64, _ensure_platform_int,
                                  is_integer,
@@ -19,6 +19,7 @@ from pandas.types.common import (_TD_DTYPE, _NS_DTYPE,
                                  is_categorical, is_categorical_dtype,
                                  is_integer_dtype,
                                  is_datetime64tz_dtype,
+                                 is_period, is_period_dtype,
                                  is_object_dtype,
                                  is_datetimelike_v_numeric,
                                  is_numeric_v_string_like, is_extension_type,
@@ -42,13 +43,14 @@ from pandas.types.missing import (isnull, array_equivalent,
 import pandas.types.concat as _concat
 
 from pandas.types.generic import ABCSeries
-from pandas.core.common import is_null_slice
+from pandas.core.common import is_null_slice, AbstractMethodError
 import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.categorical import Categorical, maybe_to_categorical
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
 from pandas.formats.printing import pprint_thing
 
 import pandas.core.missing as missing
@@ -62,6 +64,8 @@ from pandas.util.validators import validate_bool_kwarg
 from pandas.tslib import Timedelta
 from pandas import compat, _np_version_under1p9
 from pandas.compat import range, map, zip, u
+from pandas._period import Period
+
 
 from pandas.lib import BlockPlacement
 
@@ -81,6 +85,7 @@ class Block(PandasObject):
     is_datetime = False
     is_datetimetz = False
     is_timedelta = False
+    is_period = False
     is_bool = False
     is_object = False
     is_categorical = False
@@ -479,6 +484,10 @@ class Block(PandasObject):
         # this is only called for non-categoricals
         if self.is_categorical_astype(dtype):
             return self.make_block(Categorical(self.values, **kwargs))
+        elif is_period_dtype(dtype):
+            klass = PeriodBlock
+            return self.make_block(self.values, klass=klass, dtype=dtype,
+                                   **kwargs)
 
         # astype processing
         dtype = np.dtype(dtype)
@@ -1157,7 +1166,7 @@ class Block(PandasObject):
             return self._try_coerce_result(result)
 
         # error handler if we have an issue operating with the function
-        def handle_error():
+        def handle_error(detail):
 
             if raise_on_error:
                 # The 'detail' variable is defined in outer scope.
@@ -1179,21 +1188,19 @@ class Block(PandasObject):
         except ValueError as detail:
             raise
         except Exception as detail:
-            result = handle_error()
+            result = handle_error(detail)
 
         # technically a broadcast error in numpy can 'work' by returning a
         # boolean False
         if not isinstance(result, np.ndarray):
-            if not isinstance(result, np.ndarray):
+            # differentiate between an invalid ndarray-ndarray comparison
+            # and an invalid type comparison
+            if isinstance(values, np.ndarray) and is_list_like(other):
+                raise ValueError('Invalid broadcasting comparison [%s] '
+                                 'with block values' % repr(other))
 
-                # differentiate between an invalid ndarray-ndarray comparison
-                # and an invalid type comparison
-                if isinstance(values, np.ndarray) and is_list_like(other):
-                    raise ValueError('Invalid broadcasting comparison [%s] '
-                                     'with block values' % repr(other))
-
-                raise TypeError('Could not compare [%s] with block values' %
-                                repr(other))
+            raise TypeError('Could not compare [%s] with block values' %
+                            repr(other))
 
         # transpose if needed
         result = transf(result)
@@ -1890,8 +1897,13 @@ class ObjectBlock(Block):
                 blocks.append(newb)
 
         else:
-            values = fn(
-                self.values.ravel(), **fn_kwargs).reshape(self.values.shape)
+            shape = self.values.shape
+            values = fn(self.values.ravel(),
+                        **fn_kwargs)
+            try:
+                values = values.reshape(shape)
+            except (AttributeError, NotImplementedError):
+                pass
             blocks.append(make_block(values, ndim=self.ndim,
                                      placement=self.mgr_locs))
 
@@ -2343,7 +2355,56 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         self.values[locs] = values
 
 
-class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
+class IndexHolderMixIn(NonConsolidatableMixIn):
+
+    @property
+    def _holder(self):
+        raise AbstractMethodError
+
+    def get_values(self, dtype=None):
+        # return object dtype as Timestamp / Period
+        if is_object_dtype(dtype):
+            return lib.map_infer(self.values.ravel(),
+                                 self._box_func).reshape(self.values.shape)
+        return self.values
+
+    def to_native_types(self, slicer=None, na_rep=None,
+                        quoting=None, **kwargs):
+        """ convert to our native types format, slicing if desired """
+        native = self.values.to_native_types(slicer, na_rep=na_rep,
+                                             quoting=quoting)
+        return native.reshape(1, len(self.values))
+
+    @property
+    def _box_func(self):
+        return self.values._box_func
+
+    def shift(self, periods, axis=0, mgr=None):
+        """ shift the block by periods """
+
+        # think about moving this to the DatetimeIndex. This is a non-freq
+        # (number of periods) shift ###
+
+        N = len(self)
+        indexer = np.zeros(N, dtype=int)
+        if periods > 0:
+            indexer[periods:] = np.arange(N - periods)
+        else:
+            indexer[:periods] = np.arange(-periods, N)
+
+        new_values = self.values.asi8.take(indexer)
+
+        if periods > 0:
+            new_values[:periods] = tslib.iNaT
+        else:
+            new_values[periods:] = tslib.iNaT
+
+        new_values = self.values._shallow_copy(new_values)
+        return [self.make_block_same_class(new_values,
+                                           placement=self.mgr_locs)]
+
+
+class DatetimeTZBlock(IndexHolderMixIn, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
     __slots__ = ()
     _holder = DatetimeIndex
@@ -2379,14 +2440,6 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         external compat with ndarray, export as a ndarray of Timestamps
         """
         return self.values.astype('datetime64[ns]').values
-
-    def get_values(self, dtype=None):
-        # return object dtype as Timestamps with the zones
-        if is_object_dtype(dtype):
-            f = lambda x: lib.Timestamp(x, tz=self.values.tz)
-            return lib.map_infer(
-                self.values.ravel(), f).reshape(self.values.shape)
-        return self.values
 
     def to_object_block(self, mgr):
         """
@@ -2471,33 +2524,135 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         return result
 
-    @property
-    def _box_func(self):
-        return lambda x: tslib.Timestamp(x, tz=self.dtype.tz)
 
-    def shift(self, periods, axis=0, mgr=None):
-        """ shift the block by periods """
+class PeriodBlock(IndexHolderMixIn, DatetimeBlock):
+    # ToDo: Check freq
+    # ToDo: Add freq to __slots__?
 
-        # think about moving this to the DatetimeIndex. This is a non-freq
-        # (number of periods) shift ###
+    """
+    # ToDo: needs tests
+    - mask, nan handling
+    - getitem, slice
+    - shift
+    - asfreq
+    - assignment (single value, slice with the same / different freq)
+    - assignment (np.nan, nat)
+    - assignment (columns)
+    - value_counts
+    """
 
-        N = len(self)
-        indexer = np.zeros(N, dtype=int)
-        if periods > 0:
-            indexer[periods:] = np.arange(N - periods)
+    __slots__ = ()
+    _holder = PeriodIndex
+    is_period = True
+    _can_hold_na = True
+    is_numeric = False
+
+    def __init__(self, values, placement, ndim=2, **kwargs):
+
+        dtype = kwargs.pop('dtype', None)
+        if not isinstance(values, self._holder):
+            # dtype contains freq info
+            values = self._holder(values, dtype=dtype)
+
+        super(PeriodBlock, self).__init__(values, placement=placement,
+                                          ndim=ndim, **kwargs)
+
+    def _astype(self, dtype, mgr=None, **kwargs):
+        """
+        these automatically copy, so copy=True has no effect
+        raise on an except if raise == True
+        """
+        # if we are passed a datetime64[ns, tz]
+        if is_period_dtype(dtype):
+            dtype = PeriodDtype(dtype)
+            values = self.values
+            # ToDo: asfreq??
+            return self.make_block(values)
+
+        # delegate
+        return super(PeriodBlock, self)._astype(dtype=dtype, **kwargs)
+
+    def external_values(self):
+        """ we internally represent the data as a PeriodIndex, but for external
+        compat with ndarray, export as a ndarray of Period """
+        return self.values.asobject.values
+
+    def to_dense(self):
+        # ToDo: FIXME
+        # called from Series.get_values()
+        return self.values.asobject
+
+    def _try_coerce_args(self, values, other):
+        """
+        Coerce values and other to dtype 'i8'. NaN and NaT convert to
+        the smallest i8, and will correctly round-trip to NaT if converted
+        back in _try_coerce_result. values is always ndarray-like, other
+        may not be
+
+        Parameters
+        ----------
+        values : ndarray-like
+        other : ndarray-like or scalar
+
+        Returns
+        -------
+        base-type values, values mask, base-type other, other mask
+        """
+        values_mask = isnull(values)
+        values = values.view('i8')
+        other_mask = False
+
+        if isinstance(other, bool):
+            raise TypeError
+        elif is_null_datelike_scalar(other):
+            other = tslib.iNaT
+            other_mask = True
+        elif isinstance(other, (Period)):
+            # ToDo: compare freq
+            other_mask = isnull(other)
+            other = other.ordinal
+        elif hasattr(other, 'dtype') and is_integer_dtype(other):
+            other = other.view('i8')
         else:
-            indexer[:periods] = np.arange(-periods, N)
+            try:
+                other = np.asarray(other)
+                other_mask = isnull(other)
 
-        new_values = self.values.asi8.take(indexer)
+                other = other.astype('i8', copy=False).view('i8')
+            except ValueError:
 
-        if periods > 0:
-            new_values[:periods] = tslib.iNaT
-        else:
-            new_values[periods:] = tslib.iNaT
+                # coercion issues
+                # let higher levels handle
+                raise TypeError
 
-        new_values = self.values._shallow_copy(new_values)
-        return [self.make_block_same_class(new_values,
-                                           placement=self.mgr_locs)]
+        return values, values_mask, other, other_mask
+
+    def _try_coerce_result(self, result):
+        """ reverse of try_coerce_args / try_operate """
+        if isinstance(result, np.ndarray):
+            if is_integer_dtype(result):
+                result = self.values._shallow_copy(result)
+            else:
+                mask = isnull(result)
+                result = self.values._shallow_copy(result)
+                result[mask] = tslib.iNaT
+        elif isinstance(result, np.integer):
+            result = self._box_func(result)
+        return result
+
+    def should_store(self, value):
+        return isinstance(value, Period) and self.values.freq == value.freq
+
+    def fillna(self, value, limit=None,
+               inplace=False, downcast=None, **kwargs):
+
+        if limit is not None:
+            # ToDo: fix on Index.fillna
+            raise NotImplementedError
+
+        values = self.values.fillna(value)
+        return [self if inplace else make_block(values, fastpath=True,
+                                                placement=self.mgr_locs)]
 
 
 class SparseBlock(NonConsolidatableMixIn, Block):
@@ -2669,6 +2824,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
 
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
                fastpath=False):
+
     if klass is None:
         dtype = dtype or values.dtype
         vtype = dtype.type
@@ -2696,10 +2852,15 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
             klass = ComplexBlock
         elif is_categorical(values):
             klass = CategoricalBlock
+        elif is_period(values):
+            klass = PeriodBlock
         else:
             klass = ObjectBlock
 
     elif klass is DatetimeTZBlock and not is_datetimetz(values):
+        return klass(values, ndim=ndim, fastpath=fastpath,
+                     placement=placement, dtype=dtype)
+    elif klass is PeriodBlock and not is_period(values):
         return klass(values, ndim=ndim, fastpath=fastpath,
                      placement=placement, dtype=dtype)
 
@@ -3139,8 +3300,8 @@ class BlockManager(PandasObject):
             if transposed:
                 new_axes = new_axes[::-1]
                 blocks = [b.make_block(b.values.T,
-                                       placement=np.arange(b.shape[1])
-                                       ) for b in blocks]
+                                       placement=np.arange(b.shape[1]))
+                          for b in blocks]
 
             return self.__class__(blocks, new_axes)
 
@@ -4301,6 +4462,7 @@ def form_blocks(arrays, names, axes):
     sparse_items = []
     datetime_items = []
     datetime_tz_items = []
+    period_items = []
     cat_items = []
     extra_locs = []
 
@@ -4335,6 +4497,8 @@ def form_blocks(arrays, names, axes):
                 datetime_items.append((i, k, v))
         elif is_datetimetz(v):
             datetime_tz_items.append((i, k, v))
+        elif is_period(v):
+            period_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.integer):
             int_items.append((i, k, v))
         elif v.dtype == np.bool_:
@@ -4362,12 +4526,16 @@ def form_blocks(arrays, names, axes):
         blocks.extend(datetime_blocks)
 
     if len(datetime_tz_items):
-        dttz_blocks = [make_block(array,
-                                  klass=DatetimeTZBlock,
-                                  fastpath=True,
-                                  placement=[i], )
+        dttz_blocks = [make_block(array, klass=DatetimeTZBlock,
+                                  fastpath=True, placement=[i], )
                        for i, _, array in datetime_tz_items]
         blocks.extend(dttz_blocks)
+
+    if len(period_items):
+        period_blocks = [make_block(array, klass=PeriodBlock,
+                                    fastpath=True, placement=[i], )
+                         for i, _, array in period_items]
+        blocks.extend(period_blocks)
 
     if len(bool_items):
         bool_blocks = _simple_blockify(bool_items, np.bool_)
@@ -4489,17 +4657,17 @@ def _interleaved_dtype(blocks):
     have_dt64 = len(counts[DatetimeBlock]) > 0
     have_dt64_tz = len(counts[DatetimeTZBlock]) > 0
     have_td64 = len(counts[TimeDeltaBlock]) > 0
+    have_period = len(counts[PeriodBlock]) > 0
     have_cat = len(counts[CategoricalBlock]) > 0
     # TODO: have_sparse is not used
     have_sparse = len(counts[SparseBlock]) > 0  # noqa
     have_numeric = have_float or have_complex or have_int
     has_non_numeric = have_dt64 or have_dt64_tz or have_td64 or have_cat
+    has_datetime_like = have_dt64 or have_dt64_tz or have_td64 or have_period
 
     if (have_object or
-        (have_bool and
-         (have_numeric or have_dt64 or have_dt64_tz or have_td64)) or
-        (have_numeric and has_non_numeric) or have_cat or have_dt64 or
-            have_dt64_tz or have_td64):
+       (have_bool and (have_numeric or has_datetime_like)) or
+       (have_numeric and has_non_numeric) or have_cat or has_datetime_like):
         return np.dtype(object)
     elif have_bool:
         return np.dtype(bool)
@@ -4880,6 +5048,8 @@ def get_empty_dtype_and_na(join_units):
             upcast_cls = 'category'
         elif is_datetimetz(dtype):
             upcast_cls = 'datetimetz'
+        elif is_period(dtype):
+            upcast_cls = 'period'
         elif issubclass(dtype.type, np.bool_):
             upcast_cls = 'bool'
         elif issubclass(dtype.type, np.object_):
@@ -4916,6 +5086,9 @@ def get_empty_dtype_and_na(join_units):
         return np.dtype(np.float64), np.nan
     elif 'datetimetz' in upcast_classes:
         dtype = upcast_classes['datetimetz']
+        return dtype[0], tslib.iNaT
+    elif 'period' in upcast_classes:
+        dtype = upcast_classes['period']
         return dtype[0], tslib.iNaT
     elif 'datetime' in upcast_classes:
         return np.dtype('M8[ns]'), tslib.iNaT
@@ -5227,7 +5400,6 @@ class JoinUnit(object):
                 # No dtype upcasting is done here, it will be performed during
                 # concatenation itself.
                 values = self.block.get_values()
-
         if not self.indexers:
             # If there's no indexing to be done, we want to signal outside
             # code that this array must be copied explicitly.  This is done

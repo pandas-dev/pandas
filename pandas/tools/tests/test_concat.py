@@ -71,10 +71,7 @@ class TestConcatAppendCommon(ConcatenateBase):
             else:
                 self.assertEqual(obj.dtype, label)
         elif isinstance(obj, pd.Series):
-            if label.startswith('period'):
-                self.assertEqual(obj.dtype, 'object')
-            else:
-                self.assertEqual(obj.dtype, label)
+            self.assertEqual(obj.dtype, label)
         else:
             raise ValueError
 
@@ -217,7 +214,9 @@ class TestConcatAppendCommon(ConcatenateBase):
                 elif (typ1 == 'datetime64[ns, US/Eastern]' or
                       typ2 == 'datetime64[ns, US/Eastern]' or
                       typ1 == 'timedelta64[ns]' or
-                      typ2 == 'timedelta64[ns]'):
+                      typ2 == 'timedelta64[ns]' or
+                      typ1 == 'period[M]' or
+                      typ2 == 'period[M]'):
                     exp_index_dtype = object
                     exp_series_dtype = object
 
@@ -243,6 +242,9 @@ class TestConcatAppendCommon(ConcatenateBase):
                 res = pd.Series(vals1).append(pd.Series(vals2),
                                               ignore_index=True)
                 exp = pd.Series(exp_data, dtype=exp_series_dtype)
+                print(res)
+                print(exp)
+                print(exp_data)
                 tm.assert_series_equal(res, exp, check_index_type=True)
 
                 # concat
@@ -852,6 +854,38 @@ class TestAppend(ConcatenateBase):
         appended = df1.append(df2, ignore_index=True)
         self.assertEqual(appended['A'].dtype, 'f8')
         self.assertEqual(appended['B'].dtype, 'O')
+
+    def test_append_period(self):
+        s1 = pd.Series(pd.PeriodIndex(['2011-01', '2011-02'], freq='M'))
+        s2 = pd.Series(pd.PeriodIndex(['2012-01', '2012-02'], freq='M'))
+
+        res = s1.append(s2)
+        exp = pd.Series(pd.PeriodIndex(['2011-01', '2011-02',
+                                        '2012-01', '2012-02'], freq='M'),
+                        index=[0, 1, 0, 1])
+        self.assertEqual(res.dtype, 'period[M]')
+        tm.assert_series_equal(res, exp)
+
+        s3 = pd.Series(pd.PeriodIndex(['NaT', 'NaT'], freq='M'))
+        res = s1.append(s3)
+        exp = pd.Series(pd.PeriodIndex(['2011-01', '2011-02',
+                                        'NaT', 'NaT'], freq='M'),
+                        index=[0, 1, 0, 1])
+        self.assertEqual(res.dtype, 'period[M]')
+        tm.assert_series_equal(res, exp)
+
+        # coerce to object
+        s1 = pd.Series(pd.PeriodIndex(['2011-01', '2011-02'], freq='M'))
+        s2 = pd.Series(pd.PeriodIndex(['2012-01-01', '2012-02-01'], freq='D'))
+
+        res = s1.append(s2)
+        exp = pd.Series([pd.Period('2011-01', freq='M'),
+                         pd.Period('2011-02', freq='M'),
+                         pd.Period('2012-01-01', freq='D'),
+                         pd.Period('2012-02-01', freq='D')],
+                        index=[0, 1, 0, 1])
+        self.assertEqual(res.dtype, object)
+        tm.assert_series_equal(res, exp)
 
 
 class TestConcatenate(ConcatenateBase):
@@ -2042,10 +2076,10 @@ bar2,12,13,14,15
     def test_concat_period_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='D'))
-        expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
+        expected = Series([x[0], x[1], y[0], y[1]], dtype='period[D]')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
-        self.assertEqual(result.dtype, 'object')
+        self.assertEqual(result.dtype, 'period[D]')
 
         # different freq
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))

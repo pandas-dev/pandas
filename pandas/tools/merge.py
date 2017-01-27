@@ -25,6 +25,7 @@ from pandas.types.common import (is_datetime64tz_dtype,
                                  is_float_dtype,
                                  is_integer,
                                  is_int_or_datetime_dtype,
+                                 is_period_dtype,
                                  is_dtype_equal,
                                  is_bool,
                                  is_list_like,
@@ -1339,6 +1340,10 @@ def _factorize_keys(lk, rk, sort=True):
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
         lk = lk.values
         rk = rk.values
+    elif is_period_dtype(lk) and is_period_dtype(rk):
+        lk = lk.values
+        rk = rk.values
+
     if is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = _hash.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))

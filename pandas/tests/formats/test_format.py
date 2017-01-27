@@ -3930,9 +3930,12 @@ $1$,$2$
                                  pd.Period('2011-03-01 09:00', freq='H'),
                                  pd.Period('2011-04', freq='M')],
                            'C': list('abcd')})
-        exp = ("        A                B  C\n0 2013-01          2011-01  a\n"
-               "1 2013-02       2011-02-01  b\n2 2013-03 2011-03-01 09:00  c\n"
-               "3 2013-04          2011-04  d")
+
+        exp = ("        A                 B  C\n"
+               "0 2013-01           2011-01  a\n"
+               "1 2013-02        2011-02-01  b\n"
+               "2 2013-03  2011-03-01 09:00  c\n"
+               "3 2013-04           2011-04  d")
         self.assertEqual(str(df), exp)
 
 
@@ -4276,15 +4279,16 @@ class TestSeriesFormatting(tm.TestCase):
 
         s = Series(index)
         exp = ("0   2013-01\n1   2013-02\n2   2013-03\n3   2013-04\n"
-               "4   2013-05\n5   2013-06\ndtype: object")
+               "4   2013-05\n5   2013-06\ndtype: period[M]")
         self.assertEqual(str(s), exp)
 
         # periods with mixed freq
         s = Series([pd.Period('2011-01', freq='M'),
                     pd.Period('2011-02-01', freq='D'),
                     pd.Period('2011-03-01 09:00', freq='H')])
-        exp = ("0            2011-01\n1         2011-02-01\n"
-               "2   2011-03-01 09:00\ndtype: object")
+
+        exp = ("0             2011-01\n1          2011-02-01\n"
+               "2    2011-03-01 09:00\ndtype: object")
         self.assertEqual(str(s), exp)
 
     def test_max_multi_index_display(self):

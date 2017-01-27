@@ -32,6 +32,7 @@ from pandas.types.common import (_ensure_int64,
                                  is_integer_dtype, is_float_dtype,
                                  is_datetime64_any_dtype,
                                  is_timedelta64_dtype,
+                                 is_period_dtype,
                                  needs_i8_conversion,
                                  is_iterator, is_list_like,
                                  is_scalar)
@@ -155,6 +156,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # range
         if isinstance(data, RangeIndex):
             return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
+
         elif isinstance(data, range):
             return RangeIndex.from_range(data, copy=copy, dtype=dtype,
                                          name=name)
@@ -166,7 +168,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
-
             if (is_datetime64_any_dtype(data) or
                (dtype is not None and is_datetime64_any_dtype(dtype)) or
                'tz' in kwargs):
@@ -184,6 +185,20 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
                     return Index(result.to_pytimedelta(), dtype=_o_dtype)
+                else:
+                    return result
+            elif is_period_dtype(data):
+                from pandas.tseries.period import PeriodIndex
+                result = PeriodIndex(data, copy=copy, name=name, **kwargs)
+                if dtype is not None and _o_dtype == dtype:
+                    return result.asobject
+                else:
+                    return result
+            elif is_period_dtype(data):
+                from pandas.tseries.period import PeriodIndex
+                result = PeriodIndex(data, copy=copy, name=name, **kwargs)
+                if dtype is not None and _o_dtype == dtype:
+                    return result.asobject
                 else:
                     return result
 

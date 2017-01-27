@@ -906,6 +906,16 @@ class TestSeriesOperators(TestData, tm.TestCase):
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
 
+    def test_period_series_ops(self):
+        s = Series(pd.period_range('2011-01', freq='M', periods=3))
+        expected = Series(pd.period_range('2011-02', freq='M', periods=3))
+        assert_series_equal(s + 1, expected)
+        assert_series_equal(1 + s, expected)
+
+        expected = Series(pd.period_range('2010-12', freq='M', periods=3))
+        assert_series_equal(s - 1, expected)
+        assert_series_equal(-1 + s, expected)
+
     def test_object_comparisons(self):
         s = Series(['a', 'b', np.nan, 'c', 'a'])
 

@@ -1918,6 +1918,8 @@ class TestHDFStore(Base, tm.TestCase):
                 result = store.select('df1')
                 tm.assert_frame_equal(result, df)
 
+    def test_append_misc2(self):
+
         # more chunksize in append tests
         def check(obj, comparator):
             for c in [10, 200, 1000]:
@@ -1941,6 +1943,8 @@ class TestHDFStore(Base, tm.TestCase):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             p4d = tm.makePanel4D()
             check(p4d, assert_panel4d_equal)
+
+    def test_append_misc_gh4273(self):
 
         # empty frame, GH4273
         with ensure_clean_store(self.path) as store:

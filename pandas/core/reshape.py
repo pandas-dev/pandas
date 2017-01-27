@@ -7,7 +7,7 @@ import re
 
 import numpy as np
 
-from pandas.types.common import _ensure_platform_int, is_list_like
+from pandas.types.common import _ensure_platform_int, is_list_like, is_period
 from pandas.types.cast import _maybe_promote
 from pandas.types.missing import notnull
 import pandas.types.concat as _concat
@@ -69,10 +69,14 @@ class _Unstacker(object):
                  fill_value=None):
 
         self.is_categorical = None
+        self.is_period = None
         if values.ndim == 1:
             if isinstance(values, Categorical):
                 self.is_categorical = values
                 values = np.array(values)
+            elif is_period(values):
+                self.is_period = values
+                values = values.asi8
             values = values[:, np.newaxis]
         self.values = values
         self.value_columns = value_columns
@@ -162,7 +166,6 @@ class _Unstacker(object):
                 inds = (value_mask.sum(0) > 0).nonzero()[0]
                 values = algos.take_nd(values, inds, axis=1)
                 columns = columns[inds]
-
         # may need to coerce categoricals here
         if self.is_categorical is not None:
             categories = self.is_categorical.categories
@@ -170,7 +173,12 @@ class _Unstacker(object):
             values = [Categorical(values[:, i], categories=categories,
                                   ordered=ordered)
                       for i in range(values.shape[-1])]
-
+        elif self.is_period is not None:
+            res = {}
+            for i in range(len(columns)):
+                val = self.is_period._shallow_copy(values[:, i])
+                res[columns[i]] = val
+            values = res
         return DataFrame(values, index=index, columns=columns)
 
     def get_new_values(self):
@@ -187,10 +195,15 @@ class _Unstacker(object):
             dtype = values.dtype
             new_values = np.empty(result_shape, dtype=dtype)
         else:
-            dtype, fill_value = _maybe_promote(values.dtype, self.fill_value)
-            new_values = np.empty(result_shape, dtype=dtype)
+            if self.is_period is not None:
+                dtype, fill_value = _maybe_promote(self.is_period.dtype,
+                                                   self.fill_value)
+                new_values = np.empty(result_shape, dtype=np.int64)
+            else:
+                dtype, fill_value = _maybe_promote(values.dtype,
+                                                   self.fill_value)
+                new_values = np.empty(result_shape, dtype=dtype)
             new_values.fill(fill_value)
-
         new_mask = np.zeros(result_shape, dtype=bool)
 
         # is there a simpler / faster way of doing this?
@@ -334,6 +347,7 @@ def pivot(self, index=None, columns=None, values=None):
             index = self.index
         else:
             index = self[index]
+
         indexed = Series(self[values].values,
                          index=MultiIndex.from_arrays([index, self[columns]]))
         return indexed.unstack(columns)
@@ -415,7 +429,7 @@ def unstack(obj, level, fill_value=None):
         else:
             return obj.T.stack(dropna=False)
     else:
-        unstacker = _Unstacker(obj.values, obj.index, level=level,
+        unstacker = _Unstacker(obj._values, obj.index, level=level,
                                fill_value=fill_value)
         return unstacker.get_result()
 

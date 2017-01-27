@@ -13,14 +13,14 @@ import sys
 from pandas.types.missing import isnull, notnull
 from pandas.types.common import (is_categorical_dtype,
                                  is_float_dtype,
-                                 is_period_arraylike,
                                  is_integer_dtype,
                                  is_datetimetz,
                                  is_integer,
                                  is_float,
                                  is_numeric_dtype,
                                  is_datetime64_dtype,
-                                 is_timedelta64_dtype)
+                                 is_timedelta64_dtype,
+                                 is_period_dtype)
 from pandas.types.generic import ABCSparseArray
 
 from pandas.core.base import PandasObject
@@ -1920,7 +1920,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = CategoricalArrayFormatter
     elif is_float_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
-    elif is_period_arraylike(values):
+    elif is_period_dtype(values.dtype):
         fmt_klass = PeriodArrayFormatter
     elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter

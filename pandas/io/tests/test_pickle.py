@@ -133,6 +133,14 @@ class TestPickle():
         else:
             tm.assert_series_equal(result, expected)
 
+    def compare_series_period(self, result, expected, typ, version):
+        # Period dtype is added in 0.19.0
+        if LooseVersion(version) < '0.19.0':
+            tm.assert_series_equal(result, expected.astype(object),
+                                   check_dtype=False)
+        else:
+            tm.assert_series_equal(result, expected)
+
     def compare_frame_dt_mixed_tzs(self, result, expected, typ, version):
         # 8260
         # dtype is object < 0.17.0

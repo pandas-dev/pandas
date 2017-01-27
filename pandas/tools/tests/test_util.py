@@ -349,9 +349,8 @@ class TestToNumeric(tm.TestCase):
         res = pd.to_numeric(idx)
         tm.assert_index_equal(res, pd.Index(idx.asi8, name='xxx'))
 
-        # ToDo: enable when we can support native PeriodDtype
-        # res = pd.to_numeric(pd.Series(idx, name='xxx'))
-        # tm.assert_series_equal(res, pd.Series(idx.asi8, name='xxx'))
+        res = pd.to_numeric(pd.Series(idx, name='xxx'))
+        tm.assert_series_equal(res, pd.Series(idx.asi8, name='xxx'))
 
     def test_non_hashable(self):
         # Test for Bug #13324

@@ -16,8 +16,8 @@ from pandas.types.common import (is_unsigned_integer_dtype,
                                  is_categorical_dtype,
                                  is_extension_type,
                                  is_datetimetz,
+                                 is_period,
                                  is_period_dtype,
-                                 is_period_arraylike,
                                  is_float_dtype,
                                  needs_i8_conversion,
                                  is_categorical,
@@ -407,7 +407,8 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             raise TypeError("bins argument only works with numeric data.")
         values = cat.codes
 
-    if is_extension_type(values) and not is_datetimetz(values):
+    if (is_extension_type(values) and
+       not (is_datetimetz(values) or is_period(values))):
         # handle Categorical and sparse,
         # datetime tz can be handeled in ndarray path
         result = Series(values).values.value_counts(dropna=dropna)
@@ -439,25 +440,14 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
 def _value_counts_arraylike(values, dropna=True):
     is_datetimetz_type = is_datetimetz(values)
-    is_period_type = (is_period_dtype(values) or
-                      is_period_arraylike(values))
-
+    is_period_type = is_period_dtype(values)
     orig = values
 
     from pandas.core.series import Series
-    values = Series(values).values
+    values = Series(values)._values
     dtype = values.dtype
 
-    if needs_i8_conversion(dtype) or is_period_type:
-
-        from pandas.tseries.index import DatetimeIndex
-        from pandas.tseries.period import PeriodIndex
-
-        if is_period_type:
-            # values may be an object
-            values = PeriodIndex(values)
-            freq = values.freq
-
+    if needs_i8_conversion(dtype):
         values = values.view(np.int64)
         keys, counts = htable.value_count_int64(values, dropna)
 
@@ -466,13 +456,14 @@ def _value_counts_arraylike(values, dropna=True):
             keys, counts = keys[msk], counts[msk]
 
         # convert the keys back to the dtype we came in
-        keys = keys.astype(dtype)
-
-        # dtype handling
         if is_datetimetz_type:
+            from pandas.tseries.index import DatetimeIndex
             keys = DatetimeIndex._simple_new(keys, tz=orig.dtype.tz)
-        if is_period_type:
-            keys = PeriodIndex._simple_new(keys, freq=freq)
+        elif is_period_type:
+            from pandas.tseries.period import PeriodIndex
+            keys = PeriodIndex._simple_new(keys, freq=orig.dtype.freq)
+        else:
+            keys = keys.astype(dtype)
 
     elif is_signed_integer_dtype(dtype):
         values = _ensure_int64(values)
@@ -522,9 +513,6 @@ def duplicated(values, keep='first'):
     # no need to revert to original type
     if needs_i8_conversion(dtype):
         values = values.view(np.int64)
-    elif is_period_arraylike(values):
-        from pandas.tseries.period import PeriodIndex
-        values = PeriodIndex(values).asi8
     elif is_categorical_dtype(dtype):
         values = values.values.codes
     elif isinstance(values, (ABCSeries, ABCIndex)):
@@ -1243,8 +1231,9 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     if is_categorical(arr):
         return arr.take_nd(indexer, fill_value=fill_value,
                            allow_fill=allow_fill)
-    elif is_datetimetz(arr):
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+    elif is_extension_type(arr):
+        return arr.take(indexer, fill_value=fill_value,
+                        allow_fill=allow_fill)
 
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)

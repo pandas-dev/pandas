@@ -708,7 +708,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
                                  freq='M')
         exp = pd.DataFrame({'P': exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
-        self.assertEqual(res['P'].dtype, 'object')
+        self.assertEqual(res['P'].dtype, 'period[M]')
 
         # different freq
         dts2 = pd.PeriodIndex(['2012-01-01', '2012-01-02',
