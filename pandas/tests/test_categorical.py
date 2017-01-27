@@ -1555,11 +1555,13 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
     def test_memory_usage(self):
         cat = pd.Categorical([1, 2, 3])
-        self.assertEqual(cat.nbytes, cat.memory_usage())
-        self.assertEqual(cat.nbytes, cat.memory_usage(deep=True))
+
+        # .categories is an index, so we include the hashtable
+        self.assertTrue(cat.nbytes > 0 and cat.nbytes <= cat.memory_usage())
+        self.assertTrue(cat.nbytes > 0 and
+                        cat.nbytes <= cat.memory_usage(deep=True))
 
         cat = pd.Categorical(['foo', 'foo', 'bar'])
-        self.assertEqual(cat.nbytes, cat.memory_usage())
         self.assertTrue(cat.memory_usage(deep=True) > cat.nbytes)
 
         # sys.getsizeof will call the .memory_usage with

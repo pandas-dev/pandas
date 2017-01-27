@@ -315,6 +315,43 @@ New Behavior:
   In [5]: df['a']['2011-12-31 23:59:59']
   Out[5]: 1
 
+.. _whatsnew_0200.api_breaking.memory_usage:
+
+Memory Usage for Index is more Accurate
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, showing ``.memory_usage()`` on a pandas structure that has an index, would only include actual index values and not include structures that facilitated fast indexing. This will generally be different for ``Index`` and ``MultiIndex`` and less-so for other index types. (:issue:`15237`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [8]: index = Index(['foo', 'bar', 'baz'])
+
+   In [9]: index.memory_usage(deep=True)
+   Out[9]: 180
+
+   In [10]: index.get_loc('foo')
+   Out[10]: 0
+
+   In [11]: index.memory_usage(deep=True)
+   Out[11]: 180
+
+New Behavior:
+
+.. code-block:: ipython
+
+   In [8]: index = Index(['foo', 'bar', 'baz'])
+
+   In [9]: index.memory_usage(deep=True)
+   Out[9]: 180
+
+   In [10]: index.get_loc('foo')
+   Out[10]: 0
+
+   In [11]: index.memory_usage(deep=True)
+   Out[11]: 260
+
 .. _whatsnew_0200.api:
 
 Other API Changes
