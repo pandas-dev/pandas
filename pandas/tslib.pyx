@@ -652,7 +652,7 @@ class Timestamp(_Timestamp):
 
     def replace(self, year=None, month=None, day=None,
                 hour=None, minute=None, second=None, microsecond=None, nanosecond=None,
-                tzinfo=None):
+                tzinfo=object, fold=0):
         """
         implements datetime.replace, handles nanoseconds
 
@@ -667,6 +667,8 @@ class Timestamp(_Timestamp):
         microsecond : int, optional
         nanosecond: int, optional
         tzinfo : tz-convertible, optional
+        fold : int, optional, default is 0
+            added in 3.6, NotImplemented
 
         Returns
         -------
@@ -713,7 +715,7 @@ class Timestamp(_Timestamp):
             dts.us = validate('microsecond', microsecond)
         if nanosecond is not None:
             dts.ps = validate('nanosecond', nanosecond) * 1000
-        if tzinfo is not None:
+        if tzinfo is not object:
             _tzinfo = tzinfo
 
         # reconstruct & check bounds
@@ -726,7 +728,6 @@ class Timestamp(_Timestamp):
             value = tz_convert_single(value, _tzinfo, 'UTC')
 
         result = create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
-
         return result
 
     def isoformat(self, sep='T'):

@@ -416,7 +416,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in ``Timestamp.replace`` exception ValueError raised when wrong argument name given, should be TypeError (:issue:`15240`)
+- Bug in ``Timestamp.replace`` now raises ``TypeError`` when incorrect argument names are given; previously this raised ``ValueError`` (:issue:`15240`)
 - Bug in ``Index`` power operations with reversed operands (:issue:`14973`)
 - Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
 - Bug in ``TimedeltaIndex`` raising a ``ValueError`` when boolean indexing with ``loc`` (:issue:`14946`)
