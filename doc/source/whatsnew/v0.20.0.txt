@@ -502,7 +502,7 @@ Bug Fixes
 
 - Bug in ``DataFrame.to_stata()`` and ``StataWriter`` which produces incorrectly formatted files to be produced for some locales (:issue:`13856`)
 
-
+- Bug in ``DataFrame.groupby().transform()`` dtype of output is cast to dtype of input (:issue:`10972`)
 
 
 

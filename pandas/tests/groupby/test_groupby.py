@@ -1308,7 +1308,8 @@ class TestGroupBy(tm.TestCase):
     def test_with_na(self):
         index = Index(np.arange(10))
 
-        for dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']:
+        for dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8',
+                      'datetime64[ns]']:
             values = Series(np.ones(10), index, dtype=dtype)
             labels = Series([nan, 'foo', 'bar', 'bar', nan, nan, 'bar',
                              'bar', nan, 'foo'], index=index)
@@ -1316,9 +1317,13 @@ class TestGroupBy(tm.TestCase):
             # this SHOULD be an int
             grouped = values.groupby(labels)
             agged = grouped.agg(len)
-            expected = Series([4, 2], index=['bar', 'foo'])
 
-            assert_series_equal(agged, expected, check_dtype=False)
+            if dtype != "datetime64[ns]":
+                expected = Series([4, 2], index=['bar', 'foo'], dtype=dtype)
+            else:
+                expected = Series([4, 2], index=['bar', 'foo'])
+
+            assert_series_equal(agged, expected)
 
             # self.assertTrue(issubclass(agged.dtype.type, np.integer))
 
@@ -1328,8 +1333,11 @@ class TestGroupBy(tm.TestCase):
 
             agged = grouped.agg(f)
             expected = Series([4, 2], index=['bar', 'foo'])
-
             assert_series_equal(agged, expected, check_dtype=False)
+
+            if dtype == "datetime64[ns]":
+                continue
+
             self.assertTrue(issubclass(agged.dtype.type, np.dtype(dtype).type))
 
     def test_groupby_transform_with_int(self):
