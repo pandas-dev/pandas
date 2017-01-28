@@ -826,7 +826,6 @@ class TestTimeZoneSupportPytz(tm.TestCase):
     def test_convert_datetime_list(self):
         dr = date_range('2012-06-02', periods=10,
                         tz=self.tzstr('US/Eastern'), name='foo')
-
         dr2 = DatetimeIndex(list(dr), name='foo')
         self.assert_index_equal(dr, dr2)
         self.assertEqual(dr.tz, dr2.tz)
@@ -1198,7 +1197,7 @@ class TestTimeZones(tm.TestCase):
         # error
         def f():
             dt.replace(foo=5)
-        self.assertRaises(ValueError, f)
+        self.assertRaises(TypeError, f)
 
         def f():
             dt.replace(hour=0.1)
