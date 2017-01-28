@@ -650,18 +650,25 @@ class Timestamp(_Timestamp):
 
     astimezone = tz_convert
 
-    def replace(self, **kwds):
+    def replace(self, year=None, month=None, day=None,
+                hour=None, minute=None, second=None, microsecond=None, nanosecond=None,
+                tzinfo=object, fold=0):
         """
         implements datetime.replace, handles nanoseconds
 
         Parameters
         ----------
-        kwargs: key-value dict
-
-        accepted keywords are:
-        year, month, day, hour, minute, second, microsecond, nanosecond, tzinfo
-
-        values must be integer, or for tzinfo, a tz-convertible
+        year : int, optional
+        month : int, optional
+        day : int, optional
+        hour : int, optional
+        minute : int, optional
+        second : int, optional
+        microsecond : int, optional
+        nanosecond: int, optional
+        tzinfo : tz-convertible, optional
+        fold : int, optional, default is 0
+            added in 3.6, NotImplemented
 
         Returns
         -------
@@ -671,14 +678,14 @@ class Timestamp(_Timestamp):
         cdef:
             pandas_datetimestruct dts
             int64_t value
-            object tzinfo, result, k, v
+            object _tzinfo, result, k, v
             _TSObject ts
 
         # set to naive if needed
-        tzinfo = self.tzinfo
+        _tzinfo = self.tzinfo
         value = self.value
-        if tzinfo is not None:
-            value = tz_convert_single(value, 'UTC', tzinfo)
+        if _tzinfo is not None:
+            value = tz_convert_single(value, 'UTC', _tzinfo)
 
         # setup components
         pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
@@ -692,27 +699,24 @@ class Timestamp(_Timestamp):
                                  "{v} for {k}".format(v=type(v), k=k))
             return v
 
-        for k, v in kwds.items():
-            if k == 'year':
-                dts.year = validate(k, v)
-            elif k == 'month':
-                dts.month = validate(k, v)
-            elif k == 'day':
-                dts.day = validate(k, v)
-            elif k == 'hour':
-                dts.hour = validate(k, v)
-            elif k == 'minute':
-                dts.min = validate(k, v)
-            elif k == 'second':
-                dts.sec = validate(k, v)
-            elif k == 'microsecond':
-                dts.us = validate(k, v)
-            elif k == 'nanosecond':
-                dts.ps = validate(k, v) * 1000
-            elif k == 'tzinfo':
-                tzinfo = v
-            else:
-                raise ValueError("invalid name {} passed".format(k))
+        if year is not None:
+            dts.year = validate('year', year)
+        if month is not None:
+            dts.month = validate('month', month)
+        if day is not None:
+            dts.day = validate('day', day)
+        if hour is not None:
+            dts.hour = validate('hour', hour)
+        if minute is not None:
+            dts.min = validate('minute', minute)
+        if second is not None:
+            dts.sec = validate('second', second)
+        if microsecond is not None:
+            dts.us = validate('microsecond', microsecond)
+        if nanosecond is not None:
+            dts.ps = validate('nanosecond', nanosecond) * 1000
+        if tzinfo is not object:
+            _tzinfo = tzinfo
 
         # reconstruct & check bounds
         value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
@@ -720,11 +724,10 @@ class Timestamp(_Timestamp):
             _check_dts_bounds(&dts)
 
         # set tz if needed
-        if tzinfo is not None:
-            value = tz_convert_single(value, tzinfo, 'UTC')
+        if _tzinfo is not None:
+            value = tz_convert_single(value, _tzinfo, 'UTC')
 
-        result = create_timestamp_from_ts(value, dts, tzinfo, self.freq)
-
+        result = create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
         return result
 
     def isoformat(self, sep='T'):
