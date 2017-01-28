@@ -1195,10 +1195,10 @@ class TestTimeZones(tm.TestCase):
         expected = Timestamp('2015-02-02 00:05:05.000005005', tz=tz)
         self.assertEqual(result, expected)
 
-        # error
+        # error GH 15240 return error should be type error not value error
         def f():
             dt.replace(foo=5)
-        self.assertRaises(ValueError, f)
+        self.assertRaises(TypeError, f)
 
         def f():
             dt.replace(hour=0.1)
@@ -1207,6 +1207,15 @@ class TestTimeZones(tm.TestCase):
         # assert conversion to naive is the same as replacing tzinfo with None
         dt = Timestamp('2013-11-03 01:59:59.999999-0400', tz='US/Eastern')
         self.assertEqual(dt.tz_localize(None), dt.replace(tzinfo=None))
+
+        # GH 15240 return error should be type error not value error
+        expected = "TypeError(\"'apple' is an invalid keyword " \
+            "argument for this function\",)"
+        try:
+            Timestamp("2012").replace(apple=3)
+        except Exception as e:
+            result = repr(e)
+        self.assertEqual(expected, result)
 
     def test_ambiguous_compat(self):
         # validate that pytz and dateutil are compat for dst

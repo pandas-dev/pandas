@@ -712,7 +712,8 @@ class Timestamp(_Timestamp):
             elif k == 'tzinfo':
                 tzinfo = v
             else:
-                raise ValueError("invalid name {} passed".format(k))
+                raise TypeError("'{}' is an invalid keyword argument for this function".format(k)) 
+                # ValueError("invalid name {} passed".format(k))
 
         # reconstruct & check bounds
         value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
