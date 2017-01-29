@@ -5392,6 +5392,23 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = [1]
         self.assertEqual(result, expected)
 
+    def test_multiindex_slice_first_level(self):
+        # GH 12697
+        freq = ['a', 'b', 'c', 'd']
+        idx = pd.MultiIndex.from_product([freq, np.arange(500)])
+        df = pd.DataFrame(list(range(2000)), index=idx, columns=['Test'])
+        df_slice = df.loc[pd.IndexSlice[:, 30:70], :]
+        result = df_slice.loc['a']
+        expected = pd.DataFrame(list(range(30, 71)),
+                                columns=['Test'],
+                                index=range(30, 71))
+        tm.assert_frame_equal(result, expected)
+        result = df_slice.loc['d']
+        expected = pd.DataFrame(list(range(1530, 1571)),
+                                columns=['Test'],
+                                index=range(30, 71))
+        tm.assert_frame_equal(result, expected)
+
 
 class TestSeriesNoneCoercion(tm.TestCase):
     EXPECTED_RESULTS = [
