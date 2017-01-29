@@ -559,64 +559,39 @@ class TestStringMethods(tm.TestCase):
         exp = Series([u('a'), u('bb'), NA, u('cccc'), NA, u('dddddd')])
         tm.assert_series_equal(result, exp)
 
-    def test_deprecated_match(self):
-        # Old match behavior, deprecated (but still default) in 0.13
-        values = Series(['fooBAD__barBAD', NA, 'foo'])
-
-        with tm.assert_produces_warning():
-            result = values.str.match('.*(BAD[_]+).*(BAD)')
-        exp = Series([('BAD__', 'BAD'), NA, []])
-        tm.assert_series_equal(result, exp)
-
-        # mixed
-        mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
-                        'foo', None, 1, 2.])
-
-        with tm.assert_produces_warning():
-            rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)')
-        xp = Series([('BAD_', 'BAD'), NA, ('BAD_', 'BAD'),
-                     NA, NA, [], NA, NA, NA])
-        tm.assertIsInstance(rs, Series)
-        tm.assert_series_equal(rs, xp)
-
-        # unicode
-        values = Series([u('fooBAD__barBAD'), NA, u('foo')])
-
-        with tm.assert_produces_warning():
-            result = values.str.match('.*(BAD[_]+).*(BAD)')
-        exp = Series([(u('BAD__'), u('BAD')), NA, []])
-        tm.assert_series_equal(result, exp)
-
     def test_match(self):
         # New match behavior introduced in 0.13
         values = Series(['fooBAD__barBAD', NA, 'foo'])
-        with tm.assert_produces_warning():
-            result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        result = values.str.match('.*(BAD[_]+).*(BAD)')
         exp = Series([True, NA, False])
         tm.assert_series_equal(result, exp)
 
-        # If no groups, use new behavior even when as_indexer is False.
-        # (Old behavior is pretty much useless in this case.)
         values = Series(['fooBAD__barBAD', NA, 'foo'])
-        result = values.str.match('.*BAD[_]+.*BAD', as_indexer=False)
+        result = values.str.match('.*BAD[_]+.*BAD')
         exp = Series([True, NA, False])
+        tm.assert_series_equal(result, exp)
+
+        # test passing as_indexer still works but is ignored
+        values = Series(['fooBAD__barBAD', NA, 'foo'])
+        exp = Series([True, NA, False])
+        with tm.assert_produces_warning(UserWarning):
+            result = values.str.match('.*BAD[_]+.*BAD', as_indexer=True)
+        tm.assert_series_equal(result, exp)
+        with tm.assert_produces_warning(UserWarning):
+            result = values.str.match('.*BAD[_]+.*BAD', as_indexer=False)
         tm.assert_series_equal(result, exp)
 
         # mixed
         mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
                         'foo', None, 1, 2.])
-
-        with tm.assert_produces_warning():
-            rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)')
         xp = Series([True, NA, True, NA, NA, False, NA, NA, NA])
         tm.assertIsInstance(rs, Series)
         tm.assert_series_equal(rs, xp)
 
         # unicode
         values = Series([u('fooBAD__barBAD'), NA, u('foo')])
-
-        with tm.assert_produces_warning():
-            result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        result = values.str.match('.*(BAD[_]+).*(BAD)')
         exp = Series([True, NA, False])
         tm.assert_series_equal(result, exp)
 
@@ -2610,10 +2585,11 @@ class TestStringMethods(tm.TestCase):
 
         pat = r'([A-Z0-9._%+-]+)@([A-Z0-9.-]+)\.([A-Z]{2,4})'
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = data.str.match(pat, flags=re.IGNORECASE)
-
+        result = data.str.extract(pat, flags=re.IGNORECASE)
         self.assertEqual(result[0], ('dave', 'google', 'com'))
+
+        result = data.str.match(pat, flags=re.IGNORECASE)
+        self.assertEqual(result[0], True)
 
         result = data.str.findall(pat, flags=re.IGNORECASE)
         self.assertEqual(result[0][0], ('dave', 'google', 'com'))
