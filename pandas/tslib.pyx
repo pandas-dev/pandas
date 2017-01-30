@@ -8,10 +8,8 @@ from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
 from datetime cimport get_datetime64_value, get_timedelta64_value
 import numpy as np
 
-# GH3363
-from sys import version_info
-cdef bint PY2 = version_info[0] == 2
-cdef bint PY3 = not PY2
+import sys
+cdef bint PY3 = (sys.version_info[0] >= 3)
 
 from cpython cimport (
     PyTypeObject,
@@ -24,11 +22,8 @@ from cpython cimport (
     PyUnicode_AsUTF8String,
 )
 
-
-# Cython < 0.17 doesn't have this in cpython
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
-    int PySlice_Check(object)
 
 cdef extern from "datetime_helper.h":
     double total_seconds(object)
@@ -2121,8 +2116,8 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(
     hour=0, minute=0, second=0, microsecond=0)
 _MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
            'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_MONTH_NUMBERS = dict((k, i) for i, k in enumerate(_MONTHS))
-_MONTH_ALIASES = dict((k + 1, v) for k, v in enumerate(_MONTHS))
+_MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
+_MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
 
 
 cpdef object _get_rule_month(object source, object default='DEC'):
@@ -5529,8 +5524,8 @@ class TimeRE(dict):
             'B': self.__seqToRE(self.locale_time.f_month[1:], 'B'),
             'b': self.__seqToRE(self.locale_time.a_month[1:], 'b'),
             'p': self.__seqToRE(self.locale_time.am_pm, 'p'),
-            'Z': self.__seqToRE((tz for tz_names in self.locale_time.timezone
-                                        for tz in tz_names),
+            'Z': self.__seqToRE([tz for tz_names in self.locale_time.timezone
+                                 for tz in tz_names],
                                 'Z'),
             '%': '%'})
         base.__setitem__('W', base.__getitem__('U').replace('U', 'W'))
@@ -5553,7 +5548,7 @@ class TimeRE(dict):
                 break
         else:
             return ''
-        regex = '|'.join(re_escape(stuff) for stuff in to_convert)
+        regex = '|'.join([re_escape(stuff) for stuff in to_convert])
         regex = '(?P<%s>%s' % (directive, regex)
         return '%s)' % regex
 

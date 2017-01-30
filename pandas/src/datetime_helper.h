@@ -15,10 +15,6 @@ The full license is in the LICENSE file, distributed with this software.
 #include "numpy/arrayobject.h"
 #include "numpy/arrayscalars.h"
 
-#if PY_MAJOR_VERSION >= 3
-#define PyInt_AS_LONG PyLong_AsLong
-#endif
-
 npy_int64 get_long_attr(PyObject *o, const char *attr) {
   npy_int64 long_val;
   PyObject *value = PyObject_GetAttrString(o, attr);
