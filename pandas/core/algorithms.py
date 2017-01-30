@@ -366,6 +366,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     if isinstance(values, Index):
         uniques = values._shallow_copy(uniques, name=None)
     elif isinstance(values, Series):
+        # TODO: This constructor is bugged for uint's, especially
+        # np.uint64 due to overflow. Test this for uint behavior
+        # once constructor has been fixed.
         uniques = Index(uniques)
     return labels, uniques
 
