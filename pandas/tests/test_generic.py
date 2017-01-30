@@ -1269,10 +1269,10 @@ class TestDataFrame(tm.TestCase, Generic):
                         'numD': np.arange(24.) + .5,
                         'ts': tm.makeTimeSeries()[:24].index})
         G = df.groupby('catA')
-        self.assertTrue(G.describe(include=['number']).shape == (16, 2))
-        self.assertTrue(G.describe(include=['number', 'object']).shape == (22,
-                                                                           3))
-        self.assertTrue(G.describe(include='all').shape == (26, 4))
+        self.assertTrue(G.describe(include=['number']).shape == (2, 16))
+        self.assertTrue(G.describe(include=['number', 'object']).shape == (2,
+                                                                           33))
+        self.assertTrue(G.describe(include='all').shape == (2, 52))
 
     def test_describe_multi_index_df_column_names(self):
         """ Test that column names persist after the describe operation."""

@@ -3544,30 +3544,15 @@ a & b &    \\
         self.assertEqual(result, expected)
 
         result = df.groupby('a').describe().to_latex()
-        expected = r"""\begin{tabular}{llr}
-\toprule
-  &       &         c \\
-a & {} &           \\
-\midrule
-0 & count &  2.000000 \\
-  & mean &  1.500000 \\
-  & std &  0.707107 \\
-  & min &  1.000000 \\
-  & 25\% &  1.250000 \\
-  & 50\% &  1.500000 \\
-  & 75\% &  1.750000 \\
-  & max &  2.000000 \\
-1 & count &  2.000000 \\
-  & mean &  3.500000 \\
-  & std &  0.707107 \\
-  & min &  3.000000 \\
-  & 25\% &  3.250000 \\
-  & 50\% &  3.500000 \\
-  & 75\% &  3.750000 \\
-  & max &  4.000000 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = ('\\begin{tabular}{lrrrrrrrr}\n\\toprule\n{} &     c &     '
+                    ' &           &      &       &      &       &      '
+                    '\\\\\n{} & count & mean &       std &  min &   25\\% &  '
+                    '50\\% &   75\\% &  max \\\\\na &       &      &          '
+                    ' &      &       &      &       &      \\\\\n\\midrule\n0 '
+                    '&   2.0 &  1.5 &  0.707107 &  1.0 &  1.25 &  1.5 &  1.75 '
+                    '&  2.0 \\\\\n1 &   2.0 &  3.5 &  0.707107 &  3.0 &  3.25 '
+                    '&  3.5 &  3.75 &  4.0 '
+                    '\\\\\n\\bottomrule\n\\end{tabular}\n')
 
         self.assertEqual(result, expected)
 

@@ -159,17 +159,20 @@ class TestGroupByCategorical(tm.TestCase):
         exp_cats = Categorical(ord_labels, ordered=True,
                                categories=['foo', 'bar', 'baz', 'qux'])
         expected = ord_data.groupby(exp_cats, sort=False).describe()
-        expected.index.names = [None, None]
         assert_frame_equal(desc_result, expected)
 
         # GH 10460
         expc = Categorical.from_codes(np.arange(4).repeat(8),
                                       levels, ordered=True)
         exp = CategoricalIndex(expc)
-        self.assert_index_equal(desc_result.index.get_level_values(0), exp)
+        self.assert_index_equal((desc_result.stack()
+                                            .index
+                                            .get_level_values(0)), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
                      '75%', 'max'] * 4)
-        self.assert_index_equal(desc_result.index.get_level_values(1), exp)
+        self.assert_index_equal((desc_result.stack()
+                                            .index
+                                            .get_level_values(1)), exp)
 
     def test_groupby_datetime_categorical(self):
         # GH9049: ensure backward compatibility
@@ -196,7 +199,6 @@ class TestGroupByCategorical(tm.TestCase):
         ord_labels = cats.take_nd(idx)
         ord_data = data.take(idx)
         expected = ord_data.groupby(ord_labels).describe()
-        expected.index.names = [None, None]
         assert_frame_equal(desc_result, expected)
         tm.assert_index_equal(desc_result.index, expected.index)
         tm.assert_index_equal(
@@ -207,10 +209,14 @@ class TestGroupByCategorical(tm.TestCase):
         expc = Categorical.from_codes(
             np.arange(4).repeat(8), levels, ordered=True)
         exp = CategoricalIndex(expc)
-        self.assert_index_equal(desc_result.index.get_level_values(0), exp)
+        self.assert_index_equal((desc_result.stack()
+                                            .index
+                                            .get_level_values(0)), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
                      '75%', 'max'] * 4)
-        self.assert_index_equal(desc_result.index.get_level_values(1), exp)
+        self.assert_index_equal((desc_result.stack()
+                                            .index
+                                            .get_level_values(1)), exp)
 
     def test_groupby_categorical_index(self):
 
@@ -246,8 +252,8 @@ class TestGroupByCategorical(tm.TestCase):
         df = DataFrame(np.random.randn(20, 4), columns=cats)
         result = df.groupby([1, 2, 3, 4] * 5).describe()
 
-        tm.assert_index_equal(result.columns, cats)
-        tm.assert_categorical_equal(result.columns.values, cats.values)
+        tm.assert_index_equal(result.stack().columns, cats)
+        tm.assert_categorical_equal(result.stack().columns.values, cats.values)
 
     def test_groupby_unstack_categorical(self):
         # GH11558 (example is taken from the original issue)
