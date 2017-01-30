@@ -580,6 +580,11 @@ class TestStringMethods(tm.TestCase):
         with tm.assert_produces_warning(UserWarning):
             result = values.str.match('.*BAD[_]+.*BAD', as_indexer=False)
         tm.assert_series_equal(result, exp)
+        with tm.assert_produces_warning(UserWarning):
+            result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        tm.assert_series_equal(result, exp)
+        self.assertRaises(ValueError, values.str.match, '.*(BAD[_]+).*(BAD)',
+                          as_indexer=False)
 
         # mixed
         mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),

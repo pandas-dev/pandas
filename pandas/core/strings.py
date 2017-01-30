@@ -477,7 +477,6 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer : ignored
 
     Returns
     -------
@@ -495,7 +494,10 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
 
     regex = re.compile(pat, flags=flags)
 
-    if as_indexer is not None:
+    if (as_indexer is False) and (regex.groups > 0):
+        raise ValueError("as_indexer=False with a pattern with groups is no "
+                         "longer supported. Use '.str.extract(pat)' instead")
+    elif as_indexer is not None:
         # Previously, this keyword was used for changing the default but
         # deprecated behaviour. This keyword is now no longer needed.
         warnings.warn("'as_indexer' keyword was specified but will be ignored;"
@@ -1558,7 +1560,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_match)
-    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=False):
+    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
         result = str_match(self._data, pat, case=case, flags=flags, na=na,
                            as_indexer=as_indexer)
         return self._wrap_result(result)
