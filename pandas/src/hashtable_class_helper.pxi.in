@@ -386,9 +386,11 @@ cdef class {{name}}HashTable(HashTable):
                 val = values[i]
 
                 # specific for groupby
+                {{if dtype != 'uint64'}}
                 if val < 0:
                     labels[i] = -1
                     continue
+                {{endif}}
 
                 k = kh_get_{{dtype}}(self.table, val)
                 if k != self.table.n_buckets:

@@ -622,7 +622,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + (int)line_limit) {  \
         goto linelimit;                                              \
     }
 
@@ -637,7 +637,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + (int)line_limit) { \
         goto linelimit;                                              \
     }
 
@@ -1072,7 +1072,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
                         --i;
                         buf--;  // let's try this character again (HACK!)
                         if (line_limit > 0 &&
-                            self->lines == start_lines + line_limit) {
+                            self->lines == start_lines + (int)line_limit) {
                             goto linelimit;
                         }
                     }
@@ -1160,7 +1160,7 @@ static int parser_handle_eof(parser_t *self) {
 int parser_consume_rows(parser_t *self, size_t nrows) {
     int i, offset, word_deletions, char_count;
 
-    if (nrows > self->lines) {
+    if ((int)nrows > self->lines) {
         nrows = self->lines;
     }
 
@@ -1197,7 +1197,7 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->word_start -= char_count;
 
     /* move line metadata */
-    for (i = 0; i < self->lines - nrows + 1; ++i) {
+    for (i = 0; i < self->lines - (int)nrows + 1; ++i) {
         offset = i + nrows;
         self->line_start[i] = self->line_start[offset] - word_deletions;
         self->line_fields[i] = self->line_fields[offset];
@@ -1224,7 +1224,7 @@ int parser_trim_buffers(parser_t *self) {
 
     /* trim words, word_starts */
     new_cap = _next_pow2(self->words_len) + 1;
-    if (new_cap < self->words_cap) {
+    if ((int)new_cap < self->words_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->words_cap\n"));
         newptr = safe_realloc((void *)self->words, new_cap * sizeof(char *));
         if (newptr == NULL) {
@@ -1247,7 +1247,7 @@ int parser_trim_buffers(parser_t *self) {
         ("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = "
          "%zu\n",
          new_cap, self->stream_cap, self->lines_cap));
-    if (new_cap < self->stream_cap) {
+    if ((int)new_cap < self->stream_cap) {
         TRACE(
             ("parser_trim_buffers: new_cap < self->stream_cap, calling "
              "safe_realloc\n"));
@@ -1275,7 +1275,7 @@ int parser_trim_buffers(parser_t *self) {
 
     /* trim line_start, line_fields */
     new_cap = _next_pow2(self->lines) + 1;
-    if (new_cap < self->lines_cap) {
+    if ((int)new_cap < self->lines_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->lines_cap\n"));
         newptr = safe_realloc((void *)self->line_start, new_cap * sizeof(int));
         if (newptr == NULL) {
@@ -1328,7 +1328,7 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         (int)nrows, self->datapos, self->datalen));
 
     while (1) {
-        if (!all && self->lines - start_lines >= nrows) break;
+        if (!all && self->lines - start_lines >= (int)nrows) break;
 
         if (self->datapos == self->datalen) {
             status = parser_buffer_bytes(self, self->chunksize);
@@ -1986,7 +1986,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
         return 0;
     }
 
-    if (number > int_max) {
+    if (number > (uint64_t)int_max) {
         state->seen_uint = 1;
     }
 

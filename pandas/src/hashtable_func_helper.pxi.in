@@ -59,7 +59,12 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
 
         for i in range(n):
             val = values[i]
+
+            {{if dtype == 'float64'}}
             if val == val or not dropna:
+            {{else}}
+            if True:
+            {{endif}}
                 k = kh_get_{{ttype}}(table, val)
                 if k != table.n_buckets:
                     table.vals[k] += 1
@@ -85,7 +90,7 @@ cpdef value_count_{{dtype}}({{dtype}}_t[:] values, bint dropna):
         int64_t[:] result_counts
         {{endif}}
 
-        int k
+        Py_ssize_t k
 
     table = kh_init_{{ttype}}()
     {{if dtype == 'object'}}
@@ -133,11 +138,11 @@ def duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first'):
 def duplicated_{{dtype}}({{dtype}}_t[:] values, object keep='first'):
 {{endif}}
     cdef:
-        int ret = 0, k
+        int ret = 0
         {{if dtype != 'object'}}
         {{dtype}}_t value
         {{endif}}
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t k, i, n = len(values)
         kh_{{ttype}}_t * table = kh_init_{{ttype}}()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
 
@@ -230,7 +235,7 @@ def mode_{{dtype}}({{ctype}}[:] values):
     cdef:
         int count, max_count = 2
         int j = -1 # so you can do +=
-        int k
+        Py_ssize_t k
         kh_{{table_type}}_t *table
         ndarray[{{ctype}}] modes
 

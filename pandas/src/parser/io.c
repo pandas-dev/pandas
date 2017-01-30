@@ -215,7 +215,7 @@ void *buffer_mmap_bytes(void *source, size_t nbytes, size_t *bytes_read,
 
     retval = src->memmap + src->position;
 
-    if (src->position + nbytes > src->last_pos) {
+    if (src->position + (off_t)nbytes > src->last_pos) {
         // fewer than nbytes remaining
         *bytes_read = src->last_pos - src->position;
     } else {
