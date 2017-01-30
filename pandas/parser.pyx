@@ -716,11 +716,10 @@ cdef class TextReader:
         # header is now a list of lists, so field_count should use header[0]
 
         cdef:
-            size_t i, start, data_line, field_count, passed_count, hr, unnamed_count  # noqa
+            Py_ssize_t i, start, field_count, passed_count, unnamed_count  # noqa
             char *word
             object name
-            int status
-            Py_ssize_t size
+            int status, hr, data_line
             char *errors = "strict"
             cdef StringPath path = _string_path(self.c_encoding)
 
@@ -1416,8 +1415,7 @@ cdef _string_box_factorize(parser_t *parser, int col,
                            bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
-        Py_ssize_t i
-        size_t lines
+        Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
         ndarray[object] result
@@ -1470,8 +1468,7 @@ cdef _string_box_utf8(parser_t *parser, int col,
                       bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
-        Py_ssize_t i
-        size_t lines
+        Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
         ndarray[object] result
@@ -1525,8 +1522,7 @@ cdef _string_box_decode(parser_t *parser, int col,
                         char *encoding):
     cdef:
         int error, na_count = 0
-        Py_ssize_t i, size
-        size_t lines
+        Py_ssize_t i, size, lines
         coliter_t it
         const char *word = NULL
         ndarray[object] result
@@ -1586,8 +1582,7 @@ cdef _categorical_convert(parser_t *parser, int col,
     "Convert column data into codes, categories"
     cdef:
         int error, na_count = 0
-        Py_ssize_t i, size
-        size_t lines
+        Py_ssize_t i, size, lines
         coliter_t it
         const char *word = NULL
 
@@ -1691,7 +1686,7 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
                  bint na_filter, kh_str_t *na_hashset, object na_flist):
     cdef:
         int error, na_count = 0
-        size_t i, lines
+        Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
         char *p_end
@@ -1738,8 +1733,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                                   int *na_count) nogil:
     cdef:
         int error,
-        size_t i
-        size_t lines = line_end - line_start
+        Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         char *p_end
@@ -1801,7 +1795,7 @@ cdef _try_uint64(parser_t *parser, int col, int line_start, int line_end,
                  bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error
-        size_t i, lines
+        Py_ssize_t i, lines
         coliter_t it
         uint64_t *data
         ndarray result
@@ -1837,8 +1831,7 @@ cdef inline int _try_uint64_nogil(parser_t *parser, int col, int line_start,
                                   uint64_t *data, uint_state *state) nogil:
     cdef:
         int error
-        size_t i
-        size_t lines = line_end - line_start
+        Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         khiter_t k
@@ -1873,7 +1866,7 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
                 bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
-        size_t i, lines
+        Py_ssize_t i, lines
         coliter_t it
         int64_t *data
         ndarray result
@@ -1902,8 +1895,7 @@ cdef inline int _try_int64_nogil(parser_t *parser, int col, int line_start,
                                  int64_t *data, int *na_count) nogil:
     cdef:
         int error
-        size_t i
-        size_t lines = line_end - line_start
+        Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         khiter_t k
@@ -1939,7 +1931,7 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
                bint na_filter, kh_str_t *na_hashset):
     cdef:
         int na_count
-        size_t lines = line_end - line_start
+        Py_ssize_t lines = line_end - line_start
         uint8_t *data
         cnp.ndarray[cnp.uint8_t, ndim=1] result
 
@@ -1963,8 +1955,7 @@ cdef inline int _try_bool_nogil(parser_t *parser, int col, int line_start,
                                 uint8_t *data, int *na_count) nogil:
     cdef:
         int error
-        size_t lines = line_end - line_start
-        size_t i
+        Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         khiter_t k
@@ -2004,7 +1995,7 @@ cdef _try_bool_flex(parser_t *parser, int col, int line_start, int line_end,
                     const kh_str_t *false_hashset):
     cdef:
         int error, na_count = 0
-        size_t i, lines
+        Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
         uint8_t *data
@@ -2033,8 +2024,7 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int col, int line_start,
                                      int *na_count) nogil:
     cdef:
         int error = 0
-        size_t i
-        size_t lines = line_end - line_start
+        Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         khiter_t k
@@ -2249,8 +2239,7 @@ cdef _apply_converter(object f, parser_t *parser, int col,
                       char* c_encoding):
     cdef:
         int error
-        Py_ssize_t i
-        size_t lines
+        Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
         char *errors = "strict"
@@ -2341,7 +2330,7 @@ def _to_structured_array(dict columns, object names, object usecols):
 cdef _fill_structured_column(char *dst, char* src, int elsize,
                              int stride, int length, bint incref):
     cdef:
-        size_t i
+        Py_ssize_t i
 
     if incref:
         util.transfer_object_column(dst, src, stride, length)
