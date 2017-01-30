@@ -63,9 +63,9 @@ class TestCartesianProduct(tm.TestCase):
         X = np.arange(65536)
         Y = np.arange(65535)
         result1, result2 = cartesian_product([X, Y])
-        expected1, expected2 = np.asarray(list(pd.compat.product(X, Y))).T
-        tm.assert_numpy_array_equal(result1, expected1)
-        tm.assert_numpy_array_equal(result2, expected2)
+        expected_size = X.size * Y.size
+        tm.assert_equal(result1.size, expected_size)
+        tm.assert_equal(result2.size, expected_size)
 
 
 class TestLocaleUtils(tm.TestCase):
