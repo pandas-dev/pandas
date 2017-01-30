@@ -2585,8 +2585,8 @@ class TestStringMethods(tm.TestCase):
 
         pat = r'([A-Z0-9._%+-]+)@([A-Z0-9.-]+)\.([A-Z]{2,4})'
 
-        result = data.str.extract(pat, flags=re.IGNORECASE)
-        self.assertEqual(result[0], ('dave', 'google', 'com'))
+        result = data.str.extract(pat, flags=re.IGNORECASE, expand=True)
+        self.assertEqual(result.iloc[0].tolist(), ['dave', 'google', 'com'])
 
         result = data.str.match(pat, flags=re.IGNORECASE)
         self.assertEqual(result[0], True)
