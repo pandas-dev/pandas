@@ -1,7 +1,6 @@
 import warnings
 import numpy as np
-from numpy.random import rand
-from datetime import datetime, time, timedelta, date
+from datetime import time, timedelta, date
 
 import pandas as pd
 import pandas.tslib as tslib
@@ -16,9 +15,7 @@ from pandas import (
     bdate_range, offsets, datetime, DatetimeIndex, _np_version_under1p8, NaT,
     notnull, PeriodIndex, _np_version_under1p10, Timedelta, TimedeltaIndex)
 
-from pandas.util.testing import (
-    assert_frame_equal, assert_series_equal, assert_almost_equal,
-    _skip_if_has_locale, slow)
+from pandas.util.testing import assert_series_equal, assert_almost_equal
 
 from pandas.tests.test_base import Ops
 
@@ -2849,10 +2846,6 @@ Freq: D"""
             self.assertFalse(idx.asobject.equals(idx3))
             self.assertFalse(idx.equals(list(idx3)))
             self.assertFalse(idx.equals(pd.Series(idx3)))
-
-
-
-
 
 
 class TestDateTimeIndexToJulianDate(tm.TestCase):
