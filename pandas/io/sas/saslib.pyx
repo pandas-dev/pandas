@@ -311,7 +311,7 @@ cdef class Parser(object):
         self.current_page_subheaders_count =\
             self.parser._current_page_subheaders_count
 
-    cdef bint readline(self):
+    cdef readline(self):
 
         cdef:
             int offset, bit_offset, align_correction

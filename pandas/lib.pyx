@@ -3,6 +3,7 @@ cimport numpy as np
 cimport cython
 import numpy as np
 import sys
+cdef bint PY3 = (sys.version_info[0] >= 3)
 
 from numpy cimport *
 
@@ -41,7 +42,6 @@ cdef extern from "Python.h":
         PySliceObject* s, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength) except -1
-
 
 cimport cpython
 
@@ -1568,62 +1568,65 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
         int64_t cur_blkno
         Py_ssize_t i, start, stop, n, diff
 
+        object blkno
         list group_order
         dict group_slices
         int64_t[:] res_view
 
     n = blknos.shape[0]
 
-    if n > 0:
-        start = 0
-        cur_blkno = blknos[start]
+    if n == 0:
+        return
 
-        if group == False:
-            for i in range(1, n):
-                if blknos[i] != cur_blkno:
-                    yield cur_blkno, slice(start, i)
+    start = 0
+    cur_blkno = blknos[start]
 
-                    start = i
-                    cur_blkno = blknos[i]
+    if group == False:
+        for i in range(1, n):
+            if blknos[i] != cur_blkno:
+                yield cur_blkno, slice(start, i)
 
-            yield cur_blkno, slice(start, n)
-        else:
-            group_order = []
-            group_dict = {}
+                start = i
+                cur_blkno = blknos[i]
 
-            for i in range(1, n):
-                if blknos[i] != cur_blkno:
-                    if cur_blkno not in group_dict:
-                        group_order.append(cur_blkno)
-                        group_dict[cur_blkno] = [(start, i)]
-                    else:
-                        group_dict[cur_blkno].append((start, i))
+        yield cur_blkno, slice(start, n)
+    else:
+        group_order = []
+        group_dict = {}
 
-                    start = i
-                    cur_blkno = blknos[i]
-
-            if cur_blkno not in group_dict:
-                group_order.append(cur_blkno)
-                group_dict[cur_blkno] = [(start, n)]
-            else:
-                group_dict[cur_blkno].append((start, n))
-
-            for blkno in group_order:
-                slices = group_dict[blkno]
-                if len(slices) == 1:
-                    yield blkno, slice(slices[0][0], slices[0][1])
+        for i in range(1, n):
+            if blknos[i] != cur_blkno:
+                if cur_blkno not in group_dict:
+                    group_order.append(cur_blkno)
+                    group_dict[cur_blkno] = [(start, i)]
                 else:
-                    tot_len = sum(stop - start for start, stop in slices)
-                    result = np.empty(tot_len, dtype=np.int64)
-                    res_view = result
+                    group_dict[cur_blkno].append((start, i))
 
-                    i = 0
-                    for start, stop in slices:
-                        for diff in range(start, stop):
-                            res_view[i] = diff
-                            i += 1
+                start = i
+                cur_blkno = blknos[i]
 
-                    yield blkno, result
+        if cur_blkno not in group_dict:
+            group_order.append(cur_blkno)
+            group_dict[cur_blkno] = [(start, n)]
+        else:
+            group_dict[cur_blkno].append((start, n))
+
+        for blkno in group_order:
+            slices = group_dict[blkno]
+            if len(slices) == 1:
+                yield blkno, slice(slices[0][0], slices[0][1])
+            else:
+                tot_len = sum([stop - start for start, stop in slices])
+                result = np.empty(tot_len, dtype=np.int64)
+                res_view = result
+
+                i = 0
+                for start, stop in slices:
+                    for diff in range(start, stop):
+                        res_view[i] = diff
+                        i += 1
+
+                yield blkno, result
 
 
 @cython.boundscheck(False)
@@ -1670,7 +1673,7 @@ cpdef slice_canonize(slice s):
     Convert slice to canonical bounded form.
     """
     cdef:
-        Py_ssize_t start, stop, step, length
+        Py_ssize_t start = 0, stop = 0, step = 1, length
 
     if s.step is None:
         step = 1
@@ -1727,6 +1730,7 @@ cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
 
     PySlice_GetIndicesEx(<PySliceObject *>slc, objlen,
                          &start, &stop, &step, &length)
+
     return start, stop, step, length
 
 

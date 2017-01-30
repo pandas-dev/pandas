@@ -462,6 +462,7 @@ lib_depends = lib_depends + ['pandas/src/numpy_helper.h',
 
 tseries_depends = ['pandas/src/datetime/np_datetime.h',
                    'pandas/src/datetime/np_datetime_strings.h',
+                   'pandas/src/datetime_helper.h',
                    'pandas/src/period_helper.h',
                    'pandas/src/datetime.pxd']
 
@@ -584,6 +585,7 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
 
 ujson_ext = Extension('pandas.json',
                       depends=['pandas/src/ujson/lib/ultrajson.h',
+                               'pandas/src/datetime_helper.h',
                                'pandas/src/numpy_helper.h'],
                       sources=['pandas/src/ujson/python/ujson.c',
                                'pandas/src/ujson/python/objToJSON.c',
