@@ -57,6 +57,15 @@ class TestCartesianProduct(tm.TestCase):
         msg = "Input must be a list-like of list-likes"
         for X in invalid_inputs:
             tm.assertRaisesRegexp(TypeError, msg, cartesian_product, X=X)
+            
+    def test_large_input(self):
+        # test failure of large inputs on windows OS
+        X = np.arange(65536)
+        Y = np.arange(65535)
+        result1, result2 = cartesian_product([X, Y])
+        expected1, expected2 = np.asarray(list(pd.compat.product(X, Y))).T
+        tm.assert_numpy_array_equal(result1, expected1)
+        tm.assert_numpy_array_equal(result2, expected2)
 
 
 class TestLocaleUtils(tm.TestCase):
