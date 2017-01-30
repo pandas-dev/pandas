@@ -175,11 +175,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average', ascending=True,
 
             count += 1.0
 
-            {{if dtype == 'float64'}}
             if i == n - 1 or sorted_data[i + 1] != val:
-            {{else}}
-            if i == n - 1 or fabs(sorted_data[i + 1] - val) > 0:
-            {{endif}}
                 if tiebreak == TIEBREAK_AVERAGE:
                     for j in range(i - dups + 1, i + 1):
                         ranks[argsorted[j]] = sum_ranks / dups
@@ -345,10 +341,8 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
 
             {{if dtype == 'object'}}
             if j == k - 1 or are_diff(values[i, j + 1], val):
-            {{elif dtype == 'float64'}}
-            if j == k - 1 or values[i, j + 1] != val:
             {{else}}
-            if j == k - 1 or fabs(values[i, j + 1] - val) > FP_ERR:
+            if j == k - 1 or values[i, j + 1] != val:
             {{endif}}
                 if tiebreak == TIEBREAK_AVERAGE:
                     for z in range(j - dups + 1, j + 1):
