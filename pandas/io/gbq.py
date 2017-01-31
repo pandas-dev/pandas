@@ -145,7 +145,7 @@ class GbqConnector(object):
     scope = 'https://www.googleapis.com/auth/bigquery'
 
     def __init__(self, project_id, reauth=False, verbose=False,
-                 private_key=None, dialect='legacy'):
+                 private_key=None, dialect=None):
         _check_google_client_version()
         _test_google_api_imports()
         self.project_id = project_id
@@ -388,12 +388,14 @@ class GbqConnector(object):
 
         job_config = {
             'query': {
-                'query': query,
-                'useLegacySql': self.dialect == 'legacy'
+                'query': query
+                # 'useLegacySql': self.dialect == 'legacy'
                 # 'allowLargeResults', 'createDisposition',
                 # 'preserveNulls', destinationTable, useQueryCache
             }
         }
+        if dialect:
+            job_config['query']['useLegacySql'] = self.dialect == 'legacy'
         config = kwargs.get('configuration')
         if config is not None:
             if len(config) != 1:
@@ -639,7 +641,7 @@ def _parse_entry(field_value, field_type):
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None, dialect='legacy',
+             reauth=False, verbose=True, private_key=None, dialect=None,
              **kwargs):
     r"""Load data from Google BigQuery.
 
@@ -691,12 +693,17 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
         .. versionadded:: 0.18.1
 
-    dialect : {'legacy', 'standard'}, default 'legacy'
+    dialect : {'legacy', 'standard', None}, default None
         'legacy' : Use BigQuery's legacy SQL dialect.
         'standard' : Use BigQuery's standard SQL (beta), which is
         compliant with the SQL 2011 standard. For more information
         see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/sql-reference/>`__
+        None : Don't explicitly specify query dialect. This enables
+        the dialect to be specified in a query prefix.
+        BigQuery will default to using 'legacy' if no dialect is specified.
+        For more information see `Enabling Standard SQL
+        <https://cloud.google.com/bigquery/docs/reference/standard-sql/enabling-standard-sql#sql-prefix>`
 
         .. versionadded:: 0.19.0
 
@@ -721,8 +728,9 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     if not project_id:
         raise TypeError("Missing required parameter: project_id")
 
-    if dialect not in ('legacy', 'standard'):
-        raise ValueError("'{0}' is not valid for dialect".format(dialect))
+    if dialect:
+        if dialect not in ('legacy', 'standard'):
+            raise ValueError("'{0}' is not valid for dialect".format(dialect))
 
     connector = GbqConnector(project_id, reauth=reauth, verbose=verbose,
                              private_key=private_key,
