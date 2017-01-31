@@ -3923,6 +3923,15 @@ $1$,$2$
         self.assertEqual(str(df), exp)
 
 
+def gen_series_formatting():
+    s1 = pd.Series(['a'] * 100)
+    s2 = pd.Series(['ab'] * 100)
+    s3 = pd.Series(['a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef'])
+    s4 = s3[::-1]
+    test_sers = {'onel': s1, 'twol': s2, 'asc': s3, 'desc': s4}
+    return test_sers
+
+
 class TestSeriesFormatting(tm.TestCase):
 
     def setUp(self):
@@ -4320,15 +4329,6 @@ class TestSeriesFormatting(tm.TestCase):
                '1.0000\n129    1.0000\ndtype: float64')
         self.assertEqual(res, exp)
 
-    @staticmethod
-    def gen_test_series():
-        s1 = pd.Series(['a'] * 100)
-        s2 = pd.Series(['ab'] * 100)
-        s3 = pd.Series(['a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef'])
-        s4 = s3[::-1]
-        test_sers = {'onel': s1, 'twol': s2, 'asc': s3, 'desc': s4}
-        return test_sers
-
     def chck_ncols(self, s):
         with option_context("display.max_rows", 10):
             res = repr(s)
@@ -4339,7 +4339,7 @@ class TestSeriesFormatting(tm.TestCase):
         self.assertEqual(ncolsizes, 1)
 
     def test_format_explicit(self):
-        test_sers = self.gen_test_series()
+        test_sers = gen_series_formatting()
         with option_context("display.max_rows", 4):
             res = repr(test_sers['onel'])
             exp = '0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object'
@@ -4358,7 +4358,7 @@ class TestSeriesFormatting(tm.TestCase):
             self.assertEqual(exp, res)
 
     def test_ncols(self):
-        test_sers = self.gen_test_series()
+        test_sers = gen_series_formatting()
         for s in test_sers.values():
             self.chck_ncols(s)
 
