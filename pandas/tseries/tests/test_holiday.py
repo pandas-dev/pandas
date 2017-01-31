@@ -13,7 +13,8 @@ from pandas.tseries.holiday import (USFederalHolidayCalendar, USMemorialDay,
                                     EasterMonday, GoodFriday,
                                     after_nearest_workday, weekend_to_monday,
                                     USLaborDay, USColumbusDay,
-                                    USMartinLutherKingJr, USPresidentsDay)
+                                    USMartinLutherKingJr, USPresidentsDay,
+                                    EnglandAndWalesHolidayCalendar)
 from pytz import utc
 import nose
 
@@ -385,6 +386,55 @@ class TestHolidayConflictingArguments(tm.TestCase):
             Holiday("Cyber Monday", month=11, day=1,
                     offset=[DateOffset(weekday=SA(4))],
                     observance=next_monday)
+
+
+class TestEnglandAndWalesCalendar(tm.TestCase):
+    KNOWN_HOLIDAYS = [
+        # https://www.gov.uk/bank-holidays
+        datetime(2014, 1, 1),
+        datetime(2014, 4, 18),
+        datetime(2014, 4, 21),
+        datetime(2014, 5, 5),
+        datetime(2014, 5, 26),
+        datetime(2014, 8, 25),
+        datetime(2014, 12, 25),
+        datetime(2014, 12, 26),
+
+        datetime(2015, 1, 1),
+        datetime(2015, 4, 3),
+        datetime(2015, 4, 6),
+        datetime(2015, 5, 4),
+        datetime(2015, 5, 25),
+        datetime(2015, 8, 31),
+        datetime(2015, 12, 25),
+        datetime(2015, 12, 28),
+
+        datetime(2016, 1, 1),
+        datetime(2016, 3, 25),
+        datetime(2016, 3, 28),
+        datetime(2016, 5, 2),
+        datetime(2016, 5, 30),
+        datetime(2016, 8, 29),
+        datetime(2016, 12, 26),
+        datetime(2016, 12, 27),
+
+        datetime(2017, 1, 2),
+        datetime(2017, 4, 14),
+        datetime(2017, 4, 17),
+        datetime(2017, 5, 1),
+        datetime(2017, 5, 29),
+        datetime(2017, 8, 28),
+        datetime(2017, 12, 25),
+        datetime(2017, 12, 26),
+    ]
+
+    def test_calendar(self):
+        cal = EnglandAndWalesHolidayCalendar()
+        holidays = cal.holidays(
+            start=datetime(2014, 1, 1),
+            end=datetime(2017, 12, 31)
+        )
+        self.assertEqual(list(holidays.to_pydatetime()), self.KNOWN_HOLIDAYS)
 
 
 if __name__ == '__main__':
