@@ -1,5 +1,5 @@
 from __future__ import print_function
-from datetime import datetime, timedelta
+from datetime import timedelta
 import numpy as np
 import pandas as pd
 from pandas import (Series, Index, Int64Index, Timestamp, Period,

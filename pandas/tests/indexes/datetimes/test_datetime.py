@@ -10,8 +10,8 @@ from pandas.tslib import OutOfBoundsDatetime
 from pandas.core.common import PerformanceWarning
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (notnull, DatetimeIndex, Int64Index, Index, date_range,
-    bdate_range, Series, DataFrame, Timestamp, datetime, offsets, NaT,
-    _np_version_under1p8)
+                    bdate_range, Series, DataFrame, Timestamp, datetime,
+                    offsets, NaT, _np_version_under1p8)
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 
@@ -564,36 +564,6 @@ class TestDatetimeIndex(tm.TestCase):
 
         idx2 = pd.date_range(end='2000', periods=periods, freq='S')
         self.assertEqual(len(idx2), periods)
-
-    def test_intersection(self):
-        first = self.index
-        second = self.index[5:]
-        intersect = first.intersection(second)
-        self.assertTrue(tm.equalContents(intersect, second))
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            result = first.intersection(case)
-            self.assertTrue(tm.equalContents(result, second))
-
-        third = Index(['a', 'b', 'c'])
-        result = first.intersection(third)
-        expected = pd.Index([], dtype=object)
-        self.assert_index_equal(result, expected)
-
-    def test_union(self):
-        first = self.index[:5]
-        second = self.index[5:]
-        everything = self.index
-        union = first.union(second)
-        self.assertTrue(tm.equalContents(union, everything))
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            result = first.union(case)
-            self.assertTrue(tm.equalContents(result, everything))
 
     def test_nat(self):
         self.assertIs(DatetimeIndex([np.nan])[0], pd.NaT)

@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, timedelta, time, date
-
 import numpy as np
+from datetime import timedelta
 
+import pandas as pd
+import pandas.util.testing as tm
 from pandas import (DatetimeIndex, Float64Index, Index, Int64Index,
                     NaT, Period, PeriodIndex, Series, Timedelta,
                     TimedeltaIndex, date_range, period_range,
                     timedelta_range, notnull)
 
-import pandas.util.testing as tm
-
-import pandas as pd
-from pandas.tslib import Timestamp, OutOfBoundsDatetime
 
 from .common import Base
 
@@ -90,6 +87,36 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
 
     def test_pickle_compat_construction(self):
         pass
+
+    def test_intersection(self):
+        first = self.index
+        second = self.index[5:]
+        intersect = first.intersection(second)
+        self.assertTrue(tm.equalContents(intersect, second))
+
+        # GH 10149
+        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        for case in cases:
+            result = first.intersection(case)
+            self.assertTrue(tm.equalContents(result, second))
+
+        third = Index(['a', 'b', 'c'])
+        result = first.intersection(third)
+        expected = pd.Index([], dtype=object)
+        self.assert_index_equal(result, expected)
+
+    def test_union(self):
+        first = self.index[:5]
+        second = self.index[5:]
+        everything = self.index
+        union = first.union(second)
+        self.assertTrue(tm.equalContents(union, everything))
+
+        # GH 10149
+        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        for case in cases:
+            result = first.union(case)
+            self.assertTrue(tm.equalContents(result, everything))
 
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
