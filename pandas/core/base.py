@@ -879,6 +879,10 @@ class IndexOpsMixin(object):
         """ the internal implementation """
         return self.values
 
+    @property
+    def empty(self):
+        return not self.size
+
     def max(self):
         """ The maximum value of the object """
         return nanops.nanmax(self.values)

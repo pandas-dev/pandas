@@ -904,3 +904,9 @@ class Base(object):
                     result = isnull(index)
                     self.assert_numpy_array_equal(index.isnull(), result)
                     self.assert_numpy_array_equal(index.notnull(), ~result)
+
+    def test_empty(self):
+        # GH 15270
+        index = self.create_index()
+        self.assertFalse(index.empty)
+        self.assertTrue(index[:0].empty)

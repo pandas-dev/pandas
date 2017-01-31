@@ -155,6 +155,7 @@ Other enhancements
 - ``Series/DataFrame.squeeze()`` have gained the ``axis`` parameter. (:issue:`15339`)
 - ``DataFrame.to_excel()`` has a new ``freeze_panes`` parameter to turn on Freeze Panes when exporting to Excel (:issue:`15160`)
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
+- Added ``.empty`` property to subclasses of ``Index``. (:issue:`15270`)
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
