@@ -761,6 +761,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         tm.assert_frame_equal(expected_df, html_df)
 
     def test_multiple_header_rows(self):
+        # Issue #13434
         expected_df = DataFrame(data=[("Hillary", 68, "D"),
                                       ("Bernie", 74, "D"),
                                       ("Donald", 69, "R")])
@@ -881,6 +882,7 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
         self.read_html(data, header=[0, 1])
 
     def test_multiple_header_rows(self):
+        # Issue #13434
         expected_df = DataFrame(data=[("Hillary", 68, "D"),
                                       ("Bernie", 74, "D"),
                                       ("Donald", 69, "R")])
