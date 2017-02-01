@@ -1228,7 +1228,7 @@ class TimeGrouper(Grouper):
                             'an instance of %r' % type(ax).__name__)
 
         if len(ax) > 0 and all(ax._isnan):
-            raise DataError('axis not valid')
+            raise DataError('all-nan groupings not valid')
 
         if not len(ax):
             binner = labels = TimedeltaIndex(
