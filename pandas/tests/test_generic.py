@@ -7,6 +7,7 @@ import numpy as np
 from numpy import nan
 import pandas as pd
 
+from distutils.version import LooseVersion
 from pandas.types.common import is_scalar
 from pandas import (Index, Series, DataFrame, Panel, isnull,
                     date_range, period_range, Panel4D)
@@ -870,6 +871,7 @@ class TestSeries(tm.TestCase, Generic):
     def test_to_xarray(self):
 
         tm._skip_if_no_xarray()
+        import xarray
         from xarray import DataArray
 
         s = Series([])
@@ -895,15 +897,16 @@ class TestSeries(tm.TestCase, Generic):
                                 check_index_type=check_index_type,
                                 check_categorical=check_categorical)
 
-        for index in [tm.makeFloatIndex, tm.makeIntIndex,
-                      tm.makeStringIndex, tm.makeUnicodeIndex,
-                      tm.makeDateIndex, tm.makePeriodIndex,
-                      tm.makeTimedeltaIndex]:
-            testit(index)
+        l = [tm.makeFloatIndex, tm.makeIntIndex,
+             tm.makeStringIndex, tm.makeUnicodeIndex,
+             tm.makeDateIndex, tm.makePeriodIndex,
+             tm.makeTimedeltaIndex]
 
-        # not idempotent
-        testit(tm.makeCategoricalIndex, check_index_type=False,
-               check_categorical=False)
+        if LooseVersion(xarray.__version__) >= '0.8.0':
+            l.append(tm.makeCategoricalIndex)
+
+        for index in l:
+            testit(index)
 
         s = Series(range(6))
         s.index.name = 'foo'

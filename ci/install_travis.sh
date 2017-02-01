@@ -143,7 +143,7 @@ else
     echo "[pip installs]"
     REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.pip"
     if [ -e ${REQ} ]; then
-       pip install --upgrade -r $REQ
+       pip install -r $REQ
     fi
 
     # may have addtl installation instructions for this build

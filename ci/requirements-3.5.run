@@ -16,6 +16,5 @@ bottleneck
 sqlalchemy
 pymysql
 psycopg2
-xarray
 s3fs
 beautifulsoup4
