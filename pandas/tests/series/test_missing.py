@@ -268,6 +268,19 @@ class TestSeriesMissingData(TestData, tm.TestCase):
 
         assert_series_equal(filled, expected)
 
+    def test_fillna_downcast(self):
+        # infer int64 from float64
+	s = pd.Series([1., np.nan])
+	result = s.fillna(0, downcast='infer')
+	expected = pd.Series([1, 0])
+	assert_series_equal(result, expected)
+
+        # infer int64 from float64 when fillna value is a dict
+        s = pd.Series([1., np.nan])
+        result = s.fillna({1: 0}, downcast='infer')
+        expected = pd.Series([1, 0])
+        assert_series_equal(result, expected)
+
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
         s.fillna(method='ffill', inplace=True)
