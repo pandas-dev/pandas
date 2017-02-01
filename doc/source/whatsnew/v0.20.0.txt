@@ -444,6 +444,7 @@ Bug Fixes
 - Bug in compat for passing long integers to ``Timestamp.replace`` (:issue:`15030`)
 - Bug in ``.loc`` that would not return the correct dtype for scalar access for a DataFrame (:issue:`11617`)
 - Bug in ``GroupBy.get_group()`` failing with a categorical grouper (:issue:`15155`)
+- Bug in ``pandas.tools.utils.cartesian_product()`` with large input can cause overflow on windows (:issue:`15265`)
 
 
 
