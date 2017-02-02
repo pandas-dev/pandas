@@ -1055,3 +1055,13 @@ class TestDataFrameReplace(tm.TestCase, TestData):
                                     Timestamp('20130103', tz='US/Eastern')],
                               'B': [0, np.nan, 2]})
         assert_frame_equal(result, expected)
+
+    def test_replace_with_empty_dictlike(self):
+        # GH 15289
+        mix = {'a': lrange(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
+        df = DataFrame(mix)
+        assert_frame_equal(df, df.replace({}))
+        assert_frame_equal(df, df.replace(Series([])))
+
+        assert_frame_equal(df, df.replace({'b': {}}))
+        assert_frame_equal(df, df.replace(Series({'b': {}})))
