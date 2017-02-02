@@ -31,7 +31,6 @@ class CheckStringMixin(object):
             unicode(self.container)  # noqa
 
     def test_tricky_container(self):
-        import nose
         if not hasattr(self, 'unicode_container'):
             pytest.skip('Need unicode_container to test with this')
         repr(self.unicode_container)
@@ -576,10 +575,10 @@ class TestIndexOps(Ops):
 
             s1 = Series([1, 1, 2, 3])
             res1 = s1.value_counts(bins=1)
-            exp1 = Series({Interval(0.999, 3.0): 4})
+            exp1 = Series({Interval(0.997, 3.0): 4})
             tm.assert_series_equal(res1, exp1)
             res1n = s1.value_counts(bins=1, normalize=True)
-            exp1n = Series({Interval(0.999, 3.0): 1.0})
+            exp1n = Series({Interval(0.997, 3.0): 1.0})
             tm.assert_series_equal(res1n, exp1n)
 
             if isinstance(s1, Index):
@@ -590,12 +589,20 @@ class TestIndexOps(Ops):
 
             self.assertEqual(s1.nunique(), 3)
 
-            res4 = s1.value_counts(bins=4)
-            intervals = IntervalIndex.from_breaks([0.999, 1.5, 2.0, 2.5, 3.0])
-            exp4 = Series([2, 1, 1], index=intervals.take([0, 3, 1]))
+            # these return the same
+            res4 = s1.value_counts(bins=4, dropna=True)
+            intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
+            exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
             tm.assert_series_equal(res4, exp4)
+
+            res4 = s1.value_counts(bins=4, dropna=False)
+            intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
+            exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
+            tm.assert_series_equal(res4, exp4)
+
             res4n = s1.value_counts(bins=4, normalize=True)
-            exp4n = Series([0.5, 0.25, 0.25], index=intervals.take([0, 3, 1]))
+            exp4n = Series([0.5, 0.25, 0.25, 0],
+                           index=intervals.take([0, 3, 1, 2]))
             tm.assert_series_equal(res4n, exp4n)
 
             # handle NA's properly

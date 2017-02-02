@@ -10,6 +10,10 @@ from .common import (pandas_dtype,
                      is_categorical,
                      is_categorical_dtype,
 
+                     # interval
+                     is_interval,
+                     is_interval_dtype,
+
                      # datetimelike
                      is_datetimetz,
                      is_datetime64_dtype,

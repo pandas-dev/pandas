@@ -7,7 +7,7 @@ from numpy import nan
 
 import pandas as pd
 from pandas import (Index, MultiIndex, CategoricalIndex,
-                    DataFrame, Categorical, Series)
+                    DataFrame, Categorical, Series, Interval)
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 import pandas.util.testing as tm
 from .common import MixIn
@@ -519,7 +519,8 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         res = groups_double_key.agg('mean')
         nan = np.nan
         idx = MultiIndex.from_product(
-            [Categorical(["(1, 2]", "(2, 3]", "(3, 6]"], ordered=True),
+            [Categorical([Interval(1, 2), Interval(2, 3),
+                          Interval(3, 6)], ordered=True),
              [1, 2, 3, 4]],
             names=["cat", "C2"])
         exp = DataFrame({"C1": [nan, nan, nan, nan, 3, 3,

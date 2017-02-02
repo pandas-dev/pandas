@@ -1318,14 +1318,16 @@ class MultiIndex(Index):
     def levshape(self):
         return tuple(len(x) for x in self.levels)
 
+    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
     def __contains__(self, key):
         hash(key)
-        # work around some kind of odd cython bug
         try:
             self.get_loc(key)
             return True
         except LookupError:
             return False
+
+    _is_contained_in = __contains__
 
     def __reduce__(self):
         """Necessary for making this object picklable"""

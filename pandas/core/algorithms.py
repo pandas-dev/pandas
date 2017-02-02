@@ -605,8 +605,8 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     if bins is not None:
         try:
             from pandas.tools.tile import cut
-            values = Series(values).values
-            cat, bins = cut(values, bins, retbins=True)
+            values = Series(values)
+            ii = cut(values, bins, include_lowest=True)
         except TypeError:
             raise TypeError("bins argument only works with numeric data.")
 
@@ -623,12 +623,18 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         if not isinstance(keys, Index):
             keys = Index(keys)
         result = Series(counts, index=keys, name=name)
+        # count, remove nulls (from the index), and but the bins
+        result = ii.value_counts(dropna=dropna)
+        result = result[result.index.notnull()]
+        result.index = result.index.astype('interval')
+        result = result.sort_index()
 
-    if bins is not None:
-        # TODO: This next line should be more efficient
-        result = result.reindex(np.arange(len(cat.categories)),
-                                fill_value=0)
-        result.index = bins[:-1]
+        # if we are dropna and we have NO values
+        if dropna and (result.values == 0).all():
+            result = result.iloc[0:0]
+
+        # normalizing is by len of all (regardless of dropna)
+        counts = np.array([len(ii)])
 
     if sort:
         result = result.sort_values(ascending=ascending)
@@ -1394,6 +1400,8 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         return arr.take_nd(indexer, fill_value=fill_value,
                            allow_fill=allow_fill)
     elif is_datetimetz(arr):
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+    elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if indexer is None:

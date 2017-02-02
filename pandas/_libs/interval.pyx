@@ -2,8 +2,11 @@ cimport numpy as np
 import numpy as np
 import pandas as pd
 
+cimport util
 cimport cython
 import cython
+from numpy cimport *
+from tslib import Timestamp
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
@@ -44,6 +47,20 @@ cdef _interval_like(other):
 
 
 cdef class Interval(IntervalMixin):
+    """
+    Immutable object implementing an Interval, a bounded slice-like interval.
+
+    .. versionadded:: 0.20.0
+
+    Properties
+    ----------
+    left, right : values
+        Left and right bounds for each interval.
+    closed : {'left', 'right', 'both', 'neither'}
+        Whether the interval is closed on the left-side, right-side, both or
+        neither. Defaults to 'right'.
+    """
+
     cdef readonly object left, right
     cdef readonly str closed
 
@@ -84,88 +101,115 @@ cdef class Interval(IntervalMixin):
             return NotImplemented
         else:
             op_str = {Py_LT: '<', Py_LE: '<=', Py_GT: '>', Py_GE: '>='}[op]
-            raise TypeError('unorderable types: %s() %s %s()' %
-                            (type(self).__name__, op_str, type(other).__name__))
+            raise TypeError(
+                'unorderable types: %s() %s %s()' %
+                (type(self).__name__, op_str, type(other).__name__))
 
     def __reduce__(self):
         args = (self.left, self.right, self.closed)
         return (type(self), args)
 
+    def _repr_base(self):
+        left = self.left
+        right = self.right
+
+        # TODO: need more general formatting methodology here
+        if isinstance(left, Timestamp) and isinstance(right, Timestamp):
+            left = left._short_repr
+            right = right._short_repr
+
+        return left, right
+
     def __repr__(self):
+
+        left, right = self._repr_base()
         return ('%s(%r, %r, closed=%r)' %
-                (type(self).__name__, self.left, self.right, self.closed))
+                (type(self).__name__, left, right, self.closed))
 
     def __str__(self):
+
+        left, right = self._repr_base()
         start_symbol = '[' if self.closed_left else '('
         end_symbol = ']' if self.closed_right else ')'
-        return '%s%s, %s%s' % (start_symbol, self.left, self.right, end_symbol)
+        return '%s%s, %s%s' % (start_symbol, left, right, end_symbol)
 
     def __add__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left + y, self.right + y)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
             return Interval(y.left + self, y.right + self)
-        else:
-            raise NotImplemented
+        return NotImplemented
 
     def __sub__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left - y, self.right - y)
-        else:
-            raise NotImplemented
+        return NotImplemented
 
     def __mul__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left * y, self.right * y)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
             return Interval(y.left * self, y.right * self)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __div__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left / y, self.right / y)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __truediv__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left / y, self.right / y)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __floordiv__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left // y, self.right // y)
-        else:
-            return NotImplemented
+        return NotImplemented
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef interval_bounds_to_intervals(np.ndarray left, np.ndarray right,
-                                   str closed):
-    result = np.empty(len(left), dtype=object)
-    nulls = pd.isnull(left) | pd.isnull(right)
-    result[nulls] = np.nan
-    for i in np.flatnonzero(~nulls):
-        result[i] = Interval(left[i], right[i], closed)
-    return result
+cpdef intervals_to_interval_bounds(ndarray intervals):
+    """
+    Parameters
+    ----------
+    intervals: ndarray object array of Intervals / nulls
 
+    Returns
+    -------
+    tuples (left: ndarray object array,
+            right: ndarray object array,
+            closed: str)
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef intervals_to_interval_bounds(np.ndarray intervals):
-    left = np.empty(len(intervals), dtype=object)
-    right = np.empty(len(intervals), dtype=object)
-    cdef str closed = None
+    """
+
+    cdef:
+        object closed = None, interval
+        int64_t n = len(intervals)
+        ndarray left, right
+
+    left = np.empty(n, dtype=object)
+    right = np.empty(n, dtype=object)
+
     for i in range(len(intervals)):
         interval = intervals[i]
+        if util._checknull(interval):
+            left[i] = np.nan
+            right[i] = np.nan
+            continue
+
+        if not isinstance(interval, Interval):
+            raise TypeError("type {} with value {} is not an interval".format(
+                type(interval), interval))
+
         left[i] = interval.left
         right[i] = interval.right
         if closed is None:
             closed = interval.closed
         elif closed != interval.closed:
             raise ValueError('intervals must all be closed on the same side')
+
     return left, right, closed
 
+include "intervaltree.pxi"

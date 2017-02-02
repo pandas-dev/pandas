@@ -32,12 +32,14 @@ ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ",
                                         ("periodindex", ))
 ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex", "_typ",
                                              ("categoricalindex", ))
+ABCIntervalIndex = create_pandas_abc_type("ABCIntervalIndex", "_typ",
+                                          ("intervalindex", ))
 ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ",
                                        ("index", "int64index", "rangeindex",
                                         "float64index", "uint64index",
                                         "multiindex", "datetimeindex",
                                         "timedeltaindex", "periodindex",
-                                        "categoricalindex"))
+                                        "categoricalindex", "intervalindex"))
 
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series", ))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe", ))

@@ -15,6 +15,7 @@ from pandas.types.common import (is_categorical_dtype,
                                  is_float_dtype,
                                  is_period_arraylike,
                                  is_integer_dtype,
+                                 is_interval_dtype,
                                  is_datetimetz,
                                  is_integer,
                                  is_float,
@@ -575,6 +576,7 @@ class DataFrameFormatter(TableFormatter):
                           pprint_thing(frame.index)))
             text = info_line
         else:
+
             strcols = self._to_str_columns()
             if self.line_width is None:  # no need to wrap around just print
                 # the whole frame
@@ -2027,6 +2029,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 
     if is_categorical_dtype(values):
         fmt_klass = CategoricalArrayFormatter
+    elif is_interval_dtype(values):
+        fmt_klass = IntervalArrayFormatter
     elif is_float_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
     elif is_period_arraylike(values):
@@ -2292,6 +2296,17 @@ class Datetime64Formatter(GenericArrayFormatter):
                                                       self.date_format),
             na_rep=self.nat_rep).reshape(values.shape)
         return fmt_values.tolist()
+
+
+class IntervalArrayFormatter(GenericArrayFormatter):
+
+    def __init__(self, values, *args, **kwargs):
+        GenericArrayFormatter.__init__(self, values, *args, **kwargs)
+
+    def _format_strings(self):
+        formatter = self.formatter or str
+        fmt_values = np.array([formatter(x) for x in self.values])
+        return fmt_values
 
 
 class PeriodArrayFormatter(IntArrayFormatter):

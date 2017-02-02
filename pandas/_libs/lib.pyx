@@ -61,6 +61,8 @@ from tslib cimport (convert_to_tsobject, convert_to_timedelta64,
                     _check_all_nulls)
 import tslib
 from tslib import NaT, Timestamp, Timedelta
+import interval
+from interval import Interval
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -259,7 +261,7 @@ cpdef bint isscalar(object val):
             or PyDelta_Check(val)
             or PyTime_Check(val)
             or util.is_period_object(val)
-            or is_decimal(val),
+            or is_decimal(val)
             or is_interval(val))
 
 
@@ -1898,6 +1900,4 @@ cdef class BlockPlacement:
 
 include "reduce.pyx"
 include "properties.pyx"
-include "interval.pyx"
-include "intervaltree.pyx"
 include "inference.pyx"

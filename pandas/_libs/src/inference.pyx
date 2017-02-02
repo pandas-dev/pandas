@@ -33,6 +33,10 @@ cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
 
 
+cpdef bint is_interval(object obj):
+    return isinstance(obj, Interval)
+
+
 cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
@@ -430,7 +434,7 @@ def infer_dtype(object value):
             return 'period'
 
     elif is_interval(val):
-        if is_interval_array_fixed_closed(values):
+        if is_interval_array(values):
             return 'interval'
 
     for i in range(n):
@@ -883,22 +887,22 @@ cpdef bint is_period_array(ndarray[object] values):
             return False
     return null_count != n
 
-cdef inline bint is_interval(object o):
-    return isinstance(o, Interval)
 
-def is_interval_array_fixed_closed(ndarray[object] values):
-    cdef Py_ssize_t i, n = len(values)
-    cdef str closed
+cpdef bint is_interval_array(ndarray[object] values):
+    cdef:
+        Py_ssize_t i, n = len(values), null_count = 0
+        object v
+
     if n == 0:
         return False
     for i in range(n):
-        if not is_interval(values[i]):
+        v = values[i]
+        if util._checknull(v):
+            null_count += 1
+            continue
+        if not is_interval(v):
             return False
-        if i == 0:
-            closed = values[0].closed
-        elif closed != values[i].closed:
-            return False
-    return True
+    return null_count != n
 
 
 cdef extern from "parse_helper.h":

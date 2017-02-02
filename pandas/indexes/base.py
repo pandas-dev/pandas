@@ -24,6 +24,7 @@ from pandas.types.common import (_ensure_int64,
                                  is_dtype_equal,
                                  is_object_dtype,
                                  is_categorical_dtype,
+                                 is_interval_dtype,
                                  is_bool_dtype,
                                  is_signed_integer_dtype,
                                  is_unsigned_integer_dtype,
@@ -49,8 +50,8 @@ import pandas.core.algorithms as algos
 from pandas.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.strings import StringAccessorMixin
-
 from pandas.core.config import get_option
+
 
 # simplify
 default_pprint = lambda x, max_seq_items=None: \
@@ -138,6 +139,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     _is_numeric_dtype = False
     _can_hold_na = True
 
+    # would we like our indexing holder to defer to us
+    _defer_to_indexing = False
+
     # prioritize current class for _shallow_copy_with_infer,
     # used to infer integers as datetime-likes
     _infer_as_myclass = False
@@ -166,6 +170,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if is_categorical_dtype(data) or is_categorical_dtype(dtype):
             from .category import CategoricalIndex
             return CategoricalIndex(data, copy=copy, name=name, **kwargs)
+
+        # interval
+        if is_interval_dtype(data):
+            from .interval import IntervalIndex
+            return IntervalIndex.from_intervals(data, name=name,
+                                                copy=copy)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
@@ -276,6 +286,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 elif inferred in ['floating', 'mixed-integer-float']:
                     from .numeric import Float64Index
                     return Float64Index(subarr, copy=copy, name=name)
+                elif inferred == 'interval':
+                    from .interval import IntervalIndex
+                    return IntervalIndex.from_intervals(subarr, name=name,
+                                                        copy=copy)
                 elif inferred == 'boolean':
                     # don't support boolean explicity ATM
                     pass
@@ -1210,6 +1224,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def is_categorical(self):
         return self.inferred_type in ['categorical']
 
+    def is_interval(self):
+        return self.inferred_type in ['interval']
+
     def is_mixed(self):
         return self.inferred_type in ['mixed']
 
@@ -1413,11 +1430,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     @Appender(_index_shared_docs['_convert_list_indexer'])
     def _convert_list_indexer(self, keyarr, kind=None):
-        """
-        passed a key that is tuplesafe that is integer based
-        and we have a mixed index (e.g. number/labels). figure out
-        the indexer. return None if we can't help
-        """
         if (kind in [None, 'iloc', 'ix'] and
                 is_integer_dtype(keyarr) and not self.is_floating() and
                 not isinstance(keyarr, ABCPeriodIndex)):
@@ -1553,9 +1565,41 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     __bool__ = __nonzero__
 
+    _index_shared_docs['__contains__'] = """
+        return a boolean if this key is IN the index
+
+        Parameters
+        ----------
+        key : object
+
+        Returns
+        -------
+        boolean
+        """
+
+    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
     def __contains__(self, key):
         hash(key)
-        # work around some kind of odd cython bug
+        try:
+            return key in self._engine
+        except TypeError:
+            return False
+
+    _index_shared_docs['_is_contained_in'] = """
+        return a boolean if this key is IN the index
+
+        Parameters
+        ----------
+        key : object
+
+        Returns
+        -------
+        boolean
+        """
+
+    @Appender(_index_shared_docs['_is_contained_in'] % _index_doc_kwargs)
+    def _is_contained_in(self, key):
+        hash(key)
         try:
             return key in self._engine
         except TypeError:
@@ -3341,6 +3385,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         raise ValueError('index must be monotonic increasing or decreasing')
 
+    def _get_loc_only_exact_matches(self, key):
+        """
+        This is overriden on subclasses (namely, IntervalIndex) to control
+        get_slice_bound.
+        """
+        return self.get_loc(key)
+
     def get_slice_bound(self, label, side, kind):
         """
         Calculate slice bound that corresponds to given label.
@@ -3370,7 +3421,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         # we need to look up the label
         try:
-            slc = self.get_loc(label)
+            slc = self._get_loc_only_exact_matches(label)
         except KeyError as err:
             try:
                 return self._searchsorted_monotonic(label, side)
@@ -3606,7 +3657,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 if needs_i8_conversion(self) and needs_i8_conversion(other):
                     return self._evaluate_compare(other, op)
 
-                if is_object_dtype(self) and self.nlevels == 1:
+                if (is_object_dtype(self) and
+                        self.nlevels == 1):
+
                     # don't pass MultiIndex
                     with np.errstate(all='ignore'):
                         result = _comp_method_OBJECT_ARRAY(
@@ -3918,6 +3971,8 @@ def _ensure_index(index_like, copy=False):
 
 
 def _get_na_value(dtype):
+    if is_datetime64_any_dtype(dtype) or is_timedelta64_dtype(dtype):
+        return libts.NaT
     return {np.datetime64: libts.NaT,
             np.timedelta64: libts.NaT}.get(dtype, np.nan)
 

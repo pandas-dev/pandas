@@ -7,7 +7,9 @@ from pandas.types.generic import ABCCategorical, ABCSeries
 from pandas.types.common import (is_categorical_dtype,
                                  _ensure_platform_int,
                                  is_list_like,
+                                 is_interval_dtype,
                                  is_scalar)
+from pandas.core.common import _asarray_tuplesafe
 from pandas.types.missing import array_equivalent
 
 
@@ -17,7 +19,6 @@ from pandas.indexes.base import Index, _index_shared_docs
 import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.indexes.base as ibase
-from pandas.core.common import _asarray_tuplesafe
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
@@ -261,13 +262,34 @@ class CategoricalIndex(Index, base.PandasDelegate):
     def _reverse_indexer(self):
         return self._data._reverse_indexer()
 
+    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
     def __contains__(self, key):
         hash(key)
+
+        if self.categories._defer_to_indexing:
+            return key in self.categories
+
+        return key in self.values
+
+    @Appender(_index_shared_docs['_is_contained_in'] % _index_doc_kwargs)
+    def _is_contained_in(self, key):
+        hash(key)
+
+        if self.categories._defer_to_indexing:
+            return self.categories._is_contained_in(key)
+
         return key in self.values
 
     def __array__(self, dtype=None):
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
+
+    @Appender(_index_shared_docs['astype'])
+    def astype(self, dtype, copy=True):
+        if is_interval_dtype(dtype):
+            from pandas import IntervalIndex
+            return IntervalIndex.from_intervals(np.array(self))
+        return super(CategoricalIndex, self).astype(dtype=dtype, copy=copy)
 
     @cache_readonly
     def _isnan(self):
@@ -431,8 +453,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
-        if isinstance(target, CategoricalIndex):
-            target = target.categories
+        if self.equals(target):
+            return np.arange(len(self), dtype='intp')
 
         if method == 'pad' or method == 'backfill':
             raise NotImplementedError("method='pad' and method='backfill' not "
@@ -440,10 +462,17 @@ class CategoricalIndex(Index, base.PandasDelegate):
         elif method == 'nearest':
             raise NotImplementedError("method='nearest' not implemented yet "
                                       'for CategoricalIndex')
-        else:
 
+        if (isinstance(target, CategoricalIndex) and
+                self.values.is_dtype_equal(target)):
+            # we have the same codes
+            codes = target.codes
+        else:
+            if isinstance(target, CategoricalIndex):
+                target = target.categories
             codes = self.categories.get_indexer(target)
-            indexer, _ = self._engine.get_indexer_non_unique(codes)
+
+        indexer, _ = self._engine.get_indexer_non_unique(codes)
 
         return _ensure_platform_int(indexer)
 
@@ -457,20 +486,39 @@ class CategoricalIndex(Index, base.PandasDelegate):
         codes = self.categories.get_indexer(target)
         return self._engine.get_indexer_non_unique(codes)
 
+    @Appender(_index_shared_docs['_convert_scalar_indexer'])
+    def _convert_scalar_indexer(self, key, kind=None):
+        if self.categories._defer_to_indexing:
+            return self.categories._convert_scalar_indexer(key, kind=kind)
+
+        return super(CategoricalIndex, self)._convert_scalar_indexer(
+            key, kind=kind)
+
     @Appender(_index_shared_docs['_convert_list_indexer'])
     def _convert_list_indexer(self, keyarr, kind=None):
         # Return our indexer or raise if all of the values are not included in
         # the categories
-        codes = self.categories.get_indexer(keyarr)
-        if (codes == -1).any():
-            raise KeyError("a list-indexer must only include values that are "
-                           "in the categories")
 
-        return None
+        if self.categories._defer_to_indexing:
+            indexer = self.categories._convert_list_indexer(keyarr, kind=kind)
+            return Index(self.codes).get_indexer_for(indexer)
+
+        indexer = self.categories.get_indexer(keyarr)
+        if (indexer == -1).any():
+            raise KeyError(
+                "a list-indexer must only "
+                "include values that are "
+                "in the categories")
+
+        return self.get_indexer(keyarr)
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
         keyarr = _asarray_tuplesafe(keyarr)
+
+        if self.categories._defer_to_indexing:
+            return keyarr
+
         return self._shallow_copy(keyarr)
 
     @Appender(_index_shared_docs['_convert_index_indexer'])
@@ -487,6 +535,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
                                            fill_value=fill_value,
                                            na_value=-1)
         return self._create_from_codes(taken)
+
+    take_nd = take
 
     def map(self, mapper):
         """Apply mapper function to its categories (not codes).

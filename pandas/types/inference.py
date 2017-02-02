@@ -20,6 +20,8 @@ is_scalar = lib.isscalar
 
 is_decimal = lib.is_decimal
 
+is_interval = lib.is_interval
+
 
 def is_number(obj):
     """

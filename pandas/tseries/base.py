@@ -31,6 +31,9 @@ from pandas.util.decorators import Appender, cache_readonly
 import pandas.types.concat as _concat
 import pandas.tseries.frequencies as frequencies
 
+import pandas.indexes.base as ibase
+_index_doc_kwargs = dict(ibase._index_doc_kwargs)
+
 
 class DatelikeOps(object):
     """ common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex """
@@ -242,12 +245,15 @@ class DatetimeIndexOpsMixin(object):
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
+    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
             return is_scalar(res) or type(res) == slice or np.any(res)
         except (KeyError, TypeError, ValueError):
             return False
+
+    _is_contained_in = __contains__
 
     def __getitem__(self, key):
         """
@@ -381,7 +387,7 @@ class DatetimeIndexOpsMixin(object):
 
             return self._simple_new(sorted_values, **attribs)
 
-    @Appender(_index_shared_docs['take'])
+    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
@@ -798,7 +804,7 @@ class DatetimeIndexOpsMixin(object):
         return self._shallow_copy(self.asi8.repeat(repeats),
                                   freq=freq)
 
-    @Appender(_index_shared_docs['where'])
+    @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
         other = _ensure_datetimelike_to_i8(other)
         values = _ensure_datetimelike_to_i8(self)

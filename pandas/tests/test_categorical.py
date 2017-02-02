@@ -22,7 +22,7 @@ from pandas import (Categorical, Index, Series, DataFrame,
                     date_range, DatetimeIndex,
                     period_range, PeriodIndex,
                     timedelta_range, TimedeltaIndex, NaT,
-                    Interval)
+                    Interval, IntervalIndex)
 from pandas.compat import range, lrange, u, PY3
 from pandas.core.config import option_context
 
@@ -121,6 +121,16 @@ class TestCategorical(tm.TestCase):
         # this however will raise as cannot be sorted
         self.assertRaises(
             TypeError, lambda: Categorical(arr, ordered=True))
+
+    def test_constructor_interval(self):
+        result = Categorical([Interval(1, 2), Interval(2, 3), Interval(3, 6)],
+                             ordered=True)
+        ii = IntervalIndex.from_intervals([Interval(1, 2),
+                                           Interval(2, 3),
+                                           Interval(3, 6)])
+        exp = Categorical(ii, ordered=True)
+        self.assert_categorical_equal(result, exp)
+        tm.assert_index_equal(result.categories, ii)
 
     def test_is_equal_dtype(self):
 

@@ -8,7 +8,10 @@ import numpy as np
 
 from pandas.compat import lrange
 from pandas import (DataFrame, Series, Index, MultiIndex,
-                    RangeIndex, date_range)
+                    RangeIndex, date_range, IntervalIndex)
+from pandas.types.common import (is_object_dtype,
+                                 is_categorical_dtype,
+                                 is_interval_dtype)
 import pandas as pd
 
 from pandas.util.testing import (assert_series_equal,
@@ -294,6 +297,17 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                                               names=['index', 'a'])
         exp = pd.DataFrame({'b': [3, 4, 5]}, index=exp_index)
         tm.assert_frame_equal(res, exp)
+
+    def test_reset_index_with_intervals(self):
+        idx = pd.IntervalIndex.from_breaks(np.arange(11), name='x')
+        original = pd.DataFrame({'x': idx, 'y': np.arange(10)})[['x', 'y']]
+
+        result = original.set_index('x')
+        expected = pd.DataFrame({'y': np.arange(10)}, index=idx)
+        assert_frame_equal(result, expected)
+
+        result2 = result.reset_index()
+        assert_frame_equal(result2, original)
 
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
@@ -730,3 +744,53 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
             result = df.set_index(cols).reset_index()
             result = result.reindex(columns=df.columns)
             tm.assert_frame_equal(result, df)
+
+
+class TestIntervalIndex(tm.TestCase):
+
+    def test_setitem(self):
+
+        df = DataFrame({'A': range(10)})
+        s = pd.cut(df.A, 5)
+        self.assertIsInstance(s.cat.categories, IntervalIndex)
+
+        # B & D end up as Categoricals
+        # the remainer are converted to in-line objects
+        # contining an IntervalIndex.values
+        df['B'] = s
+        df['C'] = np.array(s)
+        df['D'] = s.values
+        df['E'] = np.array(s.values)
+
+        assert is_categorical_dtype(df['B'])
+        assert is_interval_dtype(df['B'].cat.categories)
+        assert is_categorical_dtype(df['D'])
+        assert is_interval_dtype(df['D'].cat.categories)
+
+        assert is_object_dtype(df['C'])
+        assert is_object_dtype(df['E'])
+
+        # they compare equal as Index
+        # when converted to numpy objects
+        c = lambda x: Index(np.array(x))
+        tm.assert_index_equal(c(df.B), c(df.B), check_names=False)
+        tm.assert_index_equal(c(df.B), c(df.C), check_names=False)
+        tm.assert_index_equal(c(df.B), c(df.D), check_names=False)
+        tm.assert_index_equal(c(df.B), c(df.D), check_names=False)
+
+        # B & D are the same Series
+        tm.assert_series_equal(df['B'], df['B'], check_names=False)
+        tm.assert_series_equal(df['B'], df['D'], check_names=False)
+
+        # C & E are the same Series
+        tm.assert_series_equal(df['C'], df['C'], check_names=False)
+        tm.assert_series_equal(df['C'], df['E'], check_names=False)
+
+    def test_set_reset_index(self):
+
+        df = DataFrame({'A': range(10)})
+        s = pd.cut(df.A, 5)
+        df['B'] = s
+        df = df.set_index('B')
+
+        df = df.reset_index()

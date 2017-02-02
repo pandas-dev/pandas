@@ -9,7 +9,7 @@ from .generic import (ABCMultiIndex, ABCSeries,
 from .common import (is_string_dtype, is_datetimelike,
                      is_datetimelike_v_numeric, is_float_dtype,
                      is_datetime64_dtype, is_datetime64tz_dtype,
-                     is_timedelta64_dtype,
+                     is_timedelta64_dtype, is_interval_dtype,
                      is_complex_dtype, is_categorical_dtype,
                      is_string_like_dtype, is_bool_dtype,
                      is_integer_dtype, is_dtype_equal,
@@ -127,6 +127,9 @@ def _isnull_ndarraylike(obj):
             if not isinstance(values, Categorical):
                 values = values.values
             result = values.isnull()
+        elif is_interval_dtype(values):
+            from pandas import IntervalIndex
+            result = IntervalIndex(obj).isnull()
         else:
 
             # Working around NumPy ticket 1542
