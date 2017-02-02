@@ -5,10 +5,6 @@ import warnings
 from functools import partial
 from sys import getsizeof
 
-try:
-    from itertools import zip_longest
-except ImportError:
-    from itertools import izip_longest as zip_longest
 
 import numpy as np
 import pandas.lib as lib
@@ -1013,7 +1009,7 @@ class MultiIndex(Index):
             raise TypeError('Cannot infer number of levels from empty list')
 
         if not _check_equal_length(tuples):
-            raise ValueError('all tuples must be the same length'))
+            raise ValueError('all tuples must be the same length')
 
         if isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
@@ -1023,7 +1019,7 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrays = lzip(*tuples))
+            arrays = lzip(*tuples)
 
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
