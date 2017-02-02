@@ -48,7 +48,7 @@ from pandas.formats.format import format_percentiles
 from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.compat import (map, zip, lrange, string_types,
+from pandas.compat import (map, zip, lzip, lrange, string_types,
                            isidentifier, set_function_name)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
@@ -3509,7 +3509,7 @@ class NDFrame(PandasObject):
                 regex = True
 
             items = list(compat.iteritems(to_replace))
-            keys, values = zip(*items)
+            keys, values = lzip(*items) or ([], [])
 
             are_mappings = [is_dict_like(v) for v in values]
 
@@ -3523,7 +3523,7 @@ class NDFrame(PandasObject):
                 value_dict = {}
 
                 for k, v in items:
-                    keys, values = zip(*v.items())
+                    keys, values = lzip(*v.items()) or ([], [])
                     if set(keys) & set(values):
                         raise ValueError("Replacement not allowed with "
                                          "overlapping keys and values")
