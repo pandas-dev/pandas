@@ -964,11 +964,10 @@ class MultiIndex(Index):
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
 
-        # Check if lengths of all arrays are equal or not,
+        # Check if lengths of all arrays are equal length or not,
         # raise ValueError, if not
-        for i in range(1, len(arrays)):
-            if len(arrays[i]) != len(arrays[i - 1]):
-                raise ValueError('all arrays must be same length')
+        if not _check_equal_length(arrays):
+            raise ValueError('all arrays must be same length')
 
         from pandas.core.categorical import _factorize_from_iterables
 
@@ -988,6 +987,7 @@ class MultiIndex(Index):
         ----------
         tuples : list / sequence of tuple-likes
             Each tuple is the index of one row/column.
+            A ValueError will be raised if all tuples are not the same length.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
             level)
@@ -1012,6 +1012,9 @@ class MultiIndex(Index):
             # I think this is right? Not quite sure...
             raise TypeError('Cannot infer number of levels from empty list')
 
+        if not _check_equal_length(tuples):
+            raise ValueError('all tuples must be the same length'))
+
         if isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = tuples._values
@@ -1020,7 +1023,7 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrays = list(zip_longest(*tuples))
+            arrays = lzip(*tuples))
 
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
@@ -2370,6 +2373,26 @@ def _sparsify(label_list, start=0, sentinel=''):
         prev = cur
 
     return lzip(*result)
+
+
+def _check_equal_length(seq_of_seqs):
+    """
+    Ensure that all sequences in seq_of_seqs are the same length.
+
+    Since this function is time critical, it does zero error checking.
+    Two exceptions can result from calling this function.
+        1. IndexError: seq_of_seqs is not an indexed sequence.
+        2. TypeError: An inner sequence does not support len().
+
+    This check is up to O(n) and can be expensive, so use only when necessary.
+
+    Return True if all sequences are the same length, otherwise False
+    """
+    L0 = len(seq_of_seqs[0])
+    for seq in seq_of_seqs:
+        if len(seq) != L0:
+            return False
+    return True
 
 
 def _get_na_rep(dtype):
