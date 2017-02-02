@@ -2376,16 +2376,13 @@ def _check_equal_length(seq_of_seqs):
     Ensure that all sequences in seq_of_seqs are the same length.
 
     Since this function is time critical, it does zero error checking.
-    Two exceptions can result from calling this function.
-        1. IndexError: seq_of_seqs is not an indexed sequence.
-        2. TypeError: An inner sequence does not support len().
-
-    This check is up to O(n) and can be expensive, so use only when necessary.
+    A TypeError will be raised if inner sequence does not support len().
 
     Return True if all sequences are the same length, otherwise False
     """
-    L0 = len(seq_of_seqs[0])
-    for seq in seq_of_seqs:
+    seq_it = iter(seq_of_seqs)
+    L0 = len(next(seq_it))
+    for seq in seq_it:
         if len(seq) != L0:
             return False
     return True
