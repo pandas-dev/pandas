@@ -223,3 +223,9 @@ class TestSeriesReplace(TestData, tm.TestCase):
         self.assertTrue((ser[:5] == -1).all())
         self.assertTrue((ser[6:10] == -1).all())
         self.assertTrue((ser[20:30] == -1).all())
+
+    def test_replace_with_empty_dictlike(self):
+        # GH 15289
+        s = pd.Series(list('abcd'))
+        tm.assert_series_equal(s, s.replace(dict()))
+        tm.assert_series_equal(s, s.replace(pd.Series([])))
