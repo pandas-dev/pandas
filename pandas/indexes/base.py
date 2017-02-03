@@ -564,8 +564,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
 
-    def where(self, cond, other=None):
-        """
+    _index_shared_docs['where'] = """
         .. versionadded:: 0.19.0
 
         Return an Index of same shape as self and whose corresponding
@@ -577,6 +576,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         cond : boolean same length as self
         other : scalar, or array-like
         """
+
+    @Appender(_index_shared_docs['where'])
+    def where(self, cond, other=None):
         if other is None:
             other = self._na_value
         values = np.where(cond, self.values, other)
