@@ -96,12 +96,14 @@ By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to
     df["B"] = raw_cat
     df
 
-You can also specify differently ordered categories or make the resulting data ordered, by passing these arguments to ``astype()``:
+You can also specify differently ordered categories or make the resulting data
+ordered by passing a :class:`CategoricalDtype`:
 
 .. ipython:: python
 
     s = pd.Series(["a","b","c","a"])
-    s_cat = s.astype("category", categories=["b","c","d"], ordered=False)
+    cat_type = pd.CategoricalDtype(categories=["b", "c", "d"], ordered=False)
+    s_cat = s.astype(cat_type)
     s_cat
 
 Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
@@ -139,6 +141,20 @@ constructor to save the factorize step during normal constructor mode:
 
     splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
     s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
+
+
+CategoricalDtype
+----------------
+
+A categorical's type is fully described by 1.) its categories (an iterable),
+and 2.) its orderedness (a boolean).
+This information can be stored in a :class:`~pandas.CategoricalDtype` and passed to
+any place pandas expects a `dtype`. For example :func:`pandas.read_csv`,
+:func:`pandas.DataFrame.astype`, the Series constructor, etc.
+
+As a convenience, you can use the string `'category'` in place of a
+:class:`pandas.CategoricalDtype` when you want the default behavior of
+the categories being unordered, and equal to the set values present in the array.
 
 Description
 -----------

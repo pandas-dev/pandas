@@ -162,6 +162,24 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertTrue(is_categorical_dtype(s))
         self.assertTrue(is_categorical_dtype(s.dtype))
 
+    def test_constructor_categorical_dtype(self):
+        result = pd.Series(['a', 'b'],
+                           dtype=pd.CategoricalDtype(['a', 'b', 'c'],
+                                                     ordered=True))
+        self.assertTrue(is_categorical_dtype(result))
+        tm.assert_index_equal(result.cat.categories, pd.Index(['a', 'b', 'c']))
+        self.assertTrue(result.cat.ordered)
+
+        result = pd.Series(['a', 'b'], dtype=pd.CategoricalDtype(['b', 'a']))
+        self.assertTrue(is_categorical_dtype(result))
+        tm.assert_index_equal(result.cat.categories, pd.Index(['b', 'a']))
+        self.assertFalse(result.cat.ordered)
+
+        result = pd.Series(['a', 'b', 'c'],
+                           dtype=pd.CategoricalDtype(['a', 'b']))
+        expected = pd.Series(pd.Categorical(['a', 'b', np.nan]))
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3, ), dtype=float)
         result = Series(data)

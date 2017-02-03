@@ -334,7 +334,10 @@ def is_complex_dtype(arr_or_dtype):
 def _coerce_to_dtype(dtype):
     """ coerce a string / np.dtype to a dtype """
     if is_categorical_dtype(dtype):
-        dtype = CategoricalDtype()
+        categories = getattr(dtype, 'categories', None)
+        ordered = getattr(dtype, 'ordered', False)
+        # TODO: pass thru categories, ordered
+        dtype = CategoricalDtype(categories=categories, ordered=ordered)
     elif is_datetime64tz_dtype(dtype):
         dtype = DatetimeTZDtype(dtype)
     elif is_period_dtype(dtype):

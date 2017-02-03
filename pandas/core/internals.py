@@ -478,6 +478,12 @@ class Block(PandasObject):
         # may need to convert to categorical
         # this is only called for non-categoricals
         if self.is_categorical_astype(dtype):
+            kwargs = kwargs.copy()
+            categories = getattr(dtype, 'categories', None)
+            ordered = getattr(dtype, 'ordered', False)
+            # should we raise if CategoricalType and passed in kwargs?
+            kwargs.setdefault('categories', categories)
+            kwargs.setdefault('ordered', ordered)
             return self.make_block(Categorical(self.values, **kwargs))
 
         # astype processing

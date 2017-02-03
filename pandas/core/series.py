@@ -2870,7 +2870,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
-                subarr = Categorical(arr)
+                subarr = Categorical(arr, dtype.categories,
+                                     ordered=dtype.ordered)
             elif dtype is not None and raise_cast_failure:
                 raise
             else:

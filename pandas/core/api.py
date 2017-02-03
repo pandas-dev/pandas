@@ -5,6 +5,7 @@
 import numpy as np
 
 from pandas.core.algorithms import factorize, match, unique, value_counts
+from pandas.types.dtypes import CategoricalDtype
 from pandas.types.missing import isnull, notnull
 from pandas.core.categorical import Categorical
 from pandas.core.groupby import Grouper

@@ -1,6 +1,7 @@
 """ define extension dtypes """
 
 import re
+import reprlib
 import numpy as np
 from pandas import compat
 
@@ -98,11 +99,54 @@ class CategoricalDtypeType(type):
 class CategoricalDtype(ExtensionDtype):
 
     """
+    Type for categorical data with the categories and orderedness,
+    but not the values
+
+    .. versionadded:: 0.20.0
+
+    Parameters
+    ----------
+    categories : list or None
+    ordered : bool, default False
+
+    Examples
+    --------
+    >>> t = CategoricalDtype(categories=['b', 'a'], ordered=True)
+    >>> s = Series(['a', 'a', 'b', 'b', 'a'])
+    >>> s.astype(t)
+    0    a
+    1    a
+    2    b
+    3    b
+    4    a
+    dtype: category
+    Categories (2, object): [b < a]
+
+    Notes
+    -----
+    An instance of ``CategoricalDtype`` compares equal with any other
+    instance of ``CategoricalDtype``, regardless of categories or ordered.
+    In addition they compare equal to the string ``'category'``.
+    To check whether two instances of a ``CategoricalDtype`` match,
+    use the ``is`` operator.
+
+    >>> t1 = CategoricalDtype(['a', 'b'], ordered=True)
+    >>> t2 = CategoricalDtype(['a', 'c'], ordered=False)
+    >>> t1 == t2
+    True
+    >>> t1 == 'category'
+    True
+    >>> t1 is t2
+    False
+    >>> t1 is CategoricalDtype(['a', 'b'], ordered=True)
+    True
+
     A np.dtype duck-typed class, suitable for holding a custom categorical
     dtype.
 
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.object
     """
+    # TODO: Document public vs. private API
     name = 'category'
     type = CategoricalDtypeType
     kind = 'O'
@@ -110,13 +154,18 @@ class CategoricalDtype(ExtensionDtype):
     base = np.dtype('O')
     _cache = {}
 
-    def __new__(cls):
+    def __new__(cls, categories=None, ordered=False):
+        categories_ = categories if categories is None else tuple(categories)
+        t = (categories_, ordered)
 
         try:
-            return cls._cache[cls.name]
+            return cls._cache[t]
         except KeyError:
             c = object.__new__(cls)
-            cls._cache[cls.name] = c
+            c.categories = categories
+            c.ordered = ordered
+
+            cls._cache[t] = c
             return c
 
     def __hash__(self):
@@ -128,6 +177,15 @@ class CategoricalDtype(ExtensionDtype):
             return other == self.name
 
         return isinstance(other, CategoricalDtype)
+
+    # def __unicode__(self):
+    #     tpl = 'CategoricalDtype({!r}, ordered={})'
+    #     return tpl.format(reprlib.repr(self.categories), self.ordered)
+
+    # def __repr__(self):
+    #     """ return the base repr for the categories """
+    #     tpl = 'CategoricalDtype({!r}, ordered={})'
+    #     return tpl.format(reprlib.repr(self.categories), self.ordered)
 
     @classmethod
     def construct_from_string(cls, string):
