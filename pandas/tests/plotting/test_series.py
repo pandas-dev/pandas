@@ -812,6 +812,11 @@ class TestSeriesPlots(TestPlotBase):
 
         _check_plot_works(s.plot)
 
+    def test_non_standard_intervals(self):
+        idx = pd.period_range('2000-01-01', '2000-01-05', freq='6H')
+        s = Series(np.random.randn(len(idx)), index=idx)
+        _check_plot_works(s.plot)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

@@ -469,6 +469,7 @@ def extract_ordinals(ndarray[object] values, freq):
         object p
 
     freqstr = Period._maybe_convert_freq(freq).freqstr
+    base_freq = frequencies.get_base_alias(freqstr)
 
     for i in range(n):
         p = values[i]
@@ -479,8 +480,9 @@ def extract_ordinals(ndarray[object] values, freq):
             try:
                 ordinals[i] = p.ordinal
 
-                if p.freqstr != freqstr:
-                    msg = _DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
+                p_base_freq = frequencies.get_base_alias(p.freqstr)
+                if p_base_freq != base_freq:
+                    msg = _DIFFERENT_FREQ_INDEX.format(base_freq, p_base_freq)
                     raise IncompatibleFrequency(msg)
 
             except AttributeError:
