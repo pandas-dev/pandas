@@ -19,13 +19,8 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int8, _ensure_int16,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
-<<<<<<< HEAD
                      _POSSIBLY_CAST_DTYPES)
-from .dtypes import ExtensionDtype
-=======
-                     _DATELIKE_DTYPES, _POSSIBLY_CAST_DTYPES)
 from .dtypes import ExtensionDtype, DatetimeTZDtype, PeriodDtype
->>>>>>> CLN/BUG: fix ndarray assignment may cause unexpected cast
 from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
 from .missing import isnull, notnull
 from .inference import is_list_like
