@@ -1662,6 +1662,38 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         else:
             return False
 
+    def isnull(self):
+        """
+        Detect missing values
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        a boolean array of whether my values are null
+
+        See also
+        --------
+        pandas.isnull : pandas version
+        """
+        return self._isnan
+
+    def notnull(self):
+        """
+        Reverse of isnull
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        a boolean array of whether my values are not null
+
+        See also
+        --------
+        pandas.notnull : pandas version
+        """
+        return ~self.isnull()
+
     def putmask(self, mask, value):
         """
         return a new Index of the values set with the mask
