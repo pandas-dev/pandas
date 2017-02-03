@@ -11,7 +11,7 @@ import numpy as np
 from pandas.types.cast import (_infer_dtype_from_scalar,
                                _possibly_cast_item)
 from pandas.types.common import (is_integer, is_list_like,
-                                 is_string_like, is_scalar)
+                                 is_string_like, is_scalar, is_dict_like)
 from pandas.types.missing import notnull
 
 import pandas.computation.expressions as expressions
@@ -157,7 +157,7 @@ class Panel(NDFrame):
                 axes = [x if x is not None else y
                         for x, y in zip(passed_axes, data.axes)]
             mgr = data
-        elif isinstance(data, dict):
+        elif is_dict_like(data):
             mgr = self._init_dict(data, passed_axes, dtype=dtype)
             copy = False
             dtype = None
@@ -193,9 +193,8 @@ class Panel(NDFrame):
                 ks = _try_sort(ks)
             haxis = Index(ks)
 
-        for k, v in compat.iteritems(data):
-            if isinstance(v, dict):
-                data[k] = self._constructor_sliced(v)
+        data = {k: self._constructor_sliced(v)
+                for k, v in compat.iteritems(data) if is_dict_like(v)}
 
         # extract axis for remaining axes & create the slicemap
         raxes = [self._extract_axis(self, data, axis=i) if a is None else a

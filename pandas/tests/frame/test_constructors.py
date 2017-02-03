@@ -123,7 +123,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
             zipper = lzip(dtypes, arrays)
             for d, a in zipper:
-                assert(a.dtype == d)
+                assert (a.dtype == d)
             if ad is None:
                 ad = dict()
             ad.update(dict([(d, a) for d, a in zipper]))
@@ -134,7 +134,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                 dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
             for d in dtypes:
                 if d in df:
-                    assert(df.dtypes[d] == d)
+                    assert (df.dtypes[d] == d)
 
         # mixed floating and integer coexinst in the same frame
         df = _make_mixed_dtypes_df('float')
@@ -525,6 +525,15 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         result = DataFrame(data, index=rng).T
         tm.assert_frame_equal(result, df)
 
+    def test_constructor_mapping(self):
+
+        mapping = tm.MappingMock(base=Series([0, 1, 2]))
+
+        result = DataFrame(mapping)
+        expected = DataFrame({4: [0, 4, 8], 5: [0, 5, 10]})
+
+        tm.assert_frame_equal(result, expected)
+
     def _check_basic_constructor(self, empty):
         # mat: 2d matrix with shpae (3, 2) to input. empty - makes sized
         # objects
@@ -835,7 +844,6 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         import collections
 
         class DummyContainer(collections.Sequence):
-
             def __init__(self, lst):
                 self._lst = lst
 
@@ -997,6 +1005,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
     def test_constructor_list_of_derived_dicts(self):
         class CustomDict(dict):
             pass
+
         d = {'a': 1.5, 'b': 3}
 
         data_custom = [CustomDict(d)]
@@ -1482,6 +1491,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
                 def f():
                     df.loc[:, np.nan]
+
                 self.assertRaises(TypeError, f)
 
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan])
@@ -1633,6 +1643,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         def create_dict(order_id):
             return {'order_id': order_id, 'quantity': np.random.randint(1, 10),
                     'price': np.random.randint(1, 10)}
+
         documents = [create_dict(i) for i in range(10)]
         # demo missing data
         documents.append({'order_id': 10, 'quantity': 5})
@@ -1858,7 +1869,6 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
     def test_from_records_non_tuple(self):
         class Record(object):
-
             def __init__(self, *args):
                 self.args = args
 
@@ -1883,6 +1893,18 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         self.assertTrue(np.array_equal(result.columns, ['bar']))
         self.assertEqual(len(result), 0)
         self.assertEqual(result.index.name, 'foo')
+
+    def test_constructor_xarray_dataset(self):
+        tm._skip_if_no_xarray()
+
+        index = pd.Index(['x', 'y'], name='z')
+        expected = DataFrame(
+            dict(a=[4, 5], b=[8, 10]),
+            index=index)
+
+        result = DataFrame(expected.to_xarray())
+
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):

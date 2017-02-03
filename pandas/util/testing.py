@@ -17,6 +17,7 @@ from datetime import datetime
 from functools import wraps, partial
 from contextlib import contextmanager
 from distutils.version import LooseVersion
+from collections import Mapping
 
 from numpy.random import randn, rand
 from numpy.testing.decorators import slow     # noqa
@@ -1990,9 +1991,7 @@ def add_nans_panel4d(panel4d):
 
 
 class TestSubDict(dict):
-
-    def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
+    pass
 
 
 # Dependency checks.  Copied this from Nipy/Nipype (Copyright of
@@ -2754,6 +2753,25 @@ def patch(ob, attr, value):
             delattr(ob, attr)
         else:
             setattr(ob, attr, old)
+
+
+class MappingMock(Mapping):
+    """
+    Mock class to represent a Mapping
+    Takes a base, and returns that multiplied by whatever key is passed in
+    """
+
+    def __init__(self, base):
+        self.base = base
+
+    def __getitem__(self, key):
+        return key * self.base
+
+    def __iter__(self):
+        return iter([4, 5])
+
+    def __len__(self):
+        return 2
 
 
 @contextmanager

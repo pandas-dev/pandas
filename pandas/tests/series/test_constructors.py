@@ -627,6 +627,15 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         refseries = Series(dict(compat.iteritems(data)))
         assert_series_equal(refseries, series)
 
+    def test_constructor_mapping(self):
+
+        mapping = tm.MappingMock(base=2)
+
+        result = Series(mapping)
+        expected = pd.Series([8, 10], index=[4, 5])
+
+        assert_series_equal(result, expected)
+
     def test_constructor_dict_datetime64_index(self):
         # GH 9456
 
@@ -799,6 +808,27 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(s.dtype, 'timedelta64[ns]')
         s = Series([pd.NaT, np.nan, '1 Day'])
         self.assertEqual(s.dtype, 'timedelta64[ns]')
+
+    def test_constructor_dict_numpy_0d_arrays(self):
+
+        data = [np.asarray(i) for i in range(4)]
+
+        result = Series(data)
+        expected = Series(range(4))
+
+        # disabled for the moment (will remove from PR)
+        # assert_series_equal(result, expected)
+
+    def test_constructor_xarray_dataset(self):
+        tm._skip_if_no_xarray()
+        import xarray as xr
+
+        d = {'a': 5, 'b': 10}
+        result = Series(xr.Dataset(d))
+        expected = Series(d)
+
+        # disabled for the moment (will remove from PR)
+        # assert_series_equal(result, expected)
 
     def test_constructor_name_hashable(self):
         for n in [777, 777., 'name', datetime(2001, 11, 11), (1, ), u"\u05D0"]:

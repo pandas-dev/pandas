@@ -10,6 +10,8 @@ from functools import partial
 import numpy as np
 import pandas.lib as lib
 import pandas.tslib as tslib
+
+import pandas as pd
 from pandas import compat
 from pandas.compat import long, zip, iteritems
 from pandas.core.config import get_option
@@ -178,7 +180,6 @@ def _get_info_slice(obj, indexer):
 
 
 def _maybe_box(indexer, values, obj, key):
-
     # if we have multiples coming back, box em
     if isinstance(values, np.ndarray):
         return obj[indexer.get_loc(key)]

@@ -96,12 +96,13 @@ def _coerce_method(converter):
 
     return wrapper
 
+
 # ----------------------------------------------------------------------
 # Series class
 
 
 class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
-             generic.NDFrame,):
+             generic.NDFrame):
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -178,7 +179,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 else:
                     data = data.reindex(index, copy=copy)
                 data = data._data
-            elif isinstance(data, dict):
+            elif is_dict_like(data):
                 if index is None:
                     if isinstance(data, OrderedDict):
                         index = Index(data)
@@ -2176,10 +2177,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             else:
                 map_f = lib.map_infer
 
-        if isinstance(arg, (dict, Series)):
-            if isinstance(arg, dict):
-                arg = self._constructor(arg, index=arg.keys())
-
+        if is_dict_like(arg):
+            arg = self._constructor(arg, index=arg.keys())
+        if isinstance(arg, Series):
             indexer = arg.index.get_indexer(values)
             new_values = algos.take_1d(arg._values, indexer)
         else:
@@ -2803,6 +2803,7 @@ Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
 _INDEX_TYPES = ndarray, Index, list, tuple
 
+
 # -----------------------------------------------------------------------------
 # Supplementary functions
 
@@ -2993,6 +2994,7 @@ class TimeSeries(Series):
                       FutureWarning, stacklevel=2)
 
         super(TimeSeries, self).__init__(*args, **kwargs)
+
 
 # ----------------------------------------------------------------------
 # Add plotting methods to Series

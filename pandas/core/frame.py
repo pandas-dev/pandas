@@ -53,7 +53,8 @@ from pandas.types.common import (is_categorical_dtype,
                                  is_list_like,
                                  is_iterator,
                                  is_sequence,
-                                 is_named_tuple)
+                                 is_named_tuple,
+                                 is_dict_like)
 from pandas.types.missing import isnull, notnull
 
 from pandas.core.common import (PandasError, _try_sort,
@@ -63,11 +64,11 @@ from pandas.core.common import (PandasError, _try_sort,
                                 _dict_compat)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
-                                  check_bool_indexer)
-from pandas.core.internals import (BlockManager,
-                                   create_block_manager_from_arrays,
-                                   create_block_manager_from_blocks)
+from pandas.core.indexing import (
+    maybe_droplevels, convert_to_index_sliceable, check_bool_indexer)
+from pandas.core.internals import (
+    BlockManager, create_block_manager_from_arrays,
+    create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import pandas.computation.expressions as expressions
@@ -260,11 +261,16 @@ class DataFrame(NDFrame):
         if isinstance(data, DataFrame):
             data = data._data
 
+        if hasattr(data, 'to_dataframe'):  # xr.Dataset
+            if index or columns or dtype or copy:
+                raise ValueError("Supply only a Dataset if supplying a "
+                                 "Dataset")
+            data = data.to_dataframe()._data
+
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
                                  dtype=dtype, copy=copy)
-        elif isinstance(data, dict):
-            mgr = self._init_dict(data, index, columns, dtype=dtype)
+
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
             # masked recarray
@@ -296,6 +302,8 @@ class DataFrame(NDFrame):
             else:
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
+        elif is_dict_like(data):
+                mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, (list, types.GeneratorType)):
             if isinstance(data, types.GeneratorType):
                 data = list(data)
