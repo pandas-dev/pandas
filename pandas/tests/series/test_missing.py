@@ -553,45 +553,6 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         expected[:3] = np.nan
         assert_series_equal(result, expected)
 
-    def test_sparse_series_fillna_limit(self):
-        index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
-
-        ss = s[:2].reindex(index).to_sparse()
-        result = ss.fillna(method='pad', limit=5)
-        expected = ss.fillna(method='pad', limit=5)
-        expected = expected.to_dense()
-        expected[-3:] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-        ss = s[-2:].reindex(index).to_sparse()
-        result = ss.fillna(method='backfill', limit=5)
-        expected = ss.fillna(method='backfill')
-        expected = expected.to_dense()
-        expected[:3] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-    def test_sparse_series_pad_backfill_limit(self):
-        index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
-        s = s.to_sparse()
-
-        result = s[:2].reindex(index, method='pad', limit=5)
-        expected = s[:2].reindex(index).fillna(method='pad')
-        expected = expected.to_dense()
-        expected[-3:] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
-        result = s[-2:].reindex(index, method='backfill', limit=5)
-        expected = s[-2:].reindex(index).fillna(method='backfill')
-        expected = expected.to_dense()
-        expected[:3] = np.nan
-        expected = expected.to_sparse()
-        assert_series_equal(result, expected)
-
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
