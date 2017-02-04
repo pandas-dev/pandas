@@ -1,10 +1,12 @@
 import numpy as np
 
+import pandas as pd
 import pandas.lib as lib
 import pandas.util.testing as tm
-from pandas import Float64Index, date_range, Timestamp
 from pandas import (Index, DatetimeIndex, datetime, offsets, to_datetime,
-                    Series, DataFrame)
+                    Series, DataFrame, Float64Index, date_range, Timestamp)
+
+from pandas.util.testing import assert_series_equal
 
 
 class TestDateTimeIndexToJulianDate(tm.TestCase):
@@ -130,40 +132,6 @@ class TestTimeSeries(tm.TestCase):
                              '1970-01-03', '1970-01-04'])
         tm.assert_index_equal(idx, exp)
 
-    def test_date_range_businesshour(self):
-        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
-                             '2014-07-04 11:00',
-                             '2014-07-04 12:00', '2014-07-04 13:00',
-                             '2014-07-04 14:00',
-                             '2014-07-04 15:00', '2014-07-04 16:00'],
-                            freq='BH')
-        rng = date_range('2014-07-04 09:00', '2014-07-04 16:00', freq='BH')
-        tm.assert_index_equal(idx, rng)
-
-        idx = DatetimeIndex(
-            ['2014-07-04 16:00', '2014-07-07 09:00'], freq='BH')
-        rng = date_range('2014-07-04 16:00', '2014-07-07 09:00', freq='BH')
-        tm.assert_index_equal(idx, rng)
-
-        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
-                             '2014-07-04 11:00',
-                             '2014-07-04 12:00', '2014-07-04 13:00',
-                             '2014-07-04 14:00',
-                             '2014-07-04 15:00', '2014-07-04 16:00',
-                             '2014-07-07 09:00', '2014-07-07 10:00',
-                             '2014-07-07 11:00',
-                             '2014-07-07 12:00', '2014-07-07 13:00',
-                             '2014-07-07 14:00',
-                             '2014-07-07 15:00', '2014-07-07 16:00',
-                             '2014-07-08 09:00', '2014-07-08 10:00',
-                             '2014-07-08 11:00',
-                             '2014-07-08 12:00', '2014-07-08 13:00',
-                             '2014-07-08 14:00',
-                             '2014-07-08 15:00', '2014-07-08 16:00'],
-                            freq='BH')
-        rng = date_range('2014-07-04 09:00', '2014-07-08 16:00', freq='BH')
-        tm.assert_index_equal(idx, rng)
-
     def test_datetimeindex_integers_shift(self):
         rng = date_range('1/1/2000', periods=20)
 
@@ -184,6 +152,110 @@ class TestTimeSeries(tm.TestCase):
 
         dr = date_range(start='1/1/2012', periods=3)
         repr(dr)
+
+    def test_getitem_setitem_datetimeindex(self):
+        N = 50
+        # testing with timezone, GH #2785
+        rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
+        ts = Series(np.random.randn(N), index=rng)
+
+        result = ts["1990-01-01 04:00:00"]
+        expected = ts[4]
+        self.assertEqual(result, expected)
+
+        result = ts.copy()
+        result["1990-01-01 04:00:00"] = 0
+        result["1990-01-01 04:00:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts["1990-01-01 04:00:00":"1990-01-01 07:00:00"]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result["1990-01-01 04:00:00":"1990-01-01 07:00:00"] = 0
+        result["1990-01-01 04:00:00":"1990-01-01 07:00:00"] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        lb = "1990-01-01 04:00:00"
+        rb = "1990-01-01 07:00:00"
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        # repeat all the above with naive datetimes
+        result = ts[datetime(1990, 1, 1, 4)]
+        expected = ts[4]
+        self.assertEqual(result, expected)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 4)] = 0
+        result[datetime(1990, 1, 1, 4)] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)] = 0
+        result[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        lb = datetime(1990, 1, 1, 4)
+        rb = datetime(1990, 1, 1, 7)
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts[ts.index[4]]
+        expected = ts[4]
+        self.assertEqual(result, expected)
+
+        result = ts[ts.index[4:8]]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result[ts.index[4:8]] = 0
+        result[4:8] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        # also test partial date slicing
+        result = ts["1990-01-02"]
+        expected = ts[24:48]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result["1990-01-02"] = 0
+        result["1990-01-02"] = ts[24:48]
+        assert_series_equal(result, ts)
+
+    def test_normalize(self):
+        rng = date_range('1/1/2000 9:30', periods=10, freq='D')
+
+        result = rng.normalize()
+        expected = date_range('1/1/2000', periods=10, freq='D')
+        tm.assert_index_equal(result, expected)
+
+        rng_ns = pd.DatetimeIndex(np.array([1380585623454345752,
+                                            1380585612343234312]).astype(
+                                                "datetime64[ns]"))
+        rng_ns_normalized = rng_ns.normalize()
+        expected = pd.DatetimeIndex(np.array([1380585600000000000,
+                                              1380585600000000000]).astype(
+                                                  "datetime64[ns]"))
+        tm.assert_index_equal(rng_ns_normalized, expected)
+
+        self.assertTrue(result.is_normalized)
+        self.assertFalse(rng.is_normalized)
+
+    def test_series_ctor_plus_datetimeindex(self):
+        rng = date_range('20090415', '20090519', freq='B')
+        data = dict((k, 1) for k in rng)
+
+        result = Series(data, index=rng)
+        self.assertIs(result.index, rng)
 
 
 class TestDatetime64(tm.TestCase):

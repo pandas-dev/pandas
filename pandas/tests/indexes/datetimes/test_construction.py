@@ -476,3 +476,17 @@ class TestTimeSeries(tm.TestCase):
 
             tm.assert_index_equal(DatetimeIndex(values), base)
             tm.assert_index_equal(to_datetime(values), base)
+
+    def test_constructor_int64_nocopy(self):
+        # #1624
+        arr = np.arange(1000, dtype=np.int64)
+        index = DatetimeIndex(arr)
+
+        arr[50:100] = -1
+        self.assertTrue((index.asi8[50:100] == -1).all())
+
+        arr = np.arange(1000, dtype=np.int64)
+        index = DatetimeIndex(arr, copy=True)
+
+        arr[50:100] = -1
+        self.assertTrue((index.asi8[50:100] != -1).all())

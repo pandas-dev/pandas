@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 import pandas._period as period
 from pandas.tseries import offsets, frequencies
 from pandas.tslib import get_timezone, iNaT
-from pandas.compat import long
+from pandas.compat import lrange, long
 from pandas.util.testing import assert_series_equal
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (Timestamp, date_range, Period, Timedelta, tslib, compat,
@@ -1488,3 +1488,91 @@ class TestTimeSeries(tm.TestCase):
         assert_series_equal(result, Series([True, False]))
         result = s == s[1]
         assert_series_equal(result, Series([False, False]))
+
+    def test_series_box_timestamp(self):
+        rng = date_range('20090415', '20090519', freq='B')
+        s = Series(rng)
+
+        tm.assertIsInstance(s[5], Timestamp)
+
+        rng = date_range('20090415', '20090519', freq='B')
+        s = Series(rng, index=rng)
+        tm.assertIsInstance(s[5], Timestamp)
+
+        tm.assertIsInstance(s.iat[5], Timestamp)
+
+    def test_frame_setitem_timestamp(self):
+        # 2155
+        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012',
+                                freq=offsets.BDay())
+        index = lrange(10)
+        data = DataFrame(columns=columns, index=index)
+        t = datetime(2012, 11, 1)
+        ts = Timestamp(t)
+        data[ts] = np.nan  # works
+
+    def test_to_html_timestamp(self):
+        rng = date_range('2000-01-01', periods=10)
+        df = DataFrame(np.random.randn(10, 4), index=rng)
+
+        result = df.to_html()
+        self.assertIn('2000-01-01', result)
+
+    def test_series_map_box_timestamps(self):
+        # #2689, #2627
+        s = Series(date_range('1/1/2000', periods=10))
+
+        def f(x):
+            return (x.hour, x.day, x.month)
+
+        # it works!
+        s.map(f)
+        s.apply(f)
+        DataFrame(s).applymap(f)
+
+    def test_dti_slicing(self):
+        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        dti2 = dti[[1, 3, 5]]
+
+        v1 = dti2[0]
+        v2 = dti2[1]
+        v3 = dti2[2]
+
+        self.assertEqual(v1, Timestamp('2/28/2005'))
+        self.assertEqual(v2, Timestamp('4/30/2005'))
+        self.assertEqual(v3, Timestamp('6/30/2005'))
+
+        # don't carry freq through irregular slicing
+        self.assertIsNone(dti2.freq)
+
+    def test_woy_boundary(self):
+        # make sure weeks at year boundaries are correct
+        d = datetime(2013, 12, 31)
+        result = Timestamp(d).week
+        expected = 1  # ISO standard
+        self.assertEqual(result, expected)
+
+        d = datetime(2008, 12, 28)
+        result = Timestamp(d).week
+        expected = 52  # ISO standard
+        self.assertEqual(result, expected)
+
+        d = datetime(2009, 12, 31)
+        result = Timestamp(d).week
+        expected = 53  # ISO standard
+        self.assertEqual(result, expected)
+
+        d = datetime(2010, 1, 1)
+        result = Timestamp(d).week
+        expected = 53  # ISO standard
+        self.assertEqual(result, expected)
+
+        d = datetime(2010, 1, 3)
+        result = Timestamp(d).week
+        expected = 53  # ISO standard
+        self.assertEqual(result, expected)
+
+        result = np.array([Timestamp(datetime(*args)).week
+                           for args in [(2000, 1, 1), (2000, 1, 2), (
+                               2005, 1, 1), (2005, 1, 2)]])
+        self.assertTrue((result == [52, 52, 53, 53]).all())
