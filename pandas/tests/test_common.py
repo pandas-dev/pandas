@@ -42,6 +42,10 @@ def test_get_callable_name():
     assert getname(somecall()) == 'somecall'
     assert getname(1) is None
 
+def test_datetimeindex_from_empty_datetime64_array():
+    for unit in [ 'ms', 'us', 'ns' ]:
+        idx = DatetimeIndex(np.array([], dtype='datetime64[%s]' % unit))
+        assert(len(idx) == 0)
 
 def test_any_none():
     assert (com._any_none(1, 2, 3, None))
