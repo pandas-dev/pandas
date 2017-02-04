@@ -2,6 +2,7 @@ import numpy as np
 from datetime import timedelta
 
 import pandas as pd
+from pandas import tslib
 import pandas.util.testing as tm
 from pandas.tslib import OutOfBoundsDatetime
 from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
@@ -476,6 +477,22 @@ class TestTimeSeries(tm.TestCase):
 
             tm.assert_index_equal(DatetimeIndex(values), base)
             tm.assert_index_equal(to_datetime(values), base)
+
+    def test_ctor_str_intraday(self):
+        rng = DatetimeIndex(['1-1-2000 00:00:01'])
+        self.assertEqual(rng[0].second, 1)
+
+    def test_is_(self):
+        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        self.assertTrue(dti.is_(dti))
+        self.assertTrue(dti.is_(dti.view()))
+        self.assertFalse(dti.is_(dti.copy()))
+
+    def test_index_cast_datetime64_other_units(self):
+        arr = np.arange(0, 100, 10, dtype=np.int64).view('M8[D]')
+        idx = Index(arr)
+
+        self.assertTrue((idx.values == tslib.cast_to_nanoseconds(arr)).all())
 
     def test_constructor_int64_nocopy(self):
         # #1624

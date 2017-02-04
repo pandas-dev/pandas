@@ -566,6 +566,65 @@ class TestTimestamp(tm.TestCase):
         self.assertTrue(np.isnan(ts.daysinmonth))
         self.assertTrue(np.isnan(ts.days_in_month))
 
+    def test_nat_vector_field_access(self):
+        idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
+
+        fields = ['year', 'quarter', 'month', 'day', 'hour', 'minute',
+                  'second', 'microsecond', 'nanosecond', 'week', 'dayofyear',
+                  'days_in_month', 'is_leap_year']
+
+        for field in fields:
+            result = getattr(idx, field)
+            expected = [getattr(x, field) for x in idx]
+            self.assert_numpy_array_equal(result, np.array(expected))
+
+        s = pd.Series(idx)
+
+        for field in fields:
+            result = getattr(s.dt, field)
+            expected = [getattr(x, field) for x in idx]
+            self.assert_series_equal(result, pd.Series(expected))
+
+    def test_nat_scalar_field_access(self):
+        fields = ['year', 'quarter', 'month', 'day', 'hour', 'minute',
+                  'second', 'microsecond', 'nanosecond', 'week', 'dayofyear',
+                  'days_in_month', 'daysinmonth', 'dayofweek', 'weekday_name']
+        for field in fields:
+            result = getattr(NaT, field)
+            self.assertTrue(np.isnan(result))
+
+    def test_NaT_methods(self):
+        # GH 9513
+        raise_methods = ['astimezone', 'combine', 'ctime', 'dst',
+                         'fromordinal', 'fromtimestamp', 'isocalendar',
+                         'strftime', 'strptime', 'time', 'timestamp',
+                         'timetuple', 'timetz', 'toordinal', 'tzname',
+                         'utcfromtimestamp', 'utcnow', 'utcoffset',
+                         'utctimetuple']
+        nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
+        nan_methods = ['weekday', 'isoweekday']
+
+        for method in raise_methods:
+            if hasattr(NaT, method):
+                self.assertRaises(ValueError, getattr(NaT, method))
+
+        for method in nan_methods:
+            if hasattr(NaT, method):
+                self.assertTrue(np.isnan(getattr(NaT, method)()))
+
+        for method in nat_methods:
+            if hasattr(NaT, method):
+                # see gh-8254
+                exp_warning = None
+                if method == 'to_datetime':
+                    exp_warning = FutureWarning
+                with tm.assert_produces_warning(
+                        exp_warning, check_stacklevel=False):
+                    self.assertIs(getattr(NaT, method)(), NaT)
+
+        # GH 12300
+        self.assertEqual(NaT.isoformat(), 'NaT')
+
     def test_pprint(self):
         # GH12622
         import pprint

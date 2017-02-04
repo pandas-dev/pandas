@@ -346,6 +346,135 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         self.assertTrue((s[:4] == 0).all())
         self.assertTrue(not (s[4:] == 0).any())
 
+    def test_getitem_setitem_datetime_tz_pytz(self):
+        tm._skip_if_no_pytz()
+        from pytz import timezone as tz
+
+        from pandas import date_range
+
+        N = 50
+        # testing with timezone, GH #2785
+        rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
+        ts = Series(np.random.randn(N), index=rng)
+
+        # also test Timestamp tz handling, GH #2789
+        result = ts.copy()
+        result["1990-01-01 09:00:00+00:00"] = 0
+        result["1990-01-01 09:00:00+00:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+        result["1990-01-01 03:00:00-06:00"] = 0
+        result["1990-01-01 03:00:00-06:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        # repeat with datetimes
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 9, tzinfo=tz('UTC'))] = 0
+        result[datetime(1990, 1, 1, 9, tzinfo=tz('UTC'))] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+
+        # comparison dates with datetime MUST be localized!
+        date = tz('US/Central').localize(datetime(1990, 1, 1, 3))
+        result[date] = 0
+        result[date] = ts[4]
+        assert_series_equal(result, ts)
+
+    def test_getitem_setitem_datetime_tz_dateutil(self):
+        tm._skip_if_no_dateutil()
+        from dateutil.tz import tzutc
+        from pandas.tslib import _dateutil_gettz as gettz
+
+        tz = lambda x: tzutc() if x == 'UTC' else gettz(
+            x)  # handle special case for utc in dateutil
+
+        from pandas import date_range
+
+        N = 50
+
+        # testing with timezone, GH #2785
+        rng = date_range('1/1/1990', periods=N, freq='H',
+                         tz='America/New_York')
+        ts = Series(np.random.randn(N), index=rng)
+
+        # also test Timestamp tz handling, GH #2789
+        result = ts.copy()
+        result["1990-01-01 09:00:00+00:00"] = 0
+        result["1990-01-01 09:00:00+00:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+        result["1990-01-01 03:00:00-06:00"] = 0
+        result["1990-01-01 03:00:00-06:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        # repeat with datetimes
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 9, tzinfo=tz('UTC'))] = 0
+        result[datetime(1990, 1, 1, 9, tzinfo=tz('UTC'))] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('America/Chicago'))] = 0
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('America/Chicago'))] = ts[4]
+        assert_series_equal(result, ts)
+
+    def test_getitem_setitem_periodindex(self):
+        from pandas import period_range
+
+        N = 50
+        rng = period_range('1/1/1990', periods=N, freq='H')
+        ts = Series(np.random.randn(N), index=rng)
+
+        result = ts["1990-01-01 04"]
+        expected = ts[4]
+        self.assertEqual(result, expected)
+
+        result = ts.copy()
+        result["1990-01-01 04"] = 0
+        result["1990-01-01 04"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts["1990-01-01 04":"1990-01-01 07"]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result["1990-01-01 04":"1990-01-01 07"] = 0
+        result["1990-01-01 04":"1990-01-01 07"] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        lb = "1990-01-01 04"
+        rb = "1990-01-01 07"
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        # GH 2782
+        result = ts[ts.index[4]]
+        expected = ts[4]
+        self.assertEqual(result, expected)
+
+        result = ts[ts.index[4:8]]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result[ts.index[4:8]] = 0
+        result[4:8] = ts[4:8]
+        assert_series_equal(result, ts)
+
+    def test_getitem_median_slice_bug(self):
+        index = date_range('20090415', '20090519', freq='2B')
+        s = Series(np.random.randn(13), index=index)
+
+        indexer = [slice(6, 7, None)]
+        result = s[indexer]
+        expected = s[indexer[0]]
+        assert_series_equal(result, expected)
+
     def test_getitem_out_of_bounds(self):
         # don't segfault, GH #495
         self.assertRaises(IndexError, self.ts.__getitem__, len(self.ts))

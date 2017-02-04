@@ -8,11 +8,11 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas import (Series, isnull, date_range,
-                    MultiIndex, Index)
-from pandas.tseries.index import Timestamp
+from pandas import (Series, DataFrame, isnull, date_range,
+                    MultiIndex, Index, Timestamp)
 from pandas.compat import range
-from pandas.util.testing import assert_series_equal
+from pandas import tslib
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -283,6 +283,43 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         self.assertRaises(TypeError, s.fillna, [1, 2])
         self.assertRaises(TypeError, s.fillna, (1, 2))
 
+    def test_fillna_nat(self):
+        series = Series([0, 1, 2, tslib.iNaT], dtype='M8[ns]')
+
+        filled = series.fillna(method='pad')
+        filled2 = series.fillna(value=series.values[2])
+
+        expected = series.copy()
+        expected.values[3] = expected.values[2]
+
+        assert_series_equal(filled, expected)
+        assert_series_equal(filled2, expected)
+
+        df = DataFrame({'A': series})
+        filled = df.fillna(method='pad')
+        filled2 = df.fillna(value=series.values[2])
+        expected = DataFrame({'A': expected})
+        assert_frame_equal(filled, expected)
+        assert_frame_equal(filled2, expected)
+
+        series = Series([tslib.iNaT, 0, 1, 2], dtype='M8[ns]')
+
+        filled = series.fillna(method='bfill')
+        filled2 = series.fillna(value=series[1])
+
+        expected = series.copy()
+        expected[0] = expected[1]
+
+        assert_series_equal(filled, expected)
+        assert_series_equal(filled2, expected)
+
+        df = DataFrame({'A': series})
+        filled = df.fillna(method='bfill')
+        filled2 = df.fillna(value=series[1])
+        expected = DataFrame({'A': expected})
+        assert_frame_equal(filled, expected)
+        assert_frame_equal(filled2, expected)
+
     def test_isnull_for_inf(self):
         s = Series(['a', np.inf, np.nan, 1.0])
         with pd.option_context('mode.use_inf_as_null', True):
@@ -517,6 +554,14 @@ class TestSeriesMissingData(TestData, tm.TestCase):
                           ['z', 'a', 'b', 'c', 'd'], dtype=float)
         assert_series_equal(x[1:], expected[1:])
         self.assertTrue(np.isnan(x[0]), np.isnan(expected[0]))
+
+    def test_pad_require_monotonicity(self):
+        rng = date_range('1/1/2000', '3/1/2000', freq='B')
+
+        # neither monotonic increasing or decreasing
+        rng2 = rng[[1, 0, 2]]
+
+        self.assertRaises(ValueError, rng2.get_indexer, rng, method='pad')
 
     def test_dropna_preserve_name(self):
         self.ts[:5] = np.nan

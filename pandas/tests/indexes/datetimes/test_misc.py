@@ -4,8 +4,9 @@ import pandas as pd
 import pandas.lib as lib
 import pandas.util.testing as tm
 from pandas import (Index, DatetimeIndex, datetime, offsets, to_datetime,
-                    Series, DataFrame, Float64Index, date_range, Timestamp)
-
+                    Series, DataFrame, Float64Index, date_range,
+                    Timestamp, isnull)
+from pandas import tslib
 from pandas.util.testing import assert_series_equal
 
 
@@ -142,6 +143,63 @@ class TestTimeSeries(tm.TestCase):
         result = rng - 5
         expected = rng.shift(-5)
         tm.assert_index_equal(result, expected)
+
+    def test_string_na_nat_conversion(self):
+        # GH #999, #858
+
+        from pandas.compat import parse_date
+
+        strings = np.array(['1/1/2000', '1/2/2000', np.nan,
+                            '1/4/2000, 12:34:56'], dtype=object)
+
+        expected = np.empty(4, dtype='M8[ns]')
+        for i, val in enumerate(strings):
+            if isnull(val):
+                expected[i] = tslib.iNaT
+            else:
+                expected[i] = parse_date(val)
+
+        result = tslib.array_to_datetime(strings)
+        tm.assert_almost_equal(result, expected)
+
+        result2 = to_datetime(strings)
+        tm.assertIsInstance(result2, DatetimeIndex)
+        tm.assert_numpy_array_equal(result, result2.values)
+
+        malformed = np.array(['1/100/2000', np.nan], dtype=object)
+
+        # GH 10636, default is now 'raise'
+        self.assertRaises(ValueError,
+                          lambda: to_datetime(malformed, errors='raise'))
+
+        result = to_datetime(malformed, errors='ignore')
+        tm.assert_numpy_array_equal(result, malformed)
+
+        self.assertRaises(ValueError, to_datetime, malformed, errors='raise')
+
+        idx = ['a', 'b', 'c', 'd', 'e']
+        series = Series(['1/1/2000', np.nan, '1/3/2000', np.nan,
+                         '1/5/2000'], index=idx, name='foo')
+        dseries = Series([to_datetime('1/1/2000'), np.nan,
+                          to_datetime('1/3/2000'), np.nan,
+                          to_datetime('1/5/2000')], index=idx, name='foo')
+
+        result = to_datetime(series)
+        dresult = to_datetime(dseries)
+
+        expected = Series(np.empty(5, dtype='M8[ns]'), index=idx)
+        for i in range(5):
+            x = series[i]
+            if isnull(x):
+                expected[i] = tslib.iNaT
+            else:
+                expected[i] = to_datetime(x)
+
+        assert_series_equal(result, expected, check_names=False)
+        self.assertEqual(result.name, 'foo')
+
+        assert_series_equal(dresult, expected, check_names=False)
+        self.assertEqual(dresult.name, 'foo')
 
     def test_datetimeindex_repr_short(self):
         dr = date_range(start='1/1/2012', periods=1)

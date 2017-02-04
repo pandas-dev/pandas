@@ -4,119 +4,14 @@ import numpy as np
 from datetime import timedelta
 
 import pandas as pd
-import pandas.util.testing as tm
+from pandas.util import testing as tm
 from pandas import (DatetimeIndex, Float64Index, Index, Int64Index,
                     NaT, Period, PeriodIndex, Series, Timedelta,
-                    TimedeltaIndex, date_range, period_range,
+                    TimedeltaIndex, period_range,
                     timedelta_range, notnull)
 
 
-from .common import Base
-
-
-class DatetimeLike(Base):
-
-    def test_shift_identity(self):
-
-        idx = self.create_index()
-        self.assert_index_equal(idx, idx.shift(0))
-
-    def test_str(self):
-
-        # test the string repr
-        idx = self.create_index()
-        idx.name = 'foo'
-        self.assertFalse("length=%s" % len(idx) in str(idx))
-        self.assertTrue("'foo'" in str(idx))
-        self.assertTrue(idx.__class__.__name__ in str(idx))
-
-        if hasattr(idx, 'tz'):
-            if idx.tz is not None:
-                self.assertTrue(idx.tz in str(idx))
-        if hasattr(idx, 'freq'):
-            self.assertTrue("freq='%s'" % idx.freqstr in str(idx))
-
-    def test_view(self):
-        super(DatetimeLike, self).test_view()
-
-        i = self.create_index()
-
-        i_view = i.view('i8')
-        result = self._holder(i)
-        tm.assert_index_equal(result, i)
-
-        i_view = i.view(self._holder)
-        result = self._holder(i)
-        tm.assert_index_equal(result, i_view)
-
-
-class TestDatetimeIndex(DatetimeLike, tm.TestCase):
-    _holder = DatetimeIndex
-    _multiprocess_can_split_ = True
-
-    def setUp(self):
-        self.indices = dict(index=tm.makeDateIndex(10))
-        self.setup_indices()
-
-    def create_index(self):
-        return date_range('20130101', periods=5)
-
-    def test_shift(self):
-
-        # test shift for datetimeIndex and non datetimeIndex
-        # GH8083
-
-        drange = self.create_index()
-        result = drange.shift(1)
-        expected = DatetimeIndex(['2013-01-02', '2013-01-03', '2013-01-04',
-                                  '2013-01-05',
-                                  '2013-01-06'], freq='D')
-        self.assert_index_equal(result, expected)
-
-        result = drange.shift(-1)
-        expected = DatetimeIndex(['2012-12-31', '2013-01-01', '2013-01-02',
-                                  '2013-01-03', '2013-01-04'],
-                                 freq='D')
-        self.assert_index_equal(result, expected)
-
-        result = drange.shift(3, freq='2D')
-        expected = DatetimeIndex(['2013-01-07', '2013-01-08', '2013-01-09',
-                                  '2013-01-10',
-                                  '2013-01-11'], freq='D')
-        self.assert_index_equal(result, expected)
-
-    def test_pickle_compat_construction(self):
-        pass
-
-    def test_intersection(self):
-        first = self.index
-        second = self.index[5:]
-        intersect = first.intersection(second)
-        self.assertTrue(tm.equalContents(intersect, second))
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            result = first.intersection(case)
-            self.assertTrue(tm.equalContents(result, second))
-
-        third = Index(['a', 'b', 'c'])
-        result = first.intersection(third)
-        expected = pd.Index([], dtype=object)
-        self.assert_index_equal(result, expected)
-
-    def test_union(self):
-        first = self.index[:5]
-        second = self.index[5:]
-        everything = self.index
-        union = first.union(second)
-        self.assertTrue(tm.equalContents(union, everything))
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            result = first.union(case)
-            self.assertTrue(tm.equalContents(result, everything))
+from .datetimelike import DatetimeLike
 
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
