@@ -94,6 +94,14 @@ class TestDatetimeIndex(tm.TestCase):
         with tm.assertRaises(ValueError):
             idx.get_indexer(idx[[0]], method='nearest', tolerance='foo')
 
+    def test_reasonable_keyerror(self):
+        # GH #1062
+        index = DatetimeIndex(['1/3/2000'])
+        try:
+            index.get_loc('1/1/2000')
+        except KeyError as e:
+            self.assertIn('2000', str(e))
+
     def test_roundtrip_pickle_with_tz(self):
 
         # GH 8367
