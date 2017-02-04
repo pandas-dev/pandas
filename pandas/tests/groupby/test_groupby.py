@@ -4167,6 +4167,14 @@ class TestGroupBy(tm.TestCase):
         result = df.groupby(level=0).sum()
         assert_frame_equal(result, expected)
 
+    def test_frame_datetime64_handling_groupby(self):
+        # it works!
+        df = DataFrame([(3, np.datetime64('2012-07-03')),
+                        (3, np.datetime64('2012-07-04'))],
+                       columns=['a', 'date'])
+        result = df.groupby('a').first()
+        self.assertEqual(result['date'][3], Timestamp('2012-07-03'))
+
     def test_groupby_multi_timezone(self):
 
         # combining multiple / different timezones yields UTC

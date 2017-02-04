@@ -1920,6 +1920,33 @@ class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):
         df2 = DataFrame(Series(idx2))
         tm.assert_series_equal(df2[0], Series(idx2, name=0))
 
+    def test_frame_dict_constructor_datetime64_1680(self):
+        dr = date_range('1/1/2012', periods=10)
+        s = Series(dr, index=dr)
+
+        # it works!
+        DataFrame({'a': 'foo', 'b': s}, index=dr)
+        DataFrame({'a': 'foo', 'b': s.values}, index=dr)
+
+    def test_frame_datetime64_mixed_index_ctor_1681(self):
+        dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
+        ts = Series(dr)
+
+        # it works!
+        d = DataFrame({'A': 'foo', 'B': ts}, index=dr)
+        self.assertTrue(d['B'].isnull().all())
+
+    def test_frame_timeseries_to_records(self):
+        index = date_range('1/1/2000', periods=10)
+        df = DataFrame(np.random.randn(10, 3), index=index,
+                       columns=['a', 'b', 'c'])
+
+        result = df.to_records()
+        result['index'].dtype == 'M8[ns]'
+
+        result = df.to_records(index=False)
+
+
 if __name__ == '__main__':
     import nose  # noqa
 

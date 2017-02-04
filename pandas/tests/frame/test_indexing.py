@@ -1945,6 +1945,21 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         actual = df.reindex(target, method='nearest', tolerance=0.2)
         assert_frame_equal(expected, actual)
 
+    def test_reindex_frame_add_nat(self):
+        rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')
+        df = DataFrame({'A': np.random.randn(len(rng)), 'B': rng})
+
+        result = df.reindex(lrange(15))
+        self.assertTrue(np.issubdtype(result['B'].dtype, np.dtype('M8[ns]')))
+
+        mask = com.isnull(result)['B']
+        self.assertTrue(mask[-5:].all())
+        self.assertFalse(mask[:-5].any())
+
+    def test_set_dataframe_column_ns_dtype(self):
+        x = DataFrame([datetime.now(), datetime.now()])
+        self.assertEqual(x[0].dtype, np.dtype('M8[ns]'))
+
     def test_non_monotonic_reindex_methods(self):
         dr = pd.date_range('2013-08-01', periods=6, freq='B')
         data = np.random.randn(6, 1)
