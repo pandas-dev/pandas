@@ -1,3 +1,4 @@
+import nose
 import datetime
 import numpy as np
 from distutils.version import LooseVersion

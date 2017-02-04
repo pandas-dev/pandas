@@ -65,6 +65,126 @@ class TestTimeSeries(tm.TestCase):
 
         self.assert_numpy_array_equal(idx.values, expected.values)
 
+    def test_range_edges(self):
+        # GH 13672
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000001'),
+                            end=Timestamp('1970-01-01 00:00:00.000000004'),
+                            freq='N')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.000000001',
+                             '1970-01-01 00:00:00.000000002',
+                             '1970-01-01 00:00:00.000000003',
+                             '1970-01-01 00:00:00.000000004'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000004'),
+                            end=Timestamp('1970-01-01 00:00:00.000000001'),
+                            freq='N')
+        exp = DatetimeIndex([])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000001'),
+                            end=Timestamp('1970-01-01 00:00:00.000000001'),
+                            freq='N')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.000000001'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000001'),
+                            end=Timestamp('1970-01-01 00:00:00.000004'),
+                            freq='U')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.000001',
+                             '1970-01-01 00:00:00.000002',
+                             '1970-01-01 00:00:00.000003',
+                             '1970-01-01 00:00:00.000004'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.001'),
+                            end=Timestamp('1970-01-01 00:00:00.004'),
+                            freq='L')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.001',
+                             '1970-01-01 00:00:00.002',
+                             '1970-01-01 00:00:00.003',
+                             '1970-01-01 00:00:00.004'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:01'),
+                            end=Timestamp('1970-01-01 00:00:04'), freq='S')
+        exp = DatetimeIndex(['1970-01-01 00:00:01', '1970-01-01 00:00:02',
+                             '1970-01-01 00:00:03', '1970-01-01 00:00:04'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:01'),
+                            end=Timestamp('1970-01-01 00:04'), freq='T')
+        exp = DatetimeIndex(['1970-01-01 00:01', '1970-01-01 00:02',
+                             '1970-01-01 00:03', '1970-01-01 00:04'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 01:00'),
+                            end=Timestamp('1970-01-01 04:00'), freq='H')
+        exp = DatetimeIndex(['1970-01-01 01:00', '1970-01-01 02:00',
+                             '1970-01-01 03:00', '1970-01-01 04:00'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01'),
+                            end=Timestamp('1970-01-04'), freq='D')
+        exp = DatetimeIndex(['1970-01-01', '1970-01-02',
+                             '1970-01-03', '1970-01-04'])
+        tm.assert_index_equal(idx, exp)
+
+    def test_date_range_businesshour(self):
+        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
+                             '2014-07-04 11:00',
+                             '2014-07-04 12:00', '2014-07-04 13:00',
+                             '2014-07-04 14:00',
+                             '2014-07-04 15:00', '2014-07-04 16:00'],
+                            freq='BH')
+        rng = date_range('2014-07-04 09:00', '2014-07-04 16:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
+
+        idx = DatetimeIndex(
+            ['2014-07-04 16:00', '2014-07-07 09:00'], freq='BH')
+        rng = date_range('2014-07-04 16:00', '2014-07-07 09:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
+
+        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
+                             '2014-07-04 11:00',
+                             '2014-07-04 12:00', '2014-07-04 13:00',
+                             '2014-07-04 14:00',
+                             '2014-07-04 15:00', '2014-07-04 16:00',
+                             '2014-07-07 09:00', '2014-07-07 10:00',
+                             '2014-07-07 11:00',
+                             '2014-07-07 12:00', '2014-07-07 13:00',
+                             '2014-07-07 14:00',
+                             '2014-07-07 15:00', '2014-07-07 16:00',
+                             '2014-07-08 09:00', '2014-07-08 10:00',
+                             '2014-07-08 11:00',
+                             '2014-07-08 12:00', '2014-07-08 13:00',
+                             '2014-07-08 14:00',
+                             '2014-07-08 15:00', '2014-07-08 16:00'],
+                            freq='BH')
+        rng = date_range('2014-07-04 09:00', '2014-07-08 16:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
+
+    def test_datetimeindex_integers_shift(self):
+        rng = date_range('1/1/2000', periods=20)
+
+        result = rng + 5
+        expected = rng.shift(5)
+        tm.assert_index_equal(result, expected)
+
+        result = rng - 5
+        expected = rng.shift(-5)
+        tm.assert_index_equal(result, expected)
+
+    def test_datetimeindex_repr_short(self):
+        dr = date_range(start='1/1/2012', periods=1)
+        repr(dr)
+
+        dr = date_range(start='1/1/2012', periods=2)
+        repr(dr)
+
+        dr = date_range(start='1/1/2012', periods=3)
+        repr(dr)
+
 
 class TestDatetime64(tm.TestCase):
 
@@ -331,3 +451,21 @@ class TestDatetime64(tm.TestCase):
 
         result = dti.join(empty)
         tm.assertIsInstance(result, DatetimeIndex)
+
+
+class TestTimeSeriesDuplicates(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_recreate_from_data(self):
+        freqs = ['M', 'Q', 'A', 'D', 'B', 'BH', 'T', 'S', 'L', 'U', 'H', 'N',
+                 'C']
+
+        for f in freqs:
+            org = DatetimeIndex(start='2001/02/01 09:00', freq=f, periods=1)
+            idx = DatetimeIndex(org, freq=f)
+            tm.assert_index_equal(idx, org)
+
+            org = DatetimeIndex(start='2001/02/01 09:00', freq=f,
+                                tz='US/Pacific', periods=1)
+            idx = DatetimeIndex(org, freq=f, tz='US/Pacific')
+            tm.assert_index_equal(idx, org)

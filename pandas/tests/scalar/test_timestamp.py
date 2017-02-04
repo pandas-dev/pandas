@@ -16,7 +16,7 @@ from pandas.compat import long
 from pandas.util.testing import assert_series_equal
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (Timestamp, date_range, Period, Timedelta, tslib, compat,
-                    Series, NaT, isnull, DataFrame)
+                    Series, NaT, isnull, DataFrame, DatetimeIndex)
 from pandas.tseries.frequencies import (RESO_DAY, RESO_HR, RESO_MIN, RESO_US,
                                         RESO_MS, RESO_SEC)
 
@@ -1364,3 +1364,127 @@ class TestTimestampToJulianDate(tm.TestCase):
     def test_compare_hour13(self):
         r = Timestamp('2000-08-12T13:00:00').to_julian_date()
         self.assertEqual(r, 2451769.0416666666666666)
+
+
+class TestTimeSeries(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_timestamp_to_datetime(self):
+        tm._skip_if_no_pytz()
+        rng = date_range('20090415', '20090519', tz='US/Eastern')
+
+        stamp = rng[0]
+        dtval = stamp.to_pydatetime()
+        self.assertEqual(stamp, dtval)
+        self.assertEqual(stamp.tzinfo, dtval.tzinfo)
+
+    def test_timestamp_to_datetime_dateutil(self):
+        tm._skip_if_no_pytz()
+        rng = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
+
+        stamp = rng[0]
+        dtval = stamp.to_pydatetime()
+        self.assertEqual(stamp, dtval)
+        self.assertEqual(stamp.tzinfo, dtval.tzinfo)
+
+    def test_timestamp_to_datetime_explicit_pytz(self):
+        tm._skip_if_no_pytz()
+        import pytz
+        rng = date_range('20090415', '20090519',
+                         tz=pytz.timezone('US/Eastern'))
+
+        stamp = rng[0]
+        dtval = stamp.to_pydatetime()
+        self.assertEqual(stamp, dtval)
+        self.assertEqual(stamp.tzinfo, dtval.tzinfo)
+
+    def test_timestamp_to_datetime_explicit_dateutil(self):
+        tm._skip_if_windows_python_3()
+        tm._skip_if_no_dateutil()
+        from pandas.tslib import _dateutil_gettz as gettz
+        rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
+
+        stamp = rng[0]
+        dtval = stamp.to_pydatetime()
+        self.assertEqual(stamp, dtval)
+        self.assertEqual(stamp.tzinfo, dtval.tzinfo)
+
+    def test_timestamp_fields(self):
+        # extra fields from DatetimeIndex like quarter and week
+        idx = tm.makeDateIndex(100)
+
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
+                  'days_in_month', 'is_month_start', 'is_month_end',
+                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
+                  'is_year_end', 'weekday_name']
+        for f in fields:
+            expected = getattr(idx, f)[-1]
+            result = getattr(Timestamp(idx[-1]), f)
+            self.assertEqual(result, expected)
+
+        self.assertEqual(idx.freq, Timestamp(idx[-1], idx.freq).freq)
+        self.assertEqual(idx.freqstr, Timestamp(idx[-1], idx.freq).freqstr)
+
+    def test_timestamp_date_out_of_range(self):
+        self.assertRaises(ValueError, Timestamp, '1676-01-01')
+        self.assertRaises(ValueError, Timestamp, '2263-01-01')
+
+        # 1475
+        self.assertRaises(ValueError, DatetimeIndex, ['1400-01-01'])
+        self.assertRaises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
+
+    def test_timestamp_repr(self):
+        # pre-1900
+        stamp = Timestamp('1850-01-01', tz='US/Eastern')
+        repr(stamp)
+
+        iso8601 = '1850-01-01 01:23:45.012345'
+        stamp = Timestamp(iso8601, tz='US/Eastern')
+        result = repr(stamp)
+        self.assertIn(iso8601, result)
+
+    def test_timestamp_from_ordinal(self):
+
+        # GH 3042
+        dt = datetime(2011, 4, 16, 0, 0)
+        ts = Timestamp.fromordinal(dt.toordinal())
+        self.assertEqual(ts.to_pydatetime(), dt)
+
+        # with a tzinfo
+        stamp = Timestamp('2011-4-16', tz='US/Eastern')
+        dt_tz = stamp.to_pydatetime()
+        ts = Timestamp.fromordinal(dt_tz.toordinal(), tz='US/Eastern')
+        self.assertEqual(ts.to_pydatetime(), dt_tz)
+
+    def test_timestamp_compare_with_early_datetime(self):
+        # e.g. datetime.min
+        stamp = Timestamp('2012-01-01')
+
+        self.assertFalse(stamp == datetime.min)
+        self.assertFalse(stamp == datetime(1600, 1, 1))
+        self.assertFalse(stamp == datetime(2700, 1, 1))
+        self.assertNotEqual(stamp, datetime.min)
+        self.assertNotEqual(stamp, datetime(1600, 1, 1))
+        self.assertNotEqual(stamp, datetime(2700, 1, 1))
+        self.assertTrue(stamp > datetime(1600, 1, 1))
+        self.assertTrue(stamp >= datetime(1600, 1, 1))
+        self.assertTrue(stamp < datetime(2700, 1, 1))
+        self.assertTrue(stamp <= datetime(2700, 1, 1))
+
+    def test_timestamp_equality(self):
+
+        # GH 11034
+        s = Series([Timestamp('2000-01-29 01:59:00'), 'NaT'])
+        result = s != s
+        assert_series_equal(result, Series([False, True]))
+        result = s != s[0]
+        assert_series_equal(result, Series([False, True]))
+        result = s != s[1]
+        assert_series_equal(result, Series([True, True]))
+
+        result = s == s
+        assert_series_equal(result, Series([True, False]))
+        result = s == s[0]
+        assert_series_equal(result, Series([True, False]))
+        result = s == s[1]
+        assert_series_equal(result, Series([False, False]))
