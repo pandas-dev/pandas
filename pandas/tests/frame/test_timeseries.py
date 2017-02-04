@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from datetime import datetime
+from datetime import datetime, time
 
 from numpy import nan
 from numpy.random import randn
@@ -20,6 +20,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  assertRaisesRegexp)
 
 import pandas.util.testing as tm
+from pandas.compat import product
 
 from pandas.tests.frame.common import TestData
 
@@ -418,6 +419,96 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         self.assertIsNone(empty.last_valid_index())
         self.assertIsNone(empty.first_valid_index())
 
+    def test_at_time_frame(self):
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        rs = ts.at_time(rng[1])
+        self.assertTrue((rs.index.hour == rng[1].hour).all())
+        self.assertTrue((rs.index.minute == rng[1].minute).all())
+        self.assertTrue((rs.index.second == rng[1].second).all())
+
+        result = ts.at_time('9:30')
+        expected = ts.at_time(time(9, 30))
+        assert_frame_equal(result, expected)
+
+        result = ts.loc[time(9, 30)]
+        expected = ts.loc[(rng.hour == 9) & (rng.minute == 30)]
+
+        assert_frame_equal(result, expected)
+
+        # midnight, everything
+        rng = date_range('1/1/2000', '1/31/2000')
+        ts = DataFrame(np.random.randn(len(rng), 3), index=rng)
+
+        result = ts.at_time(time(0, 0))
+        assert_frame_equal(result, ts)
+
+        # time doesn't exist
+        rng = date_range('1/1/2012', freq='23Min', periods=384)
+        ts = DataFrame(np.random.randn(len(rng), 2), rng)
+        rs = ts.at_time('16:00')
+        self.assertEqual(len(rs), 0)
+
+    def test_between_time_frame(self):
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        stime = time(0, 0)
+        etime = time(1, 0)
+
+        close_open = product([True, False], [True, False])
+        for inc_start, inc_end in close_open:
+            filtered = ts.between_time(stime, etime, inc_start, inc_end)
+            exp_len = 13 * 4 + 1
+            if not inc_start:
+                exp_len -= 5
+            if not inc_end:
+                exp_len -= 4
+
+            self.assertEqual(len(filtered), exp_len)
+            for rs in filtered.index:
+                t = rs.time()
+                if inc_start:
+                    self.assertTrue(t >= stime)
+                else:
+                    self.assertTrue(t > stime)
+
+                if inc_end:
+                    self.assertTrue(t <= etime)
+                else:
+                    self.assertTrue(t < etime)
+
+        result = ts.between_time('00:00', '01:00')
+        expected = ts.between_time(stime, etime)
+        assert_frame_equal(result, expected)
+
+        # across midnight
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        stime = time(22, 0)
+        etime = time(9, 0)
+
+        close_open = product([True, False], [True, False])
+        for inc_start, inc_end in close_open:
+            filtered = ts.between_time(stime, etime, inc_start, inc_end)
+            exp_len = (12 * 11 + 1) * 4 + 1
+            if not inc_start:
+                exp_len -= 4
+            if not inc_end:
+                exp_len -= 4
+
+            self.assertEqual(len(filtered), exp_len)
+            for rs in filtered.index:
+                t = rs.time()
+                if inc_start:
+                    self.assertTrue((t >= stime) or (t <= etime))
+                else:
+                    self.assertTrue((t > stime) or (t <= etime))
+
+                if inc_end:
+                    self.assertTrue((t <= etime) or (t >= stime))
+                else:
+                    self.assertTrue((t < etime) or (t >= stime))
+
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.
         df = pd.DataFrame({'foo': [pd.NaT, pd.NaT,
@@ -456,6 +547,34 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         expected = pd.DataFrame({0: [1, None],
                                 'new': [1e9, None]}, dtype='datetime64[ns]')
         tm.assert_frame_equal(result, expected)
+
+    def test_frame_to_period(self):
+        K = 5
+        from pandas.tseries.period import period_range
+
+        dr = date_range('1/1/2000', '1/1/2001')
+        pr = period_range('1/1/2000', '1/1/2001')
+        df = DataFrame(randn(len(dr), K), index=dr)
+        df['mix'] = 'a'
+
+        pts = df.to_period()
+        exp = df.copy()
+        exp.index = pr
+        assert_frame_equal(pts, exp)
+
+        pts = df.to_period('M')
+        tm.assert_index_equal(pts.index, exp.index.asfreq('M'))
+
+        df = df.T
+        pts = df.to_period(axis=1)
+        exp = df.copy()
+        exp.columns = pr
+        assert_frame_equal(pts, exp)
+
+        pts = df.to_period('M', axis=1)
+        tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
+
+        self.assertRaises(ValueError, df.to_period, axis=2)
 
 
 if __name__ == '__main__':

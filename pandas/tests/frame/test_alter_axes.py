@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas.compat import lrange
 from pandas import (DataFrame, Series, Index, MultiIndex,
-                    RangeIndex)
+                    RangeIndex, date_range)
 import pandas as pd
 
 from pandas.util.testing import (assert_series_equal,
@@ -324,6 +324,32 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         self.mixed_frame.columns = cols
         with assertRaisesRegexp(ValueError, 'Length mismatch'):
             self.mixed_frame.columns = cols[::2]
+
+    def test_dti_set_index_reindex(self):
+        # GH 6631
+        df = DataFrame(np.random.random(6))
+        idx1 = date_range('2011/01/01', periods=6, freq='M', tz='US/Eastern')
+        idx2 = date_range('2013', periods=6, freq='A', tz='Asia/Tokyo')
+
+        df = df.set_index(idx1)
+        tm.assert_index_equal(df.index, idx1)
+        df = df.reindex(idx2)
+        tm.assert_index_equal(df.index, idx2)
+
+        # 11314
+        # with tz
+        index = date_range(datetime(2015, 10, 1),
+                           datetime(2015, 10, 1, 23),
+                           freq='H', tz='US/Eastern')
+        df = DataFrame(np.random.randn(24, 1), columns=['a'], index=index)
+        new_index = date_range(datetime(2015, 10, 2),
+                               datetime(2015, 10, 2, 23),
+                               freq='H', tz='US/Eastern')
+
+        # TODO: unused?
+        result = df.set_index(new_index)  # noqa
+
+        self.assertEqual(new_index.freq, index.freq)
 
     # Renaming
 

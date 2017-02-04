@@ -9,7 +9,7 @@ from numpy import nan
 
 import pandas as pd
 
-from pandas import DataFrame, Index, Series, Timestamp
+from pandas import DataFrame, Index, Series, Timestamp, date_range
 from pandas.compat import lrange
 
 from pandas.tests.frame.common import TestData
@@ -735,3 +735,17 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
         res = df1.combine_first(df2)
         tm.assert_frame_equal(res, df1)
         self.assertEqual(res['a'].dtype, 'int64')
+
+    def test_concat_datetime_datetime64_frame(self):
+        # #2624
+        rows = []
+        rows.append([datetime(2010, 1, 1), 1])
+        rows.append([datetime(2010, 1, 2), 'hi'])
+
+        df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
+
+        ind = date_range(start="2000/1/1", freq="D", periods=10)
+        df1 = DataFrame({'date': ind, 'test': lrange(10)})
+
+        # it works!
+        pd.concat([df1, df2_obj])
