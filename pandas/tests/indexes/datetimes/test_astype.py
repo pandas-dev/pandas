@@ -1,5 +1,6 @@
 import numpy as np
 
+from datetime import datetime
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (DatetimeIndex, date_range, Series, NaT, Index, Timestamp,
@@ -120,3 +121,64 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertRaises(ValueError, idx.astype, 'timedelta64[ns]')
         self.assertRaises(ValueError, idx.astype, 'datetime64')
         self.assertRaises(ValueError, idx.astype, 'datetime64[D]')
+
+    def test_index_convert_to_datetime_array(self):
+        tm._skip_if_no_pytz()
+
+        def _check_rng(rng):
+            converted = rng.to_pydatetime()
+            tm.assertIsInstance(converted, np.ndarray)
+            for x, stamp in zip(converted, rng):
+                tm.assertIsInstance(x, datetime)
+                self.assertEqual(x, stamp.to_pydatetime())
+                self.assertEqual(x.tzinfo, stamp.tzinfo)
+
+        rng = date_range('20090415', '20090519')
+        rng_eastern = date_range('20090415', '20090519', tz='US/Eastern')
+        rng_utc = date_range('20090415', '20090519', tz='utc')
+
+        _check_rng(rng)
+        _check_rng(rng_eastern)
+        _check_rng(rng_utc)
+
+    def test_index_convert_to_datetime_array_explicit_pytz(self):
+        tm._skip_if_no_pytz()
+        import pytz
+
+        def _check_rng(rng):
+            converted = rng.to_pydatetime()
+            tm.assertIsInstance(converted, np.ndarray)
+            for x, stamp in zip(converted, rng):
+                tm.assertIsInstance(x, datetime)
+                self.assertEqual(x, stamp.to_pydatetime())
+                self.assertEqual(x.tzinfo, stamp.tzinfo)
+
+        rng = date_range('20090415', '20090519')
+        rng_eastern = date_range('20090415', '20090519',
+                                 tz=pytz.timezone('US/Eastern'))
+        rng_utc = date_range('20090415', '20090519', tz=pytz.utc)
+
+        _check_rng(rng)
+        _check_rng(rng_eastern)
+        _check_rng(rng_utc)
+
+    def test_index_convert_to_datetime_array_dateutil(self):
+        tm._skip_if_no_dateutil()
+        import dateutil
+
+        def _check_rng(rng):
+            converted = rng.to_pydatetime()
+            tm.assertIsInstance(converted, np.ndarray)
+            for x, stamp in zip(converted, rng):
+                tm.assertIsInstance(x, datetime)
+                self.assertEqual(x, stamp.to_pydatetime())
+                self.assertEqual(x.tzinfo, stamp.tzinfo)
+
+        rng = date_range('20090415', '20090519')
+        rng_eastern = date_range('20090415', '20090519',
+                                 tz='dateutil/US/Eastern')
+        rng_utc = date_range('20090415', '20090519', tz=dateutil.tz.tzutc())
+
+        _check_rng(rng)
+        _check_rng(rng_eastern)
+        _check_rng(rng_utc)

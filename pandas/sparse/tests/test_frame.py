@@ -705,6 +705,50 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_frame_equal(sparse.fillna(-1).to_dense(),
                               df.fillna(-1), check_dtype=False)
 
+    def test_sparse_frame_pad_backfill_limit(self):
+        index = np.arange(10)
+        df = DataFrame(np.random.randn(10, 4), index=index)
+        sdf = df.to_sparse()
+
+        result = sdf[:2].reindex(index, method='pad', limit=5)
+
+        expected = sdf[:2].reindex(index).fillna(method='pad')
+        expected = expected.to_dense()
+        expected.values[-3:] = np.nan
+        expected = expected.to_sparse()
+        tm.assert_frame_equal(result, expected)
+
+        result = sdf[-2:].reindex(index, method='backfill', limit=5)
+
+        expected = sdf[-2:].reindex(index).fillna(method='backfill')
+        expected = expected.to_dense()
+        expected.values[:3] = np.nan
+        expected = expected.to_sparse()
+        tm.assert_frame_equal(result, expected)
+
+    def test_sparse_frame_fillna_limit(self):
+        index = np.arange(10)
+        df = DataFrame(np.random.randn(10, 4), index=index)
+        sdf = df.to_sparse()
+
+        result = sdf[:2].reindex(index)
+        result = result.fillna(method='pad', limit=5)
+
+        expected = sdf[:2].reindex(index).fillna(method='pad')
+        expected = expected.to_dense()
+        expected.values[-3:] = np.nan
+        expected = expected.to_sparse()
+        tm.assert_frame_equal(result, expected)
+
+        result = sdf[-2:].reindex(index)
+        result = result.fillna(method='backfill', limit=5)
+
+        expected = sdf[-2:].reindex(index).fillna(method='backfill')
+        expected = expected.to_dense()
+        expected.values[:3] = np.nan
+        expected = expected.to_sparse()
+        tm.assert_frame_equal(result, expected)
+
     def test_rename(self):
         # just check this works
         renamed = self.frame.rename(index=str)  # noqa

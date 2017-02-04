@@ -8,7 +8,9 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, Index, Timestamp, DatetimeIndex
+from pandas import (DataFrame, Series, Index,
+                    Timestamp, DatetimeIndex,
+                    to_datetime, date_range)
 import pandas as pd
 import pandas.tseries.offsets as offsets
 
@@ -116,6 +118,60 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         expected = Series([np.nan, 0.5, np.nan, 2.5 / 1.5 - 1, .2])
         edf = DataFrame({'a': expected, 'b': expected})
         assert_frame_equal(chg, edf)
+
+    def test_frame_ctor_datetime64_column(self):
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
+        dates = np.asarray(rng)
+
+        df = DataFrame({'A': np.random.randn(len(rng)), 'B': dates})
+        self.assertTrue(np.issubdtype(df['B'].dtype, np.dtype('M8[ns]')))
+
+    def test_frame_add_datetime64_column(self):
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
+        df = DataFrame(index=np.arange(len(rng)))
+
+        df['A'] = rng
+        self.assertTrue(np.issubdtype(df['A'].dtype, np.dtype('M8[ns]')))
+
+    def test_frame_datetime64_pre1900_repr(self):
+        df = DataFrame({'year': date_range('1/1/1700', periods=50,
+                                           freq='A-DEC')})
+        # it works!
+        repr(df)
+
+    def test_frame_add_datetime64_col_other_units(self):
+        n = 100
+
+        units = ['h', 'm', 's', 'ms', 'D', 'M', 'Y']
+
+        ns_dtype = np.dtype('M8[ns]')
+
+        for unit in units:
+            dtype = np.dtype('M8[%s]' % unit)
+            vals = np.arange(n, dtype=np.int64).view(dtype)
+
+            df = DataFrame({'ints': np.arange(n)}, index=np.arange(n))
+            df[unit] = vals
+
+            ex_vals = to_datetime(vals.astype('O')).values
+
+            self.assertEqual(df[unit].dtype, ns_dtype)
+            self.assertTrue((df[unit].values == ex_vals).all())
+
+        # Test insertion into existing datetime64 column
+        df = DataFrame({'ints': np.arange(n)}, index=np.arange(n))
+        df['dates'] = np.arange(n, dtype=np.int64).view(ns_dtype)
+
+        for unit in units:
+            dtype = np.dtype('M8[%s]' % unit)
+            vals = np.arange(n, dtype=np.int64).view(dtype)
+
+            tmp = df.copy()
+
+            tmp['dates'] = vals
+            ex_vals = to_datetime(vals.astype('O')).values
+
+            self.assertTrue((tmp['dates'].values == ex_vals).all())
 
     def test_shift(self):
         # naive shift
