@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, time
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import date_range, offsets, DatetimeIndex, Timestamp
+from pandas import compat
 
 from pandas.tests.series.common import TestData
 
@@ -110,3 +111,20 @@ class TestTimeSeries(TestData, tm.TestCase):
         self.assertRaises(ValueError, date_range, '1/1/2000', freq='H')
         self.assertRaises(ValueError, date_range, end='1/1/2000', freq='H')
         self.assertRaises(ValueError, date_range, periods=10, freq='H')
+
+    def test_compat_replace(self):
+        # https://github.com/statsmodels/statsmodels/issues/3349
+        # replace should take ints/longs for compat
+
+        for f in [compat.long, int]:
+            result = date_range(Timestamp('1960-04-01 00:00:00',
+                                          freq='QS-JAN'),
+                                periods=f(76),
+                                freq='QS-JAN')
+            self.assertEqual(len(result), 76)
+
+    def test_catch_infinite_loop(self):
+        offset = offsets.DateOffset(minute=5)
+        # blow up, don't loop forever
+        self.assertRaises(Exception, date_range, datetime(2011, 11, 11),
+                          datetime(2011, 11, 12), freq=offset)

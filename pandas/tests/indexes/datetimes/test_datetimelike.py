@@ -7,6 +7,7 @@ from pandas import Series, Index, DatetimeIndex, date_range
 
 from ..datetimelike import DatetimeLike
 
+
 class TestDatetimeIndex(DatetimeLike, tm.TestCase):
     _holder = DatetimeIndex
     _multiprocess_can_split_ = True

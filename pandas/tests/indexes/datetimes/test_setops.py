@@ -1,9 +1,11 @@
+from datetime import datetime
+
 import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (DatetimeIndex, date_range, Series, bdate_range, DataFrame,
-                    Int64Index)
+                    Int64Index, Index)
 
 
 class TestDatetimeIndex(tm.TestCase):
@@ -166,3 +168,21 @@ class TestDatetimeIndex(tm.TestCase):
         expected = DatetimeIndex(["20160920", "20160921"], freq=None)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
+
+    def test_datetimeindex_diff(self):
+        dti1 = DatetimeIndex(freq='Q-JAN', start=datetime(1997, 12, 31),
+                             periods=100)
+        dti2 = DatetimeIndex(freq='Q-JAN', start=datetime(1997, 12, 31),
+                             periods=98)
+        self.assertEqual(len(dti1.difference(dti2)), 2)
+
+    def test_datetimeindex_union_join_empty(self):
+        dti = DatetimeIndex(start='1/1/2001', end='2/1/2001', freq='D')
+        empty = Index([])
+
+        result = dti.union(empty)
+        tm.assertIsInstance(result, DatetimeIndex)
+        self.assertIs(result, result)
+
+        result = dti.join(empty)
+        tm.assertIsInstance(result, DatetimeIndex)
