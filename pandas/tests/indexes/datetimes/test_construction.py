@@ -4,7 +4,8 @@ from datetime import timedelta
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.tslib import OutOfBoundsDatetime
-from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range)
+from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
+                    to_datetime)
 
 
 class TestDatetimeIndex(tm.TestCase):
@@ -423,3 +424,69 @@ class TestDatetimeIndex(tm.TestCase):
         idx = DatetimeIndex([t1])
 
         self.assertEqual(idx.nanosecond[0], t1.nanosecond)
+
+
+class TestTimeSeries(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_dti_constructor_preserve_dti_freq(self):
+        rng = date_range('1/1/2000', '1/2/2000', freq='5min')
+
+        rng2 = DatetimeIndex(rng)
+        self.assertEqual(rng.freq, rng2.freq)
+
+    def test_dti_constructor_years_only(self):
+        # GH 6961
+        for tz in [None, 'UTC', 'Asia/Tokyo', 'dateutil/US/Pacific']:
+            rng1 = date_range('2014', '2015', freq='M', tz=tz)
+            expected1 = date_range('2014-01-31', '2014-12-31', freq='M', tz=tz)
+
+            rng2 = date_range('2014', '2015', freq='MS', tz=tz)
+            expected2 = date_range('2014-01-01', '2015-01-01', freq='MS',
+                                   tz=tz)
+
+            rng3 = date_range('2014', '2020', freq='A', tz=tz)
+            expected3 = date_range('2014-12-31', '2019-12-31', freq='A', tz=tz)
+
+            rng4 = date_range('2014', '2020', freq='AS', tz=tz)
+            expected4 = date_range('2014-01-01', '2020-01-01', freq='AS',
+                                   tz=tz)
+
+            for rng, expected in [(rng1, expected1), (rng2, expected2),
+                                  (rng3, expected3), (rng4, expected4)]:
+                tm.assert_index_equal(rng, expected)
+
+    def test_dti_constructor_small_int(self):
+        # GH 13721
+        exp = DatetimeIndex(['1970-01-01 00:00:00.00000000',
+                             '1970-01-01 00:00:00.00000001',
+                             '1970-01-01 00:00:00.00000002'])
+
+        for dtype in [np.int64, np.int32, np.int16, np.int8]:
+            arr = np.array([0, 10, 20], dtype=dtype)
+            tm.assert_index_equal(DatetimeIndex(arr), exp)
+
+    def test_dti_constructor_numpy_timeunits(self):
+        # GH 9114
+        base = pd.to_datetime(['2000-01-01T00:00', '2000-01-02T00:00', 'NaT'])
+
+        for dtype in ['datetime64[h]', 'datetime64[m]', 'datetime64[s]',
+                      'datetime64[ms]', 'datetime64[us]', 'datetime64[ns]']:
+            values = base.values.astype(dtype)
+
+            tm.assert_index_equal(DatetimeIndex(values), base)
+            tm.assert_index_equal(to_datetime(values), base)
+
+    def test_constructor_int64_nocopy(self):
+        # #1624
+        arr = np.arange(1000, dtype=np.int64)
+        index = DatetimeIndex(arr)
+
+        arr[50:100] = -1
+        self.assertTrue((index.asi8[50:100] == -1).all())
+
+        arr = np.arange(1000, dtype=np.int64)
+        index = DatetimeIndex(arr, copy=True)
+
+        arr[50:100] = -1
+        self.assertTrue((index.asi8[50:100] != -1).all())
