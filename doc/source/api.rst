@@ -1356,8 +1356,16 @@ Modifying and Computations
    Index.unique
    Index.nunique
    Index.value_counts
+
+Missing Values
+~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
    Index.fillna
    Index.dropna
+   Index.isnull
+   Index.notnull
 
 Conversion
 ~~~~~~~~~~

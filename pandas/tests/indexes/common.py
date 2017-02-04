@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, notnull)
+                    TimedeltaIndex, PeriodIndex, notnull, isnull)
 from pandas.types.common import needs_i8_conversion
 from pandas.util.testing import assertRaisesRegexp
 
@@ -879,3 +879,28 @@ class Base(object):
                 expected[1] = True
                 self.assert_numpy_array_equal(idx._isnan, expected)
                 self.assertTrue(idx.hasnans)
+
+    def test_nulls(self):
+        # this is really a smoke test for the methods
+        # as these are adequantely tested for function elsewhere
+
+        for name, index in self.indices.items():
+            if len(index) == 0:
+                self.assert_numpy_array_equal(
+                    index.isnull(), np.array([], dtype=bool))
+            elif isinstance(index, MultiIndex):
+                idx = index.copy()
+                msg = "isnull is not defined for MultiIndex"
+                with self.assertRaisesRegexp(NotImplementedError, msg):
+                    idx.isnull()
+            else:
+
+                if not index.hasnans:
+                    self.assert_numpy_array_equal(
+                        index.isnull(), np.zeros(len(index), dtype=bool))
+                    self.assert_numpy_array_equal(
+                        index.notnull(), np.ones(len(index), dtype=bool))
+                else:
+                    result = isnull(index)
+                    self.assert_numpy_array_equal(index.isnull(), result)
+                    self.assert_numpy_array_equal(index.notnull(), ~result)

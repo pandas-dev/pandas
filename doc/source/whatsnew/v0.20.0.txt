@@ -125,7 +125,7 @@ Other enhancements
 
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
 - Multiple offset aliases with decimal points are now supported (e.g. '0.5min' is parsed as '30s') (:issue:`8419`)
-
+- ``.isnull()`` and ``.notnull()`` have been added to ``Index`` object to make them more consistent with the ``Series`` API (:issue:`15300`)
 - ``pd.read_gbq`` method now allows query configuration preferences (:issue:`14742`)
 
 - New ``UnsortedIndexError`` (subclass of ``KeyError``) raised when indexing/slicing into an

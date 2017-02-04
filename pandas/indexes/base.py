@@ -564,8 +564,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
 
-    def where(self, cond, other=None):
-        """
+    _index_shared_docs['where'] = """
         .. versionadded:: 0.19.0
 
         Return an Index of same shape as self and whose corresponding
@@ -577,6 +576,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         cond : boolean same length as self
         other : scalar, or array-like
         """
+
+    @Appender(_index_shared_docs['where'])
+    def where(self, cond, other=None):
         if other is None:
             other = self._na_value
         values = np.where(cond, self.values, other)
@@ -1661,6 +1663,38 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             return self._isnan.any()
         else:
             return False
+
+    def isnull(self):
+        """
+        Detect missing values
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        a boolean array of whether my values are null
+
+        See also
+        --------
+        pandas.isnull : pandas version
+        """
+        return self._isnan
+
+    def notnull(self):
+        """
+        Reverse of isnull
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        a boolean array of whether my values are not null
+
+        See also
+        --------
+        pandas.notnull : pandas version
+        """
+        return ~self.isnull()
 
     def putmask(self, mask, value):
         """
