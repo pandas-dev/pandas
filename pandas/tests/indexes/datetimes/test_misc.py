@@ -1,10 +1,12 @@
 import numpy as np
 
+import pandas as pd
 import pandas.lib as lib
 import pandas.util.testing as tm
-from pandas import Float64Index, date_range, Timestamp
 from pandas import (Index, DatetimeIndex, datetime, offsets, to_datetime,
-                    Series, DataFrame)
+                    Series, DataFrame, Float64Index, date_range, Timestamp)
+
+from pandas.util.testing import assert_series_equal
 
 
 class TestDateTimeIndexToJulianDate(tm.TestCase):
@@ -64,6 +66,196 @@ class TestTimeSeries(tm.TestCase):
         expected = Index(rng.to_pydatetime(), dtype=object)
 
         self.assert_numpy_array_equal(idx.values, expected.values)
+
+    def test_range_edges(self):
+        # GH 13672
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000001'),
+                            end=Timestamp('1970-01-01 00:00:00.000000004'),
+                            freq='N')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.000000001',
+                             '1970-01-01 00:00:00.000000002',
+                             '1970-01-01 00:00:00.000000003',
+                             '1970-01-01 00:00:00.000000004'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000004'),
+                            end=Timestamp('1970-01-01 00:00:00.000000001'),
+                            freq='N')
+        exp = DatetimeIndex([])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000000001'),
+                            end=Timestamp('1970-01-01 00:00:00.000000001'),
+                            freq='N')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.000000001'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.000001'),
+                            end=Timestamp('1970-01-01 00:00:00.000004'),
+                            freq='U')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.000001',
+                             '1970-01-01 00:00:00.000002',
+                             '1970-01-01 00:00:00.000003',
+                             '1970-01-01 00:00:00.000004'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:00.001'),
+                            end=Timestamp('1970-01-01 00:00:00.004'),
+                            freq='L')
+        exp = DatetimeIndex(['1970-01-01 00:00:00.001',
+                             '1970-01-01 00:00:00.002',
+                             '1970-01-01 00:00:00.003',
+                             '1970-01-01 00:00:00.004'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:00:01'),
+                            end=Timestamp('1970-01-01 00:00:04'), freq='S')
+        exp = DatetimeIndex(['1970-01-01 00:00:01', '1970-01-01 00:00:02',
+                             '1970-01-01 00:00:03', '1970-01-01 00:00:04'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 00:01'),
+                            end=Timestamp('1970-01-01 00:04'), freq='T')
+        exp = DatetimeIndex(['1970-01-01 00:01', '1970-01-01 00:02',
+                             '1970-01-01 00:03', '1970-01-01 00:04'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01 01:00'),
+                            end=Timestamp('1970-01-01 04:00'), freq='H')
+        exp = DatetimeIndex(['1970-01-01 01:00', '1970-01-01 02:00',
+                             '1970-01-01 03:00', '1970-01-01 04:00'])
+        tm.assert_index_equal(idx, exp)
+
+        idx = DatetimeIndex(start=Timestamp('1970-01-01'),
+                            end=Timestamp('1970-01-04'), freq='D')
+        exp = DatetimeIndex(['1970-01-01', '1970-01-02',
+                             '1970-01-03', '1970-01-04'])
+        tm.assert_index_equal(idx, exp)
+
+    def test_datetimeindex_integers_shift(self):
+        rng = date_range('1/1/2000', periods=20)
+
+        result = rng + 5
+        expected = rng.shift(5)
+        tm.assert_index_equal(result, expected)
+
+        result = rng - 5
+        expected = rng.shift(-5)
+        tm.assert_index_equal(result, expected)
+
+    def test_datetimeindex_repr_short(self):
+        dr = date_range(start='1/1/2012', periods=1)
+        repr(dr)
+
+        dr = date_range(start='1/1/2012', periods=2)
+        repr(dr)
+
+        dr = date_range(start='1/1/2012', periods=3)
+        repr(dr)
+
+    def test_getitem_setitem_datetimeindex(self):
+        N = 50
+        # testing with timezone, GH #2785
+        rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
+        ts = Series(np.random.randn(N), index=rng)
+
+        result = ts["1990-01-01 04:00:00"]
+        expected = ts[4]
+        self.assertEqual(result, expected)
+
+        result = ts.copy()
+        result["1990-01-01 04:00:00"] = 0
+        result["1990-01-01 04:00:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts["1990-01-01 04:00:00":"1990-01-01 07:00:00"]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result["1990-01-01 04:00:00":"1990-01-01 07:00:00"] = 0
+        result["1990-01-01 04:00:00":"1990-01-01 07:00:00"] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        lb = "1990-01-01 04:00:00"
+        rb = "1990-01-01 07:00:00"
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        # repeat all the above with naive datetimes
+        result = ts[datetime(1990, 1, 1, 4)]
+        expected = ts[4]
+        self.assertEqual(result, expected)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 4)] = 0
+        result[datetime(1990, 1, 1, 4)] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)] = 0
+        result[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        lb = datetime(1990, 1, 1, 4)
+        rb = datetime(1990, 1, 1, 7)
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts[ts.index[4]]
+        expected = ts[4]
+        self.assertEqual(result, expected)
+
+        result = ts[ts.index[4:8]]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result[ts.index[4:8]] = 0
+        result[4:8] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        # also test partial date slicing
+        result = ts["1990-01-02"]
+        expected = ts[24:48]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result["1990-01-02"] = 0
+        result["1990-01-02"] = ts[24:48]
+        assert_series_equal(result, ts)
+
+    def test_normalize(self):
+        rng = date_range('1/1/2000 9:30', periods=10, freq='D')
+
+        result = rng.normalize()
+        expected = date_range('1/1/2000', periods=10, freq='D')
+        tm.assert_index_equal(result, expected)
+
+        rng_ns = pd.DatetimeIndex(np.array([1380585623454345752,
+                                            1380585612343234312]).astype(
+                                                "datetime64[ns]"))
+        rng_ns_normalized = rng_ns.normalize()
+        expected = pd.DatetimeIndex(np.array([1380585600000000000,
+                                              1380585600000000000]).astype(
+                                                  "datetime64[ns]"))
+        tm.assert_index_equal(rng_ns_normalized, expected)
+
+        self.assertTrue(result.is_normalized)
+        self.assertFalse(rng.is_normalized)
+
+    def test_series_ctor_plus_datetimeindex(self):
+        rng = date_range('20090415', '20090519', freq='B')
+        data = dict((k, 1) for k in rng)
+
+        result = Series(data, index=rng)
+        self.assertIs(result.index, rng)
 
 
 class TestDatetime64(tm.TestCase):
@@ -331,3 +523,21 @@ class TestDatetime64(tm.TestCase):
 
         result = dti.join(empty)
         tm.assertIsInstance(result, DatetimeIndex)
+
+
+class TestTimeSeriesDuplicates(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_recreate_from_data(self):
+        freqs = ['M', 'Q', 'A', 'D', 'B', 'BH', 'T', 'S', 'L', 'U', 'H', 'N',
+                 'C']
+
+        for f in freqs:
+            org = DatetimeIndex(start='2001/02/01 09:00', freq=f, periods=1)
+            idx = DatetimeIndex(org, freq=f)
+            tm.assert_index_equal(idx, org)
+
+            org = DatetimeIndex(start='2001/02/01 09:00', freq=f,
+                                tz='US/Pacific', periods=1)
+            idx = DatetimeIndex(org, freq=f, tz='US/Pacific')
+            tm.assert_index_equal(idx, org)

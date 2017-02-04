@@ -19,6 +19,9 @@ import pandas.sparse.frame as spf
 from pandas._sparse import BlockIndex, IntIndex
 from pandas.sparse.api import SparseSeries
 from pandas.tests.series.test_misc_api import SharedWithSparse
+from pandas.util.testing import assert_series_equal
+
+from pandas.tests.series.common import TestData
 
 
 def _test_data1():
@@ -1366,6 +1369,50 @@ class TestSparseSeriesAnalytics(tm.TestCase):
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
+
+
+class TestSeriesMissingData(TestData, tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_sparse_series_fillna_limit(self):
+        index = np.arange(10)
+        s = Series(np.random.randn(10), index=index)
+
+        ss = s[:2].reindex(index).to_sparse()
+        result = ss.fillna(method='pad', limit=5)
+        expected = ss.fillna(method='pad', limit=5)
+        expected = expected.to_dense()
+        expected[-3:] = np.nan
+        expected = expected.to_sparse()
+        assert_series_equal(result, expected)
+
+        ss = s[-2:].reindex(index).to_sparse()
+        result = ss.fillna(method='backfill', limit=5)
+        expected = ss.fillna(method='backfill')
+        expected = expected.to_dense()
+        expected[:3] = np.nan
+        expected = expected.to_sparse()
+        assert_series_equal(result, expected)
+
+    def test_sparse_series_pad_backfill_limit(self):
+        index = np.arange(10)
+        s = Series(np.random.randn(10), index=index)
+        s = s.to_sparse()
+
+        result = s[:2].reindex(index, method='pad', limit=5)
+        expected = s[:2].reindex(index).fillna(method='pad')
+        expected = expected.to_dense()
+        expected[-3:] = np.nan
+        expected = expected.to_sparse()
+        assert_series_equal(result, expected)
+
+        result = s[-2:].reindex(index, method='backfill', limit=5)
+        expected = s[-2:].reindex(index).fillna(method='backfill')
+        expected = expected.to_dense()
+        expected[:3] = np.nan
+        expected = expected.to_sparse()
+        assert_series_equal(result, expected)
 
 
 if __name__ == '__main__':
