@@ -5509,6 +5509,18 @@ class TestTimezones(Base, tm.TestCase):
                 assert_frame_equal(result, df)
 
 
+    def test_select_multiindex_columns(self):
+        df = tm.makeCustomDataframe(10, 3,
+                                    c_idx_nlevels=2, r_idx_type='i',
+                                    data_gen_f=lambda *args: np.random.randn())
+        where = 'columns == [("C_l0_g0", "C_l1_g0"), ("C_l0_g2", "C_l1_g2")]'
+        with ensure_clean_store(self.path) as store:
+            store.append('df', df)
+            result = store.select('df', where)
+
+        expected = df.iloc[:, [0, 2]]
+        tm.assert_frame_equal(result, expected)
+
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
         return obj.reindex(sorted(obj.index))
