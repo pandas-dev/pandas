@@ -164,6 +164,13 @@ pc_latex_repr_doc = """
     (default: False)
 """
 
+pc_table_schema_doc = """
+: boolean
+    Whether to publish a Table Schema representation for frontends
+    that support it.
+    (default: False)
+"""
+
 pc_line_width_deprecation_warning = """\
 line_width has been deprecated, use display.width instead (currently both are
 identical)
@@ -338,6 +345,8 @@ with cf.config_prefix('display'):
     cf.register_option('latex.escape', True, pc_latex_escape,
                        validator=is_bool)
     cf.register_option('latex.longtable', False, pc_latex_longtable,
+                       validator=is_bool)
+    cf.register_option('html.table_schema', False, pc_table_schema_doc,
                        validator=is_bool)
 
 cf.deprecate_option('display.line_width',

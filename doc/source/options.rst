@@ -392,6 +392,9 @@ display.width              80           Width of the display in characters.
                                         IPython qtconsole, or IDLE do not run in a
                                         terminal and hence it is not possible
                                         to correctly detect the width.
+display.html.table_schema  False        Whether to publish a Table Schema
+                                        representation for frontends that
+                                        support it.
 html.border                1            A ``border=value`` attribute is
                                         inserted in the ``<table>`` tag
                                         for the DataFrame HTML repr.
@@ -516,11 +519,11 @@ Table Schema Display
 .. versionadded:: 0.20.0
 
 ``DataFrame`` and ``Series`` will publish a Table Schema representation
-by default. This can be disabled globally with the ``display.table_schema``
-option:
+by default. False by default, this can be enabled globally with the
+``display.html.table_schema`` option:
 
 .. ipython:: python
 
-  pd.set_option('display.html.table_schema', False)
+  pd.set_option('display.html.table_schema', True)
 
-By default, only ``'display.max_rows'`` are serialized and published.
+Only ``'display.max_rows'`` are serialized and published.

@@ -424,6 +424,25 @@ def _skip_if_not_us_locale():
         import pytest
         pytest.skip("Specific locale is set {0}".format(lang))
 
+
+def _skip_if_no_mock():
+    try:
+        import mock  # noqa
+    except ImportError:
+        try:
+            from unittest import mock  # noqa
+        except ImportError:
+            import nose
+            raise nose.SkipTest("mock is not installed")
+
+
+def _skip_if_no_ipython():
+    try:
+        import IPython  # noqa
+    except ImportError:
+        import nose
+        raise nose.SkipTest("IPython not installed")
+
 # -----------------------------------------------------------------------------
 # locale utilities
 

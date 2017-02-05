@@ -4,6 +4,7 @@ import warnings
 import operator
 import weakref
 import gc
+import json
 
 import numpy as np
 import pandas.lib as lib
@@ -128,6 +129,37 @@ class NDFrame(PandasObject):
         object.__setattr__(self, 'is_copy', None)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
+
+    def _ipython_display_(self):
+        try:
+            from IPython.display import display
+        except ImportError:
+            return None
+
+        # Series doesn't define _repr_html_ or _repr_latex_
+        latex = self._repr_latex_() if hasattr(self, '_repr_latex_') else None
+        html = self._repr_html_() if hasattr(self, '_repr_html_') else None
+        table_schema = self._repr_table_schema_()
+        # We need the inital newline since we aren't going through the
+        # usual __repr__. See
+        # https://github.com/pandas-dev/pandas/pull/14904#issuecomment-277829277
+        text = "\n" + repr(self)
+
+        reprs = {"text/plain": text, "text/html": html, "text/latex": latex,
+                 "application/vnd.dataresource+json": table_schema}
+        reprs = {k: v for k, v in reprs.items() if v}
+        display(reprs, raw=True)
+
+    def _repr_table_schema_(self):
+        """
+        Not a real Jupyter special repr method, but we use the same
+        naming convention.
+        """
+        if config.get_option("display.html.table_schema"):
+            data = self.head(config.get_option('display.max_rows'))
+            payload = json.loads(data.to_json(orient='table'),
+                                 object_pairs_hook=collections.OrderedDict)
+            return payload
 
     def _validate_dtype(self, dtype):
         """ validate the passed dtype """
@@ -1094,10 +1126,9 @@ class NDFrame(PandasObject):
     strings before writing.
     """
 
-    def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
-                timedelta_format='epoch', double_precision=10,
-                force_ascii=True, date_unit='ms', default_handler=None,
-                lines=False):
+    def to_json(self, path_or_buf=None, orient=None, date_format=None,
+                double_precision=10, force_ascii=True, date_unit='ms',
+                default_handler=None, lines=False):
         """
         Convert the object to a JSON string.
 
@@ -1131,17 +1162,16 @@ class NDFrame(PandasObject):
               - columns : dict like {column -> {index -> value}}
               - values : just the values array
               - table : dict like {'schema': {schema}, 'data': {data}}
-                the schema component is a `Table Schema_`
                 describing the data, and the data component is
                 like ``orient='records'``.
 
                 .. versionchanged:: 0.20.0
 
-        date_format : {'epoch', 'iso'}
+        date_format : {None, 'epoch', 'iso'}
             Type of date conversion. `epoch` = epoch milliseconds,
-            `iso` = ISO8601. Default is epoch, except when orient is
-            table_schema, in which case this parameter is ignored
-            and iso formatting is always used.
+            `iso` = ISO8601. The default depends on the `orient`. For
+            `orient='table'`, the default is `'iso'`. For all other orients,
+            the default is `'epoch'`.
         double_precision : The number of decimal places to use when encoding
             floating point values, default 10.
         force_ascii : force encoded string to be ASCII, default True.
@@ -1203,6 +1233,10 @@ class NDFrame(PandasObject):
         """
 
         from pandas.io import json
+        if date_format is None and orient == 'table':
+            date_format = 'iso'
+        elif date_format is None:
+            date_format = 'epoch'
         return json.to_json(path_or_buf=path_or_buf, obj=self, orient=orient,
                             date_format=date_format,
                             double_precision=double_precision,

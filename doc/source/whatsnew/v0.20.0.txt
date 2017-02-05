@@ -174,7 +174,20 @@ the data.
    df
    df.to_json(orient='table')
 
+
+See :ref:`IO: Table Schema for more<io.table_schema>`.
+
+Additionally, the repr for ``DataFrame`` and ``Series`` can now publish
+this JSON Table schema representation of the Series or DataFrame if you are
+using IPython (or another frontend like `nteract`_ using the Jupyter messaging
+protocol).
+This gives frontends like the Jupyter notebook and `nteract`_
+more flexiblity in how they display pandas objects, since they have
+more information about the data.
+You must enable this by setting the ``display.html.table_schema`` option to True.
+
 .. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+.. _nteract: http://nteract.io/
 
 .. _whatsnew_0200.enhancements.other:
 
