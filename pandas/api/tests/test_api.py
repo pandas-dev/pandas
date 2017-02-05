@@ -133,7 +133,7 @@ class TestPDApi(Base, tm.TestCase):
 
 class TestApi(Base, tm.TestCase):
 
-    allowed = ['tests', 'types', 'test']
+    allowed = ['tests', 'types']
 
     def test_api(self):
 

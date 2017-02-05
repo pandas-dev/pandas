@@ -56,7 +56,7 @@ from pandas.util.print_versions import show_versions
 
 from pandas.io.api import *
 
-from pandas.api.test import test
+from pandas.util._tester import test
 
 # use the closest tagged version if possible
 from ._version import get_versions

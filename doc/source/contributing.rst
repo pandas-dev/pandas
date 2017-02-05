@@ -552,7 +552,7 @@ use cases and writing corresponding tests.
 Adding tests is one of the most common requests after code is pushed to *pandas*.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
-Like many packages, *pandas* uses `pytest`
+Like many packages, *pandas* uses `pytest
 <http://doc.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
