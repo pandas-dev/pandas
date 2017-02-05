@@ -270,10 +270,10 @@ class TestSeriesMissingData(TestData, tm.TestCase):
 
     def test_fillna_downcast(self):
         # infer int64 from float64
-	s = pd.Series([1., np.nan])
-	result = s.fillna(0, downcast='infer')
-	expected = pd.Series([1, 0])
-	assert_series_equal(result, expected)
+        s = pd.Series([1., np.nan])
+        result = s.fillna(0, downcast='infer')
+        expected = pd.Series([1, 0])
+        assert_series_equal(result, expected)
 
         # infer int64 from float64 when fillna value is a dict
         s = pd.Series([1., np.nan])

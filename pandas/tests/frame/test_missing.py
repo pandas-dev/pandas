@@ -253,17 +253,17 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
     def test_fillna_downcast(self):
-	# infer int64 from float64
-	df = pd.DataFrame({'a': [1., np.nan]})
-	result = df.fillna(0, downcast='infer')
-	expected = pd.DataFrame({'a': [1, 0]})
-	assert_frame_equal(result, expected)
+        # infer int64 from float64
+        df = pd.DataFrame({'a': [1., np.nan]})
+        result = df.fillna(0, downcast='infer')
+        expected = pd.DataFrame({'a': [1, 0]})
+        assert_frame_equal(result, expected)
 
-	# infer int64 from float64 when fillna value is a dict
-	df = pd.DataFrame({'a': [1., np.nan]})
-	result = df.fillna({'a': 0}, downcast='infer')
-	expected = pd.DataFrame({'a': [1, 0]})
-	assert_frame_equal(result, expected)
+        # infer int64 from float64 when fillna value is a dict
+        df = pd.DataFrame({'a': [1., np.nan]})
+        result = df.fillna({'a': 0}, downcast='infer')
+        expected = pd.DataFrame({'a': [1, 0]})
+        assert_frame_equal(result, expected)
 
     def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
