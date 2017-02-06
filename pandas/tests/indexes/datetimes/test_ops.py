@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas.core.common import PerformanceWarning
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,
-                    datetime, Float64Index)
+                    datetime, Float64Index, offsets)
 
 from pandas.tests.test_base import Ops
 
@@ -1070,3 +1070,18 @@ class TestDatetimeIndex(tm.TestCase):
                             assert_func(klass([x + op for x in s]), s + op)
                             assert_func(klass([x - op for x in s]), s - op)
                             assert_func(klass([op + x for x in s]), op + s)
+
+
+class TestTslib(tm.TestCase):
+
+    def test_shift_months(self):
+        s = DatetimeIndex([Timestamp('2000-01-05 00:15:00'), Timestamp(
+            '2000-01-31 00:23:00'), Timestamp('2000-01-01'), Timestamp(
+                '2000-02-29'), Timestamp('2000-12-31')])
+        for years in [-1, 0, 1]:
+            for months in [-2, 0, 2]:
+                actual = DatetimeIndex(tslib.shift_months(s.asi8, years * 12 +
+                                                          months))
+                expected = DatetimeIndex([x + offsets.DateOffset(
+                    years=years, months=months) for x in s])
+                tm.assert_index_equal(actual, expected)

@@ -1,22 +1,26 @@
 """ test to_datetime """
 
-import nose
-
 import sys
-import calendar
+import nose
 import locale
-from datetime import datetime
-
+import calendar
 import numpy as np
-from pandas.types.common import is_datetime64_ns_dtype
-from pandas import (isnull, to_datetime, Timestamp, Series, DataFrame,
-                    Index, DatetimeIndex, NaT, date_range, bdate_range)
-from pandas import tslib
-from pandas.compat import lmap
+from datetime import datetime, date, time
+from distutils.version import LooseVersion
+
 import pandas as pd
+from pandas import tslib
 from pandas.tseries import tools
+from pandas.tseries.tools import normalize_date
+from pandas.tseries.util import pivot_annual, isleapyear
+from pandas.compat import lmap
+from pandas.compat.numpy import np_array_datetime64_compat
+from pandas.types.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, _skip_if_has_locale
+from pandas import (isnull, to_datetime, Timestamp, Series, DataFrame,
+                    Index, DatetimeIndex, NaT, date_range, bdate_range,
+                    compat, lib)
 
 
 class TimeConversionFormats(tm.TestCase):
@@ -1017,3 +1021,603 @@ class TestDaysInMonth(tm.TestCase):
             '2015-02-32', errors='ignore', format="%Y-%m-%d"), '2015-02-32')
         self.assertEqual(to_datetime(
             '2015-04-31', errors='ignore', format="%Y-%m-%d"), '2015-04-31')
+
+
+class TestDatetimeParsingWrappers(tm.TestCase):
+    def test_does_not_convert_mixed_integer(self):
+        bad_date_strings = ('-50000', '999', '123.1234', 'm', 'T')
+
+        for bad_date_string in bad_date_strings:
+            self.assertFalse(tslib._does_string_look_like_datetime(
+                bad_date_string))
+
+        good_date_strings = ('2012-01-01',
+                             '01/01/2012',
+                             'Mon Sep 16, 2013',
+                             '01012012',
+                             '0101',
+                             '1-1', )
+
+        for good_date_string in good_date_strings:
+            self.assertTrue(tslib._does_string_look_like_datetime(
+                good_date_string))
+
+    def test_parsers(self):
+
+        # https://github.com/dateutil/dateutil/issues/217
+        import dateutil
+        yearfirst = dateutil.__version__ >= LooseVersion('2.5.0')
+
+        cases = {'2011-01-01': datetime(2011, 1, 1),
+                 '2Q2005': datetime(2005, 4, 1),
+                 '2Q05': datetime(2005, 4, 1),
+                 '2005Q1': datetime(2005, 1, 1),
+                 '05Q1': datetime(2005, 1, 1),
+                 '2011Q3': datetime(2011, 7, 1),
+                 '11Q3': datetime(2011, 7, 1),
+                 '3Q2011': datetime(2011, 7, 1),
+                 '3Q11': datetime(2011, 7, 1),
+
+                 # quarterly without space
+                 '2000Q4': datetime(2000, 10, 1),
+                 '00Q4': datetime(2000, 10, 1),
+                 '4Q2000': datetime(2000, 10, 1),
+                 '4Q00': datetime(2000, 10, 1),
+                 '2000q4': datetime(2000, 10, 1),
+                 '2000-Q4': datetime(2000, 10, 1),
+                 '00-Q4': datetime(2000, 10, 1),
+                 '4Q-2000': datetime(2000, 10, 1),
+                 '4Q-00': datetime(2000, 10, 1),
+                 '00q4': datetime(2000, 10, 1),
+                 '2005': datetime(2005, 1, 1),
+                 '2005-11': datetime(2005, 11, 1),
+                 '2005 11': datetime(2005, 11, 1),
+                 '11-2005': datetime(2005, 11, 1),
+                 '11 2005': datetime(2005, 11, 1),
+                 '200511': datetime(2020, 5, 11),
+                 '20051109': datetime(2005, 11, 9),
+                 '20051109 10:15': datetime(2005, 11, 9, 10, 15),
+                 '20051109 08H': datetime(2005, 11, 9, 8, 0),
+                 '2005-11-09 10:15': datetime(2005, 11, 9, 10, 15),
+                 '2005-11-09 08H': datetime(2005, 11, 9, 8, 0),
+                 '2005/11/09 10:15': datetime(2005, 11, 9, 10, 15),
+                 '2005/11/09 08H': datetime(2005, 11, 9, 8, 0),
+                 "Thu Sep 25 10:36:28 2003": datetime(2003, 9, 25, 10,
+                                                      36, 28),
+                 "Thu Sep 25 2003": datetime(2003, 9, 25),
+                 "Sep 25 2003": datetime(2003, 9, 25),
+                 "January 1 2014": datetime(2014, 1, 1),
+
+                 # GH 10537
+                 '2014-06': datetime(2014, 6, 1),
+                 '06-2014': datetime(2014, 6, 1),
+                 '2014-6': datetime(2014, 6, 1),
+                 '6-2014': datetime(2014, 6, 1),
+
+                 '20010101 12': datetime(2001, 1, 1, 12),
+                 '20010101 1234': datetime(2001, 1, 1, 12, 34),
+                 '20010101 123456': datetime(2001, 1, 1, 12, 34, 56),
+                 }
+
+        for date_str, expected in compat.iteritems(cases):
+            result1, _, _ = tools.parse_time_string(date_str,
+                                                    yearfirst=yearfirst)
+            result2 = to_datetime(date_str, yearfirst=yearfirst)
+            result3 = to_datetime([date_str], yearfirst=yearfirst)
+            # result5 is used below
+            result4 = to_datetime(np.array([date_str], dtype=object),
+                                  yearfirst=yearfirst)
+            result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
+            # result7 is used below
+            result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
+            result9 = DatetimeIndex(Series([date_str]), yearfirst=yearfirst)
+
+            for res in [result1, result2]:
+                self.assertEqual(res, expected)
+            for res in [result3, result4, result6, result8, result9]:
+                exp = DatetimeIndex([pd.Timestamp(expected)])
+                tm.assert_index_equal(res, exp)
+
+            # these really need to have yearfist, but we don't support
+            if not yearfirst:
+                result5 = Timestamp(date_str)
+                self.assertEqual(result5, expected)
+                result7 = date_range(date_str, freq='S', periods=1,
+                                     yearfirst=yearfirst)
+                self.assertEqual(result7, expected)
+
+        # NaT
+        result1, _, _ = tools.parse_time_string('NaT')
+        result2 = to_datetime('NaT')
+        result3 = Timestamp('NaT')
+        result4 = DatetimeIndex(['NaT'])[0]
+        self.assertTrue(result1 is tslib.NaT)
+        self.assertTrue(result1 is tslib.NaT)
+        self.assertTrue(result1 is tslib.NaT)
+        self.assertTrue(result1 is tslib.NaT)
+
+    def test_parsers_quarter_invalid(self):
+
+        cases = ['2Q 2005', '2Q-200A', '2Q-200', '22Q2005', '6Q-20', '2Q200.']
+        for case in cases:
+            self.assertRaises(ValueError, tools.parse_time_string, case)
+
+    def test_parsers_dayfirst_yearfirst(self):
+        tm._skip_if_no_dateutil()
+
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2012-10-11 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
+
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+
+        # bug fix in 2.5.2
+        # 2.5.1 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-12-11 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-12-11 00:00:00
+
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+
+        # revert of bug in 2.5.2
+        # 2.5.1 20/12/21   [dayfirst=1, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=1, yearfirst=1] -> month must be in 1..12
+        # 2.5.3 20/12/21   [dayfirst=1, yearfirst=1] -> 2020-12-21 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+
+        import dateutil
+        is_lt_253 = dateutil.__version__ < LooseVersion('2.5.3')
+
+        # str : dayfirst, yearfirst, expected
+        cases = {'10-11-12': [(False, False,
+                               datetime(2012, 10, 11)),
+                              (True, False,
+                               datetime(2012, 11, 10)),
+                              (False, True,
+                               datetime(2010, 11, 12)),
+                              (True, True,
+                               datetime(2010, 12, 11))],
+                 '20/12/21': [(False, False,
+                               datetime(2021, 12, 20)),
+                              (True, False,
+                               datetime(2021, 12, 20)),
+                              (False, True,
+                               datetime(2020, 12, 21)),
+                              (True, True,
+                               datetime(2020, 12, 21))]}
+
+        from dateutil.parser import parse
+        for date_str, values in compat.iteritems(cases):
+            for dayfirst, yearfirst, expected in values:
+
+                # odd comparisons across version
+                # let's just skip
+                if dayfirst and yearfirst and is_lt_253:
+                    continue
+
+                # compare with dateutil result
+                dateutil_result = parse(date_str, dayfirst=dayfirst,
+                                        yearfirst=yearfirst)
+                self.assertEqual(dateutil_result, expected)
+
+                result1, _, _ = tools.parse_time_string(date_str,
+                                                        dayfirst=dayfirst,
+                                                        yearfirst=yearfirst)
+
+                # we don't support dayfirst/yearfirst here:
+                if not dayfirst and not yearfirst:
+                    result2 = Timestamp(date_str)
+                    self.assertEqual(result2, expected)
+
+                result3 = to_datetime(date_str, dayfirst=dayfirst,
+                                      yearfirst=yearfirst)
+
+                result4 = DatetimeIndex([date_str], dayfirst=dayfirst,
+                                        yearfirst=yearfirst)[0]
+
+                self.assertEqual(result1, expected)
+                self.assertEqual(result3, expected)
+                self.assertEqual(result4, expected)
+
+    def test_parsers_timestring(self):
+        tm._skip_if_no_dateutil()
+        from dateutil.parser import parse
+
+        # must be the same as dateutil result
+        cases = {'10:15': (parse('10:15'), datetime(1, 1, 1, 10, 15)),
+                 '9:05': (parse('9:05'), datetime(1, 1, 1, 9, 5))}
+
+        for date_str, (exp_now, exp_def) in compat.iteritems(cases):
+            result1, _, _ = tools.parse_time_string(date_str)
+            result2 = to_datetime(date_str)
+            result3 = to_datetime([date_str])
+            result4 = Timestamp(date_str)
+            result5 = DatetimeIndex([date_str])[0]
+            # parse time string return time string based on default date
+            # others are not, and can't be changed because it is used in
+            # time series plot
+            self.assertEqual(result1, exp_def)
+            self.assertEqual(result2, exp_now)
+            self.assertEqual(result3, exp_now)
+            self.assertEqual(result4, exp_now)
+            self.assertEqual(result5, exp_now)
+
+    def test_parsers_time(self):
+        # GH11818
+        _skip_if_has_locale()
+        strings = ["14:15", "1415", "2:15pm", "0215pm", "14:15:00", "141500",
+                   "2:15:00pm", "021500pm", time(14, 15)]
+        expected = time(14, 15)
+
+        for time_string in strings:
+            self.assertEqual(tools.to_time(time_string), expected)
+
+        new_string = "14.15"
+        self.assertRaises(ValueError, tools.to_time, new_string)
+        self.assertEqual(tools.to_time(new_string, format="%H.%M"), expected)
+
+        arg = ["14:15", "20:20"]
+        expected_arr = [time(14, 15), time(20, 20)]
+        self.assertEqual(tools.to_time(arg), expected_arr)
+        self.assertEqual(tools.to_time(arg, format="%H:%M"), expected_arr)
+        self.assertEqual(tools.to_time(arg, infer_time_format=True),
+                         expected_arr)
+        self.assertEqual(tools.to_time(arg, format="%I:%M%p", errors="coerce"),
+                         [None, None])
+
+        res = tools.to_time(arg, format="%I:%M%p", errors="ignore")
+        self.assert_numpy_array_equal(res, np.array(arg, dtype=np.object_))
+
+        with tm.assertRaises(ValueError):
+            tools.to_time(arg, format="%I:%M%p", errors="raise")
+
+        self.assert_series_equal(tools.to_time(Series(arg, name="test")),
+                                 Series(expected_arr, name="test"))
+
+        res = tools.to_time(np.array(arg))
+        self.assertIsInstance(res, list)
+        self.assert_equal(res, expected_arr)
+
+    def test_parsers_monthfreq(self):
+        cases = {'201101': datetime(2011, 1, 1, 0, 0),
+                 '200005': datetime(2000, 5, 1, 0, 0)}
+
+        for date_str, expected in compat.iteritems(cases):
+            result1, _, _ = tools.parse_time_string(date_str, freq='M')
+            self.assertEqual(result1, expected)
+
+    def test_parsers_quarterly_with_freq(self):
+        msg = ('Incorrect quarterly string is given, quarter '
+               'must be between 1 and 4: 2013Q5')
+        with tm.assertRaisesRegexp(tslib.DateParseError, msg):
+            tools.parse_time_string('2013Q5')
+
+        # GH 5418
+        msg = ('Unable to retrieve month information from given freq: '
+               'INVLD-L-DEC-SAT')
+        with tm.assertRaisesRegexp(tslib.DateParseError, msg):
+            tools.parse_time_string('2013Q1', freq='INVLD-L-DEC-SAT')
+
+        cases = {('2013Q2', None): datetime(2013, 4, 1),
+                 ('2013Q2', 'A-APR'): datetime(2012, 8, 1),
+                 ('2013-Q2', 'A-DEC'): datetime(2013, 4, 1)}
+
+        for (date_str, freq), exp in compat.iteritems(cases):
+            result, _, _ = tools.parse_time_string(date_str, freq=freq)
+            self.assertEqual(result, exp)
+
+    def test_parsers_timezone_minute_offsets_roundtrip(self):
+        # GH11708
+        base = to_datetime("2013-01-01 00:00:00")
+        dt_strings = [
+            ('2013-01-01 05:45+0545',
+             "Asia/Katmandu",
+             "Timestamp('2013-01-01 05:45:00+0545', tz='Asia/Katmandu')"),
+            ('2013-01-01 05:30+0530',
+             "Asia/Kolkata",
+             "Timestamp('2013-01-01 05:30:00+0530', tz='Asia/Kolkata')")
+        ]
+
+        for dt_string, tz, dt_string_repr in dt_strings:
+            dt_time = to_datetime(dt_string)
+            self.assertEqual(base, dt_time)
+            converted_time = dt_time.tz_localize('UTC').tz_convert(tz)
+            self.assertEqual(dt_string_repr, repr(converted_time))
+
+    def test_parsers_iso8601(self):
+        # GH 12060
+        # test only the iso parser - flexibility to different
+        # separators and leadings 0s
+        # Timestamp construction falls back to dateutil
+        cases = {'2011-01-02': datetime(2011, 1, 2),
+                 '2011-1-2': datetime(2011, 1, 2),
+                 '2011-01': datetime(2011, 1, 1),
+                 '2011-1': datetime(2011, 1, 1),
+                 '2011 01 02': datetime(2011, 1, 2),
+                 '2011.01.02': datetime(2011, 1, 2),
+                 '2011/01/02': datetime(2011, 1, 2),
+                 '2011\\01\\02': datetime(2011, 1, 2),
+                 '2013-01-01 05:30:00': datetime(2013, 1, 1, 5, 30),
+                 '2013-1-1 5:30:00': datetime(2013, 1, 1, 5, 30)}
+        for date_str, exp in compat.iteritems(cases):
+            actual = tslib._test_parse_iso8601(date_str)
+            self.assertEqual(actual, exp)
+
+        # seperators must all match - YYYYMM not valid
+        invalid_cases = ['2011-01/02', '2011^11^11',
+                         '201401', '201111', '200101',
+                         # mixed separated and unseparated
+                         '2005-0101', '200501-01',
+                         '20010101 12:3456', '20010101 1234:56',
+                         # HHMMSS must have two digits in each component
+                         # if unseparated
+                         '20010101 1', '20010101 123', '20010101 12345',
+                         '20010101 12345Z',
+                         # wrong separator for HHMMSS
+                         '2001-01-01 12-34-56']
+        for date_str in invalid_cases:
+            with tm.assertRaises(ValueError):
+                tslib._test_parse_iso8601(date_str)
+                # If no ValueError raised, let me know which case failed.
+                raise Exception(date_str)
+
+
+class TestTsUtil(tm.TestCase):
+
+    def test_try_parse_dates(self):
+        from dateutil.parser import parse
+        arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
+
+        result = lib.try_parse_dates(arr, dayfirst=True)
+        expected = [parse(d, dayfirst=True) for d in arr]
+        self.assertTrue(np.array_equal(result, expected))
+
+
+class TestArrayToDatetime(tm.TestCase):
+    def test_parsing_valid_dates(self):
+        arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr),
+            np_array_datetime64_compat(
+                [
+                    '2013-01-01T00:00:00.000000000-0000',
+                    '2013-01-02T00:00:00.000000000-0000'
+                ],
+                dtype='M8[ns]'
+            )
+        )
+
+        arr = np.array(['Mon Sep 16 2013', 'Tue Sep 17 2013'], dtype=object)
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr),
+            np_array_datetime64_compat(
+                [
+                    '2013-09-16T00:00:00.000000000-0000',
+                    '2013-09-17T00:00:00.000000000-0000'
+                ],
+                dtype='M8[ns]'
+            )
+        )
+
+    def test_parsing_timezone_offsets(self):
+        # All of these datetime strings with offsets are equivalent
+        # to the same datetime after the timezone offset is added
+        dt_strings = [
+            '01-01-2013 08:00:00+08:00',
+            '2013-01-01T08:00:00.000000000+0800',
+            '2012-12-31T16:00:00.000000000-0800',
+            '12-31-2012 23:00:00-01:00'
+        ]
+
+        expected_output = tslib.array_to_datetime(np.array(
+            ['01-01-2013 00:00:00'], dtype=object))
+
+        for dt_string in dt_strings:
+            self.assert_numpy_array_equal(
+                tslib.array_to_datetime(
+                    np.array([dt_string], dtype=object)
+                ),
+                expected_output
+            )
+
+    def test_number_looking_strings_not_into_datetime(self):
+        # #4601
+        # These strings don't look like datetimes so they shouldn't be
+        # attempted to be converted
+        arr = np.array(['-352.737091', '183.575577'], dtype=object)
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr, errors='ignore'), arr)
+
+        arr = np.array(['1', '2', '3', '4', '5'], dtype=object)
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr, errors='ignore'), arr)
+
+    def test_coercing_dates_outside_of_datetime64_ns_bounds(self):
+        invalid_dates = [
+            date(1000, 1, 1),
+            datetime(1000, 1, 1),
+            '1000-01-01',
+            'Jan 1, 1000',
+            np.datetime64('1000-01-01'),
+        ]
+
+        for invalid_date in invalid_dates:
+            self.assertRaises(ValueError,
+                              tslib.array_to_datetime,
+                              np.array(
+                                  [invalid_date], dtype='object'),
+                              errors='raise', )
+            self.assert_numpy_array_equal(
+                tslib.array_to_datetime(
+                    np.array([invalid_date], dtype='object'),
+                    errors='coerce'),
+                np.array([tslib.iNaT], dtype='M8[ns]')
+            )
+
+        arr = np.array(['1/1/1000', '1/1/2000'], dtype=object)
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr, errors='coerce'),
+            np_array_datetime64_compat(
+                [
+                    tslib.iNaT,
+                    '2000-01-01T00:00:00.000000000-0000'
+                ],
+                dtype='M8[ns]'
+            )
+        )
+
+    def test_coerce_of_invalid_datetimes(self):
+        arr = np.array(['01-01-2013', 'not_a_date', '1'], dtype=object)
+
+        # Without coercing, the presence of any invalid dates prevents
+        # any values from being converted
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr, errors='ignore'), arr)
+
+        # With coercing, the invalid dates becomes iNaT
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr, errors='coerce'),
+            np_array_datetime64_compat(
+                [
+                    '2013-01-01T00:00:00.000000000-0000',
+                    tslib.iNaT,
+                    tslib.iNaT
+                ],
+                dtype='M8[ns]'
+            )
+        )
+
+
+class TestPivotAnnual(tm.TestCase):
+    """
+    New pandas of scikits.timeseries pivot_annual
+    """
+
+    def test_daily(self):
+        rng = date_range('1/1/2000', '12/31/2004', freq='D')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            annual = pivot_annual(ts, 'D')
+
+        doy = ts.index.dayofyear
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            doy[(~isleapyear(ts.index.year)) & (doy >= 60)] += 1
+
+        for i in range(1, 367):
+            subset = ts[doy == i]
+            subset.index = [x.year for x in subset.index]
+
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            self.assertEqual(result.name, i)
+
+        # check leap days
+        leaps = ts[(ts.index.month == 2) & (ts.index.day == 29)]
+        day = leaps.index.dayofyear[0]
+        leaps.index = leaps.index.year
+        leaps.name = 60
+        tm.assert_series_equal(annual[day].dropna(), leaps)
+
+    def test_hourly(self):
+        rng_hourly = date_range('1/1/1994', periods=(18 * 8760 + 4 * 24),
+                                freq='H')
+        data_hourly = np.random.randint(100, 350, rng_hourly.size)
+        ts_hourly = Series(data_hourly, index=rng_hourly)
+
+        grouped = ts_hourly.groupby(ts_hourly.index.year)
+        hoy = grouped.apply(lambda x: x.reset_index(drop=True))
+        hoy = hoy.index.droplevel(0).values
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            hoy[~isleapyear(ts_hourly.index.year) & (hoy >= 1416)] += 24
+        hoy += 1
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            annual = pivot_annual(ts_hourly)
+
+        ts_hourly = ts_hourly.astype(float)
+        for i in [1, 1416, 1417, 1418, 1439, 1440, 1441, 8784]:
+            subset = ts_hourly[hoy == i]
+            subset.index = [x.year for x in subset.index]
+
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            self.assertEqual(result.name, i)
+
+        leaps = ts_hourly[(ts_hourly.index.month == 2) & (
+            ts_hourly.index.day == 29) & (ts_hourly.index.hour == 0)]
+        hour = leaps.index.dayofyear[0] * 24 - 23
+        leaps.index = leaps.index.year
+        leaps.name = 1417
+        tm.assert_series_equal(annual[hour].dropna(), leaps)
+
+    def test_weekly(self):
+        pass
+
+    def test_monthly(self):
+        rng = date_range('1/1/2000', '12/31/2004', freq='M')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            annual = pivot_annual(ts, 'M')
+
+        month = ts.index.month
+        for i in range(1, 13):
+            subset = ts[month == i]
+            subset.index = [x.year for x in subset.index]
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            self.assertEqual(result.name, i)
+
+    def test_period_monthly(self):
+        pass
+
+    def test_period_daily(self):
+        pass
+
+    def test_period_weekly(self):
+        pass
+
+    def test_isleapyear_deprecate(self):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertTrue(isleapyear(2000))
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertFalse(isleapyear(2001))
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertTrue(isleapyear(2004))
+
+
+def test_normalize_date():
+    value = date(2012, 9, 7)
+
+    result = normalize_date(value)
+    assert (result == datetime(2012, 9, 7))
+
+    value = datetime(2012, 9, 7, 12)
+
+    result = normalize_date(value)
+    assert (result == datetime(2012, 9, 7))

@@ -6,27 +6,25 @@ Parts derived from scikits.timeseries code, original authors:
 
 """
 
-from datetime import datetime, date, timedelta
-
-from pandas import Timestamp, _period
-from pandas.tseries.frequencies import MONTHS, DAYS, _period_code_map
-from pandas.tseries.period import Period, PeriodIndex, period_range
-from pandas.tseries.index import DatetimeIndex, date_range, Index
-from pandas.tseries.tools import to_datetime
-import pandas.tseries.period as period
-import pandas.tseries.offsets as offsets
-
-import pandas as pd
 import numpy as np
 from numpy.random import randn
+from datetime import datetime, date, timedelta
+
+import pandas as pd
+import pandas.util.testing as tm
+import pandas.tseries.period as period
+import pandas.tseries.offsets as offsets
+from pandas.tseries.tools import to_datetime
+from pandas.tseries.period import Period, PeriodIndex, period_range
+from pandas.tseries.index import DatetimeIndex, date_range, Index
+from pandas._period import period_ordinal, period_asfreq
 from pandas.compat import range, lrange, lmap, zip, text_type, PY3, iteritems
 from pandas.compat.numpy import np_datetime64_compat
-
-from pandas import (Series, DataFrame,
+from pandas.tseries.frequencies import (MONTHS, DAYS, _period_code_map,
+                                        get_freq)
+from pandas import (Series, DataFrame, Timestamp, _period, tslib,
                     _np_version_under1p9, _np_version_under1p10,
                     _np_version_under1p12)
-from pandas import tslib
-import pandas.util.testing as tm
 
 
 class TestPeriodProperties(tm.TestCase):
@@ -4970,3 +4968,98 @@ class TestPeriodField(tm.TestCase):
     def test_get_period_field_array_raises_on_out_of_range(self):
         self.assertRaises(ValueError, _period.get_period_field_arr, -1,
                           np.empty(1), 0)
+
+
+class TestTslib(tm.TestCase):
+    def test_intraday_conversion_factors(self):
+        self.assertEqual(period_asfreq(
+            1, get_freq('D'), get_freq('H'), False), 24)
+        self.assertEqual(period_asfreq(
+            1, get_freq('D'), get_freq('T'), False), 1440)
+        self.assertEqual(period_asfreq(
+            1, get_freq('D'), get_freq('S'), False), 86400)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'D'), get_freq('L'), False), 86400000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'D'), get_freq('U'), False), 86400000000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'D'), get_freq('N'), False), 86400000000000)
+
+        self.assertEqual(period_asfreq(
+            1, get_freq('H'), get_freq('T'), False), 60)
+        self.assertEqual(period_asfreq(
+            1, get_freq('H'), get_freq('S'), False), 3600)
+        self.assertEqual(period_asfreq(1, get_freq('H'),
+                                       get_freq('L'), False), 3600000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'H'), get_freq('U'), False), 3600000000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'H'), get_freq('N'), False), 3600000000000)
+
+        self.assertEqual(period_asfreq(
+            1, get_freq('T'), get_freq('S'), False), 60)
+        self.assertEqual(period_asfreq(
+            1, get_freq('T'), get_freq('L'), False), 60000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'T'), get_freq('U'), False), 60000000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'T'), get_freq('N'), False), 60000000000)
+
+        self.assertEqual(period_asfreq(
+            1, get_freq('S'), get_freq('L'), False), 1000)
+        self.assertEqual(period_asfreq(1, get_freq('S'),
+                                       get_freq('U'), False), 1000000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'S'), get_freq('N'), False), 1000000000)
+
+        self.assertEqual(period_asfreq(
+            1, get_freq('L'), get_freq('U'), False), 1000)
+        self.assertEqual(period_asfreq(1, get_freq('L'),
+                                       get_freq('N'), False), 1000000)
+
+        self.assertEqual(period_asfreq(
+            1, get_freq('U'), get_freq('N'), False), 1000)
+
+    def test_period_ordinal_start_values(self):
+        # information for 1.1.1970
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
+                                           get_freq('A')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
+                                           get_freq('M')))
+        self.assertEqual(1, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
+                                           get_freq('W')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
+                                           get_freq('D')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
+                                           get_freq('B')))
+
+    def test_period_ordinal_week(self):
+        self.assertEqual(1, period_ordinal(1970, 1, 4, 0, 0, 0, 0, 0,
+                                           get_freq('W')))
+        self.assertEqual(2, period_ordinal(1970, 1, 5, 0, 0, 0, 0, 0,
+                                           get_freq('W')))
+
+        self.assertEqual(2284, period_ordinal(2013, 10, 6, 0, 0, 0, 0, 0,
+                                              get_freq('W')))
+        self.assertEqual(2285, period_ordinal(2013, 10, 7, 0, 0, 0, 0, 0,
+                                              get_freq('W')))
+
+    def test_period_ordinal_business_day(self):
+        # Thursday
+        self.assertEqual(11415, period_ordinal(2013, 10, 3, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
+        # Friday
+        self.assertEqual(11416, period_ordinal(2013, 10, 4, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
+        # Saturday
+        self.assertEqual(11417, period_ordinal(2013, 10, 5, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
+        # Sunday
+        self.assertEqual(11417, period_ordinal(2013, 10, 6, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
+        # Monday
+        self.assertEqual(11417, period_ordinal(2013, 10, 7, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
+        # Tuesday
+        self.assertEqual(11418, period_ordinal(2013, 10, 8, 0, 0, 0, 0, 0,
+                                               get_freq('B')))

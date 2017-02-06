@@ -1637,3 +1637,48 @@ class TestTimeSeries(tm.TestCase):
                            for args in [(2000, 1, 1), (2000, 1, 2), (
                                2005, 1, 1), (2005, 1, 2)]])
         self.assertTrue((result == [52, 52, 53, 53]).all())
+
+
+class TestTsUtil(tm.TestCase):
+
+    def test_min_valid(self):
+        # Ensure that Timestamp.min is a valid Timestamp
+        Timestamp(Timestamp.min)
+
+    def test_max_valid(self):
+        # Ensure that Timestamp.max is a valid Timestamp
+        Timestamp(Timestamp.max)
+
+    def test_to_datetime_bijective(self):
+        # Ensure that converting to datetime and back only loses precision
+        # by going from nanoseconds to microseconds.
+        exp_warning = None if Timestamp.max.nanosecond == 0 else UserWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            self.assertEqual(
+                Timestamp(Timestamp.max.to_pydatetime()).value / 1000,
+                Timestamp.max.value / 1000)
+
+        exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            self.assertEqual(
+                Timestamp(Timestamp.min.to_pydatetime()).value / 1000,
+                Timestamp.min.value / 1000)
+
+
+class TestTslib(tm.TestCase):
+
+    def test_round(self):
+        stamp = Timestamp('2000-01-05 05:09:15.13')
+
+        def _check_round(freq, expected):
+            result = stamp.round(freq=freq)
+            self.assertEqual(result, expected)
+
+        for freq, expected in [('D', Timestamp('2000-01-05 00:00:00')),
+                               ('H', Timestamp('2000-01-05 05:00:00')),
+                               ('S', Timestamp('2000-01-05 05:09:15'))]:
+            _check_round(freq, expected)
+
+        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
+            stamp.round('foo')
