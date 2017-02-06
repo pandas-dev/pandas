@@ -3347,7 +3347,7 @@ class NDFrame(PandasObject):
                     if k not in result:
                         continue
                     obj = result[k]
-                    obj.fillna(v, limit=limit, inplace=True)
+                    obj.fillna(v, limit=limit, inplace=True, downcast=downcast)
                 return result
             elif not is_list_like(value):
                 new_data = self._data.fillna(value=value, limit=limit,
