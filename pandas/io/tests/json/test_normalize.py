@@ -7,7 +7,8 @@ import json
 import pandas.util.testing as tm
 from pandas import compat
 
-from pandas.io.json import json_normalize, nested_to_record
+from pandas.io.json import json_normalize
+from pandas.io.json.normalize import nested_to_record
 
 
 def _assert_equal_data(left, right):
