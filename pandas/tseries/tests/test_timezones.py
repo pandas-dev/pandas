@@ -1,23 +1,20 @@
 # pylint: disable-msg=E1101,W0612
-from datetime import datetime, timedelta, tzinfo, date
-import numpy as np
 import pytz
+import numpy as np
 from distutils.version import LooseVersion
-from pandas.types.dtypes import DatetimeTZDtype
-from pandas import (Index, Series, DataFrame, isnull, Timestamp)
-
-from pandas import DatetimeIndex, to_datetime, NaT
-from pandas import tslib
-
-import pandas.tseries.offsets as offsets
-from pandas.tseries.index import bdate_range, date_range
-import pandas.tseries.tools as tools
+from datetime import datetime, timedelta, tzinfo, date
 from pytz import NonExistentTimeError
 
 import pandas.util.testing as tm
+import pandas.tseries.tools as tools
+import pandas.tseries.offsets as offsets
+from pandas.compat import lrange, zip
+from pandas.tseries.index import bdate_range, date_range
+from pandas.types.dtypes import DatetimeTZDtype
+from pandas import (Index, Series, DataFrame, isnull, Timestamp, tslib, NaT,
+                    DatetimeIndex, to_datetime)
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  set_timezone)
-from pandas.compat import lrange, zip
 
 try:
     import pytz  # noqa
@@ -1679,3 +1676,52 @@ class TestTimeZones(tm.TestCase):
         idx = idx.tz_convert('US/Eastern')
         expected = ['2010-12-01 11:00', '2010-12-02 11:00', NaT]
         self.assert_index_equal(idx, DatetimeIndex(expected, tz='US/Eastern'))
+
+
+class TestTslib(tm.TestCase):
+
+    def test_tslib_tz_convert(self):
+        def compare_utc_to_local(tz_didx, utc_didx):
+            f = lambda x: tslib.tz_convert_single(x, 'UTC', tz_didx.tz)
+            result = tslib.tz_convert(tz_didx.asi8, 'UTC', tz_didx.tz)
+            result_single = np.vectorize(f)(tz_didx.asi8)
+            self.assert_numpy_array_equal(result, result_single)
+
+        def compare_local_to_utc(tz_didx, utc_didx):
+            f = lambda x: tslib.tz_convert_single(x, tz_didx.tz, 'UTC')
+            result = tslib.tz_convert(utc_didx.asi8, tz_didx.tz, 'UTC')
+            result_single = np.vectorize(f)(utc_didx.asi8)
+            self.assert_numpy_array_equal(result, result_single)
+
+        for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'Europe/Moscow']:
+            # US: 2014-03-09 - 2014-11-11
+            # MOSCOW: 2014-10-26  /  2014-12-31
+            tz_didx = date_range('2014-03-01', '2015-01-10', freq='H', tz=tz)
+            utc_didx = date_range('2014-03-01', '2015-01-10', freq='H')
+            compare_utc_to_local(tz_didx, utc_didx)
+            # local tz to UTC can be differ in hourly (or higher) freqs because
+            # of DST
+            compare_local_to_utc(tz_didx, utc_didx)
+
+            tz_didx = date_range('2000-01-01', '2020-01-01', freq='D', tz=tz)
+            utc_didx = date_range('2000-01-01', '2020-01-01', freq='D')
+            compare_utc_to_local(tz_didx, utc_didx)
+            compare_local_to_utc(tz_didx, utc_didx)
+
+            tz_didx = date_range('2000-01-01', '2100-01-01', freq='A', tz=tz)
+            utc_didx = date_range('2000-01-01', '2100-01-01', freq='A')
+            compare_utc_to_local(tz_didx, utc_didx)
+            compare_local_to_utc(tz_didx, utc_didx)
+
+        # Check empty array
+        result = tslib.tz_convert(np.array([], dtype=np.int64),
+                                  tslib.maybe_get_tz('US/Eastern'),
+                                  tslib.maybe_get_tz('Asia/Tokyo'))
+        self.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
+
+        # Check all-NaT array
+        result = tslib.tz_convert(np.array([tslib.iNaT], dtype=np.int64),
+                                  tslib.maybe_get_tz('US/Eastern'),
+                                  tslib.maybe_get_tz('Asia/Tokyo'))
+        self.assert_numpy_array_equal(result, np.array(
+            [tslib.iNaT], dtype=np.int64))
