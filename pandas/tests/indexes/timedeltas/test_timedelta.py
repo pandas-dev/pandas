@@ -555,52 +555,6 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         result = td.astype('timedelta64[s]')
         assert_index_equal(result, expected)
 
-    def test_freq_conversion(self):
-
-        # doc example
-
-        # series
-        td = Series(date_range('20130101', periods=4)) - \
-            Series(date_range('20121201', periods=4))
-        td[2] += timedelta(minutes=5, seconds=3)
-        td[3] = np.nan
-
-        result = td / np.timedelta64(1, 'D')
-        expected = Series([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan
-                           ])
-        assert_series_equal(result, expected)
-
-        result = td.astype('timedelta64[D]')
-        expected = Series([31, 31, 31, np.nan])
-        assert_series_equal(result, expected)
-
-        result = td / np.timedelta64(1, 's')
-        expected = Series([31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3,
-                           np.nan])
-        assert_series_equal(result, expected)
-
-        result = td.astype('timedelta64[s]')
-        assert_series_equal(result, expected)
-
-        # tdi
-        td = TimedeltaIndex(td)
-
-        result = td / np.timedelta64(1, 'D')
-        expected = Index([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan])
-        assert_index_equal(result, expected)
-
-        result = td.astype('timedelta64[D]')
-        expected = Index([31, 31, 31, np.nan])
-        assert_index_equal(result, expected)
-
-        result = td / np.timedelta64(1, 's')
-        expected = Index([31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3,
-                          np.nan])
-        assert_index_equal(result, expected)
-
-        result = td.astype('timedelta64[s]')
-        assert_index_equal(result, expected)
-
 
 class TestSlicing(tm.TestCase):
 
