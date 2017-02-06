@@ -2479,6 +2479,13 @@ Thur,Lunch,Yes,51.51,17"""
 
         assert_frame_equal(result, expected)
 
+    def test_searchsorted(self):
+        # GH 14833
+        # Test if MultiIndex searchsorted raises the NotImplementedException
+        df_mi = pd.MultiIndex([[0], ["a"]], [[0], [0]])
+        with self.assertRaises(Exception) as context:
+            df_mi.searchsorted((1, "b"))
+        self.assertTrue(context.exception,NotImplementedError())
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

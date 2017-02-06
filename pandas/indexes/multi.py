@@ -1504,6 +1504,9 @@ class MultiIndex(Index):
 
         return _ensure_platform_int(indexer)
 
+    def searchsorted(self, value, side='left', sorter=None):
+        raise NotImplementedError()
+
     def reindex(self, target, method=None, level=None, limit=None,
                 tolerance=None):
         """
