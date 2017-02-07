@@ -3,11 +3,12 @@ from datetime import datetime, date, timedelta
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, Series, Index, MultiIndex, Grouper
+from pandas import DataFrame, Series, Index, MultiIndex, Grouper, date_range
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
 from pandas.compat import range, product
 import pandas.util.testing as tm
+from pandas.tseries.util import pivot_annual, isleapyear
 
 
 class TestPivotTable(tm.TestCase):
@@ -1319,3 +1320,106 @@ class TestCrosstab(tm.TestCase):
                                 index=expected_index,
                                 columns=expected_column)
         tm.assert_frame_equal(result, expected)
+
+
+class TestPivotAnnual(tm.TestCase):
+    """
+    New pandas of scikits.timeseries pivot_annual
+    """
+
+    def test_daily(self):
+        rng = date_range('1/1/2000', '12/31/2004', freq='D')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            annual = pivot_annual(ts, 'D')
+
+        doy = ts.index.dayofyear
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            doy[(~isleapyear(ts.index.year)) & (doy >= 60)] += 1
+
+        for i in range(1, 367):
+            subset = ts[doy == i]
+            subset.index = [x.year for x in subset.index]
+
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            self.assertEqual(result.name, i)
+
+        # check leap days
+        leaps = ts[(ts.index.month == 2) & (ts.index.day == 29)]
+        day = leaps.index.dayofyear[0]
+        leaps.index = leaps.index.year
+        leaps.name = 60
+        tm.assert_series_equal(annual[day].dropna(), leaps)
+
+    def test_hourly(self):
+        rng_hourly = date_range('1/1/1994', periods=(18 * 8760 + 4 * 24),
+                                freq='H')
+        data_hourly = np.random.randint(100, 350, rng_hourly.size)
+        ts_hourly = Series(data_hourly, index=rng_hourly)
+
+        grouped = ts_hourly.groupby(ts_hourly.index.year)
+        hoy = grouped.apply(lambda x: x.reset_index(drop=True))
+        hoy = hoy.index.droplevel(0).values
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            hoy[~isleapyear(ts_hourly.index.year) & (hoy >= 1416)] += 24
+        hoy += 1
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            annual = pivot_annual(ts_hourly)
+
+        ts_hourly = ts_hourly.astype(float)
+        for i in [1, 1416, 1417, 1418, 1439, 1440, 1441, 8784]:
+            subset = ts_hourly[hoy == i]
+            subset.index = [x.year for x in subset.index]
+
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            self.assertEqual(result.name, i)
+
+        leaps = ts_hourly[(ts_hourly.index.month == 2) & (
+            ts_hourly.index.day == 29) & (ts_hourly.index.hour == 0)]
+        hour = leaps.index.dayofyear[0] * 24 - 23
+        leaps.index = leaps.index.year
+        leaps.name = 1417
+        tm.assert_series_equal(annual[hour].dropna(), leaps)
+
+    def test_weekly(self):
+        pass
+
+    def test_monthly(self):
+        rng = date_range('1/1/2000', '12/31/2004', freq='M')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            annual = pivot_annual(ts, 'M')
+
+        month = ts.index.month
+        for i in range(1, 13):
+            subset = ts[month == i]
+            subset.index = [x.year for x in subset.index]
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            self.assertEqual(result.name, i)
+
+    def test_period_monthly(self):
+        pass
+
+    def test_period_daily(self):
+        pass
+
+    def test_period_weekly(self):
+        pass
+
+    def test_isleapyear_deprecate(self):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertTrue(isleapyear(2000))
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertFalse(isleapyear(2001))
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertTrue(isleapyear(2004))

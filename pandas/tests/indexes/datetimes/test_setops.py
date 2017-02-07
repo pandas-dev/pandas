@@ -4,8 +4,12 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
+from pandas.tseries.index import cdate_range
 from pandas import (DatetimeIndex, date_range, Series, bdate_range, DataFrame,
                     Int64Index, Index)
+from pandas.tseries.offsets import Minute, BMonthEnd, MonthEnd
+
+START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestDatetimeIndex(tm.TestCase):
@@ -185,3 +189,223 @@ class TestDatetimeIndex(tm.TestCase):
 
         result = dti.join(empty)
         tm.assertIsInstance(result, DatetimeIndex)
+
+
+class TestBusinessDatetimeIndex(tm.TestCase):
+
+    def setUp(self):
+        self.rng = bdate_range(START, END)
+
+    def test_union(self):
+        # overlapping
+        left = self.rng[:10]
+        right = self.rng[5:10]
+
+        the_union = left.union(right)
+        tm.assertIsInstance(the_union, DatetimeIndex)
+
+        # non-overlapping, gap in middle
+        left = self.rng[:5]
+        right = self.rng[10:]
+
+        the_union = left.union(right)
+        tm.assertIsInstance(the_union, Index)
+
+        # non-overlapping, no gap
+        left = self.rng[:5]
+        right = self.rng[5:10]
+
+        the_union = left.union(right)
+        tm.assertIsInstance(the_union, DatetimeIndex)
+
+        # order does not matter
+        tm.assert_index_equal(right.union(left), the_union)
+
+        # overlapping, but different offset
+        rng = date_range(START, END, freq=BMonthEnd())
+
+        the_union = self.rng.union(rng)
+        tm.assertIsInstance(the_union, DatetimeIndex)
+
+    def test_outer_join(self):
+        # should just behave as union
+
+        # overlapping
+        left = self.rng[:10]
+        right = self.rng[5:10]
+
+        the_join = left.join(right, how='outer')
+        tm.assertIsInstance(the_join, DatetimeIndex)
+
+        # non-overlapping, gap in middle
+        left = self.rng[:5]
+        right = self.rng[10:]
+
+        the_join = left.join(right, how='outer')
+        tm.assertIsInstance(the_join, DatetimeIndex)
+        self.assertIsNone(the_join.freq)
+
+        # non-overlapping, no gap
+        left = self.rng[:5]
+        right = self.rng[5:10]
+
+        the_join = left.join(right, how='outer')
+        tm.assertIsInstance(the_join, DatetimeIndex)
+
+        # overlapping, but different offset
+        rng = date_range(START, END, freq=BMonthEnd())
+
+        the_join = self.rng.join(rng, how='outer')
+        tm.assertIsInstance(the_join, DatetimeIndex)
+        self.assertIsNone(the_join.freq)
+
+    def test_union_not_cacheable(self):
+        rng = date_range('1/1/2000', periods=50, freq=Minute())
+        rng1 = rng[10:]
+        rng2 = rng[:25]
+        the_union = rng1.union(rng2)
+        self.assert_index_equal(the_union, rng)
+
+        rng1 = rng[10:]
+        rng2 = rng[15:35]
+        the_union = rng1.union(rng2)
+        expected = rng[10:]
+        self.assert_index_equal(the_union, expected)
+
+    def test_intersection(self):
+        rng = date_range('1/1/2000', periods=50, freq=Minute())
+        rng1 = rng[10:]
+        rng2 = rng[:25]
+        the_int = rng1.intersection(rng2)
+        expected = rng[10:25]
+        self.assert_index_equal(the_int, expected)
+        tm.assertIsInstance(the_int, DatetimeIndex)
+        self.assertEqual(the_int.offset, rng.offset)
+
+        the_int = rng1.intersection(rng2.view(DatetimeIndex))
+        self.assert_index_equal(the_int, expected)
+
+        # non-overlapping
+        the_int = rng[:10].intersection(rng[10:])
+        expected = DatetimeIndex([])
+        self.assert_index_equal(the_int, expected)
+
+    def test_intersection_bug(self):
+        # GH #771
+        a = bdate_range('11/30/2011', '12/31/2011')
+        b = bdate_range('12/10/2011', '12/20/2011')
+        result = a.intersection(b)
+        self.assert_index_equal(result, b)
+
+    def test_month_range_union_tz_pytz(self):
+        tm._skip_if_no_pytz()
+        from pytz import timezone
+        tz = timezone('US/Eastern')
+
+        early_start = datetime(2011, 1, 1)
+        early_end = datetime(2011, 3, 1)
+
+        late_start = datetime(2011, 3, 1)
+        late_end = datetime(2011, 5, 1)
+
+        early_dr = date_range(start=early_start, end=early_end, tz=tz,
+                              freq=MonthEnd())
+        late_dr = date_range(start=late_start, end=late_end, tz=tz,
+                             freq=MonthEnd())
+
+        early_dr.union(late_dr)
+
+    def test_month_range_union_tz_dateutil(self):
+        tm._skip_if_windows_python_3()
+        tm._skip_if_no_dateutil()
+        from pandas.tslib import _dateutil_gettz as timezone
+        tz = timezone('US/Eastern')
+
+        early_start = datetime(2011, 1, 1)
+        early_end = datetime(2011, 3, 1)
+
+        late_start = datetime(2011, 3, 1)
+        late_end = datetime(2011, 5, 1)
+
+        early_dr = date_range(start=early_start, end=early_end, tz=tz,
+                              freq=MonthEnd())
+        late_dr = date_range(start=late_start, end=late_end, tz=tz,
+                             freq=MonthEnd())
+
+        early_dr.union(late_dr)
+
+
+class TestCustomDatetimeIndex(tm.TestCase):
+
+    def setUp(self):
+        self.rng = cdate_range(START, END)
+
+    def test_union(self):
+        # overlapping
+        left = self.rng[:10]
+        right = self.rng[5:10]
+
+        the_union = left.union(right)
+        tm.assertIsInstance(the_union, DatetimeIndex)
+
+        # non-overlapping, gap in middle
+        left = self.rng[:5]
+        right = self.rng[10:]
+
+        the_union = left.union(right)
+        tm.assertIsInstance(the_union, Index)
+
+        # non-overlapping, no gap
+        left = self.rng[:5]
+        right = self.rng[5:10]
+
+        the_union = left.union(right)
+        tm.assertIsInstance(the_union, DatetimeIndex)
+
+        # order does not matter
+        self.assert_index_equal(right.union(left), the_union)
+
+        # overlapping, but different offset
+        rng = date_range(START, END, freq=BMonthEnd())
+
+        the_union = self.rng.union(rng)
+        tm.assertIsInstance(the_union, DatetimeIndex)
+
+    def test_outer_join(self):
+        # should just behave as union
+
+        # overlapping
+        left = self.rng[:10]
+        right = self.rng[5:10]
+
+        the_join = left.join(right, how='outer')
+        tm.assertIsInstance(the_join, DatetimeIndex)
+
+        # non-overlapping, gap in middle
+        left = self.rng[:5]
+        right = self.rng[10:]
+
+        the_join = left.join(right, how='outer')
+        tm.assertIsInstance(the_join, DatetimeIndex)
+        self.assertIsNone(the_join.freq)
+
+        # non-overlapping, no gap
+        left = self.rng[:5]
+        right = self.rng[5:10]
+
+        the_join = left.join(right, how='outer')
+        tm.assertIsInstance(the_join, DatetimeIndex)
+
+        # overlapping, but different offset
+        rng = date_range(START, END, freq=BMonthEnd())
+
+        the_join = self.rng.join(rng, how='outer')
+        tm.assertIsInstance(the_join, DatetimeIndex)
+        self.assertIsNone(the_join.freq)
+
+    def test_intersection_bug(self):
+        # GH #771
+        a = cdate_range('11/30/2011', '12/31/2011')
+        b = cdate_range('12/10/2011', '12/20/2011')
+        result = a.intersection(b)
+        self.assert_index_equal(result, b)

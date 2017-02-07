@@ -1,22 +1,30 @@
+"""
+test date_range, bdate_range, cdate_range
+construction from the convenience range functions
+"""
+
 import numpy as np
 from datetime import datetime, timedelta, time
 
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import compat
-from pandas.core import common as com
-from pandas.util.testing import assertRaisesRegexp
 from pandas.tseries.index import bdate_range, cdate_range
-from pandas import date_range, offsets, DatetimeIndex, Timestamp, Index
-from pandas.tseries.offsets import (generate_range, CDay, BDay, Minute,
-                                    BMonthEnd, DateOffset, MonthEnd)
+from pandas import date_range, offsets, DatetimeIndex, Timestamp
+from pandas.tseries.offsets import (generate_range, CDay, BDay,
+                                    DateOffset, MonthEnd)
 
 from pandas.tests.series.common import TestData
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestTimeSeries(TestData, tm.TestCase):
+def eq_gen_range(kwargs, expected):
+    rng = generate_range(**kwargs)
+    assert (np.array_equal(list(rng), expected))
+
+
+class TestDateRanges(TestData, tm.TestCase):
 
     def test_date_range_gen_error(self):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
@@ -137,11 +145,6 @@ class TestTimeSeries(TestData, tm.TestCase):
                           datetime(2011, 11, 12), freq=offset)
 
 
-def eq_gen_range(kwargs, expected):
-    rng = generate_range(**kwargs)
-    assert (np.array_equal(list(rng), expected))
-
-
 class TestGenRangeGeneration(tm.TestCase):
 
     def test_generate(self):
@@ -191,7 +194,8 @@ class TestGenRangeGeneration(tm.TestCase):
         self.assert_index_equal(result2, expected2)
 
 
-class TestDateRange(tm.TestCase):
+class TestBusinessDateRange(tm.TestCase):
+
     def setUp(self):
         self.rng = bdate_range(START, END)
 
@@ -206,28 +210,31 @@ class TestDateRange(tm.TestCase):
         naive = bdate_range(START, END, freq=BDay(), tz=None)
         aware = bdate_range(START, END, freq=BDay(),
                             tz="Asia/Hong_Kong")
-        assertRaisesRegexp(TypeError, "tz-naive.*tz-aware", naive.join, aware)
-        assertRaisesRegexp(TypeError, "tz-naive.*tz-aware", aware.join, naive)
+        self.assertRaisesRegexp(TypeError, "tz-naive.*tz-aware",
+                                naive.join, aware)
+        self.assertRaisesRegexp(TypeError, "tz-naive.*tz-aware",
+                                aware.join, naive)
 
     def test_cached_range(self):
         DatetimeIndex._cached_range(START, END, offset=BDay())
         DatetimeIndex._cached_range(START, periods=20, offset=BDay())
         DatetimeIndex._cached_range(end=START, periods=20, offset=BDay())
 
-        assertRaisesRegexp(TypeError, "offset", DatetimeIndex._cached_range,
-                           START, END)
+        self.assertRaisesRegexp(TypeError, "offset",
+                                DatetimeIndex._cached_range,
+                                START, END)
 
-        assertRaisesRegexp(TypeError, "specify period",
-                           DatetimeIndex._cached_range, START,
-                           offset=BDay())
+        self.assertRaisesRegexp(TypeError, "specify period",
+                                DatetimeIndex._cached_range, START,
+                                offset=BDay())
 
-        assertRaisesRegexp(TypeError, "specify period",
-                           DatetimeIndex._cached_range, end=END,
-                           offset=BDay())
+        self.assertRaisesRegexp(TypeError, "specify period",
+                                DatetimeIndex._cached_range, end=END,
+                                offset=BDay())
 
-        assertRaisesRegexp(TypeError, "start or end",
-                           DatetimeIndex._cached_range, periods=20,
-                           offset=BDay())
+        self.assertRaisesRegexp(TypeError, "start or end",
+                                DatetimeIndex._cached_range, periods=20,
+                                offset=BDay())
 
     def test_cached_range_bug(self):
         rng = date_range('2010-09-01 05:00:00', periods=50,
@@ -236,191 +243,15 @@ class TestDateRange(tm.TestCase):
         self.assertEqual(rng[0], datetime(2010, 9, 1, 5))
 
     def test_timezone_comparaison_bug(self):
+        # smoke test
         start = Timestamp('20130220 10:00', tz='US/Eastern')
-        try:
-            date_range(start, periods=2, tz='US/Eastern')
-        except AssertionError:
-            self.fail()
+        result = date_range(start, periods=2, tz='US/Eastern')
+        self.assertEqual(len(result), 2)
 
     def test_timezone_comparaison_assert(self):
         start = Timestamp('20130220 10:00', tz='US/Eastern')
         self.assertRaises(AssertionError, date_range, start, periods=2,
                           tz='Europe/Berlin')
-
-    def test_comparison(self):
-        d = self.rng[10]
-
-        comp = self.rng > d
-        self.assertTrue(comp[11])
-        self.assertFalse(comp[9])
-
-    def test_copy(self):
-        cp = self.rng.copy()
-        repr(cp)
-        self.assert_index_equal(cp, self.rng)
-
-    def test_repr(self):
-        # only really care that it works
-        repr(self.rng)
-
-    def test_getitem(self):
-        smaller = self.rng[:5]
-        exp = DatetimeIndex(self.rng.view(np.ndarray)[:5])
-        self.assert_index_equal(smaller, exp)
-
-        self.assertEqual(smaller.offset, self.rng.offset)
-
-        sliced = self.rng[::5]
-        self.assertEqual(sliced.offset, BDay() * 5)
-
-        fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
-        self.assertEqual(len(fancy_indexed), 5)
-        tm.assertIsInstance(fancy_indexed, DatetimeIndex)
-        self.assertIsNone(fancy_indexed.freq)
-
-        # 32-bit vs. 64-bit platforms
-        self.assertEqual(self.rng[4], self.rng[np.int_(4)])
-
-    def test_getitem_matplotlib_hackaround(self):
-        values = self.rng[:, None]
-        expected = self.rng.values[:, None]
-        self.assert_numpy_array_equal(values, expected)
-
-    def test_shift(self):
-        shifted = self.rng.shift(5)
-        self.assertEqual(shifted[0], self.rng[5])
-        self.assertEqual(shifted.offset, self.rng.offset)
-
-        shifted = self.rng.shift(-5)
-        self.assertEqual(shifted[5], self.rng[0])
-        self.assertEqual(shifted.offset, self.rng.offset)
-
-        shifted = self.rng.shift(0)
-        self.assertEqual(shifted[0], self.rng[0])
-        self.assertEqual(shifted.offset, self.rng.offset)
-
-        rng = date_range(START, END, freq=BMonthEnd())
-        shifted = rng.shift(1, freq=BDay())
-        self.assertEqual(shifted[0], rng[0] + BDay())
-
-    def test_pickle_unpickle(self):
-        unpickled = self.round_trip_pickle(self.rng)
-        self.assertIsNotNone(unpickled.offset)
-
-    def test_union(self):
-        # overlapping
-        left = self.rng[:10]
-        right = self.rng[5:10]
-
-        the_union = left.union(right)
-        tm.assertIsInstance(the_union, DatetimeIndex)
-
-        # non-overlapping, gap in middle
-        left = self.rng[:5]
-        right = self.rng[10:]
-
-        the_union = left.union(right)
-        tm.assertIsInstance(the_union, Index)
-
-        # non-overlapping, no gap
-        left = self.rng[:5]
-        right = self.rng[5:10]
-
-        the_union = left.union(right)
-        tm.assertIsInstance(the_union, DatetimeIndex)
-
-        # order does not matter
-        tm.assert_index_equal(right.union(left), the_union)
-
-        # overlapping, but different offset
-        rng = date_range(START, END, freq=BMonthEnd())
-
-        the_union = self.rng.union(rng)
-        tm.assertIsInstance(the_union, DatetimeIndex)
-
-    def test_outer_join(self):
-        # should just behave as union
-
-        # overlapping
-        left = self.rng[:10]
-        right = self.rng[5:10]
-
-        the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
-
-        # non-overlapping, gap in middle
-        left = self.rng[:5]
-        right = self.rng[10:]
-
-        the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
-        self.assertIsNone(the_join.freq)
-
-        # non-overlapping, no gap
-        left = self.rng[:5]
-        right = self.rng[5:10]
-
-        the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
-
-        # overlapping, but different offset
-        rng = date_range(START, END, freq=BMonthEnd())
-
-        the_join = self.rng.join(rng, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
-        self.assertIsNone(the_join.freq)
-
-    def test_union_not_cacheable(self):
-        rng = date_range('1/1/2000', periods=50, freq=Minute())
-        rng1 = rng[10:]
-        rng2 = rng[:25]
-        the_union = rng1.union(rng2)
-        self.assert_index_equal(the_union, rng)
-
-        rng1 = rng[10:]
-        rng2 = rng[15:35]
-        the_union = rng1.union(rng2)
-        expected = rng[10:]
-        self.assert_index_equal(the_union, expected)
-
-    def test_intersection(self):
-        rng = date_range('1/1/2000', periods=50, freq=Minute())
-        rng1 = rng[10:]
-        rng2 = rng[:25]
-        the_int = rng1.intersection(rng2)
-        expected = rng[10:25]
-        self.assert_index_equal(the_int, expected)
-        tm.assertIsInstance(the_int, DatetimeIndex)
-        self.assertEqual(the_int.offset, rng.offset)
-
-        the_int = rng1.intersection(rng2.view(DatetimeIndex))
-        self.assert_index_equal(the_int, expected)
-
-        # non-overlapping
-        the_int = rng[:10].intersection(rng[10:])
-        expected = DatetimeIndex([])
-        self.assert_index_equal(the_int, expected)
-
-    def test_intersection_bug(self):
-        # GH #771
-        a = bdate_range('11/30/2011', '12/31/2011')
-        b = bdate_range('12/10/2011', '12/20/2011')
-        result = a.intersection(b)
-        self.assert_index_equal(result, b)
-
-    def test_summary(self):
-        self.rng.summary()
-        self.rng[2:2].summary()
-
-    def test_summary_pytz(self):
-        tm._skip_if_no_pytz()
-        import pytz
-        bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
-
-    def test_summary_dateutil(self):
-        tm._skip_if_no_dateutil()
-        import dateutil
-        bdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
 
     def test_misc(self):
         end = datetime(2009, 5, 13)
@@ -442,26 +273,6 @@ class TestDateRange(tm.TestCase):
                           periods=10)
         self.assertRaises(ValueError, bdate_range, badly_formed_date,
                           badly_formed_date)
-
-    def test_equals(self):
-        self.assertFalse(self.rng.equals(list(self.rng)))
-
-    def test_identical(self):
-        t1 = self.rng.copy()
-        t2 = self.rng.copy()
-        self.assertTrue(t1.identical(t2))
-
-        # name
-        t1 = t1.rename('foo')
-        self.assertTrue(t1.equals(t2))
-        self.assertFalse(t1.identical(t2))
-        t2 = t2.rename('foo')
-        self.assertTrue(t1.identical(t2))
-
-        # freq
-        t2v = Index(t2.values)
-        self.assertTrue(t1.equals(t2v))
-        self.assertFalse(t1.identical(t2v))
 
     def test_daterange_bug_456(self):
         # GH #456
@@ -559,43 +370,6 @@ class TestDateRange(tm.TestCase):
         self.assertTrue(dr.tz == tz('US/Eastern'))
         self.assertTrue(dr[0] == start)
         self.assertTrue(dr[2] == end)
-
-    def test_month_range_union_tz_pytz(self):
-        tm._skip_if_no_pytz()
-        from pytz import timezone
-        tz = timezone('US/Eastern')
-
-        early_start = datetime(2011, 1, 1)
-        early_end = datetime(2011, 3, 1)
-
-        late_start = datetime(2011, 3, 1)
-        late_end = datetime(2011, 5, 1)
-
-        early_dr = date_range(start=early_start, end=early_end, tz=tz,
-                              freq=MonthEnd())
-        late_dr = date_range(start=late_start, end=late_end, tz=tz,
-                             freq=MonthEnd())
-
-        early_dr.union(late_dr)
-
-    def test_month_range_union_tz_dateutil(self):
-        tm._skip_if_windows_python_3()
-        tm._skip_if_no_dateutil()
-        from pandas.tslib import _dateutil_gettz as timezone
-        tz = timezone('US/Eastern')
-
-        early_start = datetime(2011, 1, 1)
-        early_end = datetime(2011, 3, 1)
-
-        late_start = datetime(2011, 3, 1)
-        late_end = datetime(2011, 5, 1)
-
-        early_dr = date_range(start=early_start, end=early_end, tz=tz,
-                              freq=MonthEnd())
-        late_dr = date_range(start=late_start, end=late_end, tz=tz,
-                             freq=MonthEnd())
-
-        early_dr.union(late_dr)
 
     def test_range_closed(self):
         begin = datetime(2011, 1, 1)
@@ -735,151 +509,6 @@ class TestCustomDateRange(tm.TestCase):
         self.assertRaises(Exception, DatetimeIndex._cached_range, periods=20,
                           freq=CDay())
 
-    def test_comparison(self):
-        d = self.rng[10]
-
-        comp = self.rng > d
-        self.assertTrue(comp[11])
-        self.assertFalse(comp[9])
-
-    def test_copy(self):
-        cp = self.rng.copy()
-        repr(cp)
-        self.assert_index_equal(cp, self.rng)
-
-    def test_repr(self):
-        # only really care that it works
-        repr(self.rng)
-
-    def test_getitem(self):
-        smaller = self.rng[:5]
-        exp = DatetimeIndex(self.rng.view(np.ndarray)[:5])
-        self.assert_index_equal(smaller, exp)
-        self.assertEqual(smaller.offset, self.rng.offset)
-
-        sliced = self.rng[::5]
-        self.assertEqual(sliced.offset, CDay() * 5)
-
-        fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
-        self.assertEqual(len(fancy_indexed), 5)
-        tm.assertIsInstance(fancy_indexed, DatetimeIndex)
-        self.assertIsNone(fancy_indexed.freq)
-
-        # 32-bit vs. 64-bit platforms
-        self.assertEqual(self.rng[4], self.rng[np.int_(4)])
-
-    def test_getitem_matplotlib_hackaround(self):
-        values = self.rng[:, None]
-        expected = self.rng.values[:, None]
-        self.assert_numpy_array_equal(values, expected)
-
-    def test_shift(self):
-
-        shifted = self.rng.shift(5)
-        self.assertEqual(shifted[0], self.rng[5])
-        self.assertEqual(shifted.offset, self.rng.offset)
-
-        shifted = self.rng.shift(-5)
-        self.assertEqual(shifted[5], self.rng[0])
-        self.assertEqual(shifted.offset, self.rng.offset)
-
-        shifted = self.rng.shift(0)
-        self.assertEqual(shifted[0], self.rng[0])
-        self.assertEqual(shifted.offset, self.rng.offset)
-
-        with tm.assert_produces_warning(com.PerformanceWarning):
-            rng = date_range(START, END, freq=BMonthEnd())
-            shifted = rng.shift(1, freq=CDay())
-            self.assertEqual(shifted[0], rng[0] + CDay())
-
-    def test_pickle_unpickle(self):
-        unpickled = self.round_trip_pickle(self.rng)
-        self.assertIsNotNone(unpickled.offset)
-
-    def test_union(self):
-        # overlapping
-        left = self.rng[:10]
-        right = self.rng[5:10]
-
-        the_union = left.union(right)
-        tm.assertIsInstance(the_union, DatetimeIndex)
-
-        # non-overlapping, gap in middle
-        left = self.rng[:5]
-        right = self.rng[10:]
-
-        the_union = left.union(right)
-        tm.assertIsInstance(the_union, Index)
-
-        # non-overlapping, no gap
-        left = self.rng[:5]
-        right = self.rng[5:10]
-
-        the_union = left.union(right)
-        tm.assertIsInstance(the_union, DatetimeIndex)
-
-        # order does not matter
-        self.assert_index_equal(right.union(left), the_union)
-
-        # overlapping, but different offset
-        rng = date_range(START, END, freq=BMonthEnd())
-
-        the_union = self.rng.union(rng)
-        tm.assertIsInstance(the_union, DatetimeIndex)
-
-    def test_outer_join(self):
-        # should just behave as union
-
-        # overlapping
-        left = self.rng[:10]
-        right = self.rng[5:10]
-
-        the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
-
-        # non-overlapping, gap in middle
-        left = self.rng[:5]
-        right = self.rng[10:]
-
-        the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
-        self.assertIsNone(the_join.freq)
-
-        # non-overlapping, no gap
-        left = self.rng[:5]
-        right = self.rng[5:10]
-
-        the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
-
-        # overlapping, but different offset
-        rng = date_range(START, END, freq=BMonthEnd())
-
-        the_join = self.rng.join(rng, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
-        self.assertIsNone(the_join.freq)
-
-    def test_intersection_bug(self):
-        # GH #771
-        a = cdate_range('11/30/2011', '12/31/2011')
-        b = cdate_range('12/10/2011', '12/20/2011')
-        result = a.intersection(b)
-        self.assert_index_equal(result, b)
-
-    def test_summary(self):
-        self.rng.summary()
-        self.rng[2:2].summary()
-
-    def test_summary_pytz(self):
-        tm._skip_if_no_pytz()
-        import pytz
-        cdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
-
-    def test_summary_dateutil(self):
-        tm._skip_if_no_dateutil()
-        import dateutil
-        cdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
-
     def test_misc(self):
         end = datetime(2009, 5, 13)
         dr = cdate_range(end=end, periods=20)
@@ -900,9 +529,6 @@ class TestCustomDateRange(tm.TestCase):
                           periods=10)
         self.assertRaises(ValueError, cdate_range, badly_formed_date,
                           badly_formed_date)
-
-    def test_equals(self):
-        self.assertFalse(self.rng.equals(list(self.rng)))
 
     def test_daterange_bug_456(self):
         # GH #456
