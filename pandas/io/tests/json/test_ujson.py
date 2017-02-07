@@ -1611,8 +1611,3 @@ class PandasJSONTests(TestCase):
 
 def _clean_dict(d):
     return dict((str(k), v) for k, v in compat.iteritems(d))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

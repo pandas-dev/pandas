@@ -1,5 +1,7 @@
 # coding: utf-8
 
+""" Test cases for DataFrame.plot """
+
 import nose
 import string
 import warnings
@@ -24,9 +26,6 @@ import pandas.tools.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
-
-
-""" Test cases for DataFrame.plot """
 
 
 @tm.mplskip
@@ -2726,8 +2725,3 @@ def _generate_4_axes_via_gridspec():
     ax_lr = plt.subplot(gs[1, 1])
 
     return gs, [ax_tl, ax_ll, ax_tr, ax_lr]
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

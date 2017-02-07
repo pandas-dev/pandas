@@ -1,6 +1,5 @@
 from datetime import datetime
 from pandas.compat import range
-import nose
 import numpy as np
 
 from pandas.core.index import Index
@@ -817,8 +816,3 @@ class TestCustomDateRange(tm.TestCase):
                           holidays=['2013-05-01'])
         xp = DatetimeIndex(['2013-05-02', '2013-05-05', '2013-05-06'])
         self.assert_index_equal(xp, rng)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

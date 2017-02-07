@@ -1224,7 +1224,3 @@ class TestToGBQIntegrationServiceAccountKeyContents(tm.TestCase):
             project_id=_get_project_id(),
             private_key=_get_private_key_contents())
         self.assertEqual(result['NUM_ROWS'][0], test_size)
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

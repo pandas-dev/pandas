@@ -1,7 +1,5 @@
 # coding=utf-8
 
-import nose
-
 import numpy as np
 from pandas import (DataFrame, date_range, Timestamp, Series,
                     to_datetime)
@@ -84,7 +82,3 @@ class TestFrameAsof(TestData, tm.TestCase):
         expected = DataFrame(index=to_datetime(['1989-12-31']),
                              columns=['A', 'B'], dtype='float64')
         assert_frame_equal(result, expected)
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

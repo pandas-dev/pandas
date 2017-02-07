@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import nose
 import numpy as np
 
 from pandas import Series, Timestamp
@@ -196,8 +195,3 @@ def test_dict_compat():
     assert (com._dict_compat(data_datetime64) == expected)
     assert (com._dict_compat(expected) == expected)
     assert (com._dict_compat(data_unchanged) == data_unchanged)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

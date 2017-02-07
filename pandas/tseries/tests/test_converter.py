@@ -1,7 +1,5 @@
 from datetime import datetime, date
 
-import nose
-
 import numpy as np
 from pandas import Timestamp, Period, Index
 from pandas.compat import u
@@ -12,6 +10,7 @@ from pandas.compat.numpy import np_datetime64_compat
 try:
     import pandas.tseries.converter as converter
 except ImportError:
+    import nose
     raise nose.SkipTest("no pandas.tseries.converter, skipping")
 
 
@@ -199,9 +198,3 @@ class TestPeriodConverter(tm.TestCase):
         rs = self.pc.convert([0, 1], None, self.axis)
         xp = [0, 1]
         self.assertEqual(rs, xp)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

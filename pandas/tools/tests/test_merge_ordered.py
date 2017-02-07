@@ -1,5 +1,3 @@
-import nose
-
 import pandas as pd
 from pandas import DataFrame, merge_ordered
 from pandas.util import testing as tm
@@ -92,7 +90,3 @@ class TestOrderedMerge(tm.TestCase):
         pd.concat([pd.DataFrame()])
         pd.concat([None, pd.DataFrame()])
         pd.concat([pd.DataFrame(), None])
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -182,7 +182,3 @@ class TestS3(tm.TestCase):
         # It's irrelevant here that this isn't actually a table.
         with tm.assertRaises(IOError):
             read_csv('s3://cant_get_it/')
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

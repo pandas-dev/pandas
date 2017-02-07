@@ -57,7 +57,3 @@ class TestMath(tm.TestCase):
         rs = pmath.inv(singular)
         expected = np.array([[0.1, 0.2], [0.1, 0.2]])
         self.assertTrue(np.allclose(rs, expected))
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

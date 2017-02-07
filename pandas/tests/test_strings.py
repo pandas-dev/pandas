@@ -4,8 +4,6 @@
 from datetime import datetime, timedelta
 import re
 
-import nose
-
 from numpy import nan as NA
 import numpy as np
 from numpy.random import randint
@@ -2715,8 +2713,3 @@ class TestStringMethods(tm.TestCase):
             expected = Series(np.array(
                 ['ad', 'be', 'cf'], 'S2').astype(object))
             tm.assert_series_equal(result, expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

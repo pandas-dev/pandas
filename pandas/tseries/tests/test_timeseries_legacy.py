@@ -219,8 +219,3 @@ class LegacySupport(object):
     def test_rule_aliases(self):
         rule = to_offset('10us')
         self.assertEqual(rule, Micro(10))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

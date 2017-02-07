@@ -974,9 +974,3 @@ class TestOLSFilter(tm.TestCase):
 
     def tsAssertEqual(self, ts1, ts2, **kwargs):
         self.assert_series_equal(ts1, ts2, **kwargs)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

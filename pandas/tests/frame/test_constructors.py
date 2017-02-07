@@ -7,7 +7,6 @@ import functools
 import itertools
 
 import nose
-
 from numpy.random import randn
 
 import numpy as np
@@ -1945,10 +1944,3 @@ class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):
         result['index'].dtype == 'M8[ns]'
 
         result = df.to_records(index=False)
-
-
-if __name__ == '__main__':
-    import nose  # noqa
-
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
-import nose
 
 from pandas import DataFrame, Series
 from pandas.core.sparse import SparseDataFrame
@@ -914,8 +913,3 @@ class TestWideToLong(tm.TestCase):
         exp_frame = exp_frame.set_index(['famid', 'birth', 'age'])[['ht']]
         long_frame = wide_to_long(df, 'ht', i=['famid', 'birth'], j='age')
         tm.assert_frame_equal(long_frame, exp_frame)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

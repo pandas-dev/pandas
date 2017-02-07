@@ -1000,9 +1000,3 @@ class TestNankurtFixedValues(tm.TestCase):
     @property
     def prng(self):
         return np.random.RandomState(1234)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure', '-s'
-                         ], exit=False)

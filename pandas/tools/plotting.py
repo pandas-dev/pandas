@@ -4003,28 +4003,3 @@ class FramePlotMethods(BasePlotMethods):
         if gridsize is not None:
             kwds['gridsize'] = gridsize
         return self(kind='hexbin', x=x, y=y, C=C, **kwds)
-
-
-if __name__ == '__main__':
-    # import pandas.rpy.common as com
-    # sales = com.load_data('sanfrancisco.home.sales', package='nutshell')
-    # top10 = sales['zip'].value_counts()[:10].index
-    # sales2 = sales[sales.zip.isin(top10)]
-    # _ = scatter_plot(sales2, 'squarefeet', 'price', by='zip')
-
-    # plt.show()
-
-    import matplotlib.pyplot as plt
-
-    import pandas.tools.plotting as plots
-    import pandas.core.frame as fr
-    reload(plots)  # noqa
-    reload(fr)  # noqa
-    from pandas.core.frame import DataFrame
-
-    data = DataFrame([[3, 6, -5], [4, 8, 2], [4, 9, -6],
-                      [4, 9, -3], [2, 5, -1]],
-                     columns=['A', 'B', 'C'])
-    data.plot(kind='barh', stacked=True)
-
-    plt.show()

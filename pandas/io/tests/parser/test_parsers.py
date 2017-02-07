@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import nose
 
 import pandas.util.testing as tm
 
@@ -99,7 +98,3 @@ class TestPythonParser(BaseParser, PythonParserTests, tm.TestCase):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         return read_table(*args, **kwds)
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

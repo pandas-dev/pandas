@@ -810,9 +810,3 @@ class TestSparseArrayAnalytics(tm.TestCase):
         sparse = SparseArray([1, -1, 0, -2], fill_value=0)
         result = SparseArray([2, 0, 1, -1], fill_value=1)
         tm.assert_sp_array_equal(np.add(sparse, 1), result)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

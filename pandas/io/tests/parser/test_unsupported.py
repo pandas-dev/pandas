@@ -9,8 +9,6 @@ Ultimately, the goal is to remove test cases from this
 test suite as new feature support is added to the parsers.
 """
 
-import nose
-
 import pandas.io.parsers as parsers
 import pandas.util.testing as tm
 
@@ -142,7 +140,3 @@ class TestDeprecatedFeatures(tm.TestCase):
                     kwargs = {arg: non_default_val}
                     read_csv(StringIO(data), engine=engine,
                              **kwargs)
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

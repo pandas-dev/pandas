@@ -1372,9 +1372,3 @@ class TestMode(tm.TestCase):
         idx = Index(['1 day', '1 day', '-1 day', '-1 day 2 min',
                      '2 min', '2 min'], dtype='timedelta64[ns]')
         tm.assert_series_equal(algos.mode(idx), exp)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

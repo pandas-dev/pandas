@@ -478,8 +478,3 @@ class TestToNumeric(tm.TestCase):
         for dtype, downcast, min_max in dtype_downcast_min_max:
             series = pd.to_numeric(pd.Series(min_max), downcast=downcast)
             tm.assert_equal(series.dtype, dtype)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

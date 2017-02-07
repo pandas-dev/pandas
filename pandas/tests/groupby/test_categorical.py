@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import nose
 from numpy import nan
-
 
 from pandas.core.index import Index, MultiIndex, CategoricalIndex
 from pandas.core.api import DataFrame, Categorical
@@ -490,8 +488,3 @@ def test_decons():
     shape = (10000, 10000)
     label_list = [np.tile(np.arange(10000), 5), np.tile(np.arange(10000), 5)]
     testit(label_list, shape)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure', '-s'
-                         ], exit=False)

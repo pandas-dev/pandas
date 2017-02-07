@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from pandas import compat
-import nose
 
 from distutils.version import LooseVersion
 from numpy import nan
@@ -185,8 +184,3 @@ class TestRank(tm.TestCase):
         # smoke tests
         Series([np.nan] * 32).astype(object).rank(ascending=True)
         Series([np.nan] * 32).astype(object).rank(ascending=False)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -1366,9 +1366,3 @@ class TestSparseSeriesAnalytics(tm.TestCase):
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

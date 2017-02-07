@@ -1,9 +1,6 @@
 # coding=utf-8
 
-import nose
-
 import numpy as np
-
 from pandas import (offsets, Series, notnull,
                     isnull, date_range, Timestamp)
 
@@ -152,7 +149,3 @@ class TestSeriesAsof(TestData, tm.TestCase):
         s = Series(np.random.randn(N), index=rng)
         with self.assertRaises(ValueError):
             s.asof(s.index[0], subset='foo')
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

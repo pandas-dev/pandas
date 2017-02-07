@@ -2,12 +2,12 @@
 from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 
-import nose
 import re
+import operator
+import nose
 
 from numpy.random import randn
 
-import operator
 import numpy as np
 
 from pandas.core.api import DataFrame, Panel
@@ -439,9 +439,3 @@ class TestExpressions(tm.TestCase):
                     r = f(df, True)
                     e = fe(df, True)
                     tm.assert_frame_equal(r, e)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
