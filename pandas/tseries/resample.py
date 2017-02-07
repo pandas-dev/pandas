@@ -975,6 +975,10 @@ resample.__doc__ = Resampler.__doc__
 def get_resampler_for_grouping(groupby, rule, how=None, fill_method=None,
                                limit=None, kind=None, **kwargs):
     """ return our appropriate resampler when grouping as well """
+
+    # .resample uses 'on' similar to how .groupby uses 'key'
+    kwargs['key'] = kwargs.pop('on', None)
+
     tg = TimeGrouper(freq=rule, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
     r = resampler._get_resampler_for_grouping(groupby=groupby)
