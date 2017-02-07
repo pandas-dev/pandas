@@ -532,13 +532,38 @@ class NDFrame(PandasObject):
 
         return result
 
-    def squeeze(self, **kwargs):
-        """Squeeze length 1 dimensions."""
-        nv.validate_squeeze(tuple(), kwargs)
+    def squeeze(self, axis=None):
+        """Squeeze length 1 dimensions.
+
+        Parameters
+        ----------
+        axis : None or int or tuple of ints, optional
+            Selects a subset of the single-dimensional entries in the
+            shape. If an axis is selected with shape entry greater than
+            one, an error is raised.
+
+            .. versionadded:: 0.20.0
+        """
+        if axis is None:
+            axis = tuple(range(len(self.axes)))
+        else:
+            if not is_list_like(axis):
+                axis = (axis,)
+            if not all(is_integer(ax) for ax in axis):
+                raise TypeError('an integer is required for the axis')
+            n_axes = len(self.axes)
+            for ax in axis:
+                if ax < -n_axes or ax >= n_axes:
+                    raise ValueError("'axis' entry {0} is out of bounds "
+                                     "[-{1}, {1})".format(ax, n_axes))
+            if any(len(self.axes[ax]) != 1 for ax in axis):
+                raise ValueError('cannot select an axis to squeeze out which '
+                                 'has size not equal to one')
 
         try:
-            return self.iloc[tuple([0 if len(a) == 1 else slice(None)
-                                    for a in self.axes])]
+            return self.iloc[
+                tuple([0 if len(a) == 1 and i in axis else slice(None)
+                       for i, a in enumerate(self.axes)])]
         except:
             return self
 
