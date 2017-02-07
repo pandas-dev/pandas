@@ -19,8 +19,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameApply(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_apply(self):
         with np.errstate(all='ignore'):
             # ufunc

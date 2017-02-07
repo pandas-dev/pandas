@@ -230,6 +230,7 @@ class PandasDelegate(PandasObject):
 class AccessorProperty(object):
     """Descriptor for implementing accessor properties like Series.str
     """
+
     def __init__(self, accessor_cls, construct_accessor):
         self.accessor_cls = accessor_cls
         self.construct_accessor = construct_accessor
@@ -651,6 +652,7 @@ class GroupByMixin(object):
     @staticmethod
     def _dispatch(name, *args, **kwargs):
         """ dispatch to apply """
+
         def outer(self, *args, **kwargs):
             def f(x):
                 x = self._shallow_copy(x, groupby=self._groupby)

@@ -6,8 +6,6 @@ import pandas.util.testing as tm
 
 class TestSparseGroupBy(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         self.dense = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
                                          'foo', 'bar', 'foo', 'foo'],

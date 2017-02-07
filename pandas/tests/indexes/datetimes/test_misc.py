@@ -53,7 +53,6 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
 
 
 class TestTimeSeries(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_pass_datetimeindex_to_index(self):
         # Bugs in #1396

@@ -18,8 +18,6 @@ from .common import TestData
 
 class TestSeriesCombine(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)
         for idx, value in compat.iteritems(appendedSeries):
@@ -221,8 +219,6 @@ class TestSeriesCombine(TestData, tm.TestCase):
 
 
 class TestTimeseries(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_append_concat(self):
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T')

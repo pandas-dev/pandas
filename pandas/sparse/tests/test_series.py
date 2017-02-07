@@ -56,7 +56,6 @@ def _test_data2_zero():
 
 
 class TestSparseSeries(tm.TestCase, SharedWithSparse):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         arr, index = _test_data1()
@@ -941,6 +940,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
 
 class TestSparseHandlingMultiIndexes(tm.TestCase):
+
     def setUp(self):
         miindex = pd.MultiIndex.from_product(
             [["x", "y"], ["10", "20"]], names=['row-foo', 'row-bar'])

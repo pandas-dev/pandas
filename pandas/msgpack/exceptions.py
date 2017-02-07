@@ -15,6 +15,7 @@ class UnpackValueError(UnpackException, ValueError):
 
 
 class ExtraData(ValueError):
+
     def __init__(self, unpacked, extra):
         self.unpacked = unpacked
         self.extra = extra

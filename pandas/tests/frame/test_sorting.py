@@ -19,8 +19,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameSorting(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_sort_index(self):
         # GH13496
 

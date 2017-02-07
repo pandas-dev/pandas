@@ -5,8 +5,6 @@ import pandas.formats.format as fmt
 import pandas.util.testing as tm
 import pandas.core.config as cf
 
-_multiprocess_can_split_ = True
-
 
 def test_adjoin():
     data = [['a', 'b', 'c'], ['dd', 'ee', 'ff'], ['ggg', 'hhh', 'iii']]

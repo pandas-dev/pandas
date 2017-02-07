@@ -123,6 +123,7 @@ def init_klipper_clipboard():
 
 def init_no_clipboard():
     class ClipboardUnavailable(object):
+
         def __call__(self, *args, **kwargs):
             raise PyperclipException(EXCEPT_MSG)
 

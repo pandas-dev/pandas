@@ -19,6 +19,7 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestDateTimeConverter(tm.TestCase):
+
     def setUp(self):
         self.dtc = converter.DatetimeConverter()
         self.tc = converter.TimeFormatter(None)
@@ -142,6 +143,7 @@ class TestDateTimeConverter(tm.TestCase):
 
 
 class TestPeriodConverter(tm.TestCase):
+
     def setUp(self):
         self.pc = converter.PeriodConverter()
 

@@ -29,8 +29,6 @@ def add_nans(panel4d):
 
 class SafeForLongAndSparse(object):
 
-    _multiprocess_can_split_ = True
-
     def test_repr(self):
         repr(self.panel4d)
 
@@ -147,8 +145,6 @@ class SafeForLongAndSparse(object):
 
 
 class SafeForSparse(object):
-
-    _multiprocess_can_split_ = True
 
     @classmethod
     def assert_panel_equal(cls, x, y):
@@ -304,8 +300,6 @@ class SafeForSparse(object):
 
 
 class CheckIndexing(object):
-
-    _multiprocess_can_split_ = True
 
     def test_getitem(self):
         self.assertRaises(Exception, self.panel4d.__getitem__, 'ItemQ')
@@ -603,8 +597,6 @@ class CheckIndexing(object):
 
 class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
                   SafeForLongAndSparse):
-
-    _multiprocess_can_split_ = True
 
     @classmethod
     def assert_panel4d_equal(cls, x, y):

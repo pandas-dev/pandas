@@ -7,8 +7,6 @@ import pandas.util.testing as tm
 
 class TestSparseSeriesConcat(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_concat(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
         val2 = np.array([3, np.nan, 4, 0, 0])
@@ -125,8 +123,6 @@ class TestSparseSeriesConcat(tm.TestCase):
 
 
 class TestSparseDataFrameConcat(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def setUp(self):
 

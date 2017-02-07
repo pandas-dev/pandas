@@ -7,8 +7,6 @@ import pandas.util.testing as tm
 
 class TestConcatCompat(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def check_concat(self, to_concat, exp):
         for klass in [pd.Index, pd.Series]:
             to_concat_klass = [klass(c) for c in to_concat]

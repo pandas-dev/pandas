@@ -20,8 +20,6 @@ a_ = np.array
 
 class TestJoin(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         # aggregate multiple columns
         self.df = DataFrame({'key1': get_test_data(),

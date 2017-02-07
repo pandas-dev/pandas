@@ -36,8 +36,6 @@ import pandas as pd
 
 class TestGroupBy(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         self.ts = tm.makeTimeSeries()
 
@@ -5908,8 +5906,8 @@ class TestGroupBy(tm.TestCase):
         g = df.groupby(["A", "B"])
 
         expected = DataFrame([(i + 12 if i % 3 and i < n_rows - 12
-                              else np.nan)
-                             for i in range(n_rows)], dtype=float,
+                               else np.nan)
+                              for i in range(n_rows)], dtype=float,
                              columns=["Z"], index=None)
         result = g.shift(-1)
 

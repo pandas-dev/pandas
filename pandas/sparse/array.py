@@ -239,7 +239,7 @@ class SparseArray(PandasObject, np.ndarray):
                 fill_value = na_value_for_dtype(data.dtype)
 
         if (is_integer_dtype(data) and is_float(fill_value) and
-           sp_index.ngaps > 0):
+                sp_index.ngaps > 0):
             # if float fill_value is being included in dense repr,
             # convert values to float
             data = data.astype(float)
@@ -405,7 +405,6 @@ class SparseArray(PandasObject, np.ndarray):
             yield self._get_val_at(i)
 
     def __getitem__(self, key):
-
         """
 
         """

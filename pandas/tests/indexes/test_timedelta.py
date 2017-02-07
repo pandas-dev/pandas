@@ -34,7 +34,6 @@ class TestSlicing(tm.TestCase):
 
 
 class TestTimeSeries(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_series_box_timedelta(self):
         rng = timedelta_range('1 day 1 s', periods=5, freq='h')

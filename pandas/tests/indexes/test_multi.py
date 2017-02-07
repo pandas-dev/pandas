@@ -30,7 +30,6 @@ from .common import Base
 
 class TestMultiIndex(Base, tm.TestCase):
     _holder = MultiIndex
-    _multiprocess_can_split_ = True
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 
     def setUp(self):
@@ -900,11 +899,11 @@ class TestMultiIndex(Base, tm.TestCase):
 
         res = mi.append(mi)
         exp = MultiIndex.from_arrays([[1, 2, 3, 1, 2, 3],
-                                     [1.1, np.nan, 3.3, 1.1, np.nan, 3.3],
-                                     ['a', 'b', 'c', 'a', 'b', 'c'],
-                                     dti.append(dti),
-                                     dti_tz.append(dti_tz),
-                                     pi.append(pi)])
+                                      [1.1, np.nan, 3.3, 1.1, np.nan, 3.3],
+                                      ['a', 'b', 'c', 'a', 'b', 'c'],
+                                      dti.append(dti),
+                                      dti_tz.append(dti_tz),
+                                      pi.append(pi)])
         tm.assert_index_equal(res, exp)
 
         other = MultiIndex.from_arrays([['x', 'y', 'z'], ['x', 'y', 'z'],
@@ -913,11 +912,11 @@ class TestMultiIndex(Base, tm.TestCase):
 
         res = mi.append(other)
         exp = MultiIndex.from_arrays([[1, 2, 3, 'x', 'y', 'z'],
-                                     [1.1, np.nan, 3.3, 'x', 'y', 'z'],
-                                     ['a', 'b', 'c', 'x', 'y', 'z'],
-                                     dti.append(pd.Index(['x', 'y', 'z'])),
-                                     dti_tz.append(pd.Index(['x', 'y', 'z'])),
-                                     pi.append(pd.Index(['x', 'y', 'z']))])
+                                      [1.1, np.nan, 3.3, 'x', 'y', 'z'],
+                                      ['a', 'b', 'c', 'x', 'y', 'z'],
+                                      dti.append(pd.Index(['x', 'y', 'z'])),
+                                      dti_tz.append(pd.Index(['x', 'y', 'z'])),
+                                      pi.append(pd.Index(['x', 'y', 'z']))])
         tm.assert_index_equal(res, exp)
 
     def test_get_level_values(self):

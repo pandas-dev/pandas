@@ -7,7 +7,6 @@ from pandas import notnull, Index, DatetimeIndex, datetime, date_range
 
 
 class TestDatetimeIndex(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_where_other(self):
 

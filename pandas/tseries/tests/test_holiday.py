@@ -18,6 +18,7 @@ from pytz import utc
 
 
 class TestCalendar(tm.TestCase):
+
     def setUp(self):
         self.holiday_list = [
             datetime(2012, 1, 2),
@@ -54,6 +55,7 @@ class TestCalendar(tm.TestCase):
         # Test for issue #9552
 
         class TestCalendar(AbstractHolidayCalendar):
+
             def __init__(self, name=None, rules=None):
                 super(TestCalendar, self).__init__(name=name, rules=rules)
 
@@ -83,6 +85,7 @@ class TestCalendar(tm.TestCase):
 
 
 class TestHoliday(tm.TestCase):
+
     def setUp(self):
         self.start_date = datetime(2011, 1, 1)
         self.end_date = datetime(2020, 12, 31)
@@ -288,6 +291,7 @@ class TestHoliday(tm.TestCase):
 
 
 class TestObservanceRules(tm.TestCase):
+
     def setUp(self):
         self.we = datetime(2014, 4, 9)
         self.th = datetime(2014, 4, 10)

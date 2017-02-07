@@ -18,7 +18,6 @@ from pandas.compat import is_platform_windows
 
 
 class TestAssertAlmostEqual(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def _assert_almost_equal_both(self, a, b, **kwargs):
         assert_almost_equal(a, b, **kwargs)
@@ -146,7 +145,6 @@ class TestAssertAlmostEqual(tm.TestCase):
 
 
 class TestUtilTesting(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_raise_with_traceback(self):
         with assertRaisesRegexp(LookupError, "error_text"):
@@ -347,7 +345,6 @@ Iterable values are different \\(50\\.0 %\\)
 
 
 class TestAssertIndexEqual(unittest.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_index_equal_message(self):
 
@@ -495,7 +492,6 @@ Attribute "names" are different
 
 
 class TestAssertSeriesEqual(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def _assert_equal(self, x, y, **kwargs):
         assert_series_equal(x, y, **kwargs)
@@ -590,7 +586,6 @@ Series values are different \\(33\\.33333 %\\)
 
 
 class TestAssertFrameEqual(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def _assert_equal(self, x, y, **kwargs):
         assert_frame_equal(x, y, **kwargs)
@@ -701,7 +696,6 @@ class TestIsInstance(tm.TestCase):
 
 
 class TestAssertCategoricalEqual(unittest.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_categorical_equal_message(self):
 
