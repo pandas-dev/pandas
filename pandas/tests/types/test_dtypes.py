@@ -15,8 +15,6 @@ from pandas.types.common import (is_categorical_dtype, is_categorical,
                                  _coerce_to_dtype)
 import pandas.util.testing as tm
 
-_multiprocess_can_split_ = True
-
 
 class Base(object):
 

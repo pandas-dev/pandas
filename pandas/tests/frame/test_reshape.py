@@ -25,8 +25,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameReshape(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_pivot(self):
         data = {
             'index': ['A', 'B', 'C', 'C', 'B', 'A'],

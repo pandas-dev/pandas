@@ -99,8 +99,6 @@ def _mklbl(prefix, n):
 
 class TestIndexing(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     _objs = set(['series', 'frame', 'panel'])
     _typs = set(['ints', 'uints', 'labels', 'mixed',
                  'ts', 'floats', 'empty', 'ts_rev'])

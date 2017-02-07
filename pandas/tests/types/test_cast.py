@@ -19,8 +19,6 @@ from pandas.types.dtypes import (CategoricalDtype,
                                  DatetimeTZDtype, PeriodDtype)
 from pandas.util import testing as tm
 
-_multiprocess_can_split_ = True
-
 
 class TestPossiblyDowncast(tm.TestCase):
 

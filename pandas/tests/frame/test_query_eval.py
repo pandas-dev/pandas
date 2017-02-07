@@ -90,8 +90,6 @@ class TestCompat(tm.TestCase):
 
 class TestDataFrameEval(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_ops(self):
 
         # tst ops and reversed ops in evaluation
@@ -167,8 +165,6 @@ class TestDataFrameEval(tm.TestCase, TestData):
 
 
 class TestDataFrameQueryWithMultiIndex(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def check_query_with_named_multiindex(self, parser, engine):
         tm.skip_if_no_ne(engine)

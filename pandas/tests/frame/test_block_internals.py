@@ -29,8 +29,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameBlockInternals(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_cast_internals(self):
         casted = DataFrame(self.frame._data, dtype=int)
         expected = DataFrame(self.frame._series, dtype=int)

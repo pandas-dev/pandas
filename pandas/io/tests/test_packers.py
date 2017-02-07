@@ -40,8 +40,6 @@ except ImportError:
 else:
     _ZLIB_INSTALLED = True
 
-_multiprocess_can_split_ = False
-
 
 def check_arbitrary(a, b):
 
@@ -870,7 +868,7 @@ TestPackers
         for f in os.listdir(pth):
             # GH12142 0.17 files packed in P2 can't be read in P3
             if (compat.PY3 and version.startswith('0.17.') and
-               f.split('.')[-4][-1] == '2'):
+                    f.split('.')[-4][-1] == '2'):
                 continue
             vf = os.path.join(pth, f)
             try:

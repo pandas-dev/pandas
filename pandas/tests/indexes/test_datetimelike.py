@@ -16,7 +16,6 @@ from .datetimelike import DatetimeLike
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.indices = dict(index=tm.makePeriodIndex(10))
@@ -240,7 +239,6 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
 class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     _holder = TimedeltaIndex
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.indices = dict(index=tm.makeTimedeltaIndex(10))

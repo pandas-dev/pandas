@@ -46,7 +46,6 @@ def test_series_bin_grouper():
 
 
 class TestBinGroupers(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.obj = np.random.randn(10, 1)
@@ -122,6 +121,7 @@ class TestMoments(tm.TestCase):
 
 
 class TestReducer(tm.TestCase):
+
     def test_int_index(self):
         from pandas.core.series import Series
 

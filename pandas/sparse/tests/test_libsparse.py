@@ -241,8 +241,6 @@ class TestSparseIndexIntersect(tm.TestCase):
 
 class TestSparseIndexCommon(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_int_internal(self):
         idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind='integer')
         self.assertIsInstance(idx, IntIndex)
@@ -391,8 +389,6 @@ class TestSparseIndexCommon(tm.TestCase):
 
 class TestBlockIndex(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_block_internal(self):
         idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind='block')
         self.assertIsInstance(idx, BlockIndex)
@@ -477,8 +473,6 @@ class TestBlockIndex(tm.TestCase):
 
 
 class TestIntIndex(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_int_internal(self):
         idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind='integer')

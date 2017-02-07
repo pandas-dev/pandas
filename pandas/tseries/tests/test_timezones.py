@@ -52,7 +52,6 @@ fixed_off_no_name = FixedOffset(-330, None)
 
 
 class TestTimeZoneSupportPytz(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         tm._skip_if_no_pytz()
@@ -899,7 +898,6 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
 
 class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         tm._skip_if_no_dateutil()
@@ -1142,6 +1140,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
 
 class TestTimeZoneCacheKey(tm.TestCase):
+
     def test_cache_keys_are_distinct_for_pytz_vs_dateutil(self):
         tzs = pytz.common_timezones
         for tz_name in tzs:
@@ -1158,7 +1157,6 @@ class TestTimeZoneCacheKey(tm.TestCase):
 
 
 class TestTimeZones(tm.TestCase):
-    _multiprocess_can_split_ = True
     timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
 
     def setUp(self):

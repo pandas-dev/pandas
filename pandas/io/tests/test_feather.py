@@ -18,7 +18,6 @@ from pandas.util.testing import assert_frame_equal, ensure_clean
 
 
 class TestFeather(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         pass

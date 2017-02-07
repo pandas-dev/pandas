@@ -11,7 +11,6 @@ from .common import TestData
 
 
 class TestFrameAsof(TestData, tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.N = N = 50

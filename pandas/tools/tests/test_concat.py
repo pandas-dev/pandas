@@ -17,8 +17,6 @@ from pandas.util.testing import (assert_frame_equal,
 
 class ConcatenateBase(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         self.frame = DataFrame(tm.getSeriesData())
         self.mixed_frame = self.frame.copy()

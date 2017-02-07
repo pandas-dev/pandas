@@ -25,8 +25,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameAnalytics(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     # ---------------------------------------------------------------------=
     # Correlation and covariance
 

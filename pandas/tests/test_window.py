@@ -32,8 +32,6 @@ def assert_equal(left, right):
 
 class Base(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
 

@@ -33,8 +33,6 @@ def get_test_data(ngroups=NGROUPS, n=N):
 
 class TestMerge(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         # aggregate multiple columns
         self.df = DataFrame({'key1': get_test_data(),

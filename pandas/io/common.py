@@ -116,6 +116,7 @@ class BaseIterator(object):
     """Subclass this and provide a "__next__()" method to obtain an iterator.
     Useful only when the object being iterated is non-reusable (e.g. OK for a
     parser, not for an in-memory table, yes for its iterator)."""
+
     def __iter__(self):
         return self
 

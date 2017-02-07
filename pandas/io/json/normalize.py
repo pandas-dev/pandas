@@ -89,7 +89,6 @@ def json_normalize(data, record_path=None, meta=None,
                    meta_prefix=None,
                    record_prefix=None,
                    errors='raise'):
-
     """
     "Normalize" semi-structured JSON data into a flat table
 

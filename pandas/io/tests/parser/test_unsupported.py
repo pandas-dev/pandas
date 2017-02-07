@@ -18,6 +18,7 @@ from pandas.io.parsers import read_csv, read_table
 
 
 class TestUnsupportedFeatures(tm.TestCase):
+
     def test_mangle_dupe_cols_false(self):
         # see gh-12935
         data = 'a b c\n1 2 3'
@@ -111,6 +112,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
 
 class TestDeprecatedFeatures(tm.TestCase):
+
     def test_deprecated_args(self):
         data = '1,2,3'
 

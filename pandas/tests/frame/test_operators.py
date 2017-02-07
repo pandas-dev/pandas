@@ -31,8 +31,6 @@ from pandas.tests.frame.common import (TestData, _check_mixed_float,
 
 class TestDataFrameOperators(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_operators(self):
         garbage = random.random(4)
         colSeries = Series(garbage, index=np.array(self.frame.columns))

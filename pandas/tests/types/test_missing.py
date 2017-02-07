@@ -14,8 +14,6 @@ from pandas.types.dtypes import DatetimeTZDtype
 from pandas.types.missing import (array_equivalent, isnull, notnull,
                                   na_value_for_dtype)
 
-_multiprocess_can_split_ = True
-
 
 def test_notnull():
     assert notnull(1.)

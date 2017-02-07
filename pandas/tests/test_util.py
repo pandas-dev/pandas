@@ -314,6 +314,7 @@ class TestValidateKwargsAndArgs(tm.TestCase):
 
 
 class TestMove(tm.TestCase):
+
     def test_cannot_create_instance_of_stolenbuffer(self):
         """Stolen buffers need to be created through the smart constructor
         ``move_into_mutable_buffer`` which has a bunch of checks in it.

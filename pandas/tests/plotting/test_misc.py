@@ -18,6 +18,7 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
 
 @tm.mplskip
 class TestSeriesPlots(TestPlotBase):
+
     def setUp(self):
         TestPlotBase.setUp(self)
         import matplotlib as mpl
@@ -49,6 +50,7 @@ class TestSeriesPlots(TestPlotBase):
 
 @tm.mplskip
 class TestDataFramePlots(TestPlotBase):
+
     @slow
     def test_scatter_plot_legacy(self):
         tm._skip_if_no_scipy()

@@ -42,6 +42,7 @@ _NS = slice(None, None)
 
 # the public IndexSlicerMaker
 class _IndexSlice(object):
+
     def __getitem__(self, arg):
         return arg
 

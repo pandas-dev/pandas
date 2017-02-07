@@ -13,8 +13,6 @@ from .common import TestData
 
 class TestSeriesSorting(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_sort(self):
 
         ts = self.ts.copy()

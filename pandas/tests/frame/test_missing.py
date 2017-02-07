@@ -29,8 +29,6 @@ def _skip_if_no_pchip():
 
 class TestDataFrameMissingData(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
         mat = random.randn(N)
