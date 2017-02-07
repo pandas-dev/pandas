@@ -339,6 +339,19 @@ def pivot(self, index=None, columns=None, values=None):
         return indexed.unstack(columns)
 
 
+def pivot_sparse(index, columns, values):
+    if (len(index) != len(columns)) or (len(columns) != len(values)):
+        raise AssertionError('Length of index, columns, and values must be the'
+                             ' same')
+
+    if len(index) == 0:
+        return SparseSeries(index=[])
+
+    hindex = MultiIndex.from_arrays([index, columns])
+    series = Series(values.values, index=hindex)
+    return series.to_sparse()
+
+
 def pivot_simple(index, columns, values):
     """
     Produce 'pivot' table based on 3 columns of this DataFrame.

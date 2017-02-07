@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.util.testing import assert_frame_equal
 
-from pandas.core.reshape import (melt, lreshape, get_dummies, wide_to_long)
+from pandas.core.reshape import (melt, lreshape, get_dummies, wide_to_long, pivot_sparse)
 import pandas.util.testing as tm
 from pandas.compat import range, u
 
@@ -915,6 +915,19 @@ class TestWideToLong(tm.TestCase):
         long_frame = wide_to_long(df, 'ht', i=['famid', 'birth'], j='age')
         tm.assert_frame_equal(long_frame, exp_frame)
 
+
+class TestSparePivot(tm.TestCase):
+
+    def setUp(self):
+        self.df = pd.DataFrame({'a': ['a', 'b', 'b', 'c'],\
+                                'b': ['x', 'x', 'y', 'z'],\
+                                'c': [1, 2, 3, 4]})
+
+    def test_simile_sparse_pivot(self):
+        result = pivot_sparse(self.df['a'], self.df['b'], self.df['c'])
+        actual_get = np.asarray(result.to_coo()[0].todense())
+        expected = self.df.pivot(index='a', columns='b', values='c').fillna(0).values.astype(self.df['c'].dtype)
+        self.assert_numpy_array_equal(actual_get, expected)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
