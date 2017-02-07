@@ -964,8 +964,9 @@ class DataFrame(NDFrame):
         coerce_float : boolean, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
-        exclude : sequence, default None
+        include : sequence, default None
             Columns or fields to include, default includes all columns.
+
         Returns
         -------
         df : DataFrame
