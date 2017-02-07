@@ -943,7 +943,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
-                     coerce_float=False, nrows=None):
+                     coerce_float=False, nrows=None, include=None):
         """
         Convert structured or record ndarray to DataFrame
 
@@ -964,7 +964,8 @@ class DataFrame(NDFrame):
         coerce_float : boolean, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
-
+        exclude : sequence, default None
+            Columns or fields to include, default includes all columns.
         Returns
         -------
         df : DataFrame
@@ -1057,6 +1058,14 @@ class DataFrame(NDFrame):
 
         if any(exclude):
             arr_exclude = [x for x in exclude if x in arr_columns]
+            to_remove = [arr_columns.get_loc(col) for col in arr_exclude]
+            arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
+
+            arr_columns = arr_columns.drop(arr_exclude)
+            columns = columns.drop(exclude)
+
+        if any(include):
+            arr_exclude = [x for x in arr_columns if x not in include]
             to_remove = [arr_columns.get_loc(col) for col in arr_exclude]
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
