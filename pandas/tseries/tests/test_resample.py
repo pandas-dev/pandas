@@ -217,6 +217,20 @@ class TestResampleAPI(tm.TestCase):
             lambda x: x.resample('1D').ffill())[['val']]
         assert_frame_equal(result, expected)
 
+    def test_grouby_resample_on_api(self):
+
+        # GH 15021
+        # .groupby(...).resample(on=...) results in an unexpected
+        # keyword warning.
+        df = pd.DataFrame({'key': ['A', 'B'] * 5,
+                           'dates': pd.date_range('2016-01-01', periods=10),
+                           'values': np.random.randn(10)})
+
+        expected = df.set_index('dates').groupby('key').resample('D').mean()
+
+        result = df.groupby('key').resample('D', on='dates').mean()
+        assert_frame_equal(result, expected)
+
     def test_plot_api(self):
         tm._skip_if_no_mpl()
 
