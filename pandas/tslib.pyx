@@ -1035,7 +1035,11 @@ cdef class _Timestamp(datetime):
 
             # we may be passed reverse ops
             if get_timezone(getattr(self,'tzinfo',None)) != get_timezone(other.tz):
-                    raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
+            
+                if self.tzinfo!="UTC":
+                    self.tz_convert("UTC")
+                if other.tzinfo!="UTC":
+                    other.tz_convert("UTC")
 
             return -other.__sub__(self)
 
@@ -1052,8 +1056,11 @@ cdef class _Timestamp(datetime):
             other = Timestamp(other)
 
             # validate tz's
-            if get_timezone(self.tzinfo) != get_timezone(other.tzinfo):
-                raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
+            if get_timezone(self.tzinfo) != get_timezone(other.tzinfo): 
+                if self.tzinfo!="UTC":
+                    self.tz_convert("UTC")
+                if other.tzinfo!="UTC":
+                    other.tz_convert("UTC")
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a Timedelta
             try:
