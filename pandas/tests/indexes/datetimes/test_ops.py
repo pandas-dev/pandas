@@ -6,11 +6,15 @@ import pandas as pd
 import pandas.tslib as tslib
 import pandas.util.testing as tm
 from pandas.core.common import PerformanceWarning
+from pandas.tseries.index import cdate_range
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,
-                    datetime, Float64Index, offsets)
-
+                    datetime, Float64Index, offsets, bdate_range)
+from pandas.tseries.offsets import BMonthEnd, CDay, BDay
 from pandas.tests.test_base import Ops
+
+
+START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestDatetimeIndexOps(Ops):
@@ -1071,9 +1075,6 @@ class TestDatetimeIndex(tm.TestCase):
                             assert_func(klass([x - op for x in s]), s - op)
                             assert_func(klass([op + x for x in s]), op + s)
 
-
-class TestTslib(tm.TestCase):
-
     def test_shift_months(self):
         s = DatetimeIndex([Timestamp('2000-01-05 00:15:00'), Timestamp(
             '2000-01-31 00:23:00'), Timestamp('2000-01-01'), Timestamp(
@@ -1085,3 +1086,187 @@ class TestTslib(tm.TestCase):
                 expected = DatetimeIndex([x + offsets.DateOffset(
                     years=years, months=months) for x in s])
                 tm.assert_index_equal(actual, expected)
+
+
+class TestBusinessDatetimeIndex(tm.TestCase):
+
+    def setUp(self):
+        self.rng = bdate_range(START, END)
+
+    def test_comparison(self):
+        d = self.rng[10]
+
+        comp = self.rng > d
+        self.assertTrue(comp[11])
+        self.assertFalse(comp[9])
+
+    def test_pickle_unpickle(self):
+        unpickled = self.round_trip_pickle(self.rng)
+        self.assertIsNotNone(unpickled.offset)
+
+    def test_copy(self):
+        cp = self.rng.copy()
+        repr(cp)
+        self.assert_index_equal(cp, self.rng)
+
+    def test_repr(self):
+        # only really care that it works
+        repr(self.rng)
+
+    def test_getitem(self):
+        smaller = self.rng[:5]
+        exp = DatetimeIndex(self.rng.view(np.ndarray)[:5])
+        self.assert_index_equal(smaller, exp)
+
+        self.assertEqual(smaller.offset, self.rng.offset)
+
+        sliced = self.rng[::5]
+        self.assertEqual(sliced.offset, BDay() * 5)
+
+        fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
+        self.assertEqual(len(fancy_indexed), 5)
+        tm.assertIsInstance(fancy_indexed, DatetimeIndex)
+        self.assertIsNone(fancy_indexed.freq)
+
+        # 32-bit vs. 64-bit platforms
+        self.assertEqual(self.rng[4], self.rng[np.int_(4)])
+
+    def test_getitem_matplotlib_hackaround(self):
+        values = self.rng[:, None]
+        expected = self.rng.values[:, None]
+        self.assert_numpy_array_equal(values, expected)
+
+    def test_shift(self):
+        shifted = self.rng.shift(5)
+        self.assertEqual(shifted[0], self.rng[5])
+        self.assertEqual(shifted.offset, self.rng.offset)
+
+        shifted = self.rng.shift(-5)
+        self.assertEqual(shifted[5], self.rng[0])
+        self.assertEqual(shifted.offset, self.rng.offset)
+
+        shifted = self.rng.shift(0)
+        self.assertEqual(shifted[0], self.rng[0])
+        self.assertEqual(shifted.offset, self.rng.offset)
+
+        rng = date_range(START, END, freq=BMonthEnd())
+        shifted = rng.shift(1, freq=BDay())
+        self.assertEqual(shifted[0], rng[0] + BDay())
+
+    def test_summary(self):
+        self.rng.summary()
+        self.rng[2:2].summary()
+
+    def test_summary_pytz(self):
+        tm._skip_if_no_pytz()
+        import pytz
+        bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
+
+    def test_summary_dateutil(self):
+        tm._skip_if_no_dateutil()
+        import dateutil
+        bdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
+
+    def test_equals(self):
+        self.assertFalse(self.rng.equals(list(self.rng)))
+
+    def test_identical(self):
+        t1 = self.rng.copy()
+        t2 = self.rng.copy()
+        self.assertTrue(t1.identical(t2))
+
+        # name
+        t1 = t1.rename('foo')
+        self.assertTrue(t1.equals(t2))
+        self.assertFalse(t1.identical(t2))
+        t2 = t2.rename('foo')
+        self.assertTrue(t1.identical(t2))
+
+        # freq
+        t2v = Index(t2.values)
+        self.assertTrue(t1.equals(t2v))
+        self.assertFalse(t1.identical(t2v))
+
+
+class TestCustomDatetimeIndex(tm.TestCase):
+
+    def setUp(self):
+        self.rng = cdate_range(START, END)
+
+    def test_comparison(self):
+        d = self.rng[10]
+
+        comp = self.rng > d
+        self.assertTrue(comp[11])
+        self.assertFalse(comp[9])
+
+    def test_copy(self):
+        cp = self.rng.copy()
+        repr(cp)
+        self.assert_index_equal(cp, self.rng)
+
+    def test_repr(self):
+        # only really care that it works
+        repr(self.rng)
+
+    def test_getitem(self):
+        smaller = self.rng[:5]
+        exp = DatetimeIndex(self.rng.view(np.ndarray)[:5])
+        self.assert_index_equal(smaller, exp)
+        self.assertEqual(smaller.offset, self.rng.offset)
+
+        sliced = self.rng[::5]
+        self.assertEqual(sliced.offset, CDay() * 5)
+
+        fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
+        self.assertEqual(len(fancy_indexed), 5)
+        tm.assertIsInstance(fancy_indexed, DatetimeIndex)
+        self.assertIsNone(fancy_indexed.freq)
+
+        # 32-bit vs. 64-bit platforms
+        self.assertEqual(self.rng[4], self.rng[np.int_(4)])
+
+    def test_getitem_matplotlib_hackaround(self):
+        values = self.rng[:, None]
+        expected = self.rng.values[:, None]
+        self.assert_numpy_array_equal(values, expected)
+
+    def test_shift(self):
+
+        shifted = self.rng.shift(5)
+        self.assertEqual(shifted[0], self.rng[5])
+        self.assertEqual(shifted.offset, self.rng.offset)
+
+        shifted = self.rng.shift(-5)
+        self.assertEqual(shifted[5], self.rng[0])
+        self.assertEqual(shifted.offset, self.rng.offset)
+
+        shifted = self.rng.shift(0)
+        self.assertEqual(shifted[0], self.rng[0])
+        self.assertEqual(shifted.offset, self.rng.offset)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            rng = date_range(START, END, freq=BMonthEnd())
+            shifted = rng.shift(1, freq=CDay())
+            self.assertEqual(shifted[0], rng[0] + CDay())
+
+    def test_pickle_unpickle(self):
+        unpickled = self.round_trip_pickle(self.rng)
+        self.assertIsNotNone(unpickled.offset)
+
+    def test_summary(self):
+        self.rng.summary()
+        self.rng[2:2].summary()
+
+    def test_summary_pytz(self):
+        tm._skip_if_no_pytz()
+        import pytz
+        cdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
+
+    def test_summary_dateutil(self):
+        tm._skip_if_no_dateutil()
+        import dateutil
+        cdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
+
+    def test_equals(self):
+        self.assertFalse(self.rng.equals(list(self.rng)))
