@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import nose
 import pandas as pd
 import pandas.types.concat as _concat
 import pandas.util.testing as tm
@@ -79,8 +78,3 @@ class TestConcatCompat(tm.TestCase):
                      pd.Series([pd.Period('2011-02', freq='D')])]
         res = _concat.get_dtype_kinds(to_concat)
         self.assertEqual(res, set(['object']))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

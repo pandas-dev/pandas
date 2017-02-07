@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta
 from functools import partial
 
-import nose
 import numpy as np
 
 import pandas as pd
@@ -3188,8 +3187,3 @@ class TestTimeGrouper(tm.TestCase):
 
             # if NaT is included, 'var', 'std', 'mean', 'first','last'
             # and 'nth' doesn't work yet
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

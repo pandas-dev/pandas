@@ -1321,9 +1321,3 @@ class TestCrosstab(tm.TestCase):
                                 index=expected_index,
                                 columns=expected_column)
         tm.assert_frame_equal(result, expected)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

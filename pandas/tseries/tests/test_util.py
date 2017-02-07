@@ -1,5 +1,4 @@
 from pandas.compat import range
-import nose
 
 import numpy as np
 
@@ -125,8 +124,3 @@ def test_normalize_date():
 
     result = normalize_date(value)
     assert (result == datetime(2012, 9, 7))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

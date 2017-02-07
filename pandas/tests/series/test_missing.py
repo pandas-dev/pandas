@@ -1092,10 +1092,3 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         result = ts.reindex(new_index).interpolate(method='time')
 
         self.assert_numpy_array_equal(result.values, exp.values)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   # '--with-coverage', '--cover-package=pandas.core']
-                   exit=False)

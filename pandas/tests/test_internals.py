@@ -1188,8 +1188,3 @@ class TestBlockPlacement(tm.TestCase):
                           lambda: BlockPlacement([1, 2, 4]).add(-10))
         self.assertRaises(ValueError,
                           lambda: BlockPlacement(slice(2, None, -1)).add(-1))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

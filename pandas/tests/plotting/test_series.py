@@ -1,6 +1,8 @@
 # coding: utf-8
 
-import nose
+""" Test cases for Series.plot """
+
+
 import itertools
 
 from datetime import datetime
@@ -18,9 +20,6 @@ import pandas.tools.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
-
-
-""" Test cases for Series.plot """
 
 
 @tm.mplskip
@@ -811,8 +810,3 @@ class TestSeriesPlots(TestPlotBase):
             freq=CustomBusinessDay(holidays=['2014-05-26'])))
 
         _check_plot_works(s.plot)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

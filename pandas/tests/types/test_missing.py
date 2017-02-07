@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import nose
 import numpy as np
 from datetime import datetime
 from pandas.util import testing as tm
@@ -304,8 +303,3 @@ def test_na_value_for_dtype():
 
     for dtype in ['O']:
         assert np.isnan(na_value_for_dtype(np.dtype(dtype)))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

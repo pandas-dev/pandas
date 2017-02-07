@@ -4999,8 +4999,3 @@ def test_format_percentiles():
     tm.assertRaises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
     tm.assertRaises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
     tm.assertRaises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

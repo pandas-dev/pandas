@@ -1,6 +1,6 @@
 from pandas import Series
 
-import nose  # noqa
+import nose
 import numpy as np
 import operator
 import pandas.util.testing as tm
@@ -196,7 +196,7 @@ class TestSparseIndexIntersect(tm.TestCase):
             assert (result.equals(expected))
 
         def _check_length_exc(a, longer):
-            nose.tools.assert_raises(Exception, a.intersect, longer)
+            self.assertRaises(Exception, a.intersect, longer)
 
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
@@ -585,9 +585,3 @@ for op in check_ops:
     g = make_optestf(op)
     setattr(TestSparseOperators, g.__name__, g)
     del g
-
-
-if __name__ == '__main__':
-    import nose  # noqa
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

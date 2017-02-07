@@ -1,7 +1,5 @@
 # pylint: disable=E1103
 
-import nose
-
 from datetime import datetime
 from numpy.random import randn
 from numpy import nan
@@ -1370,8 +1368,3 @@ class TestMergeMulti(tm.TestCase):
         def f():
             household.join(log_return, how='outer')
         self.assertRaises(NotImplementedError, f)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

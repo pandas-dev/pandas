@@ -11,7 +11,6 @@ from pandas.compat import (range, lrange, lzip, u,
 import operator
 import os
 
-import nose
 import numpy as np
 
 from pandas import (period_range, date_range, Series,
@@ -2078,8 +2077,3 @@ class TestMixedIntIndex(Base, tm.TestCase):
         res = i2.intersection(i1)
 
         self.assertEqual(len(res), 0)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -2658,8 +2658,3 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         self.assertEqual(tquery(sql_select, con=self.conn),
                          [(1, 'A'), (2, 'B'), (3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

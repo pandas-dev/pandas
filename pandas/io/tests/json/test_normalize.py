@@ -1,5 +1,3 @@
-import nose
-
 from pandas import DataFrame
 import numpy as np
 import json
@@ -283,8 +281,3 @@ class TestNestedToRecord(tm.TestCase):
                                 ['general', 'trade_version']],
                           errors='raise'
                           )
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb',
-                         '--pdb-failure', '-s'], exit=False)

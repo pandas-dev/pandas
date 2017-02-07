@@ -1,7 +1,5 @@
 # pylint: disable=E1103
 
-import nose
-
 from numpy.random import randn
 import numpy as np
 
@@ -799,8 +797,3 @@ def _join_by_hand(a, b, how='left'):
     for col, s in compat.iteritems(b_re):
         a_re[col] = s
     return a_re.reindex(columns=result_columns)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

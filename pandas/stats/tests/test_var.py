@@ -6,7 +6,6 @@ import pandas.util.testing as tm
 
 from pandas.compat import range
 import nose
-import unittest
 
 raise nose.SkipTest('skipping this for now')
 
@@ -93,7 +92,3 @@ class Foo(object):
         self.res1 = VAR2(endog=data).fit(maxlag=2)
         from results import results_var
         self.res2 = results_var.MacrodataResults()
-
-
-if __name__ == '__main__':
-    unittest.main()

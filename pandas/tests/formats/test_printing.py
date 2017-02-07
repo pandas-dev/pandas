@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import nose
 from pandas import compat
 import pandas.formats.printing as printing
 import pandas.formats.format as fmt
@@ -135,8 +134,3 @@ c        ff         いいい"""
 #         result = printing.console_encode(u"\u05d0")
 #         expected = u"\u05d0".encode('utf-8')
 #         assert (result == expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

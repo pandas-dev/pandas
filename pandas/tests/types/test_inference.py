@@ -6,7 +6,6 @@ related to inference and not otherwise tested in types/test_common.py
 
 """
 
-import nose
 import collections
 import re
 from datetime import datetime, date, timedelta, time
@@ -968,8 +967,3 @@ def test_ensure_categorical():
     values = Categorical(values)
     result = _ensure_categorical(values)
     tm.assert_categorical_equal(result, values)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

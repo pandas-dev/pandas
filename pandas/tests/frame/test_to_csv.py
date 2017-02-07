@@ -1145,9 +1145,3 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         df = df.set_index(['a', 'b'])
         expected = '"a","b","c"\n"1","3","5"\n"2","4","6"\n'
         self.assertEqual(df.to_csv(quoting=csv.QUOTE_ALL), expected)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

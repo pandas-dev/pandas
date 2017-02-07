@@ -1977,8 +1977,3 @@ class TestValidate(tm.TestCase):
         for value in invalid_values:
             with self.assertRaises(ValueError):
                 pd.eval("2+2", inplace=value)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

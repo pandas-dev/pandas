@@ -1,7 +1,5 @@
 # pylint: disable-msg=E1101,W0612
 from datetime import datetime, timedelta, tzinfo, date
-import nose
-
 import numpy as np
 import pytz
 from distutils.version import LooseVersion
@@ -1683,8 +1681,3 @@ class TestTimeZones(tm.TestCase):
         idx = idx.tz_convert('US/Eastern')
         expected = ['2010-12-01 11:00', '2010-12-02 11:00', NaT]
         self.assert_index_equal(idx, DatetimeIndex(expected, tz='US/Eastern'))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

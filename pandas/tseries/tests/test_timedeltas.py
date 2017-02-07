@@ -2,7 +2,6 @@
 
 from __future__ import division
 from datetime import timedelta, time
-import nose
 
 from distutils.version import LooseVersion
 import numpy as np
@@ -2051,8 +2050,3 @@ class TestSlicing(tm.TestCase):
         result = (to_timedelta([pd.NaT, '5 days', '1 hours']) +
                   to_timedelta(['7 seconds', pd.NaT, '4 hours']))
         tm.assert_index_equal(result, exp)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
