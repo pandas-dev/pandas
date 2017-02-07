@@ -2,10 +2,8 @@ from __future__ import print_function
 from datetime import timedelta
 import numpy as np
 import pandas as pd
-from pandas import (Series, Index, Int64Index, Timestamp, Period,
-                    DatetimeIndex, PeriodIndex, TimedeltaIndex,
-                    Timedelta, timedelta_range, date_range, Float64Index,
-                    _np_version_under1p10)
+from pandas import (Series, Index, Period, DatetimeIndex, PeriodIndex,
+                    Timedelta, _np_version_under1p10)
 import pandas.tslib as tslib
 import pandas.tseries.period as period
 

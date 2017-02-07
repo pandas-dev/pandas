@@ -3,8 +3,7 @@ from datetime import timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (TimedeltaIndex, Timedelta, timedelta_range, tslib, isnull,
-                    to_timedelta)
+from pandas import TimedeltaIndex, timedelta_range, tslib, to_timedelta
 
 iNaT = tslib.iNaT
 
@@ -87,5 +86,3 @@ class TestTimedeltaIndex(tm.TestCase):
         # GH10025
         idx2 = TimedeltaIndex(idx, name='something else')
         self.assertEqual(idx2.name, 'something else')
-
-

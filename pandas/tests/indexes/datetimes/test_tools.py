@@ -5,7 +5,7 @@ import nose
 import locale
 import calendar
 import numpy as np
-from datetime import datetime, date
+from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
@@ -1266,8 +1266,8 @@ class TestDatetimeParsingWrappers(tm.TestCase):
         # GH11818
         _skip_if_has_locale()
         strings = ["14:15", "1415", "2:15pm", "0215pm", "14:15:00", "141500",
-                   "2:15:00pm", "021500pm", datetime.time(14, 15)]
-        expected = datetime.time(14, 15)
+                   "2:15:00pm", "021500pm", time(14, 15)]
+        expected = time(14, 15)
 
         for time_string in strings:
             self.assertEqual(tools.to_time(time_string), expected)
@@ -1277,7 +1277,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
         self.assertEqual(tools.to_time(new_string, format="%H.%M"), expected)
 
         arg = ["14:15", "20:20"]
-        expected_arr = [datetime.time(14, 15), datetime.time(20, 20)]
+        expected_arr = [time(14, 15), time(20, 20)]
         self.assertEqual(tools.to_time(arg), expected_arr)
         self.assertEqual(tools.to_time(arg, format="%H:%M"), expected_arr)
         self.assertEqual(tools.to_time(arg, infer_time_format=True),

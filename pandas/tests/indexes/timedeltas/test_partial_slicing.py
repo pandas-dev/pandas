@@ -79,4 +79,3 @@ class TestSlicing(tm.TestCase):
                                 lambda: ts.loc[::0])
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
                                 lambda: ts.loc[::0])
-

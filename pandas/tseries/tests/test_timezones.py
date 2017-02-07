@@ -1,10 +1,5 @@
 # pylint: disable-msg=E1101,W0612
-<<<<<<< 7c2fd37dbcf53193c9e3fc22a4419779ced7d05d
-from datetime import datetime, timedelta, tzinfo, date
-=======
 import pytz
-import nose
->>>>>>> reorg of timedelta tests
 import numpy as np
 from distutils.version import LooseVersion
 from datetime import datetime, timedelta, tzinfo, date

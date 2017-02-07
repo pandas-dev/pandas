@@ -7,8 +7,8 @@ import pandas.util.testing as tm
 from pandas import to_timedelta
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 from pandas import (Series, Timedelta, DataFrame, Timestamp, TimedeltaIndex,
-                    timedelta_range, date_range, DatetimeIndex, Int64Index, tslib,
-                    _np_version_under1p10, Float64Index, Index)
+                    timedelta_range, date_range, DatetimeIndex, Int64Index,
+                    _np_version_under1p10, Float64Index, Index, tslib)
 
 from pandas.tests.test_base import Ops
 
@@ -995,18 +995,20 @@ class TestTimedeltas(tm.TestCase):
 
     def test_ops_error_str(self):
         # GH 13624
-        td = Timedelta('1 day')
+        tdi = TimedeltaIndex(['1 day', '2 days'])
 
-        for l, r in [(td, 'a'), ('a', td)]:
-
+        for l, r in [(tdi, 'a'), ('a', tdi)]:
             with tm.assertRaises(TypeError):
                 l + r
 
             with tm.assertRaises(TypeError):
                 l > r
 
-            self.assertFalse(l == r)
-            self.assertTrue(l != r)
+            with tm.assertRaises(TypeError):
+                l == r
+
+            with tm.assertRaises(TypeError):
+                l != r
 
     def test_timedelta_ops(self):
         # GH4984
@@ -1183,22 +1185,20 @@ class TestTimedeltas(tm.TestCase):
         actual = df1 - pd.NaT
         assert_frame_equal(actual, dfn)
 
-    def test_ops_error_str(self):
-        # GH 13624
-        tdi = TimedeltaIndex(['1 day', '2 days'])
+    def test_compare_timedelta_series(self):
+        # regresssion test for GH5963
+        s = pd.Series([timedelta(days=1), timedelta(days=2)])
+        actual = s > timedelta(days=1)
+        expected = pd.Series([False, True])
+        tm.assert_series_equal(actual, expected)
 
-        for l, r in [(tdi, 'a'), ('a', tdi)]:
-            with tm.assertRaises(TypeError):
-                l + r
-
-            with tm.assertRaises(TypeError):
-                l > r
-
-            with tm.assertRaises(TypeError):
-                l == r
-
-            with tm.assertRaises(TypeError):
-                l != r
+    def test_compare_timedelta_ndarray(self):
+        # GH11835
+        periods = [Timedelta('0 days 01:00:00'), Timedelta('0 days 01:00:00')]
+        arr = np.array(periods)
+        result = arr[0] > arr
+        expected = np.array([False, False])
+        self.assert_numpy_array_equal(result, expected)
 
 
 class TestSlicing(tm.TestCase):
@@ -1274,25 +1274,3 @@ class TestSlicing(tm.TestCase):
         result = (to_timedelta([pd.NaT, '5 days', '1 hours']) +
                   to_timedelta(['7 seconds', pd.NaT, '4 hours']))
         tm.assert_index_equal(result, exp)
-
-
-class TestTimedeltas(tm.TestCase):
-    _multiprocess_can_split_ = True
-
-    def setUp(self):
-        pass
-
-    def test_compare_timedelta_series(self):
-        # regresssion test for GH5963
-        s = pd.Series([timedelta(days=1), timedelta(days=2)])
-        actual = s > timedelta(days=1)
-        expected = pd.Series([False, True])
-        tm.assert_series_equal(actual, expected)
-
-    def test_compare_timedelta_ndarray(self):
-        # GH11835
-        periods = [Timedelta('0 days 01:00:00'), Timedelta('0 days 01:00:00')]
-        arr = np.array(periods)
-        result = arr[0] > arr
-        expected = np.array([False, False])
-        self.assert_numpy_array_equal(result, expected)

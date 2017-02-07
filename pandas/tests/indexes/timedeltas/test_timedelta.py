@@ -4,8 +4,8 @@ from datetime import timedelta
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (timedelta_range, date_range, Series, Timedelta,
-                    DatetimeIndex, TimedeltaIndex, Float64Index, Index,
-                    Int64Index, _np_version_under1p8, DataFrame)
+                    DatetimeIndex, TimedeltaIndex, Index, DataFrame,
+                    Int64Index, _np_version_under1p8)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_index_equal)
 

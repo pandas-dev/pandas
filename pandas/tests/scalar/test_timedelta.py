@@ -696,3 +696,18 @@ class TestTimedeltas(tm.TestCase):
         result = Timedelta(minutes=1).isoformat()
         expected = 'P0DT0H1M0S'
         self.assertEqual(result, expected)
+
+    def test_ops_error_str(self):
+        # GH 13624
+        td = Timedelta('1 day')
+
+        for l, r in [(td, 'a'), ('a', td)]:
+
+            with tm.assertRaises(TypeError):
+                l + r
+
+            with tm.assertRaises(TypeError):
+                l > r
+
+            self.assertFalse(l == r)
+            self.assertTrue(l != r)
