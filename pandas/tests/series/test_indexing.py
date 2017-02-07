@@ -2638,9 +2638,3 @@ class TestNatIndexing(tm.TestCase):
             round_method = getattr(s.dt, method)
             for freq in ["s", "5s", "min", "5min", "h", "5h"]:
                 assert_series_equal(round_method(freq), expected)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

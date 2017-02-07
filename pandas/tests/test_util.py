@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import nose
-
 from collections import OrderedDict
 import sys
 import unittest
@@ -402,8 +400,3 @@ def test_numpy_errstate_is_default():
     from pandas.compat import numpy  # noqa
     # The errstate should be unchanged after that import.
     tm.assert_equal(np.geterr(), expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

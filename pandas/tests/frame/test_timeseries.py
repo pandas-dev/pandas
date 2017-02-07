@@ -575,9 +575,3 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
 
         self.assertRaises(ValueError, df.to_period, axis=2)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

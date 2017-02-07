@@ -2,10 +2,11 @@ import os
 from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from pandas.compat import range, iteritems
-from pandas import compat
+
 import nose
 from nose.tools import assert_raises
+from pandas.compat import range, iteritems
+from pandas import compat
 
 import numpy as np
 
@@ -4956,8 +4957,3 @@ class TestDST(tm.TestCase):
             first = Timestamp(test_values[0], tz='US/Eastern') + offset()
             second = Timestamp(test_values[1], tz='US/Eastern')
             self.assertEqual(first, second, msg=str(offset))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

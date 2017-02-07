@@ -1,4 +1,3 @@
-import nose
 import datetime
 import numpy as np
 from distutils.version import LooseVersion
@@ -690,8 +689,3 @@ class TestTslib(tm.TestCase):
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
         with self.assertRaisesRegexp(ValueError, msg):
             stamp.round('foo')
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

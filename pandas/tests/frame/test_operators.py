@@ -1275,8 +1275,3 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             align(df, val, 'index')
         with tm.assertRaises(ValueError):
             align(df, val, 'columns')
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

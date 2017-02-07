@@ -1,5 +1,3 @@
-import nose
-
 import numpy as np
 from numpy.random import randn
 
@@ -2171,8 +2169,3 @@ bar2,12,13,14,15
         tm.assert_frame_equal(result_copy, expected)
         result_no_copy = pd.concat(example_dict, names=['testname'])
         tm.assert_frame_equal(result_no_copy, expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -1276,8 +1276,3 @@ class TestStata(tm.TestCase):
                 original.to_stata(path)
             tm.assertTrue('ColumnTooBig' in cm.exception)
             tm.assertTrue('infinity' in cm.exception)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

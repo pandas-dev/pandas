@@ -802,8 +802,3 @@ def test_skiptest_deco():
     with assertRaises(ValueError):
         f()
         raise ValueError
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

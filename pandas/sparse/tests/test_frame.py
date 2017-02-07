@@ -1193,8 +1193,3 @@ class TestSparseDataFrameAnalytics(tm.TestCase):
                  'std', 'min', 'max']
         for func in funcs:
             getattr(np, func)(self.frame)
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

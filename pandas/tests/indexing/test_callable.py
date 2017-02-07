@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
-import nose
 
 import numpy as np
 import pandas as pd
@@ -268,8 +267,3 @@ class TestIndexingCallable(tm.TestCase):
         exp = df.copy()
         exp.iloc[[1, 3], [0]] = [-5, -5]
         tm.assert_frame_equal(res, exp)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

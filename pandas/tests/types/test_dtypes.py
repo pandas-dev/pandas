@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from itertools import product
 
-import nose
 import numpy as np
 import pandas as pd
 from pandas import Series, Categorical, date_range
@@ -353,8 +352,3 @@ class TestPeriodDtype(Base, tm.TestCase):
     def test_not_string(self):
         # though PeriodDtype has object kind, it cannot be string
         self.assertFalse(is_string_dtype(PeriodDtype('D')))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
