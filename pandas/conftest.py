@@ -8,8 +8,6 @@ def pytest_addoption(parser):
                      help="run network tests")
     parser.addoption("--only-slow", action="store_true",
                      help="run only slow tests")
-    parser.addoption("--run-disabled", action="store_false",
-                     help="run disabled tests")
 
 
 def pytest_runtest_setup(item):
@@ -21,6 +19,3 @@ def pytest_runtest_setup(item):
 
     if 'skip' in item.keywords and item.config.getoption("--skip-network"):
         pytest.skip("skipping due to --skip-network")
-
-    if 'disabled' in item.keywords and item.config.getoption("--run-disabled"):
-        pytest.skip("need --run-disabled option to run")

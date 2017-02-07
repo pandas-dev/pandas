@@ -2550,7 +2550,6 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                                     % extra_warnings)
 
 
-disabled = pytest.mark.disabled
 slow = pytest.mark.slow
 
 
