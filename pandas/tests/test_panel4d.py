@@ -949,8 +949,3 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
     def test_get_attr(self):
         assert_panel_equal(self.panel4d['l1'], self.panel4d.l1)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

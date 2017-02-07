@@ -3,7 +3,6 @@
 from datetime import datetime
 from pandas.compat import range, PY3
 
-import nose
 import numpy as np
 
 from pandas import (date_range, Series, Index, Float64Index,
@@ -1144,8 +1143,3 @@ class TestUInt64Index(NumericInt, tm.TestCase):
         self.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

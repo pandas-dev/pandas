@@ -2325,8 +2325,3 @@ class ExcelWriterEngineTests(tm.TestCase):
             check_called(lambda: panel.to_excel('something.test'))
             check_called(lambda: df.to_excel('something.xlsx'))
             check_called(lambda: df.to_excel('something.xls', engine='dummy'))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

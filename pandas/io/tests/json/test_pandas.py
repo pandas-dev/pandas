@@ -1044,8 +1044,3 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         for s in examples:
             roundtrip(s)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb',
-                         '--pdb-failure', '-s'], exit=False)

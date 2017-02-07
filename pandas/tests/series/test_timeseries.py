@@ -927,9 +927,3 @@ class TestTimeSeries(TestData, tm.TestCase):
         index = MultiIndex(levels=levels, labels=labels)
 
         self.assertTrue(isinstance(index.get_level_values(0)[0], Timestamp))
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

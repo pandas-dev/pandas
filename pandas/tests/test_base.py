@@ -4,7 +4,7 @@ from __future__ import print_function
 import re
 import sys
 from datetime import datetime, timedelta
-
+import nose
 import numpy as np
 
 import pandas as pd
@@ -1105,11 +1105,3 @@ class TestNoNewAttributesMixin(tm.TestCase):
 
         self.assertRaises(AttributeError, f)
         self.assertFalse(hasattr(t, "b"))
-
-
-if __name__ == '__main__':
-    import nose
-
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   # '--with-coverage', '--cover-package=pandas.core'],
-                   exit=False)

@@ -1155,8 +1155,3 @@ class TestDataFrameEvalPythonPython(TestDataFrameEvalNumExprPython):
     def setUpClass(cls):
         super(TestDataFrameEvalPythonPython, cls).tearDownClass()
         cls.engine = cls.parser = 'python'
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

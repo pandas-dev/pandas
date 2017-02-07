@@ -4576,10 +4576,3 @@ class TestCategoricalSubclassing(tm.TestCase):
         self.assertIsInstance(res, tm.SubclassedCategorical)
         exp = Categorical(['A', 'B', 'C'])
         tm.assert_categorical_equal(res, exp)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   # '--with-coverage', '--cover-package=pandas.core']
-                   exit=False)

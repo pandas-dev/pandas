@@ -1,5 +1,4 @@
 import os
-import nose
 
 import numpy as np
 from pandas.compat import zip
@@ -351,8 +350,3 @@ class TestCut(tm.TestCase):
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

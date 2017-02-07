@@ -5532,8 +5532,3 @@ class TestTimedeltaIndexing(tm.TestCase):
                                     index=pd.to_timedelta(range(10), unit='s'),
                                     columns=['x'])
             tm.assert_frame_equal(expected, result)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

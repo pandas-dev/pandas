@@ -1,6 +1,5 @@
 # pylint: disable-msg=E1101,W0612
 
-import nose  # noqa
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -356,9 +355,3 @@ class TestSparseDataFrameConcat(tm.TestCase):
         exp = pd.concat([self.dense1, self.dense3], axis=1)
         self.assertIsInstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res, exp)
-
-
-if __name__ == '__main__':
-    import nose  # noqa
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

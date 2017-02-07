@@ -2538,8 +2538,3 @@ def test_panel_index():
                                        np.repeat([1, 2, 3], 4)],
                                       names=['time', 'panel'])
     tm.assert_index_equal(index, expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
