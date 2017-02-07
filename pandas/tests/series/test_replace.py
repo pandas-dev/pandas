@@ -134,8 +134,8 @@ class TestSeriesReplace(TestData, tm.TestCase):
             tm.assert_series_equal(expected, r)
             tm.assert_series_equal(expected, sc)
 
-        # should NOT upcast to float
-        e = pd.Series([0, 1, 2, 3, 4])
+        # MUST upcast to float
+        e = pd.Series([0., 1., 2., 3., 4.])
         tr, v = [3], [3.0]
         check_replace(tr, v, e)
 

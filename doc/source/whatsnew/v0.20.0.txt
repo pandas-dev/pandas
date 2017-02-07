@@ -440,6 +440,7 @@ Bug Fixes
 
 - Bug in ``pd.read_msgpack()`` in which ``Series`` categoricals were being improperly processed (:issue:`14901`)
 - Bug in ``Series.ffill()`` with mixed dtypes containing tz-aware datetimes. (:issue:`14956`)
+- Bug in ``.replace()`` may result in incorrect dtypes. (:issue:`12747`)
 
 
 
