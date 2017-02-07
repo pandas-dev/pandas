@@ -27,8 +27,6 @@ from pandas.tests.frame.common import TestData
 
 class SharedWithSparse(object):
 
-    _multiprocess_can_split_ = True
-
     def test_copy_index_name_checking(self):
         # don't want to be able to modify the index stored elsewhere after
         # making a copy
@@ -158,8 +156,6 @@ class SharedWithSparse(object):
 class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     klass = DataFrame
-
-    _multiprocess_can_split_ = True
 
     def test_get_axis(self):
         f = self.frame

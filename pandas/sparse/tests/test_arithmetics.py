@@ -5,8 +5,6 @@ import pandas.util.testing as tm
 
 class TestSparseArrayArithmetics(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     _base = np.array
     _klass = pd.SparseArray
 

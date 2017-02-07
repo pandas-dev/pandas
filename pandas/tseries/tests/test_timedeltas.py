@@ -24,7 +24,6 @@ iNaT = tslib.iNaT
 
 
 class TestTimedeltas(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         pass
@@ -1231,7 +1230,6 @@ class TestTimedeltas(tm.TestCase):
 
 
 class TestTimedeltaIndex(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_pass_TimedeltaIndex_to_index(self):
 
@@ -1907,6 +1905,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
 
 class TestSlicing(tm.TestCase):
+
     def test_partial_slice(self):
         rng = timedelta_range('1 day 10:11:12', freq='h', periods=500)
         s = Series(np.arange(len(rng)), index=rng)

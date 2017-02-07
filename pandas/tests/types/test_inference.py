@@ -35,8 +35,6 @@ from pandas.types.common import (is_timedelta64_dtype,
 from pandas.types.missing import isnull
 from pandas.util import testing as tm
 
-_multiprocess_can_split_ = True
-
 
 def test_is_sequence():
     is_seq = inference.is_sequence
@@ -340,7 +338,6 @@ class TestInference(tm.TestCase):
 
 
 class TestTypeInference(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))

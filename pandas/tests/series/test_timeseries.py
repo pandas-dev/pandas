@@ -32,7 +32,6 @@ def assert_range_equal(left, right):
 
 
 class TestTimeSeries(TestData, tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_shift(self):
         shifted = self.ts.shift(1)

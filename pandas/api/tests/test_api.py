@@ -8,8 +8,6 @@ from pandas import api
 from pandas.api import types
 from pandas.util import testing as tm
 
-_multiprocess_can_split_ = True
-
 
 class Base(object):
 

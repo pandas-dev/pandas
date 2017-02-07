@@ -14,8 +14,6 @@ from pandas.core.reshape import (melt, lreshape, get_dummies, wide_to_long)
 import pandas.util.testing as tm
 from pandas.compat import range, u
 
-_multiprocess_can_split_ = True
-
 
 class TestMelt(tm.TestCase):
 

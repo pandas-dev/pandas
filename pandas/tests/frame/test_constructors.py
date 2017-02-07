@@ -36,8 +36,6 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
 
 class TestDataFrameConstructors(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_constructor(self):
         df = DataFrame()
         self.assertEqual(len(df.index), 0)
@@ -1885,8 +1883,6 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
 
 class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):
-
-    _multiprocess_can_split_ = True
 
     def test_from_dict(self):
 

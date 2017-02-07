@@ -41,8 +41,6 @@ def _simple_ts(start, end, freq='D'):
 
 class TestSeriesMissingData(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_timedelta_fillna(self):
         # GH 3371
         s = Series([Timestamp('20130101'), Timestamp('20130101'), Timestamp(

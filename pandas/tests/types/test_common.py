@@ -7,8 +7,6 @@ from pandas.types.common import pandas_dtype, is_dtype_equal
 
 import pandas.util.testing as tm
 
-_multiprocess_can_split_ = True
-
 
 class TestPandasDtype(tm.TestCase):
 

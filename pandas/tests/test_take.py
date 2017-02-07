@@ -8,14 +8,10 @@ import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 from pandas.tslib import iNaT
 
-_multiprocess_can_split_ = True
-
 
 class TestTake(tm.TestCase):
     # standard incompatible fill error
     fill_error = re.compile("Incompatible type for fill_value")
-
-    _multiprocess_can_split_ = True
 
     def test_1d_with_out(self):
         def _test_dtype(dtype, can_hold_na, writeable=True):

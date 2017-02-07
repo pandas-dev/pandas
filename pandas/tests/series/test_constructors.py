@@ -26,8 +26,6 @@ from .common import TestData
 
 class TestSeriesConstructors(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_scalar_conversion(self):
 
         # Pass in scalar is disabled

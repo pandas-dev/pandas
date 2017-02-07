@@ -31,7 +31,6 @@ from pandas.lib import Timestamp
 
 class TestIndex(Base, tm.TestCase):
     _holder = Index
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.indices = dict(unicodeIndex=tm.makeUnicodeIndex(100),
@@ -1795,7 +1794,6 @@ class TestMixedIntIndex(Base, tm.TestCase):
     # (GH 13514)
 
     _holder = Index
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.indices = dict(mixedIndex=Index([0, 'a', 1, 'b', 2, 'c']))
@@ -1993,7 +1991,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
         idx = pd.TimedeltaIndex(['1 days', '2 days', '3 days'])
         tm.assert_index_equal(idx.dropna(), idx)
         nanidx = pd.TimedeltaIndex([pd.NaT, '1 days', '2 days',
-                                   '3 days', pd.NaT])
+                                    '3 days', pd.NaT])
         tm.assert_index_equal(nanidx.dropna(), idx)
 
         idx = pd.PeriodIndex(['2012-02', '2012-04', '2012-05'], freq='M')

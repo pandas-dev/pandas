@@ -49,6 +49,7 @@ class TestTsUtil(tm.TestCase):
 
 
 class TestDatetimeParsingWrappers(tm.TestCase):
+
     def test_does_not_convert_mixed_integer(self):
         bad_date_strings = ('-50000', '999', '123.1234', 'm', 'T')
 
@@ -408,6 +409,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 
 
 class TestArrayToDatetime(tm.TestCase):
+
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
         self.assert_numpy_array_equal(
@@ -523,6 +525,7 @@ class TestArrayToDatetime(tm.TestCase):
 
 
 class TestTslib(tm.TestCase):
+
     def test_intraday_conversion_factors(self):
         self.assertEqual(period_asfreq(
             1, get_freq('D'), get_freq('H'), False), 24)

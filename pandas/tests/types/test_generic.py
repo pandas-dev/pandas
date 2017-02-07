@@ -5,8 +5,6 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas.types import generic as gt
 
-_multiprocess_can_split_ = True
-
 
 class TestABCClasses(tm.TestCase):
     tuples = [[1, 2, 2], ['red', 'blue', 'red']]

@@ -7,8 +7,6 @@ from pandas.compat import range, lmap
 import pandas.core.common as com
 import pandas.util.testing as tm
 
-_multiprocess_can_split_ = True
-
 
 def test_mut_exclusive():
     msg = "mutually exclusive arguments: '[ab]' and '[ab]'"

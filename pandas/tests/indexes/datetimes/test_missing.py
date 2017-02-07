@@ -3,7 +3,6 @@ import pandas.util.testing as tm
 
 
 class TestDatetimeIndex(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_fillna_datetime64(self):
         # GH 11343

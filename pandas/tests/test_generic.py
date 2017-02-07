@@ -33,8 +33,6 @@ import pandas.util.testing as tm
 
 class Generic(object):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         pass
 
