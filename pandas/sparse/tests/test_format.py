@@ -15,8 +15,6 @@ use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 class TestSparseSeriesFormatting(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     @property
     def dtype_format_for_platform(self):
         return '' if use_32bit_repr else ', dtype=int32'

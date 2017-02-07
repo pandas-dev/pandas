@@ -168,7 +168,6 @@ class TimeConversionFormats(tm.TestCase):
 
 
 class TestToDatetime(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_to_datetime_dt64s(self):
         in_bound_dts = [
@@ -989,6 +988,7 @@ class TestToDatetimeInferFormat(tm.TestCase):
 
 class TestDaysInMonth(tm.TestCase):
     # tests for issue #10154
+
     def test_day_not_in_month_coerce(self):
         self.assertTrue(isnull(to_datetime('2015-02-29', errors='coerce')))
         self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d",

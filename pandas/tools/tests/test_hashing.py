@@ -8,8 +8,6 @@ import pandas.util.testing as tm
 
 class TestHashing(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         self.df = DataFrame(
             {'i32': np.array([1, 2, 3] * 3, dtype='int32'),

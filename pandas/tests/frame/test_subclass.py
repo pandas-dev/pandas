@@ -13,8 +13,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameSubclassing(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
         # In reference to PR 9632

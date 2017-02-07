@@ -23,8 +23,8 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             default_handler=None, lines=False):
 
     if lines and orient != 'records':
-            raise ValueError(
-                "'lines' keyword only valid when 'orient' is records")
+        raise ValueError(
+            "'lines' keyword only valid when 'orient' is records")
 
     if isinstance(obj, Series):
         s = SeriesWriter(

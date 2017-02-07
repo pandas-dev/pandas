@@ -5326,9 +5326,10 @@ class DataFrame(NDFrame):
                                 "allowed to be passed to DataFrame.isin(), "
                                 "you passed a "
                                 "{0!r}".format(type(values).__name__))
-            return DataFrame(lib.ismember(self.values.ravel(),
+            return DataFrame(
+                lib.ismember(self.values.ravel(),
                              set(values)).reshape(self.shape), self.index,
-                             self.columns)
+                self.columns)
 
     # ----------------------------------------------------------------------
     # Deprecated stuff

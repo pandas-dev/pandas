@@ -23,8 +23,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameReplace(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_replace_inplace(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan

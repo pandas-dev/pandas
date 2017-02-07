@@ -18,6 +18,7 @@ from pandas.compat import StringIO, BytesIO, u
 
 
 class PythonParserTests(object):
+
     def test_negative_skipfooter_raises(self):
         text = """#foo,a,b,c
 #foo,a,b,c

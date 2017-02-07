@@ -19,8 +19,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_column_dups_operations(self):
 
         def check(result, expected=None):

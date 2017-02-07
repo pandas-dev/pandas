@@ -14,7 +14,6 @@ randn = np.random.randn
 
 
 class TestDatetimeIndex(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_get_loc(self):
         idx = pd.date_range('2000-01-01', periods=3)

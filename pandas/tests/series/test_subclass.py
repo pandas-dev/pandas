@@ -8,8 +8,6 @@ import pandas.util.testing as tm
 
 class TestSeriesSubclassing(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_indexing_sliced(self):
         s = tm.SubclassedSeries([1, 2, 3, 4], index=list('abcd'))
         res = s.loc[['a', 'b']]
@@ -36,8 +34,6 @@ class TestSeriesSubclassing(tm.TestCase):
 
 
 class TestSparseSeriesSubclassing(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_subclass_sparse_slice(self):
         # int64

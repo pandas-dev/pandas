@@ -12,8 +12,6 @@ import pandas.util.testing as tm
 
 class TestPivotTable(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         self.data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
                                      'bar', 'bar', 'bar', 'bar',
@@ -1152,8 +1150,8 @@ class TestCrosstab(tm.TestCase):
                               pd.crosstab(df.a, df.b, normalize='index'))
 
         row_normal_margins = pd.DataFrame([[1.0, 0],
-                                          [0.25, 0.75],
-                                          [0.4, 0.6]],
+                                           [0.25, 0.75],
+                                           [0.4, 0.6]],
                                           index=pd.Index([1, 2, 'All'],
                                                          name='a',
                                                          dtype='object'),
@@ -1165,8 +1163,8 @@ class TestCrosstab(tm.TestCase):
                                                            name='b'))
 
         all_normal_margins = pd.DataFrame([[0.2, 0, 0.2],
-                                          [0.2, 0.6, 0.8],
-                                          [0.4, 0.6, 1]],
+                                           [0.2, 0.6, 0.8],
+                                           [0.4, 0.6, 1]],
                                           index=pd.Index([1, 2, 'All'],
                                                          name='a',
                                                          dtype='object'),

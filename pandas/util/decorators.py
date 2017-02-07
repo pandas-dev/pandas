@@ -125,6 +125,7 @@ class Substitution(object):
     def some_function(x):
         "%s %s wrote the Raven"
     """
+
     def __init__(self, *args, **kwargs):
         if (args and kwargs):
             raise AssertionError("Only positional or keyword args are allowed")
@@ -171,6 +172,7 @@ class Appender(object):
         "This docstring will have a copyright below"
         pass
     """
+
     def __init__(self, addendum, join='', indents=0):
         if indents > 0:
             self.addendum = indent(addendum, indents=indents)

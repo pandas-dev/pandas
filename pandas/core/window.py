@@ -659,6 +659,7 @@ class _GroupByMixin(GroupByMixin):
 
 
 class _Rolling(_Window):
+
     @property
     def _constructor(self):
         return Rolling
@@ -1718,7 +1719,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
 def _get_center_of_mass(com, span, halflife, alpha):
     valid_count = len([x for x in [com, span, halflife, alpha]
-                      if x is not None])
+                       if x is not None])
     if valid_count > 1:
         raise ValueError("com, span, halflife, and alpha "
                          "are mutually exclusive")

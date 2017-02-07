@@ -24,6 +24,7 @@ import pandas.stats.moments as moments
 
 _FP_ERR = 1e-8
 
+
 class OLS(StringMixin):
     """
     Runs a full sample ordinary least squares regression.

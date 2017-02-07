@@ -50,7 +50,6 @@ from distutils.version import LooseVersion
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >= '2.2'
                        else 'zlib')
 
-_multiprocess_can_split_ = False
 
 # testing on windows/py3 seems to fault
 # for using compression

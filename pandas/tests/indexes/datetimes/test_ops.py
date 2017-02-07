@@ -955,7 +955,6 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
 
 
 class TestDatetimeIndex(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     # GH 10699
     def test_datetime64_with_DateOffset(self):

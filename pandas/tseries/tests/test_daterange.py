@@ -73,6 +73,7 @@ class TestGenRangeGeneration(tm.TestCase):
 
 
 class TestDateRange(tm.TestCase):
+
     def setUp(self):
         self.rng = bdate_range(START, END)
 
@@ -588,6 +589,7 @@ class TestDateRange(tm.TestCase):
 
 
 class TestCustomDateRange(tm.TestCase):
+
     def setUp(self):
         self.rng = cdate_range(START, END)
 

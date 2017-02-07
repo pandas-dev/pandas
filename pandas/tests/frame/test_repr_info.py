@@ -25,8 +25,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_repr_empty(self):
         # empty
         foo = repr(self.empty)  # noqa

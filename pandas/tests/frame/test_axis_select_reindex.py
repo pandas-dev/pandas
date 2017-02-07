@@ -26,8 +26,6 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
-    _multiprocess_can_split_ = True
-
     def test_drop_names(self):
         df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
                        index=['a', 'b', 'c'],

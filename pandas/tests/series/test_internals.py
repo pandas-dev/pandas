@@ -16,8 +16,6 @@ import pandas.util.testing as tm
 
 class TestSeriesInternals(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_convert_objects(self):
 
         s = Series([1., 2, 3], index=['a', 'b', 'c'])

@@ -32,6 +32,7 @@ class BaseParser(CommentTests, CompressionTests,
                  ParseDatesTests, ParserTests,
                  SkipRowsTests, UsecolsTests,
                  QuotingTests, DtypeTests):
+
     def read_csv(self, *args, **kwargs):
         raise NotImplementedError
 

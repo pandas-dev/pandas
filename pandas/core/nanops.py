@@ -26,6 +26,7 @@ from pandas.core.common import _values_from_object
 
 
 class disallow(object):
+
     def __init__(self, *dtypes):
         super(disallow, self).__init__()
         self.dtypes = tuple(np.dtype(dtype).type for dtype in dtypes)
@@ -58,6 +59,7 @@ class disallow(object):
 
 
 class bottleneck_switch(object):
+
     def __init__(self, zero_value=None, **kwargs):
         self.zero_value = zero_value
         self.kwargs = kwargs

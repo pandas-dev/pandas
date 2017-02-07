@@ -60,8 +60,6 @@ def _compare_moving_ols(model1, model2):
 
 class TestOLS(BaseTest):
 
-    _multiprocess_can_split_ = True
-
     # TODO: Add tests for OLS y predict
     # TODO: Right now we just check for consistency between full-sample and
     # rolling/expanding results of the panel OLS.  We should also cross-check
@@ -261,8 +259,6 @@ class TestOLS(BaseTest):
 
 
 class TestOLSMisc(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     """
     For test coverage with faux data
@@ -510,8 +506,6 @@ class TestOLSMisc(tm.TestCase):
 
 
 class TestPanelOLS(BaseTest):
-
-    _multiprocess_can_split_ = True
 
     FIELDS = ['beta', 'df', 'df_model', 'df_resid', 'f_stat',
               'p_value', 'r2', 'r2_adj', 'rmse', 'std_err',
@@ -893,8 +887,6 @@ def _period_slice(panelModel, i):
 
 
 class TestOLSFilter(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         date_index = date_range(datetime(2009, 12, 11), periods=3,

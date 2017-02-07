@@ -20,8 +20,6 @@ from .common import TestData
 
 class TestSeriesDtypes(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_astype(self):
         s = Series(np.random.randn(5), name='foo')
 

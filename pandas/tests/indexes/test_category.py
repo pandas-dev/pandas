@@ -225,6 +225,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # change categories dtype
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('BAC'),
                                  ordered=False)
+
         def f(x):
             return {'A': 10, 'B': 20, 'C': 30}.get(x)
 
@@ -360,7 +361,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
             expected = oidx.get_indexer_non_unique(finder)[0]
 
             actual = ci.get_indexer(finder)
-            tm.assert_numpy_array_equal(expected.values, actual, check_dtype=False)
+            tm.assert_numpy_array_equal(
+                expected.values, actual, check_dtype=False)
 
     def test_reindex_dtype(self):
         c = CategoricalIndex(['a', 'b', 'c', 'a'])
@@ -519,7 +521,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # GH12309
         # Must be tested separately from other indexes because
         # self.value is not an ndarray
-        _base = lambda ar : ar if ar.base is None else ar.base
+        _base = lambda ar: ar if ar.base is None else ar.base
         for index in self.indices.values():
             result = CategoricalIndex(index.values, copy=True)
             tm.assert_index_equal(index, result)

@@ -54,7 +54,7 @@ class TestClipboard(tm.TestCase):
                                              'es': 'en español'.split()})
         # unicode round trip test for GH 13747, GH 12529
         cls.data['utf8'] = pd.DataFrame({'a': ['µasd', 'Ωœ∑´'],
-                                        'b': ['øπ∆˚¬', 'œ∑´®']})
+                                         'b': ['øπ∆˚¬', 'œ∑´®']})
         cls.data_types = list(cls.data.keys())
 
     @classmethod

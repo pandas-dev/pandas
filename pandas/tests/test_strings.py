@@ -20,8 +20,6 @@ import pandas.core.strings as strings
 
 class TestStringMethods(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_api(self):
 
         # GH 6106, GH 9322

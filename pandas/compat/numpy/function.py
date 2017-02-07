@@ -27,6 +27,7 @@ from pandas.compat import OrderedDict
 
 
 class CompatValidator(object):
+
     def __init__(self, defaults, fname=None, method=None,
                  max_fname_arg_count=None):
         self.fname = fname

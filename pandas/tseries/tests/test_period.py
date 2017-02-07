@@ -1652,6 +1652,7 @@ class TestFreqConversion(tm.TestCase):
 
 
 class TestPeriodIndex(tm.TestCase):
+
     def setUp(self):
         pass
 
@@ -4456,6 +4457,7 @@ class TestPeriodRepresentation(tm.TestCase):
 
 
 class TestComparisons(tm.TestCase):
+
     def setUp(self):
         self.january1 = Period('2000-01', 'M')
         self.january2 = Period('2000-01', 'M')
@@ -4961,6 +4963,7 @@ class TestSeriesPeriod(tm.TestCase):
 
 
 class TestPeriodField(tm.TestCase):
+
     def test_get_period_field_raises_on_out_of_range(self):
         self.assertRaises(ValueError, _period.get_period_field, -1, 0, 0)
 

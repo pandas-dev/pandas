@@ -30,8 +30,6 @@ from .common import TestData
 
 class TestSeriesAnalytics(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_sum_zero(self):
         arr = np.array([])
         self.assertEqual(nanops.nansum(arr), 0)

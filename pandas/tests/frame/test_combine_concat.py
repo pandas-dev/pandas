@@ -22,8 +22,6 @@ from pandas.util.testing import (assertRaisesRegexp,
 
 class TestDataFrameConcatCommon(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_concat_multiple_frames_dtypes(self):
 
         # GH 2759
@@ -426,8 +424,6 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
 
 
 class TestDataFrameCombineFirst(tm.TestCase, TestData):
-
-    _multiprocess_can_split_ = True
 
     def test_combine_first_mixed(self):
         a = Series(['a', 'b'], index=lrange(2))

@@ -31,8 +31,6 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
 
 class TestDataFrameToCSV(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_to_csv_from_csv1(self):
 
         with ensure_clean('__tmp_to_csv_from_csv1__') as path:

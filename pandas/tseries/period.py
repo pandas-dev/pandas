@@ -393,7 +393,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 left = context[1][0]
                 right = context[1][1]
                 if (isinstance(left, PeriodIndex) and
-                   isinstance(right, PeriodIndex)):
+                        isinstance(right, PeriodIndex)):
                     name = left.name if left.name == right.name else None
                     return Index(result, name=name)
                 elif isinstance(left, Period) or isinstance(right, Period):

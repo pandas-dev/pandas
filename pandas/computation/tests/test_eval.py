@@ -201,7 +201,7 @@ class TestEvalNumexprPandas(tm.TestCase):
                                                                 binop=binop,
                                                                 cmp2=cmp2)
         scalar_with_in_notin = (is_scalar(rhs) and (cmp1 in skip_these or
-                                                      cmp2 in skip_these))
+                                                    cmp2 in skip_these))
         if scalar_with_in_notin:
             with tm.assertRaises(TypeError):
                 pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -702,7 +702,6 @@ class TestEvalNumexprPandas(tm.TestCase):
         tm.assert_frame_equal(expected, result)
 
 
-
 class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     @classmethod
@@ -782,6 +781,7 @@ ENGINES_PARSERS = list(product(_engines, expr._parsers))
 # typecasting rules consistency with python
 # issue #12388
 
+
 class TestTypeCasting(object):
 
     def check_binop_typecasting(self, engine, parser, op, dt):
@@ -803,7 +803,8 @@ class TestTypeCasting(object):
         for engine, parser in ENGINES_PARSERS:
             for op in ['+', '-', '*', '**', '/']:
                 # maybe someday... numexpr has too many upcasting rules now
-                #for dt in chain(*(np.sctypes[x] for x in ['uint', 'int', 'float'])):
+                # for dt in chain(*(np.sctypes[x] for x in ['uint', 'int',
+                # 'float'])):
                 for dt in [np.float32, np.float64]:
                     yield self.check_binop_typecasting, engine, parser, op, dt
 
@@ -1969,10 +1970,11 @@ def test_negate_lt_eq_le():
     for engine, parser in product(_engines, expr._parsers):
         yield check_negate_lt_eq_le, engine, parser
 
+
 class TestValidate(tm.TestCase):
 
     def test_validate_bool_args(self):
-        invalid_values = [1, "True", [1,2,3], 5.0]
+        invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:
             with self.assertRaises(ValueError):

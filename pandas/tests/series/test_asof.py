@@ -10,7 +10,6 @@ from .common import TestData
 
 
 class TestSeriesAsof(TestData, tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_basic(self):
 

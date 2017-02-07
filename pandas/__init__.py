@@ -15,7 +15,8 @@ for dependency in hard_dependencies:
         missing_dependencies.append(dependency)
 
 if missing_dependencies:
-    raise ImportError("Missing required dependencies {0}".format(missing_dependencies))
+    raise ImportError(
+        "Missing required dependencies {0}".format(missing_dependencies))
 del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
@@ -24,7 +25,8 @@ from pandas.compat.numpy import *
 try:
     from pandas import hashtable, tslib, lib
 except ImportError as e:  # pragma: no cover
-    module = str(e).lstrip('cannot import name ')  # hack but overkill to use re
+    # hack but overkill to use re
+    module = str(e).lstrip('cannot import name ')
     raise ImportError("C extension: {0} not built. If you want to import "
                       "pandas from the source directory, you may need to run "
                       "'python setup.py build_ext --inplace --force' to build "
@@ -61,5 +63,5 @@ del NoseTester
 # use the closest tagged version if possible
 from ._version import get_versions
 v = get_versions()
-__version__ = v.get('closest-tag',v['version'])
+__version__ = v.get('closest-tag', v['version'])
 del get_versions, v

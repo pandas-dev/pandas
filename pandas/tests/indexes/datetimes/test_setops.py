@@ -9,7 +9,6 @@ from pandas import (DatetimeIndex, date_range, Series, bdate_range, DataFrame,
 
 
 class TestDatetimeIndex(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_union(self):
         i1 = Int64Index(np.arange(0, 20, 2))

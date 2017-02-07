@@ -118,8 +118,6 @@ class SharedWithSparse(object):
 
 class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_tab_completion(self):
         # GH 9910
         s = Series(list('abcd'))

@@ -16,6 +16,7 @@ from pandas.io.common import ParserWarning
 
 
 class DtypeTests(object):
+
     def test_passing_dtype(self):
         # see gh-6607
         df = DataFrame(np.random.rand(5, 2).round(4), columns=list(

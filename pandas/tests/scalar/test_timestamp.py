@@ -1149,6 +1149,7 @@ class TestTimestamp(tm.TestCase):
 
 
 class TestTimestampNsOperations(tm.TestCase):
+
     def setUp(self):
         self.timestamp = Timestamp(datetime.utcnow())
 
@@ -1324,6 +1325,7 @@ class TestTimestampNsOperations(tm.TestCase):
 
 
 class TestTimestampOps(tm.TestCase):
+
     def test_timestamp_and_datetime(self):
         self.assertEqual((Timestamp(datetime(
             2013, 10, 13)) - datetime(2013, 10, 12)).days, 1)
@@ -1404,6 +1406,7 @@ class TestTimestampOps(tm.TestCase):
 
 
 class TestTimestampToJulianDate(tm.TestCase):
+
     def test_compare_1700(self):
         r = Timestamp('1700-06-23').to_julian_date()
         self.assertEqual(r, 2342145.5)
@@ -1426,7 +1429,6 @@ class TestTimestampToJulianDate(tm.TestCase):
 
 
 class TestTimeSeries(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_timestamp_to_datetime(self):
         tm._skip_if_no_pytz()

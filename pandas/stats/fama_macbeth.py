@@ -9,6 +9,7 @@ from pandas.util.decorators import cache_readonly
 
 # flake8: noqa
 
+
 def fama_macbeth(**kwargs):
     """Runs Fama-MacBeth regression.
 

@@ -10,7 +10,6 @@ from ..datetimelike import DatetimeLike
 
 class TestDatetimeIndex(DatetimeLike, tm.TestCase):
     _holder = DatetimeIndex
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.indices = dict(index=tm.makeDateIndex(10))

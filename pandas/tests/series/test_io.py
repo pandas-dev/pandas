@@ -18,8 +18,6 @@ from .common import TestData
 
 class TestSeriesToCSV(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_from_csv(self):
 
         with ensure_clean() as path:
@@ -112,8 +110,6 @@ class TestSeriesToCSV(TestData, tm.TestCase):
 
 class TestSeriesIO(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_to_frame(self):
         self.ts.name = None
         rs = self.ts.to_frame()
@@ -173,8 +169,6 @@ class TestSeriesIO(TestData, tm.TestCase):
 
 
 class TestSeriesToList(TestData, tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_tolist(self):
         rs = self.ts.tolist()

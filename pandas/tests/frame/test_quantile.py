@@ -21,8 +21,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameQuantile(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_quantile(self):
         from numpy import percentile
 

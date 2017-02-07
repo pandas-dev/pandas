@@ -10,8 +10,6 @@ import pandas.util.testing as tm
 
 class TestIndexingSlow(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     @tm.slow
     def test_multiindex_get_loc(self):  # GH7724, GH2646
 

@@ -15,6 +15,7 @@ from pandas.tests.test_base import Ops
 
 
 class TestTimedeltaIndexOps(Ops):
+
     def setUp(self):
         super(TestTimedeltaIndexOps, self).setUp()
         mask = lambda x: isinstance(x, TimedeltaIndex)
@@ -490,7 +491,7 @@ Freq: D"""
 
     def test_comp_nat(self):
         left = pd.TimedeltaIndex([pd.Timedelta('1 days'), pd.NaT,
-                                 pd.Timedelta('3 days')])
+                                  pd.Timedelta('3 days')])
         right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
 
         for l, r in [(left, right), (left.asobject, right.asobject)]:
@@ -854,6 +855,7 @@ Freq: D"""
 
 
 class TestPeriodIndexOps(Ops):
+
     def setUp(self):
         super(TestPeriodIndexOps, self).setUp()
         mask = lambda x: (isinstance(x, DatetimeIndex) or

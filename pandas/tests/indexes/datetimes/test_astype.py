@@ -8,7 +8,6 @@ from pandas import (DatetimeIndex, date_range, Series, NaT, Index, Timestamp,
 
 
 class TestDatetimeIndex(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_astype(self):
         # GH 13149, GH 13209
@@ -185,7 +184,6 @@ class TestDatetimeIndex(tm.TestCase):
 
 
 class TestToPeriod(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         data = [Timestamp('2007-01-01 10:11:12.123456Z'),

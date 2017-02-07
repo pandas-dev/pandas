@@ -58,8 +58,6 @@ _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
 
 class TestExpressions(tm.TestCase):
 
-    _multiprocess_can_split_ = False
-
     def setUp(self):
 
         self.frame = _frame.copy()

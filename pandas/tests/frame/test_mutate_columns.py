@@ -21,8 +21,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameMutateColumns(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_assign(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
         original = df.copy()

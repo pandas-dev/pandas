@@ -8,8 +8,6 @@ import pandas.util.testing as tm
 
 class TestIndexingCallable(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_frame_loc_ix_callable(self):
         # GH 11485
         df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': list('aabb'),

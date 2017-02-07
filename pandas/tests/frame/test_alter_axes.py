@@ -22,8 +22,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_set_index(self):
         idx = Index(np.arange(len(self.mixed_frame)))
 

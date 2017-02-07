@@ -847,6 +847,7 @@ ops.add_special_arithmetic_methods(SparseSeries, _arith_method,
 
 # backwards compatiblity
 class SparseTimeSeries(SparseSeries):
+
     def __init__(self, *args, **kwargs):
         # deprecation TimeSeries, #10890
         warnings.warn("SparseTimeSeries is deprecated. Please use "

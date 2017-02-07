@@ -53,6 +53,7 @@ ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period", ))
 
 
 class _ABCGeneric(type):
+
     def __instancecheck__(cls, inst):
         return hasattr(inst, "_data")
 

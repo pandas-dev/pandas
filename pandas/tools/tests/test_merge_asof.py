@@ -11,7 +11,6 @@ from pandas.util.testing import assert_frame_equal
 
 
 class TestAsOfMerge(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def read_data(self, name, dedupe=False):
         path = os.path.join(tm.get_data_path(), name)
@@ -686,7 +685,7 @@ class TestAsOfMerge(tm.TestCase):
         # GH 13709
         df1 = pd.DataFrame({
             'time': pd.to_datetime(['2016-07-15 13:30:00.030',
-                                   '2016-07-15 13:30:00.030']),
+                                    '2016-07-15 13:30:00.030']),
             'username': ['bob', 'charlie']})
         df2 = pd.DataFrame({
             'time': pd.to_datetime(['2016-07-15 13:30:00.000',

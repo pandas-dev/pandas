@@ -176,7 +176,6 @@ class Numeric(Base):
 
 class TestFloat64Index(Numeric, tm.TestCase):
     _holder = Float64Index
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.indices = dict(mixed=Float64Index([1.5, 2, 3, 4, 5]),
@@ -624,7 +623,6 @@ class NumericInt(Numeric):
 class TestInt64Index(NumericInt, tm.TestCase):
     _dtype = 'int64'
     _holder = Int64Index
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.indices = dict(index=Int64Index(np.arange(0, 20, 2)))
@@ -895,7 +893,6 @@ class TestUInt64Index(NumericInt, tm.TestCase):
 
     _dtype = 'uint64'
     _holder = UInt64Index
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.indices = dict(index=UInt64Index([2**63, 2**63 + 10, 2**63 + 15,

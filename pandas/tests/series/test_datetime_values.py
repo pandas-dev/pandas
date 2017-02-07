@@ -22,8 +22,6 @@ from .common import TestData
 
 class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_dt_namespace_accessor(self):
 
         # GH 7207, 11128
@@ -168,9 +166,9 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         cases = [Series(timedelta_range('1 day', periods=5),
                         index=list('abcde'), name='xxx'),
                  Series(timedelta_range('1 day 01:23:45', periods=5,
-                        freq='s'), name='xxx'),
+                                        freq='s'), name='xxx'),
                  Series(timedelta_range('2 days 01:23:45.012345', periods=5,
-                        freq='ms'), name='xxx')]
+                                        freq='ms'), name='xxx')]
         for s in cases:
             for prop in ok_for_td:
                 # we test freq below

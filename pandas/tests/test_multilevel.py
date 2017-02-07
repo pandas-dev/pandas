@@ -25,8 +25,6 @@ import pandas.index as _index
 
 class TestMultiLevel(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',

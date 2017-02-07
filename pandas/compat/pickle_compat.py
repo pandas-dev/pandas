@@ -9,6 +9,7 @@ import pickle as pkl
 from pandas import compat, Index
 from pandas.compat import u, string_types
 
+
 def load_reduce(self):
     stack = self.stack
     args = stack.pop()
@@ -34,7 +35,7 @@ def load_reduce(self):
                 pass
 
         # try to reencode the arguments
-        if getattr(self,'encoding',None) is not None:
+        if getattr(self, 'encoding', None) is not None:
             args = tuple([arg.encode(self.encoding)
                           if isinstance(arg, string_types)
                           else arg for arg in args])
@@ -44,7 +45,7 @@ def load_reduce(self):
             except:
                 pass
 
-        if getattr(self,'is_verbose',None):
+        if getattr(self, 'is_verbose', None):
             print(sys.exc_info())
             print(func, args)
         raise
@@ -61,6 +62,7 @@ else:
 Unpickler.dispatch = copy.copy(Unpickler.dispatch)
 Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce
 
+
 def load_newobj(self):
     args = self.stack.pop()
     cls = self.stack[-1]
@@ -75,6 +77,8 @@ def load_newobj(self):
 Unpickler.dispatch[pkl.NEWOBJ[0]] = load_newobj
 
 # py3 compat
+
+
 def load_newobj_ex(self):
     kwargs = self.stack.pop()
     args = self.stack.pop()
@@ -90,6 +94,7 @@ try:
     Unpickler.dispatch[pkl.NEWOBJ_EX[0]] = load_newobj_ex
 except:
     pass
+
 
 def load(fh, encoding=None, compat=False, is_verbose=False):
     """load a pickle, with a provided encoding

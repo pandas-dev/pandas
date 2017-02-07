@@ -2987,6 +2987,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
 # backwards compatiblity
 class TimeSeries(Series):
+
     def __init__(self, *args, **kwargs):
         # deprecation TimeSeries, #10890
         warnings.warn("TimeSeries is deprecated. Please use Series",

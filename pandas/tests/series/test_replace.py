@@ -11,8 +11,6 @@ from .common import TestData
 
 class TestSeriesReplace(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_replace(self):
         N = 100
         ser = pd.Series(np.random.randn(N))

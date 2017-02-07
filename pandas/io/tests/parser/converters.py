@@ -19,6 +19,7 @@ from pandas.compat import parse_date, StringIO, lmap
 
 
 class ConverterTests(object):
+
     def test_converters_type_must_be_dict(self):
         data = """index,A,B,C,D
 foo,2,3,4,5

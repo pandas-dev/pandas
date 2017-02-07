@@ -25,6 +25,7 @@ from pandas.tseries.index import date_range
 
 
 class ParseDatesTests(object):
+
     def test_separator_date_conflict(self):
         # Regression test for gh-4678: make sure thousands separator and
         # date parsing do not conflict.

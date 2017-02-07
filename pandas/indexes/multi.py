@@ -1813,7 +1813,7 @@ class MultiIndex(Index):
                                      for k, l in zip(key, self.levels)]
                         can_index_exactly = any(all_dates)
                         if (any([l.is_all_dates
-                                for k, l in zip(key, self.levels)]) and
+                                 for k, l in zip(key, self.levels)]) and
                                 not can_index_exactly):
                             indexer = self.get_loc(key)
 

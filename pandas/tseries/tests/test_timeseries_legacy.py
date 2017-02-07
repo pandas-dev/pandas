@@ -27,8 +27,6 @@ randn = np.random.randn
 # class TestLegacySupport(unittest.TestCase):
 class LegacySupport(object):
 
-    _multiprocess_can_split_ = True
-
     @classmethod
     def setUpClass(cls):
         if compat.PY3:

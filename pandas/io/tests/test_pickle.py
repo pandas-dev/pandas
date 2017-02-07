@@ -30,7 +30,6 @@ class TestPickle():
     http://stackoverflow.com/questions/6689537/
     nose-test-generators-inside-class
     """
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         from pandas.io.tests.generate_legacy_storage_files import (

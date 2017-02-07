@@ -9,7 +9,6 @@ from pandas.util.testing import assert_almost_equal
 
 
 class TestIndexer(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_outer_join_indexer(self):
         typemap = [('int32', _join.outer_join_indexer_int32),

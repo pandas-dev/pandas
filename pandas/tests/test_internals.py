@@ -182,8 +182,6 @@ def create_mgr(descr, item_shape=None):
 
 class TestBlock(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         # self.fblock = get_float_ex()  # a,c,e
         # self.cblock = get_complex_ex() #
@@ -299,7 +297,6 @@ class TestBlock(tm.TestCase):
 
 
 class TestDatetimeBlock(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_try_coerce_arg(self):
         block = create_block('datetime', [0])
@@ -318,7 +315,6 @@ class TestDatetimeBlock(tm.TestCase):
 
 
 class TestBlockManager(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.mgr = create_mgr(
@@ -1057,7 +1053,6 @@ class TestIndexing(object):
 
 
 class TestBlockPlacement(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_slice_len(self):
         self.assertEqual(len(BlockPlacement(slice(0, 4))), 4)

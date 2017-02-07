@@ -294,6 +294,7 @@ class TestGBQConnectorIntegration(tm.TestCase):
 
 
 class TestGBQConnectorServiceAccountKeyPathIntegration(tm.TestCase):
+
     def setUp(self):
         _setup_common()
 
@@ -325,6 +326,7 @@ class TestGBQConnectorServiceAccountKeyPathIntegration(tm.TestCase):
 
 
 class TestGBQConnectorServiceAccountKeyContentsIntegration(tm.TestCase):
+
     def setUp(self):
         _setup_common()
 
@@ -356,6 +358,7 @@ class TestGBQConnectorServiceAccountKeyContentsIntegration(tm.TestCase):
 
 
 class GBQUnitTests(tm.TestCase):
+
     def setUp(self):
         _setup_common()
 
