@@ -1399,7 +1399,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        sorted_index : MultiIndex
+        (sorted_index, index_array) : (MultiIndex, ndarray)
         """
         from pandas.core.groupby import _indexer_from_factorized
 
