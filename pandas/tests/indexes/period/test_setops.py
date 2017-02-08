@@ -43,6 +43,57 @@ class TestPeriodIndex(tm.TestCase):
         tm.assert_index_equal(res, expected)
 
     def test_union(self):
+        # union
+        rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other1 = pd.period_range('1/6/2000', freq='D', periods=5)
+        expected1 = pd.period_range('1/1/2000', freq='D', periods=10)
+
+        rng2 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other2 = pd.period_range('1/4/2000', freq='D', periods=5)
+        expected2 = pd.period_range('1/1/2000', freq='D', periods=8)
+
+        rng3 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other3 = pd.PeriodIndex([], freq='D')
+        expected3 = pd.period_range('1/1/2000', freq='D', periods=5)
+
+        rng4 = pd.period_range('2000-01-01 09:00', freq='H', periods=5)
+        other4 = pd.period_range('2000-01-02 09:00', freq='H', periods=5)
+        expected4 = pd.PeriodIndex(['2000-01-01 09:00', '2000-01-01 10:00',
+                                    '2000-01-01 11:00', '2000-01-01 12:00',
+                                    '2000-01-01 13:00', '2000-01-02 09:00',
+                                    '2000-01-02 10:00', '2000-01-02 11:00',
+                                    '2000-01-02 12:00', '2000-01-02 13:00'],
+                                   freq='H')
+
+        rng5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
+                               '2000-01-01 09:05'], freq='T')
+        other5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:05'
+                                                     '2000-01-01 09:08'],
+                                freq='T')
+        expected5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
+                                    '2000-01-01 09:05', '2000-01-01 09:08'],
+                                   freq='T')
+
+        rng6 = pd.period_range('2000-01-01', freq='M', periods=7)
+        other6 = pd.period_range('2000-04-01', freq='M', periods=7)
+        expected6 = pd.period_range('2000-01-01', freq='M', periods=10)
+
+        rng7 = pd.period_range('2003-01-01', freq='A', periods=5)
+        other7 = pd.period_range('1998-01-01', freq='A', periods=8)
+        expected7 = pd.period_range('1998-01-01', freq='A', periods=10)
+
+        for rng, other, expected in [(rng1, other1, expected1),
+                                     (rng2, other2, expected2),
+                                     (rng3, other3, expected3), (rng4, other4,
+                                                                 expected4),
+                                     (rng5, other5, expected5), (rng6, other6,
+                                                                 expected6),
+                                     (rng7, other7, expected7)]:
+
+            result_union = rng.union(other)
+            tm.assert_index_equal(result_union, expected)
+
+    def test_union_misc(self):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
 
         result = index[:-5].union(index[10:])
@@ -155,3 +206,45 @@ class TestPeriodIndex(tm.TestCase):
 
         result = rng.intersection(rng[0:0])
         self.assertEqual(len(result), 0)
+
+    def test_difference(self):
+        # diff
+        rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other1 = pd.period_range('1/6/2000', freq='D', periods=5)
+        expected1 = pd.period_range('1/1/2000', freq='D', periods=5)
+
+        rng2 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other2 = pd.period_range('1/4/2000', freq='D', periods=5)
+        expected2 = pd.period_range('1/1/2000', freq='D', periods=3)
+
+        rng3 = pd.period_range('1/1/2000', freq='D', periods=5)
+        other3 = pd.PeriodIndex([], freq='D')
+        expected3 = pd.period_range('1/1/2000', freq='D', periods=5)
+
+        rng4 = pd.period_range('2000-01-01 09:00', freq='H', periods=5)
+        other4 = pd.period_range('2000-01-02 09:00', freq='H', periods=5)
+        expected4 = rng4
+
+        rng5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
+                               '2000-01-01 09:05'], freq='T')
+        other5 = pd.PeriodIndex(
+            ['2000-01-01 09:01', '2000-01-01 09:05'], freq='T')
+        expected5 = pd.PeriodIndex(['2000-01-01 09:03'], freq='T')
+
+        rng6 = pd.period_range('2000-01-01', freq='M', periods=7)
+        other6 = pd.period_range('2000-04-01', freq='M', periods=7)
+        expected6 = pd.period_range('2000-01-01', freq='M', periods=3)
+
+        rng7 = pd.period_range('2003-01-01', freq='A', periods=5)
+        other7 = pd.period_range('1998-01-01', freq='A', periods=8)
+        expected7 = pd.period_range('2006-01-01', freq='A', periods=2)
+
+        for rng, other, expected in [(rng1, other1, expected1),
+                                     (rng2, other2, expected2),
+                                     (rng3, other3, expected3),
+                                     (rng4, other4, expected4),
+                                     (rng5, other5, expected5),
+                                     (rng6, other6, expected6),
+                                     (rng7, other7, expected7), ]:
+            result_union = rng.difference(other)
+            tm.assert_index_equal(result_union, expected)
