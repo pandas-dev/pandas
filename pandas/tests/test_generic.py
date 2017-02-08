@@ -1770,16 +1770,26 @@ class TestNDFrame(tm.TestCase):
         [tm.assert_series_equal(empty_series, higher_dim.squeeze())
          for higher_dim in [empty_series, empty_frame, empty_panel]]
 
+        # axis argument
+        df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]
+        tm.assert_equal(df.shape, (1, 1))
+        tm.assert_series_equal(df.squeeze(axis=0), df.iloc[0])
+        tm.assert_series_equal(df.squeeze(axis='index'), df.iloc[0])
+        tm.assert_series_equal(df.squeeze(axis=1), df.iloc[:, 0])
+        tm.assert_series_equal(df.squeeze(axis='columns'), df.iloc[:, 0])
+        tm.assert_equal(df.squeeze(), df.iloc[0, 0])
+        tm.assertRaises(ValueError, df.squeeze, axis=2)
+        tm.assertRaises(ValueError, df.squeeze, axis='x')
+
+        df = tm.makeTimeDataFrame(3)
+        tm.assert_frame_equal(df.squeeze(axis=0), df)
+
     def test_numpy_squeeze(self):
         s = tm.makeFloatSeries()
         tm.assert_series_equal(np.squeeze(s), s)
 
         df = tm.makeTimeDataFrame().reindex(columns=['A'])
         tm.assert_series_equal(np.squeeze(df), df['A'])
-
-        msg = "the 'axis' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg,
-                              np.squeeze, s, axis=0)
 
     def test_transpose(self):
         msg = (r"transpose\(\) got multiple values for "
