@@ -56,6 +56,20 @@ class TestMelt(tm.TestCase):
                               columns=['id1', 'id2', 'variable', 'value'])
         tm.assert_frame_equal(result4, expected4)
 
+    def test_value_vars_types(self):
+        result_with_tuple = melt(self.df, id_vars=['id1', 'id2'], value_vars=('A', 'B'))
+        result_with_array = melt(self.df, id_vars=['id1', 'id2'], value_vars=np.array(['A', 'B']))
+
+        expected = DataFrame({'id1': self.df['id1'].tolist() * 2,
+                              'id2': self.df['id2'].tolist() * 2,
+                              'variable': ['A'] * 10 + ['B'] * 10,
+                              'value': (self.df['A'].tolist() +
+                                        self.df['B'].tolist())},
+                             columns=['id1', 'id2', 'variable', 'value'])
+
+        tm.assert_frame_equal(result_with_tuple, expected)
+        tm.assert_frame_equal(result_with_array, expected)
+
     def test_custom_var_name(self):
         result5 = melt(self.df, var_name=self.var_name)
         self.assertEqual(result5.columns.tolist(), ['var', 'value'])

@@ -771,6 +771,8 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     if value_vars is not None:
         if not isinstance(value_vars, (tuple, list, np.ndarray)):
             value_vars = [value_vars]
+        else:
+            value_vars = list(value_vars)
         frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()
