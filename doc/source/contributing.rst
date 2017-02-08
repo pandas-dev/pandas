@@ -599,13 +599,21 @@ install *pandas*) by typing::
 
 The tests suite is exhaustive and takes around 20 minutes to run.  Often it is
 worth running only a subset of tests first around your changes before running the
-entire suite.  This is done using one of the following constructs::
+entire suite.
+
+The easiest way to do this is with::
+
+    pytest pandas/path/to/test.py -k regex_matching_test_name
+
+Or with one of the following constructs::
 
     pytest pandas/tests/[test-module].py
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-  .. versionadded:: 0.18.0
+For more, see the `pytest<http://doc.pytest.org/en/latest/>`_ documentation.
+
+    .. versionadded:: 0.18.0
 
 Furthermore one can run
 
