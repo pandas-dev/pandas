@@ -1777,10 +1777,10 @@ class TestNDFrame(tm.TestCase):
         tm.assert_series_equal(df.squeeze(axis=1), df.iloc[:, 0])
         tm.assert_equal(df.squeeze(), df.iloc[0, 0])
         tm.assertRaises(ValueError, df.squeeze, axis=2)
-        tm.assertRaises(TypeError, df.squeeze, axis='x')
+        tm.assertRaises(ValueError, df.squeeze, axis='x')
 
         df = tm.makeTimeDataFrame(3)
-        tm.assertRaises(ValueError, df.squeeze, axis=0)
+        tm.assert_frame_equal(df.squeeze(axis=0), df)
 
     def test_numpy_squeeze(self):
         s = tm.makeFloatSeries()
