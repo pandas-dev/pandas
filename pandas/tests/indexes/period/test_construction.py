@@ -410,21 +410,8 @@ class TestPeriodIndex(tm.TestCase):
         self.assertTrue((i1 == i2).all())
         self.assertEqual(i1.freq, i2.freq)
 
-        try:
-            PeriodIndex(start=start, end=end_intv)
-            raise AssertionError('Cannot allow mixed freq for start and end')
-        except ValueError:
-            pass
-
         end_intv = Period('2005-05-01', 'B')
         i1 = PeriodIndex(start=start, end=end_intv)
-
-        try:
-            PeriodIndex(start=start)
-            raise AssertionError(
-                'Must specify periods if missing start or end')
-        except ValueError:
-            pass
 
         # infer freq from first element
         i2 = PeriodIndex([end_intv, Period('2005-05-05', 'B')])
@@ -440,6 +427,18 @@ class TestPeriodIndex(tm.TestCase):
         self.assertRaises(ValueError, PeriodIndex, vals)
         vals = np.array(vals)
         self.assertRaises(ValueError, PeriodIndex, vals)
+
+    def test_constructor_error(self):
+        start = Period('02-Apr-2005', 'B')
+        end_intv = Period('2006-12-31', ('w', 1))
+
+        msg = 'Start and end must have same freq'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            PeriodIndex(start=start, end=end_intv)
+
+        msg = 'Must specify 2 of start, end, periods'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            PeriodIndex(start=start)
 
     def test_recreate_from_data(self):
         for o in ['M', 'Q', 'A', 'D', 'B', 'T', 'S', 'L', 'U', 'N', 'H']:
