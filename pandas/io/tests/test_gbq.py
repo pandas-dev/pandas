@@ -938,6 +938,7 @@ class TestToGBQIntegration(tm.TestCase):
                               private_key=_get_private_key_path())
         self.assertEqual(result['NUM_ROWS'][0], 5)
 
+    @tm.slow
     def test_google_upload_errors_should_raise_exception(self):
         destination_table = DESTINATION_TABLE + "5"
 
