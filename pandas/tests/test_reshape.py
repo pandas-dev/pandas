@@ -57,6 +57,7 @@ class TestMelt(tm.TestCase):
         tm.assert_frame_equal(result4, expected4)
 
     def test_value_vars_types(self):
+        # GH 15348
         expected = DataFrame({'id1': self.df['id1'].tolist() * 2,
                               'id2': self.df['id2'].tolist() * 2,
                               'variable': ['A'] * 10 + ['B'] * 10,
