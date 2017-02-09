@@ -1197,9 +1197,10 @@ class SQLDatabase(PandasSQL):
             self.get_table(table_name, schema).drop()
             self.meta.clear()
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
-        table = SQLTable(table_name, self, frame=frame, index=False, keys=keys,
-                         dtype=dtype)
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None,
+                           index=False, index_label=None):
+        table = SQLTable(table_name, self, frame=frame, index=index, keys=keys,
+                         dtype=dtype, index_label=index_label)
         return str(table.sql_schema())
 
 
@@ -1520,13 +1521,15 @@ class SQLiteDatabase(PandasSQL):
         drop_sql = "DROP TABLE %s" % _get_valid_sqlite_name(name)
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
-        table = SQLiteTable(table_name, self, frame=frame, index=False,
-                            keys=keys, dtype=dtype)
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None,
+                           index=False, index_label=None):
+        table = SQLiteTable(table_name, self, frame=frame, index=index,
+                            keys=keys, dtype=dtype, index_label=index_label)
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, flavor=None, keys=None, con=None, dtype=None):
+def get_schema(frame, name, flavor=None, keys=None, con=None, dtype=None,
+               index=False, index_label=None):
     """
     Get the SQL db table schema for the given frame.
 
@@ -1546,8 +1549,17 @@ def get_schema(frame, name, flavor=None, keys=None, con=None, dtype=None):
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
+    index : boolean, default False (for backwards compatibility)
+        Write DataFrame index as a column.
+        .. versionadded:: 0.18.1
 
+    index_label : string or sequence, default None
+        Column label for index column(s). If None is given (default) and
+        `index` is True, then the index names are used.
+        A sequence should be given if the DataFrame uses MultiIndex.
+        .. versionadded:: 0.18.1
     """
 
     pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
-    return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)
+    return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype,
+                                         index=index, index_label=index_label)
