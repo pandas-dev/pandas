@@ -1085,7 +1085,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         for name, gp in grouped:
             expected[name] = gp.describe()
         expected = DataFrame(expected).T
-        assert_frame_equal(result.unstack(), expected)
+        assert_frame_equal(result, expected)
 
         # get attribute
         result = grouped.dtype
@@ -1097,7 +1097,7 @@ class TestGroupBy(MixIn, tm.TestCase):
     def test_series_describe_multikey(self):
         ts = tm.makeTimeSeries()
         grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
-        result = grouped.describe().unstack()
+        result = grouped.describe()
         assert_series_equal(result['mean'], grouped.mean(), check_names=False)
         assert_series_equal(result['std'], grouped.std(), check_names=False)
         assert_series_equal(result['min'], grouped.min(), check_names=False)
@@ -1106,7 +1106,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         ts = tm.makeTimeSeries()
         grouped = ts.groupby(lambda x: x.month)
         result = grouped.apply(lambda x: x.describe())
-        expected = grouped.describe()
+        expected = grouped.describe().stack()
         assert_series_equal(result, expected)
 
     def test_series_index_name(self):
@@ -1117,17 +1117,27 @@ class TestGroupBy(MixIn, tm.TestCase):
     def test_frame_describe_multikey(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
         result = grouped.describe()
-
+        desc_groups = []
         for col in self.tsframe:
-            expected = grouped[col].describe()
-            assert_series_equal(result[col], expected, check_names=False)
+            group = grouped[col].describe()
+            group_col = pd.MultiIndex([[col] * len(group.columns),
+                                       group.columns],
+                                      [[0] * len(group.columns),
+                                       range(len(group.columns))])
+            group = pd.DataFrame(group.values,
+                                 columns=group_col,
+                                 index=group.index)
+            desc_groups.append(group)
+        expected = pd.concat(desc_groups, axis=1)
+        tm.assert_frame_equal(result, expected)
 
         groupedT = self.tsframe.groupby({'A': 0, 'B': 0,
                                          'C': 1, 'D': 1}, axis=1)
         result = groupedT.describe()
-
-        for name, group in groupedT:
-            assert_frame_equal(result[name], group.describe())
+        expected = self.tsframe.describe().T
+        expected.index = pd.MultiIndex([[0, 0, 1, 1], expected.index],
+                                       [range(4), range(len(expected.index))])
+        tm.assert_frame_equal(result, expected)
 
     def test_frame_describe_tupleindex(self):
 
@@ -1137,10 +1147,27 @@ class TestGroupBy(MixIn, tm.TestCase):
                          'z': [100, 200, 300, 400, 500] * 3})
         df1['k'] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
         df2 = df1.rename(columns={'k': 'key'})
-        result = df1.groupby('k').describe()
-        expected = df2.groupby('key').describe()
-        expected.index.set_names(result.index.names, inplace=True)
-        assert_frame_equal(result, expected)
+        tm.assertRaises(ValueError, lambda: df1.groupby('k').describe())
+        tm.assertRaises(ValueError, lambda: df2.groupby('key').describe())
+
+    def test_frame_describe_unstacked_format(self):
+        # GH 4792
+        prices = {pd.Timestamp('2011-01-06 10:59:05', tz=None): 24990,
+                  pd.Timestamp('2011-01-06 12:43:33', tz=None): 25499,
+                  pd.Timestamp('2011-01-06 12:54:09', tz=None): 25499}
+        volumes = {pd.Timestamp('2011-01-06 10:59:05', tz=None): 1500000000,
+                   pd.Timestamp('2011-01-06 12:43:33', tz=None): 5000000000,
+                   pd.Timestamp('2011-01-06 12:54:09', tz=None): 100000000}
+        df = pd.DataFrame({'PRICE': prices,
+                           'VOLUME': volumes})
+        result = df.groupby('PRICE').VOLUME.describe()
+        data = [df[df.PRICE == 24990].VOLUME.describe().values.tolist(),
+                df[df.PRICE == 25499].VOLUME.describe().values.tolist()]
+        expected = pd.DataFrame(data,
+                                index=pd.Index([24990, 25499], name='PRICE'),
+                                columns=['count', 'mean', 'std', 'min',
+                                         '25%', '50%', '75%', 'max'])
+        tm.assert_frame_equal(result, expected)
 
     def test_frame_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
@@ -2545,16 +2572,21 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_frame_equal(result, expected)
 
         # describe
-        expected = DataFrame(dict(B=concat(
-            [df.loc[[0, 1], 'B'].describe(), df.loc[[2], 'B'].describe()],
-            keys=[1, 3])))
-        expected.index.names = ['A', None]
+        expected_index = pd.Index([1, 3], name='A')
+        expected_col = pd.MultiIndex(levels=[['B'],
+                                             ['count', 'mean', 'std', 'min',
+                                              '25%', '50%', '75%', 'max']],
+                                     labels=[[0] * 8, list(range(8))])
+        expected = pd.DataFrame([[1.0, 2.0, nan, 2.0, 2.0, 2.0, 2.0, 2.0],
+                                 [0.0, nan, nan, nan, nan, nan, nan, nan]],
+                                index=expected_index,
+                                columns=expected_col)
         result = g.describe()
         assert_frame_equal(result, expected)
 
-        expected = concat(
-            [df.loc[[0, 1], ['A', 'B']].describe(),
-             df.loc[[2], ['A', 'B']].describe()], keys=[0, 1])
+        expected = pd.concat([df[df.A == 1].describe().unstack().to_frame().T,
+                              df[df.A == 3].describe().unstack().to_frame().T])
+        expected.index = pd.Index([0, 1])
         result = gni.describe()
         assert_frame_equal(result, expected)
 
@@ -3872,7 +3904,6 @@ class TestGroupBy(MixIn, tm.TestCase):
             'tail',
             'cumcount',
             'resample',
-            'describe',
             'rank',
             'quantile',
             'fillna',
@@ -3909,7 +3940,6 @@ class TestGroupBy(MixIn, tm.TestCase):
             'tail',
             'cumcount',
             'resample',
-            'describe',
             'rank',
             'quantile',
             'fillna',
