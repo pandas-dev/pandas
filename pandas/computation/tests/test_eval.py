@@ -1274,7 +1274,6 @@ class TestOperationsNumExprPandas(tm.TestCase):
                           local_dict={'df': df, 'df2': df2})
 
     def test_assignment_column(self):
-        tm.skip_if_no_ne('numexpr')
         df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
         orig_df = df.copy()
 
@@ -1346,7 +1345,6 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
     def assignment_not_inplace(self):
         # GH 9297
-        tm.skip_if_no_ne('numexpr')
         df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
 
         actual = df.eval('c = a + b', inplace=False)
@@ -1365,7 +1363,6 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
     def test_multi_line_expression(self):
         # GH 11149
-        tm.skip_if_no_ne('numexpr')
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
         expected = df.copy()
 
@@ -1393,7 +1390,6 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
     def test_multi_line_expression_not_inplace(self):
         # GH 11149
-        tm.skip_if_no_ne('numexpr')
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
         expected = df.copy()
 
@@ -1410,6 +1406,21 @@ class TestOperationsNumExprPandas(tm.TestCase):
         a = a - 1
         e = a + 2""", inplace=False)
         assert_frame_equal(expected, df)
+
+    def test_multi_line_expression_local_variable(self):
+        # GH 15342
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        expected = df.copy()
+
+        local_var = 7
+        expected['c'] = expected['a'] * local_var
+        expected['d'] = expected['c'] + local_var
+        ans = df.eval("""
+        c = a * @local_var
+        d = c + @local_var
+        """, inplace=True)
+        assert_frame_equal(expected, df)
+        self.assertIsNone(ans)
 
     def test_assignment_in_query(self):
         # GH 8664
