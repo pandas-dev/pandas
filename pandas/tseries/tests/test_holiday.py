@@ -15,10 +15,10 @@ from pandas.tseries.holiday import (USFederalHolidayCalendar, USMemorialDay,
                                     USLaborDay, USColumbusDay,
                                     USMartinLutherKingJr, USPresidentsDay)
 from pytz import utc
-import nose
 
 
 class TestCalendar(tm.TestCase):
+
     def setUp(self):
         self.holiday_list = [
             datetime(2012, 1, 2),
@@ -55,6 +55,7 @@ class TestCalendar(tm.TestCase):
         # Test for issue #9552
 
         class TestCalendar(AbstractHolidayCalendar):
+
             def __init__(self, name=None, rules=None):
                 super(TestCalendar, self).__init__(name=name, rules=rules)
 
@@ -84,6 +85,7 @@ class TestCalendar(tm.TestCase):
 
 
 class TestHoliday(tm.TestCase):
+
     def setUp(self):
         self.start_date = datetime(2011, 1, 1)
         self.end_date = datetime(2020, 12, 31)
@@ -289,6 +291,7 @@ class TestHoliday(tm.TestCase):
 
 
 class TestObservanceRules(tm.TestCase):
+
     def setUp(self):
         self.we = datetime(2014, 4, 9)
         self.th = datetime(2014, 4, 10)
@@ -385,8 +388,3 @@ class TestHolidayConflictingArguments(tm.TestCase):
             Holiday("Cyber Monday", month=11, day=1,
                     offset=[DateOffset(weekday=SA(4))],
                     observance=next_monday)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

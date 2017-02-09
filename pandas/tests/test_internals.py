@@ -182,8 +182,6 @@ def create_mgr(descr, item_shape=None):
 
 class TestBlock(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         # self.fblock = get_float_ex()  # a,c,e
         # self.cblock = get_complex_ex() #
@@ -299,7 +297,6 @@ class TestBlock(tm.TestCase):
 
 
 class TestDatetimeBlock(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_try_coerce_arg(self):
         block = create_block('datetime', [0])
@@ -318,7 +315,6 @@ class TestDatetimeBlock(tm.TestCase):
 
 
 class TestBlockManager(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.mgr = create_mgr(
@@ -1057,7 +1053,6 @@ class TestIndexing(object):
 
 
 class TestBlockPlacement(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_slice_len(self):
         self.assertEqual(len(BlockPlacement(slice(0, 4))), 4)
@@ -1188,8 +1183,3 @@ class TestBlockPlacement(tm.TestCase):
                           lambda: BlockPlacement([1, 2, 4]).add(-10))
         self.assertRaises(ValueError,
                           lambda: BlockPlacement(slice(2, None, -1)).add(-1))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

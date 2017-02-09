@@ -20,7 +20,6 @@ from pandas.util.testing import assert_almost_equal
 
 
 class TestMatch(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_ints(self):
         values = np.array([0, 2, 1])
@@ -57,7 +56,6 @@ class TestMatch(tm.TestCase):
 
 
 class TestSafeSort(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_basic_sort(self):
         values = [3, 1, 2, 0, 4]
@@ -144,7 +142,6 @@ class TestSafeSort(tm.TestCase):
 
 
 class TestFactorize(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_basic(self):
 
@@ -306,7 +303,6 @@ class TestFactorize(tm.TestCase):
 
 
 class TestUnique(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_ints(self):
         arr = np.random.randint(0, 100, size=50)
@@ -389,7 +385,6 @@ class TestUnique(tm.TestCase):
 
 
 class TestIsin(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_invalid(self):
 
@@ -472,7 +467,6 @@ class TestIsin(tm.TestCase):
 
 
 class TestValueCounts(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_value_counts(self):
         np.random.seed(1234)
@@ -658,8 +652,6 @@ class TestValueCounts(tm.TestCase):
 
 
 class TestDuplicated(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_duplicated_with_nas(self):
         keys = np.array([0, 1, np.nan, 0, 2, np.nan], dtype=object)
@@ -896,7 +888,6 @@ class GroupVarTestMixin(object):
 
 class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
     __test__ = True
-    _multiprocess_can_split_ = True
 
     algo = algos.algos.group_var_float64
     dtype = np.float64
@@ -920,7 +911,6 @@ class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
 
 class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
     __test__ = True
-    _multiprocess_can_split_ = True
 
     algo = algos.algos.group_var_float32
     dtype = np.float32
@@ -1068,7 +1058,6 @@ def test_arrmap():
 
 
 class TestTseriesUtil(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_combineFunc(self):
         pass
@@ -1372,9 +1361,3 @@ class TestMode(tm.TestCase):
         idx = Index(['1 day', '1 day', '-1 day', '-1 day 2 min',
                      '2 min', '2 min'], dtype='timedelta64[ns]')
         tm.assert_series_equal(algos.mode(idx), exp)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

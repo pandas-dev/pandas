@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import nose
+""" Test cases for misc plot functions """
 
 from pandas import Series, DataFrame
 from pandas.compat import lmap
@@ -15,11 +15,10 @@ import pandas.tools.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _ok_for_gaussian_kde)
 
-""" Test cases for misc plot functions """
-
 
 @tm.mplskip
 class TestSeriesPlots(TestPlotBase):
+
     def setUp(self):
         TestPlotBase.setUp(self)
         import matplotlib as mpl
@@ -51,6 +50,7 @@ class TestSeriesPlots(TestPlotBase):
 
 @tm.mplskip
 class TestDataFramePlots(TestPlotBase):
+
     @slow
     def test_scatter_plot_legacy(self):
         tm._skip_if_no_scipy()
@@ -298,8 +298,3 @@ class TestDataFramePlots(TestPlotBase):
                                                   title=title[:-1])
         title_list = [ax.get_title() for sublist in plot for ax in sublist]
         self.assertEqual(title_list, title[:3] + [''])
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -52,7 +52,6 @@ class PanelTests(object):
 
 
 class SafeForLongAndSparse(object):
-    _multiprocess_can_split_ = True
 
     def test_repr(self):
         repr(self.panel)
@@ -177,7 +176,6 @@ class SafeForLongAndSparse(object):
 
 
 class SafeForSparse(object):
-    _multiprocess_can_split_ = True
 
     @classmethod
     def assert_panel_equal(cls, x, y):
@@ -421,8 +419,6 @@ class SafeForSparse(object):
 
 
 class CheckIndexing(object):
-
-    _multiprocess_can_split_ = True
 
     def test_getitem(self):
         self.assertRaises(Exception, self.panel.__getitem__, 'ItemQ')
@@ -869,7 +865,6 @@ tm.add_nans(_panel)
 
 class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                 SafeForSparse):
-    _multiprocess_can_split_ = True
 
     @classmethod
     def assert_panel_equal(cls, x, y):
@@ -2278,7 +2273,6 @@ class TestLongPanel(tm.TestCase):
     """
     LongPanel no longer exists, but...
     """
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         import warnings
@@ -2538,8 +2532,3 @@ def test_panel_index():
                                        np.repeat([1, 2, 3], 4)],
                                       names=['time', 'panel'])
     tm.assert_index_equal(index, expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

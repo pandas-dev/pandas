@@ -477,6 +477,7 @@ _dti = DatetimeIndex
 
 
 class TestFrequencyInference(tm.TestCase):
+
     def test_raise_if_period_index(self):
         index = PeriodIndex(start="1/1/1990", periods=20, freq="M")
         self.assertRaises(TypeError, frequencies.infer_freq, index)

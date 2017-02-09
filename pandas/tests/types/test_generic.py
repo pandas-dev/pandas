@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import nose
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.types import generic as gt
-
-_multiprocess_can_split_ = True
 
 
 class TestABCClasses(tm.TestCase):
@@ -41,8 +38,3 @@ class TestABCClasses(tm.TestCase):
         self.assertIsInstance(self.sparse_array, gt.ABCSparseArray)
         self.assertIsInstance(self.categorical, gt.ABCCategorical)
         self.assertIsInstance(pd.Period('2012', freq='A-DEC'), gt.ABCPeriod)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

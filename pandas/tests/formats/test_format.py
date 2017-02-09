@@ -113,7 +113,6 @@ def has_expanded_repr(df):
 
 
 class TestDataFrameFormatting(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.warn_filters = warnings.filters
@@ -762,14 +761,15 @@ class TestDataFrameFormatting(tm.TestCase):
 
         # 11594
         import datetime
-        s = Series([datetime.datetime(2012, 1, 1)]*10 + [datetime.datetime(1012,1,2)] + [datetime.datetime(2012, 1, 3)]*10)
+        s = Series([datetime.datetime(2012, 1, 1)] * 10 +
+                   [datetime.datetime(1012, 1, 2)] + [datetime.datetime(2012, 1, 3)] * 10)
 
         with pd.option_context('display.max_rows', 8):
             result = str(s)
             self.assertTrue('object' in result)
 
         # 12045
-        df = DataFrame({'text': ['some words'] + [None]*9})
+        df = DataFrame({'text': ['some words'] + [None] * 9})
 
         with pd.option_context('display.max_rows', 8, 'display.max_columns', 3):
             result = str(df)
@@ -779,7 +779,8 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_datetimelike_frame(self):
 
         # GH 12211
-        df = DataFrame({'date' : [pd.Timestamp('20130101').tz_localize('UTC')] + [pd.NaT]*5})
+        df = DataFrame(
+            {'date': [pd.Timestamp('20130101').tz_localize('UTC')] + [pd.NaT] * 5})
 
         with option_context("display.max_rows", 5):
             result = str(df)
@@ -1219,8 +1220,8 @@ class TestDataFrameFormatting(tm.TestCase):
         mi = MultiIndex.from_product([[100, 200, 300],
                                       [10, 20, 30],
                                       [1, 2, 3, 4, 5, 6, 7]],
-                                     names=['a','b','c'])
-        df = DataFrame({'n' : range(len(mi))}, index = mi)
+                                     names=['a', 'b', 'c'])
+        df = DataFrame({'n': range(len(mi))}, index=mi)
         result = df.to_html(max_rows=60)
         expected = """\
 <table border="1" class="dataframe">
@@ -3451,8 +3452,8 @@ c  10  11  12  13  14\
                         'float': [1.0, 2.0, 3.0],
                         'object': [(1, 2), True, False],
                         'datetime64': [datetime(2016, 1, 1),
-                                   datetime(2016, 2, 5),
-                                   datetime(2016, 3, 3)]})
+                                       datetime(2016, 2, 5),
+                                       datetime(2016, 3, 3)]})
 
         formatters = {'int': lambda x: '0x%x' % x,
                       'float': lambda x: '[% 4.1f]' % x,
@@ -3881,7 +3882,7 @@ $1$,$2$
 
     def test_to_csv_multi_index(self):
         # see gh-6618
-        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1],[2]]))
+        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
 
         exp = ",1\n,2\n0,1\n"
         self.assertEqual(df.to_csv(), exp)
@@ -3889,8 +3890,8 @@ $1$,$2$
         exp = "1\n2\n1\n"
         self.assertEqual(df.to_csv(index=False), exp)
 
-        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1],[2]]),
-                       index=pd.MultiIndex.from_arrays([[1],[2]]))
+        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]),
+                       index=pd.MultiIndex.from_arrays([[1], [2]]))
 
         exp = ",,1\n,,2\n1,2,1\n"
         self.assertEqual(df.to_csv(), exp)
@@ -3898,7 +3899,8 @@ $1$,$2$
         exp = "1\n2\n1\n"
         self.assertEqual(df.to_csv(index=False), exp)
 
-        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([['foo'],['bar']]))
+        df = DataFrame(
+            [1], columns=pd.MultiIndex.from_arrays([['foo'], ['bar']]))
 
         exp = ",foo\n,bar\n0,1\n"
         self.assertEqual(df.to_csv(), exp)
@@ -3922,8 +3924,6 @@ $1$,$2$
 
 
 class TestSeriesFormatting(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.ts = tm.makeTimeSeries()
@@ -4437,7 +4437,6 @@ class TestSeriesFormatting(tm.TestCase):
 
 
 class TestEngFormatter(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_eng_float_formatter(self):
         df = DataFrame({'A': [1.41, 141., 14100, 1410000.]})
@@ -4590,9 +4589,9 @@ class TestEngFormatter(tm.TestCase):
         result = formatter(np.nan)
         self.assertEqual(result, u('NaN'))
 
-        df = pd.DataFrame({'a':[1.5, 10.3, 20.5],
-                           'b':[50.3, 60.67, 70.12],
-                           'c':[100.2, 101.33, 120.33]})
+        df = pd.DataFrame({'a': [1.5, 10.3, 20.5],
+                           'b': [50.3, 60.67, 70.12],
+                           'c': [100.2, 101.33, 120.33]})
         pt = df.pivot_table(values='a', index='b', columns='c')
         fmt.set_eng_float_format(accuracy=1)
         result = pt.to_string()
@@ -4984,8 +4983,3 @@ def test_format_percentiles():
     tm.assertRaises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
     tm.assertRaises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
     tm.assertRaises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

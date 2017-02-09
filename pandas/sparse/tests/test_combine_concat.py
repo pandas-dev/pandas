@@ -1,14 +1,11 @@
 # pylint: disable-msg=E1101,W0612
 
-import nose  # noqa
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 
 
 class TestSparseSeriesConcat(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_concat(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
@@ -126,8 +123,6 @@ class TestSparseSeriesConcat(tm.TestCase):
 
 
 class TestSparseDataFrameConcat(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def setUp(self):
 
@@ -356,9 +351,3 @@ class TestSparseDataFrameConcat(tm.TestCase):
         exp = pd.concat([self.dense1, self.dense3], axis=1)
         self.assertIsInstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res, exp)
-
-
-if __name__ == '__main__':
-    import nose  # noqa
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

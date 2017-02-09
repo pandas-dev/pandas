@@ -1,5 +1,4 @@
 import os
-import nose
 
 import numpy as np
 from pandas.compat import zip
@@ -304,7 +303,7 @@ class TestCut(tm.TestCase):
         data = to_datetime(Series(['2013-01-01', '2013-01-02', '2013-01-03']))
         result, bins = cut(data, 3, retbins=True)
         expected = Series(['(2012-12-31 23:57:07.200000, 2013-01-01 16:00:00]',
-                          '(2013-01-01 16:00:00, 2013-01-02 08:00:00]',
+                           '(2013-01-01 16:00:00, 2013-01-02 08:00:00]',
                            '(2013-01-02 08:00:00, 2013-01-03 00:00:00]'],
                           ).astype("category", ordered=True)
         tm.assert_series_equal(result, expected)
@@ -317,8 +316,8 @@ class TestCut(tm.TestCase):
 
         # testing for time data to be present as ndarray
         data = np.array([np.datetime64('2013-01-01'),
-                        np.datetime64('2013-01-02'),
-                        np.datetime64('2013-01-03')])
+                         np.datetime64('2013-01-02'),
+                         np.datetime64('2013-01-03')])
         result, bins = cut(data, 3, retbins=True)
         tm.assert_series_equal(Series(result), expected)
 
@@ -331,7 +330,7 @@ class TestCut(tm.TestCase):
         data = [np.datetime64('2012-12-13'), np.datetime64('2012-12-15')]
         bin_data = ['2012-12-12', '2012-12-14', '2012-12-16']
         expected = Series(['(2012-12-12 00:00:00, 2012-12-14 00:00:00]',
-                          '(2012-12-14 00:00:00, 2012-12-16 00:00:00]'],
+                           '(2012-12-14 00:00:00, 2012-12-16 00:00:00]'],
                           ).astype("category", ordered=True)
 
         for conv in [Timestamp, Timestamp, np.datetime64]:
@@ -351,8 +350,3 @@ class TestCut(tm.TestCase):
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -603,18 +603,14 @@ def _parse_data(schema, rows):
     # see:
     # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
     # #missing-data-casting-rules-and-indexing
-    dtype_map = {'INTEGER': np.dtype(float),
-                 'FLOAT': np.dtype(float),
-                 # This seems to be buggy without nanosecond indicator
+    dtype_map = {'FLOAT': np.dtype(float),
                  'TIMESTAMP': 'M8[ns]'}
 
     fields = schema['fields']
     col_types = [field['type'] for field in fields]
     col_names = [str(field['name']) for field in fields]
     col_dtypes = [dtype_map.get(field['type'], object) for field in fields]
-    page_array = np.zeros((len(rows),),
-                          dtype=lzip(col_names, col_dtypes))
-
+    page_array = np.zeros((len(rows),), dtype=lzip(col_names, col_dtypes))
     for row_num, raw_row in enumerate(rows):
         entries = raw_row.get('f', [])
         for col_num, field_type in enumerate(col_types):
@@ -628,7 +624,9 @@ def _parse_data(schema, rows):
 def _parse_entry(field_value, field_type):
     if field_value is None or field_value == 'null':
         return None
-    if field_type == 'INTEGER' or field_type == 'FLOAT':
+    if field_type == 'INTEGER':
+        return int(field_value)
+    elif field_type == 'FLOAT':
         return float(field_value)
     elif field_type == 'TIMESTAMP':
         timestamp = datetime.utcfromtimestamp(float(field_value))
@@ -757,10 +755,14 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
                 'Column order does not match this DataFrame.'
             )
 
-    # Downcast floats to integers and objects to booleans
-    # if there are no NaN's. This is presently due to a
-    # limitation of numpy in handling missing data.
-    final_df._data = final_df._data.downcast(dtypes='infer')
+    # cast BOOLEAN and INTEGER columns from object to bool/int
+    # if they dont have any nulls
+    type_map = {'BOOLEAN': bool, 'INTEGER': int}
+    for field in schema['fields']:
+        if field['type'] in type_map and \
+                final_df[field['name']].notnull().all():
+            final_df[field['name']] = \
+                final_df[field['name']].astype(type_map[field['type']])
 
     connector.print_elapsed_seconds(
         'Total time taken',

@@ -18,8 +18,6 @@ import pandas as pd
 
 class TestDataFrameDataTypes(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_concat_empty_dataframe_dtypes(self):
         df = DataFrame(columns=list("abc"))
         df['a'] = df['a'].astype(np.bool_)
@@ -538,8 +536,6 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
 
 class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
-
-    _multiprocess_can_split_ = True
 
     def test_interleave(self):
 

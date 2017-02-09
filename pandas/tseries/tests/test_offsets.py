@@ -2,10 +2,11 @@ import os
 from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from pandas.compat import range, iteritems
-from pandas import compat
+
 import nose
 from nose.tools import assert_raises
+from pandas.compat import range, iteritems
+from pandas import compat
 
 import numpy as np
 
@@ -36,8 +37,6 @@ import pandas.tslib as tslib
 from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
-
-_multiprocess_can_split_ = True
 
 
 def test_monthrange():
@@ -506,7 +505,6 @@ class TestCommon(Base):
 
 
 class TestDateOffset(Base):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.d = Timestamp(datetime(2008, 1, 2))
@@ -546,7 +544,6 @@ class TestDateOffset(Base):
 
 
 class TestBusinessDay(Base):
-    _multiprocess_can_split_ = True
     _offset = BDay
 
     def setUp(self):
@@ -724,7 +721,6 @@ class TestBusinessDay(Base):
 
 
 class TestBusinessHour(Base):
-    _multiprocess_can_split_ = True
     _offset = BusinessHour
 
     def setUp(self):
@@ -1431,7 +1427,6 @@ class TestBusinessHour(Base):
 
 
 class TestCustomBusinessHour(Base):
-    _multiprocess_can_split_ = True
     _offset = CustomBusinessHour
 
     def setUp(self):
@@ -1692,7 +1687,6 @@ class TestCustomBusinessHour(Base):
 
 
 class TestCustomBusinessDay(Base):
-    _multiprocess_can_split_ = True
     _offset = CDay
 
     def setUp(self):
@@ -1930,7 +1924,6 @@ class TestCustomBusinessDay(Base):
 
 
 class CustomBusinessMonthBase(object):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.d = datetime(2008, 1, 1)
@@ -3256,6 +3249,7 @@ def makeFY5253LastOfMonth(*args, **kwds):
 
 
 class TestFY5253LastOfMonth(Base):
+
     def test_onOffset(self):
 
         offset_lom_sat_aug = makeFY5253LastOfMonth(1, startingMonth=8,
@@ -3341,6 +3335,7 @@ class TestFY5253LastOfMonth(Base):
 
 
 class TestFY5253NearestEndMonth(Base):
+
     def test_get_target_month_end(self):
         self.assertEqual(makeFY5253NearestEndMonth(startingMonth=8,
                                                    weekday=WeekDay.SAT)
@@ -3506,6 +3501,7 @@ class TestFY5253NearestEndMonth(Base):
 
 
 class TestFY5253LastOfMonthQuarter(Base):
+
     def test_isAnchored(self):
         self.assertTrue(
             makeFY5253LastOfMonthQuarter(startingMonth=1, weekday=WeekDay.SAT,
@@ -3728,6 +3724,7 @@ class TestFY5253LastOfMonthQuarter(Base):
 
 
 class TestFY5253NearestEndMonthQuarter(Base):
+
     def test_onOffset(self):
 
         offset_nem_sat_aug_4 = makeFY5253NearestEndMonthQuarter(
@@ -3813,6 +3810,7 @@ class TestFY5253NearestEndMonthQuarter(Base):
 
 
 class TestQuarterBegin(Base):
+
     def test_repr(self):
         self.assertEqual(repr(QuarterBegin()),
                          "<QuarterBegin: startingMonth=3>")
@@ -4167,6 +4165,7 @@ class TestYearBegin(Base):
 
 
 class TestBYearEndLagged(Base):
+
     def test_bad_month_fail(self):
         self.assertRaises(Exception, BYearEnd, month=13)
         self.assertRaises(Exception, BYearEnd, month=0)
@@ -4306,6 +4305,7 @@ class TestYearEnd(Base):
 
 
 class TestYearEndDiffMonth(Base):
+
     def test_offset(self):
         tests = []
 
@@ -4541,6 +4541,7 @@ class TestTicks(tm.TestCase):
 
 
 class TestOffsetNames(tm.TestCase):
+
     def test_get_offset_name(self):
         self.assertEqual(BDay().freqstr, 'B')
         self.assertEqual(BDay(2).freqstr, '2B')
@@ -4599,6 +4600,7 @@ def test_get_offset_legacy():
 
 
 class TestParseTimeString(tm.TestCase):
+
     def test_parse_time_string(self):
         (date, parsed, reso) = parse_time_string('4Q1984')
         (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
@@ -4661,6 +4663,7 @@ def test_quarterly_dont_normalize():
 
 
 class TestOffsetAliases(tm.TestCase):
+
     def setUp(self):
         _offset_map.clear()
 
@@ -4796,6 +4799,7 @@ class TestCaching(tm.TestCase):
 
 
 class TestReprNames(tm.TestCase):
+
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
         month_prefixes = ['A', 'AS', 'BA', 'BAS', 'Q', 'BQ', 'BQS', 'QS']
@@ -4956,8 +4960,3 @@ class TestDST(tm.TestCase):
             first = Timestamp(test_values[0], tz='US/Eastern') + offset()
             second = Timestamp(test_values[1], tz='US/Eastern')
             self.assertEqual(first, second, msg=str(offset))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

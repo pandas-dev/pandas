@@ -99,8 +99,6 @@ def _mklbl(prefix, n):
 
 class TestIndexing(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     _objs = set(['series', 'frame', 'panel'])
     _typs = set(['ints', 'uints', 'labels', 'mixed',
                  'ts', 'floats', 'empty', 'ts_rev'])
@@ -5532,8 +5530,3 @@ class TestTimedeltaIndexing(tm.TestCase):
                                     index=pd.to_timedelta(range(10), unit='s'),
                                     columns=['x'])
             tm.assert_frame_equal(expected, result)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

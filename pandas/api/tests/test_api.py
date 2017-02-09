@@ -8,8 +8,6 @@ from pandas import api
 from pandas.api import types
 from pandas.util import testing as tm
 
-_multiprocess_can_split_ = True
-
 
 class Base(object):
 
@@ -44,7 +42,7 @@ class TestPDApi(Base, tm.TestCase):
                      'json', 'lib', 'index', 'parser']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['ols', 'stats', 'datetools']
+    deprecated_modules = ['stats', 'datetools']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -111,7 +109,7 @@ class TestPDApi(Base, tm.TestCase):
                         'expanding_max', 'expanding_mean', 'expanding_median',
                         'expanding_min', 'expanding_quantile',
                         'expanding_skew', 'expanding_std', 'expanding_sum',
-                        'expanding_var', 'fama_macbeth', 'rolling_apply',
+                        'expanding_var', 'rolling_apply',
                         'rolling_corr', 'rolling_count', 'rolling_cov',
                         'rolling_kurt', 'rolling_max', 'rolling_mean',
                         'rolling_median', 'rolling_min', 'rolling_quantile',
@@ -227,8 +225,3 @@ class TestDatetools(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.datetools.monthEnd
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

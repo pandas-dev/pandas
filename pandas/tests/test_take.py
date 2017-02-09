@@ -2,21 +2,16 @@
 import re
 from datetime import datetime
 
-import nose
 import numpy as np
 from pandas.compat import long
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 from pandas.tslib import iNaT
 
-_multiprocess_can_split_ = True
-
 
 class TestTake(tm.TestCase):
     # standard incompatible fill error
     fill_error = re.compile("Incompatible type for fill_value")
-
-    _multiprocess_can_split_ = True
 
     def test_1d_with_out(self):
         def _test_dtype(dtype, can_hold_na, writeable=True):
@@ -448,8 +443,3 @@ class TestTake(tm.TestCase):
         expected = arr.take(indexer, axis=1)
         expected[:, [2, 4]] = datetime(2007, 1, 1)
         tm.assert_almost_equal(result, expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

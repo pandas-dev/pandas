@@ -90,8 +90,6 @@ class TestCompat(tm.TestCase):
 
 class TestDataFrameEval(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_ops(self):
 
         # tst ops and reversed ops in evaluation
@@ -167,8 +165,6 @@ class TestDataFrameEval(tm.TestCase, TestData):
 
 
 class TestDataFrameQueryWithMultiIndex(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def check_query_with_named_multiindex(self, parser, engine):
         tm.skip_if_no_ne(engine)
@@ -1155,8 +1151,3 @@ class TestDataFrameEvalPythonPython(TestDataFrameEvalNumExprPython):
     def setUpClass(cls):
         super(TestDataFrameEvalPythonPython, cls).tearDownClass()
         cls.engine = cls.parser = 'python'
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

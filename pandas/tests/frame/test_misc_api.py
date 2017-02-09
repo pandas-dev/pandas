@@ -4,7 +4,6 @@ from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 import sys
-import nose
 from distutils.version import LooseVersion
 
 from pandas.compat import range, lrange
@@ -27,8 +26,6 @@ from pandas.tests.frame.common import TestData
 
 
 class SharedWithSparse(object):
-
-    _multiprocess_can_split_ = True
 
     def test_copy_index_name_checking(self):
         # don't want to be able to modify the index stored elsewhere after
@@ -159,8 +156,6 @@ class SharedWithSparse(object):
 class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     klass = DataFrame
-
-    _multiprocess_can_split_ = True
 
     def test_get_axis(self):
         f = self.frame
@@ -486,8 +481,3 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         # rename
         f = lambda x: x.rename({1: 'foo'}, inplace=True)
         _check_f(d.copy(), f)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

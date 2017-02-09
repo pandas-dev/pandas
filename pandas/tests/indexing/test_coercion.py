@@ -15,8 +15,6 @@ import pandas.compat as compat
 
 class CoercionBase(object):
 
-    _multiprocess_can_split_ = True
-
     klasses = ['index', 'series']
     dtypes = ['object', 'int64', 'float64', 'complex128', 'bool',
               'datetime64', 'datetime64tz', 'timedelta64', 'period']
@@ -1187,7 +1185,7 @@ class TestReplaceSeriesCoercion(CoercionBase, tm.TestCase):
              to_key in ('bool')) or
 
             # TODO_GH12747 The result must be int?
-           (from_key == 'bool' and to_key == 'int64')):
+                (from_key == 'bool' and to_key == 'int64')):
 
             # buggy on 32-bit
             if tm.is_platform_32bit():

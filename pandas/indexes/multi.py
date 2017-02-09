@@ -1399,7 +1399,11 @@ class MultiIndex(Index):
 
         Returns
         -------
-        sorted_index : MultiIndex
+        sorted_index : pd.MultiIndex
+            Resulting index
+        indexer : np.ndarray
+            Indices of output values in original index
+
         """
         from pandas.core.groupby import _indexer_from_factorized
 
@@ -1813,7 +1817,7 @@ class MultiIndex(Index):
                                      for k, l in zip(key, self.levels)]
                         can_index_exactly = any(all_dates)
                         if (any([l.is_all_dates
-                                for k, l in zip(key, self.levels)]) and
+                                 for k, l in zip(key, self.levels)]) and
                                 not can_index_exactly):
                             indexer = self.get_loc(key)
 

@@ -6,7 +6,6 @@ from pandas import compat
 
 def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
              chunksize=None, iterator=False):
-
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 

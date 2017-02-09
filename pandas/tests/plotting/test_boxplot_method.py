@@ -378,8 +378,3 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df = DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]})
         self._check_ticks_props(df.boxplot("a", by="b", fontsize=16),
                                 xlabelsize=16, ylabelsize=16)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

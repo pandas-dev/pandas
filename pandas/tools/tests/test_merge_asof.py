@@ -1,4 +1,3 @@
-import nose
 import os
 
 import pytz
@@ -12,7 +11,6 @@ from pandas.util.testing import assert_frame_equal
 
 
 class TestAsOfMerge(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def read_data(self, name, dedupe=False):
         path = os.path.join(tm.get_data_path(), name)
@@ -687,7 +685,7 @@ class TestAsOfMerge(tm.TestCase):
         # GH 13709
         df1 = pd.DataFrame({
             'time': pd.to_datetime(['2016-07-15 13:30:00.030',
-                                   '2016-07-15 13:30:00.030']),
+                                    '2016-07-15 13:30:00.030']),
             'username': ['bob', 'charlie']})
         df2 = pd.DataFrame({
             'time': pd.to_datetime(['2016-07-15 13:30:00.000',
@@ -938,8 +936,3 @@ class TestAsOfMerge(tm.TestCase):
             columns=['symbol', 'exch', 'price', 'mpv'])
 
         assert_frame_equal(result, expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

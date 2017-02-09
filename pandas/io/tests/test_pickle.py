@@ -30,7 +30,6 @@ class TestPickle():
     http://stackoverflow.com/questions/6689537/
     nose-test-generators-inside-class
     """
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         from pandas.io.tests.generate_legacy_storage_files import (
@@ -283,9 +282,3 @@ class TestPickle():
         # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
         #
         tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   # '--with-coverage', '--cover-package=pandas.core'],
-                   exit=False)

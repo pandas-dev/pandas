@@ -31,8 +31,6 @@ JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 class TestSeriesIndexing(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_get(self):
 
         # GH 6383
@@ -2216,7 +2214,6 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
 
 class TestTimeSeriesDuplicates(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         dates = [datetime(2000, 1, 2), datetime(2000, 1, 2),
@@ -2603,6 +2600,7 @@ class TestDatetimeIndexing(tm.TestCase):
 
 
 class TestNatIndexing(tm.TestCase):
+
     def setUp(self):
         self.series = Series(date_range('1/1/2000', periods=10))
 
@@ -2638,9 +2636,3 @@ class TestNatIndexing(tm.TestCase):
             round_method = getattr(s.dt, method)
             for freq in ["s", "5s", "min", "5min", "h", "5h"]:
                 assert_series_equal(round_method(freq), expected)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

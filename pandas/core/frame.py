@@ -5326,9 +5326,10 @@ class DataFrame(NDFrame):
                                 "allowed to be passed to DataFrame.isin(), "
                                 "you passed a "
                                 "{0!r}".format(type(values).__name__))
-            return DataFrame(lib.ismember(self.values.ravel(),
+            return DataFrame(
+                lib.ismember(self.values.ravel(),
                              set(values)).reshape(self.shape), self.index,
-                             self.columns)
+                self.columns)
 
     # ----------------------------------------------------------------------
     # Deprecated stuff
@@ -5762,8 +5763,3 @@ DataFrame.boxplot = boxplot
 
 ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)
 ops.add_special_arithmetic_methods(DataFrame, **ops.frame_special_funcs)
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

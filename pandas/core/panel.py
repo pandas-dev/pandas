@@ -1560,6 +1560,7 @@ Panel._add_numeric_operations()
 
 # legacy
 class WidePanel(Panel):
+
     def __init__(self, *args, **kwargs):
         # deprecation, #10892
         warnings.warn("WidePanel is deprecated. Please use Panel",
@@ -1569,6 +1570,7 @@ class WidePanel(Panel):
 
 
 class LongPanel(DataFrame):
+
     def __init__(self, *args, **kwargs):
         # deprecation, #10892
         warnings.warn("LongPanel is deprecated. Please use DataFrame",

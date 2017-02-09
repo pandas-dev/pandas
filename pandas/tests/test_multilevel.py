@@ -25,8 +25,6 @@ import pandas.index as _index
 
 class TestMultiLevel(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
@@ -2478,8 +2476,3 @@ Thur,Lunch,Yes,51.51,17"""
                                for r in range(5)])
 
         assert_frame_equal(result, expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

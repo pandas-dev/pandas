@@ -6,7 +6,6 @@ related to inference and not otherwise tested in types/test_common.py
 
 """
 
-import nose
 import collections
 import re
 from datetime import datetime, date, timedelta, time
@@ -35,8 +34,6 @@ from pandas.types.common import (is_timedelta64_dtype,
                                  _ensure_categorical)
 from pandas.types.missing import isnull
 from pandas.util import testing as tm
-
-_multiprocess_can_split_ = True
 
 
 def test_is_sequence():
@@ -341,7 +338,6 @@ class TestInference(tm.TestCase):
 
 
 class TestTypeInference(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
@@ -968,8 +964,3 @@ def test_ensure_categorical():
     values = Categorical(values)
     result = _ensure_categorical(values)
     tm.assert_categorical_equal(result, values)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -27,6 +27,7 @@ from pandas.compat import OrderedDict
 
 
 class CompatValidator(object):
+
     def __init__(self, defaults, fname=None, method=None,
                  max_fname_arg_count=None):
         self.fname = fname
@@ -212,13 +213,6 @@ STAT_DDOF_FUNC_DEFAULTS['dtype'] = None
 STAT_DDOF_FUNC_DEFAULTS['out'] = None
 validate_stat_ddof_func = CompatValidator(STAT_DDOF_FUNC_DEFAULTS,
                                           method='kwargs')
-
-# Currently, numpy (v1.11) has backwards compatibility checks
-# in place so that this 'kwargs' parameter is technically
-# unnecessary, but in the long-run, this will be needed.
-SQUEEZE_DEFAULTS = dict(axis=None)
-validate_squeeze = CompatValidator(SQUEEZE_DEFAULTS, fname='squeeze',
-                                   method='kwargs')
 
 TAKE_DEFAULTS = OrderedDict()
 TAKE_DEFAULTS['out'] = None

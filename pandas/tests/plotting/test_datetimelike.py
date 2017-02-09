@@ -1,3 +1,5 @@
+""" Test cases for time series specific (freq conversion, etc) """
+
 from datetime import datetime, timedelta, date, time
 
 import nose
@@ -16,9 +18,6 @@ import pandas.util.testing as tm
 
 from pandas.tests.plotting.common import (TestPlotBase,
                                           _skip_if_no_scipy_gaussian_kde)
-
-
-""" Test cases for time series specific (freq conversion, etc) """
 
 
 @tm.mplskip
@@ -1309,8 +1308,3 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
             plt.savefig(path)
     finally:
         plt.close(fig)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

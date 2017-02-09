@@ -168,8 +168,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
             if (is_datetime64_any_dtype(data) or
-               (dtype is not None and is_datetime64_any_dtype(dtype)) or
-               'tz' in kwargs):
+                (dtype is not None and is_datetime64_any_dtype(dtype)) or
+                    'tz' in kwargs):
                 from pandas.tseries.index import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name,
                                        dtype=dtype, **kwargs)
@@ -3606,7 +3606,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                     typ=type(other))
                                 )
         elif isinstance(other, np.ndarray) and not other.ndim:
-                    other = other.item()
+            other = other.item()
 
         if isinstance(other, (Index, ABCSeries, np.ndarray)):
             if len(self) != len(other):

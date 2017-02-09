@@ -10,7 +10,6 @@ from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
 
 
 class TestDatetimeIndex(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_construction_with_alt(self):
 
@@ -428,7 +427,6 @@ class TestDatetimeIndex(tm.TestCase):
 
 
 class TestTimeSeries(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')

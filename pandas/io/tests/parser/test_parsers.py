@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import nose
 
 import pandas.util.testing as tm
 
@@ -33,6 +32,7 @@ class BaseParser(CommentTests, CompressionTests,
                  ParseDatesTests, ParserTests,
                  SkipRowsTests, UsecolsTests,
                  QuotingTests, DtypeTests):
+
     def read_csv(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -99,7 +99,3 @@ class TestPythonParser(BaseParser, PythonParserTests, tm.TestCase):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         return read_table(*args, **kwds)
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

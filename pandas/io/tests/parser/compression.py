@@ -11,6 +11,7 @@ import pandas.util.testing as tm
 
 
 class CompressionTests(object):
+
     def test_zip(self):
         try:
             import zipfile

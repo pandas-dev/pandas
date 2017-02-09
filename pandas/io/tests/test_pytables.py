@@ -50,7 +50,6 @@ from distutils.version import LooseVersion
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >= '2.2'
                        else 'zlib')
 
-_multiprocess_can_split_ = False
 
 # testing on windows/py3 seems to fault
 # for using compression
@@ -5516,9 +5515,3 @@ def _test_sort(obj):
         return obj.reindex(major=sorted(obj.major_axis))
     else:
         raise ValueError('type not supported here')
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

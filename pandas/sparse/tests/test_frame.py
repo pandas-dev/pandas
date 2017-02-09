@@ -22,7 +22,6 @@ from pandas.tests.frame.test_misc_api import SharedWithSparse
 class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     klass = SparseDataFrame
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
@@ -1150,6 +1149,7 @@ class TestSparseDataFrameArithmetic(tm.TestCase):
 
 
 class TestSparseDataFrameAnalytics(tm.TestCase):
+
     def setUp(self):
         self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
@@ -1193,8 +1193,3 @@ class TestSparseDataFrameAnalytics(tm.TestCase):
                  'std', 'min', 'max']
         for func in funcs:
             getattr(np, func)(self.frame)
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

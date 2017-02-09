@@ -5,7 +5,6 @@ import warnings
 
 
 class TestConfig(unittest.TestCase):
-    _multiprocess_can_split_ = True
 
     def __init__(self, *args):
         super(TestConfig, self).__init__(*args)

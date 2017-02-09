@@ -201,7 +201,7 @@ class TestEvalNumexprPandas(tm.TestCase):
                                                                 binop=binop,
                                                                 cmp2=cmp2)
         scalar_with_in_notin = (is_scalar(rhs) and (cmp1 in skip_these or
-                                                      cmp2 in skip_these))
+                                                    cmp2 in skip_these))
         if scalar_with_in_notin:
             with tm.assertRaises(TypeError):
                 pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -702,7 +702,6 @@ class TestEvalNumexprPandas(tm.TestCase):
         tm.assert_frame_equal(expected, result)
 
 
-
 class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     @classmethod
@@ -782,6 +781,7 @@ ENGINES_PARSERS = list(product(_engines, expr._parsers))
 # typecasting rules consistency with python
 # issue #12388
 
+
 class TestTypeCasting(object):
 
     def check_binop_typecasting(self, engine, parser, op, dt):
@@ -803,7 +803,8 @@ class TestTypeCasting(object):
         for engine, parser in ENGINES_PARSERS:
             for op in ['+', '-', '*', '**', '/']:
                 # maybe someday... numexpr has too many upcasting rules now
-                #for dt in chain(*(np.sctypes[x] for x in ['uint', 'int', 'float'])):
+                # for dt in chain(*(np.sctypes[x] for x in ['uint', 'int',
+                # 'float'])):
                 for dt in [np.float32, np.float64]:
                     yield self.check_binop_typecasting, engine, parser, op, dt
 
@@ -1273,7 +1274,6 @@ class TestOperationsNumExprPandas(tm.TestCase):
                           local_dict={'df': df, 'df2': df2})
 
     def test_assignment_column(self):
-        tm.skip_if_no_ne('numexpr')
         df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
         orig_df = df.copy()
 
@@ -1345,7 +1345,6 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
     def assignment_not_inplace(self):
         # GH 9297
-        tm.skip_if_no_ne('numexpr')
         df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
 
         actual = df.eval('c = a + b', inplace=False)
@@ -1364,7 +1363,6 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
     def test_multi_line_expression(self):
         # GH 11149
-        tm.skip_if_no_ne('numexpr')
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
         expected = df.copy()
 
@@ -1392,7 +1390,6 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
     def test_multi_line_expression_not_inplace(self):
         # GH 11149
-        tm.skip_if_no_ne('numexpr')
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
         expected = df.copy()
 
@@ -1409,6 +1406,21 @@ class TestOperationsNumExprPandas(tm.TestCase):
         a = a - 1
         e = a + 2""", inplace=False)
         assert_frame_equal(expected, df)
+
+    def test_multi_line_expression_local_variable(self):
+        # GH 15342
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        expected = df.copy()
+
+        local_var = 7
+        expected['c'] = expected['a'] * local_var
+        expected['d'] = expected['c'] + local_var
+        ans = df.eval("""
+        c = a * @local_var
+        d = c + @local_var
+        """, inplace=True)
+        assert_frame_equal(expected, df)
+        self.assertIsNone(ans)
 
     def test_assignment_in_query(self):
         # GH 8664
@@ -1969,16 +1981,12 @@ def test_negate_lt_eq_le():
     for engine, parser in product(_engines, expr._parsers):
         yield check_negate_lt_eq_le, engine, parser
 
+
 class TestValidate(tm.TestCase):
 
     def test_validate_bool_args(self):
-        invalid_values = [1, "True", [1,2,3], 5.0]
+        invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:
             with self.assertRaises(ValueError):
                 pd.eval("2+2", inplace=value)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

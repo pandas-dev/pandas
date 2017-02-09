@@ -14,7 +14,6 @@ import pandas.util.testing as tm
 
 
 class TestSparseArray(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.arr_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
@@ -655,6 +654,7 @@ class TestSparseArray(tm.TestCase):
 
 
 class TestSparseArrayAnalytics(tm.TestCase):
+
     def test_sum(self):
         data = np.arange(10).astype(float)
         out = SparseArray(data).sum()
@@ -810,9 +810,3 @@ class TestSparseArrayAnalytics(tm.TestCase):
         sparse = SparseArray([1, -1, 0, -2], fill_value=0)
         result = SparseArray([2, 0, 1, -1], fill_value=1)
         tm.assert_sp_array_equal(np.add(sparse, 1), result)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

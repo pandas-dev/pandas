@@ -18,7 +18,6 @@ from pandas.util.testing import assert_frame_equal, ensure_clean
 
 
 class TestFeather(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         pass
@@ -116,8 +115,3 @@ class TestFeather(tm.TestCase):
         df.index = [0, 1, 2]
         df.columns = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)]),
         self.check_error_on_write(df, ValueError)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -89,6 +89,7 @@ docstring_to_string = common_docstring + justify_docstring + return_docstring
 
 
 class CategoricalFormatter(object):
+
     def __init__(self, categorical, buf=None, length=True, na_rep='NaN',
                  footer=True):
         self.categorical = categorical
@@ -142,6 +143,7 @@ class CategoricalFormatter(object):
 
 
 class SeriesFormatter(object):
+
     def __init__(self, series, buf=None, length=True, header=True, index=True,
                  na_rep='NaN', name=False, float_format=None, dtype=True,
                  max_rows=None):
@@ -272,6 +274,7 @@ class SeriesFormatter(object):
 
 
 class TextAdjustment(object):
+
     def __init__(self):
         self.encoding = get_option("display.encoding")
 
@@ -287,6 +290,7 @@ class TextAdjustment(object):
 
 
 class EastAsianTextAdjustment(TextAdjustment):
+
     def __init__(self):
         super(EastAsianTextAdjustment, self).__init__()
         if get_option("display.unicode.ambiguous_as_wide"):
@@ -1366,6 +1370,7 @@ def _get_level_lengths(levels, sentinel=''):
 
 
 class CSVFormatter(object):
+
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='',
                  float_format=None, cols=None, header=True, index=True,
                  index_label=None, mode='w', nanRep=None, encoding=None,
@@ -1950,6 +1955,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 
 
 class GenericArrayFormatter(object):
+
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
                  quoting=None, fixed_width=True):
@@ -2151,6 +2157,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 
 class IntArrayFormatter(GenericArrayFormatter):
+
     def _format_strings(self):
         formatter = self.formatter or (lambda x: '% d' % x)
         fmt_values = [formatter(x) for x in self.values]
@@ -2158,6 +2165,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 
 
 class Datetime64Formatter(GenericArrayFormatter):
+
     def __init__(self, values, nat_rep='NaT', date_format=None, **kwargs):
         super(Datetime64Formatter, self).__init__(values, **kwargs)
         self.nat_rep = nat_rep
@@ -2183,6 +2191,7 @@ class Datetime64Formatter(GenericArrayFormatter):
 
 
 class PeriodArrayFormatter(IntArrayFormatter):
+
     def _format_strings(self):
         from pandas.tseries.period import IncompatibleFrequency
         try:
@@ -2197,6 +2206,7 @@ class PeriodArrayFormatter(IntArrayFormatter):
 
 
 class CategoricalArrayFormatter(GenericArrayFormatter):
+
     def __init__(self, values, *args, **kwargs):
         GenericArrayFormatter.__init__(self, values, *args, **kwargs)
 
@@ -2328,6 +2338,7 @@ def _get_format_datetime64_from_values(values, date_format):
 
 
 class Datetime64TZFormatter(Datetime64Formatter):
+
     def _format_strings(self):
         """ we by definition have a TZ """
 
@@ -2342,6 +2353,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
+
     def __init__(self, values, nat_rep='NaT', box=False, **kwargs):
         super(Timedelta64Formatter, self).__init__(values, **kwargs)
         self.nat_rep = nat_rep
@@ -2679,17 +2691,3 @@ def _binify(cols, line_width):
 
     bins.append(len(cols))
     return bins
-
-
-if __name__ == '__main__':
-    arr = np.array([746.03, 0.00, 5620.00, 1592.36])
-    # arr = np.array([11111111.1, 1.55])
-    # arr = [314200.0034, 1.4125678]
-    arr = np.array(
-        [327763.3119, 345040.9076, 364460.9915, 398226.8688, 383800.5172,
-         433442.9262, 539415.0568, 568590.4108, 599502.4276, 620921.8593,
-         620898.5294, 552427.1093, 555221.2193, 519639.7059, 388175.7,
-         379199.5854, 614898.25, 504833.3333, 560600., 941214.2857, 1134250.,
-         1219550., 855736.85, 1042615.4286, 722621.3043, 698167.1818, 803750.])
-    fmt = FloatArrayFormatter(arr, digits=7)
-    print(fmt.get_result())

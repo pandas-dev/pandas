@@ -37,8 +37,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameIndexing(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_getitem(self):
         # slicing
         sl = self.frame[:20]
@@ -2841,8 +2839,6 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
 class TestDataFrameIndexingDatetimeWithTZ(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         self.idx = Index(date_range('20130101', periods=3, tz='US/Eastern'),
                          name='foo')
@@ -2902,8 +2898,6 @@ class TestDataFrameIndexingDatetimeWithTZ(tm.TestCase, TestData):
 
 class TestDataFrameIndexingUInt64(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         self.ir = Index(np.arange(3), dtype=np.uint64)
         self.idx = Index([2**63, 2**63 + 5, 2**63 + 10], name='foo')
@@ -2954,9 +2948,3 @@ class TestDataFrameIndexingUInt64(tm.TestCase, TestData):
         expected = DataFrame(self.df.values.T)
         expected.index = ['A', 'B']
         assert_frame_equal(result, expected)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta
 from functools import partial
 
-import nose
 import numpy as np
 
 import pandas as pd
@@ -50,7 +49,6 @@ def _simple_pts(start, end, freq='D'):
 
 
 class TestResampleAPI(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
@@ -215,6 +213,20 @@ class TestResampleAPI(tm.TestCase):
                              index=index)
         result = df.groupby('group').apply(
             lambda x: x.resample('1D').ffill())[['val']]
+        assert_frame_equal(result, expected)
+
+    def test_groupby_resample_on_api(self):
+
+        # GH 15021
+        # .groupby(...).resample(on=...) results in an unexpected
+        # keyword warning.
+        df = pd.DataFrame({'key': ['A', 'B'] * 5,
+                           'dates': pd.date_range('2016-01-01', periods=10),
+                           'values': np.random.randn(10)})
+
+        expected = df.set_index('dates').groupby('key').resample('D').mean()
+
+        result = df.groupby('key').resample('D', on='dates').mean()
         assert_frame_equal(result, expected)
 
     def test_plot_api(self):
@@ -741,8 +753,8 @@ class Base(object):
                 self.assertEqual(result.index.freq, expected.index.freq)
 
                 if (method == 'size' and
-                   isinstance(result.index, PeriodIndex) and
-                   freq in ['M', 'D']):
+                    isinstance(result.index, PeriodIndex) and
+                        freq in ['M', 'D']):
                     # GH12871 - TODO: name should propagate, but currently
                     # doesn't on lower / same frequency with PeriodIndex
                     assert_series_equal(result, expected, check_dtype=False,
@@ -826,7 +838,6 @@ class Base(object):
 
 
 class TestDatetimeIndex(Base, tm.TestCase):
-    _multiprocess_can_split_ = True
     _index_factory = lambda x: date_range
 
     def setUp(self):
@@ -977,6 +988,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
             return str(type(x))
 
         class fn_class:
+
             def __call__(self, x):
                 return str(type(x))
 
@@ -2122,7 +2134,6 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
 
 class TestPeriodIndex(Base, tm.TestCase):
-    _multiprocess_can_split_ = True
     _index_factory = lambda x: period_range
 
     def create_series(self):
@@ -2731,7 +2742,6 @@ class TestPeriodIndex(Base, tm.TestCase):
 
 
 class TestTimedeltaIndex(Base, tm.TestCase):
-    _multiprocess_can_split_ = True
     _index_factory = lambda x: timedelta_range
 
     def create_series(self):
@@ -2753,6 +2763,7 @@ class TestTimedeltaIndex(Base, tm.TestCase):
 
 
 class TestResamplerGrouper(tm.TestCase):
+
     def setUp(self):
         self.frame = DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
                                 'B': np.arange(40)},
@@ -2947,6 +2958,7 @@ class TestResamplerGrouper(tm.TestCase):
 
 
 class TestTimeGrouper(tm.TestCase):
+
     def setUp(self):
         self.ts = Series(np.random.randn(1000),
                          index=date_range('1/1/2000', periods=1000))
@@ -3174,8 +3186,3 @@ class TestTimeGrouper(tm.TestCase):
 
             # if NaT is included, 'var', 'std', 'mean', 'first','last'
             # and 'nth' doesn't work yet
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

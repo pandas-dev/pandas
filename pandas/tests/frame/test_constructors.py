@@ -7,7 +7,6 @@ import functools
 import itertools
 
 import nose
-
 from numpy.random import randn
 
 import numpy as np
@@ -36,8 +35,6 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
 
 
 class TestDataFrameConstructors(tm.TestCase, TestData):
-
-    _multiprocess_can_split_ = True
 
     def test_constructor(self):
         df = DataFrame()
@@ -1887,8 +1884,6 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
 class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_from_dict(self):
 
         # 8260
@@ -1945,10 +1940,3 @@ class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):
         result['index'].dtype == 'M8[ns]'
 
         result = df.to_records(index=False)
-
-
-if __name__ == '__main__':
-    import nose  # noqa
-
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

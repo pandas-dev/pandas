@@ -165,7 +165,7 @@ def assert_almost_equal(left, right, check_exact=False,
                 pass
             else:
                 if (isinstance(left, np.ndarray) or
-                   isinstance(right, np.ndarray)):
+                        isinstance(right, np.ndarray)):
                     obj = 'numpy array'
                 else:
                     obj = 'Input'
@@ -1103,7 +1103,6 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_datetimelike_compat=False,
                         check_categorical=True,
                         obj='Series'):
-
     """Check that left and right Series are equal.
 
     Parameters
@@ -1211,7 +1210,6 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_categorical=True,
                        check_like=False,
                        obj='DataFrame'):
-
     """Check that left and right DataFrame are equal.
 
     Parameters
@@ -2446,6 +2444,7 @@ class _AssertRaisesContextmanager(object):
     Handles the behind the scenes work
     for assertRaises and assertRaisesRegexp
     """
+
     def __init__(self, exception, regexp=None, *args, **kwargs):
         self.exception = exception
         if regexp is not None and not hasattr(regexp, "search"):

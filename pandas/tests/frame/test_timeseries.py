@@ -27,8 +27,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_diff(self):
         the_diff = self.tsframe.diff(1)
 
@@ -539,13 +537,13 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         result = pd.Series(data_ns).to_frame()
         result['new'] = data_ns
         expected = pd.DataFrame({0: [1, None],
-                                'new': [1, None]}, dtype='datetime64[ns]')
+                                 'new': [1, None]}, dtype='datetime64[ns]')
         tm.assert_frame_equal(result, expected)
         # OutOfBoundsDatetime error shouldn't occur
         data_s = np.array([1, 'nat'], dtype='datetime64[s]')
         result['new'] = data_s
         expected = pd.DataFrame({0: [1, None],
-                                'new': [1e9, None]}, dtype='datetime64[ns]')
+                                 'new': [1e9, None]}, dtype='datetime64[ns]')
         tm.assert_frame_equal(result, expected)
 
     def test_frame_to_period(self):
@@ -575,9 +573,3 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
 
         self.assertRaises(ValueError, df.to_period, axis=2)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

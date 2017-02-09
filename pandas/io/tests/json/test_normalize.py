@@ -1,5 +1,3 @@
-import nose
-
 from pandas import DataFrame
 import numpy as np
 import json
@@ -7,7 +5,8 @@ import json
 import pandas.util.testing as tm
 from pandas import compat
 
-from pandas.io.json import json_normalize, nested_to_record
+from pandas.io.json import json_normalize
+from pandas.io.json.normalize import nested_to_record
 
 
 def _assert_equal_data(left, right):
@@ -282,8 +281,3 @@ class TestNestedToRecord(tm.TestCase):
                                 ['general', 'trade_version']],
                           errors='raise'
                           )
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb',
-                         '--pdb-failure', '-s'], exit=False)
