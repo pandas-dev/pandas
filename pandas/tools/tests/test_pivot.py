@@ -3,8 +3,8 @@ from datetime import datetime, date, timedelta
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, Series, Index, MultiIndex, Grouper, date_range
-from pandas.tools.merge import concat
+from pandas import (DataFrame, Series, Index, MultiIndex,
+                    Grouper, date_range, concat)
 from pandas.tools.pivot import pivot_table, crosstab
 from pandas.compat import range, product
 import pandas.util.testing as tm

@@ -40,10 +40,8 @@ class TestOrderedMerge(tm.TestCase):
 
     def test_multigroup(self):
         left = pd.concat([self.left, self.left], ignore_index=True)
-        # right = concat([self.right, self.right], ignore_index=True)
 
         left['group'] = ['a'] * 3 + ['b'] * 3
-        # right['group'] = ['a'] * 4 + ['b'] * 4
 
         result = merge_ordered(left, self.right, on='key', left_by='group',
                                fill_method='ffill')

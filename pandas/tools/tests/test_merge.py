@@ -8,7 +8,8 @@ import random
 
 import pandas as pd
 from pandas.compat import lrange, lzip
-from pandas.tools.merge import merge, concat, MergeError
+from pandas.tools.concat import concat
+from pandas.tools.merge import merge, MergeError
 from pandas.util.testing import (assert_frame_equal,
                                  assert_series_equal,
                                  slow)

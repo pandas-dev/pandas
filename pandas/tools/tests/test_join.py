@@ -6,9 +6,8 @@ import numpy as np
 import pandas as pd
 from pandas.compat import lrange
 import pandas.compat as compat
-from pandas.tools.merge import merge, concat
 from pandas.util.testing import assert_frame_equal
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, MultiIndex, Series, merge, concat
 
 import pandas._join as _join
 import pandas.util.testing as tm

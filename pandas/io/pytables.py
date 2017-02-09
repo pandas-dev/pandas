@@ -26,13 +26,12 @@ import numpy as np
 
 import pandas as pd
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index, isnull)
+                    MultiIndex, Int64Index, isnull, concat,
+                    SparseSeries, SparseDataFrame, PeriodIndex,
+                    DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
 from pandas.io.common import _stringify_path
-from pandas.sparse.api import SparseSeries, SparseDataFrame
 from pandas.sparse.array import BlockIndex, IntIndex
-from pandas.tseries.api import PeriodIndex, DatetimeIndex
-from pandas.tseries.tdi import TimedeltaIndex
 from pandas.core.base import StringMixin
 from pandas.formats.printing import adjoin, pprint_thing
 from pandas.core.common import _asarray_tuplesafe, PerformanceWarning
@@ -42,7 +41,6 @@ from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
 from pandas.core.index import _ensure_index
-from pandas.tools.merge import concat
 from pandas import compat
 from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core.config import get_option

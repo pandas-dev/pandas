@@ -1907,7 +1907,7 @@ class Categorical(PandasObject):
         counts = self.value_counts(dropna=False)
         freqs = counts / float(counts.sum())
 
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
         result = concat([counts, freqs], axis=1)
         result.columns = ['counts', 'freqs']
         result.index.name = 'categories'

@@ -854,7 +854,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         raise AbstractMethodError(self)
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         def reset_identity(values):
             # reset the identities of the components
@@ -3507,7 +3507,7 @@ class NDFrameGroupBy(GroupBy):
                         # still a series
                         # path added as of GH 5545
                         elif all_indexed_same:
-                            from pandas.tools.merge import concat
+                            from pandas.tools.concat import concat
                             return concat(values)
 
                     if not all_indexed_same:
@@ -3540,7 +3540,7 @@ class NDFrameGroupBy(GroupBy):
                         else:
                             # GH5788 instead of stacking; concat gets the
                             # dtypes correct
-                            from pandas.tools.merge import concat
+                            from pandas.tools.concat import concat
                             result = concat(values, keys=key_index,
                                             names=key_index.names,
                                             axis=self.axis).unstack()
@@ -3588,7 +3588,7 @@ class NDFrameGroupBy(GroupBy):
                                         not_indexed_same=not_indexed_same)
 
     def _transform_general(self, func, *args, **kwargs):
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         applied = []
         obj = self._obj_with_exclusions
@@ -3980,7 +3980,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
                                          exclusions=self.exclusions)
 
     def _apply_to_column_groupbys(self, func):
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
         return concat(
             (func(col_groupby) for _, col_groupby
              in self._iterate_column_groupbys()),
@@ -4061,7 +4061,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if isinstance(obj, Series):
             results = groupby_series(obj)
         else:
-            from pandas.tools.merge import concat
+            from pandas.tools.concat import concat
             results = [groupby_series(obj[col], col) for col in obj.columns]
             results = concat(results, axis=1)
 

@@ -6,7 +6,8 @@ from datetime import datetime
 from numpy import nan
 
 from pandas import (date_range, bdate_range, Timestamp,
-                    isnull, Index, MultiIndex, DataFrame, Series)
+                    isnull, Index, MultiIndex, DataFrame, Series,
+                    concat, Panel)
 from pandas.core.common import UnsupportedFunctionCall
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
@@ -14,8 +15,6 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
 from pandas.compat import (range, long, lrange, StringIO, lmap, lzip, map, zip,
                            builtins, OrderedDict, product as cart_product)
 from pandas import compat
-from pandas.core.panel import Panel
-from pandas.tools.merge import concat
 from collections import defaultdict
 import pandas.core.common as com
 import numpy as np

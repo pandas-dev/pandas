@@ -4402,7 +4402,7 @@ class DataFrame(NDFrame):
             if (self.columns.get_indexer(other.columns) >= 0).all():
                 other = other.loc[:, self.columns]
 
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
         if isinstance(other, (list, tuple)):
             to_concat = [self] + other
         else:
@@ -4532,7 +4532,8 @@ class DataFrame(NDFrame):
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
-        from pandas.tools.merge import merge, concat
+        from pandas.tools.merge import merge
+        from pandas.tools.concat import concat
 
         if isinstance(other, Series):
             if other.name is None:
@@ -4636,7 +4637,7 @@ class DataFrame(NDFrame):
         Series.round
 
         """
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         def _dict_round(df, decimals):
             for col, vals in df.iteritems():
@@ -5306,7 +5307,7 @@ class DataFrame(NDFrame):
         """
         if isinstance(values, dict):
             from collections import defaultdict
-            from pandas.tools.merge import concat
+            from pandas.tools.concat import concat
             values = defaultdict(list, values)
             return concat((self.iloc[:, [i]].isin(values[col])
                            for i, col in enumerate(self.columns)), axis=1)

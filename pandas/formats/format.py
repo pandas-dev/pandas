@@ -165,7 +165,7 @@ class SeriesFormatter(object):
         self._chk_truncate()
 
     def _chk_truncate(self):
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
         max_rows = self.max_rows
         truncate_v = max_rows and (len(self.series) > max_rows)
         series = self.series
@@ -406,7 +406,7 @@ class DataFrameFormatter(TableFormatter):
         Checks whether the frame should be truncated. If so, slices
         the frame up.
         """
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         # Column of which first element is used to determine width of a dot col
         self.tr_size_col = -1
