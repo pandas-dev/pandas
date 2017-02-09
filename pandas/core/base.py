@@ -472,7 +472,7 @@ pandas.DataFrame.%(name)s
 
                 arg = new_arg
 
-            from pandas.tools.merge import concat
+            from pandas.tools.concat import concat
 
             def _agg_1dim(name, how, subset=None):
                 """
@@ -579,7 +579,7 @@ pandas.DataFrame.%(name)s
         return result, True
 
     def _aggregate_multiple_funcs(self, arg, _level):
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         if self.axis != 0:
             raise NotImplementedError("axis other than 0 is not supported")
