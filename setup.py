@@ -660,7 +660,6 @@ setup(name=DISTNAME,
                 'pandas.io.tests.json',
                 'pandas.io.tests.parser',
                 'pandas.io.tests.sas',
-                'pandas.stats.tests',
                 'pandas.msgpack',
                 'pandas.util.clipboard'
                 ],
