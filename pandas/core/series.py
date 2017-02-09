@@ -1588,7 +1588,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
 
         """
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         if isinstance(to_append, (list, tuple)):
             to_concat = [self] + to_append
