@@ -829,7 +829,10 @@ class _GroupBy(PandasObject, SelectionMixin):
         for name, obj in self._iterate_slices():
             try:
                 result, counts = self.grouper.agg_series(obj, f)
-                output[name] = self._try_cast(result, obj)
+                if not obj.dtypes.kind in ['M', 'm']:
+                    # don't cast back to datetime
+                    result = self._try_cast(result, obj)
+                output[name] = result
             except TypeError:
                 continue
 
@@ -2748,6 +2751,7 @@ class SeriesGroupBy(GroupBy):
         if not _level and isinstance(ret, dict):
             from pandas import concat
             ret = concat(ret, axis=1)
+
         return ret
 
     agg = aggregate
@@ -2892,30 +2896,35 @@ class SeriesGroupBy(GroupBy):
                 return self._transform_fast(
                     lambda: getattr(self, func)(*args, **kwargs))
 
-        # reg transform
-        dtype = self._selected_obj.dtype
-        result = self._selected_obj.values.copy()
+        # we'll store the results of each group in a list
+        # and infer the output dtype
+        # then we'll create an empty array with the correct dtype to put the
+        # values inside
+        result_values = []
+        result_indexers = []
+        result_dtypes = []
 
         wrapper = lambda x: func(x, *args, **kwargs)
         for i, (name, group) in enumerate(self):
             object.__setattr__(group, 'name', name)
             res = wrapper(group)
-
             if hasattr(res, 'values'):
                 res = res.values
-
-            # may need to astype
-            try:
-                common_type = np.common_type(np.array(res), result)
-                if common_type != result.dtype:
-                    result = result.astype(common_type)
-            except:
-                pass
-
+            result_values.append(res)
             indexer = self._get_index(name)
+            result_indexers.append(indexer)
+            result_dtypes.append(np.array(res).dtype)
+
+        dtype = np.find_common_type(array_types=result_dtypes, scalar_types=[])
+
+        result = np.zeros(self._selected_obj.shape, dtype=dtype)
+        for indexer, res in zip(result_indexers, result_values):
             result[indexer] = res
 
-        result = _possibly_downcast_to_dtype(result, dtype)
+        input_dtype = self._selected_obj.dtype
+        if not input_dtype.kind in ['M', 'm']:  # don't cast back to datetime
+            result = _possibly_downcast_to_dtype(result, input_dtype)
+
         return self._selected_obj.__class__(result,
                                             index=self._selected_obj.index,
                                             name=self._selected_obj.name)
@@ -3308,6 +3317,7 @@ class NDFrameGroupBy(GroupBy):
 
         _level = kwargs.pop('_level', None)
         result, how = self._aggregate(arg, _level=_level, *args, **kwargs)
+
         if how is None:
             return result
 
@@ -4245,7 +4255,6 @@ class FrameSplitter(DataSplitter):
 
         sdata = self._get_sorted_data()
         results, mutated = lib.apply_frame_axis0(sdata, f, names, starts, ends)
-
         return results, mutated
 
     def _chop(self, sdata, slice_obj):
