@@ -371,6 +371,7 @@ Other API Changes
 - ``pandas.api.types.is_datetime64_ns_dtype`` will now report ``True`` on a tz-aware dtype, similar to ``pandas.api.types.is_datetime64_any_dtype``
 - ``DataFrame.asof()`` will return a null filled ``Series`` instead the scalar ``NaN`` if a match is not found (:issue:`15118`)
 - The :func:`pd.read_gbq` method now stores ``INTEGER`` columns as ``dtype=object`` if they contain ``NULL`` values. Otherwise they are stored as ``int64``. This prevents precision lost for integers greather than 2**53. Furthermore ``FLOAT`` columns with values above 10**4 are no more casted to ``int64`` which also caused precision lost (:issue: `14064`, :issue:`14305`).
+- Reorganization of timeseries development tests (:issue:`14854`)
 
 .. _whatsnew_0200.deprecations:
 

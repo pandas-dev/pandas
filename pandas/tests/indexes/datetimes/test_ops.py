@@ -7,10 +7,12 @@ import pandas.tslib as tslib
 import pandas.util.testing as tm
 from pandas.core.common import PerformanceWarning
 from pandas.tseries.index import cdate_range
+from pandas.tseries.frequencies import get_offset, to_offset
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,
                     datetime, Float64Index, offsets, bdate_range)
-from pandas.tseries.offsets import BMonthEnd, CDay, BDay
+from pandas.tseries.offsets import (BMonthEnd, CDay, BDay, Milli, MonthBegin,
+                                    Micro)
 from pandas.tests.test_base import Ops
 
 
@@ -910,6 +912,16 @@ Freq: D"""
             self.assertFalse(idx.asobject.equals(idx3))
             self.assertFalse(idx.equals(list(idx3)))
             self.assertFalse(idx.equals(pd.Series(idx3)))
+
+    def test_ms_vs_MS(self):
+        left = get_offset('ms')
+        right = get_offset('MS')
+        self.assertEqual(left, Milli())
+        self.assertEqual(right, MonthBegin())
+
+    def test_rule_aliases(self):
+        rule = to_offset('10us')
+        self.assertEqual(rule, Micro(10))
 
 
 class TestDateTimeIndexToJulianDate(tm.TestCase):
