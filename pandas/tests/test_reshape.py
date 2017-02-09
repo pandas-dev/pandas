@@ -70,6 +70,24 @@ class TestMelt(tm.TestCase):
                           value_vars=type_(('A', 'B')))
             tm.assert_frame_equal(result, expected)
 
+    def test_id_and_value_vars_types_with_multiindex(self):
+        expected = DataFrame({
+            ('A', 'a'): self.df1[('A', 'a')],
+            'CAP': ['B'] * len(self.df1),
+            'low': ['b'] * len(self.df1),
+            'value': self.df1[('B', 'b')],
+        }, columns=[('A', 'a'), 'CAP', 'low', 'value'])
+
+        for id_vars in ([('A', 'a')], ('A', 'a')):
+            for value_vars in ([('B', 'b')], ('B', 'b')):
+                if isinstance(id_vars, list) and isinstance(value_vars, list):
+                    result = melt(self.df1, id_vars=id_vars,
+                                  value_vars=value_vars)
+                    tm.assert_frame_equal(result, expected)
+                else:
+                    with self.assertRaisesRegex(TypeError, r'MultiIndex'):
+                        melt(self.df1, id_vars=id_vars, value_vars=value_vars)
+
     def test_custom_var_name(self):
         result5 = melt(self.df, var_name=self.var_name)
         self.assertEqual(result5.columns.tolist(), ['var', 'value'])
