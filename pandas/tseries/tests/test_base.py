@@ -816,14 +816,14 @@ Freq: D"""
         _check(result, expected)
 
         # tz mismatches
-        '''self.assertRaises(TypeError, lambda : dt_tz - ts)
+        self.assertRaises(TypeError, lambda : dt_tz - ts)
         self.assertRaises(TypeError, lambda : dt_tz - dt)
         self.assertRaises(TypeError, lambda : dt_tz - ts_tz2)
         self.assertRaises(TypeError, lambda : dt - dt_tz)
         self.assertRaises(TypeError, lambda : ts - dt_tz)
         self.assertRaises(TypeError, lambda : ts_tz2 - ts)
         self.assertRaises(TypeError, lambda : ts_tz2 - dt)
-        self.assertRaises(TypeError, lambda : ts_tz - ts_tz2)'''
+        self.assertRaises(TypeError, lambda : ts_tz - ts_tz2)
 
         # with dti
         self.assertRaises(TypeError, lambda : dti - ts_tz)
