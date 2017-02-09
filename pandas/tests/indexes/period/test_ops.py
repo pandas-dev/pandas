@@ -1,13 +1,12 @@
-from __future__ import print_function
-from datetime import timedelta
 import numpy as np
-import pandas as pd
-from pandas import (Series, Index, Period, DatetimeIndex, PeriodIndex,
-                    Timedelta, _np_version_under1p10)
-import pandas.tslib as tslib
-import pandas.tseries.period as period
+from datetime import timedelta
 
+import pandas as pd
+import pandas.tslib as tslib
 import pandas.util.testing as tm
+import pandas.tseries.period as period
+from pandas import (DatetimeIndex, PeriodIndex, period_range, Series, Period,
+                    _np_version_under1p10, Index, Timedelta, offsets)
 
 from pandas.tests.test_base import Ops
 
@@ -284,57 +283,6 @@ Freq: Q-DEC"""
             idx = pd.period_range(start='2013-04-01', periods=30, freq=freq)
             self.assertEqual(idx.resolution, expected)
 
-    def test_union(self):
-        # union
-        rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
-        other1 = pd.period_range('1/6/2000', freq='D', periods=5)
-        expected1 = pd.period_range('1/1/2000', freq='D', periods=10)
-
-        rng2 = pd.period_range('1/1/2000', freq='D', periods=5)
-        other2 = pd.period_range('1/4/2000', freq='D', periods=5)
-        expected2 = pd.period_range('1/1/2000', freq='D', periods=8)
-
-        rng3 = pd.period_range('1/1/2000', freq='D', periods=5)
-        other3 = pd.PeriodIndex([], freq='D')
-        expected3 = pd.period_range('1/1/2000', freq='D', periods=5)
-
-        rng4 = pd.period_range('2000-01-01 09:00', freq='H', periods=5)
-        other4 = pd.period_range('2000-01-02 09:00', freq='H', periods=5)
-        expected4 = pd.PeriodIndex(['2000-01-01 09:00', '2000-01-01 10:00',
-                                    '2000-01-01 11:00', '2000-01-01 12:00',
-                                    '2000-01-01 13:00', '2000-01-02 09:00',
-                                    '2000-01-02 10:00', '2000-01-02 11:00',
-                                    '2000-01-02 12:00', '2000-01-02 13:00'],
-                                   freq='H')
-
-        rng5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
-                               '2000-01-01 09:05'], freq='T')
-        other5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:05'
-                                                     '2000-01-01 09:08'],
-                                freq='T')
-        expected5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
-                                    '2000-01-01 09:05', '2000-01-01 09:08'],
-                                   freq='T')
-
-        rng6 = pd.period_range('2000-01-01', freq='M', periods=7)
-        other6 = pd.period_range('2000-04-01', freq='M', periods=7)
-        expected6 = pd.period_range('2000-01-01', freq='M', periods=10)
-
-        rng7 = pd.period_range('2003-01-01', freq='A', periods=5)
-        other7 = pd.period_range('1998-01-01', freq='A', periods=8)
-        expected7 = pd.period_range('1998-01-01', freq='A', periods=10)
-
-        for rng, other, expected in [(rng1, other1, expected1),
-                                     (rng2, other2, expected2),
-                                     (rng3, other3, expected3), (rng4, other4,
-                                                                 expected4),
-                                     (rng5, other5, expected5), (rng6, other6,
-                                                                 expected6),
-                                     (rng7, other7, expected7)]:
-
-            result_union = rng.union(other)
-            tm.assert_index_equal(result_union, expected)
-
     def test_add_iadd(self):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
@@ -431,47 +379,12 @@ Freq: Q-DEC"""
         rng += 1
         tm.assert_index_equal(rng, expected)
 
-    def test_difference(self):
-        # diff
-        rng1 = pd.period_range('1/1/2000', freq='D', periods=5)
-        other1 = pd.period_range('1/6/2000', freq='D', periods=5)
-        expected1 = pd.period_range('1/1/2000', freq='D', periods=5)
+    def test_sub(self):
+        rng = period_range('2007-01', periods=50)
 
-        rng2 = pd.period_range('1/1/2000', freq='D', periods=5)
-        other2 = pd.period_range('1/4/2000', freq='D', periods=5)
-        expected2 = pd.period_range('1/1/2000', freq='D', periods=3)
-
-        rng3 = pd.period_range('1/1/2000', freq='D', periods=5)
-        other3 = pd.PeriodIndex([], freq='D')
-        expected3 = pd.period_range('1/1/2000', freq='D', periods=5)
-
-        rng4 = pd.period_range('2000-01-01 09:00', freq='H', periods=5)
-        other4 = pd.period_range('2000-01-02 09:00', freq='H', periods=5)
-        expected4 = rng4
-
-        rng5 = pd.PeriodIndex(['2000-01-01 09:01', '2000-01-01 09:03',
-                               '2000-01-01 09:05'], freq='T')
-        other5 = pd.PeriodIndex(
-            ['2000-01-01 09:01', '2000-01-01 09:05'], freq='T')
-        expected5 = pd.PeriodIndex(['2000-01-01 09:03'], freq='T')
-
-        rng6 = pd.period_range('2000-01-01', freq='M', periods=7)
-        other6 = pd.period_range('2000-04-01', freq='M', periods=7)
-        expected6 = pd.period_range('2000-01-01', freq='M', periods=3)
-
-        rng7 = pd.period_range('2003-01-01', freq='A', periods=5)
-        other7 = pd.period_range('1998-01-01', freq='A', periods=8)
-        expected7 = pd.period_range('2006-01-01', freq='A', periods=2)
-
-        for rng, other, expected in [(rng1, other1, expected1),
-                                     (rng2, other2, expected2),
-                                     (rng3, other3, expected3),
-                                     (rng4, other4, expected4),
-                                     (rng5, other5, expected5),
-                                     (rng6, other6, expected6),
-                                     (rng7, other7, expected7), ]:
-            result_union = rng.difference(other)
-            tm.assert_index_equal(result_union, expected)
+        result = rng - 5
+        exp = rng + (-5)
+        tm.assert_index_equal(result, exp)
 
     def test_sub_isub(self):
 
@@ -825,98 +738,6 @@ Freq: Q-DEC"""
             self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertEqual(ordered.freq, 'D')
 
-    def test_getitem(self):
-        idx1 = pd.period_range('2011-01-01', '2011-01-31', freq='D',
-                               name='idx')
-
-        for idx in [idx1]:
-            result = idx[0]
-            self.assertEqual(result, pd.Period('2011-01-01', freq='D'))
-
-            result = idx[-1]
-            self.assertEqual(result, pd.Period('2011-01-31', freq='D'))
-
-            result = idx[0:5]
-            expected = pd.period_range('2011-01-01', '2011-01-05', freq='D',
-                                       name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
-
-            result = idx[0:10:2]
-            expected = pd.PeriodIndex(['2011-01-01', '2011-01-03',
-                                       '2011-01-05',
-                                       '2011-01-07', '2011-01-09'],
-                                      freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
-
-            result = idx[-20:-5:3]
-            expected = pd.PeriodIndex(['2011-01-12', '2011-01-15',
-                                       '2011-01-18',
-                                       '2011-01-21', '2011-01-24'],
-                                      freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
-
-            result = idx[4::-1]
-            expected = PeriodIndex(['2011-01-05', '2011-01-04', '2011-01-03',
-                                    '2011-01-02', '2011-01-01'],
-                                   freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
-
-    def test_take(self):
-        # GH 10295
-        idx1 = pd.period_range('2011-01-01', '2011-01-31', freq='D',
-                               name='idx')
-
-        for idx in [idx1]:
-            result = idx.take([0])
-            self.assertEqual(result, pd.Period('2011-01-01', freq='D'))
-
-            result = idx.take([5])
-            self.assertEqual(result, pd.Period('2011-01-06', freq='D'))
-
-            result = idx.take([0, 1, 2])
-            expected = pd.period_range('2011-01-01', '2011-01-03', freq='D',
-                                       name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, 'D')
-            self.assertEqual(result.freq, expected.freq)
-
-            result = idx.take([0, 2, 4])
-            expected = pd.PeriodIndex(['2011-01-01', '2011-01-03',
-                                       '2011-01-05'], freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
-
-            result = idx.take([7, 4, 1])
-            expected = pd.PeriodIndex(['2011-01-08', '2011-01-05',
-                                       '2011-01-02'],
-                                      freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
-
-            result = idx.take([3, 2, 5])
-            expected = PeriodIndex(['2011-01-04', '2011-01-03', '2011-01-06'],
-                                   freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
-
-            result = idx.take([-3, 2, 5])
-            expected = PeriodIndex(['2011-01-29', '2011-01-03', '2011-01-06'],
-                                   freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
-
     def test_nat_new(self):
 
         idx = pd.period_range('2011-01', freq='M', periods=5, name='x')
@@ -1020,3 +841,488 @@ Freq: Q-DEC"""
             self.assertFalse(idx.asobject.equals(idx3))
             self.assertFalse(idx.equals(list(idx3)))
             self.assertFalse(idx.equals(pd.Series(idx3)))
+
+
+class TestPeriodIndexSeriesMethods(tm.TestCase):
+    """ Test PeriodIndex and Period Series Ops consistency """
+
+    def _check(self, values, func, expected):
+        idx = pd.PeriodIndex(values)
+        result = func(idx)
+        if isinstance(expected, pd.Index):
+            tm.assert_index_equal(result, expected)
+        else:
+            # comp op results in bool
+            tm.assert_numpy_array_equal(result, expected)
+
+        s = pd.Series(values)
+        result = func(s)
+
+        exp = pd.Series(expected, name=values.name)
+        tm.assert_series_equal(result, exp)
+
+    def test_pi_ops(self):
+        idx = PeriodIndex(['2011-01', '2011-02', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        expected = PeriodIndex(['2011-03', '2011-04',
+                                '2011-05', '2011-06'], freq='M', name='idx')
+        self._check(idx, lambda x: x + 2, expected)
+        self._check(idx, lambda x: 2 + x, expected)
+
+        self._check(idx + 2, lambda x: x - 2, idx)
+        result = idx - Period('2011-01', freq='M')
+        exp = pd.Index([0, 1, 2, 3], name='idx')
+        tm.assert_index_equal(result, exp)
+
+        result = Period('2011-01', freq='M') - idx
+        exp = pd.Index([0, -1, -2, -3], name='idx')
+        tm.assert_index_equal(result, exp)
+
+    def test_pi_ops_errors(self):
+        idx = PeriodIndex(['2011-01', '2011-02', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+        s = pd.Series(idx)
+
+        msg = r"unsupported operand type\(s\)"
+
+        for obj in [idx, s]:
+            for ng in ["str", 1.5]:
+                with tm.assertRaisesRegexp(TypeError, msg):
+                    obj + ng
+
+                with tm.assertRaises(TypeError):
+                    # error message differs between PY2 and 3
+                    ng + obj
+
+                with tm.assertRaisesRegexp(TypeError, msg):
+                    obj - ng
+
+                with tm.assertRaises(TypeError):
+                    np.add(obj, ng)
+
+                if _np_version_under1p10:
+                    self.assertIs(np.add(ng, obj), NotImplemented)
+                else:
+                    with tm.assertRaises(TypeError):
+                        np.add(ng, obj)
+
+                with tm.assertRaises(TypeError):
+                    np.subtract(obj, ng)
+
+                if _np_version_under1p10:
+                    self.assertIs(np.subtract(ng, obj), NotImplemented)
+                else:
+                    with tm.assertRaises(TypeError):
+                        np.subtract(ng, obj)
+
+    def test_pi_ops_nat(self):
+        idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
+                           '2011-04'], freq='M', name='idx')
+        expected = PeriodIndex(['2011-03', '2011-04',
+                                'NaT', '2011-06'], freq='M', name='idx')
+        self._check(idx, lambda x: x + 2, expected)
+        self._check(idx, lambda x: 2 + x, expected)
+        self._check(idx, lambda x: np.add(x, 2), expected)
+
+        self._check(idx + 2, lambda x: x - 2, idx)
+        self._check(idx + 2, lambda x: np.subtract(x, 2), idx)
+
+        # freq with mult
+        idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
+                           '2011-04'], freq='2M', name='idx')
+        expected = PeriodIndex(['2011-07', '2011-08',
+                                'NaT', '2011-10'], freq='2M', name='idx')
+        self._check(idx, lambda x: x + 3, expected)
+        self._check(idx, lambda x: 3 + x, expected)
+        self._check(idx, lambda x: np.add(x, 3), expected)
+
+        self._check(idx + 3, lambda x: x - 3, idx)
+        self._check(idx + 3, lambda x: np.subtract(x, 3), idx)
+
+    def test_pi_ops_array_int(self):
+        idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
+                           '2011-04'], freq='M', name='idx')
+        f = lambda x: x + np.array([1, 2, 3, 4])
+        exp = PeriodIndex(['2011-02', '2011-04', 'NaT',
+                           '2011-08'], freq='M', name='idx')
+        self._check(idx, f, exp)
+
+        f = lambda x: np.add(x, np.array([4, -1, 1, 2]))
+        exp = PeriodIndex(['2011-05', '2011-01', 'NaT',
+                           '2011-06'], freq='M', name='idx')
+        self._check(idx, f, exp)
+
+        f = lambda x: x - np.array([1, 2, 3, 4])
+        exp = PeriodIndex(['2010-12', '2010-12', 'NaT',
+                           '2010-12'], freq='M', name='idx')
+        self._check(idx, f, exp)
+
+        f = lambda x: np.subtract(x, np.array([3, 2, 3, -2]))
+        exp = PeriodIndex(['2010-10', '2010-12', 'NaT',
+                           '2011-06'], freq='M', name='idx')
+        self._check(idx, f, exp)
+
+    def test_pi_ops_offset(self):
+        idx = PeriodIndex(['2011-01-01', '2011-02-01', '2011-03-01',
+                           '2011-04-01'], freq='D', name='idx')
+        f = lambda x: x + offsets.Day()
+        exp = PeriodIndex(['2011-01-02', '2011-02-02', '2011-03-02',
+                           '2011-04-02'], freq='D', name='idx')
+        self._check(idx, f, exp)
+
+        f = lambda x: x + offsets.Day(2)
+        exp = PeriodIndex(['2011-01-03', '2011-02-03', '2011-03-03',
+                           '2011-04-03'], freq='D', name='idx')
+        self._check(idx, f, exp)
+
+        f = lambda x: x - offsets.Day(2)
+        exp = PeriodIndex(['2010-12-30', '2011-01-30', '2011-02-27',
+                           '2011-03-30'], freq='D', name='idx')
+        self._check(idx, f, exp)
+
+    def test_pi_offset_errors(self):
+        idx = PeriodIndex(['2011-01-01', '2011-02-01', '2011-03-01',
+                           '2011-04-01'], freq='D', name='idx')
+        s = pd.Series(idx)
+
+        # Series op is applied per Period instance, thus error is raised
+        # from Period
+        msg_idx = r"Input has different freq from PeriodIndex\(freq=D\)"
+        msg_s = r"Input cannot be converted to Period\(freq=D\)"
+        for obj, msg in [(idx, msg_idx), (s, msg_s)]:
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                obj + offsets.Hour(2)
+
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                offsets.Hour(2) + obj
+
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                obj - offsets.Hour(2)
+
+    def test_pi_sub_period(self):
+        # GH 13071
+        idx = PeriodIndex(['2011-01', '2011-02', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        result = idx - pd.Period('2012-01', freq='M')
+        exp = pd.Index([-12, -11, -10, -9], name='idx')
+        tm.assert_index_equal(result, exp)
+
+        result = np.subtract(idx, pd.Period('2012-01', freq='M'))
+        tm.assert_index_equal(result, exp)
+
+        result = pd.Period('2012-01', freq='M') - idx
+        exp = pd.Index([12, 11, 10, 9], name='idx')
+        tm.assert_index_equal(result, exp)
+
+        result = np.subtract(pd.Period('2012-01', freq='M'), idx)
+        if _np_version_under1p10:
+            self.assertIs(result, NotImplemented)
+        else:
+            tm.assert_index_equal(result, exp)
+
+        exp = pd.TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name='idx')
+        tm.assert_index_equal(idx - pd.Period('NaT', freq='M'), exp)
+        tm.assert_index_equal(pd.Period('NaT', freq='M') - idx, exp)
+
+    def test_pi_sub_pdnat(self):
+        # GH 13071
+        idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
+                           '2011-04'], freq='M', name='idx')
+        exp = pd.TimedeltaIndex([pd.NaT] * 4, name='idx')
+        tm.assert_index_equal(pd.NaT - idx, exp)
+        tm.assert_index_equal(idx - pd.NaT, exp)
+
+    def test_pi_sub_period_nat(self):
+        # GH 13071
+        idx = PeriodIndex(['2011-01', 'NaT', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        result = idx - pd.Period('2012-01', freq='M')
+        exp = pd.Index([-12, np.nan, -10, -9], name='idx')
+        tm.assert_index_equal(result, exp)
+
+        result = pd.Period('2012-01', freq='M') - idx
+        exp = pd.Index([12, np.nan, 10, 9], name='idx')
+        tm.assert_index_equal(result, exp)
+
+        exp = pd.TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name='idx')
+        tm.assert_index_equal(idx - pd.Period('NaT', freq='M'), exp)
+        tm.assert_index_equal(pd.Period('NaT', freq='M') - idx, exp)
+
+    def test_pi_comp_period(self):
+        idx = PeriodIndex(['2011-01', '2011-02', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        f = lambda x: x == pd.Period('2011-03', freq='M')
+        exp = np.array([False, False, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') == x
+        self._check(idx, f, exp)
+
+        f = lambda x: x != pd.Period('2011-03', freq='M')
+        exp = np.array([True, True, False, True], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') != x
+        self._check(idx, f, exp)
+
+        f = lambda x: pd.Period('2011-03', freq='M') >= x
+        exp = np.array([True, True, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: x > pd.Period('2011-03', freq='M')
+        exp = np.array([False, False, False, True], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: pd.Period('2011-03', freq='M') >= x
+        exp = np.array([True, True, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+    def test_pi_comp_period_nat(self):
+        idx = PeriodIndex(['2011-01', 'NaT', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        f = lambda x: x == pd.Period('2011-03', freq='M')
+        exp = np.array([False, False, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') == x
+        self._check(idx, f, exp)
+
+        f = lambda x: x == tslib.NaT
+        exp = np.array([False, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: tslib.NaT == x
+        self._check(idx, f, exp)
+
+        f = lambda x: x != pd.Period('2011-03', freq='M')
+        exp = np.array([True, True, False, True], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') != x
+        self._check(idx, f, exp)
+
+        f = lambda x: x != tslib.NaT
+        exp = np.array([True, True, True, True], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: tslib.NaT != x
+        self._check(idx, f, exp)
+
+        f = lambda x: pd.Period('2011-03', freq='M') >= x
+        exp = np.array([True, False, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: x < pd.Period('2011-03', freq='M')
+        exp = np.array([True, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: x > tslib.NaT
+        exp = np.array([False, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: tslib.NaT >= x
+        exp = np.array([False, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+
+class TestSeriesPeriod(tm.TestCase):
+
+    def setUp(self):
+        self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
+
+    def test_ops_series_timedelta(self):
+        # GH 13043
+        s = pd.Series([pd.Period('2015-01-01', freq='D'),
+                       pd.Period('2015-01-02', freq='D')], name='xxx')
+        self.assertEqual(s.dtype, object)
+
+        exp = pd.Series([pd.Period('2015-01-02', freq='D'),
+                         pd.Period('2015-01-03', freq='D')], name='xxx')
+        tm.assert_series_equal(s + pd.Timedelta('1 days'), exp)
+        tm.assert_series_equal(pd.Timedelta('1 days') + s, exp)
+
+        tm.assert_series_equal(s + pd.tseries.offsets.Day(), exp)
+        tm.assert_series_equal(pd.tseries.offsets.Day() + s, exp)
+
+    def test_ops_series_period(self):
+        # GH 13043
+        s = pd.Series([pd.Period('2015-01-01', freq='D'),
+                       pd.Period('2015-01-02', freq='D')], name='xxx')
+        self.assertEqual(s.dtype, object)
+
+        p = pd.Period('2015-01-10', freq='D')
+        # dtype will be object because of original dtype
+        exp = pd.Series([9, 8], name='xxx', dtype=object)
+        tm.assert_series_equal(p - s, exp)
+        tm.assert_series_equal(s - p, -exp)
+
+        s2 = pd.Series([pd.Period('2015-01-05', freq='D'),
+                        pd.Period('2015-01-04', freq='D')], name='xxx')
+        self.assertEqual(s2.dtype, object)
+
+        exp = pd.Series([4, 2], name='xxx', dtype=object)
+        tm.assert_series_equal(s2 - s, exp)
+        tm.assert_series_equal(s - s2, -exp)
+
+
+class TestFramePeriod(tm.TestCase):
+
+    def test_ops_frame_period(self):
+        # GH 13043
+        df = pd.DataFrame({'A': [pd.Period('2015-01', freq='M'),
+                                 pd.Period('2015-02', freq='M')],
+                           'B': [pd.Period('2014-01', freq='M'),
+                                 pd.Period('2014-02', freq='M')]})
+        self.assertEqual(df['A'].dtype, object)
+        self.assertEqual(df['B'].dtype, object)
+
+        p = pd.Period('2015-03', freq='M')
+        # dtype will be object because of original dtype
+        exp = pd.DataFrame({'A': np.array([2, 1], dtype=object),
+                            'B': np.array([14, 13], dtype=object)})
+        tm.assert_frame_equal(p - df, exp)
+        tm.assert_frame_equal(df - p, -exp)
+
+        df2 = pd.DataFrame({'A': [pd.Period('2015-05', freq='M'),
+                                  pd.Period('2015-06', freq='M')],
+                            'B': [pd.Period('2015-05', freq='M'),
+                                  pd.Period('2015-06', freq='M')]})
+        self.assertEqual(df2['A'].dtype, object)
+        self.assertEqual(df2['B'].dtype, object)
+
+        exp = pd.DataFrame({'A': np.array([4, 4], dtype=object),
+                            'B': np.array([16, 16], dtype=object)})
+        tm.assert_frame_equal(df2 - df, exp)
+        tm.assert_frame_equal(df - df2, -exp)
+
+
+class TestPeriodIndexComparisons(tm.TestCase):
+
+    def test_pi_pi_comp(self):
+
+        for freq in ['M', '2M', '3M']:
+            base = PeriodIndex(['2011-01', '2011-02',
+                                '2011-03', '2011-04'], freq=freq)
+            p = Period('2011-02', freq=freq)
+
+            exp = np.array([False, True, False, False])
+            self.assert_numpy_array_equal(base == p, exp)
+            self.assert_numpy_array_equal(p == base, exp)
+
+            exp = np.array([True, False, True, True])
+            self.assert_numpy_array_equal(base != p, exp)
+            self.assert_numpy_array_equal(p != base, exp)
+
+            exp = np.array([False, False, True, True])
+            self.assert_numpy_array_equal(base > p, exp)
+            self.assert_numpy_array_equal(p < base, exp)
+
+            exp = np.array([True, False, False, False])
+            self.assert_numpy_array_equal(base < p, exp)
+            self.assert_numpy_array_equal(p > base, exp)
+
+            exp = np.array([False, True, True, True])
+            self.assert_numpy_array_equal(base >= p, exp)
+            self.assert_numpy_array_equal(p <= base, exp)
+
+            exp = np.array([True, True, False, False])
+            self.assert_numpy_array_equal(base <= p, exp)
+            self.assert_numpy_array_equal(p >= base, exp)
+
+            idx = PeriodIndex(['2011-02', '2011-01', '2011-03',
+                               '2011-05'], freq=freq)
+
+            exp = np.array([False, False, True, False])
+            self.assert_numpy_array_equal(base == idx, exp)
+
+            exp = np.array([True, True, False, True])
+            self.assert_numpy_array_equal(base != idx, exp)
+
+            exp = np.array([False, True, False, False])
+            self.assert_numpy_array_equal(base > idx, exp)
+
+            exp = np.array([True, False, False, True])
+            self.assert_numpy_array_equal(base < idx, exp)
+
+            exp = np.array([False, True, True, False])
+            self.assert_numpy_array_equal(base >= idx, exp)
+
+            exp = np.array([True, False, True, True])
+            self.assert_numpy_array_equal(base <= idx, exp)
+
+            # different base freq
+            msg = "Input has different freq=A-DEC from PeriodIndex"
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                base <= Period('2011', freq='A')
+
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                Period('2011', freq='A') >= base
+
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='A')
+                base <= idx
+
+            # different mult
+            msg = "Input has different freq=4M from PeriodIndex"
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                base <= Period('2011', freq='4M')
+
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                Period('2011', freq='4M') >= base
+
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='4M')
+                base <= idx
+
+    def test_pi_nat_comp(self):
+        for freq in ['M', '2M', '3M']:
+            idx1 = PeriodIndex(
+                ['2011-01', '2011-02', 'NaT', '2011-05'], freq=freq)
+
+            result = idx1 > Period('2011-02', freq=freq)
+            exp = np.array([False, False, False, True])
+            self.assert_numpy_array_equal(result, exp)
+            result = Period('2011-02', freq=freq) < idx1
+            self.assert_numpy_array_equal(result, exp)
+
+            result = idx1 == Period('NaT', freq=freq)
+            exp = np.array([False, False, False, False])
+            self.assert_numpy_array_equal(result, exp)
+            result = Period('NaT', freq=freq) == idx1
+            self.assert_numpy_array_equal(result, exp)
+
+            result = idx1 != Period('NaT', freq=freq)
+            exp = np.array([True, True, True, True])
+            self.assert_numpy_array_equal(result, exp)
+            result = Period('NaT', freq=freq) != idx1
+            self.assert_numpy_array_equal(result, exp)
+
+            idx2 = PeriodIndex(['2011-02', '2011-01', '2011-04',
+                                'NaT'], freq=freq)
+            result = idx1 < idx2
+            exp = np.array([True, False, False, False])
+            self.assert_numpy_array_equal(result, exp)
+
+            result = idx1 == idx2
+            exp = np.array([False, False, False, False])
+            self.assert_numpy_array_equal(result, exp)
+
+            result = idx1 != idx2
+            exp = np.array([True, True, True, True])
+            self.assert_numpy_array_equal(result, exp)
+
+            result = idx1 == idx1
+            exp = np.array([True, True, False, True])
+            self.assert_numpy_array_equal(result, exp)
+
+            result = idx1 != idx1
+            exp = np.array([False, False, True, False])
+            self.assert_numpy_array_equal(result, exp)
+
+            diff = PeriodIndex(['2011-02', '2011-01', '2011-04',
+                                'NaT'], freq='4M')
+            msg = "Input has different freq=4M from PeriodIndex"
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                idx1 > diff
+
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+                idx1 == diff
