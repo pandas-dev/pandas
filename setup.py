@@ -688,8 +688,7 @@ setup(name=DISTNAME,
                     'pandas.tests': ['data/*.csv'],
                     'pandas.tests.formats': ['data/*.csv'],
                     'pandas.tests.indexes': ['data/*.pickle'],
-                    'pandas.tseries.tests': ['data/*.pickle',
-                                             'data/*.csv']
+                    'pandas.tests.tseries': ['data/*.pickle']
                     },
       ext_modules=extensions,
       maintainer_email=EMAIL,
