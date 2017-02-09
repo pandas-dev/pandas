@@ -6,7 +6,7 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas.tseries.index import cdate_range
 from pandas import (DatetimeIndex, date_range, Series, bdate_range, DataFrame,
-                    Int64Index, Index)
+                    Int64Index, Index, to_datetime)
 from pandas.tseries.offsets import Minute, BMonthEnd, MonthEnd
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
@@ -189,6 +189,14 @@ class TestDatetimeIndex(tm.TestCase):
 
         result = dti.join(empty)
         tm.assertIsInstance(result, DatetimeIndex)
+
+    def test_join_nonunique(self):
+        idx1 = to_datetime(['2012-11-06 16:00:11.477563',
+                            '2012-11-06 16:00:11.477563'])
+        idx2 = to_datetime(['2012-11-06 15:11:09.006507',
+                            '2012-11-06 15:11:09.006507'])
+        rs = idx1.join(idx2, how='outer')
+        self.assertTrue(rs.is_monotonic)
 
 
 class TestBusinessDatetimeIndex(tm.TestCase):
