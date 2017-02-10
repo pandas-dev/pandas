@@ -19,7 +19,6 @@ from contextlib import contextmanager
 from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
-# from numpy.testing.decorators import slow     # noqa
 import pytest
 import numpy as np
 
@@ -50,6 +49,8 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, DatetimeIndex,
 from pandas.util.decorators import deprecate
 from pandas import _testing
 from pandas.io.common import urlopen
+slow = pytest.mark.slow
+
 
 N = 30
 K = 4
@@ -2548,9 +2549,6 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                                  % expected_warning.__name__)
         assert not extra_warnings, ("Caused unexpected warning(s): %r."
                                     % extra_warnings)
-
-
-slow = pytest.mark.slow
 
 
 class RNGContext(object):

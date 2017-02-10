@@ -613,7 +613,7 @@ Or with one of the following constructs::
 
 For more, see the `pytest<http://doc.pytest.org/en/latest/>`_ documentation.
 
-    .. versionadded:: 0.18.0
+    .. versionadded:: 0.20.0
 
 Furthermore one can run
 
