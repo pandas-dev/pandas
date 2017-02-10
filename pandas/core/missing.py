@@ -170,9 +170,10 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     violate_limit = sorted(start_nans)
 
     if limit is not None:
-        if is_integer(limit) and limit < 1:
-            raise ValueError('`limit` keyword argument must be greater '
-                             'than 0.')
+        if not is_integer(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         if limit_direction == 'forward':
             violate_limit = sorted(start_nans | set(_interp_limit(invalid,
                                                                   limit, 0)))
