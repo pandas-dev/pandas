@@ -19,6 +19,7 @@
 .noseids
 .ipynb_checkpoints
 .tags
+.cache/
 
 # Compiled source #
 ###################
