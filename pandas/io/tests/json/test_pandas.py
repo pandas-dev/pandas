@@ -1044,3 +1044,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         for s in examples:
             roundtrip(s)
+
+    def test_data_frame_size_after_to_json(self):
+        # GH15344
+        df = DataFrame({'a': [str(1)]})
+
+        size_before = df.memory_usage(index=True, deep=True).sum()
+        df.to_json()
+        size_after = df.memory_usage(index=True, deep=True).sum()
+
+        self.assertEqual(size_before, size_after)
