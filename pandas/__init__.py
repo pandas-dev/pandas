@@ -56,11 +56,7 @@ from pandas.util.print_versions import show_versions
 
 from pandas.io.api import *
 
-# define the testing framework
-import pandas.util.testing
-from pandas.util.nosetester import NoseTester
-test = NoseTester().test
-del NoseTester
+from pandas.util._tester import test
 
 # use the closest tagged version if possible
 from ._version import get_versions
