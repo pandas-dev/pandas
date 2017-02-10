@@ -11,6 +11,9 @@ Highlights include:
 
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
+- Switched the test framework to `pytest`_ (:issue:`13097`)
+
+.. _pytest: http://doc.pytest.org/en/latest/
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 

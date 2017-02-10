@@ -93,6 +93,11 @@ class TestLocaleUtils(tm.TestCase):
             raise nose.SkipTest("Only a single locale found, no point in "
                                 "trying to test setting another locale")
 
+        if all(x is None for x in CURRENT_LOCALE):
+            # Not sure why, but on some travis runs with pytest,
+            # getlocale() returned (None, None).
+            raise nose.SkipTest("CURRENT_LOCALE is not set.")
+
         if LOCALE_OVERRIDE is None:
             lang, enc = 'it_CH', 'UTF-8'
         elif LOCALE_OVERRIDE == 'C':

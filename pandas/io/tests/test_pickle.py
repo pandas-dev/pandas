@@ -31,11 +31,12 @@ class TestPickle():
     nose-test-generators-inside-class
     """
 
-    def setUp(self):
+    @classmethod
+    def setup_class(cls):
         from pandas.io.tests.generate_legacy_storage_files import (
             create_pickle_data)
-        self.data = create_pickle_data()
-        self.path = u('__%s__.pickle' % tm.rands(10))
+        cls.data = create_pickle_data()
+        cls.path = u('__%s__.pickle' % tm.rands(10))
 
     def compare_element(self, result, expected, typ, version=None):
         if isinstance(expected, Index):
