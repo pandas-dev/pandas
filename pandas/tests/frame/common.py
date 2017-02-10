@@ -89,11 +89,11 @@ class TestData(object):
 
     @cache_readonly
     def ts1(self):
-        return tm.makeTimeSeries()
+        return tm.makeTimeSeries(nper=30)
 
     @cache_readonly
     def ts2(self):
-        return tm.makeTimeSeries()[5:]
+        return tm.makeTimeSeries(nper=30)[5:]
 
     @cache_readonly
     def simple(self):

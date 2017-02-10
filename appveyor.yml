@@ -14,6 +14,7 @@ environment:
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\run_with_env.cmd"
+    clone_folder: C:\projects\pandas
 
   matrix:
 
@@ -82,7 +83,7 @@ install:
   - cmd: '%CMD_IN_ENV% conda build ci\appveyor.recipe -q'
 
   # create our env
-  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% nose
+  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% nose pytest
   - cmd: activate pandas
   - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
   - cmd: echo "installing requirements from %REQ%"
@@ -93,7 +94,8 @@ install:
 
 test_script:
   # tests
-  - cd \
   - cmd: activate pandas
   - cmd: conda list
-  - cmd: nosetests --exe -A "not slow and not network and not disabled" pandas
+  - cmd: cd \
+  - cmd: python -c "import pandas; pandas.test(['--skip-slow', '--skip-network'])"
+

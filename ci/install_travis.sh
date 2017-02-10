@@ -83,6 +83,7 @@ else
 
     # Useful for debugging any issues with conda
     conda info -a || exit 1
+
 fi
 
 # may have installation instructions for this build
@@ -90,13 +91,9 @@ INSTALL="ci/install-${PYTHON_VERSION}${JOB_TAG}.sh"
 if [ -e ${INSTALL} ]; then
     time bash $INSTALL || exit 1
 else
-
     # create new env
-    time conda create -n pandas python=$PYTHON_VERSION nose || exit 1
+    time conda create -n pandas python=$PYTHON_VERSION nose pytest || exit 1
 
-    if [ "$COVERAGE" ]; then
-        pip install coverage
-    fi
     if [ "$LINT" ]; then
         conda install flake8
         pip install cpplint
@@ -118,6 +115,10 @@ if [ -e ${REQ} ]; then
 fi
 
 source activate pandas
+
+if [ "$COVERAGE" ]; then
+    pip install coverage pytest-cov
+fi
 
 if [ "$BUILD_TEST" ]; then
 

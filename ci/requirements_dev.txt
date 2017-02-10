@@ -3,4 +3,6 @@ pytz
 numpy
 cython
 nose
+pytest
+pytest-cov
 flake8
