@@ -85,7 +85,7 @@ class TestMelt(tm.TestCase):
                                   value_vars=value_vars)
                     tm.assert_frame_equal(result, expected)
                 else:
-                    with self.assertRaisesRegex(TypeError, r'MultiIndex'):
+                    with self.assertRaisesRegex(ValueError, r'MultiIndex'):
                         melt(self.df1, id_vars=id_vars, value_vars=value_vars)
 
     def test_custom_var_name(self):

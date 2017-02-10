@@ -765,8 +765,8 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             id_vars = [id_vars]
         elif (isinstance(frame.columns, MultiIndex) and
               not isinstance(id_vars, list)):
-            raise TypeError('id_vars must be a list of tuples when columns'
-                            ' are a MultiIndex')
+            raise ValueError('id_vars must be a list of tuples when columns'
+                             ' are a MultiIndex')
         else:
             id_vars = list(id_vars)
     else:
@@ -777,8 +777,8 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             value_vars = [value_vars]
         elif (isinstance(frame.columns, MultiIndex) and
               not isinstance(value_vars, list)):
-            raise TypeError('value_vars must be a list of tuples when'
-                            ' columns are a MultiIndex')
+            raise ValueError('value_vars must be a list of tuples when'
+                             ' columns are a MultiIndex')
         else:
             value_vars = list(value_vars)
         frame = frame.loc[:, id_vars + value_vars]
