@@ -23,7 +23,8 @@ from numpy import nan as NA
 import numpy as np
 import numpy.ma as ma
 
-from pandas.types.cast import (_maybe_upcast, _infer_dtype_from_scalar,
+from pandas.types.cast import (_maybe_upcast,
+                               _cast_scalar_to_array,
                                _possibly_cast_to_datetime,
                                _possibly_infer_to_datetimelike,
                                _possibly_convert_platform,
@@ -333,15 +334,10 @@ class DataFrame(NDFrame):
                 raise_with_traceback(exc)
 
             if arr.ndim == 0 and index is not None and columns is not None:
-                if isinstance(data, compat.string_types) and dtype is None:
-                    dtype = np.object_
-                if dtype is None:
-                    dtype, data = _infer_dtype_from_scalar(data)
-
-                values = np.empty((len(index), len(columns)), dtype=dtype)
-                values.fill(data)
-                mgr = self._init_ndarray(values, index, columns, dtype=dtype,
-                                         copy=False)
+                values = _cast_scalar_to_array((len(index), len(columns)),
+                                               data, dtype=dtype)
+                mgr = self._init_ndarray(values, index, columns,
+                                         dtype=values.dtype, copy=False)
             else:
                 raise PandasError('DataFrame constructor not properly called!')
 
@@ -455,7 +451,7 @@ class DataFrame(NDFrame):
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
-            if values.dtype != dtype:
+            if not is_dtype_equal(values.dtype, dtype):
                 try:
                     values = values.astype(dtype)
                 except Exception as orig:
@@ -2641,9 +2637,8 @@ class DataFrame(NDFrame):
 
         else:
             # upcast the scalar
-            dtype, value = _infer_dtype_from_scalar(value)
-            value = np.repeat(value, len(self.index)).astype(dtype)
-            value = _possibly_cast_to_datetime(value, dtype)
+            value = _cast_scalar_to_array(len(self.index), value)
+            value = _possibly_cast_to_datetime(value, value.dtype)
 
         # return internal types directly
         if is_extension_type(value):

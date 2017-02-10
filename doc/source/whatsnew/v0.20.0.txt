@@ -511,6 +511,8 @@ Bug Fixes
 - Bug in ``GroupBy.get_group()`` failing with a categorical grouper (:issue:`15155`)
 - Bug in ``pandas.tools.utils.cartesian_product()`` with large input can cause overflow on windows (:issue:`15265`)
 
+- Bug in assignment against datetime-like data with ``int`` may incorrectly converted to datetime-like (:issue:`14145`)
+- Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
 
 
 - Bug in ``.groupby(...).rolling(...)`` when ``on`` is specified and using a ``DatetimeIndex`` (:issue:`15130`)
