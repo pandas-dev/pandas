@@ -356,6 +356,59 @@ New Behavior:
    In [11]: index.memory_usage(deep=True)
    Out[11]: 260
 
+.. _whatsnew_0200.api_breaking.groupby_describe:
+
+Groupby Describe Formatting
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The output formatting of ``groupby.describe()`` now labels the ``describe()`` metrics in the columns instead of the index.
+This format is consistent with ``groupby.agg()`` when applying multiple functions at once. (:issue:`4792`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
+
+   In [2]: df.groupby('A').describe()
+   Out[2]:
+                   B
+   A
+   1 count  2.000000
+     mean   1.500000
+     std    0.707107
+     min    1.000000
+     25%    1.250000
+     50%    1.500000
+     75%    1.750000
+     max    2.000000
+   2 count  2.000000
+     mean   3.500000
+     std    0.707107
+     min    3.000000
+     25%    3.250000
+     50%    3.500000
+     75%    3.750000
+     max    4.000000
+
+   In [3]: df.groupby('A').agg([np.mean, np.std, np.min, np.max])
+   Out[3]:
+        B
+     mean       std amin amax
+   A
+   1  1.5  0.707107    1    2
+   2  3.5  0.707107    3    4
+
+New Behavior:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
+
+   df.groupby('A').describe()
+
+   df.groupby('A').agg([np.mean, np.std, np.min, np.max])
+
 .. _whatsnew_0200.api:
 
 Other API Changes

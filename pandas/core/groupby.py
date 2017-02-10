@@ -80,7 +80,6 @@ _common_apply_whitelist = frozenset([
     'mean', 'sum', 'min', 'max',
     'cumcount',
     'resample',
-    'describe',
     'rank', 'quantile',
     'fillna',
     'mad',
@@ -1137,6 +1136,16 @@ class GroupBy(_GroupBy):
 
         return self._apply_to_column_groupbys(
             lambda x: x._cython_agg_general('ohlc'))
+
+    @Appender(DataFrame.describe.__doc__)
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def describe(self, **kwargs):
+        self._set_group_selection()
+        result = self.apply(lambda x: x.describe(**kwargs))
+        if self.axis == 1:
+            return result.T
+        return result.unstack()
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -3038,6 +3047,14 @@ class SeriesGroupBy(GroupBy):
     @Appender(Series.nsmallest.__doc__)
     def nsmallest(self, n=5, keep='first'):
         return self.apply(lambda x: x.nsmallest(n=n, keep=keep))
+
+    @Appender(Series.describe.__doc__)
+    def describe(self, **kwargs):
+        self._set_group_selection()
+        result = self.apply(lambda x: x.describe(**kwargs))
+        if self.axis == 1:
+            return result.T
+        return result.unstack()
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
