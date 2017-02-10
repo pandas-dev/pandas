@@ -2379,13 +2379,18 @@ def _check_equal_length(seq_of_seqs):
     A TypeError will be raised if inner sequence does not support len().
 
     Return True if all sequences are the same length, otherwise False
+    If seq_of_seqs is empty return True as well.
     """
     seq_it = iter(seq_of_seqs)
-    L0 = len(next(seq_it))
-    for seq in seq_it:
-        if len(seq) != L0:
-            return False
-    return True
+    try:
+        L0 = len(next(seq_it))
+    except StopIteration:
+        return True
+    else:
+        for seq in seq_it:
+            if len(seq) != L0:
+                return False
+        return True
 
 
 def _get_na_rep(dtype):
