@@ -70,7 +70,7 @@ class TestMelt(tm.TestCase):
                           value_vars=type_(('A', 'B')))
             tm.assert_frame_equal(result, expected)
 
-    def test_id_and_value_vars_types_with_multiindex(self):
+    def test_vars_work_with_multiindex(self):
         expected = DataFrame({
             ('A', 'a'): self.df1[('A', 'a')],
             'CAP': ['B'] * len(self.df1),
@@ -78,15 +78,22 @@ class TestMelt(tm.TestCase):
             'value': self.df1[('B', 'b')],
         }, columns=[('A', 'a'), 'CAP', 'low', 'value'])
 
-        for id_vars in ([('A', 'a')], ('A', 'a')):
-            for value_vars in ([('B', 'b')], ('B', 'b')):
-                if isinstance(id_vars, list) and isinstance(value_vars, list):
-                    result = melt(self.df1, id_vars=id_vars,
-                                  value_vars=value_vars)
-                    tm.assert_frame_equal(result, expected)
-                else:
-                    with self.assertRaisesRegex(ValueError, r'MultiIndex'):
-                        melt(self.df1, id_vars=id_vars, value_vars=value_vars)
+        result = melt(self.df1, id_vars=[('A', 'a')], value_vars=[('B', 'b')])
+        tm.assert_frame_equal(result, expected)
+
+    def test_tuple_vars_fail_with_multiindex(self):
+        # melt should fail with an informative error message if
+        # the columns have a MultiIndex and a tuple is passed
+        # for id_vars or value_vars.
+        tuple_a = ('A', 'a')
+        list_a = [tuple_a]
+        tuple_b = ('B', 'b')
+        list_b = [tuple_b]
+
+        for id_vars, value_vars in ((tuple_a, list_b), (list_a, tuple_b),
+                                    (tuple_a, tuple_b)):
+            with self.assertRaisesRegex(ValueError, r'MultiIndex'):
+                melt(self.df1, id_vars=id_vars, value_vars=value_vars)
 
     def test_custom_var_name(self):
         result5 = melt(self.df, var_name=self.var_name)
