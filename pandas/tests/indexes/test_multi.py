@@ -1640,18 +1640,20 @@ class TestMultiIndex(Base, tm.TestCase):
         idx = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
         self.assertEqual(len(idx), 2)
 
-    def test_from_tuples_variable_length(self):
-        # check that len(MultiIndex) == max(len(iterables))
-        T = ((1,), (2, 3), (4, 5, 6))
+    def test_equal_length(self):
+        # Test _check_equal_length
+        from pandas.indexes.multi import _check_equal_length
 
-        idx = MultiIndex.from_tuples(T)
-        self.assertEqual(len(idx), 3)
+        seqs = [[1, 2, 3], [2, 3, 4], [0, 1, 0]]
+        self.assertTrue(_check_equal_length(seqs))
 
-        idx = MultiIndex.from_tuples(set(T))
-        self.assertEqual(len(idx), 3)
+        seqs[-1].append(1)
+        self.assertFalse(_check_equal_length(seqs))
 
-        idx = MultiIndex.from_tuples(list(T))
-        self.assertEqual(len(idx), 3)
+        # Test TypeError
+        seqs = [None]
+        with self.assertRaises(TypeError):
+            _check_equal_length(seqs)
 
     def test_argsort(self):
         result = self.index.argsort()
