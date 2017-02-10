@@ -247,6 +247,18 @@ class TestToOffset(tm.TestCase):
                 frequencies.to_offset(invalid_anchor)
 
 
+def test_ms_vs_MS():
+    left = frequencies.get_offset('ms')
+    right = frequencies.get_offset('MS')
+    assert left == offsets.Milli()
+    assert right == offsets.MonthBegin()
+
+
+def test_rule_aliases():
+    rule = frequencies.to_offset('10us')
+    assert rule == offsets.Micro(10)
+
+
 def test_get_rule_month():
     result = frequencies._get_rule_month('W')
     assert (result == 'DEC')

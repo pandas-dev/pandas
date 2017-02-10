@@ -1282,7 +1282,7 @@ class Panel(NDFrame):
         -------
         joined : Panel
         """
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         if isinstance(other, Panel):
             join_major, join_minor = self._get_join_index(other, how)

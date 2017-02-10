@@ -356,6 +356,59 @@ New Behavior:
    In [11]: index.memory_usage(deep=True)
    Out[11]: 260
 
+.. _whatsnew_0200.api_breaking.groupby_describe:
+
+Groupby Describe Formatting
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The output formatting of ``groupby.describe()`` now labels the ``describe()`` metrics in the columns instead of the index.
+This format is consistent with ``groupby.agg()`` when applying multiple functions at once. (:issue:`4792`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
+
+   In [2]: df.groupby('A').describe()
+   Out[2]:
+                   B
+   A
+   1 count  2.000000
+     mean   1.500000
+     std    0.707107
+     min    1.000000
+     25%    1.250000
+     50%    1.500000
+     75%    1.750000
+     max    2.000000
+   2 count  2.000000
+     mean   3.500000
+     std    0.707107
+     min    3.000000
+     25%    3.250000
+     50%    3.500000
+     75%    3.750000
+     max    4.000000
+
+   In [3]: df.groupby('A').agg([np.mean, np.std, np.min, np.max])
+   Out[3]:
+        B
+     mean       std amin amax
+   A
+   1  1.5  0.707107    1    2
+   2  3.5  0.707107    3    4
+
+New Behavior:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
+
+   df.groupby('A').describe()
+
+   df.groupby('A').agg([np.mean, np.std, np.min, np.max])
+
 .. _whatsnew_0200.api:
 
 Other API Changes
@@ -371,6 +424,7 @@ Other API Changes
 - ``pandas.api.types.is_datetime64_ns_dtype`` will now report ``True`` on a tz-aware dtype, similar to ``pandas.api.types.is_datetime64_any_dtype``
 - ``DataFrame.asof()`` will return a null filled ``Series`` instead the scalar ``NaN`` if a match is not found (:issue:`15118`)
 - The :func:`pd.read_gbq` method now stores ``INTEGER`` columns as ``dtype=object`` if they contain ``NULL`` values. Otherwise they are stored as ``int64``. This prevents precision lost for integers greather than 2**53. Furthermore ``FLOAT`` columns with values above 10**4 are no more casted to ``int64`` which also caused precision lost (:issue: `14064`, :issue:`14305`).
+- Reorganization of timeseries development tests (:issue:`14854`)
 
 .. _whatsnew_0200.deprecations:
 
@@ -385,7 +439,7 @@ Deprecations
 - ``TimedeltaIndex.searchsorted()``, ``DatetimeIndex.searchsorted()``, and ``PeriodIndex.searchsorted()`` have deprecated the ``key`` parameter in favor of ``value`` (:issue:`12662`)
 - ``DataFrame.astype()`` has deprecated the ``raise_on_error`` parameter in favor of ``errors`` (:issue:`14878`)
 - ``Series.sortlevel`` and ``DataFrame.sortlevel`` have been deprecated in favor of ``Series.sort_index`` and ``DataFrame.sort_index`` (:issue:`15099`)
-
+- importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explict imports (:issue:`15358`)
 
 .. _whatsnew_0200.prior_deprecations:
 
@@ -484,6 +538,8 @@ Bug Fixes
 - Bug in ``pd.pivot_table()`` where no error was raised when values argument was not in the columns (:issue:`14938`)
 
 - Bug in ``.to_json()`` where ``lines=True`` and contents (keys or values) contain escaped characters (:issue:`15096`)
+- Bug in ``.to_json()`` causing single byte ascii characters to be expanded to four byte unicode (:issue:`15344`)
+- Bug in ``.read_json()`` for Python 2 where ``lines=True`` and contents contain non-ascii unicode characters (:issue:`15132`)
 - Bug in ``.rolling/expanding()`` functions where ``count()`` was not counting ``np.Inf``, nor handling ``object`` dtypes (:issue:`12541`)
 - Bug in ``DataFrame.resample().median()`` if duplicate column names are present (:issue:`14233`)
 
@@ -507,7 +563,6 @@ Bug Fixes
 - Bug in ``DataFrame.fillna()`` where the argument ``downcast`` was ignored when fillna value was of type ``dict`` (:issue:`15277`)
 
 
-- Bug in ``.read_json()`` for Python 2 where ``lines=True`` and contents contain non-ascii unicode characters (:issue:`15132`)
 
 - Bug in ``pd.read_csv()`` with ``float_precision='round_trip'`` which caused a segfault when a text entry is parsed (:issue:`15140`)
 

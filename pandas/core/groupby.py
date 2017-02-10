@@ -80,7 +80,6 @@ _common_apply_whitelist = frozenset([
     'mean', 'sum', 'min', 'max',
     'cumcount',
     'resample',
-    'describe',
     'rank', 'quantile',
     'fillna',
     'mad',
@@ -854,7 +853,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         raise AbstractMethodError(self)
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         def reset_identity(values):
             # reset the identities of the components
@@ -1137,6 +1136,16 @@ class GroupBy(_GroupBy):
 
         return self._apply_to_column_groupbys(
             lambda x: x._cython_agg_general('ohlc'))
+
+    @Appender(DataFrame.describe.__doc__)
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def describe(self, **kwargs):
+        self._set_group_selection()
+        result = self.apply(lambda x: x.describe(**kwargs))
+        if self.axis == 1:
+            return result.T
+        return result.unstack()
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -3039,6 +3048,14 @@ class SeriesGroupBy(GroupBy):
     def nsmallest(self, n=5, keep='first'):
         return self.apply(lambda x: x.nsmallest(n=n, keep=keep))
 
+    @Appender(Series.describe.__doc__)
+    def describe(self, **kwargs):
+        self._set_group_selection()
+        result = self.apply(lambda x: x.describe(**kwargs))
+        if self.axis == 1:
+            return result.T
+        return result.unstack()
+
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
 
@@ -3507,7 +3524,7 @@ class NDFrameGroupBy(GroupBy):
                         # still a series
                         # path added as of GH 5545
                         elif all_indexed_same:
-                            from pandas.tools.merge import concat
+                            from pandas.tools.concat import concat
                             return concat(values)
 
                     if not all_indexed_same:
@@ -3540,7 +3557,7 @@ class NDFrameGroupBy(GroupBy):
                         else:
                             # GH5788 instead of stacking; concat gets the
                             # dtypes correct
-                            from pandas.tools.merge import concat
+                            from pandas.tools.concat import concat
                             result = concat(values, keys=key_index,
                                             names=key_index.names,
                                             axis=self.axis).unstack()
@@ -3588,7 +3605,7 @@ class NDFrameGroupBy(GroupBy):
                                         not_indexed_same=not_indexed_same)
 
     def _transform_general(self, func, *args, **kwargs):
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         applied = []
         obj = self._obj_with_exclusions
@@ -3980,7 +3997,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
                                          exclusions=self.exclusions)
 
     def _apply_to_column_groupbys(self, func):
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
         return concat(
             (func(col_groupby) for _, col_groupby
              in self._iterate_column_groupbys()),
@@ -4061,7 +4078,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if isinstance(obj, Series):
             results = groupby_series(obj)
         else:
-            from pandas.tools.merge import concat
+            from pandas.tools.concat import concat
             results = [groupby_series(obj[col], col) for col in obj.columns]
             results = concat(results, axis=1)
 
