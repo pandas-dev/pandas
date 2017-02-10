@@ -694,6 +694,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
             with tm.assertRaises(TypeError):
                 read_html(self.spam_data, header=arg)
 
+
     def test_converters(self):
         # GH 13461
         html_data = """<table>
@@ -759,6 +760,34 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         expected_df = DataFrame({'a': [np.nan, np.nan]})
         html_df = read_html(html_data, keep_default_na=True)[0]
         tm.assert_frame_equal(expected_df, html_df)
+
+    def test_multiple_header(self):
+        data = StringIO('''<table border="1" class="dataframe">
+            <thead>
+               <tr style="text-align: right;">
+                   <th>Name</th>
+                   <th>Age</th>
+                   <th>Party</th>
+               </tr>
+               <tr>
+                  <th></th>
+                  <th>Gender</th>
+                  <th></th>
+                </tr>
+          </thead>
+          <tbody>
+              <tr>
+                  <th>Hillary</th>
+                  <td>68</td>
+                  <td>D</td>
+             </tr>
+          </tbody>
+          </table>''')
+        expected = DataFrame(columns=["Name", "Age", "Party"],
+                             data=[("Hillary", 68, "D")])
+        result = self.read_html(data)[0]
+        tm.assert_frame_equal(expected, result)
+
 
 
 def _lang_enc(filename):

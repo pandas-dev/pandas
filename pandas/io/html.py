@@ -355,7 +355,8 @@ class _HtmlFrameParser(object):
         thead = self._parse_thead(table)
         res = []
         if thead:
-            res = lmap(self._text_getter, self._parse_th(thead[0]))
+            row = self._parse_th(thead[0])[0].find_parent('tr')
+            res = lmap(self._text_getter, self._parse_th(row))
         return np.atleast_1d(
             np.array(res).squeeze()) if res and len(res) == 1 else res
 
@@ -591,7 +592,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return table.xpath('.//tfoot')
 
     def _parse_raw_thead(self, table):
-        expr = './/thead//th'
+        expr = './/thead//tr[th][1]//th'
         return [_remove_whitespace(x.text_content()) for x in
                 table.xpath(expr)]
 
