@@ -56,6 +56,45 @@ class TestMelt(tm.TestCase):
                               columns=['id1', 'id2', 'variable', 'value'])
         tm.assert_frame_equal(result4, expected4)
 
+    def test_value_vars_types(self):
+        # GH 15348
+        expected = DataFrame({'id1': self.df['id1'].tolist() * 2,
+                              'id2': self.df['id2'].tolist() * 2,
+                              'variable': ['A'] * 10 + ['B'] * 10,
+                              'value': (self.df['A'].tolist() +
+                                        self.df['B'].tolist())},
+                             columns=['id1', 'id2', 'variable', 'value'])
+
+        for type_ in (tuple, list, np.array):
+            result = melt(self.df, id_vars=['id1', 'id2'],
+                          value_vars=type_(('A', 'B')))
+            tm.assert_frame_equal(result, expected)
+
+    def test_vars_work_with_multiindex(self):
+        expected = DataFrame({
+            ('A', 'a'): self.df1[('A', 'a')],
+            'CAP': ['B'] * len(self.df1),
+            'low': ['b'] * len(self.df1),
+            'value': self.df1[('B', 'b')],
+        }, columns=[('A', 'a'), 'CAP', 'low', 'value'])
+
+        result = melt(self.df1, id_vars=[('A', 'a')], value_vars=[('B', 'b')])
+        tm.assert_frame_equal(result, expected)
+
+    def test_tuple_vars_fail_with_multiindex(self):
+        # melt should fail with an informative error message if
+        # the columns have a MultiIndex and a tuple is passed
+        # for id_vars or value_vars.
+        tuple_a = ('A', 'a')
+        list_a = [tuple_a]
+        tuple_b = ('B', 'b')
+        list_b = [tuple_b]
+
+        for id_vars, value_vars in ((tuple_a, list_b), (list_a, tuple_b),
+                                    (tuple_a, tuple_b)):
+            with tm.assertRaisesRegexp(ValueError, r'MultiIndex'):
+                melt(self.df1, id_vars=id_vars, value_vars=value_vars)
+
     def test_custom_var_name(self):
         result5 = melt(self.df, var_name=self.var_name)
         self.assertEqual(result5.columns.tolist(), ['var', 'value'])
