@@ -1,7 +1,7 @@
 import os
 import locale
 import codecs
-import nose
+import pytest
 import decimal
 
 import numpy as np
@@ -68,7 +68,7 @@ class TestLocaleUtils(tm.TestCase):
         cls.locales = tm.get_locales()
 
         if not cls.locales:
-            raise nose.SkipTest("No locales found")
+            pytest.skip("No locales found")
 
         tm._skip_if_windows()
 
@@ -83,20 +83,20 @@ class TestLocaleUtils(tm.TestCase):
 
     def test_get_locales_prefix(self):
         if len(self.locales) == 1:
-            raise nose.SkipTest("Only a single locale found, no point in "
-                                "trying to test filtering locale prefixes")
+            pytest.skip("Only a single locale found, no point in "
+                        "trying to test filtering locale prefixes")
         first_locale = self.locales[0]
         assert len(tm.get_locales(prefix=first_locale[:2])) > 0
 
     def test_set_locale(self):
         if len(self.locales) == 1:
-            raise nose.SkipTest("Only a single locale found, no point in "
-                                "trying to test setting another locale")
+            pytest.skip("Only a single locale found, no point in "
+                        "trying to test setting another locale")
 
         if all(x is None for x in CURRENT_LOCALE):
             # Not sure why, but on some travis runs with pytest,
             # getlocale() returned (None, None).
-            raise nose.SkipTest("CURRENT_LOCALE is not set.")
+            pytest.skip("CURRENT_LOCALE is not set.")
 
         if LOCALE_OVERRIDE is None:
             lang, enc = 'it_CH', 'UTF-8'
@@ -456,7 +456,7 @@ class TestToNumeric(tm.TestCase):
         # Test the limits of each downcast. Bug: #14401.
         # Check to make sure numpy is new enough to run this test.
         if _np_version_under1p9:
-            raise nose.SkipTest("Numpy version is under 1.9")
+            pytest.skip("Numpy version is under 1.9")
 
         i = 'integer'
         u = 'unsigned'

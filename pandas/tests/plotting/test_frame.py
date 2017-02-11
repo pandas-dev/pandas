@@ -2,7 +2,7 @@
 
 """ Test cases for DataFrame.plot """
 
-import nose
+import pytest
 import string
 import warnings
 
@@ -1275,7 +1275,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_hist_df(self):
         from matplotlib.patches import Rectangle
         if self.mpl_le_1_2_1:
-            raise nose.SkipTest("not supported in matplotlib <= 1.2.x")
+            pytest.skip("not supported in matplotlib <= 1.2.x")
 
         df = DataFrame(randn(100, 4))
         series = df[0]

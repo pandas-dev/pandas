@@ -9,7 +9,7 @@ arguments when parsing.
 
 import csv
 import sys
-import nose
+import pytest
 
 import pandas.util.testing as tm
 from pandas import DataFrame, Index
@@ -79,7 +79,7 @@ baz|7|8|9
 
     def test_BytesIO_input(self):
         if not compat.PY3:
-            raise nose.SkipTest(
+            pytest.skip(
                 "Bytes-related test - only needs to work on Python 3")
 
         data = BytesIO("שלום::1234\n562::123".encode('cp1255'))
@@ -130,7 +130,7 @@ also also skip this
             import gzip
             import bz2
         except ImportError:
-            raise nose.SkipTest('need gzip and bz2 to run')
+            pytest.skip('need gzip and bz2 to run')
 
         with open(self.csv1, 'rb') as f:
             data = f.read()

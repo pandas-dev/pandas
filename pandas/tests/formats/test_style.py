@@ -1,5 +1,4 @@
-import os
-from nose import SkipTest
+import pytest
 
 import copy
 import numpy as np
@@ -8,20 +7,7 @@ from pandas import DataFrame
 from pandas.util.testing import TestCase
 import pandas.util.testing as tm
 
-# Getting failures on a python 2.7 build with
-# whenever we try to import jinja, whether it's installed or not.
-# so we're explicitly skipping that one *before* we try to import
-# jinja. We still need to export the imports as globals,
-# since importing Styler tries to import jinja2.
-job_name = os.environ.get('JOB_NAME', None)
-if job_name == '27_slow_nnet_LOCALE':
-    raise SkipTest("No jinja")
-try:
-    # Do try except on just jinja, so the only reason
-    # We skip is if jinja can't import, not something else
-    import jinja2  # noqa
-except ImportError:
-    raise SkipTest("No Jinja2")
+jinja2 = pytest.importorskip('jinja2')
 from pandas.formats.style import Styler, _get_level_lengths  # noqa
 
 

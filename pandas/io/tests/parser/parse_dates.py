@@ -8,7 +8,7 @@ parsers defined in parsers.py
 from distutils.version import LooseVersion
 from datetime import datetime
 
-import nose
+import pytest
 import numpy as np
 import pandas.lib as lib
 from pandas.lib import Timestamp
@@ -268,9 +268,9 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         # See gh-217
         import dateutil
         if dateutil.__version__ >= LooseVersion('2.5.0'):
-            raise nose.SkipTest("testing yearfirst=True not-support"
-                                "on datetutil < 2.5.0 this works but"
-                                "is wrong")
+            pytest.skip("testing yearfirst=True not-support"
+                        "on datetutil < 2.5.0 this works but"
+                        "is wrong")
 
         rs = self.read_csv(StringIO(data), index_col=0,
                            parse_dates=[['date', 'time']])

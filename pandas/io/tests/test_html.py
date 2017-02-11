@@ -12,7 +12,7 @@ except ImportError:
 
 from distutils.version import LooseVersion
 
-import nose
+import pytest
 
 import numpy as np
 from numpy.random import rand
@@ -39,7 +39,7 @@ def _have_module(module_name):
 
 def _skip_if_no(module_name):
     if not _have_module(module_name):
-        raise nose.SkipTest("{0!r} not found".format(module_name))
+        pytest.skip("{0!r} not found".format(module_name))
 
 
 def _skip_if_none_of(module_names):
@@ -48,16 +48,16 @@ def _skip_if_none_of(module_names):
         if module_names == 'bs4':
             import bs4
             if bs4.__version__ == LooseVersion('4.2.0'):
-                raise nose.SkipTest("Bad version of bs4: 4.2.0")
+                pytest.skip("Bad version of bs4: 4.2.0")
     else:
         not_found = [module_name for module_name in module_names if not
                      _have_module(module_name)]
         if set(not_found) & set(module_names):
-            raise nose.SkipTest("{0!r} not found".format(not_found))
+            pytest.skip("{0!r} not found".format(not_found))
         if 'bs4' in module_names:
             import bs4
             if bs4.__version__ == LooseVersion('4.2.0'):
-                raise nose.SkipTest("Bad version of bs4: 4.2.0")
+                pytest.skip("Bad version of bs4: 4.2.0")
 
 
 DATA_PATH = tm.get_data_path()
@@ -685,7 +685,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         </html>''')
         expected = DataFrame(data={'Header': 1100.101}, index=[0])
         result = self.read_html(data, decimal='#')[0]
-        nose.tools.assert_equal(result['Header'].dtype, np.dtype('float64'))
+        assert result['Header'].dtype == np.dtype('float64')
         tm.assert_frame_equal(result, expected)
 
     def test_bool_header_arg(self):

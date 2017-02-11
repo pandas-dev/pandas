@@ -4,7 +4,7 @@
 from datetime import datetime
 
 import operator
-import nose
+import pytest
 
 import numpy as np
 import pandas as pd
@@ -97,7 +97,7 @@ class SafeForLongAndSparse(object):
         try:
             from scipy.stats import skew
         except ImportError:
-            raise nose.SkipTest("no scipy.stats.skew")
+            pytest.skip("no scipy.stats.skew")
 
         def this_skew(x):
             if len(x) < 3:
@@ -2059,7 +2059,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             import openpyxl  # noqa
             from pandas.io.excel import ExcelFile
         except ImportError:
-            raise nose.SkipTest("need xlwt xlrd openpyxl")
+            pytest.skip("need xlwt xlrd openpyxl")
 
         for ext in ['xls', 'xlsx']:
             with ensure_clean('__tmp__.' + ext) as path:
@@ -2067,7 +2067,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                 try:
                     reader = ExcelFile(path)
                 except ImportError:
-                    raise nose.SkipTest("need xlwt xlrd openpyxl")
+                    pytest.skip("need xlwt xlrd openpyxl")
 
                 for item, df in self.panel.iteritems():
                     recdf = reader.parse(str(item), index_col=0)
@@ -2079,14 +2079,14 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             import xlsxwriter  # noqa
             from pandas.io.excel import ExcelFile
         except ImportError:
-            raise nose.SkipTest("Requires xlrd and xlsxwriter. Skipping test.")
+            pytest.skip("Requires xlrd and xlsxwriter. Skipping test.")
 
         with ensure_clean('__tmp__.xlsx') as path:
             self.panel.to_excel(path, engine='xlsxwriter')
             try:
                 reader = ExcelFile(path)
             except ImportError as e:
-                raise nose.SkipTest("cannot write excel file: %s" % e)
+                pytest.skip("cannot write excel file: %s" % e)
 
             for item, df in self.panel.iteritems():
                 recdf = reader.parse(str(item), index_col=0)

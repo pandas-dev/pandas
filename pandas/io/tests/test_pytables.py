@@ -1,4 +1,4 @@
-import nose
+import pytest
 import sys
 import os
 import warnings
@@ -17,17 +17,14 @@ from pandas import (Series, DataFrame, Panel, MultiIndex, Int64Index,
 
 from pandas.compat import is_platform_windows, PY3, PY35
 from pandas.formats.printing import pprint_thing
-from pandas.io.pytables import _tables, TableIterator
-try:
-    _tables()
-except ImportError as e:
-    raise nose.SkipTest(e)
 
-
+tables = pytest.importorskip('tables')
+from pandas.io.pytables import TableIterator
 from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf,
                                 IncompatibilityWarning, PerformanceWarning,
                                 AttributeConflictWarning, DuplicateWarning,
                                 PossibleDataLossError, ClosedFileError)
+
 from pandas.io import pytables as pytables
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_panel4d_equal,
@@ -43,7 +40,7 @@ from pandas.compat import range, lrange, u
 try:
     import tables
 except ImportError:
-    raise nose.SkipTest('no pytables')
+    pytest.skip('no pytables')
 
 from distutils.version import LooseVersion
 
@@ -738,7 +735,7 @@ class TestHDFStore(Base, tm.TestCase):
     def test_put_compression_blosc(self):
         tm.skip_if_no_package('tables', '2.2', app='blosc support')
         if skip_compression:
-            raise nose.SkipTest("skipping on windows/PY3")
+            pytest.skip("skipping on windows/PY3")
 
         df = tm.makeTimeDataFrame()
 
@@ -968,7 +965,7 @@ class TestHDFStore(Base, tm.TestCase):
     def test_encoding(self):
 
         if sys.byteorder != 'little':
-            raise nose.SkipTest('system byteorder is not little')
+            pytest.skip('system byteorder is not little')
 
         with ensure_clean_store(self.path) as store:
             df = DataFrame(dict(A='foo', B='bar'), index=range(5))
@@ -2830,14 +2827,14 @@ class TestHDFStore(Base, tm.TestCase):
     def test_timeseries_preepoch(self):
 
         if sys.version_info[0] == 2 and sys.version_info[1] < 7:
-            raise nose.SkipTest("won't work on Python < 2.7")
+            pytest.skip("won't work on Python < 2.7")
 
         dr = bdate_range('1/1/1940', '1/1/1960')
         ts = Series(np.random.randn(len(dr)), index=dr)
         try:
             self._check_roundtrip(ts, tm.assert_series_equal)
         except OverflowError:
-            raise nose.SkipTest('known failer on some windows platforms')
+            pytest.skip('known failer on some windows platforms')
 
     def test_frame(self):
 
@@ -4202,8 +4199,8 @@ class TestHDFStore(Base, tm.TestCase):
 
         # GH 4858; nan selection bug, only works for pytables >= 3.1
         if LooseVersion(tables.__version__) < '3.1.0':
-            raise nose.SkipTest('tables version does not support fix for nan '
-                                'selection bug: GH 4858')
+            pytest.skip('tables version does not support fix for nan '
+                        'selection bug: GH 4858')
 
         with ensure_clean_store(self.path) as store:
 
@@ -4453,7 +4450,7 @@ class TestHDFStore(Base, tm.TestCase):
     def test_pytables_native2_read(self):
         # fails on win/3.5 oddly
         if PY35 and is_platform_windows():
-            raise nose.SkipTest("native2 read fails oddly on windows / 3.5")
+            pytest.skip("native2 read fails oddly on windows / 3.5")
 
         with ensure_clean_store(
                 tm.get_data_path('legacy_hdf/pytables_native2.h5'),
@@ -4585,7 +4582,7 @@ class TestHDFStore(Base, tm.TestCase):
                 safe_remove(path)
 
     def test_legacy_table_write(self):
-        raise nose.SkipTest("cannot write legacy tables")
+        pytest.skip("cannot write legacy tables")
 
         store = HDFStore(tm.get_data_path(
             'legacy_hdf/legacy_table_%s.h5' % pandas.__version__), 'a')

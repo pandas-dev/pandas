@@ -18,10 +18,10 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
 fi
 
 if [ "$BUILD_TEST" ]; then
-    echo "We are not running nosetests as this is simply a build test."
+    echo "We are not running pytest as this is simply a build test."
 elif [ "$COVERAGE" ]; then
-    echo pytest -s --cov=pandas --cov-report xml:/tmp/nosetests.xml $TEST_ARGS pandas
-    pytest -s --cov=pandas --cov-report xml:/tmp/nosetests.xml $TEST_ARGS pandas
+    echo pytest -s --cov=pandas --cov-report xml:/tmp/pytest.xml $TEST_ARGS pandas
+    pytest -s --cov=pandas --cov-report xml:/tmp/pytest.xml $TEST_ARGS pandas
 else
     echo pytest $TEST_ARGS pandas
     pytest $TEST_ARGS pandas # TODO: doctest

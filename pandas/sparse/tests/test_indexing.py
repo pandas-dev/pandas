@@ -1,6 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
-import nose  # noqa
+import pytest  # noqa
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm

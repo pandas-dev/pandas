@@ -1,7 +1,7 @@
 
 # flake8: noqa
 
-import nose
+import pytest
 from itertools import product
 from distutils.version import LooseVersion
 
@@ -31,7 +31,7 @@ def test_compat():
             assert _NUMEXPR_INSTALLED
 
     except ImportError:
-        raise nose.SkipTest("not testing numexpr version compat")
+        pytest.skip("not testing numexpr version compat")
 
 
 def test_invalid_numexpr_version():
@@ -49,14 +49,14 @@ def check_invalid_numexpr_version(engine, parser):
         try:
             import numexpr as ne
         except ImportError:
-            raise nose.SkipTest("no numexpr")
+            pytest.skip("no numexpr")
         else:
             if ne.__version__ < LooseVersion('2.1'):
                 with tm.assertRaisesRegexp(ImportError, "'numexpr' version is "
                                            ".+, must be >= 2.1"):
                     testit()
             elif ne.__version__ == LooseVersion('2.4.4'):
-                raise nose.SkipTest("numexpr version==2.4.4")
+                pytest.skip("numexpr version==2.4.4")
             else:
                 testit()
     else:

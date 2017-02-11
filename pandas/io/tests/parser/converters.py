@@ -7,7 +7,7 @@ for all of the parsers defined in parsers.py
 
 from datetime import datetime
 
-import nose
+import pytest
 
 import numpy as np
 import pandas as pd
@@ -84,8 +84,8 @@ c,4,5,01/03/2009
     def test_converters_corner_with_nas(self):
         # skip aberration observed on Win64 Python 3.2.2
         if hash(np.int64(-1)) != -2:
-            raise nose.SkipTest("skipping because of windows hash on Python"
-                                " 3.2.2")
+            pytest.skip("skipping because of windows hash on Python"
+                        " 3.2.2")
 
         data = """id,score,days
 1,2,12

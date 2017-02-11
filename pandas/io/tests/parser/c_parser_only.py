@@ -7,7 +7,7 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-import nose
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -159,7 +159,7 @@ nan 2
 
     def test_pass_dtype_as_recarray(self):
         if compat.is_platform_windows() and self.low_memory:
-            raise nose.SkipTest(
+            pytest.skip(
                 "segfaults on win-64, only when all tests are run")
 
         data = """\

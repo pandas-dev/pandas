@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
-import nose
+import pytest
 from pandas.compat import range, lrange, StringIO, OrderedDict
 import os
 
@@ -1009,8 +1009,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             return
 
         # GH 13774
-        raise nose.SkipTest("encoding not implemented in .to_json(), "
-                            "xref #13774")
+        pytest.skip("encoding not implemented in .to_json(), "
+                    "xref #13774")
 
         values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
                   [b'E\xc9, 17', b'a', b'b', b'c'],

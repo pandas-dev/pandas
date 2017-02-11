@@ -2,7 +2,7 @@
 import numpy as np
 from numpy.random import randint
 
-import nose
+import pytest
 import pandas as pd
 
 from pandas import DataFrame
@@ -15,10 +15,13 @@ from pandas.util.clipboard.exceptions import PyperclipException
 
 try:
     DataFrame({'A': [1, 2]}).to_clipboard()
+    _DEPS_INSTALLED = 1
 except PyperclipException:
-    raise nose.SkipTest("clipboard primitives not installed")
+    _DEPS_INSTALLED = 0
 
 
+@pytest.mark.skipif(not _DEPS_INSTALLED,
+                    reason="clipboard primitives not installed")
 class TestClipboard(tm.TestCase):
 
     @classmethod

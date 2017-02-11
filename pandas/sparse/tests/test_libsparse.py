@@ -1,6 +1,6 @@
 from pandas import Series
 
-import nose
+import pytest
 import numpy as np
 import operator
 import pandas.util.testing as tm
@@ -213,7 +213,7 @@ class TestSparseIndexIntersect(tm.TestCase):
                               longer_index.to_int_index())
 
         if compat.is_platform_windows():
-            raise nose.SkipTest("segfaults on win-64 when all tests are run")
+            pytest.skip("segfaults on win-64 when all tests are run")
         check_cases(_check_case)
 
     def test_intersect_empty(self):

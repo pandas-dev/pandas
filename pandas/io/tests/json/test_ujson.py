@@ -7,7 +7,7 @@ try:
 except ImportError:
     import simplejson as json
 import math
-import nose
+import pytest
 import platform
 import sys
 import time
@@ -28,7 +28,7 @@ import pandas.util.testing as tm
 def _skip_if_python_ver(skip_major, skip_minor=None):
     major, minor = sys.version_info[:2]
     if major == skip_major and (skip_minor is None or minor == skip_minor):
-        raise nose.SkipTest("skipping Python version %d.%d" % (major, minor))
+        pytest.skip("skipping Python version %d.%d" % (major, minor))
 
 
 json_unicode = (json.dumps if compat.PY3
@@ -95,7 +95,7 @@ class UltraJSONTests(TestCase):
             try:
                 locale.setlocale(locale.LC_NUMERIC, 'Italian_Italy')
             except:
-                raise nose.SkipTest('Could not set locale for testing')
+                pytest.skip('Could not set locale for testing')
         self.assertEqual(ujson.loads(ujson.dumps(4.78e60)), 4.78e60)
         self.assertEqual(ujson.loads('4.78', precise_float=True), 4.78)
         locale.setlocale(locale.LC_NUMERIC, savedlocale)
@@ -113,7 +113,7 @@ class UltraJSONTests(TestCase):
 
     def test_encodeDoubleTinyExponential(self):
         if compat.is_platform_windows() and not compat.PY3:
-            raise nose.SkipTest("buggy on win-64 for py2")
+            pytest.skip("buggy on win-64 for py2")
 
         num = 1e-40
         self.assertEqual(num, ujson.decode(ujson.encode(num)))
@@ -393,8 +393,8 @@ class UltraJSONTests(TestCase):
     def test_npy_nat(self):
         from distutils.version import LooseVersion
         if LooseVersion(np.__version__) < '1.7.0':
-            raise nose.SkipTest("numpy version < 1.7.0, is "
-                                "{0}".format(np.__version__))
+            pytest.skip("numpy version < 1.7.0, is "
+                        "{0}".format(np.__version__))
 
         input = np.datetime64('NaT')
         assert ujson.encode(input) == 'null', "Expected null"

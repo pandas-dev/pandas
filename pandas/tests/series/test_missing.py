@@ -22,16 +22,16 @@ def _skip_if_no_pchip():
     try:
         from scipy.interpolate import pchip_interpolate  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest('scipy.interpolate.pchip missing')
+        import pytest
+        pytest.skip('scipy.interpolate.pchip missing')
 
 
 def _skip_if_no_akima():
     try:
         from scipy.interpolate import Akima1DInterpolator  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest('scipy.interpolate.Akima1DInterpolator missing')
+        import pytest
+        pytest.skip('scipy.interpolate.Akima1DInterpolator missing')
 
 
 def _simple_ts(start, end, freq='D'):

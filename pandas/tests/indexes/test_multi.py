@@ -6,7 +6,7 @@ import warnings
 from datetime import timedelta
 from itertools import product
 
-import nose
+import pytest
 
 import numpy as np
 
@@ -988,8 +988,8 @@ class TestMultiIndex(Base, tm.TestCase):
 
     def test_legacy_pickle(self):
         if PY3:
-            raise nose.SkipTest("testing for legacy pickles not "
-                                "support on py3")
+            pytest.skip("testing for legacy pickles not "
+                        "support on py3")
 
         path = tm.get_data_path('multiindex_v1.pickle')
         obj = pd.read_pickle(path)

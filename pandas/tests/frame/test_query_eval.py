@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 import operator
-import nose
+import pytest
 from itertools import product
 
 from pandas.compat import (zip, range, lrange, StringIO)
@@ -30,14 +30,14 @@ ENGINES = 'python', 'numexpr'
 
 def skip_if_no_pandas_parser(parser):
     if parser != 'pandas':
-        raise nose.SkipTest("cannot evaluate with parser {0!r}".format(parser))
+        pytest.skip("cannot evaluate with parser {0!r}".format(parser))
 
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
         if not _NUMEXPR_INSTALLED:
-            raise nose.SkipTest("cannot query engine numexpr when numexpr not "
-                                "installed")
+            pytest.skip("cannot query engine numexpr when numexpr not "
+                        "installed")
 
 
 class TestCompat(tm.TestCase):

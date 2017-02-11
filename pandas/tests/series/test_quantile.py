@@ -1,7 +1,7 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import nose
+import pytest
 import numpy as np
 import pandas as pd
 
@@ -73,7 +73,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
     def test_quantile_interpolation(self):
         # GH #10174
         if _np_version_under1p9:
-            raise nose.SkipTest("Numpy version is under 1.9")
+            pytest.skip("Numpy version is under 1.9")
 
         from numpy import percentile
 
@@ -89,7 +89,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
     def test_quantile_interpolation_dtype(self):
         # GH #10174
         if _np_version_under1p9:
-            raise nose.SkipTest("Numpy version is under 1.9")
+            pytest.skip("Numpy version is under 1.9")
 
         from numpy import percentile
 
@@ -105,7 +105,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
     def test_quantile_interpolation_np_lt_1p9(self):
         # GH #10174
         if not _np_version_under1p9:
-            raise nose.SkipTest("Numpy version is greater than 1.9")
+            pytest.skip("Numpy version is greater than 1.9")
 
         from numpy import percentile
 

@@ -577,8 +577,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_binary_operators(self):
 
         # skipping for now #####
-        import nose
-        raise nose.SkipTest("skipping sparse binary operators test")
+        import pytest
+        pytest.skip("skipping sparse binary operators test")
 
         def _check_inplace_op(iop, op):
             tmp = self.bseries.copy()

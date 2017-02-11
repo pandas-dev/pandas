@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import functools
 import itertools
 
-import nose
+import pytest
 from numpy.random import randn
 
 import numpy as np
@@ -1702,7 +1702,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         # this may fail on certain platforms because of a numpy issue
         # related GH6140
         if not is_platform_little_endian():
-            raise nose.SkipTest("known failure of test on non-little endian")
+            pytest.skip("known failure of test on non-little endian")
 
         # construction with a null in a recarray
         # GH 6140
@@ -1714,7 +1714,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         try:
             recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
         except (ValueError):
-            raise nose.SkipTest("known failure of numpy rec array creation")
+            pytest.skip("known failure of numpy rec array creation")
 
         result = DataFrame.from_records(recarray)
         tm.assert_frame_equal(result, expected)

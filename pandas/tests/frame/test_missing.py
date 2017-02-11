@@ -23,8 +23,8 @@ def _skip_if_no_pchip():
     try:
         from scipy.interpolate import pchip_interpolate  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest('scipy.interpolate.pchip missing')
+        import pytest
+        pytest.skip('scipy.interpolate.pchip missing')
 
 
 class TestDataFrameMissingData(tm.TestCase, TestData):

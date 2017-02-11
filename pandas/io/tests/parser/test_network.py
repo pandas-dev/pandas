@@ -6,7 +6,7 @@ and hence require a network connection to be read.
 """
 
 import os
-import nose
+import pytest
 import functools
 from itertools import product
 
@@ -59,7 +59,7 @@ class TestS3(tm.TestCase):
         try:
             import s3fs  # noqa
         except ImportError:
-            raise nose.SkipTest("s3fs not installed")
+            pytest.skip("s3fs not installed")
 
     @tm.network
     def test_parse_public_s3_bucket(self):

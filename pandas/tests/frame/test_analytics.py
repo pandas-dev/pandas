@@ -5,7 +5,7 @@ from __future__ import print_function
 from datetime import timedelta, datetime
 from distutils.version import LooseVersion
 import sys
-import nose
+import pytest
 
 from numpy import nan
 from numpy.random import randn
@@ -2066,8 +2066,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
     def test_built_in_round(self):
         if not compat.PY3:
-            raise nose.SkipTest("build in round cannot be overriden "
-                                "prior to Python 3")
+            pytest.skip("build in round cannot be overriden "
+                        "prior to Python 3")
 
         # GH11763
         # Here's the test frame we'll be working with

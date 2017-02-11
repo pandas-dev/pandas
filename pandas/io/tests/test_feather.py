@@ -1,16 +1,11 @@
 """ test feather-format compat """
 
-import nose
+import pytest
+feather = pytest.importorskip('feather')
 
 import numpy as np
 import pandas as pd
-
 from pandas.io.feather_format import to_feather, read_feather
-
-try:
-    import feather  # noqa
-except ImportError:
-    raise nose.SkipTest('no feather-format installed')
 
 from feather import FeatherError
 import pandas.util.testing as tm

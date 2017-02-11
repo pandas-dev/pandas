@@ -2,7 +2,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from operator import methodcaller
-import nose
+import pytest
 import numpy as np
 from numpy import nan
 import pandas as pd
@@ -367,7 +367,7 @@ class Generic(object):
             try:
                 o.head()
             except (NotImplementedError):
-                raise nose.SkipTest('not implemented on {0}'.format(
+                pytest.skip('not implemented on {0}'.format(
                     o.__class__.__name__))
 
             self._compare(o.head(), o.iloc[:5])
@@ -1567,7 +1567,7 @@ class TestPanel4D(tm.TestCase, Generic):
     _comparator = lambda self, x, y: assert_panel4d_equal(x, y, by_blocks=True)
 
     def test_sample(self):
-        raise nose.SkipTest("sample on Panel4D")
+        pytest.skip("sample on Panel4D")
 
     def test_to_xarray(self):
 

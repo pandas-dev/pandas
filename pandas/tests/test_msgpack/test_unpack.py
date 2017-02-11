@@ -2,7 +2,7 @@ from io import BytesIO
 import sys
 from pandas.msgpack import Unpacker, packb, OutOfData, ExtType
 import pandas.util.testing as tm
-import nose
+import pytest
 
 
 class TestUnpack(tm.TestCase):
@@ -19,7 +19,7 @@ class TestUnpack(tm.TestCase):
 
     def test_unpacker_hook_refcnt(self):
         if not hasattr(sys, 'getrefcount'):
-            raise nose.SkipTest('no sys.getrefcount()')
+            pytest.skip('no sys.getrefcount()')
         result = []
 
         def hook(x):
