@@ -5821,31 +5821,34 @@ class NDFrame(PandasObject):
         from pandas.core import window as rwindow
 
         @Appender(rwindow.rolling.__doc__)
-        def rolling(self, window, min_periods=None, freq=None, center=False,
-                    win_type=None, on=None, axis=0):
+        def rolling(self, window, min_periods=None, min_weight=None,
+                    freq=None, center=False, win_type=None, on=None, axis=0):
             axis = self._get_axis_number(axis)
-            return rwindow.rolling(self, window=window,
-                                   min_periods=min_periods, freq=freq,
-                                   center=center, win_type=win_type,
-                                   on=on, axis=axis)
+            return rwindow.rolling(
+                self, window=window, min_periods=min_periods,
+                min_weight=min_weight, freq=freq, center=center,
+                win_type=win_type, on=on, axis=axis)
 
         cls.rolling = rolling
 
         @Appender(rwindow.expanding.__doc__)
-        def expanding(self, min_periods=1, freq=None, center=False, axis=0):
+        def expanding(self, min_periods=1, min_weight=None, freq=None,
+                      center=False, axis=0):
             axis = self._get_axis_number(axis)
-            return rwindow.expanding(self, min_periods=min_periods, freq=freq,
+            return rwindow.expanding(self, min_periods=min_periods,
+                                     min_weight=min_weight, freq=freq,
                                      center=center, axis=axis)
 
         cls.expanding = expanding
 
         @Appender(rwindow.ewm.__doc__)
         def ewm(self, com=None, span=None, halflife=None, alpha=None,
-                min_periods=0, freq=None, adjust=True, ignore_na=False,
-                axis=0):
+                min_periods=0, min_weight=None, freq=None, adjust=True,
+                ignore_na=False, axis=0):
             axis = self._get_axis_number(axis)
             return rwindow.ewm(self, com=com, span=span, halflife=halflife,
-                               alpha=alpha, min_periods=min_periods, freq=freq,
+                               alpha=alpha, min_periods=min_periods,
+                               min_weight=min_weight, freq=freq,
                                adjust=adjust, ignore_na=ignore_na, axis=axis)
 
         cls.ewm = ewm

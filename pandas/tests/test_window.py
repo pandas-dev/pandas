@@ -15,6 +15,7 @@ from pandas import (Series, DataFrame, Panel, bdate_range, isnull,
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow
 import pandas.tseries.offsets as offsets
+from pandas.core.window import _min_weight_mask
 from pandas.core.base import SpecificationError
 from pandas.core.common import UnsupportedFunctionCall
 import pandas.util.testing as tm
@@ -536,7 +537,7 @@ class TestDeprecations(Base):
 # make sure rolling functions works for different dtypes
 #
 # NOTE that these are yielded tests and so _create_data is
-# explicity called, nor do these inherit from unittest.TestCase
+# explicitly called, nor do these inherit from unittest.TestCase
 #
 # further note that we are only checking rolling for fully dtype
 # compliance (though both expanding and ewm inherit)
@@ -1659,6 +1660,58 @@ class TestMoments(Base):
 
         frame_result = getattr(self.frame.ewm(com=10), name)()
         self.assertEqual(type(frame_result), DataFrame)
+
+    def test_min_weight_mask_series(self):
+
+        rolling = Series([pd.np.NaN, -8, 3, 10, pd.np.NaN, 5]).rolling(3)
+
+        # 30%
+        result = _min_weight_mask(rolling, 0.3)
+        expected = Series([False, True, True, True, True, True])
+        tm.assert_series_equal(result, expected)
+
+        # 50%
+        result = _min_weight_mask(rolling, 0.6)
+        expected = Series([False, False, True, True, True, True])
+        tm.assert_series_equal(result, expected)
+
+        # 70%
+        result = _min_weight_mask(rolling, 0.7)
+        expected = Series([False, False, False, True, False, False])
+        tm.assert_series_equal(result, expected)
+
+    def test_min_weight_rolling(self):
+
+        series = Series([pd.np.NaN, -8, 3, 10, pd.np.NaN, 5])
+        rolling = series.rolling(3, min_periods=1, min_weight=0.6)
+
+        result = rolling.sum()
+        expected = Series([pd.np.NaN, pd.np.NaN, -5, 5, 13, 15])
+
+        tm.assert_series_equal(result, expected)
+
+    def test_min_weight_expanding(self):
+
+        series = Series([pd.np.NaN, -8, 3, pd.np.NaN, 10, 5])
+        rolling = series.expanding(min_periods=1, min_weight=0.51)
+
+        result = rolling.sum()
+        expected = Series([pd.np.NaN, pd.np.NaN, -5, pd.np.NaN, 5, 10])
+
+        tm.assert_series_equal(result, expected)
+
+    def test_min_weight_ewm(self):
+
+        from itertools import chain
+
+        # create a series with a big gap in the middle
+        series = Series(list(chain(range(9), [pd.np.NaN] * 80, range(9, 0))))
+        rolling = series.ewm(span=10, min_weight=0.5)
+
+        result = rolling.mean()
+
+        # check that all points between 25 and 90 are NaN
+        self.assertTrue(result.iloc[24:89].isnull().all())
 
 
 # create the data only once as we are not setting it

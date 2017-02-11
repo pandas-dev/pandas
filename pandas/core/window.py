@@ -53,12 +53,13 @@ pandas.DataFrame.%(name)s
 
 
 class _Window(PandasObject, SelectionMixin):
-    _attributes = ['window', 'min_periods', 'freq', 'center', 'win_type',
-                   'axis', 'on']
+    _attributes = ['window', 'min_periods', 'min_weight', 'freq', 'center',
+                   'win_type', 'axis', 'on']
     exclusions = set()
 
-    def __init__(self, obj, window=None, min_periods=None, freq=None,
-                 center=False, win_type=None, axis=0, on=None, **kwargs):
+    def __init__(self, obj, window=None, min_periods=None, min_weight=None,
+                 freq=None, center=False, win_type=None, axis=0, on=None,
+                 **kwargs):
 
         if freq is not None:
             warnings.warn("The freq kw is deprecated and will be removed in a "
@@ -71,6 +72,7 @@ class _Window(PandasObject, SelectionMixin):
         self.on = on
         self.window = window
         self.min_periods = min_periods
+        self.min_weight = min_weight
         self.freq = freq
         self.center = center
         self.win_type = win_type
@@ -745,7 +747,12 @@ class _Rolling(_Window):
 
             results.append(result)
 
-        return self._wrap_results(results, blocks, obj)
+        result = self._wrap_results(results, blocks, obj)
+
+        if self.min_weight:
+            result = result.where(_min_weight_mask(self, self.min_weight))
+
+        return result
 
 
 class _Rolling_and_Expanding(_Rolling):
@@ -1203,6 +1210,9 @@ class Expanding(_Rolling_and_Expanding):
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
+    min_weight : int, default None
+        Minimum proportion of weight in available values in window required
+        to have a value (otherwies result in NA)
     freq : string or DateOffset object, optional (default None) (DEPRECATED)
         Frequency to conform the data to before computing the statistic.
         Specified as a frequency string or DateOffset object.
@@ -1243,12 +1253,13 @@ class Expanding(_Rolling_and_Expanding):
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
 
-    _attributes = ['min_periods', 'freq', 'center', 'axis']
+    _attributes = ['min_periods', 'min_weight', 'freq', 'center', 'axis']
 
-    def __init__(self, obj, min_periods=1, freq=None, center=False, axis=0,
-                 **kwargs):
-        super(Expanding, self).__init__(obj=obj, min_periods=min_periods,
-                                        freq=freq, center=center, axis=axis)
+    def __init__(self, obj, min_periods=1, min_weight=None, freq=None,
+                 center=False, axis=0, **kwargs):
+        super(Expanding, self).__init__(
+            obj=obj, min_periods=min_periods, min_weight=min_weight,
+            freq=freq, center=center, axis=axis)
 
     @property
     def _constructor(self):
@@ -1489,14 +1500,16 @@ class EWM(_Rolling):
     More details can be found at
     http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-windows
     """
-    _attributes = ['com', 'min_periods', 'freq', 'adjust', 'ignore_na', 'axis']
+    _attributes = ['com', 'min_periods', 'min_weight', 'freq', 'adjust',
+                   'ignore_na', 'axis']
 
     def __init__(self, obj, com=None, span=None, halflife=None, alpha=None,
-                 min_periods=0, freq=None, adjust=True, ignore_na=False,
-                 axis=0):
+                 min_periods=0, min_weight=None, freq=None, adjust=True,
+                 ignore_na=False, axis=0):
         self.obj = obj
         self.com = _get_center_of_mass(com, span, halflife, alpha)
         self.min_periods = min_periods
+        self.min_weight = min_weight
         self.freq = freq
         self.adjust = adjust
         self.ignore_na = ignore_na
@@ -1556,7 +1569,12 @@ class EWM(_Rolling):
 
             results.append(np.apply_along_axis(func, self.axis, values))
 
-        return self._wrap_results(results, blocks, obj)
+        result = self._wrap_results(results, blocks, obj)
+
+        if self.min_weight:
+            result = result.where(_min_weight_mask(self, self.min_weight))
+
+        return result
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
@@ -1765,6 +1783,25 @@ def _require_min_periods(p):
             return max(p, minp)
 
     return _check_func
+
+
+def _min_weight_mask(rolling, min_weight):
+    """
+    Takes a rolling object and a min_weight proportion, and returns
+    a pandas bool object with True where enough weight exists
+    """
+
+    data = rolling.obj
+    # all valid values have a value of 1 in valid_data
+    valid_data = data.notnull()
+
+    # This copies the rolling object, replacing obj with valid_data
+    # The resulting values are the proportion of weight from values that _do_
+    # contribute out of those that _could_
+    valid_proportion = rolling._shallow_copy(
+        obj=valid_data, min_periods=0, min_weight=None).mean()
+
+    return valid_proportion >= min_weight
 
 
 def _use_window(minp, window):
