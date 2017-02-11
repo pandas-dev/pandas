@@ -36,12 +36,6 @@ from pandas.util.testing import (assert_panel4d_equal,
 from pandas import concat, Timestamp
 from pandas import compat
 from pandas.compat import range, lrange, u
-
-try:
-    import tables
-except ImportError:
-    pytest.skip('no pytables')
-
 from distutils.version import LooseVersion
 
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >= '2.2'
@@ -165,6 +159,7 @@ class Base(tm.TestCase):
         pass
 
 
+@pytest.mark.single
 class TestHDFStore(Base, tm.TestCase):
 
     def test_factory_fun(self):
