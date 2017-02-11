@@ -2,7 +2,7 @@
 from datetime import datetime
 from pandas.compat import range, lrange
 import operator
-import nose
+import pytest
 
 import numpy as np
 
@@ -66,7 +66,7 @@ class SafeForLongAndSparse(object):
         try:
             from scipy.stats import skew
         except ImportError:
-            raise nose.SkipTest("no scipy.stats.skew")
+            pytest.skip("no scipy.stats.skew")
 
         def this_skew(x):
             if len(x) < 3:

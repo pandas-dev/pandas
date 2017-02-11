@@ -1,7 +1,7 @@
 """ test to_datetime """
 
 import sys
-import nose
+import pytest
 import locale
 import calendar
 import numpy as np
@@ -139,7 +139,7 @@ class TimeConversionFormats(tm.TestCase):
         # 8904
         # exact kw
         if sys.version_info < (2, 7):
-            raise nose.SkipTest('on python version < 2.7')
+            pytest.skip('on python version < 2.7')
 
         s = Series(['19MAY11', 'foobar19MAY11', '19MAY11:00:00:00',
                     '19MAY11 00:00:00Z'])
@@ -277,7 +277,7 @@ class TestToDatetime(tm.TestCase):
         try:
             import psycopg2
         except ImportError:
-            raise nose.SkipTest("no psycopg2 installed")
+            pytest.skip("no psycopg2 installed")
 
         # misc cases
         tz1 = psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)

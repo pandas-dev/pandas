@@ -6,8 +6,7 @@ import operator
 from itertools import product
 from distutils.version import LooseVersion
 
-import nose
-from nose.tools import assert_raises
+import pytest
 
 from numpy.random import randn, rand, randint
 import numpy as np
@@ -319,7 +318,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         except ValueError as e:
             if str(e).startswith('negative number cannot be raised to a fractional power'):
                 if self.engine == 'python':
-                    raise nose.SkipTest(str(e))
+                    pytest.skip(str(e))
                 else:
                     expected = np.nan
             else:
@@ -1174,13 +1173,15 @@ class TestOperationsNumExprPandas(tm.TestCase):
     def test_panel_fails(self):
         x = Panel(randn(3, 4, 5))
         y = Series(randn(10))
-        assert_raises(NotImplementedError, self.eval, 'x + y',
+        with pytest.raises(NotImplementedError):
+            self.eval('x + y',
                       local_dict={'x': x, 'y': y})
 
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)
         y = Series(randn(10))
-        assert_raises(NotImplementedError, self.eval, 'x + y',
+        with pytest.raises(NotImplementedError):
+            self.eval('x + y',
                       local_dict={'x': x, 'y': y})
 
     def test_constant(self):
@@ -1705,7 +1706,7 @@ class TestMathPythonPython(tm.TestCase):
 
     def test_result_types2(self):
         # xref https://github.com/pandas-dev/pandas/issues/12293
-        raise nose.SkipTest("unreliable tests on complex128")
+        pytest.skip("unreliable tests on complex128")
 
         # Did not test complex64 because DataFrame is converting it to
         # complex128. Due to https://github.com/pandas-dev/pandas/issues/10952
@@ -1822,7 +1823,8 @@ def check_disallowed_nodes(engine, parser):
     inst = VisitorClass('x + 1', engine, parser)
 
     for ops in uns_ops:
-        assert_raises(NotImplementedError, getattr(inst, ops))
+        with pytest.raises(NotImplementedError):
+            getattr(inst, ops)()
 
 
 def test_disallowed_nodes():
@@ -1833,7 +1835,8 @@ def test_disallowed_nodes():
 def check_syntax_error_exprs(engine, parser):
     tm.skip_if_no_ne(engine)
     e = 's +'
-    assert_raises(SyntaxError, pd.eval, e, engine=engine, parser=parser)
+    with pytest.raises(SyntaxError):
+        pd.eval(e, engine=engine, parser=parser)
 
 
 def test_syntax_error_exprs():

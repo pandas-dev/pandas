@@ -5,7 +5,7 @@ Tests compressed data parsing functionality for all
 of the parsers defined in parsers.py
 """
 
-import nose
+import pytest
 
 import pandas.util.testing as tm
 
@@ -16,7 +16,7 @@ class CompressionTests(object):
         try:
             import zipfile
         except ImportError:
-            raise nose.SkipTest('need zipfile to run')
+            pytest.skip('need zipfile to run')
 
         with open(self.csv1, 'rb') as data_file:
             data = data_file.read()
@@ -67,7 +67,7 @@ class CompressionTests(object):
         try:
             import gzip
         except ImportError:
-            raise nose.SkipTest('need gzip to run')
+            pytest.skip('need gzip to run')
 
         with open(self.csv1, 'rb') as data_file:
             data = data_file.read()
@@ -96,7 +96,7 @@ class CompressionTests(object):
         try:
             import bz2
         except ImportError:
-            raise nose.SkipTest('need bz2 to run')
+            pytest.skip('need bz2 to run')
 
         with open(self.csv1, 'rb') as data_file:
             data = data_file.read()

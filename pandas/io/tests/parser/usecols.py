@@ -5,7 +5,7 @@ Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py
 """
 
-import nose
+import pytest
 
 import numpy as np
 import pandas.util.testing as tm
@@ -377,7 +377,7 @@ a,b,c
         tm.assert_frame_equal(df, expected)
 
     def test_usecols_with_multibyte_unicode_characters(self):
-        raise nose.SkipTest('TODO: see gh-13253')
+        pytest.skip('TODO: see gh-13253')
 
         s = '''あああ,いい,ううう,ええええ
         0.056674973,8,True,a

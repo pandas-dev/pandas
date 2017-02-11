@@ -3,8 +3,7 @@ from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
-import nose
-from nose.tools import assert_raises
+import pytest
 from pandas.compat import range, iteritems
 from pandas import compat
 
@@ -59,7 +58,8 @@ def test_ole2datetime():
     actual = ole2datetime(60000)
     assert actual == datetime(2064, 4, 8)
 
-    assert_raises(ValueError, ole2datetime, 60)
+    with pytest.raises(ValueError):
+        ole2datetime(60)
 
 
 def test_to_datetime1():
@@ -159,7 +159,7 @@ class Base(tm.TestCase):
         except (tslib.OutOfBoundsDatetime):
             raise
         except (ValueError, KeyError) as e:
-            raise nose.SkipTest(
+            pytest.skip(
                 "cannot create out_of_range offset: {0} {1}".format(
                     str(self).split('.')[-1], e))
 

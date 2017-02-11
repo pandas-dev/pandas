@@ -734,7 +734,7 @@ gbq integration tests on a forked repository:
    the status by visiting your Travis branches page which exists at the
    following location: https://travis-ci.org/your-user-name/pandas/branches .
    Click on a build job for your branch. Expand the following line in the
-   build log: ``ci/print_skipped.py /tmp/nosetests.xml`` . Search for the
+   build log: ``ci/print_skipped.py /tmp/pytest.xml`` . Search for the
    term ``test_gbq`` and confirm that gbq integration tests are not skipped.
 
 Running the vbench performance test suite (phasing out)

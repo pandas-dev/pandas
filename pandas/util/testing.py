@@ -248,9 +248,9 @@ def close(fignum=None):
 
 
 def _skip_if_32bit():
-    import nose
+    import pytest
     if is_platform_32bit():
-        raise nose.SkipTest("skipping for 32 bit")
+        pytest.skip("skipping for 32 bit")
 
 
 def mplskip(cls):
@@ -262,8 +262,8 @@ def mplskip(cls):
             import matplotlib as mpl
             mpl.use("Agg", warn=False)
         except ImportError:
-            import nose
-            raise nose.SkipTest("matplotlib not installed")
+            import pytest
+            pytest.skip("matplotlib not installed")
 
     cls.setUpClass = setUpClass
     return cls
@@ -273,102 +273,102 @@ def _skip_if_no_mpl():
     try:
         import matplotlib  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest("matplotlib not installed")
+        import pytest
+        pytest.skip("matplotlib not installed")
 
 
 def _skip_if_mpl_1_5():
     import matplotlib
     v = matplotlib.__version__
     if v > LooseVersion('1.4.3') or v[0] == '0':
-        import nose
-        raise nose.SkipTest("matplotlib 1.5")
+        import pytest
+        pytest.skip("matplotlib 1.5")
 
 
 def _skip_if_no_scipy():
     try:
         import scipy.stats  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest("no scipy.stats module")
+        import pytest
+        pytest.skip("no scipy.stats module")
     try:
         import scipy.interpolate  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest('scipy.interpolate missing')
+        import pytest
+        pytest.skip('scipy.interpolate missing')
 
 
 def _skip_if_scipy_0_17():
     import scipy
     v = scipy.__version__
     if v >= LooseVersion("0.17.0"):
-        import nose
-        raise nose.SkipTest("scipy 0.17")
+        import pytest
+        pytest.skip("scipy 0.17")
 
 
 def _skip_if_no_lzma():
     try:
         return compat.import_lzma()
     except ImportError:
-        import nose
-        raise nose.SkipTest('need backports.lzma to run')
+        import pytest
+        pytest.skip('need backports.lzma to run')
 
 
 def _skip_if_no_xarray():
     try:
         import xarray
     except ImportError:
-        import nose
-        raise nose.SkipTest("xarray not installed")
+        import pytest
+        pytest.skip("xarray not installed")
 
     v = xarray.__version__
     if v < LooseVersion('0.7.0'):
-        import nose
-        raise nose.SkipTest("xarray not version is too low: {0}".format(v))
+        import pytest
+        pytest.skip("xarray not version is too low: {0}".format(v))
 
 
 def _skip_if_no_pytz():
     try:
         import pytz  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest("pytz not installed")
+        import pytest
+        pytest.skip("pytz not installed")
 
 
 def _skip_if_no_dateutil():
     try:
         import dateutil  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest("dateutil not installed")
+        import pytest
+        pytest.skip("dateutil not installed")
 
 
 def _skip_if_windows_python_3():
     if PY3 and is_platform_windows():
-        import nose
-        raise nose.SkipTest("not used on python 3/win32")
+        import pytest
+        pytest.skip("not used on python 3/win32")
 
 
 def _skip_if_windows():
     if is_platform_windows():
-        import nose
-        raise nose.SkipTest("Running on Windows")
+        import pytest
+        pytest.skip("Running on Windows")
 
 
 def _skip_if_no_pathlib():
     try:
         from pathlib import Path  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest("pathlib not available")
+        import pytest
+        pytest.skip("pathlib not available")
 
 
 def _skip_if_no_localpath():
     try:
         from py.path import local as LocalPath  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest("py.path not installed")
+        import pytest
+        pytest.skip("py.path not installed")
 
 
 def _incompat_bottleneck_version(method):
@@ -392,27 +392,27 @@ def skip_if_no_ne(engine='numexpr'):
 
     if engine == 'numexpr':
         if not _USE_NUMEXPR:
-            import nose
-            raise nose.SkipTest("numexpr enabled->{enabled}, "
-                                "installed->{installed}".format(
-                                    enabled=_USE_NUMEXPR,
-                                    installed=_NUMEXPR_INSTALLED))
+            import pytest
+            pytest.skip("numexpr enabled->{enabled}, "
+                        "installed->{installed}".format(
+                            enabled=_USE_NUMEXPR,
+                            installed=_NUMEXPR_INSTALLED))
 
 
 def _skip_if_has_locale():
     import locale
     lang, _ = locale.getlocale()
     if lang is not None:
-        import nose
-        raise nose.SkipTest("Specific locale is set {0}".format(lang))
+        import pytest
+        pytest.skip("Specific locale is set {0}".format(lang))
 
 
 def _skip_if_not_us_locale():
     import locale
     lang, _ = locale.getlocale()
     if lang != 'en_US':
-        import nose
-        raise nose.SkipTest("Specific locale is set {0}".format(lang))
+        import pytest
+        pytest.skip("Specific locale is set {0}".format(lang))
 
 # -----------------------------------------------------------------------------
 # locale utilities
@@ -662,8 +662,8 @@ def ensure_clean(filename=None, return_filelike=False):
         try:
             fd, filename = tempfile.mkstemp(suffix=filename)
         except UnicodeEncodeError:
-            import nose
-            raise nose.SkipTest('no unicode file names on this system')
+            import pytest
+            pytest.skip('no unicode file names on this system')
 
         try:
             yield filename
@@ -1997,9 +1997,7 @@ class TestSubDict(dict):
 
 # Dependency checks.  Copied this from Nipy/Nipype (Copyright of
 # respective developers, license: BSD-3)
-def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion,
-                  exc_failed_import=ImportError,
-                  exc_failed_check=RuntimeError):
+def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion):
     """Check that the minimal version of the required package is installed.
 
     Parameters
@@ -2015,10 +2013,6 @@ def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion,
     checker : object, optional
         The class that will perform the version checking.  Default is
         distutils.version.LooseVersion.
-    exc_failed_import : Exception, optional
-        Class of the exception to be thrown if import failed.
-    exc_failed_check : Exception, optional
-        Class of the exception to be thrown if version check failed.
 
     Examples
     --------
@@ -2027,6 +2021,7 @@ def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion,
 
     """
 
+    import pytest
     if app:
         msg = '%s requires %s' % (app, pkg_name)
     else:
@@ -2036,46 +2031,24 @@ def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion,
     try:
         mod = __import__(pkg_name)
     except ImportError:
-        raise exc_failed_import(msg)
-    if not version:
-        return
+        mod = None
     try:
         have_version = mod.__version__
     except AttributeError:
-        raise exc_failed_check('Cannot find version for %s' % pkg_name)
-    if checker(have_version) < checker(version):
-        raise exc_failed_check(msg)
+        pytest.skip('Cannot find version for %s' % pkg_name)
+    if version and checker(have_version) < checker(version):
+        pytest.skip(msg)
 
 
 def skip_if_no_package(*args, **kwargs):
-    """Raise SkipTest if package_check fails
+    """pytest.skip() if package_check fails
 
     Parameters
     ----------
     *args Positional parameters passed to `package_check`
     *kwargs Keyword parameters passed to `package_check`
     """
-    from nose import SkipTest
-    package_check(exc_failed_import=SkipTest,
-                  exc_failed_check=SkipTest,
-                  *args, **kwargs)
-
-
-def skip_if_no_package_deco(pkg_name, version=None, app='pandas'):
-    from nose import SkipTest
-
-    def deco(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            package_check(pkg_name, version=version, app=app,
-                          exc_failed_import=SkipTest,
-                          exc_failed_check=SkipTest)
-            return func(*args, **kwargs)
-        return wrapper
-    return deco
-#
-# Additional tags decorators for nose
-#
+    package_check(*args, **kwargs)
 
 
 def optional_args(decorator):
@@ -2255,18 +2228,17 @@ def network(t, url="http://www.google.com",
         >>> test_something()
         Traceback (most recent call last):
             ...
-        SkipTest
 
     Errors not related to networking will always be raised.
     """
-    from nose import SkipTest
+    from pytest import skip
     t.network = True
 
     @wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
             if not can_connect(url, error_classes):
-                raise SkipTest
+                skip()
         try:
             return t(*args, **kwargs)
         except Exception as e:
@@ -2275,8 +2247,8 @@ def network(t, url="http://www.google.com",
                 errno = getattr(e.reason, 'errno', None)
 
             if errno in skip_errnos:
-                raise SkipTest("Skipping test due to known errno"
-                               " and error %s" % e)
+                skip("Skipping test due to known errno"
+                     " and error %s" % e)
 
             try:
                 e_str = traceback.format_exc(e)
@@ -2284,8 +2256,8 @@ def network(t, url="http://www.google.com",
                 e_str = str(e)
 
             if any([m.lower() in e_str.lower() for m in _skip_on_messages]):
-                raise SkipTest("Skipping test because exception "
-                               "message is known and error %s" % e)
+                skip("Skipping test because exception "
+                     "message is known and error %s" % e)
 
             if not isinstance(e, error_classes):
                 raise
@@ -2293,8 +2265,8 @@ def network(t, url="http://www.google.com",
             if raise_on_error or can_connect(url, error_classes):
                 raise
             else:
-                raise SkipTest("Skipping test due to lack of connectivity"
-                               " and error %s" % e)
+                skip("Skipping test due to lack of connectivity"
+                     " and error %s" % e)
 
     return wrapper
 
@@ -2775,8 +2747,8 @@ def set_timezone(tz):
     'EDT'
     """
     if is_platform_windows():
-        import nose
-        raise nose.SkipTest("timezone setting not supported on windows")
+        import pytest
+        pytest.skip("timezone setting not supported on windows")
 
     import os
     import time

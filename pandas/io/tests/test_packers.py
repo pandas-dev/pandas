@@ -1,4 +1,4 @@
-import nose
+import pytest
 
 import os
 import datetime
@@ -168,7 +168,7 @@ class TestNumpy(TestPackers):
 
     def test_list_numpy_float_complex(self):
         if not hasattr(np, 'complex128'):
-            raise nose.SkipTest('numpy cant handle complex128')
+            pytest.skip('numpy cant handle complex128')
 
         x = [np.float32(np.random.rand()) for i in range(5)] + \
             [np.complex128(np.random.rand() + 1j * np.random.rand())
@@ -261,7 +261,7 @@ class TestBasic(TestPackers):
         # fails under 2.6/win32 (np.datetime64 seems broken)
 
         if LooseVersion(sys.version) < '2.7':
-            raise nose.SkipTest('2.6 with np.datetime64 is broken')
+            pytest.skip('2.6 with np.datetime64 is broken')
 
         for i in [datetime.datetime(2013, 1, 1),
                   datetime.datetime(2013, 1, 1, 5, 1),
@@ -589,12 +589,12 @@ class TestCompression(TestPackers):
 
     def test_compression_zlib(self):
         if not _ZLIB_INSTALLED:
-            raise nose.SkipTest('no zlib')
+            pytest.skip('no zlib')
         self._test_compression('zlib')
 
     def test_compression_blosc(self):
         if not _BLOSC_INSTALLED:
-            raise nose.SkipTest('no blosc')
+            pytest.skip('no blosc')
         self._test_compression('blosc')
 
     def _test_compression_warns_when_decompress_caches(self, compress):
@@ -653,12 +653,12 @@ class TestCompression(TestPackers):
 
     def test_compression_warns_when_decompress_caches_zlib(self):
         if not _ZLIB_INSTALLED:
-            raise nose.SkipTest('no zlib')
+            pytest.skip('no zlib')
         self._test_compression_warns_when_decompress_caches('zlib')
 
     def test_compression_warns_when_decompress_caches_blosc(self):
         if not _BLOSC_INSTALLED:
-            raise nose.SkipTest('no blosc')
+            pytest.skip('no blosc')
         self._test_compression_warns_when_decompress_caches('blosc')
 
     def _test_small_strings_no_warn(self, compress):
@@ -690,18 +690,18 @@ class TestCompression(TestPackers):
 
     def test_small_strings_no_warn_zlib(self):
         if not _ZLIB_INSTALLED:
-            raise nose.SkipTest('no zlib')
+            pytest.skip('no zlib')
         self._test_small_strings_no_warn('zlib')
 
     def test_small_strings_no_warn_blosc(self):
         if not _BLOSC_INSTALLED:
-            raise nose.SkipTest('no blosc')
+            pytest.skip('no blosc')
         self._test_small_strings_no_warn('blosc')
 
     def test_readonly_axis_blosc(self):
         # GH11880
         if not _BLOSC_INSTALLED:
-            raise nose.SkipTest('no blosc')
+            pytest.skip('no blosc')
         df1 = DataFrame({'A': list('abcd')})
         df2 = DataFrame(df1, index=[1., 2., 3., 4.])
         self.assertTrue(1 in self.encode_decode(df1['A'], compress='blosc'))
@@ -717,9 +717,9 @@ class TestCompression(TestPackers):
     def test_readonly_axis_blosc_to_sql(self):
         # GH11880
         if not _BLOSC_INSTALLED:
-            raise nose.SkipTest('no blosc')
+            pytest.skip('no blosc')
         if not self._SQLALCHEMY_INSTALLED:
-            raise nose.SkipTest('no sqlalchemy')
+            pytest.skip('no sqlalchemy')
         expected = DataFrame({'A': list('abcd')})
         df = self.encode_decode(expected, compress='blosc')
         eng = self._create_sql_engine("sqlite:///:memory:")
@@ -731,9 +731,9 @@ class TestCompression(TestPackers):
     def test_readonly_axis_zlib_to_sql(self):
         # GH11880
         if not _ZLIB_INSTALLED:
-            raise nose.SkipTest('no zlib')
+            pytest.skip('no zlib')
         if not self._SQLALCHEMY_INSTALLED:
-            raise nose.SkipTest('no sqlalchemy')
+            pytest.skip('no sqlalchemy')
         expected = DataFrame({'A': list('abcd')})
         df = self.encode_decode(expected, compress='zlib')
         eng = self._create_sql_engine("sqlite:///:memory:")

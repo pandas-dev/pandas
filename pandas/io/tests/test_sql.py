@@ -24,7 +24,7 @@ import csv
 import os
 import sys
 
-import nose
+import pytest
 import warnings
 import numpy as np
 import pandas as pd
@@ -854,7 +854,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
         if SQLALCHEMY_INSTALLED:
             return sqlalchemy.create_engine('sqlite:///:memory:')
         else:
-            raise nose.SkipTest('SQLAlchemy not installed')
+            pytest.skip('SQLAlchemy not installed')
 
     def test_read_table_columns(self):
         # test columns argument in read_table
@@ -1063,7 +1063,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, unittest.TestCase):
             self.assertRaises(ImportError, sql.read_sql, "SELECT * FROM iris",
                               conn)
         else:
-            raise nose.SkipTest('SQLAlchemy is installed')
+            pytest.skip('SQLAlchemy is installed')
 
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
@@ -1128,7 +1128,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             conn.connect()
         except sqlalchemy.exc.OperationalError:
             msg = "{0} - can't connect to {1} server".format(cls, cls.flavor)
-            raise nose.SkipTest(msg)
+            pytest.skip(msg)
 
     def setUp(self):
         self.setup_connect()
@@ -1141,7 +1141,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_import(cls):
         # Skip this test if SQLAlchemy not available
         if not SQLALCHEMY_INSTALLED:
-            raise nose.SkipTest('SQLAlchemy not installed')
+            pytest.skip('SQLAlchemy not installed')
 
     @classmethod
     def setup_driver(cls):
@@ -1158,7 +1158,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # to test if connection can be made:
             self.conn.connect()
         except sqlalchemy.exc.OperationalError:
-            raise nose.SkipTest(
+            pytest.skip(
                 "Can't connect to {0} server".format(self.flavor))
 
     def test_aread_sql(self):
@@ -1304,7 +1304,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # GH11216
         df = pd.read_sql_query("select * from types_test_data", self.conn)
         if not hasattr(df, 'DateColWithTz'):
-            raise nose.SkipTest("no column with datetime with time zone")
+            pytest.skip("no column with datetime with time zone")
 
         # this is parsed on Travis (linux), but not on macosx for some reason
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
@@ -1319,7 +1319,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = pd.read_sql_query("select * from types_test_data",
                                self.conn, parse_dates=['DateColWithTz'])
         if not hasattr(df, 'DateColWithTz'):
-            raise nose.SkipTest("no column with datetime with time zone")
+            pytest.skip("no column with datetime with time zone")
         check(df.DateColWithTz)
 
         df = pd.concat(list(pd.read_sql_query("select * from types_test_data",
@@ -1665,7 +1665,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 class _TestSQLAlchemyConn(_EngineToConnMixin, _TestSQLAlchemy):
 
     def test_transactions(self):
-        raise nose.SkipTest(
+        pytest.skip(
             "Nested transactions rollbacks don't work with Pandas")
 
 
@@ -1739,7 +1739,7 @@ class _TestMySQLAlchemy(object):
             import pymysql  # noqa
             cls.driver = 'pymysql'
         except ImportError:
-            raise nose.SkipTest('pymysql not installed')
+            pytest.skip('pymysql not installed')
 
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types_test_data", self.conn)
@@ -1808,7 +1808,7 @@ class _TestPostgreSQLAlchemy(object):
             import psycopg2  # noqa
             cls.driver = 'psycopg2'
         except ImportError:
-            raise nose.SkipTest('psycopg2 not installed')
+            pytest.skip('psycopg2 not installed')
 
     def test_schema_support(self):
         # only test this for postgresql (schema's not supported in
@@ -2007,7 +2007,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
 
     def test_transactions(self):
         if PY36:
-            raise nose.SkipTest("not working on python > 3.5")
+            pytest.skip("not working on python > 3.5")
         self._transaction_test()
 
     def _get_sqlite_column_type(self, table, column):
@@ -2019,7 +2019,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
 
     def test_dtype(self):
         if self.flavor == 'mysql':
-            raise nose.SkipTest('Not applicable to MySQL legacy')
+            pytest.skip('Not applicable to MySQL legacy')
         cols = ['A', 'B']
         data = [(0.8, True),
                 (0.9, None)]
@@ -2045,7 +2045,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
 
     def test_notnull_dtype(self):
         if self.flavor == 'mysql':
-            raise nose.SkipTest('Not applicable to MySQL legacy')
+            pytest.skip('Not applicable to MySQL legacy')
 
         cols = {'Bool': Series([True, None]),
                 'Date': Series([datetime(2012, 5, 1), None]),
@@ -2130,7 +2130,7 @@ def _skip_if_no_pymysql():
     try:
         import pymysql  # noqa
     except ImportError:
-        raise nose.SkipTest('pymysql not installed, skipping')
+        pytest.skip('pymysql not installed, skipping')
 
 
 class TestXSQLite(SQLiteMixIn, tm.TestCase):
@@ -2389,12 +2389,12 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         try:
             pymysql.connect(read_default_group='pandas')
         except pymysql.ProgrammingError:
-            raise nose.SkipTest(
+            pytest.skip(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
         except pymysql.Error:
-            raise nose.SkipTest(
+            pytest.skip(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
@@ -2415,12 +2415,12 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         try:
             self.conn = pymysql.connect(read_default_group='pandas')
         except pymysql.ProgrammingError:
-            raise nose.SkipTest(
+            pytest.skip(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
         except pymysql.Error:
-            raise nose.SkipTest(
+            pytest.skip(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "

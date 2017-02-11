@@ -9,7 +9,7 @@ import warnings
 from datetime import datetime
 from distutils.version import LooseVersion
 
-import nose
+import pytest
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -128,7 +128,7 @@ class TestStata(tm.TestCase):
 
     def test_read_dta2(self):
         if LooseVersion(sys.version) < '2.7':
-            raise nose.SkipTest('datetime interp under 2.6 is faulty')
+            pytest.skip('datetime interp under 2.6 is faulty')
 
         expected = DataFrame.from_records(
             [
