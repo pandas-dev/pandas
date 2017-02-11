@@ -2,6 +2,7 @@ from itertools import product
 import pytest
 import sys
 import warnings
+from warnings import catch_warnings
 
 from datetime import datetime
 from numpy.random import randn
@@ -291,8 +292,7 @@ class TestApi(Base):
             for op in ['mean', 'sum', 'std', 'var', 'kurt', 'skew']:
                 for t in ['rolling', 'expanding']:
 
-                    with tm.assert_produces_warning(FutureWarning,
-                                                    check_stacklevel=False):
+                    with catch_warnings(record=True):
 
                         dfunc = getattr(pd, "{0}_{1}".format(t, op))
                         if dfunc is None:
@@ -526,7 +526,7 @@ class TestDeprecations(Base):
 
     def test_deprecations(self):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             mom.rolling_mean(np.ones(10), 3, center=True, axis=0)
             mom.rolling_mean(Series(np.ones(10)), 3, center=True, axis=0)
 
@@ -791,7 +791,7 @@ class TestMoments(Base):
         xp = np.array([np.nan, np.nan, 9.962, 11.27, 11.564, 12.516, 12.818,
                        12.952, np.nan, np.nan])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             rs = mom.rolling_mean(vals, 5, center=True)
             tm.assert_almost_equal(xp, rs)
 
@@ -808,7 +808,7 @@ class TestMoments(Base):
         xp = np.array([np.nan, np.nan, 9.962, 11.27, 11.564, 12.516, 12.818,
                        12.952, np.nan, np.nan])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
             tm.assert_almost_equal(xp, rs)
 
@@ -823,19 +823,19 @@ class TestMoments(Base):
         # all nan
         vals = np.empty(10, dtype=float)
         vals.fill(np.nan)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
             self.assertTrue(np.isnan(rs).all())
 
         # empty
         vals = np.array([])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
             self.assertEqual(len(rs), 0)
 
         # shorter than window
         vals = np.random.randn(5)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 10, 'boxcar')
             self.assertTrue(np.isnan(rs).all())
             self.assertEqual(len(rs), 5)
@@ -1014,16 +1014,16 @@ class TestMoments(Base):
             tm.assert_series_equal(xp, rs)
 
     def test_rolling_median(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self._check_moment_func(mom.rolling_median, np.median,
                                     name='median')
 
     def test_rolling_min(self):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self._check_moment_func(mom.rolling_min, np.min, name='min')
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             a = np.array([1, 2, 3, 4, 5])
             b = mom.rolling_min(a, window=100, min_periods=1)
             tm.assert_almost_equal(b, np.ones(len(a)))
@@ -1033,10 +1033,10 @@ class TestMoments(Base):
 
     def test_rolling_max(self):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self._check_moment_func(mom.rolling_max, np.max, name='max')
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             a = np.array([1, 2, 3, 4, 5], dtype=np.float64)
             b = mom.rolling_max(a, window=100, min_periods=1)
             tm.assert_almost_equal(a, b)
@@ -1102,11 +1102,11 @@ class TestMoments(Base):
         arr = np.arange(4)
 
         # it works!
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum)
         self.assertTrue(isnull(result).all())
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum, min_periods=1)
         tm.assert_almost_equal(result, result)
 
@@ -1117,19 +1117,19 @@ class TestMoments(Base):
                                 name='std', ddof=0)
 
     def test_rolling_std_1obs(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_std(np.array([1., 2., 3., 4., 5.]),
                                      1, min_periods=1)
         expected = np.array([np.nan] * 5)
         tm.assert_almost_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_std(np.array([1., 2., 3., 4., 5.]),
                                      1, min_periods=1, ddof=0)
         expected = np.zeros(5)
         tm.assert_almost_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_std(np.array([np.nan, np.nan, 3., 4., 5.]),
                                      3, min_periods=2)
         self.assertTrue(np.isnan(result[2]))
@@ -1142,11 +1142,11 @@ class TestMoments(Base):
         a = np.array([0.0011448196318903589, 0.00028718669878572767,
                       0.00028718669878572767, 0.00028718669878572767,
                       0.00028718669878572767])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             b = mom.rolling_std(a, window=3)
         self.assertTrue(np.isfinite(b[2:]).all())
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             b = mom.ewmstd(a, span=3)
         self.assertTrue(np.isfinite(b[2:]).all())
 
@@ -1184,25 +1184,25 @@ class TestMoments(Base):
         if sys.byteorder != "little":
             arr = arr.byteswap().newbyteorder()
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_sum(arr, 2)
         self.assertTrue((result[1:] >= 0).all())
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_mean(arr, 2)
         self.assertTrue((result[1:] >= 0).all())
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_var(arr, 2)
         self.assertTrue((result[1:] >= 0).all())
 
         # #2527, ugh
         arr = np.array([0.00012456, 0.0003, 0])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_mean(arr, 1)
         self.assertTrue(result[-1] >= 0)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_mean(-arr, 1)
         self.assertTrue(result[-1] <= 0)
 
@@ -1327,15 +1327,13 @@ class TestMoments(Base):
 
                 # catch a freq deprecation warning if freq is provided and not
                 # None
-                w = FutureWarning if freq is not None else None
-                with tm.assert_produces_warning(w, check_stacklevel=False):
+                with catch_warnings(record=True):
                     r = obj.rolling(window=window, min_periods=min_periods,
                                     freq=freq, center=center)
                 return getattr(r, name)(**kwargs)
 
             # check via the moments API
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
+            with catch_warnings(record=True):
                 return f(obj, window=window, min_periods=min_periods,
                          freq=freq, center=center, **kwargs)
 
@@ -1419,7 +1417,7 @@ class TestMoments(Base):
 
         arr = np.zeros(1000)
         arr[5] = 1
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.ewma(arr, span=100, adjust=False).sum()
         self.assertTrue(np.abs(result - 1) < 1e-2)
 
@@ -1506,7 +1504,7 @@ class TestMoments(Base):
         self._check_ew(mom.ewmvol, name='vol')
 
     def test_ewma_span_com_args(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             A = mom.ewma(self.arr, com=9.5)
             B = mom.ewma(self.arr, span=20)
             tm.assert_almost_equal(A, B)
@@ -1515,7 +1513,7 @@ class TestMoments(Base):
             self.assertRaises(ValueError, mom.ewma, self.arr)
 
     def test_ewma_halflife_arg(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             A = mom.ewma(self.arr, com=13.932726172912965)
             B = mom.ewma(self.arr, halflife=10.0)
             tm.assert_almost_equal(A, B)
@@ -1530,7 +1528,7 @@ class TestMoments(Base):
 
     def test_ewma_alpha_old_api(self):
         # GH 10789
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             a = mom.ewma(self.arr, alpha=0.61722699889169674)
             b = mom.ewma(self.arr, com=0.62014947789973052)
             c = mom.ewma(self.arr, span=2.240298955799461)
@@ -1541,7 +1539,7 @@ class TestMoments(Base):
 
     def test_ewma_alpha_arg_old_api(self):
         # GH 10789
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self.assertRaises(ValueError, mom.ewma, self.arr)
             self.assertRaises(ValueError, mom.ewma, self.arr,
                               com=10.0, alpha=0.5)
@@ -1598,13 +1596,12 @@ class TestMoments(Base):
 
         funcs = [mom.ewma, mom.ewmvol, mom.ewmvar]
         for f in funcs:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
+            with catch_warnings(record=True):
                 result = f(arr, 3)
             tm.assert_almost_equal(result, arr)
 
     def _check_ew(self, func, name=None):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self._check_ew_ndarray(func, name=name)
         self._check_ew_structures(func, name=name)
 
@@ -2870,7 +2867,7 @@ class TestMomentsConsistency(Base):
 
         expected = Series([1.0, 2.0, 6.0, 4.0, 5.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             x = series.rolling(window=1, freq='D').max()
         tm.assert_series_equal(expected, x)
 
@@ -2889,14 +2886,14 @@ class TestMomentsConsistency(Base):
         # Default how should be max
         expected = Series([0.0, 1.0, 2.0, 3.0, 20.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             x = series.rolling(window=1, freq='D').max()
         tm.assert_series_equal(expected, x)
 
         # Now specify median (10.0)
         expected = Series([0.0, 1.0, 2.0, 3.0, 10.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             x = series.rolling(window=1, freq='D').max(how='median')
         tm.assert_series_equal(expected, x)
 
@@ -2904,7 +2901,7 @@ class TestMomentsConsistency(Base):
         v = (4.0 + 10.0 + 20.0) / 3.0
         expected = Series([0.0, 1.0, 2.0, 3.0, v],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             x = series.rolling(window=1, freq='D').max(how='mean')
             tm.assert_series_equal(expected, x)
 
@@ -2923,7 +2920,7 @@ class TestMomentsConsistency(Base):
         # Default how should be min
         expected = Series([0.0, 1.0, 2.0, 3.0, 4.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             r = series.rolling(window=1, freq='D')
             tm.assert_series_equal(expected, r.min())
 
@@ -2942,7 +2939,7 @@ class TestMomentsConsistency(Base):
         # Default how should be median
         expected = Series([0.0, 1.0, 2.0, 3.0, 10],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             x = series.rolling(window=1, freq='D').median()
             tm.assert_series_equal(expected, x)
 

@@ -18,13 +18,13 @@ The SQL tests are broken down in different classes:
 """
 
 from __future__ import print_function
+import pytest
 import unittest
 import sqlite3
 import csv
 import os
 import sys
 
-import pytest
 import warnings
 import numpy as np
 import pandas as pd
@@ -839,6 +839,7 @@ class _TestSQLApi(PandasSQLTest):
         df.to_sql('test_unicode', self.conn, index=False)
 
 
+@pytest.mark.single
 class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
     """
     Test the public API as it would be used directly
@@ -1024,10 +1025,12 @@ class _EngineToConnMixin(object):
         super(_EngineToConnMixin, self).tearDown()
 
 
+@pytest.mark.single
 class TestSQLApiConn(_EngineToConnMixin, TestSQLApi, unittest.TestCase):
     pass
 
 
+@pytest.mark.single
 class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, unittest.TestCase):
     """
     Test the public sqlite connection fallback API
@@ -1875,30 +1878,36 @@ class _TestPostgreSQLAlchemy(object):
             tm.assert_frame_equal(res1, res2)
 
 
+@pytest.mark.single
 class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy, unittest.TestCase):
     pass
 
 
+@pytest.mark.single
 class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn,
                            unittest.TestCase):
     pass
 
 
+@pytest.mark.single
 class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy,
                             unittest.TestCase):
     pass
 
 
+@pytest.mark.single
 class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn,
                                 unittest.TestCase):
     pass
 
 
+@pytest.mark.single
 class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy,
                         unittest.TestCase):
     pass
 
 
+@pytest.mark.single
 class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn,
                             unittest.TestCase):
     pass
@@ -1907,6 +1916,7 @@ class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn,
 # -----------------------------------------------------------------------------
 # -- Test Sqlite / MySQL fallback
 
+@pytest.mark.single
 class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
     """
     Test the fallback mode against an in-memory sqlite database.
@@ -2133,6 +2143,7 @@ def _skip_if_no_pymysql():
         pytest.skip('pymysql not installed, skipping')
 
 
+@pytest.mark.single
 class TestXSQLite(SQLiteMixIn, tm.TestCase):
 
     def setUp(self):
@@ -2343,6 +2354,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         clean_up(table_name)
 
 
+@pytest.mark.single
 class TestSQLFlavorDeprecation(tm.TestCase):
     """
     gh-13611: test that the 'flavor' parameter
@@ -2367,8 +2379,9 @@ class TestSQLFlavorDeprecation(tm.TestCase):
                 getattr(sql, func)(self.con, flavor='sqlite')
 
 
-@unittest.skip("gh-13611: there is no support for MySQL "
-               "if SQLAlchemy is not installed")
+@pytest.mark.single
+@pytest.mark.skip(reason="gh-13611: there is no support for MySQL "
+                  "if SQLAlchemy is not installed")
 class TestXMySQL(MySQLMixIn, tm.TestCase):
 
     @classmethod

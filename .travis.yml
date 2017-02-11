@@ -320,7 +320,8 @@ before_script:
 script:
   - echo "script start"
   - ci/run_build_docs.sh
-  - ci/script.sh
+  - ci/script_single.sh
+  - ci/script_multi.sh
   - ci/lint.sh
   - echo "script done"
 
