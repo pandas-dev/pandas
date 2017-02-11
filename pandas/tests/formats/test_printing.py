@@ -126,7 +126,7 @@ c        ff         いいい"""
 #     common.console_encode should encode things as utf-8.
 #     """
 #     if compat.PY3:
-#         raise nose.SkipTest
+#         pytest.skip
 
 #     with tm.stdin_encoding(encoding=None):
 #         result = printing.console_encode(u"\u05d0")

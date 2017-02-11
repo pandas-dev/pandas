@@ -3,7 +3,7 @@
 from warnings import catch_warnings
 import datetime
 import itertools
-import nose
+import pytest
 
 from numpy.random import randn
 import numpy as np
@@ -1733,7 +1733,7 @@ Thur,Lunch,Yes,51.51,17"""
     # AMBIGUOUS CASES!
 
     def test_partial_ix_missing(self):
-        raise nose.SkipTest("skipping for now")
+        pytest.skip("skipping for now")
 
         result = self.ymd.loc[2000, 0]
         expected = self.ymd.loc[2000]['A']

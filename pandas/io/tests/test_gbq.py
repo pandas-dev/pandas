@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-import nose
+import pytest
 import pytz
 import platform
 from time import sleep
@@ -42,25 +42,25 @@ _SETUPTOOLS_INSTALLED = False
 
 def _skip_if_no_project_id():
     if not _get_project_id():
-        raise nose.SkipTest(
+        pytest.skip(
             "Cannot run integration tests without a project id")
 
 
 def _skip_local_auth_if_in_travis_env():
     if _in_travis_environment():
-        raise nose.SkipTest("Cannot run local auth in travis environment")
+        pytest.skip("Cannot run local auth in travis environment")
 
 
 def _skip_if_no_private_key_path():
     if not _get_private_key_path():
-        raise nose.SkipTest("Cannot run integration tests without a "
-                            "private key json file path")
+        pytest.skip("Cannot run integration tests without a "
+                    "private key json file path")
 
 
 def _skip_if_no_private_key_contents():
     if not _get_private_key_contents():
-        raise nose.SkipTest("Cannot run integration tests without a "
-                            "private key json contents")
+        pytest.skip("Cannot run integration tests without a "
+                    "private key json contents")
 
 
 def _in_travis_environment():
@@ -184,7 +184,7 @@ def _setup_common():
     try:
         _test_imports()
     except (ImportError, NotImplementedError) as import_exception:
-        raise nose.SkipTest(import_exception)
+        pytest.skip(import_exception)
 
     if _in_travis_environment():
         logging.getLogger('oauth2client').setLevel(logging.ERROR)
@@ -284,15 +284,15 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(tm.TestCase):
 
     def test_get_application_default_credentials_does_not_throw_error(self):
         if _check_if_can_get_correct_default_credentials():
-            raise nose.SkipTest("Can get default_credentials "
-                                "from the environment!")
+            pytest.skip("Can get default_credentials "
+                        "from the environment!")
         credentials = self.sut.get_application_default_credentials()
         self.assertIsNone(credentials)
 
     def test_get_application_default_credentials_returns_credentials(self):
         if not _check_if_can_get_correct_default_credentials():
-            raise nose.SkipTest("Cannot get default_credentials "
-                                "from the environment!")
+            pytest.skip("Cannot get default_credentials "
+                        "from the environment!")
         from oauth2client.client import GoogleCredentials
         credentials = self.sut.get_application_default_credentials()
         self.assertTrue(isinstance(credentials, GoogleCredentials))
@@ -1015,7 +1015,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
 
     def test_upload_data_if_table_exists_replace(self):
 
-        raise nose.SkipTest("buggy test")
+        pytest.skip("buggy test")
 
         destination_table = DESTINATION_TABLE + "4"
 
