@@ -9,7 +9,7 @@ from distutils.version import LooseVersion
 import warnings
 import operator
 import functools
-import nose
+import pytest
 
 from numpy import nan
 import numpy as np
@@ -32,30 +32,30 @@ def _skip_if_no_xlrd():
         import xlrd
         ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
         if ver < (0, 9):
-            raise nose.SkipTest('xlrd < 0.9, skipping')
+            pytest.skip('xlrd < 0.9, skipping')
     except ImportError:
-        raise nose.SkipTest('xlrd not installed, skipping')
+        pytest.skip('xlrd not installed, skipping')
 
 
 def _skip_if_no_xlwt():
     try:
         import xlwt  # NOQA
     except ImportError:
-        raise nose.SkipTest('xlwt not installed, skipping')
+        pytest.skip('xlwt not installed, skipping')
 
 
 def _skip_if_no_openpyxl():
     try:
         import openpyxl  # NOQA
     except ImportError:
-        raise nose.SkipTest('openpyxl not installed, skipping')
+        pytest.skip('openpyxl not installed, skipping')
 
 
 def _skip_if_no_xlsxwriter():
     try:
         import xlsxwriter  # NOQA
     except ImportError:
-        raise nose.SkipTest('xlsxwriter not installed, skipping')
+        pytest.skip('xlsxwriter not installed, skipping')
 
 
 def _skip_if_no_excelsuite():
@@ -68,7 +68,7 @@ def _skip_if_no_s3fs():
     try:
         import s3fs  # noqa
     except ImportError:
-        raise nose.SkipTest('s3fs not installed, skipping')
+        pytest.skip('s3fs not installed, skipping')
 
 
 _seriesd = tm.getSeriesData()
@@ -600,7 +600,7 @@ class XlrdTests(ReadingTestsBase):
 
         # FILE
         if sys.version_info[:2] < (2, 6):
-            raise nose.SkipTest("file:// not supported with Python < 2.6")
+            pytest.skip("file:// not supported with Python < 2.6")
 
         localtable = os.path.join(self.dirpath, 'test1' + self.ext)
         local_table = read_excel(localtable)
@@ -610,8 +610,8 @@ class XlrdTests(ReadingTestsBase):
         except URLError:
             # fails on some systems
             import platform
-            raise nose.SkipTest("failing on %s" %
-                                ' '.join(platform.uname()).strip())
+            pytest.skip("failing on %s" %
+                        ' '.join(platform.uname()).strip())
 
         tm.assert_frame_equal(url_table, local_table)
 
@@ -1513,7 +1513,7 @@ class ExcelWriterBase(SharedItems):
             try:
                 f = open(filename, 'wb')
             except UnicodeEncodeError:
-                raise nose.SkipTest('no unicode file names on this system')
+                pytest.skip('no unicode file names on this system')
             else:
                 f.close()
 
@@ -1555,7 +1555,7 @@ class ExcelWriterBase(SharedItems):
     #         import xlwt
     #         import xlrd
     #     except ImportError:
-    #         raise nose.SkipTest
+    #         pytest.skip
 
     #     filename = '__tmp_to_excel_header_styling_xls__.xls'
     #     pdf.to_excel(filename, 'test1')
@@ -1601,9 +1601,9 @@ class ExcelWriterBase(SharedItems):
     #         import openpyxl
     #         from openpyxl.cell import get_column_letter
     #     except ImportError:
-    #         raise nose.SkipTest
+    #         pytest.skip
     #     if openpyxl.__version__ < '1.6.1':
-    #         raise nose.SkipTest
+    #         pytest.skip
     #     # test xlsx_styling
     #     filename = '__tmp_to_excel_header_styling_xlsx__.xlsx'
     #     pdf.to_excel(filename, 'test1')
@@ -1635,7 +1635,7 @@ class ExcelWriterBase(SharedItems):
         _skip_if_no_xlrd()
 
         if self.merge_cells:
-            raise nose.SkipTest('Skip tests for merged MI format.')
+            pytest.skip('Skip tests for merged MI format.')
 
         from pandas.util.testing import makeCustomDataframe as mkdf
         # ensure limited functionality in 0.10
@@ -1690,7 +1690,7 @@ class ExcelWriterBase(SharedItems):
         _skip_if_no_xlrd()
 
         if self.merge_cells:
-            raise nose.SkipTest('Skip tests for merged MI format.')
+            pytest.skip('Skip tests for merged MI format.')
 
         from pandas.util.testing import makeCustomDataframe as mkdf
         # ensure limited functionality in 0.10
@@ -1873,7 +1873,7 @@ class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
     def test_to_excel_styleconverter(self):
         _skip_if_no_openpyxl()
         if not openpyxl_compat.is_compat(major_ver=1):
-            raise nose.SkipTest('incompatiable openpyxl version')
+            pytest.skip('incompatiable openpyxl version')
 
         import openpyxl
 
@@ -1910,7 +1910,7 @@ def skip_openpyxl_gt21(cls):
         ver = openpyxl.__version__
         if (not (LooseVersion(ver) >= LooseVersion('2.0.0') and
                  LooseVersion(ver) < LooseVersion('2.2.0'))):
-            raise nose.SkipTest("openpyxl %s >= 2.2" % str(ver))
+            pytest.skip("openpyxl %s >= 2.2" % str(ver))
 
     cls.setUpClass = setUpClass
     return cls
@@ -2026,7 +2026,7 @@ def skip_openpyxl_lt22(cls):
         import openpyxl
         ver = openpyxl.__version__
         if LooseVersion(ver) < LooseVersion('2.2.0'):
-            raise nose.SkipTest("openpyxl %s < 2.2" % str(ver))
+            pytest.skip("openpyxl %s < 2.2" % str(ver))
 
     cls.setUpClass = setUpClass
     return cls
@@ -2095,7 +2095,7 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
 
     def test_write_cells_merge_styled(self):
         if not openpyxl_compat.is_compat(major_ver=2):
-            raise nose.SkipTest('incompatiable openpyxl version')
+            pytest.skip('incompatiable openpyxl version')
 
         from pandas.formats.format import ExcelCell
 
@@ -2278,7 +2278,7 @@ class ExcelWriterEngineTests(tm.TestCase):
         except ImportError:
             _skip_if_no_openpyxl()
             if not openpyxl_compat.is_compat(major_ver=1):
-                raise nose.SkipTest('incompatible openpyxl version')
+                pytest.skip('incompatible openpyxl version')
             writer_klass = _Openpyxl1Writer
 
         with ensure_clean('.xlsx') as path:

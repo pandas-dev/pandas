@@ -8,7 +8,7 @@ engine is set to 'python-fwf' internally.
 
 from datetime import datetime
 
-import nose
+import pytest
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -75,7 +75,7 @@ class TestFwfParsing(tm.TestCase):
 
     def test_BytesIO_input(self):
         if not compat.PY3:
-            raise nose.SkipTest(
+            pytest.skip(
                 "Bytes-related test - only needs to work on Python 3")
 
         result = read_fwf(BytesIO("שלום\nשלום".encode('utf8')), widths=[
@@ -192,7 +192,7 @@ bar2,12,13,14,15
             import gzip
             import bz2
         except ImportError:
-            raise nose.SkipTest("Need gzip and bz2 to run this test")
+            pytest.skip("Need gzip and bz2 to run this test")
 
         data = """1111111111
         2222222222
@@ -333,7 +333,7 @@ col1~~~~~col2  col3++++++++++++++++++col4
 
     def test_variable_width_unicode(self):
         if not compat.PY3:
-            raise nose.SkipTest(
+            pytest.skip(
                 'Bytes-related test - only needs to work on Python 3')
         test = """
 שלום שלום

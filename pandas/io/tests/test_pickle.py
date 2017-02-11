@@ -2,7 +2,7 @@
 
 """ manage legacy pickle tests """
 
-import nose
+import pytest
 import os
 
 from distutils.version import LooseVersion
@@ -172,7 +172,7 @@ class TestPickle():
 
     def read_pickles(self, version):
         if not is_platform_little_endian():
-            raise nose.SkipTest("known failure on non-little endian")
+            pytest.skip("known failure on non-little endian")
 
         pth = tm.get_data_path('legacy_pickle/{0}'.format(str(version)))
         n = 0

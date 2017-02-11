@@ -9,7 +9,7 @@ import re
 import sys
 from datetime import datetime
 
-import nose
+import pytest
 import numpy as np
 from pandas.lib import Timestamp
 
@@ -635,8 +635,8 @@ bar"""
             url_table = self.read_table('file://localhost/' + localtable)
         except URLError:
             # fails on some systems
-            raise nose.SkipTest("failing on %s" %
-                                ' '.join(platform.uname()).strip())
+            pytest.skip("failing on %s" %
+                        ' '.join(platform.uname()).strip())
 
         tm.assert_frame_equal(url_table, local_table)
 
@@ -1262,7 +1262,7 @@ eight,1,2,3"""
 
     def test_iteration_open_handle(self):
         if PY3:
-            raise nose.SkipTest(
+            pytest.skip(
                 "won't work in Python 3 {0}".format(sys.version_info))
 
         with tm.ensure_clean() as path:

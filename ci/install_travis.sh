@@ -92,12 +92,7 @@ if [ -e ${INSTALL} ]; then
     time bash $INSTALL || exit 1
 else
     # create new env
-    time conda create -n pandas python=$PYTHON_VERSION nose pytest || exit 1
-
-    if [ "$LINT" ]; then
-        conda install flake8
-        pip install cpplint
-    fi
+    time conda create -n pandas python=$PYTHON_VERSION pytest || exit 1
 fi
 
 # build deps
@@ -115,6 +110,12 @@ if [ -e ${REQ} ]; then
 fi
 
 source activate pandas
+
+pip install pytest-xdist
+if [ "$LINT" ]; then
+   conda install flake8
+   pip install cpplint
+fi
 
 if [ "$COVERAGE" ]; then
     pip install coverage pytest-cov

@@ -1,6 +1,6 @@
 """ misc non-groupby routines, as they are defined in core/groupby.py """
 
-import nose
+import pytest
 import numpy as np
 from numpy import nan
 from pandas.util import testing as tm
@@ -42,7 +42,7 @@ class TestSorting(tm.TestCase):
             np.argsort(np.array([[1, 2], [1, 3], [1, 2]], dtype='i'))
             np.argsort(items2, kind='mergesort')
         except TypeError:
-            raise nose.SkipTest('requested sort not available for type')
+            pytest.skip('requested sort not available for type')
 
         # mergesort is the most difficult to get right because we want it to be
         # stable.

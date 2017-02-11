@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import nose
+import pytest
 import itertools
 import string
 from distutils.version import LooseVersion
@@ -28,7 +28,7 @@ def _skip_if_mpl_14_or_dev_boxplot():
     # Don't need try / except since that's done at class level
     import matplotlib
     if str(matplotlib.__version__) >= LooseVersion('1.4'):
-        raise nose.SkipTest("Matplotlib Regression in 1.4 and current dev.")
+        pytest.skip("Matplotlib Regression in 1.4 and current dev.")
 
 
 @tm.mplskip
