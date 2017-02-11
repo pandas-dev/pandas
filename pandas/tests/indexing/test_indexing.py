@@ -8,14 +8,13 @@ from datetime import datetime
 from pandas.types.common import (is_integer_dtype,
                                  is_float_dtype,
                                  is_scalar)
-from pandas.compat import range, lrange, lzip, StringIO, lmap, map
+from pandas.compat import range, lrange, lzip, StringIO, lmap
 from pandas.tslib import NaT
 from numpy import nan
 from numpy.random import randn
 import numpy as np
 
 import pandas as pd
-import pandas.core.common as com
 from pandas import option_context
 from pandas.core.indexing import _non_reducing_slice, _maybe_numeric_slice
 from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
