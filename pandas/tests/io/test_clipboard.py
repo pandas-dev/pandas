@@ -20,6 +20,7 @@ except PyperclipException:
     _DEPS_INSTALLED = 0
 
 
+@pytest.mark.single
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
 class TestClipboard(tm.TestCase):
