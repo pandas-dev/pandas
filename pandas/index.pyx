@@ -1,6 +1,7 @@
 # cython: profile=False
 
 from numpy cimport ndarray
+from libc.stdlib cimport malloc, free
 
 from numpy cimport (float64_t, int32_t, int64_t, uint8_t,
                     NPY_DATETIME, NPY_TIMEDELTA, PyArray_SimpleNewFromData,
@@ -58,10 +59,10 @@ ctypedef struct Int64List:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.initializedcheck(False)
-cdef Int64List* Int64List_create_array(Py_ssize_t n):
+cdef Int64List* Int64List_create_array(Py_ssize_t n) nogil:
 
     cdef:
-        Int64List *lst = <Int64List *> PyMem_Malloc(n * sizeof(Int64List))
+        Int64List *lst = <Int64List *> malloc(n * sizeof(Int64List))
         Py_ssize_t i
 
     for i in range(n):
@@ -74,7 +75,7 @@ cdef Int64List* Int64List_create_array(Py_ssize_t n):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.initializedcheck(False)
-cdef void Int64List_destroy_array(Int64List *lst, Py_ssize_t n):
+cdef void Int64List_destroy_array(Int64List *lst, Py_ssize_t n) nogil:
     cdef:
         Int64ListNode *next
         Int64ListNode *p
@@ -85,17 +86,17 @@ cdef void Int64List_destroy_array(Int64List *lst, Py_ssize_t n):
             p = lst[i].root
             while p is not NULL:
                 next = p[0].next
-                PyMem_Free(p)
+                free(p)
                 p = next
 
-    PyMem_Free(lst)
+    free(lst)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.initializedcheck(False)
-cdef void _append(Int64List *lst, int64_t x):
+cdef inline void _append(Int64List *lst, int64_t x) nogil:
 
-    cdef Int64ListNode *nn = <Int64ListNode *> PyMem_Malloc(sizeof(Int64ListNode))
+    cdef Int64ListNode *nn = <Int64ListNode *> malloc(sizeof(Int64ListNode))
 
     nn[0].value = x
     nn[0].next = NULL
@@ -112,7 +113,7 @@ cdef void _append(Int64List *lst, int64_t x):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.initializedcheck(False)
-cdef void _copy_to(Int64List *dst, Int64List *src) nogil:
+cdef inline void _copy_to(Int64List *dst, Int64List *src) nogil:
     dst[0].root = src[0].root
     dst[0].last = src[0].last
     dst[0].n = src[0].n
@@ -122,7 +123,7 @@ cdef void _copy_to(Int64List *dst, Int64List *src) nogil:
 @cython.wraparound(False)
 @cython.initializedcheck(False)
 cdef int64_t* Int64List_concat_array(Int64List* lst, Py_ssize_t n,
-                                     Py_ssize_t *nt):
+                                     Py_ssize_t *nt) nogil:
     nt[0] = 0
     cdef:
         Py_ssize_t last = 0
@@ -131,7 +132,7 @@ cdef int64_t* Int64List_concat_array(Int64List* lst, Py_ssize_t n,
     for i in range(n):
         nt[0] += lst[i].n
 
-    cdef int64_t *data = <int64_t *> PyMem_Malloc(nt[0] * sizeof(int64_t))
+    cdef int64_t *data = <int64_t *> malloc(nt[0] * sizeof(int64_t))
 
     for i in range(n):
 
