@@ -3,7 +3,8 @@
 from numpy cimport ndarray
 
 from numpy cimport (float64_t, int32_t, int64_t, uint8_t,
-                    NPY_DATETIME, NPY_TIMEDELTA)
+                    NPY_DATETIME, NPY_TIMEDELTA, PyArray_SimpleNewFromData,
+                    NPY_INT64)
 cimport cython
 
 cimport numpy as cnp
@@ -23,7 +24,7 @@ from pandas.tslib import Timestamp, Timedelta
 from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
                        pandas_datetimestruct)
 
-from cpython cimport PyTuple_Check, PyList_Check
+from cpython cimport PyTuple_Check, PyList_Check, PyMem_Malloc, PyMem_Free
 
 cdef extern from "datetime.h":
     bint PyDateTime_Check(object o)
@@ -44,6 +45,104 @@ PyDateTime_IMPORT
 cdef extern from "Python.h":
     int PySlice_Check(object)
 
+ctypedef struct Int64ListNode:
+    int64_t value
+    Int64ListNode *next
+
+ctypedef struct Int64List:
+    Int64ListNode *root
+    Int64ListNode *last
+    Py_ssize_t n
+    bint owns
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef Int64List* Int64List_create_array(Py_ssize_t n):
+
+    cdef:
+        Int64List *lst = <Int64List *> PyMem_Malloc(n * sizeof(Int64List))
+        Py_ssize_t i
+
+    for i in range(n):
+        lst[i].n = 0
+        lst[i].root = NULL
+        lst[i].last = NULL
+
+    return lst
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef void Int64List_destroy_array(Int64List *lst, Py_ssize_t n):
+    cdef:
+        Int64ListNode *next
+        Int64ListNode *p
+        Py_ssize_t i
+
+    for i in range(n):
+        if lst[i].owns:
+            p = lst[i].root
+            while p is not NULL:
+                next = p[0].next
+                PyMem_Free(p)
+                p = next
+
+    PyMem_Free(lst)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef void _append(Int64List *lst, int64_t x):
+
+    cdef Int64ListNode *nn = <Int64ListNode *> PyMem_Malloc(sizeof(Int64ListNode))
+
+    nn[0].value = x
+    nn[0].next = NULL
+
+    if lst[0].root is NULL:
+        lst[0].root = nn
+        lst[0].owns = 1
+    else:
+        lst[0].last[0].next = nn
+
+    lst[0].last = nn
+    lst[0].n += 1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef void _copy_to(Int64List *dst, Int64List *src) nogil:
+    dst[0].root = src[0].root
+    dst[0].last = src[0].last
+    dst[0].n = src[0].n
+    dst[0].owns = 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef int64_t* Int64List_concat_array(Int64List* lst, Py_ssize_t n,
+                                     Py_ssize_t *nt):
+    nt[0] = 0
+    cdef:
+        Py_ssize_t last = 0
+        Int64ListNode* node
+
+    for i in range(n):
+        nt[0] += lst[i].n
+
+    cdef int64_t *data = <int64_t *> PyMem_Malloc(nt[0] * sizeof(int64_t))
+
+    for i in range(n):
+
+        node = lst[i].root
+        while node is not NULL:
+            data[last] = node[0].value
+            last += 1
+            node = node[0].next
+
+    return data
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -51,7 +150,8 @@ cdef extern from "Python.h":
 cdef _indexer_non_unique_orderable_loop(ndarray values, ndarray targets,
                                         int64_t[:] idx0,
                                         int64_t[:] idx1,
-                                        list[:] result, list[:] missing):
+                                        Int64List* result,
+                                        Int64List* missing):
     cdef:
       Py_ssize_t i = 0, j = 0, n = idx0.shape[0], n_t = idx1.shape[0]
 
@@ -63,26 +163,26 @@ cdef _indexer_non_unique_orderable_loop(ndarray values, ndarray targets,
         if val0 == val1:
 
             while i < n and values[idx0[i]] == val1:
-               result[idx1[j]].append(idx0[i])
+               _append(&(result[idx1[j]]), idx0[i])
                i += 1
 
             j += 1
             while j < n_t and val0 == targets[idx1[j]]:
-                result[idx1[j]] = result[idx1[j-1]]
+                _copy_to(&(result[idx1[j]]), &(result[idx1[j-1]]))
                 j += 1
 
         elif val0 > val1:
 
-            result[idx1[j]].append(-1)
-            missing[idx1[j]].append(idx1[j])
+            _append(&(result[idx1[j]]), -1)
+            _append(&(missing[idx1[j]]), idx1[j])
             j += 1
 
         else:
             i += 1
 
     while j < n_t:
-        result[idx1[j]].append(-1)
-        missing[idx1[j]].append(idx1[j])
+        _append(&(result[idx1[j]]), -1)
+        _append(&(missing[idx1[j]]), idx1[j])
         j += 1
 
 
@@ -419,27 +519,39 @@ cdef class IndexEngine:
         cdef:
             ndarray values
             object val0, val1
-            Py_ssize_t i, n_t
+            Py_ssize_t n_t
 
         self._ensure_mapping_populated()
         values = self._get_index_values()
         n_t = len(targets)
 
-        result = np.empty((n_t,), dtype=np.object_)
-        result.fill([])
-        result = np.frompyfunc(list,1,1)(result)
-
-        missing = np.empty((n_t,), dtype=np.object_)
-        missing.fill([])
-        missing = np.frompyfunc(list,1,1)(missing)
+        cdef:
+            Int64List* result = Int64List_create_array(n_t)
+            Int64List* missing = Int64List_create_array(n_t)
 
         _indexer_non_unique_orderable_loop(values, targets, idx0, idx1,
                                            result, missing)
 
-        result = np.concatenate(result)
-        missing = np.asarray(np.concatenate(missing), np.int64)
+        cdef:
+            Py_ssize_t nres, nmis
+            int64_t *cresult
+            int64_t *cmissing
 
-        return result, missing
+        cresult = Int64List_concat_array(result, n_t, &nres)
+        cmissing = Int64List_concat_array(missing, n_t, &nmis)
+
+        Int64List_destroy_array(result, n_t)
+        Int64List_destroy_array(missing, n_t)
+
+        cdef:
+            cnp.npy_intp *dims0 = [nres]
+            cnp.npy_intp *dims1 = [nmis]
+            ndarray npy_result = PyArray_SimpleNewFromData(1, dims0,
+                                               NPY_INT64, cresult)
+            ndarray npy_missing = PyArray_SimpleNewFromData(1, dims1,
+                                               NPY_INT64, cmissing)
+
+        return npy_result, npy_missing
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
