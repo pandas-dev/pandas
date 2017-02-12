@@ -86,6 +86,26 @@ class TestPivotTable(tm.TestCase):
         tm.assert_index_equal(pv_col.columns, m)
         tm.assert_index_equal(pv_ind.index, m)
 
+        df = DataFrame([[1, 'a', 'A'], [1, 'b', 'B'], [1, 'c', None]],
+                       columns=['x', 'y', 'z'])
+        actual = df.pivot_table(values='x', index='y', columns='z',
+                                aggfunc='sum', fill_value=0, margins=True,
+                                dropna=True)
+        expected = pd.DataFrame([[1.0, 0.0, 1.0], [0.0, 1.0, 1.0],
+                                 [1.0, 1.0, 2.0]])
+        expected.index = Index(['a', 'b', 'All'], name='y')
+        expected.columns = Index(['A', 'B', 'All'], name='z')
+        tm.assert_frame_equal(actual, expected)
+
+        actual = df.pivot_table(values='x', index='y', columns='z',
+                                aggfunc='sum', fill_value=0, margins=True,
+                                dropna=False)
+        expected = pd.DataFrame([[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0],
+                                 [0.0, 0.0, 1.0, 1.0], [1.0, 1.0, 1.0, 3.0]])
+        expected.index = Index(['a', 'b', 'c', 'All'], name='y')
+        expected.columns = Index(['A', 'B', None, 'All'], name='z')
+        tm.assert_frame_equal(actual, expected)
+
     def test_pass_array(self):
         result = self.data.pivot_table(
             'D', index=self.data.A, columns=self.data.C)
@@ -1072,17 +1092,18 @@ class TestCrosstab(tm.TestCase):
         df = pd.DataFrame({'a': [1, 2, 2, 2, 2, np.nan],
                            'b': [3, 3, 4, 4, 4, 4]})
         actual = pd.crosstab(df.a, df.b, margins=True, dropna=False)
-        expected = pd.DataFrame([[1, 0, 1], [1, 3, 4], [2, 4, 6]])
-        expected.index = Index([1.0, 2.0, 'All'], name='a')
-        expected.columns = Index([3, 4, 'All'], name='b')
+        expected = pd.DataFrame([[1, 0, 1], [1, 3, 4], [0, 1, 1], [2, 4, 6]])
+        expected.index = Index([1.0, 2.0, np.nan, 'All'], name='a')
+        expected.columns = Index([3.0, 4.0, 'All'], name='b')
         tm.assert_frame_equal(actual, expected)
 
         df = DataFrame({'a': [1, np.nan, np.nan, np.nan, 2, np.nan],
                         'b': [3, np.nan, 4, 4, 4, 4]})
         actual = pd.crosstab(df.a, df.b, margins=True, dropna=False)
-        expected = pd.DataFrame([[1, 0, 1], [0, 1, 1], [1, 4, 6]])
-        expected.index = Index([1.0, 2.0, 'All'], name='a')
-        expected.columns = Index([3.0, 4.0, 'All'], name='b')
+        expected = pd.DataFrame([[1, 0, 0, 1], [0, 1, 0, 1], [0, 3, 1, 4],
+                                 [1, 4, 1, 6]])
+        expected.index = Index([1.0, 2.0, np.nan, 'All'], name='a')
+        expected.columns = Index([3.0, 4.0, np.nan, 'All'], name='b')
         tm.assert_frame_equal(actual, expected)
 
         a = np.array(['foo', 'foo', 'foo', 'bar',
@@ -1094,21 +1115,24 @@ class TestCrosstab(tm.TestCase):
 
         actual = pd.crosstab(a, [b, c], rownames=['a'],
                              colnames=['b', 'c'], margins=True, dropna=False)
-        m = MultiIndex.from_arrays([['one', 'one', 'two', 'two', 'All'],
-                                    ['dull', 'shiny', 'dull', 'shiny', '']],
-                                   names=['b', 'c'])
-        expected = DataFrame([[1, 0, 1, 0, 2], [2, 0, 1, 1, 5],
-                              [3, 0, 2, 1, 7]], columns=m)
+
+        m = MultiIndex(levels=[Index(['All', np.nan, 'one', 'two']),
+                               Index(['', 'dull', 'shiny'])],
+                       labels=[[1, 1, 2, 2, 3, 3, 0],
+                               [1, 2, 1, 2, 1, 2, 0]], names=['b', 'c'])
+        expected = DataFrame([[0, 0, 1, 0, 1, 0, 2], [0, 1, 2, 0, 1, 1, 5],
+                              [0, 1, 3, 0, 2, 1, 7]], columns=m)
         expected.index = Index(['bar', 'foo', 'All'], name='a')
         tm.assert_frame_equal(actual, expected)
 
         actual = pd.crosstab([a, b], c, rownames=['a', 'b'],
                              colnames=['c'], margins=True, dropna=False)
-        m = MultiIndex.from_arrays([['bar', 'bar', 'foo', 'foo', 'All'],
-                                    ['one', 'two', 'one', 'two', '']],
-                                   names=['a', 'b'])
-        expected = DataFrame([[1, 0, 1], [1, 0, 1], [2, 0, 2], [1, 1, 2],
-                              [5, 2, 7]], index=m)
+        m = MultiIndex(levels=[['All', 'bar', 'foo'],
+                               ['', np.nan, 'one', 'two']],
+                       labels=[[1, 1, 1, 2, 2, 2, 0], [1, 2, 3, 1, 2, 3, 0]],
+                       names=['a', 'b'])
+        expected = DataFrame([[0, 0, 0], [1, 0, 1], [1, 0, 1], [0, 1, 1],
+                              [2, 0, 2], [1, 1, 2], [5, 2, 7]], index=m)
         expected.columns = Index(['dull', 'shiny', 'All'], name='c')
         tm.assert_frame_equal(actual, expected)
 

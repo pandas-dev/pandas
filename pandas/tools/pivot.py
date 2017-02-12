@@ -7,6 +7,7 @@ from pandas.core.groupby import Grouper
 from pandas.tools.util import cartesian_product
 from pandas.compat import range, lrange, zip
 from pandas import compat
+from pandas import isnull
 import pandas.core.common as com
 import numpy as np
 
@@ -79,8 +80,20 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     DataFrame.pivot : pivot without aggregation that can handle
         non-numeric data
     """
+    pd_null = "_null_pd"
+
     index = _convert_by(index)
     columns = _convert_by(columns)
+
+    keys = index + columns
+
+    if not dropna:
+        key_data = np.array(data[keys], dtype='object')
+        _data_null_idx = isnull(key_data)
+        _data_null_val = key_data[_data_null_idx]
+        key_data[_data_null_idx] = pd_null
+        for idx, k in enumerate(keys):
+            data[k] = key_data[:, idx]
 
     if isinstance(aggfunc, list):
         pieces = []
@@ -93,8 +106,6 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
             pieces.append(table)
             keys.append(func.__name__)
         return concat(pieces, keys=keys, axis=1)
-
-    keys = index + columns
 
     values_passed = values is not None
     if values_passed:
@@ -174,6 +185,27 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     if len(index) == 0 and len(columns) > 0:
         table = table.T
+
+    if not dropna:
+        if _data_null_val.size > 0:
+            def _convert_null_vals(indexes):
+                if isinstance(indexes, MultiIndex):
+                    _new_level = []
+                    for _tmp_index in indexes.levels:
+                        tmp = np.array(_tmp_index)
+                        tmp[tmp == pd_null] = _data_null_val[0]
+                        _new_level.append(Index(tmp, name=_tmp_index.name))
+                    indexes = MultiIndex(levels=_new_level,
+                                         labels=indexes.labels,
+                                         names=indexes.names)
+                else:
+                    tmp = np.array(indexes)
+                    tmp[tmp == pd_null] = _data_null_val[0]
+                    indexes = Index(tmp, name=indexes.name)
+                return indexes
+
+            table.columns = _convert_null_vals(table.columns)
+            table.index = _convert_null_vals(table.index)
 
     return table
 
