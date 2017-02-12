@@ -33,7 +33,7 @@ class TestPickle():
 
     @classmethod
     def setup_class(cls):
-        from pandas.io.tests.generate_legacy_storage_files import (
+        from pandas.tests.io.generate_legacy_storage_files import (
             create_pickle_data)
         cls.data = create_pickle_data()
         cls.path = u('__%s__.pickle' % tm.rands(10))
