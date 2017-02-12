@@ -91,7 +91,7 @@ support for bz2 compression in the python 2 c-engine improved (:issue:`14874`).
    url = 'https://github.com/{repo}/raw/{branch}/{path}'.format(
        repo = 'pandas-dev/pandas',
        branch = 'master',
-       path = 'pandas/io/tests/parser/data/salaries.csv.bz2',
+       path = 'pandas/tests/io/parser/data/salaries.csv.bz2',
    )
    df = pd.read_table(url, compression='infer')  # default, infer compression
    df = pd.read_table(url, compression='bz2')  # explicitly specify compression
