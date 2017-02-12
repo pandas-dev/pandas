@@ -2506,10 +2506,38 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if self.is_all_dates:
             self = Index(self.asi8)
             tgt_values = target.asi8
+            src_values = self.asi8
         else:
             tgt_values = target._values
+            src_values = self._values
 
-        indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
+        try:
+            src_values[0] < tgt_values[0]
+            src_values[0] > tgt_values[0]
+        except (TypeError, IndexError):
+            orderable = False
+        else:
+            try:
+                if self.is_monotonic_increasing:
+                    idx0 = np.arange(len(src_values))
+                else:
+                    idx0 = np.argsort(src_values, kind='mergesort')
+
+                if target.is_monotonic_increasing:
+                    idx1 = np.arange(len(tgt_values))
+                else:
+                    idx1 = np.argsort(tgt_values, kind='mergesort')
+
+            except TypeError:
+                orderable = False
+            else:
+                orderable = True
+
+        if orderable:
+            indexer, missing = self._engine.get_indexer_non_unique_orderable(tgt_values, idx0, idx1)
+        else:
+            indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
+
         return Index(indexer), missing
 
     def get_indexer_for(self, target, **kwargs):
