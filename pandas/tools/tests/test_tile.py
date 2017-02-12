@@ -287,7 +287,10 @@ class TestCut(tm.TestCase):
 
     def test_single_bin(self):
         # issue 14652
-        expected = Series([0, 0])
+        # Explicit dtype since Series produces int64 for ints, while cut
+        # (due to numpy.searchsorted) would use int32 on i386, so let's assure
+        # correct default to the architecture int
+        expected = Series([0, 0], dtype='intp')
 
         s = Series([9., 9.])
         result = cut(s, 1, labels=False)

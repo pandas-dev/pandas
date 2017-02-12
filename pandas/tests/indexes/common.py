@@ -127,6 +127,13 @@ class Base(object):
 
         values = idx.values
         for prop in self._compat_props:
+            # skip equivalency check if converted type is object, as happens
+            # for PeriodIndex, since then object (address) would be 4 bytes
+            # on 32bit platforms and equivalence to int64 of original
+            # date time is just accidental
+            if prop in ('itemsize', 'nbytes') \
+                    and values.dtype.name == 'object':
+                continue
             self.assertEqual(getattr(idx, prop), getattr(values, prop))
 
         # test for validity
