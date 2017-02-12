@@ -45,6 +45,47 @@ cdef extern from "Python.h":
     int PySlice_Check(object)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef _indexer_non_unique_orderable_loop(ndarray values, ndarray targets,
+                                        int64_t[:] idx0,
+                                        int64_t[:] idx1,
+                                        list[:] result, list[:] missing):
+    cdef:
+      Py_ssize_t i = 0, j = 0, n = idx0.shape[0], n_t = idx1.shape[0]
+
+    while i < n and j < n_t:
+
+        val0 = values[idx0[i]]
+        val1 = targets[idx1[j]]
+
+        if val0 == val1:
+
+            while i < n and values[idx0[i]] == val1:
+               result[idx1[j]].append(idx0[i])
+               i += 1
+
+            j += 1
+            while j < n_t and val0 == targets[idx1[j]]:
+                result[idx1[j]] = result[idx1[j-1]]
+                j += 1
+
+        elif val0 > val1:
+
+            result[idx1[j]].append(-1)
+            missing[idx1[j]].append(idx1[j])
+            j += 1
+
+        else:
+            i += 1
+
+    while j < n_t:
+        result[idx1[j]].append(-1)
+        missing[idx1[j]].append(idx1[j])
+        j += 1
+
+
 cdef inline is_definitely_invalid_key(object val):
     if PyTuple_Check(val):
         try:
@@ -371,6 +412,34 @@ cdef class IndexEngine:
 
         return result[0:count], missing[0:count_missing]
 
+    def get_indexer_non_unique_orderable(self, ndarray targets,
+                                         int64_t[:] idx0,
+                                         int64_t[:] idx1):
+
+        cdef:
+            ndarray values
+            object val0, val1
+            Py_ssize_t i, n_t
+
+        self._ensure_mapping_populated()
+        values = self._get_index_values()
+        n_t = len(targets)
+
+        result = np.empty((n_t,), dtype=np.object_)
+        result.fill([])
+        result = np.frompyfunc(list,1,1)(result)
+
+        missing = np.empty((n_t,), dtype=np.object_)
+        missing.fill([])
+        missing = np.frompyfunc(list,1,1)(missing)
+
+        _indexer_non_unique_orderable_loop(values, targets, idx0, idx1,
+                                           result, missing)
+
+        result = np.concatenate(result)
+        missing = np.asarray(np.concatenate(missing), np.int64)
+
+        return result, missing
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
