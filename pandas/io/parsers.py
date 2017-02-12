@@ -2856,7 +2856,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
         if c in colset:
             colnames.append(c)
         elif isinstance(c, int) and c not in columns:
-            colnames.append(str(columns[c]))
+            colnames.append(columns[c])
         else:
             colnames.append(c)
 

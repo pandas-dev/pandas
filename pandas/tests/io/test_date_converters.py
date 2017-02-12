@@ -148,3 +148,21 @@ date,time,prn,rxstatus
                          [621, ' ']]
         expected = DataFrame(expected_data, columns=['case', 'opdate'])
         assert_frame_equal(result, expected)
+
+    def test_parse_date_time_multi_level_column_name(self):
+        data = """\
+D,T,A,B
+date, time,a,b
+2001-01-05, 09:00:00, 0.0, 10.
+2001-01-06, 00:00:00, 1.0, 11.
+"""
+        datecols = {'date_time': [0, 1]}
+        result = read_csv(StringIO(data), sep=',', header=[0, 1],
+                          parse_dates=datecols,
+                          date_parser=conv.parse_date_time)
+
+        expected_data = [[datetime(2001, 1, 5, 9, 0, 0), 0., 10.],
+                         [datetime(2001, 1, 6, 0, 0, 0), 1., 11.]]
+        expected = DataFrame(expected_data,
+                             columns=['date_time', ('A', 'a'), ('B', 'b')])
+        assert_frame_equal(result, expected)
