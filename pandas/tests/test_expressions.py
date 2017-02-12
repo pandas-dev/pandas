@@ -20,9 +20,6 @@ from pandas.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
 
-if not expr._USE_NUMEXPR:
-    numexpr = pytest.importorskip('numexpr')
-
 _frame = DataFrame(randn(10000, 4), columns=list('ABCD'), dtype='float64')
 _frame2 = DataFrame(randn(100, 4), columns=list('ABCD'), dtype='float64')
 _mixed = DataFrame({'A': _frame['A'].copy(),
@@ -50,6 +47,7 @@ _mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
 _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
 
 
+@pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
 class TestExpressions(tm.TestCase):
 
     def setUp(self):
