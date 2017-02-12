@@ -11,7 +11,7 @@ from pandas import DataFrame, MultiIndex, Series, merge, concat
 
 import pandas._join as _join
 import pandas.util.testing as tm
-from pandas.tools.tests.test_merge import get_test_data, N, NGROUPS
+from pandas.tests.tools.test_merge import get_test_data, N, NGROUPS
 
 
 a_ = np.array

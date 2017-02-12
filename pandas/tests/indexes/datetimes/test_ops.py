@@ -1245,7 +1245,8 @@ class TestCustomDatetimeIndex(tm.TestCase):
         self.assertEqual(shifted[0], self.rng[0])
         self.assertEqual(shifted.offset, self.rng.offset)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        # PerformanceWarning
+        with warnings.catch_warnings(record=True):
             rng = date_range(START, END, freq=BMonthEnd())
             shifted = rng.shift(1, freq=CDay())
             self.assertEqual(shifted[0], rng[0] + CDay())

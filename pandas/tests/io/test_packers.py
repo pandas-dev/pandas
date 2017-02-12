@@ -795,7 +795,7 @@ TestPackers
 
     @classmethod
     def setup_class(cls):
-        from pandas.io.tests.generate_legacy_storage_files import (
+        from pandas.tests.io.generate_legacy_storage_files import (
             create_msgpack_data, create_data)
         cls.data = create_msgpack_data()
         cls.all_data = create_data()
