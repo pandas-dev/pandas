@@ -59,7 +59,7 @@ Creating a MultiIndex (hierarchical index) object
 
 The ``MultiIndex`` object is the hierarchical analogue of the standard
 ``Index`` object which typically stores the axis labels in pandas objects. You
-can think of ``MultiIndex`` an array of tuples where each tuple is unique. A
+can think of ``MultiIndex`` as an array of tuples where each tuple is unique. A
 ``MultiIndex`` can be created from a list of arrays (using
 ``MultiIndex.from_arrays``), an array of tuples (using
 ``MultiIndex.from_tuples``), or a crossed set of iterables (using
