@@ -2509,7 +2509,18 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         else:
             tgt_values = target._values
 
-        indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
+        try:
+            if self.is_all_dates:
+                idx0 = np.argsort(self.asi8, kind='mergesort')
+            else:
+                idx0 = np.argsort(self._values, kind='mergesort')
+
+            idx1 = np.argsort(tgt_values, kind='mergesort')
+            indexer, missing = self._engine.get_indexer_non_unique_orderable(tgt_values, idx0, idx1)
+
+        except TypeError:
+            indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
+
         return Index(indexer), missing
 
     def get_indexer_for(self, target, **kwargs):
