@@ -9,7 +9,7 @@ users upgrade to this version.
 
 .. warning::
 
-   Due to important fixes and performance improvements, ``numexpr`` version is now required to be >= 2.6.2 and it will not be used at all if this requisite is not fullfilled (:issue:`15213`).
+   Due to important fixes and performance improvements, ``numexpr`` version is now required to be >= 2.4.6 and it will not be used at all if this requisite is not fullfilled (:issue:`15213`).
 
 Highlights include:
 
