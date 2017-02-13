@@ -21,7 +21,7 @@ def test_compat():
     try:
         import numexpr as ne
         ver = ne.__version__
-        elif ver < LooseVersion('2.4.6'):
+        if ver < LooseVersion('2.4.6'):
             with tm.assert_produces_warning(UserWarning,
                                             check_stacklevel=False):
                 assert not _NUMEXPR_INSTALLED
