@@ -2537,7 +2537,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         try:
             src_values[0] < tgt_values[0]
             src_values[0] > tgt_values[0]
-        except TypeError or IndexError:
+        except (TypeError, IndexError):
             orderable = False
         else:
             try:
