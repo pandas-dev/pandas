@@ -7,10 +7,6 @@ This is a major release from 0.19 and includes a small number of API changes, se
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
-.. warning::
-
-   Due to important fixes and performance improvements, ``numexpr`` version is now required to be >= 2.4.6 and it will not be used at all if this requisite is not fullfilled (:issue:`15213`).
-
 Highlights include:
 
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
@@ -157,10 +153,12 @@ Other enhancements
 - ``Series/DataFrame.resample.asfreq`` have gained a ``fill_value`` parameter, to fill missing values during resampling (:issue:`3715`).
 - ``pandas.tools.hashing`` has gained a ``hash_tuples`` routine, and ``hash_pandas_object`` has gained the ability to hash a ``MultiIndex`` (:issue:`15224`)
 - ``Series/DataFrame.squeeze()`` have gained the ``axis`` parameter. (:issue:`15339`)
+- ``numexpr`` version is now required to be >= 2.4.6 and it will not be used at all if this requisite is not fulfilled (:issue:`15213`).
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
 .. _whatsnew_0200.api_breaking:
+
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
