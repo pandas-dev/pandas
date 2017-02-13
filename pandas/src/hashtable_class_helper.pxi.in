@@ -24,9 +24,13 @@ dtypes = [('Float64', 'float64', 'float64_t'),
 {{for name, dtype, arg in dtypes}}
 
 
+{{if dtype != 'int64'}}
+
 ctypedef struct {{name}}VectorData:
     {{arg}} *data
     size_t n, m
+
+{{endif}}
 
 
 @cython.wraparound(False)
@@ -65,9 +69,11 @@ dtypes = [('Float64', 'float64', 'float64_t', 'np.float64'),
 
 cdef class {{name}}Vector:
 
+    {{if dtype != 'int64'}}
     cdef:
         {{name}}VectorData *data
         ndarray ao
+    {{endif}}
 
     def __cinit__(self):
         self.data = <{{name}}VectorData *>PyMem_Malloc(
@@ -92,7 +98,7 @@ cdef class {{name}}Vector:
     def __len__(self):
         return self.data.n
 
-    def to_array(self):
+    cpdef to_array(self):
         self.ao.resize(self.data.n)
         self.data.m = self.data.n
         return self.ao
@@ -103,6 +109,10 @@ cdef class {{name}}Vector:
             self.resize()
 
         append_data_{{dtype}}(self.data, x)
+
+    cdef extend(self, {{arg}}[:] x):
+        for i in range(len(x)):
+            self.append(x[i])
 
 {{endfor}}
 
