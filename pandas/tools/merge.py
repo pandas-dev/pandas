@@ -34,6 +34,7 @@ from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
 
+from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 
@@ -1397,10 +1398,9 @@ def _sort_labels(uniques, left, right):
 
 
 def _get_join_keys(llab, rlab, shape, sort):
-    from pandas.core.groupby import _int64_overflow_possible
 
     # how many levels can be done without overflow
-    pred = lambda i: not _int64_overflow_possible(shape[:i])
+    pred = lambda i: not is_int64_overflow_possible(shape[:i])
     nlev = next(filter(pred, range(len(shape), 0, -1)))
 
     # get keys for the first `nlev` levels
