@@ -13,6 +13,9 @@ import pandas.hashtable as _hash
 from pandas import lib
 
 
+_INT64_MAX = np.iinfo(np.int64).max
+
+
 def get_group_index(labels, shape, sort, xnull):
     """
     For the particular label_list, gets the offsets into the hypothetical list
@@ -74,7 +77,7 @@ def get_group_index(labels, shape, sort, xnull):
 
         # compress what has been done so far in order to avoid overflow
         # to retain lexical ranks, obs_ids should be sorted
-        comp_ids, obs_ids = _compress_group_index(out, sort=sort)
+        comp_ids, obs_ids = compress_group_index(out, sort=sort)
 
         labels = [comp_ids] + labels[nlev:]
         shape = [len(obs_ids)] + shape[nlev:]
@@ -91,10 +94,7 @@ def get_group_index(labels, shape, sort, xnull):
     return loop(list(labels), list(shape))
 
 
-_INT64_MAX = np.iinfo(np.int64).max
-
-
-def _int64_overflow_possible(shape):
+def is_int64_overflow_possible(shape):
     the_prod = long(1)
     for x in shape:
         the_prod *= long(x)
@@ -104,7 +104,7 @@ def _int64_overflow_possible(shape):
 
 def decons_group_index(comp_labels, shape):
     # reconstruct labels
-    if _int64_overflow_possible(shape):
+    if is_int64_overflow_possible(shape):
         # at some point group indices are factorized,
         # and may not be deconstructed here! wrong path!
         raise ValueError('cannot deconstruct factorized group indices!')
@@ -137,7 +137,7 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull):
         lift = np.fromiter(((a == -1).any() for a in labels), dtype='i8')
         shape = np.asarray(shape, dtype='i8') + lift
 
-    if not _int64_overflow_possible(shape):
+    if not is_int64_overflow_possible(shape):
         # obs ids are deconstructable! take the fast route!
         out = decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() \
@@ -148,19 +148,19 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull):
     return [i8copy(lab[i]) for lab in labels]
 
 
-def _indexer_from_factorized(labels, shape, compress=True):
+def indexer_from_factorized(labels, shape, compress=True):
     ids = get_group_index(labels, shape, sort=True, xnull=False)
 
     if not compress:
         ngroups = (ids.size and ids.max()) + 1
     else:
-        ids, obs = _compress_group_index(ids, sort=True)
+        ids, obs = compress_group_index(ids, sort=True)
         ngroups = len(obs)
 
-    return _get_group_index_sorter(ids, ngroups)
+    return get_group_index_sorter(ids, ngroups)
 
 
-def _lexsort_indexer(keys, orders=None, na_position='last'):
+def lexsort_indexer(keys, orders=None, na_position='last'):
     labels = []
     shape = []
     if isinstance(orders, bool):
@@ -201,10 +201,10 @@ def _lexsort_indexer(keys, orders=None, na_position='last'):
         shape.append(n)
         labels.append(codes)
 
-    return _indexer_from_factorized(labels, shape)
+    return indexer_from_factorized(labels, shape)
 
 
-def _nargsort(items, kind='quicksort', ascending=True, na_position='last'):
+def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
     """
     This is intended to be a drop-in replacement for np.argsort which
     handles NaNs. It adds ascending and na_position parameters.
@@ -244,7 +244,7 @@ class _KeyMapper(object):
     Ease my suffering. Map compressed group id -> key tuple
     """
 
-    def __init__(self, comp_ids, ngroups, labels, levels):
+    def __init__(self, comp_ids, ngroups, levels, labels):
         self.levels = levels
         self.labels = labels
         self.comp_ids = comp_ids.astype(np.int64)
@@ -263,15 +263,22 @@ class _KeyMapper(object):
                      for table, level in zip(self.tables, self.levels))
 
 
-def _get_indices_dict(label_list, keys):
+def get_flattened_iterator(comp_ids, ngroups, levels, labels):
+    # provide "flattened" iterator for multi-group setting
+    mapper = _KeyMapper(comp_ids, ngroups, levels, labels)
+    return [mapper.get_key(i) for i in range(ngroups)]
+
+
+def get_indexer_dict(label_list, keys):
+    """ return a diction of {labels} -> {indexers} """
     shape = list(map(len, keys))
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     ngroups = ((group_index.size and group_index.max()) + 1) \
-        if _int64_overflow_possible(shape) \
+        if is_int64_overflow_possible(shape) \
         else np.prod(shape, dtype='i8')
 
-    sorter = _get_group_index_sorter(group_index, ngroups)
+    sorter = get_group_index_sorter(group_index, ngroups)
 
     sorted_labels = [lab.take(sorter) for lab in label_list]
     group_index = group_index.take(sorter)
@@ -282,7 +289,7 @@ def _get_indices_dict(label_list, keys):
 # ----------------------------------------------------------------------
 # sorting levels...cleverly?
 
-def _get_group_index_sorter(group_index, ngroups):
+def get_group_index_sorter(group_index, ngroups):
     """
     _algos.groupsort_indexer implements `counting sort` and it is at least
     O(ngroups), where
@@ -309,7 +316,7 @@ def _get_group_index_sorter(group_index, ngroups):
         return group_index.argsort(kind='mergesort')
 
 
-def _compress_group_index(group_index, sort=True):
+def compress_group_index(group_index, sort=True):
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets

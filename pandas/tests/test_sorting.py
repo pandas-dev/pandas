@@ -9,8 +9,11 @@ from pandas.core import common as com
 from pandas import DataFrame, MultiIndex, merge, concat, Series, compat
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-from pandas.core.sorting import (_int64_overflow_possible, decons_group_index,
-                                 get_group_index, _nargsort, _lexsort_indexer)
+from pandas.core.sorting import (is_int64_overflow_possible,
+                                 decons_group_index,
+                                 get_group_index,
+                                 nargsort,
+                                 lexsort_indexer)
 
 
 class TestSorting(tm.TestCase):
@@ -73,7 +76,7 @@ class TestSorting(tm.TestCase):
         gr = df.groupby(list('abcde'))
 
         # verify this is testing what it is supposed to test!
-        self.assertTrue(_int64_overflow_possible(gr.grouper.shape))
+        self.assertTrue(is_int64_overflow_possible(gr.grouper.shape))
 
         # mannually compute groupings
         jim, joe = defaultdict(list), defaultdict(list)
@@ -96,22 +99,22 @@ class TestSorting(tm.TestCase):
     def test_lexsort_indexer(self):
         keys = [[nan] * 5 + list(range(100)) + [nan] * 5]
         # orders=True, na_position='last'
-        result = _lexsort_indexer(keys, orders=True, na_position='last')
+        result = lexsort_indexer(keys, orders=True, na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
         tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
         # orders=True, na_position='first'
-        result = _lexsort_indexer(keys, orders=True, na_position='first')
+        result = lexsort_indexer(keys, orders=True, na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
         tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
         # orders=False, na_position='last'
-        result = _lexsort_indexer(keys, orders=False, na_position='last')
+        result = lexsort_indexer(keys, orders=False, na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
         tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
         # orders=False, na_position='first'
-        result = _lexsort_indexer(keys, orders=False, na_position='first')
+        result = lexsort_indexer(keys, orders=False, na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
@@ -137,50 +140,50 @@ class TestSorting(tm.TestCase):
         # arrays."""
 
         # mergesort, ascending=True, na_position='last'
-        result = _nargsort(items, kind='mergesort', ascending=True,
-                           na_position='last')
+        result = nargsort(items, kind='mergesort', ascending=True,
+                          na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='first'
-        result = _nargsort(items, kind='mergesort', ascending=True,
-                           na_position='first')
+        result = nargsort(items, kind='mergesort', ascending=True,
+                          na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='last'
-        result = _nargsort(items, kind='mergesort', ascending=False,
-                           na_position='last')
+        result = nargsort(items, kind='mergesort', ascending=False,
+                          na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='first'
-        result = _nargsort(items, kind='mergesort', ascending=False,
-                           na_position='first')
+        result = nargsort(items, kind='mergesort', ascending=False,
+                          na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='last'
-        result = _nargsort(items2, kind='mergesort', ascending=True,
-                           na_position='last')
+        result = nargsort(items2, kind='mergesort', ascending=True,
+                          na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=True, na_position='first'
-        result = _nargsort(items2, kind='mergesort', ascending=True,
-                           na_position='first')
+        result = nargsort(items2, kind='mergesort', ascending=True,
+                          na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(5, 105))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='last'
-        result = _nargsort(items2, kind='mergesort', ascending=False,
-                           na_position='last')
+        result = nargsort(items2, kind='mergesort', ascending=False,
+                          na_position='last')
         exp = list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
         # mergesort, ascending=False, na_position='first'
-        result = _nargsort(items2, kind='mergesort', ascending=False,
-                           na_position='first')
+        result = nargsort(items2, kind='mergesort', ascending=False,
+                          na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
@@ -238,7 +241,7 @@ class TestMerge(tm.TestCase):
 
         # confirm that this is checking what it is supposed to check
         shape = left.apply(Series.nunique).values
-        self.assertTrue(_int64_overflow_possible(shape))
+        self.assertTrue(is_int64_overflow_possible(shape))
 
         # add duplicates to left frame
         left = concat([left, left], ignore_index=True)

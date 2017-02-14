@@ -47,9 +47,9 @@ from pandas.core.index import (Index, MultiIndex, CategoricalIndex,
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
-from pandas.core.sorting import (_get_group_index_sorter, get_group_index,
-                                 _compress_group_index, _KeyMapper,
-                                 decons_obs_group_ids, _get_indices_dict)
+from pandas.core.sorting import (get_group_index_sorter, get_group_index,
+                                 compress_group_index, get_flattened_iterator,
+                                 decons_obs_group_ids, get_indexer_dict)
 from pandas.util.decorators import (cache_readonly, Substitution, Appender,
                                     make_signature, deprecate_kwarg)
 from pandas.formats.printing import pprint_thing
@@ -731,7 +731,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         (though the default is sort=True) for groupby in general
         """
         ids, _, ngroups = self.grouper.group_info
-        sorter = _get_group_index_sorter(ids, ngroups)
+        sorter = get_group_index_sorter(ids, ngroups)
         ids, count = ids[sorter], len(ids)
 
         if count == 0:
@@ -1618,9 +1618,12 @@ class BaseGrouper(object):
             return self.levels[0]
         else:
             comp_ids, _, ngroups = self.group_info
+
             # provide "flattened" iterator for multi-group setting
-            mapper = _KeyMapper(comp_ids, ngroups, self.labels, self.levels)
-            return [mapper.get_key(i) for i in range(ngroups)]
+            return get_flattened_iterator(comp_ids,
+                                          ngroups,
+                                          self.levels,
+                                          self.labels)
 
     def apply(self, f, data, axis=0):
         mutated = self.mutated
@@ -1664,7 +1667,7 @@ class BaseGrouper(object):
             label_list = [ping.labels for ping in self.groupings]
             keys = [_values_from_object(ping.group_index)
                     for ping in self.groupings]
-            return _get_indices_dict(label_list, keys)
+            return get_indexer_dict(label_list, keys)
 
     @property
     def labels(self):
@@ -1728,7 +1731,7 @@ class BaseGrouper(object):
         if len(all_labels) > 1:
             group_index = get_group_index(all_labels, self.shape,
                                           sort=True, xnull=True)
-            return _compress_group_index(group_index, sort=self.sort)
+            return compress_group_index(group_index, sort=self.sort)
 
         ping = self.groupings[0]
         return ping.labels, np.arange(len(ping.group_index))
@@ -2029,7 +2032,7 @@ class BaseGrouper(object):
 
         # avoids object / Series creation overhead
         dummy = obj._get_values(slice(None, 0)).to_dense()
-        indexer = _get_group_index_sorter(group_index, ngroups)
+        indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer, convert=False)
         group_index = algos.take_nd(group_index, indexer, allow_fill=False)
         grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
@@ -4207,7 +4210,7 @@ class DataSplitter(object):
     @cache_readonly
     def sort_idx(self):
         # Counting sort indexer
-        return _get_group_index_sorter(self.labels, self.ngroups)
+        return get_group_index_sorter(self.labels, self.ngroups)
 
     def __iter__(self):
         sdata = self._get_sorted_data()
