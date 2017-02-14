@@ -141,21 +141,18 @@ class TestStyler(TestCase):
                       'type': 'th',
                       'value': 'A',
                       'is_visible': True,
-                      'attributes': ["colspan=1"],
                       },
                      {'class': 'col_heading level0 col1',
                       'display_value': 'B',
                       'type': 'th',
                       'value': 'B',
                       'is_visible': True,
-                      'attributes': ["colspan=1"],
                       },
                      {'class': 'col_heading level0 col2',
                       'display_value': 'C',
                       'type': 'th',
                       'value': 'C',
                       'is_visible': True,
-                      'attributes': ["colspan=1"],
                       }]]
 
         self.assertEqual(result['head'], expected)
@@ -168,11 +165,9 @@ class TestStyler(TestCase):
         expected = [[{'class': 'blank level0', 'type': 'th', 'value': '',
                       'display_value': '', 'is_visible': True},
                      {'class': 'col_heading level0 col0', 'type': 'th',
-                      'value': 'B', 'display_value': 'B',
-                      'is_visible': True, 'attributes': ['colspan=1']},
+                      'value': 'B', 'display_value': 'B', 'is_visible': True},
                      {'class': 'col_heading level0 col1', 'type': 'th',
-                      'value': 'C', 'display_value': 'C',
-                      'is_visible': True, 'attributes': ['colspan=1']}],
+                      'value': 'C', 'display_value': 'C', 'is_visible': True}],
                     [{'class': 'index_name level0', 'type': 'th',
                       'value': 'A'},
                      {'class': 'blank', 'type': 'th', 'value': ''},
@@ -191,9 +186,7 @@ class TestStyler(TestCase):
             {'class': 'blank level0', 'type': 'th', 'value': '',
              'display_value': '', 'is_visible': True},
             {'class': 'col_heading level0 col0', 'type': 'th',
-             'value': 'C', 'display_value': 'C',
-             'is_visible': True, 'attributes': ['colspan=1'],
-             }],
+             'value': 'C', 'display_value': 'C', 'is_visible': True}],
             [{'class': 'index_name level0', 'type': 'th',
               'value': 'A'},
              {'class': 'index_name level1', 'type': 'th',
@@ -618,16 +611,14 @@ class TestStyler(TestCase):
         body_1 = result['body'][0][1]
         expected_1 = {
             "value": 0, "display_value": 0, "is_visible": True,
-            "type": "th", "attributes": ["rowspan=1"],
-            "class": "row_heading level1 row0",
+            "type": "th", "class": "row_heading level1 row0",
         }
         tm.assert_dict_equal(body_1, expected_1)
 
         body_10 = result['body'][1][0]
         expected_10 = {
             "value": 'a', "display_value": 'a', "is_visible": False,
-            "type": "th", "attributes": ["rowspan=1"],
-            "class": "row_heading level0 row1",
+            "type": "th", "class": "row_heading level0 row1",
         }
         tm.assert_dict_equal(body_10, expected_10)
 
@@ -637,9 +628,8 @@ class TestStyler(TestCase):
              'is_visible': True, "display_value": ''},
             {'type': 'th', 'class': 'blank level0', 'value': '',
              'is_visible': True, 'display_value': ''},
-            {'attributes': ['colspan=1'], 'class': 'col_heading level0 col0',
-             'is_visible': True, 'type': 'th', 'value': 'A',
-             'display_value': 'A'}]
+            {'type': 'th', 'class': 'col_heading level0 col0', 'value': 'A',
+             'is_visible': True, 'display_value': 'A'}]
         self.assertEqual(head, expected)
 
     def test_mi_sparse_disabled(self):
@@ -650,7 +640,7 @@ class TestStyler(TestCase):
             result = df.style._translate()
         body = result['body']
         for row in body:
-            self.assertEqual(row[0]['attributes'], ['rowspan=1'])
+            assert 'attributes' not in row[0]
 
     def test_mi_sparse_index_names(self):
         df = pd.DataFrame({'A': [1, 2]}, index=pd.MultiIndex.from_arrays(
@@ -686,28 +676,24 @@ class TestStyler(TestCase):
              'type': 'th', 'is_visible': True},
             {'class': 'index_name level1', 'value': 'col_1',
              'display_value': 'col_1', 'is_visible': True, 'type': 'th'},
-            {'attributes': ['colspan=1'],
-             'class': 'col_heading level1 col0',
+            {'class': 'col_heading level1 col0',
              'display_value': 1,
              'is_visible': True,
              'type': 'th',
              'value': 1},
-            {'attributes': ['colspan=1'],
-             'class': 'col_heading level1 col1',
+            {'class': 'col_heading level1 col1',
              'display_value': 0,
              'is_visible': True,
              'type': 'th',
              'value': 0},
 
-            {'attributes': ['colspan=1'],
-             'class': 'col_heading level1 col2',
+            {'class': 'col_heading level1 col2',
              'display_value': 1,
              'is_visible': True,
              'type': 'th',
              'value': 1},
 
-            {'attributes': ['colspan=1'],
-             'class': 'col_heading level1 col3',
+            {'class': 'col_heading level1 col3',
              'display_value': 0,
              'is_visible': True,
              'type': 'th',
