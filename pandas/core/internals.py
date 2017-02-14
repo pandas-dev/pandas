@@ -372,6 +372,10 @@ class Block(PandasObject):
         original_value = value
         mask = isnull(self.values)
         if limit is not None:
+            if not is_integer(limit):
+                raise ValueError('Limit must be an integer')
+            if limit < 1:
+                raise ValueError('Limit must be greater than 0')
             if self.ndim > 2:
                 raise NotImplementedError("number of dimensions for 'fillna' "
                                           "is currently limited to 2")

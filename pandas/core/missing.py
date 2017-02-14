@@ -12,7 +12,7 @@ from pandas.types.common import (is_numeric_v_string_like,
                                  is_float_dtype, is_datetime64_dtype,
                                  is_datetime64tz_dtype, is_integer_dtype,
                                  _ensure_float64, is_scalar,
-                                 needs_i8_conversion)
+                                 needs_i8_conversion, is_integer)
 from pandas.types.missing import isnull
 
 
@@ -169,7 +169,11 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     # the beginning (see issues #9218 and #10420)
     violate_limit = sorted(start_nans)
 
-    if limit:
+    if limit is not None:
+        if not is_integer(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         if limit_direction == 'forward':
             violate_limit = sorted(start_nans | set(_interp_limit(invalid,
                                                                   limit, 0)))

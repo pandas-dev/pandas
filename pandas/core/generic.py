@@ -3262,7 +3262,7 @@ class NDFrame(PandasObject):
             a gap with more than this number of consecutive NaNs, it will only
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
-            filled.
+            filled. Must be greater than 0 if not None.
         downcast : dict, default is None
             a dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -3281,6 +3281,7 @@ class NDFrame(PandasObject):
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None):
         inplace = validate_bool_kwarg(inplace, 'inplace')
+
         if isinstance(value, (list, tuple)):
             raise TypeError('"value" parameter must be a scalar or dict, but '
                             'you passed a "{0}"'.format(type(value).__name__))
@@ -3292,7 +3293,6 @@ class NDFrame(PandasObject):
             axis = 0
         axis = self._get_axis_number(axis)
         method = missing.clean_fill_method(method)
-
         from pandas import DataFrame
         if value is None:
             if method is None:
@@ -3687,7 +3687,7 @@ class NDFrame(PandasObject):
             * 0: fill column-by-column
             * 1: fill row-by-row
         limit : int, default None.
-            Maximum number of consecutive NaNs to fill.
+            Maximum number of consecutive NaNs to fill. Must be greater than 0.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
             If limit is specified, consecutive NaNs will be filled in this
             direction.

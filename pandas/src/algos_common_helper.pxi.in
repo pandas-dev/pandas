@@ -83,8 +83,10 @@ def pad_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
     if limit is None:
         lim = nright
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
@@ -146,8 +148,10 @@ def pad_inplace_{{name}}(ndarray[{{c_type}}] values,
     if limit is None:
         lim = N
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     val = values[0]
@@ -180,8 +184,10 @@ def pad_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
     if limit is None:
         lim = N
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     for j in range(K):
@@ -240,8 +246,10 @@ def backfill_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
     if limit is None:
         lim = nright
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
@@ -304,8 +312,10 @@ def backfill_inplace_{{name}}(ndarray[{{c_type}}] values,
     if limit is None:
         lim = N
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     val = values[N - 1]
@@ -338,8 +348,10 @@ def backfill_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
     if limit is None:
         lim = N
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     for j in range(K):
