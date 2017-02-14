@@ -663,7 +663,7 @@ class MultiIndex(Index):
                                                    False: 'first'})
     @Appender(base._shared_docs['duplicated'] % ibase._index_doc_kwargs)
     def duplicated(self, keep='first'):
-        from pandas.core.groupby import get_group_index
+        from pandas.core.sorting import get_group_index
         from pandas.hashtable import duplicated_int64
 
         shape = map(len, self.levels)
@@ -1405,7 +1405,7 @@ class MultiIndex(Index):
             Indices of output values in original index
 
         """
-        from pandas.core.groupby import _indexer_from_factorized
+        from pandas.core.sorting import indexer_from_factorized
 
         if isinstance(level, (compat.string_types, int)):
             level = [level]
@@ -1417,8 +1417,8 @@ class MultiIndex(Index):
             if not len(level) == len(ascending):
                 raise ValueError("level must have same length as ascending")
 
-            from pandas.core.groupby import _lexsort_indexer
-            indexer = _lexsort_indexer(self.labels, orders=ascending)
+            from pandas.core.sorting import lexsort_indexer
+            indexer = lexsort_indexer(self.labels, orders=ascending)
 
         # level ordering
         else:
@@ -1436,8 +1436,8 @@ class MultiIndex(Index):
             else:
                 sortorder = level[0]
 
-            indexer = _indexer_from_factorized(primary, primshp,
-                                               compress=False)
+            indexer = indexer_from_factorized(primary, primshp,
+                                              compress=False)
 
             if not ascending:
                 indexer = indexer[::-1]
