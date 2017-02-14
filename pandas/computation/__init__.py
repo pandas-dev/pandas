@@ -14,8 +14,8 @@ try:
         warnings.warn(
             "The installed version of numexpr {ver} is not supported "
             "in pandas and will be not be used\nThe minimum supported "
-            "version is {min_ver}\n".format(ver=ver,
-                min_ver=_MIN_NUMEXPR_VERSION), UserWarning)
+            "version is {min_ver}\n".format(
+                ver=ver, min_ver=_MIN_NUMEXPR_VERSION), UserWarning)
 
 except ImportError:  # pragma: no cover
     pass
