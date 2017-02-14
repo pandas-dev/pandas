@@ -20,7 +20,8 @@ from pandas.sparse.array import SparseArray
 from pandas._sparse import IntIndex
 
 from pandas.core.categorical import Categorical, _factorize_from_iterable
-from pandas.core.groupby import get_group_index, _compress_group_index
+from pandas.core.sorting import (get_group_index, _compress_group_index,
+                                 decons_obs_group_ids)
 
 import pandas.core.algorithms as algos
 import pandas.algos as _algos
@@ -245,8 +246,6 @@ class _Unstacker(object):
 
 
 def _unstack_multiple(data, clocs):
-    from pandas.core.groupby import decons_obs_group_ids
-
     if len(clocs) == 0:
         return data
 
@@ -459,8 +458,6 @@ def _unstack_frame(obj, level, fill_value=None):
 
 
 def get_compressed_ids(labels, sizes):
-    from pandas.core.groupby import get_group_index
-
     ids = get_group_index(labels, sizes, sort=True, xnull=False)
     return _compress_group_index(ids, sort=True)
 
