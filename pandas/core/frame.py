@@ -3141,7 +3141,7 @@ class DataFrame(NDFrame):
         -------
         duplicated : Series
         """
-        from pandas.core.groupby import get_group_index
+        from pandas.core.sorting import get_group_index
         from pandas.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         def f(vals):
@@ -3179,7 +3179,7 @@ class DataFrame(NDFrame):
             raise ValueError('Length of ascending (%d) != length of by (%d)' %
                              (len(ascending), len(by)))
         if len(by) > 1:
-            from pandas.core.groupby import _lexsort_indexer
+            from pandas.core.sorting import lexsort_indexer
 
             def trans(v):
                 if needs_i8_conversion(v):
@@ -3193,11 +3193,11 @@ class DataFrame(NDFrame):
                     raise ValueError('Cannot sort by duplicate column %s' %
                                      str(x))
                 keys.append(trans(k))
-            indexer = _lexsort_indexer(keys, orders=ascending,
-                                       na_position=na_position)
+            indexer = lexsort_indexer(keys, orders=ascending,
+                                      na_position=na_position)
             indexer = _ensure_platform_int(indexer)
         else:
-            from pandas.core.groupby import _nargsort
+            from pandas.core.sorting import nargsort
 
             by = by[0]
             k = self.xs(by, axis=other_axis).values
@@ -3214,8 +3214,8 @@ class DataFrame(NDFrame):
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
 
-            indexer = _nargsort(k, kind=kind, ascending=ascending,
-                                na_position=na_position)
+            indexer = nargsort(k, kind=kind, ascending=ascending,
+                               na_position=na_position)
 
         new_data = self._data.take(indexer,
                                    axis=self._get_block_manager_axis(axis),
@@ -3300,17 +3300,17 @@ class DataFrame(NDFrame):
                                                  sort_remaining=sort_remaining)
 
         elif isinstance(labels, MultiIndex):
-            from pandas.core.groupby import _lexsort_indexer
+            from pandas.core.sorting import lexsort_indexer
 
             # make sure that the axis is lexsorted to start
             # if not we need to reconstruct to get the correct indexer
             if not labels.is_lexsorted():
                 labels = MultiIndex.from_tuples(labels.values)
 
-            indexer = _lexsort_indexer(labels.labels, orders=ascending,
-                                       na_position=na_position)
+            indexer = lexsort_indexer(labels.labels, orders=ascending,
+                                      na_position=na_position)
         else:
-            from pandas.core.groupby import _nargsort
+            from pandas.core.sorting import nargsort
 
             # GH11080 - Check monotonic-ness before sort an index
             # if monotonic (already sorted), return None or copy() according
@@ -3322,8 +3322,8 @@ class DataFrame(NDFrame):
                 else:
                     return self.copy()
 
-            indexer = _nargsort(labels, kind=kind, ascending=ascending,
-                                na_position=na_position)
+            indexer = nargsort(labels, kind=kind, ascending=ascending,
+                               na_position=na_position)
 
         new_data = self._data.take(indexer,
                                    axis=self._get_block_manager_axis(axis),

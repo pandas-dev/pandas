@@ -616,24 +616,3 @@ def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     expected = f(df.groupby(tups)[field])
     for k, v in compat.iteritems(expected):
         assert (result[k] == v)
-
-
-def test_decons():
-    from pandas.core.groupby import decons_group_index, get_group_index
-
-    def testit(label_list, shape):
-        group_index = get_group_index(label_list, shape, sort=True, xnull=True)
-        label_list2 = decons_group_index(group_index, shape)
-
-        for a, b in zip(label_list, label_list2):
-            assert (np.array_equal(a, b))
-
-    shape = (4, 5, 6)
-    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100), np.tile(
-        [0, 2, 4, 3, 0, 1, 2, 3], 100), np.tile(
-            [5, 1, 0, 2, 3, 0, 5, 4], 100)]
-    testit(label_list, shape)
-
-    shape = (10000, 10000)
-    label_list = [np.tile(np.arange(10000), 5), np.tile(np.arange(10000), 5)]
-    testit(label_list, shape)
