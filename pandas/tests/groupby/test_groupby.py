@@ -3071,22 +3071,6 @@ class TestGroupBy(MixIn, tm.TestCase):
         agged = grouped.mean()
         self.assert_index_equal(agged.minor_axis, Index([0, 1]))
 
-    def test_numpy_groupby(self):
-        from pandas.core.groupby import numpy_groupby
-
-        data = np.random.randn(100, 100)
-        labels = np.random.randint(0, 10, size=100)
-
-        df = DataFrame(data)
-
-        result = df.groupby(labels).sum().values
-        expected = numpy_groupby(data, labels)
-        assert_almost_equal(result, expected)
-
-        result = df.groupby(labels, axis=1).sum().values
-        expected = numpy_groupby(data, labels, axis=1)
-        assert_almost_equal(result, expected)
-
     def test_groupby_2d_malformed(self):
         d = DataFrame(index=lrange(2))
         d['group'] = ['g1', 'g2']
