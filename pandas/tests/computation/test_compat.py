@@ -52,8 +52,7 @@ def check_invalid_numexpr_version(engine, parser):
             pytest.skip("no numexpr")
         else:
             if ne.__version__ < LooseVersion(_MIN_NUMEXPR_VERSION):
-                with tm.assertRaisesRegexp(ImportError, "'numexpr' version is "
-                                           ".+, must be >= %s" % _MIN_NUMEXPR_VERSION):
+                with tm.assertRaises(ImportError):
                     testit()
             else:
                 testit()
