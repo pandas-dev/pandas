@@ -2426,7 +2426,6 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     a BaseGrouper.
 
     """
-
     group_axis = obj._get_axis(axis)
 
     # validate that the passed level is compatible with the passed
