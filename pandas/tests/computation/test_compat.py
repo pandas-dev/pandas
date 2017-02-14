@@ -12,8 +12,6 @@ from pandas.computation.engines import _engines
 import pandas.computation.expr as expr
 from pandas.computation import _MIN_NUMEXPR_VERSION
 
-ENGINES_PARSERS = list(product(_engines, expr._parsers))
-
 
 def test_compat():
     # test we have compat with our version of nu
@@ -30,12 +28,9 @@ def test_compat():
         pytest.skip("not testing numexpr version compat")
 
 
-def test_invalid_numexpr_version():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_invalid_numexpr_version, engine, parser
-
-
-def check_invalid_numexpr_version(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_invalid_numexpr_version(engine, parser):
     def testit():
         a, b = 1, 2
         res = pd.eval('a + b', engine=engine, parser=parser)

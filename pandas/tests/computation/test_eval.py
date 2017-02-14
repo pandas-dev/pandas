@@ -774,16 +774,19 @@ class TestEvalPythonPandas(TestEvalPythonPython):
 f = lambda *args, **kwargs: np.random.randn()
 
 
-ENGINES_PARSERS = list(product(_engines, expr._parsers))
-
 #-------------------------------------
 # typecasting rules consistency with python
 # issue #12388
 
 
 class TestTypeCasting(object):
-
-    def check_binop_typecasting(self, engine, parser, op, dt):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    @pytest.mark.parametrize('op', ['+', '-', '*', '**', '/'])
+    # maybe someday... numexpr has too many upcasting rules now
+    # chain(*(np.sctypes[x] for x in ['uint', 'int', 'float']))
+    @pytest.mark.parametrize('dt', [np.float32, np.float64])
+    def test_binop_typecasting(self, engine, parser, op, dt):
         tm.skip_if_no_ne(engine)
         df = mkdf(5, 3, data_gen_f=f, dtype=dt)
         s = 'df {} 3'.format(op)
@@ -797,15 +800,6 @@ class TestTypeCasting(object):
         assert df.values.dtype == dt
         assert res.values.dtype == dt
         assert_frame_equal(res, eval(s))
-
-    def test_binop_typecasting(self):
-        for engine, parser in ENGINES_PARSERS:
-            for op in ['+', '-', '*', '**', '/']:
-                # maybe someday... numexpr has too many upcasting rules now
-                # for dt in chain(*(np.sctypes[x] for x in ['uint', 'int',
-                # 'float'])):
-                for dt in [np.float32, np.float64]:
-                    yield self.check_binop_typecasting, engine, parser, op, dt
 
 
 #-------------------------------------
@@ -826,18 +820,18 @@ class TestAlignment(object):
     index_types = 'i', 'u', 'dt'
     lhs_index_types = index_types + ('s',)  # 'p'
 
-    def check_align_nested_unary_op(self, engine, parser):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_align_nested_unary_op(self, engine, parser):
         tm.skip_if_no_ne(engine)
         s = 'df * ~2'
         df = mkdf(5, 3, data_gen_f=f)
         res = pd.eval(s, engine=engine, parser=parser)
         assert_frame_equal(res, df * ~2)
 
-    def test_align_nested_unary_op(self):
-        for engine, parser in ENGINES_PARSERS:
-            yield self.check_align_nested_unary_op, engine, parser
-
-    def check_basic_frame_alignment(self, engine, parser):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_basic_frame_alignment(self, engine, parser):
         tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types)
@@ -856,11 +850,9 @@ class TestAlignment(object):
                     res = pd.eval('df + df2', engine=engine, parser=parser)
                 assert_frame_equal(res, df + df2)
 
-    def test_basic_frame_alignment(self):
-        for engine, parser in ENGINES_PARSERS:
-            yield self.check_basic_frame_alignment, engine, parser
-
-    def check_frame_comparison(self, engine, parser):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_frame_comparison(self, engine, parser):
         tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, repeat=2)
         for r_idx_type, c_idx_type in args:
@@ -874,11 +866,10 @@ class TestAlignment(object):
             res = pd.eval('df < df3', engine=engine, parser=parser)
             assert_frame_equal(res, df < df3)
 
-    def test_frame_comparison(self):
-        for engine, parser in ENGINES_PARSERS:
-            yield self.check_frame_comparison, engine, parser
-
-    def check_medium_complex_frame_alignment(self, engine, parser):
+    @slow
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_medium_complex_frame_alignment(self, engine, parser):
         tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types, self.index_types)
@@ -899,12 +890,9 @@ class TestAlignment(object):
                                   engine=engine, parser=parser)
                 assert_frame_equal(res, df + df2 + df3)
 
-    @slow
-    def test_medium_complex_frame_alignment(self):
-        for engine, parser in ENGINES_PARSERS:
-            yield self.check_medium_complex_frame_alignment, engine, parser
-
-    def check_basic_frame_series_alignment(self, engine, parser):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_basic_frame_series_alignment(self, engine, parser):
         tm.skip_if_no_ne(engine)
 
         def testit(r_idx_type, c_idx_type, index_name):
@@ -932,11 +920,9 @@ class TestAlignment(object):
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
-    def test_basic_frame_series_alignment(self):
-        for engine, parser in ENGINES_PARSERS:
-            yield self.check_basic_frame_series_alignment, engine, parser
-
-    def check_basic_series_frame_alignment(self, engine, parser):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_basic_series_frame_alignment(self, engine, parser):
         tm.skip_if_no_ne(engine)
 
         def testit(r_idx_type, c_idx_type, index_name):
@@ -968,11 +954,9 @@ class TestAlignment(object):
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
-    def test_basic_series_frame_alignment(self):
-        for engine, parser in ENGINES_PARSERS:
-            yield self.check_basic_series_frame_alignment, engine, parser
-
-    def check_series_frame_commutativity(self, engine, parser):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_series_frame_commutativity(self, engine, parser):
         tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types, ('+', '*'),
                        ('index', 'columns'))
@@ -1000,11 +984,10 @@ class TestAlignment(object):
                     if engine == 'numexpr':
                         assert_frame_equal(a, b)
 
-    def test_series_frame_commutativity(self):
-        for engine, parser in ENGINES_PARSERS:
-            yield self.check_series_frame_commutativity, engine, parser
-
-    def check_complex_series_frame_alignment(self, engine, parser):
+    @slow
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_complex_series_frame_alignment(self, engine, parser):
         tm.skip_if_no_ne(engine)
 
         import random
@@ -1050,12 +1033,9 @@ class TestAlignment(object):
                 tm.assert_equal(res.shape, expected.shape)
                 assert_frame_equal(res, expected)
 
-    @slow
-    def test_complex_series_frame_alignment(self):
-        for engine, parser in ENGINES_PARSERS:
-            yield self.check_complex_series_frame_alignment, engine, parser
-
-    def check_performance_warning_for_poor_alignment(self, engine, parser):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_performance_warning_for_poor_alignment(self, engine, parser):
         tm.skip_if_no_ne(engine)
         df = DataFrame(randn(1000, 10))
         s = Series(randn(10000))
@@ -1097,11 +1077,6 @@ class TestAlignment(object):
                             "by more than {2:.4g}; performance may suffer"
                             "".format(1, 'df', np.log10(s.size - df.shape[1])))
                 tm.assert_equal(msg, expected)
-
-    def test_performance_warning_for_poor_alignment(self):
-        for engine, parser in ENGINES_PARSERS:
-            yield (self.check_performance_warning_for_poor_alignment, engine,
-                   parser)
 
 
 #------------------------------------
@@ -1832,31 +1807,27 @@ def test_disallowed_nodes():
         yield check_disallowed_nodes, engine, visitor
 
 
-def check_syntax_error_exprs(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_syntax_error_exprs(engine, parser):
     tm.skip_if_no_ne(engine)
     e = 's +'
     with pytest.raises(SyntaxError):
         pd.eval(e, engine=engine, parser=parser)
 
 
-def test_syntax_error_exprs():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_syntax_error_exprs, engine, parser
-
-
-def check_name_error_exprs(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_name_error_exprs(engine, parser):
     tm.skip_if_no_ne(engine)
     e = 's + t'
     with tm.assertRaises(NameError):
         pd.eval(e, engine=engine, parser=parser)
 
 
-def test_name_error_exprs():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_name_error_exprs, engine, parser
-
-
-def check_invalid_local_variable_reference(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_invalid_local_variable_reference(engine, parser):
     tm.skip_if_no_ne(engine)
 
     a, b = 1, 2
@@ -1870,12 +1841,9 @@ def check_invalid_local_variable_reference(engine, parser):
                 pd.eval(exprs, engine=engine, parser=parser)
 
 
-def test_invalid_local_variable_reference():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_invalid_local_variable_reference, engine, parser
-
-
-def check_numexpr_builtin_raises(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_numexpr_builtin_raises(engine, parser):
     tm.skip_if_no_ne(engine)
     sin, dotted_line = 1, 2
     if engine == 'numexpr':
@@ -1887,12 +1855,9 @@ def check_numexpr_builtin_raises(engine, parser):
         tm.assert_equal(res, sin + dotted_line)
 
 
-def test_numexpr_builtin_raises():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_numexpr_builtin_raises, engine, parser
-
-
-def check_bad_resolver_raises(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_bad_resolver_raises(engine, parser):
     tm.skip_if_no_ne(engine)
     cannot_resolve = 42, 3.0
     with tm.assertRaisesRegexp(TypeError, 'Resolver of type .+'):
@@ -1900,33 +1865,22 @@ def check_bad_resolver_raises(engine, parser):
                 parser=parser)
 
 
-def test_bad_resolver_raises():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_bad_resolver_raises, engine, parser
-
-
-def check_empty_string_raises(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_empty_string_raises(engine, parser):
     # GH 13139
     tm.skip_if_no_ne(engine)
     with tm.assertRaisesRegexp(ValueError, 'expr cannot be an empty string'):
         pd.eval('', engine=engine, parser=parser)
 
 
-def test_empty_string_raises():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_empty_string_raises, engine, parser
-
-
-def check_more_than_one_expression_raises(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_more_than_one_expression_raises(engine, parser):
     tm.skip_if_no_ne(engine)
     with tm.assertRaisesRegexp(SyntaxError,
                                'only a single expression is allowed'):
         pd.eval('1 + 1; 2 + 2', engine=engine, parser=parser)
-
-
-def test_more_than_one_expression_raises():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_more_than_one_expression_raises, engine, parser
 
 
 def check_bool_ops_fails_on_scalars(gen, lhs, cmp, rhs, engine, parser):
@@ -1951,17 +1905,14 @@ def test_bool_ops_fails_on_scalars():
                gen[dtype2](), engine, parser)
 
 
-def check_inf(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_inf(engine, parser):
     tm.skip_if_no_ne(engine)
     s = 'inf + 1'
     expected = np.inf
     result = pd.eval(s, engine=engine, parser=parser)
     tm.assert_equal(result, expected)
-
-
-def test_inf():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_inf, engine, parser
 
 
 def check_negate_lt_eq_le(engine, parser):
