@@ -1737,17 +1737,17 @@ _var_s = randn(10)
 
 class TestScope(object):
 
-    def check_global_scope(self, e, engine, parser):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_global_scope(self, engine, parser):
         tm.skip_if_no_ne(engine)
+        e = '_var_s * 2'
         tm.assert_numpy_array_equal(_var_s * 2, pd.eval(e, engine=engine,
                                                         parser=parser))
 
-    def test_global_scope(self):
-        e = '_var_s * 2'
-        for engine, parser in product(_engines, expr._parsers):
-            yield self.check_global_scope, e, engine, parser
-
-    def check_no_new_locals(self, engine, parser):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_no_new_locals(self, engine, parser):
         tm.skip_if_no_ne(engine)
         x = 1
         lcls = locals().copy()
@@ -1756,21 +1756,15 @@ class TestScope(object):
         lcls2.pop('lcls')
         tm.assert_equal(lcls, lcls2)
 
-    def test_no_new_locals(self):
-        for engine, parser in product(_engines, expr._parsers):
-            yield self.check_no_new_locals, engine, parser
-
-    def check_no_new_globals(self, engine, parser):
+    @pytest.mark.parametrize('engine', _engines)
+    @pytest.mark.parametrize('parser', expr._parsers)
+    def test_no_new_globals(self, engine, parser):
         tm.skip_if_no_ne(engine)
         x = 1
         gbls = globals().copy()
         pd.eval('x + 1', engine=engine, parser=parser)
         gbls2 = globals().copy()
         tm.assert_equal(gbls, gbls2)
-
-    def test_no_new_globals(self):
-        for engine, parser in product(_engines, expr._parsers):
-            yield self.check_no_new_globals, engine, parser
 
 
 def test_invalid_engine():
@@ -1791,7 +1785,9 @@ _parsers = {'python': PythonExprVisitor, 'pytables': pytables.ExprVisitor,
             'pandas': PandasExprVisitor}
 
 
-def check_disallowed_nodes(engine, parser):
+@pytest.mark.parametrize('engine', _parsers)
+@pytest.mark.parametrize('parser', _parsers)
+def test_disallowed_nodes(engine, parser):
     tm.skip_if_no_ne(engine)
     VisitorClass = _parsers[parser]
     uns_ops = VisitorClass.unsupported_nodes
@@ -1800,11 +1796,6 @@ def check_disallowed_nodes(engine, parser):
     for ops in uns_ops:
         with pytest.raises(NotImplementedError):
             getattr(inst, ops)()
-
-
-def test_disallowed_nodes():
-    for engine, visitor in product(_parsers, repeat=2):
-        yield check_disallowed_nodes, engine, visitor
 
 
 @pytest.mark.parametrize('engine', _engines)
@@ -1883,26 +1874,25 @@ def test_more_than_one_expression_raises(engine, parser):
         pd.eval('1 + 1; 2 + 2', engine=engine, parser=parser)
 
 
-def check_bool_ops_fails_on_scalars(gen, lhs, cmp, rhs, engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+@pytest.mark.parametrize('cmp', ('and', 'or'))
+@pytest.mark.parametrize('lhs', (int, float))
+@pytest.mark.parametrize('rhs', (int, float))
+def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     tm.skip_if_no_ne(engine)
-    mid = gen[type(lhs)]()
+    gen = {int: lambda: np.random.randint(10), float: np.random.randn}
+
+    mid = gen[lhs]()
+    lhs = gen[lhs]()
+    rhs = gen[rhs]()
+
     ex1 = 'lhs {0} mid {1} rhs'.format(cmp, cmp)
     ex2 = 'lhs {0} mid and mid {1} rhs'.format(cmp, cmp)
     ex3 = '(lhs {0} mid) & (mid {1} rhs)'.format(cmp, cmp)
     for ex in (ex1, ex2, ex3):
         with tm.assertRaises(NotImplementedError):
             pd.eval(ex, engine=engine, parser=parser)
-
-
-def test_bool_ops_fails_on_scalars():
-    _bool_ops_syms = 'and', 'or'
-    dtypes = int, float
-    gen = {int: lambda: np.random.randint(10), float: np.random.randn}
-    for engine, parser, dtype1, cmp, dtype2 in product(_engines, expr._parsers,
-                                                       dtypes, _bool_ops_syms,
-                                                       dtypes):
-        yield (check_bool_ops_fails_on_scalars, gen, gen[dtype1](), cmp,
-               gen[dtype2](), engine, parser)
 
 
 @pytest.mark.parametrize('engine', _engines)
@@ -1915,7 +1905,9 @@ def test_inf(engine, parser):
     tm.assert_equal(result, expected)
 
 
-def check_negate_lt_eq_le(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_negate_lt_eq_le(engine, parser):
     tm.skip_if_no_ne(engine)
     df = pd.DataFrame([[0, 10], [1, 20]], columns=['cat', 'count'])
     expected = df[~(df.cat > 0)]
@@ -1929,11 +1921,6 @@ def check_negate_lt_eq_le(engine, parser):
     else:
         result = df.query('not (cat > 0)', engine=engine, parser=parser)
         tm.assert_frame_equal(result, expected)
-
-
-def test_negate_lt_eq_le():
-    for engine, parser in product(_engines, expr._parsers):
-        yield check_negate_lt_eq_le, engine, parser
 
 
 class TestValidate(tm.TestCase):
