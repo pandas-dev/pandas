@@ -472,7 +472,7 @@ Performance Improvements
 - Improved performance of timeseries plotting with an irregular DatetimeIndex
   (or with ``compat_x=True``) (:issue:`15073`).
 - Improved performance of ``groupby().cummin()`` and ``groupby().cummax()`` (:issue:`15048`, :issue:`15109`)
-
+- Improved performance and reduced memory when indexing with a ``MultiIndex`` (:issue:`15245`)
 - When reading buffer object in ``read_sas()`` method without specified format, filepath string is inferred rather than buffer object.
 
 
@@ -502,6 +502,8 @@ Bug Fixes
 - Bug in ``DataFrame.loc`` with indexing a ``MultiIndex`` with a ``Series`` indexer (:issue:`14730`)
 
 
+
+- Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
 - Bug in ``pd.read_msgpack()`` in which ``Series`` categoricals were being improperly processed (:issue:`14901`)
 - Bug in ``Series.ffill()`` with mixed dtypes containing tz-aware datetimes. (:issue:`14956`)
 

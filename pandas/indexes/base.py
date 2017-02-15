@@ -1431,6 +1431,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """ return a string of the type inferred from the values """
         return lib.infer_dtype(self)
 
+    def _is_memory_usage_qualified(self):
+        """ return a boolean if we need a qualified .info display """
+        return self.is_object()
+
     def is_type_compatible(self, kind):
         return kind == self.inferred_type
 
@@ -2446,7 +2450,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                              'if index and target are monotonic' % method)
 
         side = 'left' if method == 'pad' else 'right'
-        target = np.asarray(target)
 
         # find exact matches first (this simplifies the algorithm)
         indexer = self.get_indexer(target)

@@ -1469,7 +1469,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = self.frame.T
         df['foo', 'four'] = 'foo'
 
-        arrays = [np.array(x) for x in zip(*df.columns._tuple_index)]
+        arrays = [np.array(x) for x in zip(*df.columns.values)]
 
         result = df['foo']
         result2 = df.loc[:, 'foo']
@@ -1493,7 +1493,7 @@ Thur,Lunch,Yes,51.51,17"""
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
 
-        arrays = [np.array(x) for x in zip(*index._tuple_index)]
+        arrays = [np.array(x) for x in zip(*index.values)]
 
         result = s['qux']
         result2 = s.loc['qux']

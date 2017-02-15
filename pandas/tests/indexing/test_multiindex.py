@@ -413,9 +413,10 @@ class TestMultiIndexBasic(tm.TestCase):
         df.loc[idx[:, :, 'Stock'], 'price'] *= 2
         tm.assert_frame_equal(df, expected)
 
-    def test_getitem_multiindex(self):
+    def test_getitem_duplicates_multiindex(self):
         # GH 5725 the 'A' happens to be a valid Timestamp so the doesn't raise
         # the appropriate error, only in PY3 of course!
+
         index = MultiIndex(levels=[['D', 'B', 'C'],
                                    [0, 26, 27, 37, 57, 67, 75, 82]],
                            labels=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2],

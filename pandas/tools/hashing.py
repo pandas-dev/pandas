@@ -5,7 +5,6 @@ import itertools
 
 import numpy as np
 from pandas import _hash, Series, factorize, Categorical, Index, MultiIndex
-import pandas.core.algorithms as algos
 from pandas.lib import is_bool_array
 from pandas.types.generic import ABCIndexClass, ABCSeries, ABCDataFrame
 from pandas.types.common import (is_categorical_dtype, is_numeric_dtype,
@@ -142,20 +141,18 @@ def hash_tuples(vals, encoding='utf8', hash_key=None):
     if not isinstance(vals, MultiIndex):
         vals = MultiIndex.from_tuples(vals)
 
-    # create a list-of-ndarrays
-    def get_level_values(num):
-        unique = vals.levels[num]  # .values
-        labels = vals.labels[num]
-        filled = algos.take_1d(unique._values, labels,
-                               fill_value=unique._na_value)
-        return filled
-
-    vals = [get_level_values(level)
+    # create a list-of-Categoricals
+    vals = [Categorical(vals.labels[level],
+                        vals.levels[level],
+                        ordered=False,
+                        fastpath=True)
             for level in range(vals.nlevels)]
 
     # hash the list-of-ndarrays
-    hashes = (hash_array(l, encoding=encoding, hash_key=hash_key)
-              for l in vals)
+    hashes = (_hash_categorical(cat,
+                                encoding=encoding,
+                                hash_key=hash_key)
+              for cat in vals)
     h = _combine_hash_arrays(hashes, len(vals))
     if is_tuple:
         h = h[0]
@@ -178,9 +175,26 @@ def _hash_categorical(c, encoding, hash_key):
     -------
     ndarray of hashed values array, same size as len(c)
     """
-    cat_hashed = hash_array(c.categories.values, encoding, hash_key,
-                            categorize=False).astype(np.uint64, copy=False)
-    return c.rename_categories(cat_hashed).astype(np.uint64, copy=False)
+    hashed = hash_array(c.categories.values, encoding, hash_key,
+                        categorize=False)
+
+    # we have uint64, as we don't directly support missing values
+    # we don't want to use take_nd which will coerce to float
+    # instead, directly construt the result with a
+    # max(np.uint64) as the missing value indicator
+    #
+    # TODO: GH 15362
+
+    mask = c.isnull()
+    if len(hashed):
+        result = hashed.take(c.codes)
+    else:
+        result = np.zeros(len(mask), dtype='uint64')
+
+    if mask.any():
+        result[mask] = np.iinfo(np.uint64).max
+
+    return result
 
 
 def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):

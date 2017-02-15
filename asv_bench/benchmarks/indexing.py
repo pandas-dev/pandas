@@ -88,7 +88,7 @@ class DatetimeIndexing(object):
 
     def time_getitem_scalar(self):
         self.ts[self.dt]
-    
+
 
 class DataFrameIndexing(object):
     goal_time = 0.2
@@ -189,6 +189,15 @@ class MultiIndexing(object):
         self.eps_C = 5
         self.eps_D = 5000
         self.mdt2 = self.mdt.set_index(['A', 'B', 'C', 'D']).sortlevel()
+        self.miint = MultiIndex.from_product(
+            [np.arange(1000),
+             np.arange(1000)], names=['one', 'two'])
+
+        import string
+        self.mistring = MultiIndex.from_product(
+            [np.arange(1000),
+             np.arange(20), list(string.ascii_letters)],
+            names=['one', 'two', 'three'])
 
     def time_series_xs_mi_ix(self):
         self.s.ix[999]
@@ -197,7 +206,24 @@ class MultiIndexing(object):
         self.df.ix[999]
 
     def time_multiindex_slicers(self):
-        self.mdt2.loc[self.idx[(self.test_A - self.eps_A):(self.test_A + self.eps_A), (self.test_B - self.eps_B):(self.test_B + self.eps_B), (self.test_C - self.eps_C):(self.test_C + self.eps_C), (self.test_D - self.eps_D):(self.test_D + self.eps_D)], :]
+        self.mdt2.loc[self.idx[
+            (self.test_A - self.eps_A):(self.test_A + self.eps_A),
+            (self.test_B - self.eps_B):(self.test_B + self.eps_B),
+            (self.test_C - self.eps_C):(self.test_C + self.eps_C),
+            (self.test_D - self.eps_D):(self.test_D + self.eps_D)], :]
+
+    def time_multiindex_get_indexer(self):
+        self.miint.get_indexer(
+            np.array([(0, 10), (0, 11), (0, 12),
+                      (0, 13), (0, 14), (0, 15),
+                      (0, 16), (0, 17), (0, 18),
+                      (0, 19)], dtype=object))
+
+    def time_multiindex_string_get_loc(self):
+        self.mistring.get_loc((999, 19, 'Z'))
+
+    def time_is_monotonic(self):
+        self.miint.is_monotonic
 
 
 class PanelIndexing(object):
