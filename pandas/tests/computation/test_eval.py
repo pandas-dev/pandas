@@ -20,6 +20,7 @@ from pandas.util.testing import makeCustomDataframe as mkdf
 from pandas.computation import pytables
 from pandas.computation.engines import _engines, NumExprClobberingError
 from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
+from pandas.computation.expressions import _USE_NUMEXPR, _NUMEXPR_INSTALLED
 from pandas.computation.ops import (_binary_ops_dict,
                                     _special_case_arith_ops_syms,
                                     _arith_ops_syms, _bool_ops_syms,
@@ -36,6 +37,23 @@ from pandas.compat import PY3, u, reduce
 
 _series_frame_incompatible = _bool_ops_syms
 _scalar_skip = 'in', 'not in'
+
+
+@pytest.fixture(params=(
+    pytest.mark.skipif(engine == 'numexpr' and not _USE_NUMEXPR,
+                       reason='numexpr enabled->{enabled}, '
+                              'installed->{installed}'.format(
+                            enabled=_USE_NUMEXPR,
+                            installed=_NUMEXPR_INSTALLED))(engine)
+    for engine in _engines
+))
+def engine(request):
+    return request.param
+
+
+@pytest.fixture(params=expr._parsers)
+def parser(request):
+    return request.param
 
 
 def engine_has_neg_frac(engine):
@@ -780,14 +798,11 @@ f = lambda *args, **kwargs: np.random.randn()
 
 
 class TestTypeCasting(object):
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     @pytest.mark.parametrize('op', ['+', '-', '*', '**', '/'])
     # maybe someday... numexpr has too many upcasting rules now
     # chain(*(np.sctypes[x] for x in ['uint', 'int', 'float']))
     @pytest.mark.parametrize('dt', [np.float32, np.float64])
     def test_binop_typecasting(self, engine, parser, op, dt):
-        tm.skip_if_no_ne(engine)
         df = mkdf(5, 3, data_gen_f=f, dtype=dt)
         s = 'df {} 3'.format(op)
         res = pd.eval(s, engine=engine, parser=parser)
@@ -820,19 +835,13 @@ class TestAlignment(object):
     index_types = 'i', 'u', 'dt'
     lhs_index_types = index_types + ('s',)  # 'p'
 
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_align_nested_unary_op(self, engine, parser):
-        tm.skip_if_no_ne(engine)
         s = 'df * ~2'
         df = mkdf(5, 3, data_gen_f=f)
         res = pd.eval(s, engine=engine, parser=parser)
         assert_frame_equal(res, df * ~2)
 
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_basic_frame_alignment(self, engine, parser):
-        tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types)
         with warnings.catch_warnings(record=True):
@@ -850,10 +859,7 @@ class TestAlignment(object):
                     res = pd.eval('df + df2', engine=engine, parser=parser)
                 assert_frame_equal(res, df + df2)
 
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_frame_comparison(self, engine, parser):
-        tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, repeat=2)
         for r_idx_type, c_idx_type in args:
             df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
@@ -867,10 +873,7 @@ class TestAlignment(object):
             assert_frame_equal(res, df < df3)
 
     @slow
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_medium_complex_frame_alignment(self, engine, parser):
-        tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types, self.index_types)
 
@@ -890,11 +893,7 @@ class TestAlignment(object):
                                   engine=engine, parser=parser)
                 assert_frame_equal(res, df + df2 + df3)
 
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_basic_frame_series_alignment(self, engine, parser):
-        tm.skip_if_no_ne(engine)
-
         def testit(r_idx_type, c_idx_type, index_name):
             df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
                       c_idx_type=c_idx_type)
@@ -920,11 +919,7 @@ class TestAlignment(object):
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_basic_series_frame_alignment(self, engine, parser):
-        tm.skip_if_no_ne(engine)
-
         def testit(r_idx_type, c_idx_type, index_name):
             df = mkdf(10, 7, data_gen_f=f, r_idx_type=r_idx_type,
                       c_idx_type=c_idx_type)
@@ -954,10 +949,7 @@ class TestAlignment(object):
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_series_frame_commutativity(self, engine, parser):
-        tm.skip_if_no_ne(engine)
         args = product(self.lhs_index_types, self.index_types, ('+', '*'),
                        ('index', 'columns'))
 
@@ -985,11 +977,7 @@ class TestAlignment(object):
                         assert_frame_equal(a, b)
 
     @slow
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_complex_series_frame_alignment(self, engine, parser):
-        tm.skip_if_no_ne(engine)
-
         import random
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types, self.index_types)
@@ -1033,10 +1021,7 @@ class TestAlignment(object):
                 tm.assert_equal(res.shape, expected.shape)
                 assert_frame_equal(res, expected)
 
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_performance_warning_for_poor_alignment(self, engine, parser):
-        tm.skip_if_no_ne(engine)
         df = DataFrame(randn(1000, 10))
         s = Series(randn(10000))
         if engine == 'numexpr':
@@ -1737,18 +1722,12 @@ _var_s = randn(10)
 
 class TestScope(object):
 
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_global_scope(self, engine, parser):
-        tm.skip_if_no_ne(engine)
         e = '_var_s * 2'
         tm.assert_numpy_array_equal(_var_s * 2, pd.eval(e, engine=engine,
                                                         parser=parser))
 
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_no_new_locals(self, engine, parser):
-        tm.skip_if_no_ne(engine)
         x = 1
         lcls = locals().copy()
         pd.eval('x + 1', local_dict=lcls, engine=engine, parser=parser)
@@ -1756,10 +1735,7 @@ class TestScope(object):
         lcls2.pop('lcls')
         tm.assert_equal(lcls, lcls2)
 
-    @pytest.mark.parametrize('engine', _engines)
-    @pytest.mark.parametrize('parser', expr._parsers)
     def test_no_new_globals(self, engine, parser):
-        tm.skip_if_no_ne(engine)
         x = 1
         gbls = globals().copy()
         pd.eval('x + 1', engine=engine, parser=parser)
@@ -1798,29 +1774,19 @@ def test_disallowed_nodes(engine, parser):
             getattr(inst, ops)()
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
 def test_syntax_error_exprs(engine, parser):
-    tm.skip_if_no_ne(engine)
     e = 's +'
     with pytest.raises(SyntaxError):
         pd.eval(e, engine=engine, parser=parser)
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
 def test_name_error_exprs(engine, parser):
-    tm.skip_if_no_ne(engine)
     e = 's + t'
     with tm.assertRaises(NameError):
         pd.eval(e, engine=engine, parser=parser)
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
 def test_invalid_local_variable_reference(engine, parser):
-    tm.skip_if_no_ne(engine)
-
     a, b = 1, 2
     exprs = 'a + @b', '@a + b', '@a + @b'
     for expr in exprs:
@@ -1832,10 +1798,7 @@ def test_invalid_local_variable_reference(engine, parser):
                 pd.eval(exprs, engine=engine, parser=parser)
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
 def test_numexpr_builtin_raises(engine, parser):
-    tm.skip_if_no_ne(engine)
     sin, dotted_line = 1, 2
     if engine == 'numexpr':
         with tm.assertRaisesRegexp(NumExprClobberingError,
@@ -1846,41 +1809,29 @@ def test_numexpr_builtin_raises(engine, parser):
         tm.assert_equal(res, sin + dotted_line)
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
 def test_bad_resolver_raises(engine, parser):
-    tm.skip_if_no_ne(engine)
     cannot_resolve = 42, 3.0
     with tm.assertRaisesRegexp(TypeError, 'Resolver of type .+'):
         pd.eval('1 + 2', resolvers=cannot_resolve, engine=engine,
                 parser=parser)
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
 def test_empty_string_raises(engine, parser):
     # GH 13139
-    tm.skip_if_no_ne(engine)
     with tm.assertRaisesRegexp(ValueError, 'expr cannot be an empty string'):
         pd.eval('', engine=engine, parser=parser)
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
 def test_more_than_one_expression_raises(engine, parser):
-    tm.skip_if_no_ne(engine)
     with tm.assertRaisesRegexp(SyntaxError,
                                'only a single expression is allowed'):
         pd.eval('1 + 1; 2 + 2', engine=engine, parser=parser)
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
 @pytest.mark.parametrize('cmp', ('and', 'or'))
 @pytest.mark.parametrize('lhs', (int, float))
 @pytest.mark.parametrize('rhs', (int, float))
 def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
-    tm.skip_if_no_ne(engine)
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
     mid = gen[lhs]()
@@ -1895,20 +1846,14 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
             pd.eval(ex, engine=engine, parser=parser)
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
 def test_inf(engine, parser):
-    tm.skip_if_no_ne(engine)
     s = 'inf + 1'
     expected = np.inf
     result = pd.eval(s, engine=engine, parser=parser)
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize('engine', _engines)
-@pytest.mark.parametrize('parser', expr._parsers)
 def test_negate_lt_eq_le(engine, parser):
-    tm.skip_if_no_ne(engine)
     df = pd.DataFrame([[0, 10], [1, 20]], columns=['cat', 'count'])
     expected = df[~(df.cat > 0)]
 
