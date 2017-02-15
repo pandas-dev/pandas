@@ -253,7 +253,7 @@ def test_generate_bq_schema_deprecated():
         gbq.generate_bq_schema(df)
 
 
-@pytest.mark.single
+@pytest.mark.xfail(run=False, reason="intermittent failures")
 class TestGBQConnectorIntegrationWithLocalUserAccountAuth(tm.TestCase):
 
     def setUp(self):
@@ -299,7 +299,7 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(tm.TestCase):
         self.assertTrue(isinstance(credentials, GoogleCredentials))
 
 
-@pytest.mark.single
+@pytest.mark.xfail(run=False, reason="intermittent failures")
 class TestGBQConnectorIntegrationWithServiceAccountKeyPath(tm.TestCase):
     def setUp(self):
         _setup_common()
@@ -331,7 +331,7 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(tm.TestCase):
         self.assertTrue(pages is not None)
 
 
-@pytest.mark.single
+@pytest.mark.xfail(run=False, reason="intermittent failures")
 class TestGBQConnectorIntegrationWithServiceAccountKeyContents(tm.TestCase):
     def setUp(self):
         _setup_common()
@@ -449,7 +449,7 @@ class GBQUnitTests(tm.TestCase):
                 private_key=re.sub('[a-z]', '9', _get_private_key_contents()))
 
 
-@pytest.mark.single
+@pytest.mark.xfail(run=False, reason="intermittent failures")
 class TestReadGBQIntegration(tm.TestCase):
 
     @classmethod
@@ -503,7 +503,7 @@ class TestReadGBQIntegration(tm.TestCase):
         tm.assert_frame_equal(df, DataFrame({'valid_string': ['PI']}))
 
 
-@pytest.mark.single
+@pytest.mark.xfail(run=False, reason="intermittent failures")
 class TestReadGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
 
     @classmethod
@@ -906,7 +906,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
                          configuration=config)
 
 
-@pytest.mark.single
+@pytest.mark.xfail(run=False, reason="intermittent failures")
 class TestToGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
     # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
     # As a workaround to this issue, each test should use a unique table name.
@@ -1219,7 +1219,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
             DATASET_ID + "_not_found"), 'Expected dataset not to exist')
 
 
-@pytest.mark.single
+@pytest.mark.xfail(run=False, reason="intermittent failures")
 class TestToGBQIntegrationWithLocalUserAccountAuth(tm.TestCase):
     # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
     # As a workaround to this issue, each test should use a unique table name.
@@ -1277,7 +1277,7 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(tm.TestCase):
         self.assertEqual(result['num_rows'][0], test_size)
 
 
-@pytest.mark.single
+@pytest.mark.xfail(run=False, reason="intermittent failures")
 class TestToGBQIntegrationWithServiceAccountKeyContents(tm.TestCase):
     # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
     # As a workaround to this issue, each test should use a unique table name.
