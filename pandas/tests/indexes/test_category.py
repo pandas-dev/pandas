@@ -240,12 +240,22 @@ class TestCategoricalIndex(Base, tm.TestCase):
         expected = i
         tm.assert_index_equal(result, expected)
 
-        i2 = i.copy()
         i2 = pd.CategoricalIndex([np.nan, np.nan] + i[2:].tolist(),
                                  categories=i.categories)
         result = i.where(notnull(i2))
         expected = i2
         tm.assert_index_equal(result, expected)
+
+    def test_where_array_like(self):
+        i = self.create_index()
+        cond = [False] + [True] * (len(i) - 1)
+        klasses = [list, tuple, np.array, pd.Series]
+        expected = pd.CategoricalIndex([np.nan] + i[1:].tolist(),
+                                       categories=i.categories)
+
+        for klass in klasses:
+            result = i.where(klass(cond))
+            tm.assert_index_equal(result, expected)
 
     def test_append(self):
 
