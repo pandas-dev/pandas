@@ -65,6 +65,7 @@ __all__ = ['Index']
 _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 _index_doc_kwargs = dict(klass='Index', inplace='',
+                         target_klass='Index',
                          unique='Index', duplicated='np.ndarray')
 _index_shared_docs = dict()
 
@@ -1605,7 +1606,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         numpy.ndarray.take
         """
 
-    @Appender(_index_shared_docs['take'])
+    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
@@ -2350,15 +2351,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         self._validate_index_level(level)
         return self
 
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        """
+    _index_shared_docs['get_indexer'] = """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
         current data to the new index.
 
         Parameters
         ----------
-        target : Index
+        target : %(target_klass)s
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
@@ -2387,6 +2387,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
         """
+
+    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
+    def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
         target = _ensure_index(target)
         if tolerance is not None:
@@ -2496,11 +2499,28 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
+    _index_shared_docs['get_indexer_non_unique'] = """
+        Compute indexer and mask for new index given the current index. The
+        indexer should be then used as an input to ndarray.take to align the
+        current data to the new index.
+
+        Parameters
+        ----------
+        target : %(target_klass)s
+
+        Returns
+        -------
+        indexer : ndarray of int
+            Integers from 0 to n - 1 indicating that the index at these
+            positions matches the corresponding target values. Missing values
+            in the target are marked by -1.
+        missing : ndarray of int
+            An indexer into the target of the values not found.
+            These correspond to the -1 in the indexer array
+        """
+
+    @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        """ return an indexer suitable for taking from a non unique index
-            return the labels in the same order as the target, and
-            return a missing indexer into the target (missing are marked as -1
-            in the indexer); target must be an iterable """
         target = _ensure_index(target)
         pself, ptarget = self._possibly_promote(target)
         if pself is not self or ptarget is not target:
@@ -2516,7 +2536,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return Index(indexer), missing
 
     def get_indexer_for(self, target, **kwargs):
-        """ guaranteed return of an indexer even when non-unique """
+        """
+        guaranteed return of an indexer even when non-unique
+        This dispatches to get_indexer or get_indexer_nonunique as appropriate
+        """
         if self.is_unique:
             return self.get_indexer(target, **kwargs)
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)

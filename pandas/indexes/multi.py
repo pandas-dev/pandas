@@ -43,6 +43,10 @@ from pandas.indexes.base import (Index, _ensure_index, _ensure_frozen,
                                  _get_na_value, InvalidIndexError,
                                  _index_shared_docs)
 import pandas.indexes.base as ibase
+_index_doc_kwargs = dict(ibase._index_doc_kwargs)
+_index_doc_kwargs.update(
+    dict(klass='MultiIndex',
+         target_klass='MultiIndex or list of tuples'))
 
 
 class MultiIndex(Index):
@@ -755,7 +759,7 @@ class MultiIndex(Index):
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})
-    @Appender(base._shared_docs['duplicated'] % ibase._index_doc_kwargs)
+    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.core.sorting import get_group_index
         from pandas.hashtable import duplicated_int64
@@ -1244,7 +1248,7 @@ class MultiIndex(Index):
                               names=self.names, sortorder=sortorder,
                               verify_integrity=False)
 
-    @Appender(_index_shared_docs['take'])
+    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
@@ -1564,34 +1568,8 @@ class MultiIndex(Index):
 
         return new_index, indexer
 
+    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        """
-        Compute indexer and mask for new index given the current index. The
-        indexer should be then used as an input to ndarray.take to align the
-        current data to the new index. The mask determines whether labels are
-        found or not in the current index
-
-        Parameters
-        ----------
-        target : MultiIndex or Index (of tuples)
-        method : {'pad', 'ffill', 'backfill', 'bfill'}
-            pad / ffill: propagate LAST valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-
-        Notes
-        -----
-        This is a low-level method and probably should be used at your own risk
-
-        Examples
-        --------
-        >>> indexer, mask = index.get_indexer(new_index)
-        >>> new_values = cur_values.take(indexer)
-        >>> new_values[-mask] = np.nan
-
-        Returns
-        -------
-        (indexer, mask) : (ndarray, ndarray)
-        """
         method = missing.clean_reindex_fill_method(method)
         target = _ensure_index(target)
 
@@ -1632,6 +1610,10 @@ class MultiIndex(Index):
             indexer = self._engine.get_indexer(target)
 
         return _ensure_platform_int(indexer)
+
+    @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
+    def get_indexer_non_unique(self, target):
+        return super(MultiIndex, self).get_indexer_non_unique(target)
 
     def reindex(self, target, method=None, level=None, limit=None,
                 tolerance=None):
