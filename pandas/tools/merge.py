@@ -53,6 +53,7 @@ def concat_wrap():
         return pd.concat(*args, **kwargs)
     return wrapper
 
+
 concat = concat_wrap()
 
 
@@ -66,6 +67,8 @@ def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
                          right_index=right_index, sort=sort, suffixes=suffixes,
                          copy=copy, indicator=indicator)
     return op.get_result()
+
+
 if __debug__:
     merge.__doc__ = _merge_doc % '\nleft : DataFrame'
 
@@ -263,6 +266,7 @@ def merge_ordered(left, right, on=None,
     else:
         result = _merger(left, right)
     return result
+
 
 ordered_merge.__doc__ = merge_ordered.__doc__
 
@@ -1333,6 +1337,7 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 def _right_outer_join(x, y, max_groups):
     right_indexer, left_indexer = _join.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
+
 
 _join_functions = {
     'inner': _join.inner_join,

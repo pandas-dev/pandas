@@ -138,6 +138,7 @@ def _ensure_datetime64(other):
         return other
     raise TypeError('%s type object %s' % (type(other), str(other)))
 
+
 _midnight = time(0, 0)
 
 

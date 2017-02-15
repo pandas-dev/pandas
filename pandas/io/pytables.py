@@ -74,6 +74,7 @@ def _ensure_encoding(encoding):
             encoding = _default_encoding
     return encoding
 
+
 Term = Expr
 
 
@@ -112,6 +113,7 @@ class ClosedFileError(Exception):
 class IncompatibilityWarning(Warning):
     pass
 
+
 incompatibility_doc = """
 where criteria is being ignored as this version [%s] is too old (or
 not-defined), read the file in and write it out to a new file to upgrade (with
@@ -122,6 +124,7 @@ the copy_to method)
 class AttributeConflictWarning(Warning):
     pass
 
+
 attribute_conflict_doc = """
 the [%s] attribute of the existing index is [%s] which conflicts with the new
 [%s], resetting the attribute to None
@@ -130,6 +133,7 @@ the [%s] attribute of the existing index is [%s] which conflicts with the new
 
 class DuplicateWarning(Warning):
     pass
+
 
 duplicate_doc = """
 duplicate entries in table, taking most recently appended

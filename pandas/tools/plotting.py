@@ -149,6 +149,7 @@ def _mpl_ge_2_0_0():
     except ImportError:
         return False
 
+
 if _mpl_ge_1_5_0():
     # Compat with mp 1.5, which uses cycler.
     import cycler

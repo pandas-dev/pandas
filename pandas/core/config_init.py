@@ -278,6 +278,7 @@ def mpl_style_cb(key):
 
     return val
 
+
 with cf.config_prefix('display'):
     cf.register_option('precision', 6, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc,
@@ -379,6 +380,7 @@ use_inf_as_null_doc = """
 def use_inf_as_null_cb(key):
     from pandas.types.missing import _use_inf_as_null
     _use_inf_as_null(key)
+
 
 with cf.config_prefix('mode'):
     cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,

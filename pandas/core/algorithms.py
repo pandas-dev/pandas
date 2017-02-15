@@ -926,6 +926,7 @@ def _finalize_nsmallest(arr, kth_val, n, keep, narr):
     else:
         return inds
 
+
 _dtype_map = {'datetime64[ns]': 'int64', 'timedelta64[ns]': 'int64'}
 
 
@@ -958,6 +959,7 @@ def _hashtable_algo(f, values, return_dtype=None):
 
     # use Object
     return f(htable.PyObjectHashTable, _ensure_object)
+
 
 _hashtables = {
     'float64': (htable.Float64HashTable, htable.Float64Vector),
