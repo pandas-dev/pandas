@@ -1,10 +1,10 @@
 python-dateutil
 pytz
-numpy
+numpy=1.12*
 openpyxl
 xlsxwriter
 xlrd
-#xlwt
+xlwt
 scipy
 feather-format
 numexpr
