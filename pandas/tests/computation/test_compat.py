@@ -11,7 +11,11 @@ from pandas.util import testing as tm
 from pandas.computation.engines import _engines
 import pandas.computation.expr as expr
 from pandas.computation import _MIN_NUMEXPR_VERSION
-
+# Get reload for Python 3.4 and on, if not, use internal reload()
+try:
+    from importlib import reload
+except ImportError:
+    pass
 
 ENGINES_PARSERS = list(product(_engines, expr._parsers))
 
@@ -26,7 +30,8 @@ def test_compat():
         if ver < LooseVersion(_MIN_NUMEXPR_VERSION):
             with tm.assert_produces_warning(UserWarning,
                                             check_stacklevel=False):
-                assert not _NUMEXPR_INSTALLED
+                reload(pd.computation)
+            assert not _NUMEXPR_INSTALLED
         else:
             assert _NUMEXPR_INSTALLED
 
