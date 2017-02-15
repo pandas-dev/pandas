@@ -1752,7 +1752,8 @@ class DataFrame(NDFrame):
                 # all cases (e.g., it misses categorical data even with object
                 # categories)
                 deep = False
-                if 'object' in counts or is_object_dtype(self.index):
+                if ('object' in counts or
+                        self.index._is_memory_usage_qualified()):
                     size_qualifier = '+'
             mem_usage = self.memory_usage(index=True, deep=deep).sum()
             lines.append("memory usage: %s\n" %

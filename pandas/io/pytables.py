@@ -3790,9 +3790,9 @@ class LegacyTable(Table):
                 lp = DataFrame(c.data, index=long_index, columns=c.values)
 
                 # need a better algorithm
-                tuple_index = long_index._tuple_index
+                tuple_index = long_index.values
 
-                unique_tuples = lib.fast_unique(tuple_index.values)
+                unique_tuples = lib.fast_unique(tuple_index)
                 unique_tuples = _asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
