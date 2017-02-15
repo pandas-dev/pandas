@@ -7,7 +7,7 @@ import pandas as pd
 from pandas.compat import lrange
 import pandas.compat as compat
 from pandas.util.testing import assert_frame_equal
-from pandas import DataFrame, MultiIndex, Series, merge, concat
+from pandas import DataFrame, MultiIndex, Series, Index, merge, concat
 
 import pandas._join as _join
 import pandas.util.testing as tm
@@ -368,7 +368,7 @@ class TestJoin(tm.TestCase):
         df2 = df2.sort_index(level=0)
 
         joined = df1.join(df2, how='outer')
-        ex_index = index1._tuple_index.union(index2._tuple_index)
+        ex_index = Index(index1.values).union(Index(index2.values))
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         expected.index.names = index1.names
         assert_frame_equal(joined, expected)
@@ -378,7 +378,7 @@ class TestJoin(tm.TestCase):
         df2 = df2.sort_index(level=1)
 
         joined = df1.join(df2, how='outer').sort_index(level=0)
-        ex_index = index1._tuple_index.union(index2._tuple_index)
+        ex_index = Index(index1.values).union(Index(index2.values))
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         expected.index.names = index1.names
 
