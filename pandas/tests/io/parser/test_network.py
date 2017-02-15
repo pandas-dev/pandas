@@ -15,42 +15,36 @@ from pandas import DataFrame
 from pandas.io.parsers import read_csv, read_table
 
 
-class TestCompressedUrl(object):
+@pytest.fixture(scope='module')
+def salaries_table():
+    path = os.path.join(tm.get_data_path(), 'salaries.csv')
+    return read_table(path)
 
-    compression_to_extension = {
-        'gzip': '.gz',
-        'bz2': '.bz2',
-        'zip': '.zip',
-        'xz': '.xz',
-    }
 
-    def setup(self):
-        path = os.path.join(tm.get_data_path(), 'salaries.csv')
-        self.local_table = read_table(path)
-        self.base_url = ('https://github.com/pandas-dev/pandas/raw/master/'
-                         'pandas/io/tests/parser/data/salaries.csv')
+@pytest.mark.parametrize(
+    "compression,extension", [('gzip', '.gz'), ('bz2', '.bz2'),
+                              ('zip', '.zip'), ('xz', '.xz')])
+def test_compressed_urls(salaries_table, compression, extension):
+    check_compressed_urls(salaries_table, compression, extension)
 
-    @tm.network
-    def test_compressed_urls(self):
-        # Test reading compressed tables from URL.
-        msg = ('Test reading {}-compressed tables from URL: '
-               'compression="{}", engine="{}"')
 
-        for compression, extension in self.compression_to_extension.items():
-            url = self.base_url + extension
-            # args is a (compression, engine) tuple
-            for args in product([compression, 'infer'], ['python', 'c']):
-                # test_fxn is a workaround for more descriptive nose reporting.
-                # See http://stackoverflow.com/a/37393684/4651668.
-                test_fxn = functools.partial(self.check_table)
-                test_fxn.description = msg.format(compression, *args)
-                yield (test_fxn, url) + args
+@tm.network
+def check_compressed_urls(salaries_table, compression, extension):
+    # test reading compressed urls with various engines and
+    # extension inference
+    base_url = ('https://github.com/pandas-dev/pandas/raw/master/'
+                'pandas/tests/io/parser/data/salaries.csv')
 
-    def check_table(self, url, compression, engine):
+    url = base_url + extension
+
+    # args is a (compression, engine) tuple
+    for (c, engine) in product([compression, 'infer'], ['python', 'c']):
+
         if url.endswith('.xz'):
             tm._skip_if_no_lzma()
-        url_table = read_table(url, compression=compression, engine=engine)
-        tm.assert_frame_equal(url_table, self.local_table)
+
+        url_table = read_table(url, compression=c, engine=engine)
+        tm.assert_frame_equal(url_table, salaries_table)
 
 
 class TestS3(tm.TestCase):
