@@ -20,11 +20,11 @@ fi
 if [ "$BUILD_TEST" ]; then
     echo "We are not running pytest as this is simply a build test."
 elif [ "$COVERAGE" ]; then
-    echo pytest -s -n 2 -m "not single" --cov=pandas --cov-append --cov-report xml:/tmp/pytest.xml $TEST_ARGS pandas
-    pytest -s -n 2 -m "not single" --cov=pandas --cov-append --cov-report xml:/tmp/pytest.xml $TEST_ARGS pandas
+    echo pytest -s -n 2 -m "not single" --cov=pandas --cov-append --cov-report xml:/tmp/cov.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    pytest -s -n 2 -m "not single" --cov=pandas --cov-append --cov-report xml:/tmp/cov.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
 else
-    echo pytest -n 2 -m "not single" $TEST_ARGS pandas
-    pytest -n 2 -m "not single" $TEST_ARGS pandas # TODO: doctest
+    echo pytest -n 2 -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    pytest -n 2 -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas # TODO: doctest
 fi
 
 RET="$?"
