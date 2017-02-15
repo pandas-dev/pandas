@@ -112,6 +112,7 @@ fi
 source activate pandas
 
 pip install pytest-xdist
+
 if [ "$LINT" ]; then
    conda install flake8
    pip install cpplint
