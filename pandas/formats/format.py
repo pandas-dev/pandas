@@ -2479,9 +2479,9 @@ def _has_names(index):
     else:
         return index.name is not None
 
+
 # -----------------------------------------------------------------------------
 # Global formatting options
-
 _initial_defencoding = None
 
 

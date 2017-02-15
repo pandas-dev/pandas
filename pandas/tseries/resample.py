@@ -552,6 +552,8 @@ class Resampler(_GroupBy):
         """
         nv.validate_resampler_func('var', args, kwargs)
         return self._downsample('var', ddof=ddof)
+
+
 Resampler._deprecated_valids += dir(Resampler)
 
 # downsample methods
@@ -969,6 +971,8 @@ def resample(obj, kind=None, **kwds):
     """ create a TimeGrouper and return our resampler """
     tg = TimeGrouper(**kwds)
     return tg._get_resampler(obj, kind=kind)
+
+
 resample.__doc__ = Resampler.__doc__
 
 

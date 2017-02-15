@@ -459,6 +459,7 @@ conversion range. This may result in a loss of precision in the saved data.
 class ValueLabelTypeMismatch(Warning):
     pass
 
+
 value_label_mismatch_doc = """
 Stata value labels (pandas categories) must be strings. Column {0} contains
 non-string labels which will be converted to strings.  Please check that the

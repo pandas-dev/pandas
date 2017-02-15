@@ -409,6 +409,7 @@ def _read(filepath_or_buffer, kwds):
 
     return data
 
+
 _parser_defaults = {
     'delimiter': None,
 
@@ -654,6 +655,7 @@ def _make_parser_function(name, sep=','):
     parser_f.__name__ = name
 
     return parser_f
+
 
 read_csv = _make_parser_function('read_csv', sep=',')
 read_csv = Appender(_read_csv_doc)(read_csv)

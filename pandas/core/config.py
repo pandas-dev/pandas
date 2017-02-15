@@ -804,6 +804,7 @@ def is_one_of_factory(legal_values):
 
     return inner
 
+
 # common type validators, for convenience
 # usage: register_option(... , validator = is_int)
 is_int = is_type_factory(int)

@@ -652,5 +652,6 @@ class RangeIndex(Int64Index):
                 reversed=True,
                 step=operator.div)
 
+
 RangeIndex._add_numeric_methods()
 RangeIndex._add_logical_methods()

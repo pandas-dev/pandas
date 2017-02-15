@@ -669,6 +669,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         operands = node.values
         return reduce(visitor, operands)
 
+
 # ast.Call signature changed on 3.5,
 # conditionally change which methods is named
 # visit_Call depending on Python version, #11097

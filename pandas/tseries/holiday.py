@@ -286,6 +286,7 @@ class Holiday(object):
                     dates += offset
         return dates
 
+
 holiday_calendars = {}
 
 
@@ -460,6 +461,7 @@ class AbstractHolidayCalendar(object):
             self.rules = holidays
         else:
             return holidays
+
 
 USMemorialDay = Holiday('MemorialDay', month=5, day=31,
                         offset=DateOffset(weekday=MO(-1)))

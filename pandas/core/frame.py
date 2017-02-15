@@ -5741,9 +5741,9 @@ def _from_nested_dict(data):
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
 
+
 # ----------------------------------------------------------------------
 # Add plotting methods to DataFrame
-
 DataFrame.plot = base.AccessorProperty(gfx.FramePlotMethods,
                                        gfx.FramePlotMethods)
 DataFrame.hist = gfx.hist_frame

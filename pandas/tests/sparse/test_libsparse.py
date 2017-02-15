@@ -560,8 +560,8 @@ class TestSparseOperators(tm.TestCase):
 
         check_cases(_check_case)
 
-# too cute? oh but how I abhor code duplication
 
+# too cute? oh but how I abhor code duplication
 check_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
 
 

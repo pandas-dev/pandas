@@ -36,6 +36,7 @@ def get_indexers_list():
         ('iat', _iAtIndexer),
     ]
 
+
 # "null slice"
 _NS = slice(None, None)
 
@@ -1849,6 +1850,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
                 raise ValueError("iAt based indexing can only have integer "
                                  "indexers")
         return key
+
 
 # 32-bit floating point machine epsilon
 _eps = np.finfo('f4').eps

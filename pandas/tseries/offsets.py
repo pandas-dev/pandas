@@ -1652,6 +1652,7 @@ class WeekDay(object):
     SAT = 5
     SUN = 6
 
+
 _int_to_weekday = {
     WeekDay.MON: 'MON',
     WeekDay.TUE: 'TUE',
@@ -1923,6 +1924,7 @@ class BQuarterEnd(QuarterOffset):
             return False
         modMonth = (dt.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(dt) and modMonth == 0
+
 
 _int_to_month = tslib._MONTH_ALIASES
 _month_to_int = dict((v, k) for k, v in _int_to_month.items())
@@ -2799,6 +2801,7 @@ def _delta_to_tick(delta):
         else:  # pragma: no cover
             return Nano(nanos)
 
+
 _delta_to_nanoseconds = tslib._delta_to_nanoseconds
 
 
@@ -2930,6 +2933,7 @@ def generate_range(start=None, end=None, periods=None,
             if next_date >= cur:
                 raise ValueError('Offset %s did not decrement date' % offset)
             cur = next_date
+
 
 prefix_mapping = dict((offset._prefix, offset) for offset in [
     YearBegin,                 # 'AS'
