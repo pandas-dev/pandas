@@ -18,19 +18,19 @@ environment:
 
   matrix:
 
-    - CONDA_ROOT: "C:\\Miniconda3.5_64"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       CONDA_PY: "36"
       CONDA_NPY: "111"
 
-    - CONDA_ROOT: "C:\\Miniconda3.5_64"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "27"
       CONDA_NPY: "110"
 
-    - CONDA_ROOT: "C:\\Miniconda3.5_64"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       CONDA_PY: "35"
@@ -66,8 +66,7 @@ install:
 
   # install our build environment
   - cmd: conda config --set show_channel_urls true --set always_yes true --set changeps1 false
-  #- cmd: conda update -q conda
-  - cmd: conda install conda=4.2.15
+  - cmd: conda update -q conda
   - cmd: conda config --set ssl_verify false
 
   # add the pandas channel *before* defaults to have defaults take priority
@@ -83,7 +82,7 @@ install:
   - cmd: '%CMD_IN_ENV% conda build ci\appveyor.recipe -q'
 
   # create our env
-  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% nose pytest
+  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% pytest
   - cmd: activate pandas
   - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
   - cmd: echo "installing requirements from %REQ%"
@@ -98,4 +97,3 @@ test_script:
   - cmd: conda list
   - cmd: cd \
   - cmd: python -c "import pandas; pandas.test(['--skip-slow', '--skip-network'])"
-
