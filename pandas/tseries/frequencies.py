@@ -660,6 +660,7 @@ def get_standard_freq(freq):
     warnings.warn(msg, FutureWarning, stacklevel=2)
     return to_offset(freq).rule_code
 
+
 # ---------------------------------------------------------------------
 # Period codes
 
@@ -794,6 +795,7 @@ def infer_freq(index, warn=True):
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
+
 
 _ONE_MICRO = long(1000)
 _ONE_MILLI = _ONE_MICRO * 1000

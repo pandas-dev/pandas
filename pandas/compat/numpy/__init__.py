@@ -67,6 +67,7 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
 
     return np.array(arr, *args, **kwargs)
 
+
 __all__ = ['np',
            '_np_version_under1p8',
            '_np_version_under1p9',

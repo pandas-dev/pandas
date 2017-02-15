@@ -74,6 +74,7 @@ def reset_testing_mode():
     if 'deprecate' in testing_mode:
         warnings.simplefilter('ignore', _testing_mode_warnings)
 
+
 set_testing_mode()
 
 
@@ -1381,6 +1382,7 @@ def assert_panelnd_equal(left, right,
         for i, item in enumerate(right._get_axis(0)):
             assert item in left, "non-matching item (left) '%s'" % item
 
+
 # TODO: strangely check_names fails in py3 ?
 _panel_frame_equal = partial(assert_frame_equal, check_names=False)
 assert_panel_equal = partial(assert_panelnd_equal,
@@ -2075,6 +2077,7 @@ def optional_args(decorator):
             return dec
 
     return wrapper
+
 
 # skip tests on exceptions with this message
 _network_error_messages = (

@@ -495,6 +495,7 @@ def has_table(table_name, con, flavor=None, schema=None):
     pandas_sql = pandasSQL_builder(con, flavor=flavor, schema=schema)
     return pandas_sql.has_table(table_name)
 
+
 table_exists = has_table
 
 

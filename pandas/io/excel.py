@@ -886,11 +886,13 @@ class _Openpyxl1Writer(ExcelWriter):
 
         return xls_style
 
+
 register_writer(_Openpyxl1Writer)
 
 
 class _OpenpyxlWriter(_Openpyxl1Writer):
     engine = 'openpyxl'
+
 
 register_writer(_OpenpyxlWriter)
 
@@ -1368,6 +1370,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
 
+
 register_writer(_Openpyxl22Writer)
 
 
@@ -1491,6 +1494,7 @@ class _XlwtWriter(ExcelWriter):
 
         return style
 
+
 register_writer(_XlwtWriter)
 
 
@@ -1602,5 +1606,6 @@ class _XlsxWriter(ExcelWriter):
             xl_format.set_border()
 
         return xl_format
+
 
 register_writer(_XlsxWriter)

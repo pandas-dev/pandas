@@ -58,6 +58,7 @@ def _test_google_api_imports():
         raise ImportError("Missing module required for Google BigQuery "
                           "support: {0}".format(str(e)))
 
+
 logger = logging.getLogger('pandas.io.gbq')
 logger.setLevel(logging.ERROR)
 

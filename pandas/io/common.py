@@ -82,6 +82,7 @@ class ParserError(ValueError):
     """
     pass
 
+
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
 
@@ -122,6 +123,7 @@ class BaseIterator(object):
 
     def __next__(self):
         raise AbstractMethodError(self)
+
 
 if not compat.PY3:
     BaseIterator.next = lambda self: self.__next__()
