@@ -17,5 +17,5 @@ def pytest_runtest_setup(item):
     if 'slow' not in item.keywords and item.config.getoption("--only-slow"):
         pytest.skip("skipping due to --only-slow")
 
-    if 'skip' in item.keywords and item.config.getoption("--skip-network"):
+    if 'network' in item.keywords and item.config.getoption("--skip-network"):
         pytest.skip("skipping due to --skip-network")
