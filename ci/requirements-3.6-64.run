@@ -4,7 +4,7 @@ numpy
 openpyxl
 xlsxwriter
 xlrd
-#xlwt
+xlwt
 scipy
 feather-format
 numexpr
