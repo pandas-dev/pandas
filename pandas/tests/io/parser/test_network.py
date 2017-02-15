@@ -20,11 +20,15 @@ def salaries_table():
     return read_table(path)
 
 
-@tm.network
 @pytest.mark.parametrize(
     "compression,extension", [('gzip', '.gz'), ('bz2', '.bz2'),
                               ('zip', '.zip'), ('xz', '.xz')])
 def test_compressed_urls(salaries_table, compression, extension):
+    check_compressed_urls(salaries_table, compression, extension)
+
+
+@tm.network
+def check_compressed_urls(salaries_table, compression, extension):
     # test reading compressed urls with various engines and
     # extension inference
     base_url = ('https://github.com/pandas-dev/pandas/raw/master/'
