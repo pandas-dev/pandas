@@ -1588,6 +1588,7 @@ class TestPanel4D(tm.TestCase, Generic):
             # non-convertible
             self.assertRaises(ValueError, lambda: result.to_pandas())
 
+
 # run all the tests, but wrap each in a warning catcher
 for t in ['test_rename', 'test_rename_axis', 'test_get_numeric_data',
           'test_get_default', 'test_nonzero',

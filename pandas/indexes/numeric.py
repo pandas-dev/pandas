@@ -159,6 +159,7 @@ class Int64Index(NumericIndex):
                 raise TypeError('Unsafe NumPy casting, you must '
                                 'explicitly cast')
 
+
 Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()
 
@@ -237,6 +238,7 @@ class UInt64Index(NumericIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError('Unsafe NumPy casting, you must '
                                 'explicitly cast')
+
 
 UInt64Index._add_numeric_methods()
 UInt64Index._add_logical_methods()
@@ -390,6 +392,7 @@ class Float64Index(NumericIndex):
             self._validate_index_level(level)
         return lib.ismember_nans(np.array(self), value_set,
                                  isnull(list(value_set)).any())
+
 
 Float64Index._add_numeric_methods()
 Float64Index._add_logical_methods_disabled()

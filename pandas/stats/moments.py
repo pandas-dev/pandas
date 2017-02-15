@@ -385,6 +385,7 @@ def ewmstd(arg, com=None, span=None, halflife=None, alpha=None, min_periods=0,
                          bias=bias,
                          func_kw=['bias'])
 
+
 ewmvol = ewmstd
 
 
@@ -475,6 +476,7 @@ def _rolling_func(name, desc, how=None, func_kw=None, additional_kw=''):
                              func_kw=func_kw,
                              **kwargs)
     return f
+
 
 rolling_max = _rolling_func('max', 'Moving maximum.', how='max')
 rolling_min = _rolling_func('min', 'Moving minimum.', how='min')
@@ -682,6 +684,7 @@ def _expanding_func(name, desc, func_kw=None, additional_kw=''):
                              func_kw=func_kw,
                              **kwargs)
     return f
+
 
 expanding_max = _expanding_func('max', 'Expanding maximum.')
 expanding_min = _expanding_func('min', 'Expanding minimum.')

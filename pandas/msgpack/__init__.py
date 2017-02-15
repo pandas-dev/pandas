@@ -41,6 +41,7 @@ def packb(o, **kwargs):
     """
     return Packer(**kwargs).pack(o)
 
+
 # alias for compatibility to simplejson/marshal/pickle.
 load = unpack
 loads = unpackb
