@@ -1510,59 +1510,6 @@ class TestGroupBy(MixIn, tm.TestCase):
             check_nunique(frame, ['jim'], as_index=False)
             check_nunique(frame, ['jim', 'joe'], as_index=False)
 
-    def test_series_groupby_value_counts(self):
-        from itertools import product
-        np.random.seed(1234)
-
-        def rebuild_index(df):
-            arr = list(map(df.index.get_level_values, range(df.index.nlevels)))
-            df.index = MultiIndex.from_arrays(arr, names=df.index.names)
-            return df
-
-        def check_value_counts(df, keys, bins):
-            for isort, normalize, sort, ascending, dropna \
-                    in product((False, True), repeat=5):
-
-                kwargs = dict(normalize=normalize, sort=sort,
-                              ascending=ascending, dropna=dropna, bins=bins)
-
-                gr = df.groupby(keys, sort=isort)
-                left = gr['3rd'].value_counts(**kwargs)
-
-                gr = df.groupby(keys, sort=isort)
-                right = gr['3rd'].apply(Series.value_counts, **kwargs)
-                right.index.names = right.index.names[:-1] + ['3rd']
-
-                # have to sort on index because of unstable sort on values
-                left, right = map(rebuild_index, (left, right))  # xref GH9212
-                assert_series_equal(left.sort_index(), right.sort_index())
-
-        def loop(df):
-            bins = None, np.arange(0, max(5, df['3rd'].max()) + 1, 2)
-            keys = '1st', '2nd', ('1st', '2nd')
-            for k, b in product(keys, bins):
-                check_value_counts(df, k, b)
-
-        days = date_range('2015-08-24', periods=10)
-
-        for n, m in product((100, 1000), (5, 20)):
-            frame = DataFrame({
-                '1st': np.random.choice(
-                    list('abcd'), n),
-                '2nd': np.random.choice(days, n),
-                '3rd': np.random.randint(1, m + 1, n)
-            })
-
-            loop(frame)
-
-            frame.loc[1::11, '1st'] = nan
-            frame.loc[3::17, '2nd'] = nan
-            frame.loc[7::19, '3rd'] = nan
-            frame.loc[8::19, '3rd'] = nan
-            frame.loc[9::19, '3rd'] = nan
-
-            loop(frame)
-
     def test_multiindex_passthru(self):
 
         # GH 7997
@@ -3071,22 +3018,6 @@ class TestGroupBy(MixIn, tm.TestCase):
         agged = grouped.mean()
         self.assert_index_equal(agged.minor_axis, Index([0, 1]))
 
-    def test_numpy_groupby(self):
-        from pandas.core.groupby import numpy_groupby
-
-        data = np.random.randn(100, 100)
-        labels = np.random.randint(0, 10, size=100)
-
-        df = DataFrame(data)
-
-        result = df.groupby(labels).sum().values
-        expected = numpy_groupby(data, labels)
-        assert_almost_equal(result, expected)
-
-        result = df.groupby(labels, axis=1).sum().values
-        expected = numpy_groupby(data, labels, axis=1)
-        assert_almost_equal(result, expected)
-
     def test_groupby_2d_malformed(self):
         d = DataFrame(index=lrange(2))
         d['group'] = ['g1', 'g2']
@@ -3111,85 +3042,6 @@ class TestGroupBy(MixIn, tm.TestCase):
         left = df.groupby(['A', 'B', 'C', 'D']).sum()
         right = df.groupby(['D', 'C', 'B', 'A']).sum()
         self.assertEqual(len(left), len(right))
-
-    def test_int64_overflow(self):
-        from pandas.core.groupby import _int64_overflow_possible
-
-        B = np.concatenate((np.arange(1000), np.arange(1000), np.arange(500)))
-        A = np.arange(2500)
-        df = DataFrame({'A': A,
-                        'B': B,
-                        'C': A,
-                        'D': B,
-                        'E': A,
-                        'F': B,
-                        'G': A,
-                        'H': B,
-                        'values': np.random.randn(2500)})
-
-        lg = df.groupby(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
-        rg = df.groupby(['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'])
-
-        left = lg.sum()['values']
-        right = rg.sum()['values']
-
-        exp_index, _ = left.index.sortlevel()
-        self.assert_index_equal(left.index, exp_index)
-
-        exp_index, _ = right.index.sortlevel(0)
-        self.assert_index_equal(right.index, exp_index)
-
-        tups = list(map(tuple, df[['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
-                                   ]].values))
-        tups = com._asarray_tuplesafe(tups)
-
-        expected = df.groupby(tups).sum()['values']
-
-        for k, v in compat.iteritems(expected):
-            self.assertEqual(left[k], right[k[::-1]])
-            self.assertEqual(left[k], v)
-        self.assertEqual(len(left), len(right))
-
-        # GH9096
-        values = range(55109)
-        data = pd.DataFrame.from_dict({'a': values,
-                                       'b': values,
-                                       'c': values,
-                                       'd': values})
-        grouped = data.groupby(['a', 'b', 'c', 'd'])
-        self.assertEqual(len(grouped), len(values))
-
-        arr = np.random.randint(-1 << 12, 1 << 12, (1 << 15, 5))
-        i = np.random.choice(len(arr), len(arr) * 4)
-        arr = np.vstack((arr, arr[i]))  # add sume duplicate rows
-
-        i = np.random.permutation(len(arr))
-        arr = arr[i]  # shuffle rows
-
-        df = DataFrame(arr, columns=list('abcde'))
-        df['jim'], df['joe'] = np.random.randn(2, len(df)) * 10
-        gr = df.groupby(list('abcde'))
-
-        # verify this is testing what it is supposed to test!
-        self.assertTrue(_int64_overflow_possible(gr.grouper.shape))
-
-        # mannually compute groupings
-        jim, joe = defaultdict(list), defaultdict(list)
-        for key, a, b in zip(map(tuple, arr), df['jim'], df['joe']):
-            jim[key].append(a)
-            joe[key].append(b)
-
-        self.assertEqual(len(gr), len(jim))
-        mi = MultiIndex.from_tuples(jim.keys(), names=list('abcde'))
-
-        def aggr(func):
-            f = lambda a: np.fromiter(map(func, a), dtype='f8')
-            arr = np.vstack((f(jim.values()), f(joe.values()))).T
-            res = DataFrame(arr, columns=['jim', 'joe'], index=mi)
-            return res.sort_index()
-
-        assert_frame_equal(gr.mean(), aggr(np.mean))
-        assert_frame_equal(gr.median(), aggr(np.median))
 
     def test_groupby_sort_multi(self):
         df = DataFrame({'a': ['foo', 'bar', 'baz'],
@@ -4451,24 +4303,3 @@ def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     expected = f(df.groupby(tups)[field])
     for k, v in compat.iteritems(expected):
         assert (result[k] == v)
-
-
-def test_decons():
-    from pandas.core.groupby import decons_group_index, get_group_index
-
-    def testit(label_list, shape):
-        group_index = get_group_index(label_list, shape, sort=True, xnull=True)
-        label_list2 = decons_group_index(group_index, shape)
-
-        for a, b in zip(label_list, label_list2):
-            assert (np.array_equal(a, b))
-
-    shape = (4, 5, 6)
-    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100), np.tile(
-        [0, 2, 4, 3, 0, 1, 2, 3], 100), np.tile(
-            [5, 1, 0, 2, 3, 0, 5, 4], 100)]
-    testit(label_list, shape)
-
-    shape = (10000, 10000)
-    label_list = [np.tile(np.arange(10000), 5), np.tile(np.arange(10000), 5)]
-    testit(label_list, shape)

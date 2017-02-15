@@ -2,5 +2,7 @@ python-dateutil
 pytz
 numpy
 cython
-nose
+pytest
+pytest-cov
+pytest-xdist
 flake8

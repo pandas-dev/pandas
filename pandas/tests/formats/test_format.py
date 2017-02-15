@@ -44,7 +44,7 @@ from pandas.core.config import (set_option, get_option, option_context,
                                 reset_option)
 from datetime import datetime
 
-import nose
+import pytest
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
@@ -287,7 +287,7 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
         if term_width < 10 or term_height < 10:
-            raise nose.SkipTest("terminal size too small, "
+            pytest.skip("terminal size too small, "
                                 "{0} x {1}".format(term_width, term_height))
 
         def mkframe(n):
@@ -1871,7 +1871,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
 
     def test_to_html_truncate(self):
-        raise nose.SkipTest("unreliable on travis")
+        pytest.skip("unreliable on travis")
         index = pd.DatetimeIndex(start='20010101', freq='D', periods=20)
         df = DataFrame(index=index, columns=range(20))
         fmt.set_option('display.max_rows', 8)
@@ -1972,7 +1972,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertEqual(result, expected)
 
     def test_to_html_truncate_multi_index(self):
-        raise nose.SkipTest("unreliable on travis")
+        pytest.skip("unreliable on travis")
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
@@ -2089,7 +2089,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertEqual(result, expected)
 
     def test_to_html_truncate_multi_index_sparse_off(self):
-        raise nose.SkipTest("unreliable on travis")
+        pytest.skip("unreliable on travis")
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
@@ -2250,7 +2250,7 @@ class TestDataFrameFormatting(tm.TestCase):
         from pandas.formats.printing import pprint_thing as pp_t
 
         if PY3:
-            raise nose.SkipTest("doesn't work on Python 3")
+            pytest.skip("doesn't work on Python 3")
 
         self.assertEqual(pp_t('a'), u('a'))
         self.assertEqual(pp_t(u('a')), u('a'))
@@ -3923,6 +3923,15 @@ $1$,$2$
         self.assertEqual(str(df), exp)
 
 
+def gen_series_formatting():
+    s1 = pd.Series(['a'] * 100)
+    s2 = pd.Series(['ab'] * 100)
+    s3 = pd.Series(['a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef'])
+    s4 = s3[::-1]
+    test_sers = {'onel': s1, 'twol': s2, 'asc': s3, 'desc': s4}
+    return test_sers
+
+
 class TestSeriesFormatting(tm.TestCase):
 
     def setUp(self):
@@ -4320,15 +4329,6 @@ class TestSeriesFormatting(tm.TestCase):
                '1.0000\n129    1.0000\ndtype: float64')
         self.assertEqual(res, exp)
 
-    @staticmethod
-    def gen_test_series():
-        s1 = pd.Series(['a'] * 100)
-        s2 = pd.Series(['ab'] * 100)
-        s3 = pd.Series(['a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef'])
-        s4 = s3[::-1]
-        test_sers = {'onel': s1, 'twol': s2, 'asc': s3, 'desc': s4}
-        return test_sers
-
     def chck_ncols(self, s):
         with option_context("display.max_rows", 10):
             res = repr(s)
@@ -4339,7 +4339,7 @@ class TestSeriesFormatting(tm.TestCase):
         self.assertEqual(ncolsizes, 1)
 
     def test_format_explicit(self):
-        test_sers = self.gen_test_series()
+        test_sers = gen_series_formatting()
         with option_context("display.max_rows", 4):
             res = repr(test_sers['onel'])
             exp = '0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object'
@@ -4358,7 +4358,7 @@ class TestSeriesFormatting(tm.TestCase):
             self.assertEqual(exp, res)
 
     def test_ncols(self):
-        test_sers = self.gen_test_series()
+        test_sers = gen_series_formatting()
         for s in test_sers.values():
             self.chck_ncols(s)
 

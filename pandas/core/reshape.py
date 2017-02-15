@@ -20,7 +20,8 @@ from pandas.sparse.array import SparseArray
 from pandas._sparse import IntIndex
 
 from pandas.core.categorical import Categorical, _factorize_from_iterable
-from pandas.core.groupby import get_group_index, _compress_group_index
+from pandas.core.sorting import (get_group_index, compress_group_index,
+                                 decons_obs_group_ids)
 
 import pandas.core.algorithms as algos
 import pandas.algos as _algos
@@ -156,7 +157,7 @@ class _Unstacker(object):
 
         # filter out missing levels
         if values.shape[1] > 0:
-            col_inds, obs_ids = _compress_group_index(self.sorted_labels[-1])
+            col_inds, obs_ids = compress_group_index(self.sorted_labels[-1])
             # rare case, level values not observed
             if len(obs_ids) < self.full_shape[1]:
                 inds = (value_mask.sum(0) > 0).nonzero()[0]
@@ -245,8 +246,6 @@ class _Unstacker(object):
 
 
 def _unstack_multiple(data, clocs):
-    from pandas.core.groupby import decons_obs_group_ids
-
     if len(clocs) == 0:
         return data
 
@@ -268,7 +267,7 @@ def _unstack_multiple(data, clocs):
     shape = [len(x) for x in clevels]
     group_index = get_group_index(clabels, shape, sort=False, xnull=False)
 
-    comp_ids, obs_ids = _compress_group_index(group_index, sort=False)
+    comp_ids, obs_ids = compress_group_index(group_index, sort=False)
     recons_labels = decons_obs_group_ids(comp_ids, obs_ids, shape, clabels,
                                          xnull=False)
 
@@ -459,10 +458,8 @@ def _unstack_frame(obj, level, fill_value=None):
 
 
 def get_compressed_ids(labels, sizes):
-    from pandas.core.groupby import get_group_index
-
     ids = get_group_index(labels, sizes, sort=True, xnull=False)
-    return _compress_group_index(ids, sort=True)
+    return compress_group_index(ids, sort=True)
 
 
 def stack(frame, level=-1, dropna=True):
@@ -761,16 +758,26 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     """
     # TODO: what about the existing index?
     if id_vars is not None:
-        if not isinstance(id_vars, (tuple, list, np.ndarray)):
+        if not is_list_like(id_vars):
             id_vars = [id_vars]
+        elif (isinstance(frame.columns, MultiIndex) and
+              not isinstance(id_vars, list)):
+            raise ValueError('id_vars must be a list of tuples when columns'
+                             ' are a MultiIndex')
         else:
             id_vars = list(id_vars)
     else:
         id_vars = []
 
     if value_vars is not None:
-        if not isinstance(value_vars, (tuple, list, np.ndarray)):
+        if not is_list_like(value_vars):
             value_vars = [value_vars]
+        elif (isinstance(frame.columns, MultiIndex) and
+              not isinstance(value_vars, list)):
+            raise ValueError('value_vars must be a list of tuples when'
+                             ' columns are a MultiIndex')
+        else:
+            value_vars = list(value_vars)
         frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()

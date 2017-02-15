@@ -22,16 +22,16 @@ def _skip_if_no_pchip():
     try:
         from scipy.interpolate import pchip_interpolate  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest('scipy.interpolate.pchip missing')
+        import pytest
+        pytest.skip('scipy.interpolate.pchip missing')
 
 
 def _skip_if_no_akima():
     try:
         from scipy.interpolate import Akima1DInterpolator  # noqa
     except ImportError:
-        import nose
-        raise nose.SkipTest('scipy.interpolate.Akima1DInterpolator missing')
+        import pytest
+        pytest.skip('scipy.interpolate.Akima1DInterpolator missing')
 
 
 def _simple_ts(start, end, freq='D'):
@@ -294,6 +294,13 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         s = Series(np.random.randint(-100, 100, 50))
         self.assertRaises(TypeError, s.fillna, [1, 2])
         self.assertRaises(TypeError, s.fillna, (1, 2))
+
+        # related GH 9217, make sure limit is an int and greater than 0
+        s = Series([1, 2, 3, None])
+        for limit in [-1, 0, 1., 2.]:
+            for method in ['backfill', 'bfill', 'pad', 'ffill', None]:
+                with tm.assertRaises(ValueError):
+                    s.fillna(1, limit=limit, method=method)
 
     def test_fillna_nat(self):
         series = Series([0, 1, 2, tslib.iNaT], dtype='M8[ns]')
@@ -864,6 +871,17 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         expected = Series([1., 3., 5., 7., np.nan, 11.])
         result = s.interpolate(method='linear', limit=2)
         assert_series_equal(result, expected)
+
+        # GH 9217, make sure limit is an int and greater than 0
+        methods = ['linear', 'time', 'index', 'values', 'nearest', 'zero',
+                   'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
+                   'polynomial', 'spline', 'piecewise_polynomial', None,
+                   'from_derivatives', 'pchip', 'akima']
+        s = pd.Series([1, 2, np.nan, np.nan, 5])
+        for limit in [-1, 0, 1., 2.]:
+            for method in methods:
+                with tm.assertRaises(ValueError):
+                    s.interpolate(limit=limit, method=method)
 
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])

@@ -1056,21 +1056,32 @@ class _Dataset(GbqConnector):
             List of datasets under the specific project
         """
 
-        try:
-            list_dataset_response = self.service.datasets().list(
-                projectId=self.project_id).execute().get('datasets', None)
+        dataset_list = []
+        next_page_token = None
+        first_query = True
 
-            if not list_dataset_response:
-                return []
+        while first_query or next_page_token:
+            first_query = False
 
-            dataset_list = list()
+            try:
+                list_dataset_response = self.service.datasets().list(
+                    projectId=self.project_id,
+                    pageToken=next_page_token).execute()
 
-            for row_num, raw_row in enumerate(list_dataset_response):
-                dataset_list.append(raw_row['datasetReference']['datasetId'])
+                dataset_response = list_dataset_response.get('datasets')
+                next_page_token = list_dataset_response.get('nextPageToken')
 
-            return dataset_list
-        except self.http_error as ex:
-            self.process_http_error(ex)
+                if not dataset_response:
+                    return dataset_list
+
+                for row_num, raw_row in enumerate(dataset_response):
+                    dataset_list.append(
+                        raw_row['datasetReference']['datasetId'])
+
+            except self.http_error as ex:
+                self.process_http_error(ex)
+
+        return dataset_list
 
     def create(self, dataset_id):
         """ Create a dataset in Google BigQuery
@@ -1140,19 +1151,29 @@ class _Dataset(GbqConnector):
             List of tables under the specific dataset
         """
 
-        try:
-            list_table_response = self.service.tables().list(
-                projectId=self.project_id,
-                datasetId=dataset_id).execute().get('tables', None)
+        table_list = []
+        next_page_token = None
+        first_query = True
 
-            if not list_table_response:
-                return []
+        while first_query or next_page_token:
+            first_query = False
 
-            table_list = list()
+            try:
+                list_table_response = self.service.tables().list(
+                    projectId=self.project_id,
+                    datasetId=dataset_id,
+                    pageToken=next_page_token).execute()
 
-            for row_num, raw_row in enumerate(list_table_response):
-                table_list.append(raw_row['tableReference']['tableId'])
+                table_response = list_table_response.get('tables')
+                next_page_token = list_table_response.get('nextPageToken')
 
-            return table_list
-        except self.http_error as ex:
-            self.process_http_error(ex)
+                if not table_response:
+                    return table_list
+
+                for row_num, raw_row in enumerate(table_response):
+                    table_list.append(raw_row['tableReference']['tableId'])
+
+            except self.http_error as ex:
+                self.process_http_error(ex)
+
+        return table_list

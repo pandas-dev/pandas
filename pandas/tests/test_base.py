@@ -4,7 +4,7 @@ from __future__ import print_function
 import re
 import sys
 from datetime import datetime, timedelta
-import nose
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -32,7 +32,7 @@ class CheckStringMixin(object):
 
     def test_tricky_container(self):
         if not hasattr(self, 'unicode_container'):
-            raise nose.SkipTest('Need unicode_container to test with this')
+            pytest.skip('Need unicode_container to test with this')
         repr(self.unicode_container)
         str(self.unicode_container)
         bytes(self.unicode_container)

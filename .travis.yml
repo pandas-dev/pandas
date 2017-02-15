@@ -32,7 +32,7 @@ matrix:
       env:
         - PYTHON_VERSION=3.5
         - JOB_NAME: "35_osx"
-        - NOSE_ARGS="not slow and not network and not disabled"
+        - TEST_ARGS="--skip-slow --skip-network"
         - BUILD_TYPE=conda
         - JOB_TAG=_OSX
         - TRAVIS_PYTHON_VERSION=3.5
@@ -42,7 +42,7 @@ matrix:
       env:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_slow_nnet_LOCALE"
-        - NOSE_ARGS="slow and not network and not disabled"
+        - TEST_ARGS="--only-slow --skip-network"
         - LOCALE_OVERRIDE="zh_CN.UTF-8"
         - FULL_DEPS=true
         - JOB_TAG=_LOCALE
@@ -56,7 +56,7 @@ matrix:
       env:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_nslow"
-        - NOSE_ARGS="not slow and not disabled"
+        - TEST_ARGS="--skip-slow"
         - FULL_DEPS=true
         - CLIPBOARD_GUI=gtk2
         - LINT=true
@@ -70,7 +70,7 @@ matrix:
       env:
         - PYTHON_VERSION=3.5
         - JOB_NAME: "35_nslow"
-        - NOSE_ARGS="not slow and not network and not disabled"
+        - TEST_ARGS="--skip-slow --skip-network"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
         - COVERAGE=true
@@ -84,7 +84,7 @@ matrix:
       env:
         - PYTHON_VERSION=3.6
         - JOB_NAME: "36"
-        - NOSE_ARGS="not slow and not network and not disabled"
+        - TEST_ARGS="--skip-slow --skip-network"
         - PANDAS_TESTING_MODE="deprecate"
       addons:
         apt:
@@ -96,7 +96,7 @@ matrix:
       env:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_nslow_nnet_COMPAT"
-        - NOSE_ARGS="not slow and not network and not disabled"
+        - TEST_ARGS="--skip-slow --skip-network"
         - LOCALE_OVERRIDE="it_IT.UTF-8"
         - INSTALL_TEST=true
         - JOB_TAG=_COMPAT
@@ -112,7 +112,7 @@ matrix:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_slow"
         - JOB_TAG=_SLOW
-        - NOSE_ARGS="slow and not network and not disabled"
+        - TEST_ARGS="--only-slow --skip-network"
         - FULL_DEPS=true
         - CACHE_NAME="27_slow"
         - USE_CACHE=true
@@ -122,7 +122,7 @@ matrix:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_build_test_conda"
         - JOB_TAG=_BUILD_TEST
-        - NOSE_ARGS="not slow and not disabled"
+        - TEST_ARGS="--skip-slow"
         - FULL_DEPS=true
         - BUILD_TEST=true
         - CACHE_NAME="27_build_test_conda"
@@ -133,7 +133,7 @@ matrix:
         - PYTHON_VERSION=3.4
         - JOB_NAME: "34_nslow"
         - LOCALE_OVERRIDE="zh_CN.UTF-8"
-        - NOSE_ARGS="not slow and not disabled"
+        - TEST_ARGS="--skip-slow"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
         - CACHE_NAME="34_nslow"
@@ -149,7 +149,7 @@ matrix:
         - PYTHON_VERSION=3.4
         - JOB_NAME: "34_slow"
         - JOB_TAG=_SLOW
-        - NOSE_ARGS="slow and not network and not disabled"
+        - TEST_ARGS="--only-slow --skip-network"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
         - CACHE_NAME="34_slow"
@@ -164,7 +164,7 @@ matrix:
         - PYTHON_VERSION=3.5
         - JOB_NAME: "35_numpy_dev"
         - JOB_TAG=_NUMPY_DEV
-        - NOSE_ARGS="not slow and not network and not disabled"
+        - TEST_ARGS="--skip-slow --skip-network"
         - PANDAS_TESTING_MODE="deprecate"
         - CACHE_NAME="35_numpy_dev"
         - USE_CACHE=true
@@ -179,7 +179,7 @@ matrix:
         - PYTHON_VERSION=3.5
         - JOB_NAME: "35_ascii"
         - JOB_TAG=_ASCII
-        - NOSE_ARGS="not slow and not network and not disabled"
+        - TEST_ARGS="--skip-slow --skip-network"
         - LOCALE_OVERRIDE="C"
         - CACHE_NAME="35_ascii"
         - USE_CACHE=true
@@ -199,7 +199,7 @@ matrix:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_slow"
         - JOB_TAG=_SLOW
-        - NOSE_ARGS="slow and not network and not disabled"
+        - TEST_ARGS="--only-slow --skip-network"
         - FULL_DEPS=true
         - CACHE_NAME="27_slow"
         - USE_CACHE=true
@@ -208,7 +208,7 @@ matrix:
         - PYTHON_VERSION=3.4
         - JOB_NAME: "34_slow"
         - JOB_TAG=_SLOW
-        - NOSE_ARGS="slow and not network and not disabled"
+        - TEST_ARGS="--only-slow --skip-network"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
         - CACHE_NAME="34_slow"
@@ -222,7 +222,7 @@ matrix:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_build_test_conda"
         - JOB_TAG=_BUILD_TEST
-        - NOSE_ARGS="not slow and not disabled"
+        - TEST_ARGS="--skip-slow"
         - FULL_DEPS=true
         - BUILD_TEST=true
         - CACHE_NAME="27_build_test_conda"
@@ -232,7 +232,7 @@ matrix:
           - PYTHON_VERSION=3.4
           - JOB_NAME: "34_nslow"
           - LOCALE_OVERRIDE="zh_CN.UTF-8"
-          - NOSE_ARGS="not slow and not disabled"
+          - TEST_ARGS="--skip-slow"
           - FULL_DEPS=true
           - CLIPBOARD=xsel
           - CACHE_NAME="34_nslow"
@@ -247,7 +247,7 @@ matrix:
           - PYTHON_VERSION=3.5
           - JOB_NAME: "35_numpy_dev"
           - JOB_TAG=_NUMPY_DEV
-          - NOSE_ARGS="not slow and not network and not disabled"
+          - TEST_ARGS="--skip-slow --skip-network"
           - PANDAS_TESTING_MODE="deprecate"
           - CACHE_NAME="35_numpy_dev"
           - USE_CACHE=true
@@ -260,7 +260,7 @@ matrix:
         env:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_nslow_nnet_COMPAT"
-        - NOSE_ARGS="not slow and not network and not disabled"
+        - TEST_ARGS="--skip-slow --skip-network"
         - LOCALE_OVERRIDE="it_IT.UTF-8"
         - INSTALL_TEST=true
         - JOB_TAG=_COMPAT
@@ -275,7 +275,7 @@ matrix:
         - PYTHON_VERSION=3.5
         - JOB_NAME: "35_ascii"
         - JOB_TAG=_ASCII
-        - NOSE_ARGS="not slow and not network and not disabled"
+        - TEST_ARGS="--skip-slow --skip-network"
         - LOCALE_OVERRIDE="C"
         - CACHE_NAME="35_ascii"
         - USE_CACHE=true
@@ -320,7 +320,8 @@ before_script:
 script:
   - echo "script start"
   - ci/run_build_docs.sh
-  - ci/script.sh
+  - ci/script_single.sh
+  - ci/script_multi.sh
   - ci/lint.sh
   - echo "script done"
 
@@ -331,5 +332,5 @@ after_script:
   - echo "after_script start"
   - ci/install_test.sh
   - source activate pandas && python -c "import pandas; pandas.show_versions();"
-  - ci/print_skipped.py /tmp/nosetests.xml
+  - ci/print_skipped.py /tmp/pytest.xml
   - echo "after_script done"

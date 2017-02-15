@@ -1,1 +1,1 @@
-nosetests -A "not slow and not network" pandas --with-id $*
+pytest pandas --skip-slow --skip-network -m "not single" -n 4
