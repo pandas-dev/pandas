@@ -1,6 +1,6 @@
 .. _whatsnew_0200:
 
-v0.20.0 (????, 2016)
+v0.20.0 (????, 2017)
 --------------------
 
 This is a major release from 0.19 and includes a small number of API changes, several new features,
@@ -157,6 +157,7 @@ Other enhancements
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
 .. _whatsnew_0200.api_breaking:
+
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -429,6 +430,7 @@ Other API Changes
 - ``DataFrame.asof()`` will return a null filled ``Series`` instead the scalar ``NaN`` if a match is not found (:issue:`15118`)
 - The :func:`pd.read_gbq` method now stores ``INTEGER`` columns as ``dtype=object`` if they contain ``NULL`` values. Otherwise they are stored as ``int64``. This prevents precision lost for integers greather than 2**53. Furthermore ``FLOAT`` columns with values above 10**4 are no more casted to ``int64`` which also caused precision lost (:issue: `14064`, :issue:`14305`).
 - Reorganization of timeseries development tests (:issue:`14854`)
+- ``numexpr`` version is now required to be >= 2.4.6 and it will not be used at all if this requisite is not fulfilled (:issue:`15213`).
 
 .. _whatsnew_0200.deprecations:
 

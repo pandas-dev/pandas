@@ -10,6 +10,7 @@ from pandas.util import testing as tm
 
 from pandas.computation.engines import _engines
 import pandas.computation.expr as expr
+from pandas.computation import _MIN_NUMEXPR_VERSION
 
 ENGINES_PARSERS = list(product(_engines, expr._parsers))
 
@@ -21,15 +22,10 @@ def test_compat():
     try:
         import numexpr as ne
         ver = ne.__version__
-        if ver == LooseVersion('2.4.4'):
+        if ver < LooseVersion(_MIN_NUMEXPR_VERSION):
             assert not _NUMEXPR_INSTALLED
-        elif ver < LooseVersion('2.1'):
-            with tm.assert_produces_warning(UserWarning,
-                                            check_stacklevel=False):
-                assert not _NUMEXPR_INSTALLED
         else:
             assert _NUMEXPR_INSTALLED
-
     except ImportError:
         pytest.skip("not testing numexpr version compat")
 
@@ -51,12 +47,9 @@ def check_invalid_numexpr_version(engine, parser):
         except ImportError:
             pytest.skip("no numexpr")
         else:
-            if ne.__version__ < LooseVersion('2.1'):
-                with tm.assertRaisesRegexp(ImportError, "'numexpr' version is "
-                                           ".+, must be >= 2.1"):
+            if ne.__version__ < LooseVersion(_MIN_NUMEXPR_VERSION):
+                with tm.assertRaises(ImportError):
                     testit()
-            elif ne.__version__ == LooseVersion('2.4.4'):
-                pytest.skip("numexpr version==2.4.4")
             else:
                 testit()
     else:
