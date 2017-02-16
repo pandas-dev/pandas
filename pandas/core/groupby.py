@@ -3032,7 +3032,7 @@ class SeriesGroupBy(GroupBy):
         # we might have duplications among the bins
         if len(res) != len(ri):
             res, out = np.zeros(len(ri), dtype=out.dtype), res
-            res[ids] = out
+            res[ids[idx]] = out
 
         return Series(res,
                       index=ri,

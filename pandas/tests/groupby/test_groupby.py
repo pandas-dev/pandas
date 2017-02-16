@@ -4159,6 +4159,19 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = pd.Series(name='name', dtype='int64')
         tm.assert_series_equal(result, expected)
 
+    def test_nunique_with_timegrouper(self):
+        # GH 13453
+        test = pd.DataFrame({
+            'time': [Timestamp('2016-06-28 09:35:35'),
+                     Timestamp('2016-06-28 16:09:30'),
+                     Timestamp('2016-06-28 16:46:28')],
+            'data': ['1', '2', '3']}).set_index('time')
+        result = test.groupby(pd.TimeGrouper(freq='h'))['data'].nunique()
+        expected = test.groupby(
+            pd.TimeGrouper(freq='h')
+        )['data'].apply(pd.Series.nunique)
+        tm.assert_series_equal(result, expected)
+
     def test_numpy_compat(self):
         # see gh-12811
         df = pd.DataFrame({'A': [1, 2, 1], 'B': [1, 2, 3]})

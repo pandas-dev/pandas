@@ -418,6 +418,7 @@ New Behavior:
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- ``numexpr`` version is now required to be >= 2.4.6 and it will not be used at all if this requisite is not fulfilled (:issue:`15213`).
 - ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
 - ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)
 - ``DataFrame.applymap()`` with an empty ``DataFrame`` will return a copy of the empty ``DataFrame`` instead of a ``Series`` (:issue:`8222`)
@@ -428,9 +429,8 @@ Other API Changes
 - ``inplace`` arguments now require a boolean value, else a ``ValueError`` is thrown (:issue:`14189`)
 - ``pandas.api.types.is_datetime64_ns_dtype`` will now report ``True`` on a tz-aware dtype, similar to ``pandas.api.types.is_datetime64_any_dtype``
 - ``DataFrame.asof()`` will return a null filled ``Series`` instead the scalar ``NaN`` if a match is not found (:issue:`15118`)
-- The :func:`pd.read_gbq` method now stores ``INTEGER`` columns as ``dtype=object`` if they contain ``NULL`` values. Otherwise they are stored as ``int64``. This prevents precision lost for integers greather than 2**53. Furthermore ``FLOAT`` columns with values above 10**4 are no more casted to ``int64`` which also caused precision lost (:issue: `14064`, :issue:`14305`).
+- The :func:`pd.read_gbq` method now stores ``INTEGER`` columns as ``dtype=object`` if they contain ``NULL`` values. Otherwise they are stored as ``int64``. This prevents precision lost for integers greather than 2**53. Furthermore ``FLOAT`` columns with values above 10**4 are no longer casted to ``int64`` which also caused precision loss (:issue:`14064`, :issue:`14305`).
 - Reorganization of timeseries development tests (:issue:`14854`)
-- ``numexpr`` version is now required to be >= 2.4.6 and it will not be used at all if this requisite is not fulfilled (:issue:`15213`).
 
 .. _whatsnew_0200.deprecations:
 
@@ -473,7 +473,7 @@ Performance Improvements
   (or with ``compat_x=True``) (:issue:`15073`).
 - Improved performance of ``groupby().cummin()`` and ``groupby().cummax()`` (:issue:`15048`, :issue:`15109`)
 - Improved performance and reduced memory when indexing with a ``MultiIndex`` (:issue:`15245`)
-- When reading buffer object in ``read_sas()`` method without specified format, filepath string is inferred rather than buffer object.
+- When reading buffer object in ``read_sas()`` method without specified format, filepath string is inferred rather than buffer object. (:issue:`14947`)
 
 
 
@@ -553,6 +553,7 @@ Bug Fixes
 
 - Bug in ``DataFrame.groupby().describe()`` when grouping on ``Index`` containing tuples (:issue:`14848`)
 - Bug in creating a ``MultiIndex`` with tuples and not passing a list of names; this will now raise ``ValueError`` (:issue:`15110`)
+- Bug in ``groupby().nunique()`` with a datetimelike-grouper where bins counts were incorrect (:issue:`13453`)
 
 - Bug in catching an overflow in ``Timestamp`` + ``Timedelta/Offset`` operations (:issue:`15126`)
 - Bug in the HTML display with with a ``MultiIndex`` and truncation (:issue:`14882`)

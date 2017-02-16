@@ -1939,6 +1939,26 @@ class TestDatetimeIndex(Base, tm.TestCase):
         result = df.ID.groupby(pd.Grouper(freq='D')).nunique()
         assert_series_equal(result, expected)
 
+    def test_resample_nunique_with_date_gap(self):
+        # GH 13453
+        index = pd.date_range('1-1-2000', '2-15-2000', freq='h')
+        index2 = pd.date_range('4-15-2000', '5-15-2000', freq='h')
+        index3 = index.append(index2)
+        s = pd.Series(range(len(index3)), index=index3)
+        r = s.resample('M')
+
+        # Since all elements are unique, these should all be the same
+        results = [
+            r.count(),
+            r.nunique(),
+            r.agg(pd.Series.nunique),
+            r.agg('nunique')
+        ]
+
+        assert_series_equal(results[0], results[1])
+        assert_series_equal(results[0], results[2])
+        assert_series_equal(results[0], results[3])
+
     def test_resample_group_info(self):  # GH10914
         for n, k in product((10000, 100000), (10, 100, 1000)):
             dr = date_range(start='2015-08-27', periods=n // 10, freq='T')
