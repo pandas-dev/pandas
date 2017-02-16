@@ -989,6 +989,10 @@ def _get_data_algo(values, func_map):
         f = func_map['uint64']
         values = _ensure_uint64(values)
 
+    elif is_categorical_dtype(values):
+        f = func_map['int64']
+        values = _ensure_int64(values.codes)
+
     else:
         values = _ensure_object(values)
 
