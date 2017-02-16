@@ -715,11 +715,11 @@ class _TestSQLApi(PandasSQLTest):
                    if_exists='replace')
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
         self.assertEqual(frame.columns[0], '0',
-                             "Integer index label not written to database")
+                         "Integer index label not written to database")
 
         temp_frame.index.name = None
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
-                   if_exists='replace', index_label= 0)
+                   if_exists='replace', index_label=0)
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
         self.assertEqual(frame.columns[0], '0',
                          "Integer index label not written to database")

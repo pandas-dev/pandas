@@ -750,7 +750,8 @@ class SQLTable(PandasObject):
             for i, idx_label in enumerate(self.index):
                 idx_type = dtype_mapper(
                     self.frame.index.get_level_values(i))
-                column_names_and_types.append(((text_type(idx_label)), idx_type, True))
+                column_names_and_types.append(((text_type(idx_label)),
+                                              idx_type, True))
 
         column_names_and_types += [
             (text_type(self.frame.columns[i]),
