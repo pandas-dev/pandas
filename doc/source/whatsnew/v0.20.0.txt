@@ -576,7 +576,7 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` with ``float_precision='round_trip'`` which caused a segfault when a text entry is parsed (:issue:`15140`)
 
 - Bug in ``DataFrame.to_stata()`` and ``StataWriter`` which produces incorrectly formatted files to be produced for some locales (:issue:`13856`)
-
+- Bug in ``pd.concat()`` in which concatting with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
 
 
 

@@ -284,7 +284,9 @@ class _Concatenator(object):
                            if sum(obj.shape) > 0 or isinstance(obj, Series)]
 
             if (len(non_empties) and (keys is None and names is None and
-                                      levels is None and join_axes is None)):
+                                      levels is None and
+                                      join_axes is None and
+                                      not self.intersect)):
                 objs = non_empties
                 sample = objs[0]
 
