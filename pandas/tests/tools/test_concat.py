@@ -1829,12 +1829,11 @@ class TestConcatenate(ConcatenateBase):
         # GH 15328
         df_empty = pd.DataFrame()
         df_a = pd.DataFrame({'a': [1, 2]}, index=[0, 1], dtype='int64')
-        result = pd.concat([df_empty, df_a], axis=1, join='inner')
-        expected = pd.DataFrame({'a': []}, index=[], dtype='int64')
-        assert_frame_equal(result, expected)
+        df_expected = pd.DataFrame({'a': []}, index=[], dtype='int64')
 
-        result = pd.concat([df_a, df_empty], axis=1, join='inner')
-        assert_frame_equal(result, expected)
+        for how, expected in [('inner', df_expected), ('outer', df_a)]:
+            result = pd.concat([df_a, df_empty], axis=1, join=how)
+            assert_frame_equal(result, expected)
 
     def test_concat_series_axis1_same_names_ignore_index(self):
         dates = date_range('01-Jan-2013', '01-Jan-2014', freq='MS')[0:-1]
