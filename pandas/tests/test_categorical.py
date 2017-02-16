@@ -4549,6 +4549,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                             'h': [None] * 6 + cat_values})
         tm.assert_frame_equal(res, exp)
 
+    def test_rank_categorical(self):
+        exp = pd.Series([1., 2., 3., 4., 5., 6.], name='A')
+        dframe = pd.DataFrame(['first', 'second', 'third', 'fourth', 'fifth', 'sixth'], columns=['A'])
+        dframe['A'] = dframe['A'].astype('category', ).cat.set_categories(
+                ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'], ordered=True)
+        res = dframe['A'].rank()
+        tm.assert_series_equal(res, exp)
 
 class TestCategoricalSubclassing(tm.TestCase):
 
