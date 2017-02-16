@@ -1220,7 +1220,7 @@ _SQL_TYPES = {
 
 def _get_unicode_name(name):
     try:
-        uname = name.encode("utf-8", "strict").decode("utf-8")
+        uname = text_type(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError:
         raise ValueError("Cannot convert identifier to UTF-8: '%s'" % name)
     return uname

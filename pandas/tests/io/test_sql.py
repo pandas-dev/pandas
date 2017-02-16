@@ -709,6 +709,21 @@ class _TestSQLApi(PandasSQLTest):
         self.assertEqual(frame.columns[0], 'other_label',
                          "Specified index_label not written to database")
 
+        # index name is integer
+        temp_frame.index.name = 0
+        sql.to_sql(temp_frame, 'test_index_label', self.conn,
+                   if_exists='replace')
+        frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
+        self.assertEqual(frame.columns[0], '0',
+                             "Integer index label not written to database")
+
+        temp_frame.index.name = None
+        sql.to_sql(temp_frame, 'test_index_label', self.conn,
+                   if_exists='replace', index_label= 0)
+        frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
+        self.assertEqual(frame.columns[0], '0',
+                         "Integer index label not written to database")
+
     def test_to_sql_index_label_multiindex(self):
         temp_frame = DataFrame({'col1': range(4)},
                                index=MultiIndex.from_product(
