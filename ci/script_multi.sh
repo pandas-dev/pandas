@@ -17,6 +17,12 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     python -c "$pycmd"
 fi
 
+# Workaround for pytest-xdist flaky collection order
+# https://github.com/pytest-dev/pytest/issues/920
+# https://github.com/pytest-dev/pytest/issues/1075
+export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
+echo PYTHONHASHSEED=$PYTHONHASHSEED
+
 if [ "$BUILD_TEST" ]; then
     echo "We are not running pytest as this is simply a build test."
 elif [ "$COVERAGE" ]; then
