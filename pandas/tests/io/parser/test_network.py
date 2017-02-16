@@ -7,7 +7,6 @@ and hence require a network connection to be read.
 
 import os
 import pytest
-from itertools import product
 
 import pandas.util.testing as tm
 from pandas import DataFrame
@@ -21,14 +20,18 @@ def salaries_table():
 
 
 @pytest.mark.parametrize(
-    "compression,extension", [('gzip', '.gz'), ('bz2', '.bz2'),
-                              ('zip', '.zip'), ('xz', '.xz')])
-def test_compressed_urls(salaries_table, compression, extension):
-    check_compressed_urls(salaries_table, compression, extension)
+    "compression,extension",
+    [('gzip', '.gz'), ('bz2', '.bz2'), ('zip', '.zip'),
+     tm._mark_skipif_no_lzma(('xz', '.xz'))])
+@pytest.mark.parametrize('mode', ['explicit', 'infer'])
+@pytest.mark.parametrize('engine', ['python', 'c'])
+def test_compressed_urls(salaries_table, compression, extension, mode, engine):
+    check_compressed_urls(salaries_table, compression, extension, mode, engine)
 
 
 @tm.network
-def check_compressed_urls(salaries_table, compression, extension):
+def check_compressed_urls(salaries_table, compression, extension, mode,
+                          engine):
     # test reading compressed urls with various engines and
     # extension inference
     base_url = ('https://github.com/pandas-dev/pandas/raw/master/'
@@ -36,14 +39,11 @@ def check_compressed_urls(salaries_table, compression, extension):
 
     url = base_url + extension
 
-    # args is a (compression, engine) tuple
-    for (c, engine) in product([compression, 'infer'], ['python', 'c']):
+    if mode != 'explicit':
+        compression = mode
 
-        if url.endswith('.xz'):
-            tm._skip_if_no_lzma()
-
-        url_table = read_table(url, compression=c, engine=engine)
-        tm.assert_frame_equal(url_table, salaries_table)
+    url_table = read_table(url, compression=compression, engine=engine)
+    tm.assert_frame_equal(url_table, salaries_table)
 
 
 class TestS3(tm.TestCase):

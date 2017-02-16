@@ -307,12 +307,21 @@ def _skip_if_scipy_0_17():
         pytest.skip("scipy 0.17")
 
 
-def _skip_if_no_lzma():
+def _check_if_lzma():
     try:
         return compat.import_lzma()
     except ImportError:
-        import pytest
-        pytest.skip('need backports.lzma to run')
+        return False
+
+
+def _skip_if_no_lzma():
+    return _check_if_lzma() or pytest.skip('need backports.lzma to run')
+
+
+_mark_skipif_no_lzma = pytest.mark.skipif(
+    not _check_if_lzma(),
+    reason='need backports.lzma to run'
+)
 
 
 def _skip_if_no_xarray():
