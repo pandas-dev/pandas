@@ -1059,13 +1059,14 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
     def test_rank_categorical(self):
         # GH issue #15420 rank incorrectly orders ordered categories
-
+        
         # Test ascending/descending ranking for ordered categoricals
         exp = pd.Series([1., 2., 3., 4., 5., 6.])
         exp_desc = pd.Series([6., 5., 4., 3., 2., 1.])
-        ordered = pd.Series(
-            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
-        ).astype('category').cat.set_categories(
+        ser = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
+        )
+        ordered = ser.astype('category', ).cat.set_categories(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
             ordered=True
         )
@@ -1088,6 +1089,15 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', np.NaN],
         ).astype('category').cat.set_categories(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+
+        # Test na_option for rank data
+        na_ser = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', np.NaN]
+        ).astype('category', ).cat.set_categories(
+            [
+                'first', 'second', 'third', 'fourth',
+                'fifth', 'sixth', 'seventh'
+            ],
             ordered=True
         )
 
