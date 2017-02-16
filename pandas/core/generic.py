@@ -1033,7 +1033,7 @@ class NDFrame(PandasObject):
     # I/O Methods
 
     _shared_docs['to_excel'] = """
-    Write %(klass)s to a excel sheet
+    Write %(klass)s to an excel sheet
     %(versionadded_to_excel)s
     Parameters
     ----------
@@ -1072,6 +1072,11 @@ class NDFrame(PandasObject):
     inf_rep : string, default 'inf'
         Representation for infinity (there is no native representation for
         infinity in Excel)
+    freeze_panes : tuple of integer (length 2), default None
+        Specifies the bottommost row and rightmost column that
+        is to be frozen
+
+        .. versionadded:: 0.20.0
 
     Notes
     -----

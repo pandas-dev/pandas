@@ -2777,6 +2777,7 @@ Added support for Openpyxl >= 2.2
     ``'xlsxwriter'`` will produce an Excel 2007-format workbook (xlsx). If
     omitted, an Excel 2007-formatted workbook is produced.
 
+
 .. _io.excel.writers:
 
 Excel writer engines
@@ -2822,6 +2823,18 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
    options.io.excel.xlsx.writer = 'xlsxwriter'
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
+
+.. _io.excel.style:
+
+Style and Formatting
+''''''''''''''''''''
+
+The look and feel of Excel worksheets created from pandas can be modified using the following parameters on the ``DataFrame``'s ``to_excel`` method.
+
+- ``float_format`` : Format string for floating point numbers (default None)
+- ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will
+freeze the first row and first column (default None)
+
 
 .. _io.clipboard:
 

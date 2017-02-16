@@ -1836,6 +1836,14 @@ class ExcelWriterBase(SharedItems):
                                     false_values=['bar'])
             tm.assert_frame_equal(read_frame, expected)
 
+    def test_freeze_panes(self):
+        # GH15160
+        expected = DataFrame([[1, 2], [3, 4]], columns=['col1', 'col2'])
+        with ensure_clean(self.ext) as path:
+            expected.to_excel(path, "Sheet1", freeze_panes=(1, 1))
+            result = read_excel(path)
+            tm.assert_frame_equal(expected, result)
+
 
 def raise_wrapper(major_ver):
     def versioned_raise_wrapper(orig_method):
@@ -1873,7 +1881,7 @@ class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
     def test_to_excel_styleconverter(self):
         _skip_if_no_openpyxl()
         if not openpyxl_compat.is_compat(major_ver=1):
-            pytest.skip('incompatiable openpyxl version')
+            pytest.skip('incompatible openpyxl version')
 
         import openpyxl
 
@@ -2095,7 +2103,7 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
 
     def test_write_cells_merge_styled(self):
         if not openpyxl_compat.is_compat(major_ver=2):
-            pytest.skip('incompatiable openpyxl version')
+            pytest.skip('incompatible openpyxl version')
 
         from pandas.formats.format import ExcelCell
 
