@@ -1057,6 +1057,59 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         iranks = iseries.rank()
         assert_series_equal(iranks, exp)
 
+        # GH issue #15420 rank incorrectly orders ordered categories
+        
+        # Test ascending/descending ranking for ordered categoricals
+        exp = pd.Series([1., 2., 3., 4., 5., 6.])
+        exp_desc = pd.Series([6., 5., 4., 3., 2., 1.])
+        ser = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
+        )
+        ordered = ser.astype('category', ).cat.set_categories(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+            ordered=True
+        )
+        assert_series_equal(ordered.rank(), exp)
+        assert_series_equal(ordered.rank(ascending=False), exp_desc)
+
+        # Unordered categoricals should be ranked as objects
+        unordered = ser.astype('category', ).cat.set_categories(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+            ordered=False
+        )
+        res = unordered.rank()
+        assert_series_equal(res, unordered.astype(object).rank())
+
+        # Test na_option for rank data
+        na_ser = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', np.NaN]
+        ).astype('category', ).cat.set_categories(
+            [
+                'first', 'second', 'third', 'fourth',
+                'fifth', 'sixth', 'seventh'
+            ],
+            ordered=True
+        )
+
+        exp_top = pd.Series([2., 3., 4., 5., 6., 7., 1.])
+        exp_bot = pd.Series([1., 2., 3., 4., 5., 6., 7.])
+        exp_keep = pd.Series([1., 2., 3., 4., 5., 6., np.NaN])
+
+        assert_series_equal(
+            na_ser.rank(na_option='top'),
+            exp_top
+        )
+
+        assert_series_equal(
+            na_ser.rank(na_option='bottom'),
+            exp_bot
+        )
+
+        assert_series_equal(
+            na_ser.rank(na_option='keep'),
+            exp_keep
+        )
+
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method='average')
