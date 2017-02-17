@@ -361,8 +361,8 @@ def _get_freq_str(base, mult=1):
 
 
 from pandas.tseries.offsets import (Nano, Micro, Milli, Second,  # noqa
-                                    Minute, Hour,
-                                    Day, BDay, CDay, Week, MonthBegin,
+                                    Minute, Hour, Day, BDay, CDay,
+                                    WeekBegin, Week, MonthBegin,
                                     MonthEnd, BMonthBegin, BMonthEnd,
                                     QuarterBegin, QuarterEnd, BQuarterBegin,
                                     BQuarterEnd, YearBegin, YearEnd,
@@ -398,6 +398,7 @@ _offset_to_period_map = {
     'Q': 'Q',
     'A': 'A',
     'W': 'W',
+    'WS': 'W',
     'M': 'M'
 }
 
@@ -414,6 +415,7 @@ for __prefix in ['A', 'Q']:
 _days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 for _d in _days:
     _offset_to_period_map['W-%s' % _d] = 'W-%s' % _d
+    _offset_to_period_map['WS-%s' % _d] = 'WS-%s' % _d
 
 
 def get_period_alias(offset_str):
@@ -423,6 +425,7 @@ def get_period_alias(offset_str):
 
 _lite_rule_alias = {
     'W': 'W-SUN',
+    'WS': 'WS-MON',
     'Q': 'Q-DEC',
 
     'A': 'A-DEC',  # YearEnd(month=12),

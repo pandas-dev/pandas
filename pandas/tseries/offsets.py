@@ -24,7 +24,7 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
            'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
-           'Week', 'WeekOfMonth', 'Easter',
+           'WeekBegin', 'Week', 'WeekOfMonth', 'Easter',
            'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
            'DateOffset']
 
@@ -1643,6 +1643,10 @@ class Week(DateOffset):
         return cls(weekday=weekday)
 
 
+class WeekBegin(Week):
+    _prefix = 'WS'
+
+
 class WeekDay(object):
     MON = 0
     TUE = 1
@@ -2955,6 +2959,7 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     SemiMonthEnd,              # 'SM'
     SemiMonthBegin,            # 'SMS'
     Week,                      # 'W'
+    WeekBegin,                 # 'WS'
     Second,                    # 'S'
     Minute,                    # 'T'
     Micro,                     # 'U'
