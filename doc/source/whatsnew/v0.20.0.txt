@@ -505,6 +505,10 @@ Bug Fixes
 
 
 
+- Bug in ``DataFrame.loc`` with indexing a ``MultiIndex`` with a numpy array (:issue:`15434`)
+
+
+
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
 - Bug in ``pd.read_msgpack()`` in which ``Series`` categoricals were being improperly processed (:issue:`14901`)
 - Bug in ``Series.ffill()`` with mixed dtypes containing tz-aware datetimes. (:issue:`14956`)
