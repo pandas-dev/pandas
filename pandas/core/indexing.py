@@ -1525,11 +1525,20 @@ class _LocIndexer(_LocationIndexer):
             # possibly convert a list-like into a nested tuple
             # but don't convert a list-like of tuples
             if isinstance(labels, MultiIndex):
+                if isinstance(key, ABCSeries):
+                    # GH 14730
+                    key = key.values.tolist()
+                elif isinstance(key, ABCDataFrame):
+                    # GH 15438
+                    raise NotImplementedError("Indexing a MultiIndex with a "
+                                              "DataFrame key is not "
+                                              "implemented")
+                elif hasattr(key, 'ndim') and key.ndim > 1:
+                    raise NotImplementedError("Indexing a MultiIndex with a "
+                                              "multidimensional key is not "
+                                              "implemented")
                 if (not isinstance(key, tuple) and len(key) > 1 and
                         not isinstance(key[0], tuple)):
-                    if isinstance(key, ABCSeries):
-                        # GH 14730
-                        key = list(key)
                     key = tuple([key])
 
             # an iterable multi-selection
