@@ -2832,8 +2832,8 @@ Style and Formatting
 The look and feel of Excel worksheets created from pandas can be modified using the following parameters on the ``DataFrame``'s ``to_excel`` method.
 
 - ``float_format`` : Format string for floating point numbers (default None)
-- ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will
-freeze the first row and first column (default None)
+- ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default None)
+
 
 
 .. _io.clipboard:
