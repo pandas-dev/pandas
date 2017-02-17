@@ -1073,7 +1073,7 @@ class NDFrame(PandasObject):
         Representation for infinity (there is no native representation for
         infinity in Excel)
     freeze_panes : tuple of integer (length 2), default None
-        Specifies the bottommost row and rightmost column that
+        Specifies the one-based bottommost row and rightmost column that
         is to be frozen
 
         .. versionadded:: 0.20.0
