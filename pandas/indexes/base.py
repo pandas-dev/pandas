@@ -724,7 +724,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             new_index = new_index.astype(dtype)
         return new_index
 
-    __copy__ = copy
+    def __copy__(self, **kwargs):
+        return self.copy(**kwargs)
 
     def _validate_names(self, name=None, names=None, deep=False):
         """

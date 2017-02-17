@@ -3161,7 +3161,8 @@ class NDFrame(PandasObject):
         data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
 
-    __copy__ = copy
+    def __copy__(self, deep=True):
+        return self.copy(deep=deep)
 
     def __deepcopy__(self, memo=None):
         if memo is None:
