@@ -2,6 +2,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from operator import methodcaller
+from copy import deepcopy
 import pytest
 import numpy as np
 from numpy import nan
@@ -1538,6 +1539,15 @@ class TestDataFrame(tm.TestCase, Generic):
         assert_frame_equal(result,
                            expected,
                            check_index_type=False)
+
+    def test_deepcopy_empty(self):
+        # This test covers empty frame copying with non-empty column sets
+        # as reported in issue #15370
+        # https://github.com/pandas-dev/pandas/issues/15370
+        empty_frame = DataFrame(data=[], index=[], columns=['A'])
+        empty_frame_copy = deepcopy(empty_frame)
+
+        self.assertEqual(empty_frame, empty_frame_copy)
 
 
 class TestPanel(tm.TestCase, Generic):

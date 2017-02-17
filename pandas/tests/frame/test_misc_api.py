@@ -332,15 +332,6 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         for idx, value in compat.iteritems(series):
             self.assertNotEqual(self.frame['A'][idx], value)
 
-    def test_deepcopy_empty(self):
-        # This test covers empty frame copying with non-empty column sets
-        # as reported in issue #15370
-        # https://github.com/pandas-dev/pandas/issues/15370
-        empty_frame = DataFrame(data=[], index=[], columns=['A'])
-        empty_frame_copy = deepcopy(empty_frame)
-
-        self.assertEqual(empty_frame, empty_frame_copy)
-
     # ---------------------------------------------------------------------
     # Transposing
 
