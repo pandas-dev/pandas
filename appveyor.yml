@@ -94,5 +94,4 @@ install:
 test_script:
   # tests
   - cmd: activate pandas
-  - cmd: cd \
-  - cmd: python -c "import pandas; pandas.test(['--skip-slow', '--skip-network'])"
+  - cmd: test.bat
