@@ -2315,6 +2315,11 @@ class Grouping(object):
                 # groupby
                 else:
                     cat = self.grouper.unique()
+                    all_categories = self.grouper.categories
+                    cat.add_categories(
+                        all_categories[
+                            ~all_categories.isin(cat.categories)],
+                        inplace=True)  # GH-13179
                     self.grouper = self.grouper.reorder_categories(
                         cat.categories)
 

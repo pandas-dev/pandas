@@ -539,6 +539,7 @@ Bug Fixes
 
 - Bug in ``resample``, where a non-string ```loffset`` argument would not be applied when resampling a timeseries (:issue:`13218`)
 
+- Bug in ``.groupby`` where ```.groupby(categorical, sort=False)`` would raise ``ValueError`` due to non-matching categories (:issue:`13179`)
 
 
 
