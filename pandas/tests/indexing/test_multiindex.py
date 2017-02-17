@@ -158,6 +158,11 @@ class TestMultiIndexBasic(tm.TestCase):
         result = x.loc[[1, 3]]
         tm.assert_series_equal(result, expected)
 
+        # GH15424
+        y1 = Series([1, 3], index=[1, 2])
+        result = x.loc[y1]
+        tm.assert_series_equal(result, expected)
+
         empty = Series(data=[], dtype=np.float64)
         expected = Series([], index=MultiIndex(
             levels=index.levels, labels=[[], []], dtype=np.float64))
