@@ -522,7 +522,7 @@ Bug Fixes
 - Bug in ``.groupby(...).rolling(...)`` when ``on`` is specified and using a ``DatetimeIndex`` (:issue:`15130`)
 
 
-
+- Bug in ``to_sql`` when writing a DataFrame with numeric index names (:issue:`15404`).
 - Bug in ``Series.iloc`` where a ``Categorical`` object for list-like indexes input was returned, where a ``Series`` was expected. (:issue:`14580`)
 
 
