@@ -104,8 +104,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         mn, mx = [mi + 0.0 for mi in rng]
 
         if mn == mx:  # adjust end points before binning
-            mn -= .001 * abs(mn)
-            mx += .001 * abs(mx)
+            mn -= .001 * abs(mn) if mn != 0 else .001
+            mx += .001 * abs(mx) if mx != 0 else .001
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
         else:  # adjust end points after binning
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)

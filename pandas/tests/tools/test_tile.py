@@ -297,6 +297,11 @@ class TestCut(tm.TestCase):
         result = cut(s, 1, labels=False)
         tm.assert_series_equal(result, expected)
 
+        # issue 15428
+        s = Series([0., 0.])
+        result = cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
     def test_datetime_cut(self):
         # GH 14714
         # testing for time data to be present as series
