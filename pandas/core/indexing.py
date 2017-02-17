@@ -1537,6 +1537,8 @@ class _LocIndexer(_LocationIndexer):
                     raise NotImplementedError("Indexing a MultiIndex with a "
                                               "multidimensional key is not "
                                               "implemented")
+                elif isinstance(key, np.ndarray):
+                    key = key.tolist()
                 if (not isinstance(key, tuple) and len(key) > 1 and
                         not isinstance(key[0], tuple)):
                     key = tuple([key])
