@@ -1521,9 +1521,7 @@ class _LocIndexer(_LocationIndexer):
             return self._getbool_axis(key, axis=axis)
         elif is_list_like_indexer(key):
 
-            # GH 7349
-            # possibly convert a list-like into a nested tuple
-            # but don't convert a list-like of tuples
+            # convert various datatypes to a list of keys
             if isinstance(labels, MultiIndex):
                 if isinstance(key, ABCSeries):
                     # GH 14730
