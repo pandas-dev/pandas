@@ -189,6 +189,13 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
+
+    # fix special case: q=1 and all identical values
+    if q == 1 and len(bins) == 2 and bins[0] == bins[1]:
+        bins = np.asarray(bins, np.float64)
+        bins[0] -= .001 * abs(bins[0]) if bins[0] != 0 else .001
+        bins[1] += .001 * abs(bins[1]) if bins[1] != 0 else .001
+
     fac, bins = _bins_to_cuts(x, bins, labels=labels,
                               precision=precision, include_lowest=True,
                               dtype=dtype, duplicates=duplicates)

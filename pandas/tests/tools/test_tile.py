@@ -285,6 +285,36 @@ class TestCut(tm.TestCase):
         # invalid
         self.assertRaises(ValueError, qcut, values, 3, duplicates='foo')
 
+    def test_single_quantile(self):
+        # issue 15431
+        expected = Series([0, 0])
+
+        s = Series([9., 9.])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        s = Series([-9., -9.])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        s = Series([0., 0.])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        expected = Series([0])
+
+        s = Series([9])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        s = Series([-9])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        s = Series([0])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
     def test_single_bin(self):
         # issue 14652
         expected = Series([0, 0])
@@ -297,8 +327,26 @@ class TestCut(tm.TestCase):
         result = cut(s, 1, labels=False)
         tm.assert_series_equal(result, expected)
 
+        expected = Series([0])
+
+        s = Series([9])
+        result = cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        s = Series([-9])
+        result = cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
         # issue 15428
+        expected = Series([0, 0])
+
         s = Series([0., 0.])
+        result = cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        expected = Series([0])
+
+        s = Series([0])
         result = cut(s, 1, labels=False)
         tm.assert_series_equal(result, expected)
 
