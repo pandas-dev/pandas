@@ -988,12 +988,6 @@ def _get_data_algo(values, func_map):
     elif is_unsigned_integer_dtype(values):
         f = func_map['uint64']
         values = _ensure_uint64(values)
-
-    elif is_categorical_dtype(values) and values.ordered:
-        nanMapper = np.vectorize(lambda t: np.NaN if t == -1 else t*1.)
-        f = func_map['float64']
-        values = _ensure_float64(nanMapper(values.codes))
-
     else:
         values = _ensure_object(values)
 
