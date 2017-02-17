@@ -187,10 +187,10 @@ def compare_sp_frame_float(result, expected, typ, version):
 # ---------------------
 def legacy_pickle_versions():
     # yield the pickle versions
-    pickle_path = tm.get_data_path('legacy_pickle')
-    for v in os.listdir(pickle_path):
-        pth = os.path.join(pickle_path, v)
-        if os.path.isdir(pth):
+    path = tm.get_data_path('legacy_pickle')
+    for v in os.listdir(path):
+        p = os.path.join(path, v)
+        if os.path.isdir(p):
             yield v
 
 
