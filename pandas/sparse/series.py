@@ -570,8 +570,7 @@ class SparseSeries(Series):
         return self._constructor(new_data, sparse_index=self.sp_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
-    def reindex(self, index=None, method=None, copy=True, limit=None,
-                **kwargs):
+    def reindex(self, index=None, **kwargs):
         """
         Conform SparseSeries to new Index
 
@@ -581,16 +580,7 @@ class SparseSeries(Series):
         -------
         reindexed : SparseSeries
         """
-        new_index = _ensure_index(index)
-
-        if self.index.equals(new_index):
-            if copy:
-                return self.copy()
-            else:
-                return self
-        return self._constructor(self._data.reindex(new_index, method=method,
-                                                    limit=limit, copy=copy),
-                                 index=new_index).__finalize__(self)
+        return super(SparseSeries, self).reindex(index, **kwargs)
 
     def sparse_reindex(self, new_index):
         """
