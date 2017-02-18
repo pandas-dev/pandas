@@ -2,7 +2,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from operator import methodcaller
-from copy import deepcopy
+from copy import copy, deepcopy
 import pytest
 import numpy as np
 from numpy import nan
@@ -675,6 +675,16 @@ class Generic(object):
 
             with self.assertRaises(ValueError):
                 super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
+
+    def test_copy_and_deepcopy(self):
+
+        for shape in [0, 1, 2]:
+            obj = self._construct(shape)
+
+            for func in (copy, deepcopy):
+                obj_copy = func(obj)
+                self.assertIsNot(obj_copy, obj)
+                self._compare(obj_copy, obj)
 
 
 class TestSeries(tm.TestCase, Generic):
@@ -1542,8 +1552,7 @@ class TestDataFrame(tm.TestCase, Generic):
 
     def test_deepcopy_empty(self):
         # This test covers empty frame copying with non-empty column sets
-        # as reported in issue #15370
-        # https://github.com/pandas-dev/pandas/issues/15370
+        # as reported in issue GH15370
         empty_frame = DataFrame(data=[], index=[], columns=['A'])
         empty_frame_copy = deepcopy(empty_frame)
 
