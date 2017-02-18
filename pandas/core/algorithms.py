@@ -598,27 +598,27 @@ def mode(values):
 def rank(values, axis=0, method='average', na_option='keep',
          ascending=True, pct=False):
     """
-        Rank the values along a given axis.
+    Rank the values along a given axis.
 
-        Parameters
-        ----------
-        values : array-like
-            Array whose values will be ranked. The number of dimensions in this
-            array must not exceed 2.
-        axis : int, default 0
-            Axis over which to perform rankings.
-        method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
-            The method by which tiebreaks are broken during the ranking.
-        na_option : {'keep', 'top'}, default 'keep'
-            The method by which NaNs are placed in the ranking.
-            - ``keep``: rank each NaN value with a NaN ranking
-            - ``top``: replace each NaN with either +/- inf so that they
-                       there are ranked at the top
-        ascending : boolean, default True
-            Whether or not the elements should be ranked in ascending order.
-        pct : boolean, default False
-            Whether or not to the display the returned rankings in integer form
-            (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
+    Parameters
+    ----------
+    values : array-like
+        Array whose values will be ranked. The number of dimensions in this
+        array must not exceed 2.
+    axis : int, default 0
+        Axis over which to perform rankings.
+    method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
+        The method by which tiebreaks are broken during the ranking.
+    na_option : {'keep', 'top'}, default 'keep'
+        The method by which NaNs are placed in the ranking.
+        - ``keep``: rank each NaN value with a NaN ranking
+        - ``top``: replace each NaN with either +/- inf so that they
+                   there are ranked at the top
+    ascending : boolean, default True
+        Whether or not the elements should be ranked in ascending order.
+    pct : boolean, default False
+        Whether or not to the display the returned rankings in integer form
+        (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
     if is_categorical(values):
         ranks = values._rank(axis=axis, method=method, ascending=ascending,
