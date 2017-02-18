@@ -1944,7 +1944,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         index = pd.date_range('1-1-2000', '2-15-2000', freq='h')
         index2 = pd.date_range('4-15-2000', '5-15-2000', freq='h')
         index3 = index.append(index2)
-        s = pd.Series(range(len(index3)), index=index3)
+        s = pd.Series(range(len(index3)), index=index3, dtype='int64')
         r = s.resample('M')
 
         # Since all elements are unique, these should all be the same
