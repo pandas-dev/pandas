@@ -727,6 +727,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def __copy__(self, **kwargs):
         return self.copy(**kwargs)
 
+    def __deepcopy__(self, memo=None):
+        if memo is None:
+            memo = {}
+        return self.copy(deep=True)
+
     def _validate_names(self, name=None, names=None, deep=False):
         """
         Handles the quirks of having a singular 'name' parameter for general
@@ -1480,11 +1485,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    def __deepcopy__(self, memo=None):
-        if memo is None:
-            memo = {}
-        return self.copy(deep=True)
 
     def __nonzero__(self):
         raise ValueError("The truth value of a {0} is ambiguous. "
