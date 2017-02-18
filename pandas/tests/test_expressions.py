@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Panel
 from pandas.computation import expressions as expr
-from pandas import compat, _np_version_under1p12
+from pandas import compat, _np_version_under1p11
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_panel4d_equal, slow)
@@ -70,10 +70,10 @@ class TestExpressions(tm.TestCase):
             operations.append('div')
         for arith in operations:
 
-            # numpy >= 1.12 doesn't handle integers
+            # numpy >= 1.11 doesn't handle integers
             # raised to integer powers
             # https://github.com/pandas-dev/pandas/issues/15363
-            if arith == 'pow' and not _np_version_under1p12:
+            if arith == 'pow' and not _np_version_under1p11:
                 continue
 
             operator_name = arith
@@ -272,10 +272,10 @@ class TestExpressions(tm.TestCase):
                 for op, op_str in [('add', '+'), ('sub', '-'), ('mul', '*'),
                                    ('div', '/'), ('pow', '**')]:
 
-                    # numpy >= 1.12 doesn't handle integers
+                    # numpy >= 1.11 doesn't handle integers
                     # raised to integer powers
                     # https://github.com/pandas-dev/pandas/issues/15363
-                    if op == 'pow' and not _np_version_under1p12:
+                    if op == 'pow' and not _np_version_under1p11:
                         continue
 
                     if op == 'div':
