@@ -2300,28 +2300,7 @@ class Grouping(object):
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
 
-                # must have an ordered categorical
-                if self.sort:
-                    if not self.grouper.ordered:
-
-                        # technically we cannot group on an unordered
-                        # Categorical
-                        # but this a user convenience to do so; the ordering
-                        # is preserved and if it's a reduction it doesn't make
-                        # any difference
-                        pass
-
-                # fix bug #GH8868 sort=False being ignored in categorical
-                # groupby
-                else:
-                    cat = self.grouper.unique()
-                    all_categories = self.grouper.categories
-                    cat.add_categories(
-                        all_categories[
-                            ~all_categories.isin(cat.categories)],
-                        inplace=True)  # GH-13179
-                    self.grouper = self.grouper.reorder_categories(
-                        cat.categories)
+                self.grouper = self.grouper._codes_for_groupby(self.sort)
 
                 # we make a CategoricalIndex out of the cat grouper
                 # preserving the categories / ordered attributes

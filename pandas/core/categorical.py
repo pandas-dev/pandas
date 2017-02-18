@@ -602,6 +602,35 @@ class Categorical(PandasObject):
     categories = property(fget=_get_categories, fset=_set_categories,
                           doc=_categories_doc)
 
+    def _codes_for_groupby(self, sort):
+        """
+        Return a Categorical adjusted for groupby
+
+        Parameters
+        ----------
+        sort : boolean
+            The value of the sort paramter groupby was called with.
+
+        Returns
+        -------
+        Categorical
+            In case of sort=True, self is returned with original categories
+            preserved. In case of sort=False, the new categories are set
+            to the order of appearance in codes (unless ordered=True),
+            followed by any unrepresented categories in original order.
+        """
+        cat = self
+        # sort=False should order groups in as-encountered order (GH-8868)
+        if not sort:
+            cat = self.unique()
+            # But all categories should be present, including those missing
+            # from the data (GH-13179), which .unique() dropped
+            cat.add_categories(self.categories[
+                                   ~self.categories.isin(cat.categories)],
+                               inplace=True)
+            cat = self.reorder_categories(cat.categories)
+        return cat
+
     _ordered = None
 
     def set_ordered(self, value, inplace=False):
