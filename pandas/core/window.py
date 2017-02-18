@@ -10,6 +10,7 @@ from __future__ import division
 import warnings
 import numpy as np
 from collections import defaultdict
+from datetime import timedelta
 
 from pandas.types.generic import (ABCSeries,
                                   ABCDataFrame,
@@ -1014,7 +1015,8 @@ class Rolling(_Rolling_and_Expanding):
 
         # we allow rolling on a datetimelike index
         if (self.is_datetimelike and
-                isinstance(self.window, (compat.string_types, DateOffset))):
+                isinstance(self.window, (compat.string_types, DateOffset,
+                                         timedelta))):
 
             self._validate_monotonic()
             freq = self._validate_freq()

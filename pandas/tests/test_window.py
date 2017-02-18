@@ -4,7 +4,7 @@ import sys
 import warnings
 from warnings import catch_warnings
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from numpy.random import randn
 import numpy as np
 from distutils.version import LooseVersion
@@ -400,6 +400,24 @@ class TestRolling(Base):
             c(0, win_type='boxcar')
             with self.assertRaises(ValueError):
                 c(-1, win_type='boxcar')
+
+    def test_constructor_with_timedelta_window(self):
+        # GH 15440
+        n = 10
+        df = pd.DataFrame({'value': np.arange(n)},
+                          index=pd.date_range('2015-12-24',
+                                              periods=n,
+                                              freq="D"))
+        expected_data = np.append([0., 1.], np.arange(3., 27., 3))
+        for window in [timedelta(days=3), pd.Timedelta(days=3)]:
+            result = df.rolling(window=window).sum()
+            expected = pd.DataFrame({'value': expected_data},
+                                    index=pd.date_range('2015-12-24',
+                                                        periods=n,
+                                                        freq="D"))
+            tm.assert_frame_equal(result, expected)
+            expected = df.rolling('3D').sum()
+            tm.assert_frame_equal(result, expected)
 
     def test_numpy_compat(self):
         # see gh-12811
