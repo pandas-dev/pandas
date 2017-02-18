@@ -78,18 +78,18 @@ install:
   # this is now the downloaded conda...
   - cmd: conda info -a
 
-  # build em using the local source checkout in the correct windows env
-  - cmd: '%CMD_IN_ENV% conda build ci\appveyor.recipe -q'
-
   # create our env
   - cmd: conda create -q -n pandas python=%PYTHON_VERSION% pytest
   - cmd: activate pandas
   - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
   - cmd: echo "installing requirements from %REQ%"
   - cmd: conda install -n pandas -q --file=%REQ%
+  - cmd: conda remove pandas --force
   - cmd: conda list -n pandas
   - cmd: echo "installing requirements from %REQ% - done"
-  - ps: conda install -n pandas (conda build ci\appveyor.recipe -q --output)
+
+  # build em using the local source checkout in the correct windows env
+  - cmd: '%CMD_IN_ENV% python setup.py build_ext --inplace'
 
 test_script:
   # tests
