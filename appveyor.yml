@@ -84,7 +84,6 @@ install:
   - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
   - cmd: echo "installing requirements from %REQ%"
   - cmd: conda install -n pandas -q --file=%REQ%
-  - cmd: conda remove pandas --force
   - cmd: conda list -n pandas
   - cmd: echo "installing requirements from %REQ% - done"
 
