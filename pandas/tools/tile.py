@@ -186,15 +186,12 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
 
     if is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
+
+        if q == 1:
+            duplicates = 'allow'
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
-
-    # fix special case: q=1 and all identical values
-    if q == 1 and len(bins) == 2 and bins[0] == bins[1]:
-        bins = np.asarray(bins, np.float64)
-        bins[0] -= .001 * abs(bins[0]) if bins[0] != 0 else .001
-        bins[1] += .001 * abs(bins[1]) if bins[1] != 0 else .001
 
     fac, bins = _bins_to_cuts(x, bins, labels=labels,
                               precision=precision, include_lowest=True,
@@ -208,7 +205,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
                   precision=3, include_lowest=False,
                   dtype=None, duplicates='raise'):
 
-    if duplicates not in ['raise', 'drop']:
+    if duplicates not in ['raise', 'drop', 'allow']:
         raise ValueError("invalid value for 'duplicates' parameter, "
                          "valid options are: raise, drop")
 
@@ -218,7 +215,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
             raise ValueError("Bin edges must be unique: {}.\nYou "
                              "can drop duplicate edges by setting "
                              "the 'duplicates' kwarg".format(repr(bins)))
-        else:
+        elif duplicates == 'drop':
             bins = unique_bins
 
     side = 'left' if right else 'right'
