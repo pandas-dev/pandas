@@ -598,29 +598,39 @@ def mode(values):
 def rank(values, axis=0, method='average', na_option='keep',
          ascending=True, pct=False):
     """
-    Rank the values along a given axis.
+        Compute numerical data ranks (1 through n) along axis. Equal values are
+        assigned a rank that is the average of the ranks of those values
 
-    Parameters
-    ----------
-    values : array-like
-        Array whose values will be ranked. The number of dimensions in this
-        array must not exceed 2.
-    axis : int, default 0
-        Axis over which to perform rankings.
-    method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
-        The method by which tiebreaks are broken during the ranking.
-    na_option : {'keep', 'top'}, default 'keep'
-        The method by which NaNs are placed in the ranking.
-        - ``keep``: rank each NaN value with a NaN ranking
-        - ``top``: replace each NaN with either +/- inf so that they
-                   there are ranked at the top
-    ascending : boolean, default True
-        Whether or not the elements should be ranked in ascending order.
-    pct : boolean, default False
-        Whether or not to the display the returned rankings in integer form
-        (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
-    """
-    if values.ndim == 1:
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            index to direct ranking
+        method : {'average', 'min', 'max', 'first', 'dense'}
+            * average: average rank of group
+            * min: lowest rank in group
+            * max: highest rank in group
+            * first: ranks assigned in order they appear in the array
+            * dense: like 'min', but rank always increases by 1 between groups
+        numeric_only : boolean, default None
+            Include only float, int, boolean data. Valid only for DataFrame or
+            Panel objects
+        na_option : {'keep', 'top', 'bottom'}
+            * keep: leave NA values where they are
+            * top: smallest rank if ascending
+            * bottom: smallest rank if descending
+        ascending : boolean, default True
+            False for ranks by high (1) to low (N)
+        pct : boolean, default False
+            Computes percentage rank of data
+
+        Returns
+        -------
+        ranks : same type as caller
+        """
+    if is_categorical(values):
+        ranks = values._rank(axis=axis, method=method, ascending=ascending,
+                             na_option=na_option, pct=pct)
+    elif values.ndim == 1:
         f, values = _get_data_algo(values, _rank1d_functions)
         ranks = f(values, ties_method=method, ascending=ascending,
                   na_option=na_option, pct=pct)

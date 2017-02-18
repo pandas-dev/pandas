@@ -1063,8 +1063,9 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         # Test ascending/descending ranking for ordered categoricals
         exp = pd.Series([1., 2., 3., 4., 5., 6.])
         exp_desc = pd.Series([6., 5., 4., 3., 2., 1.])
-        ordered = pd.Categorical(
+        ordered = pd.Series(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+        ).astype('category').cat.set_categories(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
             ordered=True
         )
@@ -1072,18 +1073,19 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_series_equal(ordered.rank(ascending=False), exp_desc)
 
         # Unordered categoricals should be ranked as objects
-        unord_ser = pd.Series(['first', 'second', 'third', 'fourth'])
-        unordered = pd.Categorical(
-            ['first', 'second', 'third', 'fourth'],
-            ['first', 'second', 'third', 'fourth'],
+        unordered = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+        ).astype('category').cat.set_categories(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
             ordered=False
         )
         res = unordered.rank()
-        assert_series_equal(res, unord_ser.astype(object).rank())
+        assert_series_equal(res, unordered.astype(object).rank())
 
         # Test na_option for rank data
-        na_ser = pd.Categorical(
+        na_ser = pd.Series(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', np.NaN],
+        ).astype('category').cat.set_categories(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
             ordered=True
         )
@@ -1115,8 +1117,9 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         )
 
         # Test with pct=True
-        na_ser = pd.Categorical(
+        na_ser = pd.Series(
             ['first', 'second', 'third', 'fourth', np.NaN],
+        ).astype('category').cat.set_categories(
             ['first', 'second', 'third', 'fourth'],
             ordered=True
         )

@@ -14,7 +14,6 @@ from pandas.types.cast import (_possibly_infer_to_datetimelike,
                                _coerce_indexer_dtype)
 from pandas.types.dtypes import CategoricalDtype
 from pandas.types.common import (_ensure_int64,
-                                 _ensure_float64,
                                  _ensure_object,
                                  _ensure_platform_int,
                                  is_dtype_equal,
@@ -1405,53 +1404,28 @@ class Categorical(PandasObject):
             return self._constructor(values=codes, categories=self.categories,
                                      ordered=self.ordered, fastpath=True)
 
-    def rank(self, method='average', na_option='keep',
-             ascending=True, pct=False):
+    def _rank(self, *args, **kwargs):
         """
-        Rank the values along a given axis.
+        For correctly ranking ordered categorical data. See GH#15420
 
-        Parameters
-        ----------
-        values : array-like
-            Array whose values will be ranked. The number of dimensions in this
-            array must not exceed 2.
-        method : {'average', 'min', 'max', 'first', 'dense'},
-            default 'average'
-            The method by which tiebreaks are broken during the ranking.
-        na_option : {'keep', 'top'}, default 'keep'
-            The method by which NaNs are placed in the ranking.
-            - ``keep``: rank each NaN value with a NaN ranking
-            - ``top``: replace each NaN with either +/- inf so that they
-                       there are ranked at the top
-            - ``bottom``: replace each NaN with either +/- inf so that they
-                       there are ranked at the bottom
-        ascending : boolean, default True
-            Whether or not the elements should be ranked in ascending order.
-        pct : boolean, default False
-            Whether or not to the display the returned rankings in integer form
-            (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
+        Ordered categorical data should be ranked on the basis of
+        codes.
+
+        Returns
+        -------
+        numpy array
+
         """
-        from pandas.core.series import Series
-        if na_option not in ['keep', 'top', 'bottom']:
-            raise ValueError('invalid na_position: {!r}'.format(na_option))
+        from pandas.core.algorithms import rank
 
-        codes = self._codes.copy()
-        codes = codes.astype(float)
         if self._ordered:
+            codes = self._codes.astype('float64')
             na_mask = (codes == -1)
             codes[na_mask] = np.nan
-            codes = _ensure_float64(codes)
-            ranks = _algos.rank_1d_float64(
-                codes, ties_method=method,
-                na_option=na_option, ascending=ascending, pct=pct
-            )
+            ranks = rank(codes, *args, **kwargs)
         else:
-            values = _ensure_object(self)
-            ranks = _algos.rank_1d_object(
-                values, ties_method=method,
-                na_option=na_option, ascending=ascending, pct=pct
-            )
-        return Series(ranks)
+            ranks = rank(self.astype('object'), *args, **kwargs)
+        return ranks
 
     def order(self, inplace=False, ascending=True, na_position='last'):
         """
