@@ -504,6 +504,11 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         exp = orig.loc[[1, 3, 4, 5]].to_sparse()
         tm.assert_sp_series_equal(result, exp)
 
+        # single element list (GH 15447)
+        result = sparse.loc[['A']]
+        exp = orig.loc[['A']].to_sparse()
+        tm.assert_sp_series_equal(result, exp)
+
         # dense array
         result = sparse.loc[orig % 2 == 1]
         exp = orig.loc[orig % 2 == 1].to_sparse()
@@ -536,6 +541,28 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         tm.assert_sp_series_equal(sparse.loc['A':'B'],
                                   orig.loc['A':'B'].to_sparse())
         tm.assert_sp_series_equal(sparse.loc[:'B'], orig.loc[:'B'].to_sparse())
+
+    def test_reindex(self):
+        orig = self.orig
+        sparse = self.sparse
+
+        res = sparse.reindex([('A', 0), ('C', 1)])
+        exp = orig.reindex([('A', 0), ('C', 1)]).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+
+        # On specific level:
+        res = sparse.reindex(['A', 'C', 'B'], level=0)
+        exp = orig.reindex(['A', 'C', 'B'], level=0).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+
+        # single element list (GH 15447)
+        res = sparse.reindex(['A'], level=0)
+        exp = orig.reindex(['A'], level=0).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+
+        with tm.assertRaises(TypeError):
+            # Incomplete keys are not accepted for reindexing:
+            sparse.reindex(['A', 'C'])
 
 
 class TestSparseDataFrameIndexing(tm.TestCase):
