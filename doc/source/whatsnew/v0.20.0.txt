@@ -551,6 +551,7 @@ Bug Fixes
 - Bug in ``.to_json()`` causing single byte ascii characters to be expanded to four byte unicode (:issue:`15344`)
 - Bug in ``.read_json()`` for Python 2 where ``lines=True`` and contents contain non-ascii unicode characters (:issue:`15132`)
 - Bug in ``.rolling/expanding()`` functions where ``count()`` was not counting ``np.Inf``, nor handling ``object`` dtypes (:issue:`12541`)
+- Bug in ``.rolling()`` where ``pd.Timedelta`` or ``datetime.timedelta`` was not accepted as a ``window`` argument (:issue:`15440`)
 - Bug in ``DataFrame.resample().median()`` if duplicate column names are present (:issue:`14233`)
 
 - Bug in ``DataFrame.groupby().describe()`` when grouping on ``Index`` containing tuples (:issue:`14848`)
