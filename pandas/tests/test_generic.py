@@ -1547,7 +1547,7 @@ class TestDataFrame(tm.TestCase, Generic):
         empty_frame = DataFrame(data=[], index=[], columns=['A'])
         empty_frame_copy = deepcopy(empty_frame)
 
-        self.assertEqual(empty_frame, empty_frame_copy)
+        self._compare(empty_frame_copy, empty_frame)
 
 
 class TestPanel(tm.TestCase, Generic):
