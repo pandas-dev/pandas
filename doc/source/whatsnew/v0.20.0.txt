@@ -578,6 +578,7 @@ Bug Fixes
 
 
 
+- Bug in ``.rank()`` which incorrectly ranks ordered categories (:issue:`15420`)
 
 
 
@@ -627,4 +628,3 @@ Bug Fixes
 - Bug in ``Series.replace`` and ``DataFrame.replace`` which failed on empty replacement dicts (:issue:`15289`)
 - Bug in ``pd.melt()`` where passing a tuple value for ``value_vars`` caused a ``TypeError`` (:issue:`15348`)
 - Bug in ``.eval()`` which caused multiline evals to fail with local variables not on the first line (:issue:`15342`)
-- Bug in ``.rank()`` rank incorrectly orders ordered categories

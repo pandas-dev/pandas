@@ -620,10 +620,7 @@ def rank(values, axis=0, method='average', na_option='keep',
         Whether or not to the display the returned rankings in integer form
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
-    if is_categorical(values):
-        ranks = values._rank(axis=axis, method=method, ascending=ascending,
-                             na_option=na_option, pct=pct)
-    elif values.ndim == 1:
+    if values.ndim == 1:
         f, values = _get_data_algo(values, _rank1d_functions)
         ranks = f(values, ties_method=method, ascending=ascending,
                   na_option=na_option, pct=pct)
@@ -991,6 +988,9 @@ def _get_data_algo(values, func_map):
     elif is_unsigned_integer_dtype(values):
         f = func_map['uint64']
         values = _ensure_uint64(values)
+    elif is_categorical(values) and values._ordered:
+        f = func_map['float64']
+        values = values._values_for_rank()
     else:
         values = _ensure_object(values)
 

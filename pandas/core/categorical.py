@@ -1404,28 +1404,23 @@ class Categorical(PandasObject):
             return self._constructor(values=codes, categories=self.categories,
                                      ordered=self.ordered, fastpath=True)
 
-    def _rank(self, *args, **kwargs):
+    def _values_for_rank(self):
         """
         For correctly ranking ordered categorical data. See GH#15420
 
         Ordered categorical data should be ranked on the basis of
-        codes.
+        codes with -1 translated to NaN.
 
         Returns
         -------
         numpy array
 
         """
-        from pandas.core.algorithms import rank
-
+        values = self._codes.astype('float64')
         if self._ordered:
-            codes = self._codes.astype('float64')
-            na_mask = (codes == -1)
-            codes[na_mask] = np.nan
-            ranks = rank(codes, *args, **kwargs)
-        else:
-            ranks = rank(self.astype('object'), *args, **kwargs)
-        return ranks
+            na_mask = (values == -1)
+            values[na_mask] = np.nan
+        return values
 
     def order(self, inplace=False, ascending=True, na_position='last'):
         """
