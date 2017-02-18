@@ -41,15 +41,17 @@ In the remainder of this page, a few examples of explicit conversion is given. T
 Transferring R data sets into Python
 ------------------------------------
 
-The ``pandas2ri.ri2py`` function retrieves an R data set and converts it to the
-appropriate pandas object (most likely a DataFrame):
+Once the pandas conversion is activated (``pandas2ri.activate()``), many conversions
+of R to pandas objects will be done automatically. For example, to obtain the 'iris' dataset as a pandas DataFrame:
 
 .. ipython:: python
 
     r.data('iris')
-    df_iris = pandas2ri.ri2py(r['iris'])
-    df_iris.head()
+    r['iris'].head()
 
+If the pandas conversion was not activated, the above could also be accomplished
+by explicitly converting it with the ``pandas2ri.ri2py`` function
+(``pandas2ri.ri2py(r['iris'])``).
 
 Converting DataFrames into R objects
 ------------------------------------
@@ -64,7 +66,6 @@ DataFrames into the equivalent R object (that is, **data.frame**):
    r_dataframe = pandas2ri.py2ri(df)
    print(type(r_dataframe))
    print(r_dataframe)
-
 
 The DataFrame's index is stored as the ``rownames`` attribute of the
 data.frame instance.
