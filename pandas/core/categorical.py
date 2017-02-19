@@ -604,7 +604,13 @@ class Categorical(PandasObject):
 
     def _codes_for_groupby(self, sort):
         """
-        Return a Categorical adjusted for groupby
+        If sort=False, return a copy of self, coded with categories as
+        returned by .unique(), followed by any categories not appearing in
+        the data. If sort=True, return self.
+
+        This method is needed solely to ensure the categorical index of the
+        GroupBy result has categories in the order of appearance in the data
+        (GH-8868).
 
         Parameters
         ----------
@@ -614,21 +620,24 @@ class Categorical(PandasObject):
         Returns
         -------
         Categorical
-            In case of sort=True, self is returned with original categories
-            preserved. In case of sort=False, the new categories are set
-            to the order of appearance in codes (unless ordered=True),
-            followed by any unrepresented categories in original order.
+            If sort=False, the new categories are set to the order of
+            appearance in codes (unless ordered=True, in which case the
+            original order is preserved), followed by any unrepresented
+            categories in the original order.
         """
-        cat = self
+        if sort:
+            # Already sorted according to self.categories; all is fine
+            return self
+
         # sort=False should order groups in as-encountered order (GH-8868)
-        if not sort:
-            cat = self.unique()
-            # But all categories should be present, including those missing
-            # from the data (GH-13179), which .unique() dropped
-            cat.add_categories(self.categories[
-                                   ~self.categories.isin(cat.categories)],
-                               inplace=True)
-            cat = self.reorder_categories(cat.categories)
+        cat = self.unique()
+        # But for groupby to work, all categories should be present,
+        # including those missing from the data (GH-13179), which .unique()
+        # above dropped
+        cat.add_categories(
+            self.categories[~self.categories.isin(cat.categories)],
+            inplace=True)
+        cat = self.reorder_categories(cat.categories)
         return cat
 
     _ordered = None

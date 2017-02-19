@@ -125,7 +125,7 @@ Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937
 GroupBy on Categoricals
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous version, ``.groupby(..., sort=False)`` would fail with a ``ValueError`` when grouping on a categorical series with some categories not appearing in the data. (:issue:`13179`)
+In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueError`` when grouping on a categorical series with some categories not appearing in the data. (:issue:`13179`)
 
 Now, it works.
 
