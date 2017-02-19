@@ -1525,7 +1525,7 @@ class _LocIndexer(_LocationIndexer):
             # possibly convert a list-like into a nested tuple
             # but don't convert a list-like of tuples
             if isinstance(labels, MultiIndex):
-                if (not isinstance(key, tuple) and len(key) > 1 and
+                if (not isinstance(key, tuple) and len(key) and
                         not isinstance(key[0], tuple)):
                     if isinstance(key, ABCSeries):
                         # GH 14730
