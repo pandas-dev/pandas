@@ -9,7 +9,8 @@ from pandas.types.common import (is_bool_dtype,
                                  is_string_like,
                                  is_list_like,
                                  is_scalar,
-                                 is_integer)
+                                 is_integer,
+                                 is_re)
 from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
@@ -303,7 +304,7 @@ def str_endswith(arr, pat, na=np.nan):
     return _na_map(f, arr, na, dtype=bool)
 
 
-def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
+def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
     """
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
@@ -311,8 +312,12 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
     Parameters
     ----------
-    pat : string
-        Character sequence or regular expression
+    pat : string or compiled regex
+        String can be a character sequence or regular expression.
+
+        .. versionadded:: 0.20.0
+            `pat` also accepts a compiled regex.
+
     repl : string or callable
         Replacement string or a callable. The callable is passed the regex
         match object and must return a replacement string to be used.
@@ -323,14 +328,23 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
     n : int, default -1 (all)
         Number of replacements to make from start
-    case : boolean, default True
-        If True, case sensitive
+    case : boolean, default None
+        - If True, case sensitive
+        - Defaults to True if `pat` is a string
+        - Cannot be set if `pat` is a compiled regex
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
+        - re module flags, e.g. re.IGNORECASE
+        - Cannot be set if `pat` is a compiled regex
 
     Returns
     -------
     replaced : Series/Index of objects
+
+    Notes
+    -----
+    When `pat` is a compiled regex, all flags should be included in the
+    compiled regex. Use of `case` or `flags` with a compiled regex will
+    raise an error.
 
     Examples
     --------
@@ -372,21 +386,42 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     0    tWO
     1    bAR
     dtype: object
+
+    Using a compiled regex with flags
+
+    >>> regex_pat = re.compile(r'FUZ', flags=re.IGNORECASE)
+    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar')
+    0    foo
+    1    bar
+    2    NaN
+    dtype: object
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
     if not (is_string_like(repl) or callable(repl)):
         raise TypeError("repl must be a string or callable")
-    use_re = not case or len(pat) > 1 or flags or callable(repl)
+
+    is_compiled_re = is_re(pat)
+    if is_compiled_re:
+        if (case is not None) or (flags != 0):
+            raise ValueError("case and flags must be default values"
+                             " when pat is a compiled regex")
+    else:
+        # not a compiled regex
+        # set default case
+        if case is None:
+            case = True
+
+        # add case flag, if provided
+        if case is False:
+            flags |= re.IGNORECASE
+
+    use_re = is_compiled_re or len(pat) > 1 or flags or callable(repl)
 
     if use_re:
-        if not case:
-            flags |= re.IGNORECASE
-        regex = re.compile(pat, flags=flags)
         n = n if n >= 0 else 0
-
-        def f(x):
-            return regex.sub(repl, x, count=n)
+        regex = re.compile(pat, flags=flags)
+        f = lambda x: regex.sub(repl=repl, string=x, count=n)
     else:
         f = lambda x: x.replace(pat, repl, n)
 
@@ -1558,7 +1593,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_replace)
-    def replace(self, pat, repl, n=-1, case=True, flags=0):
+    def replace(self, pat, repl, n=-1, case=None, flags=0):
         result = str_replace(self._data, pat, repl, n=n, case=case,
                              flags=flags)
         return self._wrap_result(result)

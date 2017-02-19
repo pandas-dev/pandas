@@ -469,6 +469,65 @@ class TestStringMethods(tm.TestCase):
         exp = Series(['bAR', NA])
         tm.assert_series_equal(result, exp)
 
+    def test_replace_compiled_regex(self):
+        # GH 15446
+        values = Series(['fooBAD__barBAD', NA])
+
+        # test with compiled regex
+        pat = re.compile(r'BAD[_]*')
+        result = values.str.replace(pat, '')
+        exp = Series(['foobar', NA])
+        tm.assert_series_equal(result, exp)
+
+        # mixed
+        mixed = Series(['aBAD', NA, 'bBAD', True, datetime.today(), 'fooBAD',
+                        None, 1, 2.])
+
+        rs = Series(mixed).str.replace(pat, '')
+        xp = Series(['a', NA, 'b', NA, NA, 'foo', NA, NA, NA])
+        tm.assertIsInstance(rs, Series)
+        tm.assert_almost_equal(rs, xp)
+
+        # unicode
+        values = Series([u('fooBAD__barBAD'), NA])
+
+        result = values.str.replace(pat, '')
+        exp = Series([u('foobar'), NA])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.replace(pat, '', n=1)
+        exp = Series([u('foobarBAD'), NA])
+        tm.assert_series_equal(result, exp)
+
+        # flags + unicode
+        values = Series([b"abcd,\xc3\xa0".decode("utf-8")])
+        exp = Series([b"abcd, \xc3\xa0".decode("utf-8")])
+        pat = re.compile(r"(?<=\w),(?=\w)", flags=re.UNICODE)
+        result = values.str.replace(pat, ", ")
+        tm.assert_series_equal(result, exp)
+
+        # case and flags provided to str.replace will have no effect
+        # and will produce warnings
+        values = Series(['fooBAD__barBAD__bad', NA])
+        pat = re.compile(r'BAD[_]*')
+
+        with tm.assertRaisesRegexp(ValueError, "case and flags must be"):
+            result = values.str.replace(pat, '', flags=re.IGNORECASE)
+
+        with tm.assertRaisesRegexp(ValueError, "case and flags must be"):
+            result = values.str.replace(pat, '', case=False)
+
+        with tm.assertRaisesRegexp(ValueError, "case and flags must be"):
+            result = values.str.replace(pat, '', case=True)
+
+        # test with callable
+        values = Series(['fooBAD__barBAD', NA])
+        repl = lambda m: m.group(0).swapcase()
+        pat = re.compile('[a-z][A-Z]{2}')
+        result = values.str.replace(pat, repl, n=2)
+        exp = Series(['foObaD__baRbaD', NA])
+        tm.assert_series_equal(result, exp)
+
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
 
