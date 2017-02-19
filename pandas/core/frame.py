@@ -1862,7 +1862,8 @@ class DataFrame(NDFrame):
         ----------
         index : row label
         col : column label
-        takeable : interpret the index and col parameters as indexers. The default is ``False``.
+        takeable : interpret the index and col parameters as indexers. The default
+        is ``False``.
 
         Returns
         -------
@@ -1870,7 +1871,8 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        Retrieve values from a ``DataFrame`` by providing an index value and column name.
+        Retrieve values from a ``DataFrame`` by providing an index value
+        and column name.
 
         >>> df = pd.DataFrame([[1, 'a'], [2, 'b']],
         ...                   columns=['numeric', 'object'])
