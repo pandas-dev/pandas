@@ -1862,8 +1862,9 @@ class DataFrame(NDFrame):
         ----------
         index : row label
         col : column label
-        takeable : interpret the index and col parameters as indexers.
-        The default is ``False``.
+        takeable : an internal parameter that instructs the method to
+        interpret the index and col parameters as indexers. Slated
+        for deprecation. The default is ``False``.
 
         Returns
         -------
