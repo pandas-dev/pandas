@@ -1873,7 +1873,8 @@ class DataFrame(NDFrame):
         Notes
         -----
 
-        The recommended public methods to use as alternative to this method are ``.at`` and ``.iat``.
+        The recommended public methods to use as alternative to this method
+        are ``.at`` and ``.iat``.
 
         Examples
         --------
