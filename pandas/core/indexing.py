@@ -1521,15 +1521,28 @@ class _LocIndexer(_LocationIndexer):
             return self._getbool_axis(key, axis=axis)
         elif is_list_like_indexer(key):
 
-            # GH 7349
-            # possibly convert a list-like into a nested tuple
-            # but don't convert a list-like of tuples
+            # convert various list-like indexers
+            # to a list of keys
+            # we will use the *values* of the object
+            # and NOT the index if its a PandasObject
             if isinstance(labels, MultiIndex):
+
+                if isinstance(key, (ABCSeries, np.ndarray)) and key.ndim <= 1:
+                    # Series, or 0,1 ndim ndarray
+                    # GH 14730
+                    key = list(key)
+                elif isinstance(key, ABCDataFrame):
+                    # GH 15438
+                    raise NotImplementedError("Indexing a MultiIndex with a "
+                                              "DataFrame key is not "
+                                              "implemented")
+                elif hasattr(key, 'ndim') and key.ndim > 1:
+                    raise NotImplementedError("Indexing a MultiIndex with a "
+                                              "multidimensional key is not "
+                                              "implemented")
+
                 if (not isinstance(key, tuple) and len(key) > 1 and
                         not isinstance(key[0], tuple)):
-                    if isinstance(key, ABCSeries):
-                        # GH 14730
-                        key = list(key)
                     key = tuple([key])
 
             # an iterable multi-selection
