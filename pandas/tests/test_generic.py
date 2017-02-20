@@ -2,6 +2,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from operator import methodcaller
+from copy import copy, deepcopy
 import pytest
 import numpy as np
 from numpy import nan
@@ -674,6 +675,18 @@ class Generic(object):
 
             with self.assertRaises(ValueError):
                 super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
+
+    def test_copy_and_deepcopy(self):
+        # GH 15444
+        for shape in [0, 1, 2]:
+            obj = self._construct(shape)
+            for func in [copy,
+                         deepcopy,
+                         lambda x: x.copy(deep=False),
+                         lambda x: x.copy(deep=True)]:
+                obj_copy = func(obj)
+                self.assertIsNot(obj_copy, obj)
+                self._compare(obj_copy, obj)
 
 
 class TestSeries(tm.TestCase, Generic):
@@ -1539,6 +1552,14 @@ class TestDataFrame(tm.TestCase, Generic):
                            expected,
                            check_index_type=False)
 
+    def test_deepcopy_empty(self):
+        # This test covers empty frame copying with non-empty column sets
+        # as reported in issue GH15370
+        empty_frame = DataFrame(data=[], index=[], columns=['A'])
+        empty_frame_copy = deepcopy(empty_frame)
+
+        self._compare(empty_frame_copy, empty_frame)
+
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
@@ -1568,6 +1589,9 @@ class TestPanel4D(tm.TestCase, Generic):
 
     def test_sample(self):
         pytest.skip("sample on Panel4D")
+
+    def test_copy_and_deepcopy(self):
+        pytest.skip("copy_and_deepcopy on Panel4D")
 
     def test_to_xarray(self):
 
