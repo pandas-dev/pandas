@@ -504,7 +504,7 @@ cdef class IndexEngine:
             Py_ssize_t n_t
 
         self._ensure_mapping_populated()
-        values = self._get_index_values()
+        values = np.array(self._get_index_values(), copy=False)
         return _map_targets_to_values(values, targets, idx0, idx1)
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
