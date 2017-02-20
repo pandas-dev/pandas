@@ -2542,14 +2542,16 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         else:
             try:
                 if self.is_monotonic_increasing:
-                    idx0 = np.arange(len(src_values))
+                    idx0 = np.arange(len(src_values), dtype=np.int64)
                 else:
                     idx0 = np.argsort(src_values, kind='mergesort')
+                    idx0 = np.asarray(idx0, dtype=np.int64)
 
                 if target.is_monotonic_increasing:
-                    idx1 = np.arange(len(tgt_values))
+                    idx1 = np.arange(len(tgt_values), dtype=np.int64)
                 else:
                     idx1 = np.argsort(tgt_values, kind='mergesort')
+                    idx1 = np.asarray(idx1, dtype=np.int64)
 
             except TypeError:
                 orderable = False
