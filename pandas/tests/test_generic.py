@@ -677,11 +677,12 @@ class Generic(object):
                 super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
 
     def test_copy_and_deepcopy(self):
-
         for shape in [0, 1, 2]:
             obj = self._construct(shape)
-
-            for func in (copy, deepcopy):
+            for func in [copy,
+                         deepcopy,
+                         lambda x: x.copy(deep=False),
+                         lambda x: x.copy(deep=True)]:
                 obj_copy = func(obj)
                 self.assertIsNot(obj_copy, obj)
                 self._compare(obj_copy, obj)
@@ -1587,6 +1588,9 @@ class TestPanel4D(tm.TestCase, Generic):
 
     def test_sample(self):
         pytest.skip("sample on Panel4D")
+
+    def test_copy_and_deepcopy(self):
+        pytest.skip("copy_and_deepcopy on Panel4D")
 
     def test_to_xarray(self):
 
