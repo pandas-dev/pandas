@@ -1856,19 +1856,24 @@ class DataFrame(NDFrame):
 
     def get_value(self, index, col, takeable=False):
         """
-        Quickly retrieve single value from the provided column and index.
+        An internal method to quickly retrieve single value from the provided column
+        and index. Slated for deprecation.
 
         Parameters
         ----------
         index : row label
         col : column label
-        takeable : an internal parameter that instructs the method to
-        interpret the index and col parameters as indexers. Slated
-        for deprecation. The default is ``False``.
+        takeable : Instructs the method to interpret the index
+        and col parameters as indexers. The default is ``False``.
 
         Returns
         -------
         value : scalar value
+
+        Notes
+        -----
+
+        The recommended public methods to use as alternative to this method are ``.at`` and ``.iat``.
 
         Examples
         --------
