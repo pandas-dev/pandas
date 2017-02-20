@@ -59,133 +59,114 @@ ctypedef struct Int64List:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.initializedcheck(False)
-cdef Int64List* Int64List_create_array(Py_ssize_t n) nogil:
+cdef _count(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
+            int64_t[:] mapping_count, int64_t[:] missing_count):
 
     cdef:
-        Int64List *lst = <Int64List *> malloc(n * sizeof(Int64List))
-        Py_ssize_t i
+        int64_t n_v = values.shape[0]
+        int64_t n_t = targets.shape[0]
+        int64_t i = 0
+        int64_t j = 0
 
-    for i in range(n):
-        lst[i].n = 0
-        lst[i].root = NULL
-        lst[i].last = NULL
-
-    return lst
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.initializedcheck(False)
-cdef void Int64List_destroy_array(Int64List *lst, Py_ssize_t n) nogil:
-    cdef:
-        Int64ListNode *next
-        Int64ListNode *p
-        Py_ssize_t i
-
-    for i in range(n):
-        if lst[i].owns:
-            p = lst[i].root
-            while p is not NULL:
-                next = p[0].next
-                free(p)
-                p = next
-
-    free(lst)
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.initializedcheck(False)
-cdef inline void _append(Int64List *lst, int64_t x) nogil:
-
-    cdef Int64ListNode *nn = <Int64ListNode *> malloc(sizeof(Int64ListNode))
-
-    nn[0].value = x
-    nn[0].next = NULL
-
-    if lst[0].root is NULL:
-        lst[0].root = nn
-        lst[0].owns = 1
-    else:
-        lst[0].last[0].next = nn
-
-    lst[0].last = nn
-    lst[0].n += 1
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.initializedcheck(False)
-cdef inline void _copy_to(Int64List *dst, Int64List *src) nogil:
-    dst[0].root = src[0].root
-    dst[0].last = src[0].last
-    dst[0].n = src[0].n
-    dst[0].owns = 0
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.initializedcheck(False)
-cdef int64_t* Int64List_concat_array(Int64List* lst, Py_ssize_t n,
-                                     Py_ssize_t *nt) nogil:
-    nt[0] = 0
-    cdef:
-        Py_ssize_t last = 0
-        Int64ListNode* node
-
-    for i in range(n):
-        nt[0] += lst[i].n
-
-    cdef int64_t *data = <int64_t *> malloc(nt[0] * sizeof(int64_t))
-
-    for i in range(n):
-
-        node = lst[i].root
-        while node is not NULL:
-            data[last] = node[0].value
-            last += 1
-            node = node[0].next
-
-    return data
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.initializedcheck(False)
-cdef _indexer_non_unique_orderable_loop(ndarray values, ndarray targets,
-                                        int64_t[:] idx0,
-                                        int64_t[:] idx1,
-                                        Int64List* result,
-                                        Int64List* missing):
-    cdef:
-      Py_ssize_t i = 0, j = 0, n = idx0.shape[0], n_t = idx1.shape[0]
-
-    while i < n and j < n_t:
+    while i < n_v and j < n_t:
 
         val0 = values[idx0[i]]
         val1 = targets[idx1[j]]
 
         if val0 == val1:
 
-            while i < n and values[idx0[i]] == val1:
-               _append(&(result[idx1[j]]), idx0[i])
+            while i < n_v and values[idx0[i]] == val1:
                i += 1
+               mapping_count[idx1[j]] += 1
 
             j += 1
             while j < n_t and val0 == targets[idx1[j]]:
-                _copy_to(&(result[idx1[j]]), &(result[idx1[j-1]]))
+                mapping_count[idx1[j]] = mapping_count[idx1[j-1]]
                 j += 1
 
         elif val0 > val1:
 
-            _append(&(result[idx1[j]]), -1)
-            _append(&(missing[idx1[j]]), idx1[j])
+            mapping_count[idx1[j]] += 1
+            missing_count[idx1[j]] = 1
             j += 1
 
         else:
             i += 1
 
     while j < n_t:
-        _append(&(result[idx1[j]]), -1)
-        _append(&(missing[idx1[j]]), idx1[j])
+        mapping_count[idx1[j]] += 1
+        missing_count[idx1[j]] = 1
         j += 1
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef _map(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
+            int64_t[:] start_mapping, int64_t[:] start_missing,
+            int64_t[:] mapping, int64_t[:] missing):
+
+    cdef:
+        int64_t n_v = values.shape[0]
+        int64_t n_t = targets.shape[0]
+        int64_t i = 0
+        int64_t j = 0
+        int64_t c
+
+    while i < n_v and j < n_t:
+
+        val0 = values[idx0[i]]
+        val1 = targets[idx1[j]]
+
+        if val0 == val1:
+
+            c = 0
+            while i < n_v and values[idx0[i]] == val1:
+                mapping[start_mapping[idx1[j]] + c] = idx0[i]
+                i += 1
+                c += 1
+
+            j += 1
+            while j < n_t and val0 == targets[idx1[j]]:
+                for ii in range(c):
+                    mapping[start_mapping[idx1[j]] + ii] = \
+                        mapping[start_mapping[idx1[j-1]] + ii]
+                j += 1
+
+        elif val0 > val1:
+
+            mapping[start_mapping[idx1[j]]] = -1
+            missing[start_missing[idx1[j]]] = idx1[j]
+            j += 1
+
+        else:
+            i += 1
+
+    while j < n_t:
+
+        mapping[start_mapping[idx1[j]]] = -1
+        missing[start_missing[idx1[j]]] = idx1[j]
+        j += 1
+
+def _map_targets_to_values(values, targets, idx0, idx1):
+    mapping_count = np.zeros(len(targets), int)
+    missing_count = np.zeros(len(targets), int)
+
+    _count(values, targets, idx0, idx1, mapping_count, missing_count)
+
+    np.cumsum(mapping_count, out=mapping_count)
+    np.cumsum(missing_count, out=missing_count)
+
+    mapping = np.empty(mapping_count[-1], int)
+    missing = np.empty(missing_count[-1], int)
+
+    mapping_count[1:] = mapping_count[:-1]
+    mapping_count[0] = 0
+    missing_count -= 1
+
+    _map(values, targets, idx0, idx1, mapping_count, missing_count, mapping,
+         missing)
+
+    return mapping, missing
 
 cdef inline is_definitely_invalid_key(object val):
     if PyTuple_Check(val):
@@ -524,35 +505,7 @@ cdef class IndexEngine:
 
         self._ensure_mapping_populated()
         values = self._get_index_values()
-        n_t = len(targets)
-
-        cdef:
-            Int64List* result = Int64List_create_array(n_t)
-            Int64List* missing = Int64List_create_array(n_t)
-
-        _indexer_non_unique_orderable_loop(values, targets, idx0, idx1,
-                                           result, missing)
-
-        cdef:
-            Py_ssize_t nres, nmis
-            int64_t *cresult
-            int64_t *cmissing
-
-        cresult = Int64List_concat_array(result, n_t, &nres)
-        cmissing = Int64List_concat_array(missing, n_t, &nmis)
-
-        Int64List_destroy_array(result, n_t)
-        Int64List_destroy_array(missing, n_t)
-
-        cdef:
-            cnp.npy_intp *dims0 = [nres]
-            cnp.npy_intp *dims1 = [nmis]
-            ndarray npy_result = PyArray_SimpleNewFromData(1, dims0,
-                                               NPY_INT64, cresult)
-            ndarray npy_missing = PyArray_SimpleNewFromData(1, dims1,
-                                               NPY_INT64, cmissing)
-
-        return npy_result, npy_missing
+        return _map_targets_to_values(values, targets, idx0, idx1)
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
