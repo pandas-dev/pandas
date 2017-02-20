@@ -433,6 +433,7 @@ Other API Changes
 - ``DataFrame.asof()`` will return a null filled ``Series`` instead the scalar ``NaN`` if a match is not found (:issue:`15118`)
 - The :func:`pd.read_gbq` method now stores ``INTEGER`` columns as ``dtype=object`` if they contain ``NULL`` values. Otherwise they are stored as ``int64``. This prevents precision lost for integers greather than 2**53. Furthermore ``FLOAT`` columns with values above 10**4 are no longer casted to ``int64`` which also caused precision loss (:issue:`14064`, :issue:`14305`).
 - Reorganization of timeseries development tests (:issue:`14854`)
+- Specific support for ``copy.copy()`` and ``copy.deepcopy()`` functions on NDFrame objects (:issue:`15444`)
 
 .. _whatsnew_0200.deprecations:
 
@@ -500,7 +501,7 @@ Bug Fixes
 - Bug in ``pd.read_csv()`` in which a file containing a row with many columns followed by rows with fewer columns would cause a crash (:issue:`14125`)
 - Bug in ``pd.tools.hashing.hash_pandas_object()`` in which hashing of categoricals depended on the ordering of categories, instead of just their values. (:issue:`15143`)
 - Bug in ``.groupby(..).resample()`` when passed the ``on=`` kwarg. (:issue:`15021`)
-
+- Bug in using ``__deepcopy__`` on empty NDFrame objects (:issue:`15370`)
 - Bug in ``DataFrame.loc`` with indexing a ``MultiIndex`` with a ``Series`` indexer (:issue:`14730`, :issue:`15424`)
 - Bug in ``DataFrame.loc`` with indexing a ``MultiIndex`` with a numpy array (:issue:`15434`)
 
