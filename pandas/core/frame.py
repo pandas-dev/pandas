@@ -2973,10 +2973,17 @@ class DataFrame(NDFrame):
             # if we have the labels, extract the values with a mask
             if labels is not None:
                 mask = labels == -1
-                values = values.take(labels)
-                if mask.any():
-                    values, changed = _maybe_upcast_putmask(values, mask,
-                                                            np.nan)
+
+                # we can have situations where the whole mask is -1,
+                # meaning there is nothing found in labels, so make all nan's
+                if mask.all():
+                    values = np.empty(len(mask))
+                    values.fill(np.nan)
+                else:
+                    values = values.take(labels)
+                    if mask.any():
+                        values, changed = _maybe_upcast_putmask(values, mask,
+                                                                np.nan)
             return values
 
         new_index = _default_index(len(new_obj))
