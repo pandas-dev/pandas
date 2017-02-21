@@ -315,7 +315,7 @@ install:
 
 before_script:
   - source activate pandas && pip install codecov
-  - ci/install_db.sh
+  - ci/install_db_travis.sh
 
 script:
   - echo "script start"
