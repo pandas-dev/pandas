@@ -624,6 +624,33 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                                 ['a', 'mean', 'median', 'mean']])
         assert_frame_equal(rs, xp)
 
+    def test_reset_index_multiindex_nan(self):
+        # GH6322, testing reset_index on MultiIndexes
+        # when we have a nan or all nan
+        df = pd.DataFrame({'A' : ['a', 'b', 'c'],
+                           'B' : [0, 1, np.nan],
+                           'C' : np.random.rand(3)})
+        rs = df.set_index(['A', 'B']).reset_index()
+        assert_frame_equal(rs, df)
+
+        df = pd.DataFrame({'A' : [np.nan, 'b', 'c'],
+                           'B' : [0, 1, 2],
+                           'C' : np.random.rand(3)})
+        rs = df.set_index(['A', 'B']).reset_index()
+        assert_frame_equal(rs, df)
+
+        df = pd.DataFrame({'A' : ['a', 'b', 'c'],
+                           'B' : [0, 1, 2],
+                           'C' : [np.nan, 1.1, 2.2]})
+        rs = df.set_index(['A', 'B']).reset_index()
+        assert_frame_equal(rs, df)
+
+        df = pd.DataFrame({'A' : ['a', 'b', 'c'],
+                           'B' : [np.nan, np.nan, np.nan],
+                           'C' : np.random.rand(3)})
+        rs = df.set_index(['A', 'B']).reset_index()
+        assert_frame_equal(rs, df)
+
     def test_reset_index_with_datetimeindex_cols(self):
         # GH5818
         #
