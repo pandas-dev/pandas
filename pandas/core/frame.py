@@ -1856,8 +1856,8 @@ class DataFrame(NDFrame):
 
     def get_value(self, index, col, takeable=False):
         """
-        An internal method to quickly retrieve single value from the provided column
-        and index. Slated for deprecation.
+        An internal method to quickly retrieve single value from the
+        provided column and index. Slated for deprecation.
 
         Parameters
         ----------
@@ -1873,8 +1873,8 @@ class DataFrame(NDFrame):
         Notes
         -----
 
-        The recommended public methods to use as alternative to this method
-        are ``.at`` and ``.iat``.
+        The recommended public methods to use as alternative to this
+        method are ``.at`` and ``.iat``.
 
         Examples
         --------
