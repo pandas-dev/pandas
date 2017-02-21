@@ -575,6 +575,7 @@ Bug Fixes
 - Incorrect dtyped ``Series`` was returned by comparison methods (e.g., ``lt``, ``gt``, ...) against a constant for an empty ``DataFrame`` (:issue:`15077`)
 - Bug in ``Series.dt.round`` inconsistent behaviour on NAT's with different arguments (:issue:`14940`)
 - Bug in ``DataFrame.fillna()`` where the argument ``downcast`` was ignored when fillna value was of type ``dict`` (:issue:`15277`)
+- Bug in ``.reset_index()`` when an all ``NaN`` level of a ``MultiIndex`` would fail (:issue:`6322`)
 
 
 
