@@ -1084,14 +1084,15 @@ class TestMoments(Base):
 
             self._check_moment_func(f, alt, name='quantile', quantile=q)
 
-            self.assertRaises(ValueError, mom.rolling_quantile,
-                              np.array([1, 2, 3]), window=3, quantile=-0.1)
+    def test_rolling_quantile_param(self):
+        ser = Series([0.0, .1, .5, .9, 1.0])
 
-            self.assertRaises(ValueError, mom.rolling_quantile,
-                              np.array([1, 2, 3]), window=3, quantile=10)
+        with self.assertRaises(ValueError):
+            ser.rolling(3).quantile(-0.1)
+            ser.rolling(3).quantile(10.0)
 
-            self.assertRaises(TypeError, mom.rolling_quantile,
-                              np.array([1, 2, 3]), window=3, quantile='foo')
+        with self.assertRaises(TypeError):
+            ser.rolling(3).quantile('foo')
 
     def test_rolling_apply(self):
         # suppress warnings about empty slices, as we are deliberately testing
