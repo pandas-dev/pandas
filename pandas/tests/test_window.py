@@ -1063,7 +1063,7 @@ class TestMoments(Base):
                               window=3, min_periods=5)
 
     def test_rolling_quantile(self):
-        qs = [.1, .5, .9]
+        qs = [0.0, .1, .5, .9, 1.0]
 
         def scoreatpercentile(a, per):
             values = np.sort(a, axis=0)
@@ -1083,6 +1083,12 @@ class TestMoments(Base):
                 return scoreatpercentile(x, q)
 
             self._check_moment_func(f, alt, name='quantile', quantile=q)
+
+            self.assertRaises(ValueError, mom.rolling_quantile,
+                              np.array([1, 2, 3]), window=3, quantile=-0.1)
+
+            self.assertRaises(ValueError, mom.rolling_quantile,
+                              np.array([1, 2, 3]), window=3, quantile=10)
 
     def test_rolling_apply(self):
         # suppress warnings about empty slices, as we are deliberately testing
