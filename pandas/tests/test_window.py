@@ -1089,6 +1089,8 @@ class TestMoments(Base):
 
         with self.assertRaises(ValueError):
             ser.rolling(3).quantile(-0.1)
+
+        with self.assertRaises(ValueError):
             ser.rolling(3).quantile(10.0)
 
         with self.assertRaises(TypeError):
