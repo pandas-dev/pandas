@@ -120,6 +120,42 @@ Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937
 - Bug in ``pd.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14915`)
 - Bug in ``pd.value_counts()`` in which unsigned 64-bit integers were being erroneously truncated in the output (:issue:`14934`)
 
+.. _whatsnew_0200.enhancements.groupy_categorical
+
+GroupBy on Categoricals
+^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueError`` when grouping on a categorical series with some categories not appearing in the data. (:issue:`13179`)
+
+Now, it works.
+
+.. ipython:: python
+
+  chromosomes = np.r_[np.arange(1, 23).astype(str), ['X', 'Y']]
+  df = pd.DataFrame({
+      'A': np.random.randint(100),
+      'B': np.random.randint(100),
+      'C': np.random.randint(100),
+      'chromosomes': pd.Categorical(np.random.choice(chromosomes, 100),
+                                    categories=chromosomes,
+                                    ordered=True)})
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+  In [3]: df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
+  ---------------------------------------------------------------------------
+  ValueError                                Traceback (most recent call last)
+  ...
+  ValueError: items in new_categories are not the same as in old categories
+
+New Behavior:
+
+.. ipython:: python
+
+  df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
+
 .. _whatsnew_0200.enhancements.other:
 
 Other enhancements
@@ -162,7 +198,6 @@ Other enhancements
 
 
 .. _whatsnew_0200.api_breaking:
-
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

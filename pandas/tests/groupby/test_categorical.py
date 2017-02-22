@@ -284,6 +284,30 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
 
             tm.assert_frame_equal(result, expected, check_index_type=True)
 
+    def test_groupby_preserve_categories(self):
+        # GH-13179
+        categories = list('abc')
+
+        # ordered=True
+        df = DataFrame({'A': pd.Categorical(list('ba'),
+                                            categories=categories,
+                                            ordered=True)})
+        index = pd.CategoricalIndex(categories, categories, ordered=True)
+        tm.assert_index_equal(df.groupby('A', sort=True).first().index, index)
+        tm.assert_index_equal(df.groupby('A', sort=False).first().index, index)
+
+        # ordered=False
+        df = DataFrame({'A': pd.Categorical(list('ba'),
+                                            categories=categories,
+                                            ordered=False)})
+        sort_index = pd.CategoricalIndex(categories, categories, ordered=False)
+        nosort_index = pd.CategoricalIndex(list('bac'), list('bac'),
+                                           ordered=False)
+        tm.assert_index_equal(df.groupby('A', sort=True).first().index,
+                              sort_index)
+        tm.assert_index_equal(df.groupby('A', sort=False).first().index,
+                              nosort_index)
+
     def test_groupby_preserve_categorical_dtype(self):
         # GH13743, GH13854
         df = DataFrame({'A': [1, 2, 1, 1, 2],
