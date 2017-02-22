@@ -12,11 +12,14 @@ from pandas.tseries.period import Period
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
+from pandas.tseries.tdi import TimedeltaIndex
 from pandas.formats.printing import pprint_thing
 import pandas.compat as compat
 
 from pandas.tseries.converter import (TimeSeries_DateLocator,
-                                      TimeSeries_DateFormatter)
+                                      TimeSeries_DateFormatter,
+                                      TimeSeries_TimedeltaFormatter)
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
@@ -49,7 +52,7 @@ def tsplot(series, plotf, ax=None, **kwargs):
     lines = plotf(ax, series.index._mpl_repr(), series.values, **kwargs)
 
     # set date formatter, locators and rescale limits
-    format_dateaxis(ax, ax.freq)
+    format_dateaxis(ax, ax.freq, series.index)
     return lines
 
 
@@ -278,8 +281,24 @@ def _maybe_convert_index(ax, data):
 # Patch methods for subplot. Only format_dateaxis is currently used.
 # Do we need the rest for convenience?
 
+def format_timedelta_ticks(x, pos, n_decimals):
+    """
+    Convert seconds to 'D days HH:MM:SS.F'
+    """
+    s, ns = divmod(x, 1e9)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    d, h = divmod(h, 24)
+    decimals = int(ns * 10**(n_decimals - 9))
+    s = r'{:02d}:{:02d}:{:02d}'.format(int(h), int(m), int(s))
+    if n_decimals > 0:
+        s += '.{{:0{:0d}d}}'.format(n_decimals).format(decimals)
+    if d != 0:
+        s = '{:d} days '.format(int(d)) + s
+    return s
 
-def format_dateaxis(subplot, freq):
+
+def format_dateaxis(subplot, freq, index):
     """
     Pretty-formats the date axis (x-axis).
 
@@ -288,26 +307,38 @@ def format_dateaxis(subplot, freq):
     default, changing the limits of the x axis will intelligently change
     the positions of the ticks.
     """
-    majlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
-                                        minor_locator=False,
-                                        plot_obj=subplot)
-    minlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
-                                        minor_locator=True,
-                                        plot_obj=subplot)
-    subplot.xaxis.set_major_locator(majlocator)
-    subplot.xaxis.set_minor_locator(minlocator)
 
-    majformatter = TimeSeries_DateFormatter(freq, dynamic_mode=True,
+    # handle index specific formatting
+    # Note: DatetimeIndex does not use this
+    # interface. DatetimeIndex uses matplotlib.date directly
+    if isinstance(index, PeriodIndex):
+
+        majlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
                                             minor_locator=False,
                                             plot_obj=subplot)
-    minformatter = TimeSeries_DateFormatter(freq, dynamic_mode=True,
+        minlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
                                             minor_locator=True,
                                             plot_obj=subplot)
-    subplot.xaxis.set_major_formatter(majformatter)
-    subplot.xaxis.set_minor_formatter(minformatter)
+        subplot.xaxis.set_major_locator(majlocator)
+        subplot.xaxis.set_minor_locator(minlocator)
 
-    # x and y coord info
-    subplot.format_coord = lambda t, y: (
-        "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
+        majformatter = TimeSeries_DateFormatter(freq, dynamic_mode=True,
+                                                minor_locator=False,
+                                                plot_obj=subplot)
+        minformatter = TimeSeries_DateFormatter(freq, dynamic_mode=True,
+                                                minor_locator=True,
+                                                plot_obj=subplot)
+        subplot.xaxis.set_major_formatter(majformatter)
+        subplot.xaxis.set_minor_formatter(minformatter)
+
+        # x and y coord info
+        subplot.format_coord = lambda t, y: (
+            "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
+
+    elif isinstance(index, TimedeltaIndex):
+        subplot.xaxis.set_major_formatter(
+            TimeSeries_TimedeltaFormatter())
+    else:
+        raise TypeError('index type not supported')
 
     pylab.draw_if_interactive()

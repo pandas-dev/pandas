@@ -9,6 +9,7 @@ import numpy as np
 from pandas import Index, Series, DataFrame
 
 from pandas.tseries.index import date_range, bdate_range
+from pandas.tseries.tdi import timedelta_range
 from pandas.tseries.offsets import DateOffset
 from pandas.tseries.period import period_range, Period, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex
@@ -1269,6 +1270,63 @@ class TestTSPlot(TestPlotBase):
 
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         self.plt.plot(values)
+
+    def test_format_timedelta_ticks_narrow(self):
+
+        expected_labels = [
+            '00:00:00.00000000{:d}'.format(i)
+            for i in range(10)]
+
+        rng = timedelta_range('0', periods=10, freq='ns')
+        df = DataFrame(np.random.randn(len(rng), 3), rng)
+        ax = df.plot(fontsize=2)
+        fig = ax.get_figure()
+        fig.canvas.draw()
+        labels = ax.get_xticklabels()
+        self.assertEqual(len(labels), len(expected_labels))
+        for l, l_expected in zip(labels, expected_labels):
+            self.assertEqual(l.get_text(), l_expected)
+
+    def test_format_timedelta_ticks_wide(self):
+
+        expected_labels = [
+            '00:00:00',
+            '1 days 03:46:40',
+            '2 days 07:33:20',
+            '3 days 11:20:00',
+            '4 days 15:06:40',
+            '5 days 18:53:20',
+            '6 days 22:40:00',
+            '8 days 02:26:40',
+            ''
+        ]
+
+        rng = timedelta_range('0', periods=10, freq='1 d')
+        df = DataFrame(np.random.randn(len(rng), 3), rng)
+        ax = df.plot(fontsize=2)
+        fig = ax.get_figure()
+        fig.canvas.draw()
+        labels = ax.get_xticklabels()
+        self.assertEqual(len(labels), len(expected_labels))
+        for l, l_expected in zip(labels, expected_labels):
+            self.assertEqual(l.get_text(), l_expected)
+
+    def test_timedelta_plot(self):
+        # test issue #8711
+        s = Series(range(5), timedelta_range('1day', periods=5))
+        _check_plot_works(s.plot)
+
+        # test long period
+        index = timedelta_range('1 day 2 hr 30 min 10 s',
+                                periods=10, freq='1 d')
+        s = Series(np.random.randn(len(index)), index)
+        _check_plot_works(s.plot)
+
+        # test short period
+        index = timedelta_range('1 day 2 hr 30 min 10 s',
+                                periods=10, freq='1 ns')
+        s = Series(np.random.randn(len(index)), index)
+        _check_plot_works(s.plot)
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
