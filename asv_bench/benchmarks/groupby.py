@@ -492,6 +492,43 @@ class groupby_float32(object):
         self.df.groupby(['a'])['b'].sum()
 
 
+class groupby_categorical(object):
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        arr = np.random.random(N)
+
+        self.df = DataFrame(dict(
+            a=Categorical(np.random.randint(10000, size=N)),
+            b=arr))
+        self.df_ordered = DataFrame(dict(
+            a=Categorical(np.random.randint(10000, size=N), ordered=True),
+            b=arr))
+        self.df_extra_cat = DataFrame(dict(
+            a=Categorical(np.random.randint(100, size=N),
+                          categories=np.arange(10000)),
+            b=arr))
+
+    def time_groupby_sort(self):
+        self.df.groupby('a')['b'].count()
+
+    def time_groupby_nosort(self):
+        self.df.groupby('a', sort=False)['b'].count()
+
+    def time_groupby_ordered_sort(self):
+        self.df_ordered.groupby('a')['b'].count()
+
+    def time_groupby_ordered_nosort(self):
+        self.df_ordered.groupby('a', sort=False)['b'].count()
+
+    def time_groupby_extra_cat_sort(self):
+        self.df_extra_cat.groupby('a')['b'].count()
+
+    def time_groupby_extra_cat_nosort(self):
+        self.df_extra_cat.groupby('a', sort=False)['b'].count()
+
+
 class groupby_period(object):
     # GH 14338
     goal_time = 0.2
